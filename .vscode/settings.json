@@ -1,0 +1,39 @@
+{
+  // ============================================================================
+  // VS CODE WORKSPACE SETTINGS FOR BAND ROADIE
+  // ============================================================================
+  //
+  // ⚠️  PATH CASING NOTE:
+  // The actual project folder on disk is lowercase: bandroadie
+  // Ensure any path references in configurations match this casing.
+  // ============================================================================
+
+  // Dart/Flutter settings
+  "dart.flutterSdkPath": null,
+  "dart.debugExternalPackageLibraries": false,
+  "dart.debugSdkLibraries": false,
+
+  // Editor settings for Dart
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [80, 120],
+    "editor.selectionHighlight": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  },
+
+  // File associations
+  "files.associations": {
+    "*.arb": "json"
+  },
+
+  // Search exclusions
+  "search.exclude": {
+    "**/build": true,
+    "**/.dart_tool": true,
+    "**/ios/Pods": true,
+    "**/macos/Pods": true
+  }
+}

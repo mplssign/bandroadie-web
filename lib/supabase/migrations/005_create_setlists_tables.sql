@@ -1,0 +1,207 @@
+-- Create tuning enum
+CREATE TYPE tuning_type AS ENUM ('standard', 'drop_d', 'half_step', 'full_step');
+
+-- Songs table
+CREATE TABLE public.songs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL,
+  is_live BOOLEAN DEFAULT FALSE,
+  bpm INTEGER,
+  tuning tuning_type DEFAULT 'standard',
+  duration_seconds INTEGER,
+  musicbrainz_id TEXT,
+  spotify_id TEXT,
+  deezer_id TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  -- Ensure unique song per title/artist combination
+  UNIQUE(title, artist)
+);
+
+-- Setlists table
+CREATE TABLE public.setlists (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  band_id UUID REFERENCES public.bands(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  total_duration INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Setlist songs junction table
+CREATE TABLE public.setlist_songs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  setlist_id UUID REFERENCES public.setlists(id) ON DELETE CASCADE NOT NULL,
+  song_id UUID REFERENCES public.songs(id) ON DELETE CASCADE NOT NULL,
+  position INTEGER NOT NULL,
+  bpm INTEGER,
+  tuning tuning_type DEFAULT 'standard',
+  duration_seconds INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  -- Ensure unique position per setlist
+  UNIQUE(setlist_id, position),
+  -- Ensure unique song per setlist
+  UNIQUE(setlist_id, song_id)
+);
+
+-- Create indexes
+CREATE INDEX idx_songs_title_artist ON public.songs(title, artist);
+CREATE INDEX idx_songs_bpm ON public.songs(bpm);
+CREATE INDEX idx_setlists_band_id ON public.setlists(band_id);
+CREATE INDEX idx_setlist_songs_setlist_id ON public.setlist_songs(setlist_id);
+CREATE INDEX idx_setlist_songs_song_id ON public.setlist_songs(song_id);
+CREATE INDEX idx_setlist_songs_position ON public.setlist_songs(setlist_id, position);
+
+-- Enable RLS
+ALTER TABLE public.songs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.setlists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.setlist_songs ENABLE ROW LEVEL SECURITY;
+
+-- Songs policies (songs are global but readable by all authenticated users)
+CREATE POLICY "Songs are viewable by authenticated users" ON public.songs
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Songs can be created by authenticated users" ON public.songs
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Setlists policies (only band members can access)
+CREATE POLICY "Band members can view setlists" ON public.setlists
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.band_members 
+      WHERE band_id = setlists.band_id 
+      AND user_id = auth.uid() 
+      AND is_active = true
+    )
+  );
+
+CREATE POLICY "Band members can create setlists" ON public.setlists
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.band_members 
+      WHERE band_id = setlists.band_id 
+      AND user_id = auth.uid() 
+      AND is_active = true
+    )
+  );
+
+CREATE POLICY "Band members can update setlists" ON public.setlists
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.band_members 
+      WHERE band_id = setlists.band_id 
+      AND user_id = auth.uid() 
+      AND is_active = true
+    )
+  );
+
+CREATE POLICY "Band members can delete setlists" ON public.setlists
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.band_members 
+      WHERE band_id = setlists.band_id 
+      AND user_id = auth.uid() 
+      AND is_active = true
+    )
+  );
+
+-- Setlist songs policies (inherit from setlist access)
+CREATE POLICY "Users can view setlist songs if they can view the setlist" ON public.setlist_songs
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.setlists s
+      JOIN public.band_members bm ON s.band_id = bm.band_id
+      WHERE s.id = setlist_songs.setlist_id 
+      AND bm.user_id = auth.uid() 
+      AND bm.is_active = true
+    )
+  );
+
+CREATE POLICY "Users can create setlist songs if they can access the setlist" ON public.setlist_songs
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.setlists s
+      JOIN public.band_members bm ON s.band_id = bm.band_id
+      WHERE s.id = setlist_songs.setlist_id 
+      AND bm.user_id = auth.uid() 
+      AND bm.is_active = true
+    )
+  );
+
+CREATE POLICY "Users can update setlist songs if they can access the setlist" ON public.setlist_songs
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.setlists s
+      JOIN public.band_members bm ON s.band_id = bm.band_id
+      WHERE s.id = setlist_songs.setlist_id 
+      AND bm.user_id = auth.uid() 
+      AND bm.is_active = true
+    )
+  );
+
+CREATE POLICY "Users can delete setlist songs if they can access the setlist" ON public.setlist_songs
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.setlists s
+      JOIN public.band_members bm ON s.band_id = bm.band_id
+      WHERE s.id = setlist_songs.setlist_id 
+      AND bm.user_id = auth.uid() 
+      AND bm.is_active = true
+    )
+  );
+
+-- Function to automatically update setlist total_duration
+CREATE OR REPLACE FUNCTION update_setlist_duration()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE public.setlists 
+  SET total_duration = (
+    SELECT COALESCE(SUM(duration_seconds), 0)
+    FROM public.setlist_songs
+    WHERE setlist_id = COALESCE(NEW.setlist_id, OLD.setlist_id)
+  ),
+  updated_at = NOW()
+  WHERE id = COALESCE(NEW.setlist_id, OLD.setlist_id);
+  
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Triggers to update setlist duration
+CREATE TRIGGER update_setlist_duration_on_insert
+  AFTER INSERT ON public.setlist_songs
+  FOR EACH ROW EXECUTE FUNCTION update_setlist_duration();
+
+CREATE TRIGGER update_setlist_duration_on_update
+  AFTER UPDATE ON public.setlist_songs
+  FOR EACH ROW EXECUTE FUNCTION update_setlist_duration();
+
+CREATE TRIGGER update_setlist_duration_on_delete
+  AFTER DELETE ON public.setlist_songs
+  FOR EACH ROW EXECUTE FUNCTION update_setlist_duration();
+
+-- Function to automatically reorder positions when songs are added/removed
+CREATE OR REPLACE FUNCTION reorder_setlist_positions()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Reorder positions to be sequential starting from 1
+  WITH ordered_songs AS (
+    SELECT id, ROW_NUMBER() OVER (ORDER BY position) as new_position
+    FROM public.setlist_songs
+    WHERE setlist_id = COALESCE(NEW.setlist_id, OLD.setlist_id)
+  )
+  UPDATE public.setlist_songs
+  SET position = ordered_songs.new_position
+  FROM ordered_songs
+  WHERE public.setlist_songs.id = ordered_songs.id;
+  
+  RETURN COALESCE(NEW, OLD);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to reorder positions after delete
+CREATE TRIGGER reorder_setlist_positions_on_delete
+  AFTER DELETE ON public.setlist_songs
+  FOR EACH ROW EXECUTE FUNCTION reorder_setlist_positions();
