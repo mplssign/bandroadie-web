@@ -29,7 +29,6 @@ Thumbs.db
 .packages
 .pub/
 .pub-cache/
-build/
 coverage/
 .flutter-versions
 
@@ -81,7 +80,10 @@ supabase/.temp/
 supabase/.branches/
 
 # ========================
-# Build artifacts
+# Build artifacts (Flutter)
 # ========================
+build/*
+!build/web/
+!build/web/**
 app.*.symbols
 app.*.map.json
