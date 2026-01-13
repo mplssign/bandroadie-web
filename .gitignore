@@ -1,43 +1,87 @@
-# Environment & secrets
+# ========================
+# OS / Editor junk
+# ========================
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+*.lock
+
+.idea/
+*.iml
+.vscode/
+!.vscode/launch.template.json
+
+# ========================
+# Environment / secrets
+# ========================
 .env
+.env.*
+*.pem
+*.key
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Vercel
-.vercel/
-
+# ========================
 # Flutter / Dart
+# ========================
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub/
 .pub-cache/
 build/
 coverage/
 .flutter-versions
 
-# IDEs
-.idea/
-.vscode/
-*.iml
-.DS_Store
+# Generated
+**/generated_plugin_registrant.dart
 
+# ========================
 # Android
+# ========================
 android/.gradle/
 android/local.properties
+android/key.properties
+android/**/build/
 *.jks
 
+# ========================
 # iOS / macOS
+# ========================
 ios/Pods/
+ios/.symlinks/
 ios/Flutter/ephemeral/
-ios/Runner.xcworkspace/xcuserdata/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner.xcworkspace/xcuserdata
+ios/**/xcuserdata
 macos/Pods/
 macos/Flutter/ephemeral/
 
-# Windows/Linux
+# ========================
+# Web / Node / Vercel
+# ========================
+node_modules/
+.vercel/
+dist/
+.tmp/
+
+# ========================
+# Windows / Linux
+# ========================
 windows/flutter/ephemeral/
 linux/flutter/ephemeral/
+
+# ========================
+# Supabase local junk
+# ========================
+supabase/.temp/
+supabase/.branches/
+
+# ========================
+# Build artifacts
+# ========================
+app.*.symbols
+app.*.map.json
