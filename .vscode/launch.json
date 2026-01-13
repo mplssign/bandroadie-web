@@ -1,0 +1,67 @@
+{
+  // ============================================================================
+  // LAUNCH CONFIGURATION FOR BAND ROADIE
+  // ============================================================================
+  //
+  // ⚠️  PATH CASING WARNING:
+  // The 'cwd' path MUST exactly match the folder casing on disk.
+  // macOS is case-insensitive but the debugger can report mismatches.
+  //
+  // Actual folder on disk: /Users/tonyholmes/Documents/Apps/bandroadie
+  // If you see casing mismatch warnings, verify the path matches disk exactly.
+  //
+  // To check the actual casing, run in terminal:
+  //   ls -la /Users/tonyholmes/Documents/Apps/ | grep -i bandroadie
+  // ============================================================================
+
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "bandroadie (debug)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "/Users/tonyholmes/Documents/Apps/bandroadie",
+      "program": "lib/main.dart"
+    },
+    {
+      "name": "bandroadie (profile)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "/Users/tonyholmes/Documents/Apps/bandroadie",
+      "program": "lib/main.dart",
+      "flutterMode": "profile"
+    },
+    {
+      "name": "bandroadie (release)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "/Users/tonyholmes/Documents/Apps/bandroadie",
+      "program": "lib/main.dart",
+      "flutterMode": "release"
+    },
+    {
+      "name": "bandroadie (macOS)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "/Users/tonyholmes/Documents/Apps/bandroadie",
+      "program": "lib/main.dart",
+      "deviceId": "macos"
+    },
+    {
+      "name": "bandroadie (Chrome)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "/Users/tonyholmes/Documents/Apps/bandroadie",
+      "program": "lib/main.dart",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "bandroadie (iOS Simulator)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "/Users/tonyholmes/Documents/Apps/bandroadie",
+      "program": "lib/main.dart",
+      "deviceId": "iPhone"
+    }
+  ]
+}

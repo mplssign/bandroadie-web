@@ -3,7 +3,7 @@
 Band Roadie is a mobile app for managing the real-life logistics of being in a band —
 gigs, rehearsals, setlists, calendars, and members — without the chaos.
 
-Built by a musician who got tired of group texts, spreadsheets, and
+Built by a musician who got tired of group texts, spreadsheets, and  
 “wait, what key is this in?”
 
 ---
@@ -44,11 +44,14 @@ Built by a musician who got tired of group texts, spreadsheets, and
    - Project URL
    - anon public key
 
-### Run with runtime configuration
-Supabase credentials are passed at runtime using `--dart-define`.
-Never hardcode secrets.
+---
 
-#### iOS Simulator
+## Run with Runtime Configuration
+
+Supabase credentials are passed at runtime using `--dart-define`.  
+**Never hardcode secrets.**
+
+### iOS Simulator
 ```bash
 flutter run -d "iPhone" \
   --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
@@ -93,7 +96,7 @@ bandroadie://login-callback
 
 In Supabase:
 	•	Authentication → URL Configuration
-	•	Add the above to Redirect URLs
+	•	Add the above URL to Redirect URLs
 
 ⸻
 
