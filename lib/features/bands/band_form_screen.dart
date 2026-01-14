@@ -167,6 +167,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       _initialAvatarColor = band.avatarColor;
       _initialImageUrl = band.imageUrl;
 
+      // Initialize draft band state for real-time header preview
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(draftBandProvider.notifier).startEditing(band);
+      });
+
       // Initialize hint as hidden since field has content
       _bandNameHintController.initialize(hasInitialValue: true);
 
@@ -190,6 +195,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
   @override
   void dispose() {
+    // Clear draft state if user navigates away without saving
+    if (_isEditMode) {
+      // Use addPostFrameCallback to avoid modifying provider during dispose
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(draftBandProvider.notifier).cancelEditing();
+      });
+    }
     // Remove listener before disposing controller
     _bandNameController.removeListener(_onBandNameChanged);
     _bandNameController.removeListener(_onBandNameTextChange);
@@ -204,8 +216,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     super.dispose();
   }
 
-  /// Called when band name text changes - updates local avatar preview only
-  /// Header avatar is NOT updated - it only updates after successful save
+  /// Called when band name text changes - updates both local and header avatar preview
   void _onBandNameChanged() {
     // Only rebuild if showing generated avatar (no custom image)
     // If user has a local image or network image, don't override the avatar
@@ -219,6 +230,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         '[BandAvatarPreview] name="$currentName" initials="$initials"',
       );
       setState(() {});
+
+      // Update draft state for header avatar preview in edit mode
+      if (_isEditMode) {
+        ref.read(draftBandProvider.notifier).updateName(currentName);
+      }
     }
   }
 
@@ -457,6 +473,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         updatedAt: now,
       );
       ref.read(activeBandProvider.notifier).updateActiveBand(updatedBand);
+
+      // Clear draft state since changes are now saved
+      ref.read(draftBandProvider.notifier).finishEditing();
 
       if (mounted) {
         showSuccessSnackBar(
@@ -1312,6 +1331,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       });
       HapticFeedback.lightImpact();
 
+      // Update draft state for instant header preview
+      if (_isEditMode) {
+        ref.read(draftBandProvider.notifier).setLocalImageFile(imageFile);
+      }
+
       // Upload immediately for better UX
       final uploadedUrl = await _uploadImageToStorage(imageFile);
 
@@ -1320,6 +1344,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           _uploadedImageUrl = uploadedUrl;
           _isUploadingImage = false;
         });
+
+        // Update draft state with uploaded URL for header preview
+        if (_isEditMode && uploadedUrl != null) {
+          ref.read(draftBandProvider.notifier).updateImageUrl(uploadedUrl);
+        }
 
         if (uploadedUrl != null) {
           showSuccessSnackBar(context, message: 'Image uploaded successfully');
@@ -1771,6 +1800,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                             _selectedImage = null;
                             _uploadedImageUrl = null;
                           });
+                          // Update draft state for header avatar preview
+                          if (_isEditMode) {
+                            ref
+                                .read(draftBandProvider.notifier)
+                                .updateAvatarColor(colorOption.tailwindClass);
+                          }
                           HapticFeedback.selectionClick();
                         },
                         child: AnimatedContainer(

@@ -100,12 +100,13 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
   }
 
   /// Update draft avatar color
+  /// Note: This clears the imageUrl since selecting a color means using initials-based avatar
   void updateAvatarColor(String avatarColor) {
     if (state.band == null) return;
     final updated = Band(
       id: state.band!.id,
       name: state.band!.name,
-      imageUrl: state.band!.imageUrl,
+      imageUrl: null, // Clear image to show color-based initials avatar
       createdBy: state.band!.createdBy,
       avatarColor: avatarColor,
       createdAt: state.band!.createdAt,
