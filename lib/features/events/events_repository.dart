@@ -68,7 +68,8 @@ class EventsRepository {
   // REHEARSAL OPERATIONS
   // ============================================================================
 
-  /// Create a new rehearsal
+  /// Create a new rehearsal (or multiple for recurring)
+  /// Returns the first created rehearsal
   Future<Rehearsal> createRehearsal({
     required String bandId,
     required EventFormData formData,
@@ -77,31 +78,94 @@ class EventsRepository {
       throw NoBandSelectedError();
     }
 
-    // Recurrence not yet supported in DB schema
-    if (formData.isRecurring) {
-      throw Exception('Recurring events are not yet supported.');
-    }
-
     debugPrint('[EventsRepository] Creating rehearsal for band: $bandId');
 
-    final data = {
-      'band_id': bandId,
-      'date': formData.date.toIso8601String().split('T')[0],
-      'start_time': formData.startTimeDisplay,
-      'end_time': formData.endTimeDisplay,
-      'location': formData.location,
-      'notes': formData.notes,
-      'setlist_id': formData.setlistId,
-    };
+    // Generate all dates for recurring events
+    final dates = _generateRecurringDates(formData);
+    debugPrint(
+      '[EventsRepository] Creating ${dates.length} rehearsal(s) '
+      '(recurring: ${formData.isRecurring})',
+    );
 
-    final response = await supabase
-        .from('rehearsals')
-        .insert(data)
-        .select()
-        .single();
+    Rehearsal? firstRehearsal;
+
+    for (final date in dates) {
+      final data = {
+        'band_id': bandId,
+        'date': date.toIso8601String().split('T')[0],
+        'start_time': formData.startTimeDisplay,
+        'end_time': formData.endTimeDisplay,
+        'location': formData.location,
+        'notes': formData.notes,
+        'setlist_id': formData.setlistId,
+      };
+
+      final response = await supabase
+          .from('rehearsals')
+          .insert(data)
+          .select()
+          .single();
+
+      firstRehearsal ??= Rehearsal.fromJson(response);
+    }
 
     invalidateCache(bandId);
-    return Rehearsal.fromJson(response);
+    return firstRehearsal!;
+  }
+
+  /// Generate all dates for a recurring event based on recurrence config
+  List<DateTime> _generateRecurringDates(EventFormData formData) {
+    if (!formData.isRecurring || formData.recurrence == null) {
+      return [formData.date];
+    }
+
+    final recurrence = formData.recurrence!;
+    final dates = <DateTime>[];
+
+    // Default end date: 3 months from start if not specified
+    final untilDate =
+        recurrence.untilDate ?? formData.date.add(const Duration(days: 90));
+
+    // Calculate interval based on frequency
+    final weekInterval = switch (recurrence.frequency) {
+      RecurrenceFrequency.weekly => 1,
+      RecurrenceFrequency.biweekly => 2,
+      RecurrenceFrequency.monthly => 4, // Approximate monthly as 4 weeks
+    };
+
+    // Start from the event date
+    var currentWeekStart = _startOfWeek(formData.date);
+
+    // Safety limit to prevent infinite loops
+    const maxIterations = 52; // Max 1 year of weekly events
+    var iterations = 0;
+
+    while (currentWeekStart.isBefore(untilDate) && iterations < maxIterations) {
+      // Check each selected day of the week
+      for (final day in recurrence.daysOfWeek) {
+        final dateForDay = currentWeekStart.add(Duration(days: day.dayIndex));
+
+        // Only include dates from the start date onwards and before until date
+        if (!dateForDay.isBefore(formData.date) &&
+            !dateForDay.isAfter(untilDate)) {
+          dates.add(dateForDay);
+        }
+      }
+
+      // Move to next interval
+      currentWeekStart = currentWeekStart.add(Duration(days: 7 * weekInterval));
+      iterations++;
+    }
+
+    // Sort dates and return
+    dates.sort();
+    return dates.isEmpty ? [formData.date] : dates;
+  }
+
+  /// Get start of week (Sunday) for a given date
+  DateTime _startOfWeek(DateTime date) {
+    final daysSinceSunday = date.weekday % 7;
+    return DateTime(date.year, date.month, date.day - daysSinceSunday);
   }
 
   /// Update an existing rehearsal

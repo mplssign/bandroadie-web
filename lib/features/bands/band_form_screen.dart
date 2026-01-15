@@ -440,12 +440,20 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       final band = widget.initialBand!;
       final bandName = _bandNameController.text.trim();
 
-      // Upload new image if selected
+      // Upload new image if selected and not already uploaded
       String? imageUrl = _uploadedImageUrl;
-      if (_selectedImage != null) {
+      if (_selectedImage != null && imageUrl == null) {
         final newUrl = await _uploadImageToStorage(_selectedImage!);
         if (newUrl != null) {
           imageUrl = newUrl;
+        } else {
+          // Upload failed and we don't have a URL - show error
+          debugPrint('[UpdateBand] Image upload failed');
+          if (mounted) {
+            setState(() => _isSubmitting = false);
+            showErrorSnackBar(context, message: 'Failed to upload image');
+          }
+          return;
         }
       }
 
