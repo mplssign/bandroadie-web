@@ -1784,24 +1784,33 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     if (index == 0) {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceDark,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.borderMuted,
-                                width: 1,
+                        child: Tooltip(
+                          message: 'Image upload is temporarily unavailable',
+                          child: GestureDetector(
+                            onTap: () {
+                              showAppSnackBar(
+                                context,
+                                message: '🎸 Image upload is temporarily unavailable. Coming soon!',
+                                backgroundColor: AppColors.warning,
+                              );
+                            },
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceDark.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.borderMuted.withValues(alpha: 0.5),
+                                  width: 1,
+                                ),
                               ),
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.upload_rounded,
-                                color: AppColors.textPrimary,
-                                size: 16,
+                              child: Center(
+                                child: Icon(
+                                  Icons.upload_rounded,
+                                  color: AppColors.textPrimary.withValues(alpha: 0.5),
+                                  size: 16,
+                                ),
                               ),
                             ),
                           ),
@@ -1865,7 +1874,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               ),
               const SizedBox(height: Spacing.space8),
               const Text(
-                'Upload an image or choose a color for your band avatar.',
+                'Choose a color for your band avatar. (Image upload coming soon)',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,

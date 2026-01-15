@@ -26,6 +26,11 @@ class SongUpdateEvent {
   final String? tuning;
   final DateTime timestamp;
 
+  /// Flags to indicate which fields should be cleared to null
+  /// (needed because null means "no change" by default)
+  final bool clearBpm;
+  final bool clearNotes;
+
   SongUpdateEvent({
     required this.songId,
     this.title,
@@ -34,6 +39,8 @@ class SongUpdateEvent {
     this.durationSeconds,
     this.notes,
     this.tuning,
+    this.clearBpm = false,
+    this.clearNotes = false,
   }) : timestamp = DateTime.now();
 }
 
@@ -47,9 +54,9 @@ class SongUpdateBroadcaster extends Notifier<SongUpdateEvent?> {
     state = event;
   }
 
-  /// Clear bpm for a song (broadcasts bpm = null)
+  /// Clear bpm for a song (broadcasts with clearBpm flag)
   void broadcastBpmCleared(String songId) {
-    state = SongUpdateEvent(songId: songId, bpm: 0); // 0 signals "cleared"
+    state = SongUpdateEvent(songId: songId, clearBpm: true);
   }
 }
 
@@ -249,7 +256,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     final updatedSongs = List<SetlistSong>.from(state.songs);
     final song = updatedSongs[songIndex];
 
-    // Apply the updates
+    // Apply the updates using explicit clear flags
     updatedSongs[songIndex] = song.copyWith(
       title: event.title ?? song.title,
       artist: event.artist ?? song.artist,
@@ -257,7 +264,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       durationSeconds: event.durationSeconds ?? song.durationSeconds,
       notes: event.notes ?? song.notes,
       tuning: event.tuning ?? song.tuning,
-      clearBpm: event.bpm == 0, // 0 signals "cleared"
+      clearBpm: event.clearBpm,
+      clearNotes: event.clearNotes,
     );
 
     state = state.copyWith(songs: updatedSongs);

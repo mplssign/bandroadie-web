@@ -552,7 +552,8 @@ class SetlistRepository {
               bpm,
               duration_seconds,
               tuning,
-              album_artwork
+              album_artwork,
+              notes
             )
           ''')
           .eq('setlist_id', setlistId)
@@ -1382,7 +1383,7 @@ class SetlistRepository {
   }
 
   /// Clears the BPM for a song globally (syncs across all setlists).
-  /// Uses RPC with SECURITY DEFINER to bypass RLS.
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
   Future<void> clearSongBpmOverride({
     required String bandId,
     required String setlistId,
@@ -1400,12 +1401,40 @@ class SetlistRepository {
     );
 
     try {
-      // Use RPC with SECURITY DEFINER - pass 0 for BPM to signal clearing
-      // The RPC uses COALESCE so we need a different approach for clearing
-      // Fall back to direct update for clearing
-      await supabase.from('songs').update({'bpm': null}).eq('id', songId);
+      // Use clear_song_metadata RPC with SECURITY DEFINER to bypass RLS
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_bpm': true,
+        },
+      );
 
-      debugPrint('[SetlistRepository] ✓ Cleared BPM for song $songId (global)');
+      // Check RPC result
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        debugPrint('[SetlistRepository] RPC returned error: $error');
+        throw Exception(error);
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Cleared BPM for song $songId (global via RPC)',
+      );
+    } on PostgrestException catch (e) {
+      // RPC may not exist - fall back to direct update
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] clear_song_metadata RPC not found, falling back to direct update',
+        );
+        await supabase.from('songs').update({'bpm': null}).eq('id', songId);
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared BPM for song $songId (direct fallback)',
+        );
+        return;
+      }
+      debugPrint('[SetlistRepository] Error clearing song BPM: $e');
+      rethrow;
     } catch (e) {
       debugPrint('[SetlistRepository] Error clearing song BPM: $e');
       rethrow;

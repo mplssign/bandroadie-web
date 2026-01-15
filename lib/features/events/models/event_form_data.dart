@@ -39,6 +39,15 @@ enum RecurrenceFrequency {
         return 'Monthly';
     }
   }
+
+  /// Create from database string value
+  static RecurrenceFrequency? fromString(String? value) {
+    if (value == null) return null;
+    return RecurrenceFrequency.values.firstWhere(
+      (f) => f.name == value,
+      orElse: () => RecurrenceFrequency.weekly,
+    );
+  }
 }
 
 /// Duration options (in minutes)
@@ -434,6 +443,22 @@ class EventFormData {
     final parsed = _parseTime(rehearsal.startTime);
     final duration = _inferDuration(rehearsal.startTime, rehearsal.endTime);
 
+    // Build recurrence config if this is a recurring rehearsal
+    RecurrenceConfig? recurrence;
+    if (rehearsal.isRecurring && rehearsal.recurrenceDays != null) {
+      final days = rehearsal.recurrenceDays!
+          .map((index) => Weekday.values.firstWhere((w) => w.dayIndex == index))
+          .toSet();
+      final frequency =
+          RecurrenceFrequency.fromString(rehearsal.recurrenceFrequency) ??
+              RecurrenceFrequency.weekly;
+      recurrence = RecurrenceConfig(
+        daysOfWeek: days,
+        frequency: frequency,
+        untilDate: rehearsal.recurrenceUntil,
+      );
+    }
+
     return EventFormData(
       type: EventType.rehearsal,
       date: rehearsal.date,
@@ -444,8 +469,8 @@ class EventFormData {
       location: rehearsal.location,
       notes: rehearsal.notes,
       name: null,
-      isRecurring: false,
-      recurrence: null,
+      isRecurring: rehearsal.isRecurring,
+      recurrence: recurrence,
       isPotentialGig: false,
       selectedMemberIds: const {},
       setlistId: rehearsal.setlistId,
