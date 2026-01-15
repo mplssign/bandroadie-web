@@ -142,9 +142,9 @@ class EventsRepository {
     final recurrence = formData.recurrence!;
     final dates = <DateTime>[];
 
-    // Default end date: 3 months from start if not specified
+    // Default end date: 1 year from start if not specified (indefinite recurrence)
     final untilDate =
-        recurrence.untilDate ?? formData.date.add(const Duration(days: 90));
+        recurrence.untilDate ?? formData.date.add(const Duration(days: 365));
 
     // Calculate interval based on frequency
     final weekInterval = switch (recurrence.frequency) {
@@ -188,11 +188,17 @@ class EventsRepository {
     return DateTime(date.year, date.month, date.day - daysSinceSunday);
   }
 
-  /// Update an existing rehearsal
+  /// Update an existing rehearsal.
+  ///
+  /// If [wasRecurring] is provided and the rehearsal is transitioning from
+  /// non-recurring to recurring, future events will be generated automatically.
+  /// If transitioning from recurring to non-recurring, all child rehearsals
+  /// in the series will be deleted.
   Future<Rehearsal> updateRehearsal({
     required String rehearsalId,
     required String bandId,
     required EventFormData formData,
+    bool? wasRecurring,
   }) async {
     if (bandId.isEmpty) {
       throw NoBandSelectedError();
@@ -202,6 +208,32 @@ class EventsRepository {
       '[EventsRepository] Updating rehearsal $rehearsalId for band: $bandId',
     );
 
+    // Check if we're transitioning from non-recurring to recurring
+    final isBecomingRecurring = wasRecurring == false && formData.isRecurring;
+    // Check if we're transitioning from recurring to non-recurring
+    final isStoppingRecurring = wasRecurring == true && !formData.isRecurring;
+
+    if (isBecomingRecurring) {
+      // Generate future events for the new recurring series
+      debugPrint(
+        '[EventsRepository] Rehearsal is becoming recurring - generating future events',
+      );
+      return _updateAndGenerateRecurringSeries(
+        rehearsalId: rehearsalId,
+        bandId: bandId,
+        formData: formData,
+      );
+    }
+
+    if (isStoppingRecurring) {
+      // Delete all child rehearsals in the series
+      debugPrint(
+        '[EventsRepository] Rehearsal is stopping recurrence - deleting child rehearsals',
+      );
+      await _deleteChildRehearsals(rehearsalId: rehearsalId, bandId: bandId);
+    }
+
+    // Standard update (no recurrence generation needed)
     final data = {
       'date': formData.date.toIso8601String().split('T')[0],
       'start_time': formData.startTimeDisplay,
@@ -233,6 +265,109 @@ class EventsRepository {
 
     invalidateCache(bandId);
     return Rehearsal.fromJson(response);
+  }
+
+  /// Delete all child rehearsals that belong to a recurring series.
+  Future<void> _deleteChildRehearsals({
+    required String rehearsalId,
+    required String bandId,
+  }) async {
+    await supabase
+        .from('rehearsals')
+        .delete()
+        .eq('parent_rehearsal_id', rehearsalId)
+        .eq('band_id', bandId);
+
+    debugPrint(
+      '[EventsRepository] Deleted child rehearsals for parent $rehearsalId',
+    );
+  }
+
+  /// Update a rehearsal and generate future recurring events.
+  /// The original rehearsal becomes the parent of the series.
+  Future<Rehearsal> _updateAndGenerateRecurringSeries({
+    required String rehearsalId,
+    required String bandId,
+    required EventFormData formData,
+  }) async {
+    // Generate all dates for the recurring series
+    final dates = _generateRecurringDates(formData);
+    debugPrint(
+      '[EventsRepository] Generating ${dates.length} rehearsal(s) for recurring series',
+    );
+
+    // Update the original rehearsal (becomes the parent)
+    final parentData = {
+      'date': formData.date.toIso8601String().split('T')[0],
+      'start_time': formData.startTimeDisplay,
+      'end_time': formData.endTimeDisplay,
+      'location': formData.location,
+      'notes': formData.notes,
+      'setlist_id': formData.setlistId,
+      'is_recurring': true,
+      'recurrence_frequency': formData.recurrence?.frequency.name,
+      'recurrence_days': formData.recurrence?.daysOfWeek
+          .map((d) => d.dayIndex)
+          .toList(),
+      'recurrence_until': formData.recurrence?.untilDate
+          ?.toIso8601String()
+          .split('T')[0],
+      'parent_rehearsal_id': null, // Parent has no parent
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    final response = await supabase
+        .from('rehearsals')
+        .update(parentData)
+        .eq('id', rehearsalId)
+        .eq('band_id', bandId)
+        .select()
+        .single();
+
+    final parentRehearsal = Rehearsal.fromJson(response);
+
+    // Create child rehearsals for remaining dates (skip the first date which is the parent)
+    for (var i = 1; i < dates.length; i++) {
+      final date = dates[i];
+
+      // Skip if this date is the same as the parent's date
+      if (_isSameDay(date, formData.date)) {
+        continue;
+      }
+
+      final childData = {
+        'band_id': bandId,
+        'date': date.toIso8601String().split('T')[0],
+        'start_time': formData.startTimeDisplay,
+        'end_time': formData.endTimeDisplay,
+        'location': formData.location,
+        'notes': formData.notes,
+        'setlist_id': formData.setlistId,
+        'is_recurring': true,
+        'recurrence_frequency': formData.recurrence?.frequency.name,
+        'recurrence_days': formData.recurrence?.daysOfWeek
+            .map((d) => d.dayIndex)
+            .toList(),
+        'recurrence_until': formData.recurrence?.untilDate
+            ?.toIso8601String()
+            .split('T')[0],
+        'parent_rehearsal_id': rehearsalId, // Link to parent
+      };
+
+      await supabase.from('rehearsals').insert(childData);
+    }
+
+    debugPrint(
+      '[EventsRepository] Created ${dates.length - 1} additional rehearsal(s) in series',
+    );
+
+    invalidateCache(bandId);
+    return parentRehearsal;
+  }
+
+  /// Check if two dates are the same day
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   /// Fetch rehearsals for a month (with caching)
@@ -501,7 +636,8 @@ class EventsRepository {
   // DELETE OPERATIONS
   // ============================================================================
 
-  /// Delete a rehearsal by ID
+  /// Delete a rehearsal by ID.
+  /// This only deletes the single rehearsal, not the entire series.
   Future<void> deleteRehearsal({
     required String rehearsalId,
     required String bandId,
@@ -519,6 +655,152 @@ class EventsRepository {
         .delete()
         .eq('id', rehearsalId)
         .eq('band_id', bandId);
+
+    invalidateCache(bandId);
+  }
+
+  /// Delete an entire recurring series.
+  /// Strategy:
+  /// 1. First try parent-child links (for properly linked series)
+  /// 2. Fall back to pattern matching (same time, location, recurring flag)
+  ///    for legacy data without parent_rehearsal_id
+  Future<void> deleteRehearsalSeries({
+    required String rehearsalId,
+    required String bandId,
+    String? parentRehearsalId,
+  }) async {
+    if (bandId.isEmpty) {
+      throw NoBandSelectedError();
+    }
+
+    debugPrint(
+      '[EventsRepository] deleteRehearsalSeries called:\n'
+      '  rehearsalId: $rehearsalId\n'
+      '  parentRehearsalId param: $parentRehearsalId',
+    );
+
+    // First, fetch the rehearsal we're deleting to get its properties
+    final rehearsalResult = await supabase
+        .from('rehearsals')
+        .select()
+        .eq('id', rehearsalId)
+        .eq('band_id', bandId)
+        .maybeSingle();
+
+    if (rehearsalResult == null) {
+      debugPrint('[EventsRepository] Rehearsal not found, nothing to delete');
+      return;
+    }
+
+    final startTime = rehearsalResult['start_time'] as String;
+    final endTime = rehearsalResult['end_time'] as String;
+    final location = rehearsalResult['location'] as String;
+    final rehearsalDate = DateTime.parse(rehearsalResult['date'] as String);
+
+    debugPrint(
+      '[EventsRepository] Rehearsal details:\n'
+      '  startTime: $startTime\n'
+      '  endTime: $endTime\n'
+      '  location: $location\n'
+      '  date: $rehearsalDate',
+    );
+
+    // Strategy 1: Try parent-child links
+    String? seriesParentId = parentRehearsalId;
+
+    if (seriesParentId == null) {
+      // Check if this rehearsal has children
+      final childrenResult = await supabase
+          .from('rehearsals')
+          .select('id')
+          .eq('parent_rehearsal_id', rehearsalId)
+          .eq('band_id', bandId);
+
+      if (childrenResult.isNotEmpty) {
+        seriesParentId = rehearsalId;
+        debugPrint(
+          '[EventsRepository] Found ${childrenResult.length} children via parent_rehearsal_id',
+        );
+      }
+    }
+
+    if (seriesParentId != null) {
+      // Delete using parent-child relationship
+      debugPrint('[EventsRepository] Deleting series via parent-child link');
+
+      await supabase
+          .from('rehearsals')
+          .delete()
+          .eq('parent_rehearsal_id', seriesParentId)
+          .eq('band_id', bandId);
+
+      await supabase
+          .from('rehearsals')
+          .delete()
+          .eq('id', seriesParentId)
+          .eq('band_id', bandId);
+
+      if (rehearsalId != seriesParentId) {
+        await supabase
+            .from('rehearsals')
+            .delete()
+            .eq('id', rehearsalId)
+            .eq('band_id', bandId);
+      }
+
+      invalidateCache(bandId);
+      return;
+    }
+
+    // Strategy 2: Pattern matching for legacy data
+    // Find all recurring rehearsals with same time, location, and day of week
+    debugPrint(
+      '[EventsRepository] No parent-child link found, using pattern matching',
+    );
+
+    // Get all recurring rehearsals for this band with same time/location
+    final matchingRehearsals = await supabase
+        .from('rehearsals')
+        .select('id, date')
+        .eq('band_id', bandId)
+        .eq('is_recurring', true)
+        .eq('start_time', startTime)
+        .eq('end_time', endTime)
+        .eq('location', location)
+        .gte('date', DateTime.now().toIso8601String().split('T')[0]);
+
+    debugPrint(
+      '[EventsRepository] Found ${matchingRehearsals.length} matching recurring rehearsals',
+    );
+
+    // Filter to same day of week as the clicked rehearsal
+    final clickedDayOfWeek = rehearsalDate.weekday; // 1=Mon, 7=Sun
+    final idsToDelete = <String>[];
+
+    for (final r in matchingRehearsals) {
+      final rDate = DateTime.parse(r['date'] as String);
+      if (rDate.weekday == clickedDayOfWeek) {
+        idsToDelete.add(r['id'] as String);
+      }
+    }
+
+    // Always include the clicked rehearsal (even if it's in the past)
+    if (!idsToDelete.contains(rehearsalId)) {
+      idsToDelete.add(rehearsalId);
+    }
+
+    debugPrint(
+      '[EventsRepository] Deleting ${idsToDelete.length} rehearsals matching pattern',
+    );
+
+    // Delete all matching rehearsals
+    if (idsToDelete.isNotEmpty) {
+      await supabase
+          .from('rehearsals')
+          .delete()
+          .inFilter('id', idsToDelete)
+          .eq('band_id', bandId);
+    }
 
     invalidateCache(bandId);
   }

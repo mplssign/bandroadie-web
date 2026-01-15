@@ -449,6 +449,18 @@ RESEND_API_KEY=            # Resend email API key (Edge Functions)
 - **Solution:** Created `update_song_metadata` and `clear_song_metadata` PostgreSQL functions with SECURITY DEFINER
 - **Migration:** `064_update_song_metadata_rpc.sql`
 
+#### Song Metadata Save Failure (PGRST203) Fix
+- **Problem:** Song metadata edits (BPM, Duration, Tuning, Notes, Title/Artist) failed with Supabase error `PGRST203: "Could not choose the best candidate function"`
+- **Root Cause:** Multiple overloaded versions of `update_song_metadata()` existed in the database with different parameter counts (5, 6, 7, and 8 parameters), causing PostgREST to fail to resolve which function to call
+- **Solution:**
+  1. Updated all 6 RPC calls in `setlist_repository.dart` to explicitly pass all 8 parameters (using `null` for unused fields)
+  2. Created migration `078_drop_old_update_song_metadata_overloads.sql` to drop old function overloads
+  3. Kept single 8-parameter `update_song_metadata(UUID, UUID, INTEGER, INTEGER, TEXT, TEXT, TEXT, TEXT)` function
+- **Key Insight:** Supabase PostgREST cannot resolve function overloads when called with partial parameter lists, even if parameters have DEFAULT values. Must pass all parameters explicitly.
+- **Files Modified:**
+  - `lib/features/setlists/setlist_repository.dart` - Updated methods: `updateSongBpmOverride()`, `updateSongDurationOverride()`, `updateSongTuningOverride()`, `updateSongNotes()`, `updateSongTitleArtist()`, Spotify BPM enrichment
+- **Migration:** `lib/supabase/migrations/078_drop_old_update_song_metadata_overloads.sql`
+
 #### Standard Sort Mode Fix
 - **Problem:** "Standard" tuning sort mode was sorting songs instead of preserving user's custom order
 - **Solution:** Standard mode now returns songs in their database position order (user's custom order)
@@ -629,6 +641,7 @@ Another Artist                    - BPM • Drop D
 | `068_ensure_catalog_setlist_rpc_standalone.sql` | Catalog setlist support (columns, RPC, triggers) |
 | `069_fix_rls_remove_is_active.sql` | Fix RLS policies removing is_active check |
 | `070_fix_catalog_deletion_cascade.sql` | Allow Catalog deletion on band cascade |
+| `078_drop_old_update_song_metadata_overloads.sql` | Drop old function overloads, keep single 8-parameter version |
 
 ## Support & Documentation
 

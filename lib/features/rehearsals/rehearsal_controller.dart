@@ -138,6 +138,7 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
         allRehearsals: results[0] as List<Rehearsal>,
         upcomingRehearsals: results[1] as List<Rehearsal>,
         nextRehearsal: results[2] as Rehearsal?,
+        clearNextRehearsal: results[2] == null, // Clear if no next rehearsal
         isLoading: false,
         clearError: true,
         loadedBandId: bandId,
