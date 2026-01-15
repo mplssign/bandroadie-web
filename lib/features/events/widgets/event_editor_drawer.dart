@@ -648,20 +648,23 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   void _toggleRecurring(bool value) {
-    // Recurring events are not yet supported in the database
-    if (value) {
-      HapticFeedback.lightImpact();
-      showAppSnackBar(
-        context,
-        message: '🎸 Recurring events coming soon! Stay tuned.',
-      );
-      return; // Don't enable the toggle
-    }
-    // Allow disabling (in case it was somehow enabled)
+    HapticFeedback.lightImpact();
     setState(() {
       _isRecurring = value;
+      // Auto-select the current day of week when enabling
+      if (value && _selectedDays.isEmpty) {
+        final currentDayIndex = _selectedDate.weekday % 7; // Convert to 0=Sun
+        final currentDay = Weekday.values.firstWhere(
+          (d) => d.dayIndex == currentDayIndex,
+        );
+        _selectedDays.add(currentDay);
+      }
     });
-    _recurringAnimController.reverse();
+    if (value) {
+      _recurringAnimController.forward();
+    } else {
+      _recurringAnimController.reverse();
+    }
   }
 
   void _togglePotentialGig(bool value) {
@@ -1971,6 +1974,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           controller: controller,
           enabled: !_isSaving,
           maxLines: maxLines,
+          textInputAction: TextInputAction.done,
           style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
           // Trigger rebuild on text change so _hasChanges is re-evaluated
           // and the Update button enables/disables appropriately.
@@ -2063,6 +2067,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   focusNode: focusNode,
                   enabled: !_isSaving,
                   textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.done,
                   inputFormatters: [TitleCaseTextFormatter()],
                   style: AppTextStyles.callout.copyWith(
                     color: AppColors.textPrimary,
@@ -2192,6 +2197,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   focusNode: focusNode,
                   enabled: !_isSaving,
                   textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.done,
                   inputFormatters: [TitleCaseTextFormatter()],
                   style: AppTextStyles.callout.copyWith(
                     color: AppColors.textPrimary,
@@ -2344,6 +2350,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   focusNode: focusNode,
                   enabled: !_isSaving,
                   textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.done,
                   inputFormatters: [TitleCaseTextFormatter()],
                   style: AppTextStyles.callout.copyWith(
                     color: AppColors.textPrimary,
@@ -3031,31 +3038,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return Row(
       children: [
         Expanded(
-          child: Row(
-            children: [
-              Text(
-                'Make this recurring',
-                style: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted, // Dimmed to indicate unavailable
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'Coming Soon',
-                  style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.accent,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ],
+          child: Text(
+            'Make this recurring',
+            style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
           ),
         ),
         Switch.adaptive(
