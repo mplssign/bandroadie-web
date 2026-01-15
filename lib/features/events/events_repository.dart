@@ -88,8 +88,12 @@ class EventsRepository {
     );
 
     Rehearsal? firstRehearsal;
+    String? parentId;
 
-    for (final date in dates) {
+    for (var i = 0; i < dates.length; i++) {
+      final date = dates[i];
+      final isFirst = i == 0;
+
       final data = {
         'band_id': bandId,
         'date': date.toIso8601String().split('T')[0],
@@ -98,6 +102,19 @@ class EventsRepository {
         'location': formData.location,
         'notes': formData.notes,
         'setlist_id': formData.setlistId,
+        // Recurrence fields - store on all instances for consistency
+        'is_recurring': formData.isRecurring,
+        'recurrence_frequency': formData.isRecurring
+            ? formData.recurrence?.frequency.name
+            : null,
+        'recurrence_days': formData.isRecurring
+            ? formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList()
+            : null,
+        'recurrence_until': formData.isRecurring
+            ? formData.recurrence?.untilDate?.toIso8601String().split('T')[0]
+            : null,
+        // Link child instances to parent (first rehearsal)
+        'parent_rehearsal_id': isFirst ? null : parentId,
       };
 
       final response = await supabase
@@ -106,7 +123,10 @@ class EventsRepository {
           .select()
           .single();
 
-      firstRehearsal ??= Rehearsal.fromJson(response);
+      if (isFirst) {
+        firstRehearsal = Rehearsal.fromJson(response);
+        parentId = firstRehearsal.id;
+      }
     }
 
     invalidateCache(bandId);
@@ -189,6 +209,17 @@ class EventsRepository {
       'location': formData.location,
       'notes': formData.notes,
       'setlist_id': formData.setlistId,
+      // Update recurrence fields
+      'is_recurring': formData.isRecurring,
+      'recurrence_frequency': formData.isRecurring
+          ? formData.recurrence?.frequency.name
+          : null,
+      'recurrence_days': formData.isRecurring
+          ? formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList()
+          : null,
+      'recurrence_until': formData.isRecurring
+          ? formData.recurrence?.untilDate?.toIso8601String().split('T')[0]
+          : null,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
