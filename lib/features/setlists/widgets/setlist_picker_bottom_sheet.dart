@@ -202,6 +202,9 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
         .where((s) => !s.isCatalog)
         .toList();
 
+    // Get keyboard height to push content above keyboard
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return AnimatedBuilder(
       animation: _animController,
       builder: (context, child) {
@@ -210,28 +213,32 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
           child: Opacity(opacity: _fadeAnimation.value, child: child),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            _buildHeader(),
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 100),
+        padding: EdgeInsets.only(bottom: keyboardHeight),
+        child: Container(
+          margin: const EdgeInsets.all(16),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              _buildHeader(),
 
-            // Content (existing setlists or create new)
-            Flexible(
-              child: _isCreatingNew
-                  ? _buildCreateNewForm()
-                  : _buildSetlistList(selectableSetlists),
-            ),
-          ],
+              // Content (existing setlists or create new)
+              Flexible(
+                child: _isCreatingNew
+                    ? _buildCreateNewForm()
+                    : _buildSetlistList(selectableSetlists),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -462,7 +469,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             ],
           ),
 
-          // Bottom padding
+          // Bottom safe area padding (keyboard handled at container level)
           SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
         ],
       ),

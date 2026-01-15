@@ -1530,7 +1530,11 @@ class SetlistRepository {
         '[SetlistRepository] ✓ Updated tuning to $dbTuning for song $songId (global via RPC)',
       );
     } on PostgrestException catch (e) {
-      // RPC may not exist or tuning enum error - fall back to direct update
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // RPC may not exist - fall back to direct update
       if (e.code == 'PGRST202' || e.code == '42883') {
         debugPrint(
           '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
@@ -1545,8 +1549,14 @@ class SetlistRepository {
         return;
       }
 
+      // Check for enum cast error (invalid tuning value)
+      // PostgreSQL returns 22P02 for invalid_text_representation
+      // PostgREST may wrap this as various codes
       final isEnumError =
-          e.code == '400' && e.message.contains('invalid input value for enum');
+          e.message.contains('invalid input value for enum') ||
+          e.message.contains('tuning_type') ||
+          e.code == '22P02' ||
+          e.code == '400';
 
       if (isEnumError && !isLegacySupported) {
         throw Exception(
@@ -2499,8 +2509,8 @@ class SetlistRepository {
       }
 
       response ??= await supabase
-            .from('setlists')
-            .select('''
+          .from('setlists')
+          .select('''
               id,
               name,
               band_id,
@@ -2509,11 +2519,11 @@ class SetlistRepository {
               updated_at,
               setlist_songs(count)
             ''')
-            .eq('band_id', bandId)
-            .or('name.ilike.Catalog,name.ilike.All Songs')
-            .order('created_at', ascending: true)
-            .limit(1)
-            .maybeSingle();
+          .eq('band_id', bandId)
+          .or('name.ilike.Catalog,name.ilike.All Songs')
+          .order('created_at', ascending: true)
+          .limit(1)
+          .maybeSingle();
 
       if (response == null) {
         return null;

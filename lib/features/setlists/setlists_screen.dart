@@ -78,6 +78,9 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
   /// Track the last band ID we loaded for to prevent duplicate loads
   String? _lastLoadedBandId;
 
+  /// Cache the last successfully loaded state
+  SetlistsState? _cachedState;
+
   @override
   SetlistsState build() {
     // Watch the active band - when it changes, refetch setlists
@@ -85,15 +88,26 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
 
     if (bandId == null || bandId.isEmpty) {
       _lastLoadedBandId = null;
+      _cachedState = null;
       return const SetlistsState(error: 'No band selected');
     }
 
     // Only trigger load if band actually changed
     if (bandId != _lastLoadedBandId) {
       _lastLoadedBandId = bandId;
+      _cachedState = null;
       Future.microtask(() => loadSetlists());
+      return const SetlistsState(isLoading: true);
     }
 
+    // Band hasn't changed - return cached state if available
+    // This handles provider invalidation without triggering a reload
+    if (_cachedState != null) {
+      return _cachedState!;
+    }
+
+    // Fallback: trigger a load (shouldn't normally reach here)
+    Future.microtask(() => loadSetlists());
     return const SetlistsState(isLoading: true);
   }
 
@@ -127,19 +141,30 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
         }
       }
 
-      state = state.copyWith(setlists: setlists, isLoading: false);
+      final newState = state.copyWith(setlists: setlists, isLoading: false);
+      state = newState;
+      _cachedState = newState; // Cache for rebuild resilience
     } on SetlistQueryError catch (e) {
-      state = state.copyWith(isLoading: false, error: e.userMessage);
+      final newState = state.copyWith(isLoading: false, error: e.userMessage);
+      state = newState;
+      _cachedState = newState;
     } on NoBandSelectedError {
-      state = state.copyWith(isLoading: false, error: 'No band selected');
+      final newState = state.copyWith(
+        isLoading: false,
+        error: 'No band selected',
+      );
+      state = newState;
+      _cachedState = newState;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[SetlistsNotifier] Error loading setlists: $e');
       }
-      state = state.copyWith(
+      final newState = state.copyWith(
         isLoading: false,
         error: 'Failed to load setlists. Please try again.',
       );
+      state = newState;
+      _cachedState = newState;
     }
   }
 

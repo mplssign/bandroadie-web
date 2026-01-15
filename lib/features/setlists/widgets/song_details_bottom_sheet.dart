@@ -188,23 +188,40 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final durationChanged =
         _currentDurationSeconds != widget.song.durationSeconds;
 
+    final anyChanged =
+        titleChanged ||
+        artistChanged ||
+        notesChanged ||
+        tuningChanged ||
+        bpmChanged ||
+        durationChanged;
+
+    debugPrint(
+      '[SongDetails] _checkForChanges: bpmChanged=$bpmChanged, anyChanged=$anyChanged',
+    );
+
     setState(() {
-      _hasChanges =
-          titleChanged ||
-          artistChanged ||
-          notesChanged ||
-          tuningChanged ||
-          bpmChanged ||
-          durationChanged;
+      _hasChanges = anyChanged;
     });
   }
 
   /// Parse BPM from text field, returns null if empty or invalid
   int? _parseBpm() {
     final text = _bpmController.text.trim();
-    if (text.isEmpty) return null;
+    debugPrint('[SongDetails] _parseBpm: text="$text"');
+    if (text.isEmpty) {
+      debugPrint('[SongDetails] _parseBpm: empty, returning null');
+      return null;
+    }
     final bpm = int.tryParse(text);
-    if (bpm != null && bpm >= 20 && bpm <= 300) return bpm;
+    debugPrint('[SongDetails] _parseBpm: parsed=$bpm');
+    if (bpm != null && bpm >= 20 && bpm <= 300) {
+      debugPrint('[SongDetails] _parseBpm: valid, returning $bpm');
+      return bpm;
+    }
+    debugPrint(
+      '[SongDetails] _parseBpm: out of range or invalid, returning null',
+    );
     return null;
   }
 
@@ -247,12 +264,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
 
   void _handleSave() {
     HapticFeedback.lightImpact();
+    debugPrint('[SongDetails] _handleSave called');
 
     final newTitle = toTitleCase(_titleController.text.trim());
     final newArtist = toTitleCase(_artistController.text.trim());
     final newNotes = _notesController.text.trim();
     final originalTuning = widget.song.tuning ?? 'standard_e';
     final newBpm = _parseBpm();
+
+    debugPrint('[SongDetails] Original song.bpm: ${widget.song.bpm}');
+    debugPrint('[SongDetails] New BPM from input: $newBpm');
 
     // Determine which fields changed
     final titleChanged = newTitle != widget.song.title;
@@ -262,6 +283,11 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final bpmChanged = newBpm != widget.song.bpm;
     final durationChanged =
         _currentDurationSeconds != widget.song.durationSeconds;
+
+    debugPrint(
+      '[SongDetails] bpmChanged: $bpmChanged (newBpm=$newBpm, original=${widget.song.bpm})',
+    );
+    debugPrint('[SongDetails] _hasChanges state: $_hasChanges');
 
     final result = SongDetailsResult(
       title: titleChanged ? newTitle : null,

@@ -1043,13 +1043,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   Future<String?> _uploadImageToStorage(File imageFile) async {
     try {
       final userId = supabase.auth.currentUser?.id;
+      debugPrint('[Upload] User ID: $userId');
       if (userId == null) return null;
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final extension = imageFile.path.split('.').last.toLowerCase();
       final fileName = '$userId/$timestamp.$extension';
+      debugPrint('[Upload] File name: $fileName');
 
       final bytes = await imageFile.readAsBytes();
+      debugPrint('[Upload] Bytes read: ${bytes.length}');
 
       await supabase.storage
           .from('band-avatars')
@@ -1061,10 +1064,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               upsert: true,
             ),
           );
+      debugPrint('[Upload] Upload complete');
 
-      return supabase.storage.from('band-avatars').getPublicUrl(fileName);
+      final url = supabase.storage.from('band-avatars').getPublicUrl(fileName);
+      debugPrint('[Upload] Public URL: $url');
+      return url;
     } catch (e) {
-      debugPrint('Failed to upload image: $e');
+      debugPrint('[Upload] Failed to upload image: $e');
       return null;
     }
   }
@@ -1323,12 +1329,17 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         return;
       }
 
+      debugPrint('[PickImage] Image selected: ${image.path}');
       final imageFile = File(image.path);
+      final fileExists = await imageFile.exists();
+      debugPrint('[PickImage] File exists: $fileExists');
+
       setState(() {
         _selectedImage = imageFile;
         _isUploadingImage = true;
         _uploadedImageUrl = null;
       });
+      debugPrint('[PickImage] State updated, _selectedImage set');
       HapticFeedback.lightImpact();
 
       // Update draft state for instant header preview
@@ -1337,21 +1348,29 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       }
 
       // Upload immediately for better UX
+      debugPrint('[PickImage] Starting upload...');
       final uploadedUrl = await _uploadImageToStorage(imageFile);
+      debugPrint('[PickImage] Upload result: $uploadedUrl');
 
       if (mounted) {
         setState(() {
           _uploadedImageUrl = uploadedUrl;
           _isUploadingImage = false;
         });
+        debugPrint(
+          '[PickImage] State updated after upload, _uploadedImageUrl: $uploadedUrl',
+        );
 
         // Update draft state with uploaded URL for header preview
         if (_isEditMode && uploadedUrl != null) {
           ref.read(draftBandProvider.notifier).updateImageUrl(uploadedUrl);
+          debugPrint('[PickImage] Draft state updated with URL');
         }
 
         if (uploadedUrl != null) {
           showSuccessSnackBar(context, message: 'Image uploaded successfully');
+        } else {
+          showErrorSnackBar(context, message: 'Failed to upload image');
         }
       }
     } on PlatformException catch (e) {

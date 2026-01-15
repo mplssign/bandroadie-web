@@ -120,6 +120,7 @@ class BandAvatar extends StatelessWidget {
               width: size,
               height: size,
               errorBuilder: (context, error, stackTrace) {
+                debugPrint('[BandAvatar] Failed to load local image: $error');
                 return _buildInitials(initials, textSize);
               },
             )
@@ -130,6 +131,7 @@ class BandAvatar extends StatelessWidget {
               width: size,
               height: size,
               errorBuilder: (context, error, stackTrace) {
+                debugPrint('[BandAvatar] Failed to load network image: $error');
                 return _buildInitials(initials, textSize);
               },
               loadingBuilder: (context, child, loadingProgress) {
