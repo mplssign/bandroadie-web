@@ -1347,9 +1347,19 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Pass ALL parameters to avoid function overload ambiguity (PGRST203)
       final result = await supabase.rpc(
         'update_song_metadata',
-        params: {'p_song_id': songId, 'p_band_id': bandId, 'p_bpm': bpm},
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': bpm,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+        },
       );
 
       // Check RPC result
@@ -1404,11 +1414,7 @@ class SetlistRepository {
       // Use clear_song_metadata RPC with SECURITY DEFINER to bypass RLS
       final result = await supabase.rpc(
         'clear_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_clear_bpm': true,
-        },
+        params: {'p_song_id': songId, 'p_band_id': bandId, 'p_clear_bpm': true},
       );
 
       // Check RPC result
@@ -1465,12 +1471,18 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Pass ALL parameters to avoid function overload ambiguity (PGRST203)
       final result = await supabase.rpc(
         'update_song_metadata',
         params: {
           'p_song_id': songId,
           'p_band_id': bandId,
+          'p_bpm': null,
           'p_duration_seconds': durationSeconds,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
         },
       );
 
@@ -1539,12 +1551,18 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Pass ALL parameters to avoid function overload ambiguity (PGRST203)
       final result = await supabase.rpc(
         'update_song_metadata',
         params: {
           'p_song_id': songId,
           'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
           'p_tuning': dbTuning,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
         },
       );
 
@@ -1627,9 +1645,19 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Must pass ALL 8 parameters to avoid PGRST203 function overload ambiguity
       final result = await supabase.rpc(
         'update_song_metadata',
-        params: {'p_song_id': songId, 'p_band_id': bandId, 'p_notes': notes},
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': notes,
+          'p_title': null,
+          'p_artist': null,
+        },
       );
 
       // Check RPC result
@@ -1689,14 +1717,20 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      final params = <String, dynamic>{
-        'p_song_id': songId,
-        'p_band_id': bandId,
-      };
-      if (title != null) params['p_title'] = title;
-      if (artist != null) params['p_artist'] = artist;
-
-      final result = await supabase.rpc('update_song_metadata', params: params);
+      // Must pass ALL 8 parameters to avoid PGRST203 function overload ambiguity
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': title,
+          'p_artist': artist,
+        },
+      );
 
       // Check RPC result
       if (result is Map && result['success'] == false) {
@@ -3504,9 +3538,19 @@ class SetlistRepository {
       }
 
       // Update the song with the BPM
+      // Must pass ALL 8 parameters to avoid PGRST203 function overload ambiguity
       await supabase.rpc(
         'update_song_metadata',
-        params: {'p_song_id': songId, 'p_band_id': bandId, 'p_bpm': bpm},
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': bpm,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+        },
       );
 
       debugPrint('[SetlistRepository] Enriched "$title" with BPM: $bpm');

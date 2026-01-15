@@ -215,6 +215,11 @@ class EventFormData {
   /// Null means no pay specified. 0 means explicitly unpaid.
   final int? gigPayCents;
 
+  // Recurring rehearsal series tracking (rehearsals only)
+  /// Parent rehearsal ID if this is a child in a recurring series.
+  /// Null for non-recurring or parent rehearsals.
+  final String? parentRehearsalId;
+
   const EventFormData({
     required this.type,
     required this.date,
@@ -234,6 +239,7 @@ class EventFormData {
     this.setlistId,
     this.setlistName,
     this.gigPayCents,
+    this.parentRehearsalId,
   });
 
   /// Whether this is a multi-date potential gig
@@ -360,6 +366,7 @@ class EventFormData {
     String? setlistId,
     String? setlistName,
     int? gigPayCents,
+    String? parentRehearsalId,
     bool clearSetlist = false,
     bool clearGigPay = false,
   }) {
@@ -382,6 +389,7 @@ class EventFormData {
       setlistId: clearSetlist ? null : (setlistId ?? this.setlistId),
       setlistName: clearSetlist ? null : (setlistName ?? this.setlistName),
       gigPayCents: clearGigPay ? null : (gigPayCents ?? this.gigPayCents),
+      parentRehearsalId: parentRehearsalId ?? this.parentRehearsalId,
     );
   }
 
@@ -451,7 +459,7 @@ class EventFormData {
           .toSet();
       final frequency =
           RecurrenceFrequency.fromString(rehearsal.recurrenceFrequency) ??
-              RecurrenceFrequency.weekly;
+          RecurrenceFrequency.weekly;
       recurrence = RecurrenceConfig(
         daysOfWeek: days,
         frequency: frequency,
@@ -475,6 +483,7 @@ class EventFormData {
       selectedMemberIds: const {},
       setlistId: rehearsal.setlistId,
       setlistName: null, // Rehearsals don't store setlist name
+      parentRehearsalId: rehearsal.parentRehearsalId,
     );
   }
 

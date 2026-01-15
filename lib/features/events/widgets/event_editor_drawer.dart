@@ -938,6 +938,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             rehearsalId: widget.existingEventId!,
             bandId: widget.bandId,
             formData: formData,
+            // Pass original recurrence state to detect transition to recurring
+            wasRecurring: _initialFormData?.isRecurring,
           );
         } else {
           await repository.updateGig(
@@ -1034,8 +1036,23 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return mapEventErrorToMessage(error, context: context);
   }
 
+  /// Check if this rehearsal is part of a recurring series
+  bool get _isPartOfRecurringSeries {
+    if (_eventType != EventType.rehearsal) return false;
+    // A rehearsal is part of a series if it's recurring OR has a parent
+    return _initialFormData?.isRecurring == true ||
+        _initialFormData?.parentRehearsalId != null;
+  }
+
   /// Show delete confirmation dialog and handle deletion
   Future<void> _showDeleteConfirmation() async {
+    // For recurring rehearsals, show special dialog with options
+    if (_isPartOfRecurringSeries) {
+      await _showRecurringDeleteDialog();
+      return;
+    }
+
+    // Standard delete confirmation for non-recurring events
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1073,12 +1090,66 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
 
     if (confirmed == true) {
-      await _handleDelete();
+      await _handleDelete(deleteEntireSeries: false);
+    }
+  }
+
+  /// Show delete dialog for recurring rehearsals with options
+  Future<void> _showRecurringDeleteDialog() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBgElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Recurring Rehearsal?',
+          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This rehearsal is part of a recurring series.',
+          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.calloutEmphasized.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('this'),
+            child: Text(
+              'Delete This Only',
+              style: AppTextStyles.calloutEmphasized.copyWith(
+                color: AppColors.error,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('all'),
+            child: Text(
+              'Delete All',
+              style: AppTextStyles.calloutEmphasized.copyWith(
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'this') {
+      await _handleDelete(deleteEntireSeries: false);
+    } else if (result == 'all') {
+      await _handleDelete(deleteEntireSeries: true);
     }
   }
 
   /// Delete the event
-  Future<void> _handleDelete() async {
+  Future<void> _handleDelete({required bool deleteEntireSeries}) async {
     if (widget.existingEventId == null) return;
 
     setState(() {
@@ -1090,13 +1161,32 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       final repository = ref.read(eventsRepositoryProvider);
 
       if (_eventType == EventType.rehearsal) {
-        await repository.deleteRehearsal(
-          rehearsalId: widget.existingEventId!,
-          bandId: widget.bandId,
-        );
-        debugPrint(
-          '[DeleteEvent] deleted rehearsal ${widget.existingEventId} for band ${widget.bandId}',
-        );
+        if (deleteEntireSeries && _isPartOfRecurringSeries) {
+          // Delete the entire recurring series
+          debugPrint(
+            '[DeleteEvent] Attempting to delete series:\n'
+            '  existingEventId: ${widget.existingEventId}\n'
+            '  initialFormData.isRecurring: ${_initialFormData?.isRecurring}\n'
+            '  initialFormData.parentRehearsalId: ${_initialFormData?.parentRehearsalId}',
+          );
+          await repository.deleteRehearsalSeries(
+            rehearsalId: widget.existingEventId!,
+            bandId: widget.bandId,
+            parentRehearsalId: _initialFormData?.parentRehearsalId,
+          );
+          debugPrint(
+            '[DeleteEvent] deleted recurring rehearsal series for ${widget.existingEventId}',
+          );
+        } else {
+          // Delete only this single rehearsal
+          await repository.deleteRehearsal(
+            rehearsalId: widget.existingEventId!,
+            bandId: widget.bandId,
+          );
+          debugPrint(
+            '[DeleteEvent] deleted rehearsal ${widget.existingEventId} for band ${widget.bandId}',
+          );
+        }
       } else {
         await repository.deleteGig(
           gigId: widget.existingEventId!,
@@ -1112,8 +1202,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
       // Refresh providers directly to ensure immediate UI update
       // This is more reliable than relying on onSaved callback after pop
-      ref.read(gigProvider.notifier).refresh();
-      ref.read(rehearsalProvider.notifier).refresh();
+      // Await both to ensure data is refreshed before closing drawer
+      await Future.wait([
+        ref.read(gigProvider.notifier).refresh(),
+        ref.read(rehearsalProvider.notifier).refresh(),
+      ]);
       ref
           .read(calendarProvider.notifier)
           .invalidateAndRefresh(bandId: widget.bandId);
@@ -1124,10 +1217,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         Navigator.of(context).pop(true);
         widget.onSaved?.call(); // Refresh caller's data (dashboard + calendar)
 
-        showSuccessSnackBar(
-          context,
-          message: '${_eventType.displayName} deleted',
-        );
+        final message = deleteEntireSeries && _isPartOfRecurringSeries
+            ? 'All recurring rehearsals deleted'
+            : '${_eventType.displayName} deleted';
+        showSuccessSnackBar(context, message: message);
       }
     } catch (e) {
       setState(() {

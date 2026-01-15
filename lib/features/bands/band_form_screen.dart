@@ -1779,45 +1779,51 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 height: 32,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: AvatarColors.colors.length + 1,
+                  // TODO: Change back to AvatarColors.colors.length + 1 when image upload is working
+                  itemCount: AvatarColors
+                      .colors
+                      .length, // Hide image upload button for now
                   itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Tooltip(
-                          message: 'Image upload is temporarily unavailable',
-                          child: GestureDetector(
-                            onTap: () {
-                              showAppSnackBar(
-                                context,
-                                message: '🎸 Image upload is temporarily unavailable. Coming soon!',
-                                backgroundColor: AppColors.warning,
-                              );
-                            },
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceDark.withValues(alpha: 0.5),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.borderMuted.withValues(alpha: 0.5),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  Icons.upload_rounded,
-                                  color: AppColors.textPrimary.withValues(alpha: 0.5),
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    final colorIndex = index - 1;
+                    // TODO: Uncomment this block when image upload is working
+                    // if (index == 0) {
+                    //   return Padding(
+                    //     padding: const EdgeInsets.only(right: 8),
+                    //     child: Tooltip(
+                    //       message: 'Image upload is temporarily unavailable',
+                    //       child: GestureDetector(
+                    //         onTap: () {
+                    //           showAppSnackBar(
+                    //             context,
+                    //             message: '🎸 Image upload is temporarily unavailable. Coming soon!',
+                    //             backgroundColor: AppColors.warning,
+                    //           );
+                    //         },
+                    //         child: Container(
+                    //           width: 32,
+                    //           height: 32,
+                    //           decoration: BoxDecoration(
+                    //             color: AppColors.surfaceDark.withValues(alpha: 0.5),
+                    //             shape: BoxShape.circle,
+                    //             border: Border.all(
+                    //               color: AppColors.borderMuted.withValues(alpha: 0.5),
+                    //               width: 1,
+                    //             ),
+                    //           ),
+                    //           child: Center(
+                    //             child: Icon(
+                    //               Icons.upload_rounded,
+                    //               color: AppColors.textPrimary.withValues(alpha: 0.5),
+                    //               size: 16,
+                    //             ),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ),
+                    //   );
+                    // }
+                    // final colorIndex = index - 1;
+                    final colorIndex =
+                        index; // Direct index since image upload is hidden
                     final colorOption = AvatarColors.colors[colorIndex];
                     final isSelected =
                         colorOption.tailwindClass == _selectedAvatarColor &&
