@@ -11,10 +11,12 @@ import '../../../app/theme/design_tokens.dart';
 // Buttons: 8px radius, 16px horizontal padding, 8px vertical padding
 // ============================================================================
 
+typedef ShareCallback = Function(BuildContext context);
+
 class ActionButtonsRow extends StatelessWidget {
   final VoidCallback? onSongLookup;
   final VoidCallback? onBulkPaste;
-  final VoidCallback? onShare;
+  final ShareCallback? onShare;
 
   const ActionButtonsRow({
     super.key,
@@ -46,7 +48,11 @@ class ActionButtonsRow extends StatelessWidget {
         const SizedBox(width: 8),
 
         // Share button (icon only)
-        _ActionButton(icon: Icons.ios_share_rounded, onTap: onShare),
+        // Wrap share callback to provide context
+        _ActionButton(
+          icon: Icons.ios_share_rounded,
+          onTap: onShare != null ? () => onShare!(context) : null,
+        ),
       ],
     );
   }

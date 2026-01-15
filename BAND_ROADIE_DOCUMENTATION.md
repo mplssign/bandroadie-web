@@ -343,9 +343,26 @@ These RPCs are necessary because some legacy songs have `NULL` band_id values an
 
 ### Web Deployment (Vercel)
 - **URL:** https://bandroadie.com
-- **Build:** `flutter build web --release`
+- **Build:** `flutter build web --release` (via `scripts/build_web.sh`)
 - **Hosting:** Vercel with SPA routing configuration
 - **Caching:** Static assets cached with long TTLs
+
+#### Environment Variables (Vercel)
+Vercel **must have the following environment variables** set for the build to succeed:
+
+| Variable | Description | Source |
+|----------|-------------|--------|
+| `SUPABASE_URL` | Supabase project URL | Supabase Dashboard > Settings > API |
+| `SUPABASE_ANON_KEY` | Supabase anonymous publishable key | Supabase Dashboard > Settings > API > Project API keys |
+
+**Setup Instructions:**
+1. Go to Vercel Dashboard → Project Settings → Environment Variables
+2. Add `SUPABASE_URL` with value from Supabase project
+3. Add `SUPABASE_ANON_KEY` with value from Supabase (use the "anon public" key)
+4. Set both to apply to Production
+5. Redeploy the project
+
+**Note:** The `build_web.sh` script passes these as `--dart-define` flags to the Flutter build. Without these variables, the app will show a configuration error screen.
 
 ### Mobile-First Design
 - **Responsive Design:** Optimized for mobile devices first
@@ -577,6 +594,24 @@ Another Artist                    - BPM • Drop D
 - **iOS:** Deep link configuration in place, needs device testing
 
 ### Troubleshooting Guide
+
+#### Web App Blank White Screen in Production
+**Problem:** App loads but shows blank white screen at https://bandroadie.com
+
+**Root Cause:** Supabase credentials (SUPABASE_URL, SUPABASE_ANON_KEY) are not set as Vercel environment variables during the build.
+
+**Solution:**
+1. Go to Vercel Dashboard → BandRoadie Project → Settings → Environment Variables
+2. Add `SUPABASE_URL` = your Supabase project URL
+3. Add `SUPABASE_ANON_KEY` = your Supabase anonymous key (from Dashboard > Settings > API > Project API keys)
+4. Ensure both are set for **Production**
+5. **Redeploy** the project (git push or manual redeploy from Vercel)
+
+**Technical Details:** The `build_web.sh` script passes these as `--dart-define` flags to the Flutter build. Without these, `validateSupabaseConfig()` fails and shows a config error (though it may appear as blank screen due to theme rendering).
+
+**Files Involved:**
+- `scripts/build_web.sh` - Passes environment variables to build
+- `lib/app/supabase_config.dart` - Validates credentials
 
 #### Magic Link Not Opening Native App
 1. Check Supabase Dashboard → Authentication → URL Configuration → Redirect URLs includes `bandroadie://login-callback/`

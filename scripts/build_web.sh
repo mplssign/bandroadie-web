@@ -7,4 +7,10 @@ export PATH="$PWD/flutter/bin:$PATH"
 
 flutter doctor
 flutter pub get
-flutter build web --release
+
+# Build with environment variables from Vercel
+# These must be set as Vercel environment variables
+# See: https://vercel.com/docs/concepts/projects/environment-variables
+flutter build web --release \
+  --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+  --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
