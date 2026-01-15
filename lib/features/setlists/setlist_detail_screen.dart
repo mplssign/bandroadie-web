@@ -238,7 +238,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             .select(id: widget.setlistId, name: newName);
 
         // Also refresh the setlists list to update the card
-        ref.invalidate(setlistsProvider);
+        ref.read(setlistsProvider.notifier).refresh();
 
         showAppSnackBar(context, message: 'Setlist renamed to "$newName"');
       }

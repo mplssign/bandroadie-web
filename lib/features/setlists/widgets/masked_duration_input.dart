@@ -128,6 +128,13 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
   // Raw digits without formatting (max 4 digits: MMSS)
   String _rawDigits = '';
 
+  // Track if user has typed any digits during this focus session
+  // Used to restore original value if user blurs without typing
+  bool _hasTypedDuringFocus = false;
+
+  // Store the original digits before clearing on focus
+  String _originalDigitsBeforeFocus = '';
+
   @override
   void initState() {
     super.initState();
@@ -173,14 +180,23 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      // Clear value to 00:00 when gaining focus
+      // Store original value before clearing
+      _originalDigitsBeforeFocus = _rawDigits;
+      _hasTypedDuringFocus = false;
+
+      // Clear display to 00:00 when gaining focus for fresh entry
+      // But DON'T notify parent yet - only notify when user actually types digits
+      // This prevents accidental clearing of duration when user just taps the field
       _rawDigits = '';
       _updateDisplay();
-
-      // Notify listener that value was cleared
-      if (widget.onChanged != null) {
-        widget.onChanged!(0);
+    } else {
+      // Losing focus - if user didn't type anything, restore original value
+      if (!_hasTypedDuringFocus && _originalDigitsBeforeFocus.isNotEmpty) {
+        _rawDigits = _originalDigitsBeforeFocus;
+        _updateDisplay();
+        // No need to notify parent since value is unchanged
       }
+      _originalDigitsBeforeFocus = '';
     }
   }
 
@@ -203,6 +219,9 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
 
   /// Handles a key press (digit or backspace)
   void _handleKeyPress(String key) {
+    // Mark that user has typed during this focus session
+    _hasTypedDuringFocus = true;
+
     if (key == 'backspace') {
       // Remove rightmost digit by removing last character from raw digits
       // Then shift remaining digits right (which happens naturally with padLeft)

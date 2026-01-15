@@ -648,14 +648,20 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   void _toggleRecurring(bool value) {
+    // Recurring events are not yet supported in the database
+    if (value) {
+      HapticFeedback.lightImpact();
+      showAppSnackBar(
+        context,
+        message: '🎸 Recurring events coming soon! Stay tuned.',
+      );
+      return; // Don't enable the toggle
+    }
+    // Allow disabling (in case it was somehow enabled)
     setState(() {
       _isRecurring = value;
     });
-    if (value) {
-      _recurringAnimController.forward();
-    } else {
-      _recurringAnimController.reverse();
-    }
+    _recurringAnimController.reverse();
   }
 
   void _togglePotentialGig(bool value) {
@@ -1326,7 +1332,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ),
 
           // 8. Bottom Buttons (sticky) - Equal width
-          _buildBottomButtons(safeBottom),
+          _buildBottomButtons(safeBottom, bottomPadding),
         ],
       ),
     );
@@ -3025,9 +3031,31 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return Row(
       children: [
         Expanded(
-          child: Text(
-            'Make this recurring',
-            style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
+          child: Row(
+            children: [
+              Text(
+                'Make this recurring',
+                style: AppTextStyles.callout.copyWith(
+                  color: AppColors.textMuted, // Dimmed to indicate unavailable
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Coming Soon',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         Switch.adaptive(
@@ -3329,7 +3357,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   /// Bottom action buttons - both equal width (50% each)
-  Widget _buildBottomButtons(double safeBottom) {
+  Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
     // In create mode, also check if required fields are filled
     // In edit mode, disable the button until changes are made
     final canSave = !_isSaving && !_isDeleting && _hasChanges && _isFormValid;
@@ -3339,7 +3367,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         left: Spacing.pagePadding,
         right: Spacing.pagePadding,
         top: Spacing.space12,
-        bottom: safeBottom + Spacing.space12,
+        bottom: safeBottom + keyboardHeight + Spacing.space12,
       ),
       decoration: BoxDecoration(
         color: AppColors.cardBg,

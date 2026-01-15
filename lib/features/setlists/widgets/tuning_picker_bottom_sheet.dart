@@ -14,6 +14,9 @@ import '../tuning/tuning_helpers.dart';
 // - Rose/500 accent for selection
 // - Physics-based entrance/exit animation
 // - Micro-interactions on tap
+//
+// NOTE: Currently limited to 4 tunings supported by legacy database enum.
+// Once migration is applied, all tunings can be enabled.
 // ============================================================================
 
 // =============================================================================
@@ -101,19 +104,136 @@ const List<TuningGroup> tuningGroups = [
       TuningOption(id: 'open_c', name: 'Open C', strings: 'C G C G C E'),
     ],
   ),
+  TuningGroup(
+    title: 'Special Tunings',
+    options: [
+      TuningOption(id: 'dadgad', name: 'DADGAD', strings: 'D A D G A D'),
+      TuningOption(
+        id: 'nashville',
+        name: 'Nashville',
+        strings: 'E A D G B E (high)',
+      ),
+      TuningOption(id: 'custom', name: 'Custom', strings: 'Custom tuning'),
+    ],
+  ),
 ];
 
-/// Find a tuning option by ID or name
+/// Find a tuning option by ID or name.
+/// Handles various naming conventions and legacy data.
 TuningOption? findTuningByIdOrName(String? idOrName) {
   if (idOrName == null || idOrName.isEmpty) return null;
 
+  final input = idOrName.trim();
+  final inputLower = input.toLowerCase();
+
+  // Map various user inputs and legacy values to canonical IDs
+  const aliasToId = <String, String>{
+    // Standard tuning aliases
+    'standard': 'standard_e',
+    'standard e': 'standard_e',
+    'e standard': 'standard_e',
+
+    // Half-step down aliases
+    'half_step': 'half_step_down',
+    'half-step': 'half_step_down',
+    'half step': 'half_step_down',
+    'half-step down': 'half_step_down',
+    'eb standard': 'half_step_down',
+    'eb': 'half_step_down',
+
+    // Full/Whole step down aliases
+    'full_step': 'whole_step_down',
+    'full-step': 'whole_step_down',
+    'full step': 'whole_step_down',
+    'full-step down': 'whole_step_down',
+    'whole step': 'whole_step_down',
+    'whole-step': 'whole_step_down',
+    'd tuning': 'whole_step_down',
+
+    // Drop D aliases
+    'drop d': 'drop_d',
+    'dropd': 'drop_d',
+
+    // Drop C aliases
+    'drop c': 'drop_c',
+    'dropc': 'drop_c',
+
+    // Drop Db / C# aliases
+    'drop db': 'drop_db',
+    'drop c#': 'drop_db',
+    'drop c sharp': 'drop_db',
+
+    // D Standard aliases
+    'd standard': 'd_standard',
+    'dstandard': 'd_standard',
+
+    // C Standard aliases
+    'c standard': 'c_standard',
+    'cstandard': 'c_standard',
+
+    // Drop B aliases
+    'drop b': 'drop_b',
+    'dropb': 'drop_b',
+
+    // B Standard aliases
+    'b standard': 'b_standard',
+    'bstandard': 'b_standard',
+    'baritone': 'b_standard',
+
+    // Drop A aliases
+    'drop a': 'drop_a',
+    'dropa': 'drop_a',
+
+    // A Standard aliases
+    'a standard': 'a_standard',
+    'astandard': 'a_standard',
+
+    // Open tuning aliases
+    'open g': 'open_g',
+    'openg': 'open_g',
+    'open d': 'open_d',
+    'opend': 'open_d',
+    'open e': 'open_e',
+    'opene': 'open_e',
+    'open a': 'open_a',
+    'opena': 'open_a',
+    'open c': 'open_c',
+    'openc': 'open_c',
+
+    // Special tunings
+    'dad gad': 'dadgad',
+    'd a d g a d': 'dadgad',
+  };
+
+  // Try alias lookup first (case-insensitive)
+  final aliasMatch = aliasToId[inputLower];
+  if (aliasMatch != null) {
+    for (final group in tuningGroups) {
+      for (final option in group.options) {
+        if (option.id == aliasMatch) return option;
+      }
+    }
+  }
+
+  // Try exact match on ID or name
   for (final group in tuningGroups) {
     for (final option in group.options) {
-      if (option.id == idOrName || option.name == idOrName) {
+      if (option.id == input || option.name == input) {
         return option;
       }
     }
   }
+
+  // Try case-insensitive match on ID or name
+  for (final group in tuningGroups) {
+    for (final option in group.options) {
+      if (option.id.toLowerCase() == inputLower ||
+          option.name.toLowerCase() == inputLower) {
+        return option;
+      }
+    }
+  }
+
   return null;
 }
 

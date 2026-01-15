@@ -670,6 +670,49 @@ SUPABASE_ANON_KEY=your-anon-key-here
 
 ## Changelog
 
+### January 14, 2026
+
+#### Keyboard Handling Fixes
+- **Setlist Picker Bottom Sheet:** Fixed keyboard covering the text input when creating a new setlist from Catalog. Added `AnimatedPadding` with `viewInsets.bottom` to push the sheet content above the keyboard.
+- **Event Editor Drawer:** Fixed keyboard covering Cancel/Update buttons when editing event text fields. Updated `_buildBottomButtons` to accept keyboard height and add it to bottom padding.
+
+#### Recurring Events - "Coming Soon" Status
+- **Problem:** Enabling "Make this recurring" when creating rehearsals would block the save action with an error.
+- **Root Cause:** Backend database doesn't support recurring events yet, but the UI allowed enabling the feature.
+- **Solution:** 
+  - Added "Coming Soon" badge (rose accent) next to the recurring toggle
+  - Dimmed the toggle label to indicate unavailability
+  - Shows friendly snackbar "🎸 Recurring events coming soon! Stay tuned." when toggle is tapped
+  - Prevents the toggle from activating
+
+#### Setlists Loading State Fix
+- **Problem:** After creating a new setlist, making changes, and exiting, the Setlists screen would get stuck on "Loading setlists" indefinitely.
+- **Root Cause:** `SetlistsNotifier.build()` returned `isLoading: true` even when band ID hadn't changed, combined with `ref.invalidate()` usage that triggered rebuilds without new loads.
+- **Solution:**
+  - Added `_cachedState` to `SetlistsNotifier` to preserve loaded data across rebuilds
+  - `build()` now returns cached state when band ID hasn't changed
+  - Changed `ref.invalidate(setlistsProvider)` to `ref.read(setlistsProvider.notifier).refresh()` in `setlist_detail_screen.dart`
+
+#### Band Avatar Image Upload - Debug Logging
+- **Enhancement:** Added comprehensive debug logging to trace band avatar image picker and upload flow:
+  - `[PickImage]` logs for image selection, file validation, state updates
+  - `[Upload]` logs for user ID, file name, bytes, and URL
+  - `[BandAvatar]` logs for image loading errors (local and network)
+  - Added error snackbar when image upload fails
+
+#### Database Migration Created
+| Migration File | Purpose |
+|----------------|---------|
+| `076_tuning_to_text.sql` | Changes `tuning` column from enum to TEXT to support all guitar tunings |
+
+#### Tuning System Restored
+- **Problem:** Tuning picker only showed 4 options after enum constraint was discovered.
+- **Solution:** 
+  - Created migration to change `tuning` column from `tuning_type` enum to `TEXT`
+  - Restored all 16+ tuning options in `TuningOption` class
+  - Added comprehensive alias mapping in `findTuningByIdOrName()` for 80+ variations
+  - Tuning picker now shows full list: Standard, Drop D, Drop C#, Drop C, Drop B, Drop A, Open G, Open D, Open E, Open A, DADGAD, Half Step Down, Full Step Down, Baritone, 7-String Standard, 7-String Drop A
+
 ### January 6, 2026
 
 #### Web Branding Update
