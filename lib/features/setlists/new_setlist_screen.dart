@@ -314,13 +314,35 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
   }
 
   /// Handle Share tap
-  void _handleShare() {
+  /// iOS requires sharePositionOrigin to position the share sheet
+  void _handleShare(BuildContext context) async {
     final state = ref.read(setlistDetailProvider);
     final text = _generateShareText(
       setlistName: _setlistName,
       songs: state.songs,
     );
-    Share.share(text);
+
+    try {
+      // On iOS/macOS, Share.share() needs sharePositionOrigin for the popover
+      // We use the center of the screen as a fallback since we don't have the button position
+      final box = context.findRenderObject() as RenderBox?;
+      final position = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 56);
+
+      await Share.share(
+        text,
+        sharePositionOrigin: position,
+      );
+    } catch (e) {
+      debugPrint('[SetlistShare] Error sharing: $e');
+      if (mounted) {
+        showErrorSnackBar(
+          context,
+          message: 'Failed to share setlist',
+        );
+      }
+    }
   }
 
   /// Generate plain-text share content for the setlist
