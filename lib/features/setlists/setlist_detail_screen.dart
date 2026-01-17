@@ -657,13 +657,28 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   /// Another Song
   /// Another Artist                    - BPM • Drop D
   /// ```
-  void _handleShare() {
+  Future<void> _handleShare() async {
     final state = ref.read(setlistDetailProvider);
     final text = _generateShareText(
       setlistName: _currentName,
       songs: state.songs,
     );
-    Share.share(text);
+
+    try {
+      // On iOS/macOS, Share.share() needs sharePositionOrigin for the popover
+      // We use the center of the screen as a fallback since we don't have the button position
+      final box = context.findRenderObject() as RenderBox?;
+      final position = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 56);
+
+      await Share.share(text, sharePositionOrigin: position);
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error sharing: $e');
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Failed to share setlist');
+      }
+    }
   }
 
   /// Handle print setlist action.
@@ -1781,12 +1796,19 @@ class _TuningSortToggle extends StatelessWidget {
             width: 1,
           ),
         ),
-        child: Text(
-          mode.label,
-          style: AppTextStyles.footnote.copyWith(
-            color: badgeColor,
-            fontWeight: FontWeight.w600,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_vert_rounded, size: 16, color: badgeColor),
+            const SizedBox(width: 4),
+            Text(
+              mode.label,
+              style: AppTextStyles.footnote.copyWith(
+                color: badgeColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

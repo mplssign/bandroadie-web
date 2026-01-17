@@ -288,8 +288,8 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       // Web uses /auth/confirm route, native apps use deep link
-      final redirectUrl = kIsWeb 
-          ? 'https://bandroadie.com/auth/confirm' 
+      final redirectUrl = kIsWeb
+          ? 'https://bandroadie.com/auth/confirm'
           : 'bandroadie://login-callback/';
       debugPrint('[LoginScreen] kIsWeb=$kIsWeb, emailRedirectTo=$redirectUrl');
 

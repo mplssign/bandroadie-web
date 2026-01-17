@@ -142,7 +142,7 @@ class ConfigErrorApp extends StatelessWidget {
       themeMode: ThemeMode.dark,
       darkTheme: AppTheme.darkTheme,
       home: Scaffold(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: const Color(0xFF0A0A0A),
         body: SafeArea(
           child: Center(
             child: Padding(

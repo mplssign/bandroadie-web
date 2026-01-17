@@ -238,7 +238,7 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: const Color(0xFF0A0A0A),
       body: Center(
         child: _loading
             ? const Column(
