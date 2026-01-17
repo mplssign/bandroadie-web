@@ -140,11 +140,11 @@ class AppColors {
   static const Color blueAccent = Color(0xFF2563EB);
 
   // Backgrounds - Figma specs
-  static const Color scaffoldBg = Color(0xFF1E1E1E); // Figma: brand-hover
+  static const Color scaffoldBg = Color(0xFF0A0A0A); // App background
   static const Color appBarBg = Color(0xFF1E293B); // Figma: gray-800
   static const Color surfaceDark = Color(0xFF1E293B); // gray-800
-  static const Color cardBg = Color(0xFF1E1E1E);
-  static const Color cardBgElevated = Color(0xFF252525);
+  static const Color cardBg = Color(0xFF141414);
+  static const Color cardBgElevated = Color(0xFF1E1E1E);
   static const Color navBg = Color(0xFF020617); // Figma: gray-950
 
   // Borders - Figma specs

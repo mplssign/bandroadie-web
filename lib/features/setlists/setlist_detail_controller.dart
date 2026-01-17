@@ -366,8 +366,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   /// Apply sorting to a list of songs based on context.
   ///
   /// CATALOG: Alphabetical by artist (case-insensitive), then by title.
-  /// NON-CATALOG + Standard mode: Preserve user's custom order (from position column).
-  /// NON-CATALOG + Other modes: By tuning priority, then by artist, then by title.
+  /// NON-CATALOG: By tuning priority based on selected mode, then by artist, then by title.
+  /// The selected tuning mode's songs appear first, followed by remaining tunings in rotation order.
   List<SetlistSong> _applySorting(
     List<SetlistSong> songs, {
     required bool isCatalog,
@@ -384,11 +384,9 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         if (artistCompare != 0) return artistCompare;
         return a.title.toLowerCase().compareTo(b.title.toLowerCase());
       });
-    } else if (sortMode == TuningSortMode.standard) {
-      // Standard mode: Preserve user's custom order (already sorted by position from DB)
-      // Don't re-sort - the database query already returned songs in position order
     } else {
-      // Other tuning modes: Sort by tuning priority, then by artist, then by title
+      // All tuning modes: Sort by tuning priority, then by artist, then by title
+      // The selected mode's tuning appears first (e.g., Standard mode = Standard songs first)
       sorted.sort((a, b) {
         final aPriority = TuningSortService.getTuningPriority(
           a.tuning,

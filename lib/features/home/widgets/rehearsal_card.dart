@@ -212,9 +212,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                       widget.setlistName != null)
                     Container(
                       height: 32,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: AppColors.accent,
                         borderRadius: BorderRadius.circular(

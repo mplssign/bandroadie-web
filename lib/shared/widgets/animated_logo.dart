@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// Band Roadie logo widget.
-/// 
+///
 /// Displays the logo at full opacity with no effects.
 class AnimatedBandRoadieLogo extends StatelessWidget {
   const AnimatedBandRoadieLogo({
@@ -36,10 +36,7 @@ class AnimatedBandRoadieLogo extends StatelessWidget {
 /// Static version of the logo for use without animation.
 /// Falls back to PNG if SVG fails to load.
 class BandRoadieLogo extends StatelessWidget {
-  const BandRoadieLogo({
-    super.key,
-    this.height = 80,
-  });
+  const BandRoadieLogo({super.key, this.height = 80});
 
   final double height;
 
