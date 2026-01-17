@@ -87,3 +87,4 @@ build/*
 !build/web/**
 app.*.symbols
 app.*.map.json
+.vercel

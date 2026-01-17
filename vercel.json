@@ -1,5 +1,10 @@
 {
   "buildCommand": "bash scripts/build_web.sh",
   "outputDirectory": "build/web",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/support", "destination": "/support.html" }
+  ],
+  "cleanUrls": true
 }
