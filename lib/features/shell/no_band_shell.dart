@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/shared/widgets/animated_logo.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
 import '../feedback/bug_report_screen.dart';
@@ -254,11 +255,7 @@ class _NoBandContentState extends State<_NoBandContent>
                         opacity: _logoFade,
                         child: ScaleTransition(
                           scale: _logoScale,
-                          child: Image.asset(
-                            'assets/images/bandroadie_horiz.png',
-                            height: 64,
-                            fit: BoxFit.contain,
-                          ),
+                          child: const BandRoadieLogo(height: 64),
                         ),
                       ),
                     ),

@@ -178,11 +178,13 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
               // Handle digit keys (both numpad and regular)
               if (logicalKey.keyId >= LogicalKeyboardKey.digit0.keyId &&
                   logicalKey.keyId <= LogicalKeyboardKey.digit9.keyId) {
-                final digit = logicalKey.keyId - LogicalKeyboardKey.digit0.keyId;
+                final digit =
+                    logicalKey.keyId - LogicalKeyboardKey.digit0.keyId;
                 _handleKeyInput(digit.toString());
               } else if (logicalKey.keyId >= LogicalKeyboardKey.numpad0.keyId &&
                   logicalKey.keyId <= LogicalKeyboardKey.numpad9.keyId) {
-                final digit = logicalKey.keyId - LogicalKeyboardKey.numpad0.keyId;
+                final digit =
+                    logicalKey.keyId - LogicalKeyboardKey.numpad0.keyId;
                 _handleKeyInput(digit.toString());
               } else if (logicalKey == LogicalKeyboardKey.backspace ||
                   logicalKey == LogicalKeyboardKey.delete) {
@@ -283,8 +285,9 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
   }
 
   void _syncFromController() {
-    final display =
-        widget.controller.isEmpty ? '' : widget.controller.formattedValue;
+    final display = widget.controller.isEmpty
+        ? ''
+        : widget.controller.formattedValue;
     if (_textController.text != display) {
       _textController.text = display;
       _textController.selection = TextSelection.fromPosition(
@@ -307,8 +310,9 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
     }
 
     // Update display
-    final display =
-        widget.controller.isEmpty ? '' : widget.controller.formattedValue;
+    final display = widget.controller.isEmpty
+        ? ''
+        : widget.controller.formattedValue;
     _textController.text = display;
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: display.length),

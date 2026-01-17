@@ -106,7 +106,11 @@ class BandRoadieApp extends StatelessWidget {
           final code = uri.queryParameters['code'];
           final type = uri.queryParameters['type'];
           return fadeSlideRoute(
-            page: AuthConfirmScreen(tokenHash: tokenHash, code: code, type: type),
+            page: AuthConfirmScreen(
+              tokenHash: tokenHash,
+              code: code,
+              type: type,
+            ),
             settings: settings,
           );
         }

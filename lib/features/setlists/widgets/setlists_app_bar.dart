@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
+import '../../../shared/widgets/animated_logo.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../bands/widgets/band_avatar.dart';
 
@@ -124,29 +125,37 @@ class SetlistsAppBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Hamburger menu icon
+          // Hamburger menu icon with 48px tap target for accessibility
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onMenuTap,
-            child: const Icon(
-              Icons.menu_rounded,
-              color: AppColors.textPrimary,
-              size: 20.5,
+            child: const SizedBox(
+              width: 44,
+              height: 44,
+              child: Center(
+                child: Icon(
+                  Icons.menu_rounded,
+                  color: AppColors.textPrimary,
+                  size: 26,
+                ),
+              ),
             ),
           ),
           const Spacer(),
           // Centered app logo
-          Image.asset('assets/images/bandroadie_horiz.png', height: 30),
+          const AnimatedBandRoadieLogo(height: 24),
           const Spacer(),
           // Avatar with band image/initials
           GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: onAvatarTap,
             child: BandAvatar(
               imageUrl: bandImageUrl,
               localImageFile: localImageFile,
               name: bandName,
               avatarColor: bandAvatarColor,
-              size: 32,
-              fontSize: 14,
+              size: 36,
+              fontSize: 15,
             ),
           ),
         ],

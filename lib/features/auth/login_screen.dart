@@ -32,6 +32,7 @@ import '../../app/services/auth_debug_logger.dart';
 import '../../app/theme/design_tokens.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
+import '../../shared/widgets/animated_logo.dart';
 import 'auth_gate.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -417,11 +418,7 @@ class _LoginScreenState extends State<LoginScreen>
           animation: _logoShrinkScale,
           builder: (context, child) =>
               Transform.scale(scale: _logoShrinkScale.value, child: child),
-          child: Image.asset(
-            'assets/images/bandroadie_horiz.png',
-            height: 80,
-            fit: BoxFit.contain,
-          ),
+          child: const BandRoadieLogo(height: 80),
         ),
       ),
     );

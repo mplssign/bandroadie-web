@@ -33,10 +33,13 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
     final tokenHash = widget.tokenHash;
     final code = widget.code;
     final type = widget.type ?? 'email';
-    debugPrint('AuthConfirmScreen: tokenHash=$tokenHash, code=${code != null ? "${code.substring(0, 10)}..." : "null"}, type=$type');
+    debugPrint(
+      'AuthConfirmScreen: tokenHash=$tokenHash, code=${code != null ? "${code.substring(0, 10)}..." : "null"}, type=$type',
+    );
 
     // Check if we have either a code (PKCE) or token_hash
-    if ((tokenHash == null || tokenHash.isEmpty) && (code == null || code.isEmpty)) {
+    if ((tokenHash == null || tokenHash.isEmpty) &&
+        (code == null || code.isEmpty)) {
       setState(() {
         _error = 'Missing or invalid token.';
         _loading = false;
@@ -50,11 +53,14 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
 
       // PKCE flow - use code parameter with exchangeCodeForSession
       if (code != null && code.isNotEmpty) {
-        debugPrint('AuthConfirmScreen: PKCE flow - exchanging code for session...');
+        debugPrint(
+          'AuthConfirmScreen: PKCE flow - exchanging code for session...',
+        );
         try {
-          final pkceResponse = await Supabase.instance.client.auth.exchangeCodeForSession(code);
+          final pkceResponse = await Supabase.instance.client.auth
+              .exchangeCodeForSession(code);
           session = pkceResponse.session;
-          user = session?.user;
+          user = session.user;
           debugPrint('AuthConfirmScreen: PKCE exchange successful');
         } catch (e) {
           debugPrint('AuthConfirmScreen: PKCE exchange failed: $e');
@@ -127,7 +133,8 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
     } on AuthException catch (e) {
       debugPrint('AuthConfirmScreen: AuthException: ${e.message}');
       // Check for PKCE/browser mismatch errors
-      final isBrowserMismatch = e.message.contains('code verifier') ||
+      final isBrowserMismatch =
+          e.message.contains('code verifier') ||
           e.message.contains('PKCE') ||
           e.message.contains('invalid') ||
           e.message.isEmpty;
@@ -135,8 +142,8 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
         _error = isBrowserMismatch
             ? 'browser_mismatch'
             : (e.message.isNotEmpty
-                ? e.message
-                : 'Authentication failed. Please request a new magic link.');
+                  ? e.message
+                  : 'Authentication failed. Please request a new magic link.');
         _loading = false;
       });
     } catch (e) {
@@ -155,7 +162,11 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.browser_not_supported, color: Colors.orange, size: 48),
+          const Icon(
+            Icons.browser_not_supported,
+            color: Colors.orange,
+            size: 48,
+          ),
           const SizedBox(height: 16),
           const Text(
             'Login Link Opened in Wrong Browser',
@@ -195,12 +206,20 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
                   '1. Go back to your email\n'
                   '2. Copy the magic link URL\n'
                   '3. Paste it directly into this browser\'s address bar',
-                  style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
                 ),
                 SizedBox(height: 12),
                 Text(
                   '💡 Tip: If your email app opens links in its own browser, try "Open in Safari" or "Open in Chrome" instead.',
-                  style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
