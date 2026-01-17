@@ -207,49 +207,32 @@ class _RehearsalCardState extends State<RehearsalCard>
                     ),
                   ),
 
-                  // Right column (50% width) - Setlist label + badge (only if setlist assigned)
-                  Expanded(
-                    child:
-                        widget.rehearsal.setlistId != null &&
-                            widget.setlistName != null
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Setlist',
-                                style: AppTextStyles.footnote.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                height: 32,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent,
-                                  borderRadius: BorderRadius.circular(
-                                    Spacing.chipRadius,
-                                  ), // 16px
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    widget.setlistName!,
-                                    style: AppTextStyles.footnote.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : const SizedBox.shrink(),
-                  ),
+                  // Right side - Setlist badge only (right-aligned, sized to content)
+                  if (widget.rehearsal.setlistId != null &&
+                      widget.setlistName != null)
+                    Container(
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(
+                          Spacing.chipRadius,
+                        ), // 16px
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.setlistName!,
+                          style: AppTextStyles.footnote.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
