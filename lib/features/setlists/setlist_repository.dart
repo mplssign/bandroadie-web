@@ -1362,17 +1362,36 @@ class SetlistRepository {
         },
       );
 
-      // Check RPC result
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
+      // Check RPC result - handle both Map and dynamic response types
+      debugPrint(
+        '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+      );
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
       }
 
       debugPrint(
         '[SetlistRepository] ✓ Updated BPM to $bpm for song $songId (global via RPC)',
       );
     } on PostgrestException catch (e) {
+      // Handle specific PostgrestException codes
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
       // RPC may not exist - fall back to direct update
       if (e.code == 'PGRST202' || e.code == '42883') {
         debugPrint(
@@ -1417,17 +1436,37 @@ class SetlistRepository {
         params: {'p_song_id': songId, 'p_band_id': bandId, 'p_clear_bpm': true},
       );
 
-      // Check RPC result
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
+      // Check RPC result - handle both Map and dynamic response types
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
       }
 
       debugPrint(
         '[SetlistRepository] ✓ Cleared BPM for song $songId (global via RPC)',
       );
     } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
       // RPC may not exist - fall back to direct update
       if (e.code == 'PGRST202' || e.code == '42883') {
         debugPrint(
@@ -1486,17 +1525,36 @@ class SetlistRepository {
         },
       );
 
-      // Check RPC result
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
+      // Check RPC result - handle both Map and dynamic response types
+      debugPrint(
+        '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+      );
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
       }
 
       debugPrint(
         '[SetlistRepository] ✓ Updated duration to $durationSeconds for song $songId (global via RPC)',
       );
     } on PostgrestException catch (e) {
+      // Handle specific PostgrestException codes
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
       // RPC may not exist - fall back to direct update
       if (e.code == 'PGRST202' || e.code == '42883') {
         debugPrint(
@@ -1566,11 +1624,19 @@ class SetlistRepository {
         },
       );
 
-      // Check RPC result
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
+      // Check RPC result - handle both Map and dynamic response types
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
       }
 
       debugPrint(
@@ -1580,6 +1646,14 @@ class SetlistRepository {
       debugPrint(
         '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
       );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
 
       // RPC may not exist - fall back to direct update
       if (e.code == 'PGRST202' || e.code == '42883') {
@@ -1660,17 +1734,37 @@ class SetlistRepository {
         },
       );
 
-      // Check RPC result
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
+      // Check RPC result - handle both Map and dynamic response types
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
       }
 
       debugPrint(
         '[SetlistRepository] ✓ Updated notes for song $songId (via RPC)',
       );
     } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
       // RPC may not exist - fall back to direct update
       if (e.code == 'PGRST202' || e.code == '42883') {
         debugPrint(

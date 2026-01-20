@@ -379,168 +379,172 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final safeBottom = MediaQuery.of(context).padding.bottom;
 
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
-        ),
-        decoration: const BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+    return GestureDetector(
+      // Dismiss keyboard when tapping outside text fields
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.borderMuted,
-                borderRadius: BorderRadius.circular(2),
-              ),
+          decoration: const BoxDecoration(
+            color: AppColors.cardBg,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
             ),
-
-            const SizedBox(height: Spacing.space16),
-
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.pagePadding,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.borderMuted,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(_drawerTitle, style: AppTextStyles.title3),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(false),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: const BoxDecoration(
-                        color: AppColors.scaffoldBg,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
-            // View-only banner (non-creator viewing someone else's block out)
-            if (_isReadOnly) ...[
               const SizedBox(height: Spacing.space16),
+
+              // Header
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: Spacing.pagePadding,
                 ),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppColors.accent.withValues(alpha: 0.3),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(_drawerTitle, style: AppTextStyles.title3),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        color: AppColors.accent,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Only the creator can edit or delete this block out.',
-                          style: AppTextStyles.footnote.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(false),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: AppColors.scaffoldBg,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: AppColors.textSecondary,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: Spacing.space16),
-
-            // Scrollable content
-            Flexible(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  left: Spacing.pagePadding,
-                  right: Spacing.pagePadding,
-                  bottom: bottomPadding + safeBottom + 100,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Error banner
-                    if (_errorMessage != null) ...[
-                      _buildErrorBanner(),
-                      const SizedBox(height: Spacing.space16),
-                    ],
-
-                    // 1. Start Date (required)
-                    _buildDateField(
-                      label: 'Start Date',
-                      value: _startDate,
-                      onTap: _selectStartDate,
-                      isRequired: true,
                     ),
-
-                    const SizedBox(height: Spacing.space16),
-
-                    // 2. End Date (optional)
-                    _buildDateField(
-                      label: 'End Date (Optional)',
-                      value: _untilDate,
-                      onTap: _selectUntilDate,
-                      isRequired: false,
-                      placeholder: 'Last day',
-                    ),
-
-                    const SizedBox(height: Spacing.space16),
-
-                    // 3. Reason (optional)
-                    _buildTextField(
-                      label: 'Reason (optional)',
-                      controller: _reasonController,
-                      hint: 'Out of town, vacation, etc.',
-                      maxLines: 2,
-                    ),
-
-                    // Delete button (edit mode only - creator can delete)
-                    if (_isEditMode) ...[
-                      const SizedBox(height: Spacing.space24),
-                      _buildDeleteButton(),
-                    ],
                   ],
                 ),
               ),
-            ),
 
-            // Bottom Buttons (sticky)
-            _buildBottomButtons(safeBottom),
-          ],
+              // View-only banner (non-creator viewing someone else's block out)
+              if (_isReadOnly) ...[
+                const SizedBox(height: Spacing.space16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.pagePadding,
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.accent,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Only the creator can edit or delete this block out.',
+                            style: AppTextStyles.footnote.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: Spacing.space16),
+
+              // Scrollable content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: Spacing.pagePadding,
+                    right: Spacing.pagePadding,
+                    bottom: Spacing.space16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Error banner
+                      if (_errorMessage != null) ...[
+                        _buildErrorBanner(),
+                        const SizedBox(height: Spacing.space16),
+                      ],
+
+                      // 1. Start Date (required)
+                      _buildDateField(
+                        label: 'Start Date',
+                        value: _startDate,
+                        onTap: _selectStartDate,
+                        isRequired: true,
+                      ),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 2. End Date (optional)
+                      _buildDateField(
+                        label: 'End Date (Optional)',
+                        value: _untilDate,
+                        onTap: _selectUntilDate,
+                        isRequired: false,
+                        placeholder: 'Last day',
+                      ),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 3. Reason (optional)
+                      _buildTextField(
+                        label: 'Reason (optional)',
+                        controller: _reasonController,
+                        hint: 'Out of town, vacation, etc.',
+                        maxLines: 2,
+                      ),
+
+                      // Delete button (edit mode only - creator can delete)
+                      if (_isEditMode) ...[
+                        const SizedBox(height: Spacing.space24),
+                        _buildDeleteButton(),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom Buttons (sticky, keyboard-aware)
+              _buildBottomButtons(safeBottom, keyboardHeight),
+            ],
+          ),
         ),
       ),
     );
@@ -726,7 +730,10 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     );
   }
 
-  Widget _buildBottomButtons(double safeBottom) {
+  Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
+    // Use the max of safe area and keyboard height for bottom padding
+    final bottomPadding = keyboardHeight > 0 ? keyboardHeight : safeBottom;
+
     // Read-only mode: just show a Close button
     if (_isReadOnly) {
       return Container(
@@ -734,7 +741,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           left: Spacing.pagePadding,
           right: Spacing.pagePadding,
           top: Spacing.space16,
-          bottom: safeBottom + Spacing.space16,
+          bottom: bottomPadding + Spacing.space16,
         ),
         decoration: BoxDecoration(
           color: AppColors.cardBg,
@@ -774,7 +781,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           left: Spacing.pagePadding,
           right: Spacing.pagePadding,
           top: Spacing.space12,
-          bottom: safeBottom + Spacing.space12,
+          bottom: bottomPadding + Spacing.space12,
         ),
         decoration: BoxDecoration(
           color: AppColors.cardBg,
@@ -830,7 +837,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         left: Spacing.pagePadding,
         right: Spacing.pagePadding,
         top: Spacing.space16,
-        bottom: safeBottom + Spacing.space16,
+        bottom: bottomPadding + Spacing.space16,
       ),
       decoration: BoxDecoration(
         color: AppColors.cardBg,

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/services/supabase_client.dart';
+import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
 import '../../../components/ui/field_hint.dart';
@@ -19,6 +20,7 @@ import '../../members/members_controller.dart';
 import '../../members/member_vm.dart';
 import '../../rehearsals/rehearsal_controller.dart';
 import '../../setlists/models/setlist.dart';
+import '../../setlists/new_setlist_screen.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
 import '../models/event_form_data.dart';
 import '../events_repository.dart';
@@ -3507,6 +3509,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final isLoading = setlistsState.isLoading;
     final error = setlistsState.error;
 
+    // Filter to get only user-created setlists (excludes Catalog)
+    final userSetlists = _sortSetlists(setlists);
+    final hasNoSetlists = userSetlists.isEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3566,24 +3572,45 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   ),
                   const SizedBox(width: 8),
 
-                  // Setlist pills - Catalog first, then alphabetical
-                  ..._sortSetlists(setlists).map((setlist) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: _buildSetlistPill(
-                        id: setlist.id,
-                        name: setlist.name,
-                        isSelected: _selectedSetlistId == setlist.id,
-                        isCatalog: setlist.isCatalog,
+                  // If no setlists exist, show "+ Create Setlist" link
+                  if (hasNoSetlists)
+                    GestureDetector(
+                      onTap: _isSaving ? null : _navigateToCreateSetlist,
+                      child: Text(
+                        '+ Create Setlist',
+                        style: AppTextStyles.footnote.copyWith(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    );
-                  }),
+                    )
+                  // Setlist pills - alphabetical (Catalog already excluded by _sortSetlists)
+                  else
+                    ...userSetlists.map((setlist) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _buildSetlistPill(
+                          id: setlist.id,
+                          name: setlist.name,
+                          isSelected: _selectedSetlistId == setlist.id,
+                          isCatalog: setlist.isCatalog,
+                        ),
+                      );
+                    }),
                 ],
               ),
             ),
           ),
       ],
     );
+  }
+
+  /// Navigate to create a new setlist
+  void _navigateToCreateSetlist() {
+    // Close the drawer first
+    Navigator.of(context).pop();
+    // Navigate to new setlist screen
+    Navigator.of(context).push(fadeSlideRoute(page: const NewSetlistScreen()));
   }
 
   /// Sort setlists: alphabetical by name (Catalog excluded)
