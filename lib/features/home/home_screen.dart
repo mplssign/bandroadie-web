@@ -12,6 +12,7 @@ import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
 import '../bands/edit_band_screen.dart';
 import '../calendar/calendar_controller.dart';
+import '../calendar/widgets/add_block_out_drawer.dart';
 import '../events/models/event_form_data.dart';
 import '../events/widgets/add_edit_event_bottom_sheet.dart';
 import '../feedback/bug_report_screen.dart';
@@ -195,6 +196,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  void _handleBlockOut() {
+    final bandId = ref.read(activeBandIdProvider);
+    if (bandId == null) return;
+    BlockOutDrawer.show(
+      context,
+      ref: ref,
+      bandId: bandId,
+      mode: BlockOutDrawerMode.create,
+      onSaved: () {
+        // Refresh calendar data after creating block out
+        ref
+            .read(calendarProvider.notifier)
+            .invalidateAndRefresh(bandId: bandId);
+      },
+    );
+  }
+
   /// Open the Edit Event drawer for an existing gig
   void _openEditGigSheet(Gig gig) {
     final bandId = ref.read(activeBandIdProvider);
@@ -301,6 +319,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             context,
           ).push(fadeSlideRoute(page: const NewSetlistScreen()));
         },
+        onBlockOut: _handleBlockOut,
       );
     } else {
       stateKey = 'content';
@@ -708,6 +727,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       ),
                                     );
                                   },
+                                  onBlockOut: _handleBlockOut,
                                 ),
                               ),
 

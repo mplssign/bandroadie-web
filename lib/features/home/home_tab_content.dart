@@ -397,6 +397,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
             context,
           ).push(fadeSlideRoute(page: const NewSetlistScreen()));
         },
+        onBlockOut: _handleBlockOut,
       );
     } else if (gigState.error != null && gigsForCurrentBand) {
       // Only show error if it's for the current band
