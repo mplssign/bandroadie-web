@@ -29,6 +29,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
   bool? _profileComplete;
   bool _profileSkipped = false; // User chose to skip profile completion
   bool _processingPendingInvite = false;
+  bool _hasCheckedPendingInvites = false; // Guard: only check invites once per session
   String? _pendingInviteMessage;
 
   /// Track previous lifecycle state to detect meaningful transitions.
@@ -124,10 +125,11 @@ class _AuthGateState extends ConsumerState<AuthGate>
       // Session state changed
       if (previous?.isAuthenticated != next.isAuthenticated) {
         if (next.isAuthenticated) {
-          // New session - reset profile check and skip state
+          // New session - reset profile check, skip state, and invite check
           setState(() {
             _profileComplete = null;
             _profileSkipped = false;
+            _hasCheckedPendingInvites = false; // Allow invite check for new session
           });
           _checkProfileComplete();
         } else {
@@ -135,6 +137,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
           setState(() {
             _profileComplete = null;
             _profileSkipped = false;
+            _hasCheckedPendingInvites = false; // Reset for next login
           });
         }
       }
@@ -209,13 +212,23 @@ class _AuthGateState extends ConsumerState<AuthGate>
     }
   }
 
-  /// Check for pending invitations by email and process them via edge function
+  /// Check for pending invitations by email and process them via edge function.
+  /// Only runs once per app session to prevent repeated snackbars.
   Future<void> _checkAndProcessPendingInvite() async {
+    // Guard: Only check pending invites once per session
+    if (_hasCheckedPendingInvites) {
+      debugPrint('[AuthGate] Skipping pending invite check - already checked this session');
+      return;
+    }
+
     try {
       final userEmail = supabase.auth.currentUser?.email;
       if (userEmail == null || userEmail.isEmpty) {
         return;
       }
+
+      // Mark as checked immediately to prevent concurrent calls
+      _hasCheckedPendingInvites = true;
 
       setState(() {
         _processingPendingInvite = true;

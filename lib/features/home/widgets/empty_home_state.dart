@@ -25,6 +25,7 @@ class EmptyHomeState extends StatefulWidget {
   final VoidCallback? onScheduleRehearsal;
   final VoidCallback? onCreateGig;
   final VoidCallback? onCreateSetlist;
+  final VoidCallback? onBlockOut;
 
   const EmptyHomeState({
     super.key,
@@ -37,6 +38,7 @@ class EmptyHomeState extends StatefulWidget {
     this.onScheduleRehearsal,
     this.onCreateGig,
     this.onCreateSetlist,
+    this.onBlockOut,
   });
 
   @override
@@ -175,6 +177,7 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                         onScheduleRehearsal: widget.onScheduleRehearsal,
                         onCreateGig: widget.onCreateGig,
                         onCreateSetlist: widget.onCreateSetlist,
+                        onBlockOut: widget.onBlockOut,
                       ),
                     ],
                   ),
