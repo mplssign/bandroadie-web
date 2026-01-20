@@ -328,7 +328,10 @@ class MembersRepository {
     return data.members;
   }
 
-  /// Removes a member from the band (sets status to 'removed').
+  /// Removes a member from the band (hard delete via RPC).
+  ///
+  /// Uses the remove_band_member RPC function which bypasses RLS with proper
+  /// authorization checks (only admins/owners can remove members).
   ///
   /// Returns true if successful, false otherwise.
   Future<bool> removeMember({
@@ -340,11 +343,10 @@ class MembersRepository {
     }
 
     try {
-      await supabase
-          .from('band_members')
-          .update({'status': 'removed'})
-          .eq('id', memberId)
-          .eq('band_id', bandId);
+      await supabase.rpc(
+        'remove_band_member',
+        params: {'p_member_id': memberId, 'p_band_id': bandId},
+      );
 
       // Invalidate cache for this band
       _cache.remove(bandId);

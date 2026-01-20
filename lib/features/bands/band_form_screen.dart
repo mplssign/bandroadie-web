@@ -553,8 +553,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     setState(() => _isDeleting = true);
 
     try {
-      // Delete band from database
-      await supabase.from('bands').delete().eq('id', band.id);
+      // Delete band using RPC function (bypasses RLS with proper auth checks)
+      await supabase.rpc('delete_band', params: {'band_uuid': band.id});
 
       // Reload bands - this will auto-select another band or show NoBandState
       await ref.read(activeBandProvider.notifier).loadUserBands();
@@ -990,24 +990,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     try {
       final bandId = widget.initialBand!.id;
 
-      // Hard delete the band membership row (NOT the user - they remain in public.users)
-      try {
-        await supabase
-            .from('band_members')
-            .delete()
-            .eq('id', member['id'])
-            .eq('band_id', bandId);
-      } catch (deleteError) {
-        // Fallback to soft delete if RLS/permissions prevent hard delete
-        debugPrint(
-          '[RemoveMember] Hard delete failed, falling back to soft delete: $deleteError',
-        );
-        await supabase
-            .from('band_members')
-            .update({'status': 'removed'})
-            .eq('id', member['id'])
-            .eq('band_id', bandId);
-      }
+      // Use RPC function to remove member (bypasses RLS with proper auth checks)
+      await supabase.rpc(
+        'remove_band_member',
+        params: {'p_member_id': member['id'], 'p_band_id': bandId},
+      );
 
       debugPrint(
         '[RemoveMember] removed membership ${member['id']} for $displayName',
