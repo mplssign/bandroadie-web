@@ -32,7 +32,6 @@ const List<TipSection> kTipSections = [
         'Tap + Schedule Rehearsal or + Create Gig to get things on the calendar fast.',
       ),
       Tip('Tap any upcoming event to edit it — no digging required.'),
-      Tip('Swipe a setlist card left to delete, right to duplicate.'),
       Tip("Quick Actions are shortcuts — they don't bite. Use them."),
     ],
   ),
@@ -121,6 +120,7 @@ class _TipSectionWidget extends StatelessWidget {
             style: AppTextStyles.headline.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
+              fontSize: 22,
             ),
           ),
         ),
@@ -167,6 +167,7 @@ class _TipRow extends StatelessWidget {
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.5,
+                fontSize: 16,
               ),
             ),
           ),

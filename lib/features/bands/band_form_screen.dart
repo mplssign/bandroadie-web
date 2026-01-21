@@ -511,6 +511,18 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final band = widget.initialBand;
     if (band == null) return;
 
+    // Check if current user is the band creator
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) {
+      _showErrorSnackBar('You must be logged in to delete a band');
+      return;
+    }
+
+    if (band.createdBy != currentUserId) {
+      _showErrorSnackBar('Only the band creator can delete this band.');
+      return;
+    }
+
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
@@ -567,7 +579,15 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       debugPrint('[DeleteBand] PostgrestException: ${e.code} - ${e.message}');
       setState(() => _isDeleting = false);
       if (mounted) {
-        _showErrorSnackBar('Failed to delete band: ${e.message}');
+        // Check for permission-related errors from the backend
+        final message = e.message.toLowerCase();
+        if (message.contains('permission') ||
+            message.contains('not authorized') ||
+            message.contains('creator')) {
+          _showErrorSnackBar('Only the band creator can delete this band.');
+        } else {
+          _showErrorSnackBar('Failed to delete band: ${e.message}');
+        }
       }
     } catch (e) {
       debugPrint('[DeleteBand] Error: $e');

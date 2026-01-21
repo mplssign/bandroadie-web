@@ -29,7 +29,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
   bool? _profileComplete;
   bool _profileSkipped = false; // User chose to skip profile completion
   bool _processingPendingInvite = false;
-  bool _hasCheckedPendingInvites = false; // Guard: only check invites once per session
+  bool _hasCheckedPendingInvites =
+      false; // Guard: only check invites once per session
   String? _pendingInviteMessage;
 
   /// Track previous lifecycle state to detect meaningful transitions.
@@ -129,7 +130,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
           setState(() {
             _profileComplete = null;
             _profileSkipped = false;
-            _hasCheckedPendingInvites = false; // Allow invite check for new session
+            _hasCheckedPendingInvites =
+                false; // Allow invite check for new session
           });
           _checkProfileComplete();
         } else {
@@ -217,7 +219,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
   Future<void> _checkAndProcessPendingInvite() async {
     // Guard: Only check pending invites once per session
     if (_hasCheckedPendingInvites) {
-      debugPrint('[AuthGate] Skipping pending invite check - already checked this session');
+      debugPrint(
+        '[AuthGate] Skipping pending invite check - already checked this session',
+      );
       return;
     }
 
