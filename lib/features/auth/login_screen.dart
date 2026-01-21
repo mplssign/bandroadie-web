@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen>
     // instead of login UI. AuthGate will handle the redirect.
     if (_sessionDetected) {
       return const Scaffold(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: Color(0xFF000000),
         body: Center(
           child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
         ),
@@ -340,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen>
     final hasValidEmail = emailText.contains('@') && emailText.length > 3;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: const Color(0xFF000000),
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: LayoutBuilder(

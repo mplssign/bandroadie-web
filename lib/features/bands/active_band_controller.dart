@@ -360,6 +360,43 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     );
   }
 
+  /// Handle band deletion cleanup
+  ///
+  /// This method ensures proper state cleanup after a band is deleted:
+  /// 1. Clears the persisted band ID if the deleted band was active
+  /// 2. Reloads the band list from the database
+  /// 3. Selects a new active band (first available) or null if no bands remain
+  /// 4. Navigates to Dashboard to ensure fresh data
+  ///
+  /// Call this after successfully deleting a band via the RPC.
+  Future<void> handleBandDeletion(String deletedBandId) async {
+    if (kDebugMode) {
+      debugPrint('[ActiveBand] Handling deletion of band: $deletedBandId');
+    }
+
+    // Clear persisted ID if the deleted band was the active one
+    if (state.activeBand?.id == deletedBandId) {
+      await _clearPersistedBandId();
+      if (kDebugMode) {
+        debugPrint('[ActiveBand] Cleared persisted ID for deleted band');
+      }
+    }
+
+    // Reload bands and auto-select a new one
+    await loadUserBands();
+
+    // Always navigate to Dashboard after deletion to ensure fresh UI
+    // - If bands remain, shows the new active band's dashboard
+    // - If no bands remain, shows NoBandState (create/join prompt)
+    ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
+
+    if (kDebugMode) {
+      debugPrint(
+        '[ActiveBand] Deletion cleanup complete. New active band: ${state.activeBand?.name ?? "none"}',
+      );
+    }
+  }
+
   /// Clear active band (e.g., on logout)
   Future<void> clearActiveBand() async {
     await _clearPersistedBandId();

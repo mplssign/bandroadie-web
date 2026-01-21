@@ -511,18 +511,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final band = widget.initialBand;
     if (band == null) return;
 
-    // Check if current user is the band creator
-    final currentUserId = supabase.auth.currentUser?.id;
-    if (currentUserId == null) {
-      _showErrorSnackBar('You must be logged in to delete a band');
-      return;
-    }
-
-    if (band.createdBy != currentUserId) {
-      _showErrorSnackBar('Only the band creator can delete this band.');
-      return;
-    }
-
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
@@ -566,28 +554,67 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
     try {
       // Delete band using RPC function (bypasses RLS with proper auth checks)
-      await supabase.rpc('delete_band', params: {'band_uuid': band.id});
+      // Returns true on success, throws exception on failure
+      final result = await supabase.rpc(
+        'delete_band',
+        params: {'band_uuid': band.id},
+      );
 
-      // Reload bands - this will auto-select another band or show NoBandState
-      await ref.read(activeBandProvider.notifier).loadUserBands();
+      debugPrint('[DeleteBand] RPC result: $result');
 
+      // Verify the deletion actually succeeded
+      if (result != true) {
+        debugPrint(
+          '[DeleteBand] RPC returned false or null, deletion may have failed',
+        );
+        setState(() => _isDeleting = false);
+        if (mounted) {
+          _showErrorSnackBar(
+            'Failed to delete band: operation did not complete',
+          );
+        }
+        return;
+      }
+
+      // Store band ID before cleanup (for debug logging)
+      final deletedBandId = band.id;
+      final bandName = band.name;
+
+      // Clear the draft band state if we were editing
+      ref.read(draftBandProvider.notifier).cancelEditing();
+
+      // Handle band deletion cleanup: clears persisted ID, reloads bands,
+      // selects new active band, and navigates to Dashboard
+      await ref
+          .read(activeBandProvider.notifier)
+          .handleBandDeletion(deletedBandId);
+
+      debugPrint(
+        '[DeleteBand] State cleanup complete for band: $deletedBandId',
+      );
+
+      // Pop the screen first, then show snackbar on the previous screen
       if (mounted) {
-        showSuccessSnackBar(context, message: '${band.name} deleted');
         Navigator.of(context).pop();
+        // Show snackbar after navigation so it appears on the underlying screen
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            showSuccessSnackBar(context, message: '$bandName deleted');
+          }
+        });
       }
     } on PostgrestException catch (e) {
       debugPrint('[DeleteBand] PostgrestException: ${e.code} - ${e.message}');
       setState(() => _isDeleting = false);
       if (mounted) {
-        // Check for permission-related errors from the backend
-        final message = e.message.toLowerCase();
-        if (message.contains('permission') ||
-            message.contains('not authorized') ||
-            message.contains('creator')) {
-          _showErrorSnackBar('Only the band creator can delete this band.');
-        } else {
-          _showErrorSnackBar('Failed to delete band: ${e.message}');
+        // Parse user-friendly error messages from RPC exceptions
+        String errorMessage = e.message;
+        if (errorMessage.contains('Permission denied')) {
+          errorMessage = 'Only active band members can delete this band';
+        } else if (errorMessage.contains('Band not found')) {
+          errorMessage = 'This band no longer exists';
         }
+        _showErrorSnackBar('Failed to delete band: $errorMessage');
       }
     } catch (e) {
       debugPrint('[DeleteBand] Error: $e');
