@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/shared/widgets/native_app_banner.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
 import '../bands/edit_band_screen.dart';
@@ -106,6 +107,13 @@ class AppShell extends ConsumerWidget {
                 ref.read(currentTabProvider.notifier).setTab(index);
               },
             ),
+          ),
+
+          // Native app download banner (Web only, mobile browsers only)
+          const NativeAppBanner(
+            delay: Duration(seconds: 4),
+            position: BannerPosition.top,
+            hideOnAuthPages: true,
           ),
 
           // ⚠️ CRITICAL: Overlay widgets MUST only be added to tree when open.
