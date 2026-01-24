@@ -49,8 +49,8 @@ class _NativeAppBannerState extends State<NativeAppBanner>
     with SingleTickerProviderStateMixin {
   bool _visible = false;
   bool _shouldShow = false;
-  late AnimationController _controller;
-  late Animation<double> _slideAnimation;
+  AnimationController? _controller;
+  Animation<double>? _slideAnimation;
   Timer? _delayTimer;
 
   @override
@@ -79,7 +79,7 @@ class _NativeAppBannerState extends State<NativeAppBanner>
       );
 
       _slideAnimation = CurvedAnimation(
-        parent: _controller,
+        parent: _controller!,
         curve: Curves.easeOut,
       );
 
@@ -88,7 +88,7 @@ class _NativeAppBannerState extends State<NativeAppBanner>
         if (mounted) {
           debugPrint('NativeAppBanner: Showing banner after delay');
           setState(() => _visible = true);
-          _controller.forward();
+          _controller?.forward();
         }
       });
     }
@@ -97,9 +97,7 @@ class _NativeAppBannerState extends State<NativeAppBanner>
   @override
   void dispose() {
     _delayTimer?.cancel();
-    if (_shouldShow) {
-      _controller.dispose();
-    }
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -120,7 +118,7 @@ class _NativeAppBannerState extends State<NativeAppBanner>
 
   void _dismiss() {
     // Animate out
-    _controller.reverse().then((_) {
+    _controller?.reverse().then((_) {
       if (mounted) {
         setState(() => _visible = false);
       }
@@ -154,7 +152,7 @@ class _NativeAppBannerState extends State<NativeAppBanner>
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb || !_shouldShow || !_visible) {
+    if (!kIsWeb || !_shouldShow || !_visible || _slideAnimation == null) {
       return const SizedBox.shrink();
     }
 
@@ -169,7 +167,7 @@ class _NativeAppBannerState extends State<NativeAppBanner>
               ? const Offset(0, -1)
               : const Offset(0, 1),
           end: Offset.zero,
-        ).animate(_slideAnimation),
+        ).animate(_slideAnimation!),
         child: SafeArea(
           child: _BannerContent(onDismiss: _dismiss, onDownload: _downloadApp),
         ),
@@ -225,7 +223,7 @@ class _BannerContent extends StatelessWidget {
                     icon: const Icon(Icons.close, size: 20),
                     color: Colors.black,
                     onPressed: onDismiss,
-                    tooltip: 'Not now',
+                    tooltip: 'Don\'t show again',
                   ),
                 ],
               ),
@@ -279,7 +277,7 @@ class _BannerContent extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Not now',
+                      'Don\'t show again',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
