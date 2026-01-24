@@ -189,12 +189,8 @@ class _BannerContent extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(Spacing.space12),
       decoration: BoxDecoration(
-        color: AppColors.cardBgElevated,
+        color: const Color(0xFFF43F5E), // Rose background
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        border: Border.all(
-          color: AppColors.borderSubtle.withOpacity(0.2),
-          width: 1,
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -214,13 +210,11 @@ class _BannerContent extends StatelessWidget {
               // Header row with title and close button
               Row(
                 children: [
-                  const Text('🎸', style: TextStyle(fontSize: 24)),
-                  const SizedBox(width: Spacing.space12),
                   const Expanded(
                     child: Text(
-                      'Get the full Band Roadie experience',
+                      'Get the full BandRoadie experience',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: Colors.black,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         height: 1.3,
@@ -229,7 +223,7 @@ class _BannerContent extends StatelessWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, size: 20),
-                    color: AppColors.textSecondary,
+                    color: Colors.black,
                     onPressed: onDismiss,
                     tooltip: 'Not now',
                   ),
@@ -237,65 +231,62 @@ class _BannerContent extends StatelessWidget {
               ),
               const SizedBox(height: Spacing.space8),
               // Subtitle
-              Padding(
-                padding: const EdgeInsets.only(left: 36), // Align with title
-                child: Text(
-                  'Faster performance, offline access, and notifications.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
+              const Text(
+                'Faster performance, offline access, and notifications.',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  height: 1.4,
                 ),
               ),
               const SizedBox(height: Spacing.space16),
               // Action buttons
-              Padding(
-                padding: const EdgeInsets.only(left: 36), // Align with content
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onDownload,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: Spacing.space12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              Spacing.buttonRadius,
-                            ),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Download app',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: Spacing.space12),
-                    TextButton(
-                      onPressed: onDismiss,
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onDownload,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.space16,
                           vertical: Spacing.space12,
+                        ),
+                        side: const BorderSide(color: Colors.black, width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            Spacing.buttonRadius,
+                          ),
                         ),
                       ),
                       child: const Text(
-                        'Not now',
-                        style: TextStyle(fontSize: 15),
+                        'Download app',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: Spacing.space12),
+                  TextButton(
+                    onPressed: onDismiss,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.space16,
+                        vertical: Spacing.space12,
+                      ),
+                    ),
+                    child: const Text(
+                      'Not now',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
