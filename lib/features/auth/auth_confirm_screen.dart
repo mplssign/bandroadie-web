@@ -330,10 +330,80 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         icon = Icons.person_off;
         iconColor = Colors.red;
         title = 'Authentication Failed';
-        message = 'We couldn\\'t verify your identity. Please try logging in again.';
+        message = "We couldn't verify your identity. Please try logging in again.";
         break;
       default:
         icon = Icons.error_outline;
         iconColor = Colors.red;
         title = 'Authentication Error';
-        message = _error ?? 'Something went wrong during login. Please try again.';\n    }\n    \n    return Padding(\n      padding: const EdgeInsets.symmetric(horizontal: 32),\n      child: Column(\n        mainAxisSize: MainAxisSize.min,\n        children: [\n          Icon(icon, color: iconColor, size: 48),\n          const SizedBox(height: 16),\n          Text(\n            title,\n            style: const TextStyle(\n              color: Colors.white,\n              fontSize: 18,\n              fontWeight: FontWeight.bold,\n            ),\n            textAlign: TextAlign.center,\n          ),\n          const SizedBox(height: 12),\n          Text(\n            message,\n            style: const TextStyle(color: Colors.white70, fontSize: 14),\n            textAlign: TextAlign.center,\n          ),\n          const SizedBox(height: 24),\n          ElevatedButton.icon(\n            onPressed: () => Navigator.of(context).pushReplacementNamed('/'),\n            icon: const Icon(Icons.email),\n            label: const Text('Request New Magic Link'),\n            style: ElevatedButton.styleFrom(\n              backgroundColor: const Color(0xFFF43F5E),\n              foregroundColor: Colors.white,\n              padding: const EdgeInsets.symmetric(\n                horizontal: 24,\n                vertical: 12,\n              ),\n            ),\n          ),\n        ],\n      ),\n    );\n  }\n\n  @override\n  Widget build(BuildContext context) {\n    return Scaffold(\n      backgroundColor: const Color(0xFF0A0A0A),\n      body: Center(\n        child: _loading\n            ? const Column(\n                mainAxisAlignment: MainAxisAlignment.center,\n                children: [\n                  CircularProgressIndicator(color: Color(0xFF3B82F6)),\n                  SizedBox(height: 24),\n                  Text(\n                    'Verifying your login...',\n                    style: TextStyle(color: Colors.white70, fontSize: 16),\n                  ),\n                ],\n              )\n            : _error != null\n            ? _buildErrorUI()\n            : const Text(\n                'Login successful! Redirecting...',\n                style: TextStyle(color: Colors.white),\n              ),\n      ),\n    );\n  }\n}
+        message = _error ?? 'Something went wrong during login. Please try again.';
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: iconColor, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
+            icon: const Icon(Icons.email),
+            label: const Text('Request New Magic Link'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF43F5E),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: Center(
+        child: _loading
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                  SizedBox(height: 24),
+                  Text(
+                    'Verifying your login...',
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ],
+              )
+            : _error != null
+            ? _buildErrorUI()
+            : const Text(
+                'Login successful! Redirecting...',
+                style: TextStyle(color: Colors.white),
+              ),
+      ),
+    );
+  }
+}
