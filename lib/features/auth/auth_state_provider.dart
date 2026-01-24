@@ -54,45 +54,10 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
   AppAuthState build() {
     // Get initial session
     final session = supabase.Supabase.instance.client.auth.currentSession;
-    debugPrint(
-      '[AuthStateNotifier] Initial session: ${session != null ? "present (${session.user.email})" : "null"}',
-    );
-
-    // Listen for auth state changes
-    _authSubscription?.cancel();
-    _authSubscription = supabase.Supabase.instance.client.auth.onAuthStateChange
-        .listen((data) {
-          debugPrint(
-            '[AuthStateNotifier] Auth event: ${data.event.name}, session: ${data.session != null}',
-          );
-
-          AuthDebugLogger.authStateUpdated(
-            isAuthenticated: data.session != null,
-            trigger: 'onAuthStateChange:${data.event.name}',
-          );
-
-          switch (data.event) {
-            case supabase.AuthChangeEvent.signedIn:
-            case supabase.AuthChangeEvent.tokenRefreshed:
-            case supabase.AuthChangeEvent.userUpdated:
-              state = AppAuthState(session: data.session);
-              break;
-
-            case supabase.AuthChangeEvent.signedOut:
-              state = const AppAuthState(session: null);
-              break;
-
-            case supabase.AuthChangeEvent.initialSession:
-              state = AppAuthState(session: data.session);
-              break;
-
-            default:
-              // passwordRecovery, mfaChallengeVerified, etc.
-              if (data.session != null) {
-                state = AppAuthState(session: data.session);
-              }
-          }
-        });
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('🔐 AUTH STATE PROVIDER: Initializing');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('   Session: ${session != null ? \"✅ Present\" : \"❌ None\"}');\n    if (session != null) {\n      debugPrint('   User: ${session.user.email}');\n      debugPrint('   Expires: ${DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000)}');\n    }\n    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');\n\n    // Listen for auth state changes\n    _authSubscription?.cancel();\n    _authSubscription = supabase.Supabase.instance.client.auth.onAuthStateChange\n        .listen((data) {\n          debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');\n          debugPrint('🔔 AUTH EVENT: ${data.event.name}');\n          debugPrint('   Session: ${data.session != null ? \"✅ Present\" : \"❌ None\"}');\n          if (data.session != null) {\n            debugPrint('   User: ${data.session!.user.email}');\n          }\n          debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');\n\n          AuthDebugLogger.authStateUpdated(\n            isAuthenticated: data.session != null,\n            trigger: 'onAuthStateChange:${data.event.name}',\n          );\n\n          switch (data.event) {\n            case supabase.AuthChangeEvent.signedIn:\n              debugPrint('   ↳ Updating state: SIGNED_IN');\n              state = AppAuthState(session: data.session);\n              break;\n            case supabase.AuthChangeEvent.tokenRefreshed:\n              debugPrint('   ↳ Updating state: TOKEN_REFRESHED');\n              state = AppAuthState(session: data.session);\n              break;\n            case supabase.AuthChangeEvent.userUpdated:\n              debugPrint('   ↳ Updating state: USER_UPDATED');\n              state = AppAuthState(session: data.session);\n              break;\n\n            case supabase.AuthChangeEvent.signedOut:\n              debugPrint('   ↳ Updating state: SIGNED_OUT');\n              state = const AppAuthState(session: null);\n              break;\n\n            case supabase.AuthChangeEvent.initialSession:\n              debugPrint('   ↳ Updating state: INITIAL_SESSION');\n              state = AppAuthState(session: data.session);\n              break;\n\n            default:\n              debugPrint('   ↳ Other event: ${data.event.name}');\n              // passwordRecovery, mfaChallengeVerified, etc.\n              if (data.session != null) {\n                state = AppAuthState(session: data.session);\n              }\n          }\n        });
 
     // Clean up subscription when provider is disposed
     ref.onDispose(() {
