@@ -110,10 +110,15 @@ class AppShell extends ConsumerWidget {
           ),
 
           // Native app download banner (Web only, mobile browsers only)
-          const NativeAppBanner(
-            delay: Duration(seconds: 4),
-            position: BannerPosition.top,
-            hideOnAuthPages: true,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: const NativeAppBanner(
+              delay: Duration(seconds: 4),
+              position: BannerPosition.top,
+              hideOnAuthPages: true,
+            ),
           ),
 
           // ⚠️ CRITICAL: Overlay widgets MUST only be added to tree when open.
