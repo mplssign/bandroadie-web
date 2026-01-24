@@ -156,21 +156,15 @@ class _NativeAppBannerState extends State<NativeAppBanner>
       return const SizedBox.shrink();
     }
 
-    return Positioned(
-      top: widget.position == BannerPosition.top ? 0 : null,
-      bottom: widget.position == BannerPosition.bottom ? 0 : null,
-      left: 0,
-      right: 0,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: widget.position == BannerPosition.top
-              ? const Offset(0, -1)
-              : const Offset(0, 1),
-          end: Offset.zero,
-        ).animate(_slideAnimation!),
-        child: SafeArea(
-          child: _BannerContent(onDismiss: _dismiss, onDownload: _downloadApp),
-        ),
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: widget.position == BannerPosition.top
+            ? const Offset(0, -1)
+            : const Offset(0, 1),
+        end: Offset.zero,
+      ).animate(_slideAnimation!),
+      child: SafeArea(
+        child: _BannerContent(onDismiss: _dismiss, onDownload: _downloadApp),
       ),
     );
   }
