@@ -118,13 +118,19 @@ class _AuthConfirmScreenState extends State<AuthConfirmScreen> {
         return;
       }
 
-      // Session established - redirect to AuthGate which handles profile completeness check
+      // Session established - wait briefly for session to propagate, then redirect
+      if (!mounted) return;
+
+      // Give the session a moment to fully propagate to the auth state provider
+      await Future.delayed(const Duration(milliseconds: 500));
+
       if (!mounted) return;
 
       debugPrint('AuthConfirmScreen: Redirecting to AuthGate');
-      Navigator.pushReplacement(
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false, // Remove all previous routes
       );
 
       setState(() {
