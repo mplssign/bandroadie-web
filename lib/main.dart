@@ -50,9 +50,10 @@ Future<void> main() async {
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
     authOptions: FlutterAuthClientOptions(
-      // PKCE flow is more secure than implicit flow for magic links
-      authFlowType: AuthFlowType.pkce,
-      // On web: enable auto-detection so Supabase handles code exchange from URL
+      // Web uses implicit flow (simpler, works better with email links)
+      // Native uses PKCE (more secure for deep links)
+      authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
+      // On web: enable auto-detection so Supabase handles session from URL
       // On native: disable it - we handle deep links manually for iPad/background support
       detectSessionInUri: kIsWeb,
     ),
