@@ -285,7 +285,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   ///
   /// SORTING BEHAVIOR:
   /// - Catalog: Always sorted alphabetically by artist, then title (display order only)
-  /// - Non-Catalog: Sorted by persisted tuning mode preference
+  /// - Non-Catalog: Respects custom position order from database (no sorting applied)
   Future<void> loadSongs() async {
     if (state.setlistId.isEmpty) return;
 
@@ -323,12 +323,15 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         );
       }
 
-      // Apply sorting
-      songs = _applySorting(
-        songs,
-        isCatalog: state.isCatalog,
-        sortMode: sortMode,
-      );
+      // Apply sorting ONLY for Catalog setlists
+      // Non-Catalog setlists respect the custom position order from the database
+      if (state.isCatalog) {
+        songs = _applySorting(
+          songs,
+          isCatalog: true,
+          sortMode: sortMode,
+        );
+      }
 
       state = state.copyWith(
         songs: songs,
@@ -343,6 +346,9 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         );
         if (!state.isCatalog) {
           debugPrint('[SetlistDetail] Tuning sort mode: ${sortMode.label}');
+          debugPrint('[SetlistDetail] Using custom position order from database');
+        } else {
+          debugPrint('[SetlistDetail] Using alphabetical catalog order');
         }
       }
     } on SetlistQueryError catch (e) {
@@ -413,10 +419,10 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     return sorted;
   }
 
-  /// Cycle to the next tuning sort mode (non-Catalog only).
+  /// Cycle to the next tuning sort mode (Catalog only).
   /// Persists the new mode and re-sorts the songs.
   Future<void> cycleTuningSortMode() async {
-    if (state.isCatalog) return; // No tuning sort for Catalog
+    if (!state.isCatalog) return; // Only for Catalog
 
     final bandId = _bandId;
     if (bandId == null) return;
@@ -433,7 +439,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     // Re-sort songs with new mode
     final sortedSongs = _applySorting(
       state.songs,
-      isCatalog: false,
+      isCatalog: true,
       sortMode: newMode,
     );
 
