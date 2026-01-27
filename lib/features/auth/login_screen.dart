@@ -298,22 +298,25 @@ class _LoginScreenState extends State<LoginScreen>
         emailRedirectTo: redirectUrl,
       );
 
+      debugPrint('[LoginScreen] OTP sent successfully to: $email');
+
       setState(() {
-        _message = 'Check your email for the login link.';
+        _message = 'Check your email for the login link.\n\n'
+            '💡 Tip: Check your spam folder if you don\'t see it in a few minutes.';
         _isLoading = false;
       });
     } on AuthException catch (e) {
       debugPrint('AuthException: ${e.message} (code: ${e.statusCode})');
       setState(() {
         _message = e.message.isNotEmpty
-            ? e.message
+            ? 'Error: ${e.message}'
             : 'Authentication error. Check your email format.';
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('Unexpected error: $e');
       setState(() {
-        _message = 'Something went wrong. Try again.';
+        _message = 'Error: ${e.toString()}\n\nPlease try again or contact support.';
         _isLoading = false;
       });
     }
