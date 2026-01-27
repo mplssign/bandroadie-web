@@ -53,7 +53,7 @@ class FeaturesSection extends StatelessWidget {
               // Determine number of columns based on width
               final int columns;
               final double spacing;
-              
+
               if (constraints.maxWidth < 700) {
                 columns = 1;
                 spacing = 24.0;
@@ -64,8 +64,9 @@ class FeaturesSection extends StatelessWidget {
                 columns = 4;
                 spacing = 32.0;
               }
-              
-              final cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+              final cardWidth =
+                  (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
               return Wrap(
                 spacing: spacing,

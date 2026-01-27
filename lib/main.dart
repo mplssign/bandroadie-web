@@ -17,7 +17,7 @@ import 'features/legal/privacy_policy_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Use path-based URLs instead of hash-based URLs on web
   // This allows /app to work instead of requiring /#/app
   if (kIsWeb) {

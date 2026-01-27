@@ -121,9 +121,10 @@ class SetlistDetailState {
   /// Last successfully persisted song order (for rollback on failure).
   final List<SetlistSong>? lastKnownGoodSongs;
 
-  /// Tuning sort mode for non-Catalog setlists.
-  /// Persisted per-setlist via TuningSortService.
-  final TuningSortMode tuningSortMode;
+  /// Sort mode for Catalog setlist only.
+  /// Preserved in-memory across navigation until explicitly changed by user.
+  /// Defaults to title sort on app launch.
+  final CatalogSortMode catalogSortMode;
 
   const SetlistDetailState({
     this.setlistId = '',
@@ -134,7 +135,7 @@ class SetlistDetailState {
     this.isReordering = false,
     this.error,
     this.lastKnownGoodSongs,
-    this.tuningSortMode = TuningSortMode.standard,
+    this.catalogSortMode = CatalogSortMode.title,
   });
 
   /// Total duration of all songs
@@ -172,7 +173,7 @@ class SetlistDetailState {
     bool clearError = false,
     List<SetlistSong>? lastKnownGoodSongs,
     bool clearLastKnownGood = false,
-    TuningSortMode? tuningSortMode,
+    CatalogSortMode? catalogSortMode,
   }) {
     return SetlistDetailState(
       setlistId: setlistId ?? this.setlistId,
@@ -185,7 +186,7 @@ class SetlistDetailState {
       lastKnownGoodSongs: clearLastKnownGood
           ? null
           : (lastKnownGoodSongs ?? this.lastKnownGoodSongs),
-      tuningSortMode: tuningSortMode ?? this.tuningSortMode,
+      catalogSortMode: catalogSortMode ?? this.catalogSortMode,
     );
   }
 }
@@ -253,7 +254,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       '[SetlistDetail] Applying song update for ${event.songId} in ${state.setlistName}',
     );
 
-    final updatedSongs = List<SetlistSong>.from(state.songs);
+    var updatedSongs = List<SetlistSong>.from(state.songs);
     final song = updatedSongs[songIndex];
 
     // Apply the updates using explicit clear flags
@@ -267,6 +268,18 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       clearBpm: event.clearBpm,
       clearNotes: event.clearNotes,
     );
+
+    // RACE CONDITION FIX: Re-sort Catalog to maintain consistent ordering
+    // after song metadata changes that affect sort order (artist, BPM, etc.)
+    if (state.isCatalog) {
+      updatedSongs = _applySorting(
+        updatedSongs,
+        sortMode: state.catalogSortMode,
+      );
+      if (kDebugMode) {
+        debugPrint('[SetlistDetail] Re-sorted Catalog after song update');
+      }
+    }
 
     state = state.copyWith(songs: updatedSongs);
   }
@@ -284,7 +297,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   /// Load songs for this setlist with band scoping.
   ///
   /// SORTING BEHAVIOR:
-  /// - Catalog: Always sorted alphabetically by artist, then title (display order only)
+  /// - Catalog: Sorted according to active catalogSortMode (title, artist, BPM, etc.)
   /// - Non-Catalog: Respects custom position order from database (no sorting applied)
   Future<void> loadSongs() async {
     if (state.setlistId.isEmpty) return;
@@ -314,29 +327,28 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         setlistId: state.setlistId,
       );
 
-      // Load persisted tuning sort mode for non-Catalog setlists
-      TuningSortMode sortMode = TuningSortMode.standard;
-      if (!state.isCatalog) {
-        sortMode = await TuningSortService.getSortMode(
-          bandId: bandId,
-          setlistId: state.setlistId,
-        );
+      // ASYNC SAFETY: Verify bandId hasn't changed during the await
+      // Prevents cross-band data leakage on rapid band switching
+      final currentBandId = _bandId;
+      if (currentBandId != bandId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistDetail] Discarding stale load result: '
+            'bandId changed from $bandId to $currentBandId',
+          );
+        }
+        return; // Discard result - band context changed
       }
 
       // Apply sorting ONLY for Catalog setlists
       // Non-Catalog setlists respect the custom position order from the database
       if (state.isCatalog) {
-        songs = _applySorting(
-          songs,
-          isCatalog: true,
-          sortMode: sortMode,
-        );
+        songs = _applySorting(songs, sortMode: state.catalogSortMode);
       }
 
       state = state.copyWith(
         songs: songs,
         isLoading: false,
-        tuningSortMode: sortMode,
         clearLastKnownGood: true, // Loaded data is now the source of truth
       );
 
@@ -344,11 +356,14 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         debugPrint(
           '[SetlistDetail] Loaded ${songs.length} songs for ${state.setlistName}',
         );
-        if (!state.isCatalog) {
-          debugPrint('[SetlistDetail] Tuning sort mode: ${sortMode.label}');
-          debugPrint('[SetlistDetail] Using custom position order from database');
+        if (state.isCatalog) {
+          debugPrint(
+            '[SetlistDetail] Catalog sort mode: ${state.catalogSortMode.label}',
+          );
         } else {
-          debugPrint('[SetlistDetail] Using alphabetical catalog order');
+          debugPrint(
+            '[SetlistDetail] Using custom position order from database',
+          );
         }
       }
     } on SetlistQueryError catch (e) {
@@ -369,84 +384,134 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
-  /// Apply sorting to a list of songs based on context.
-  ///
-  /// CATALOG: Alphabetical by artist (case-insensitive), then by title.
-  /// NON-CATALOG: By tuning priority based on selected mode, then by artist, then by title.
-  /// The selected tuning mode's songs appear first, followed by remaining tunings in rotation order.
+  /// Apply sorting to Catalog songs based on selected sort mode.
+  /// Handles null/empty values gracefully by pushing them to the bottom.
   List<SetlistSong> _applySorting(
     List<SetlistSong> songs, {
-    required bool isCatalog,
-    required TuningSortMode sortMode,
+    required CatalogSortMode sortMode,
   }) {
     final sorted = List<SetlistSong>.from(songs);
 
-    if (isCatalog) {
-      // Catalog: Always alphabetical by artist, then title
-      sorted.sort((a, b) {
-        final artistCompare = a.artist.toLowerCase().compareTo(
-          b.artist.toLowerCase(),
-        );
-        if (artistCompare != 0) return artistCompare;
-        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-      });
-    } else {
-      // All tuning modes: Sort by tuning priority, then by artist, then by title
-      // The selected mode's tuning appears first (e.g., Standard mode = Standard songs first)
-      sorted.sort((a, b) {
-        final aPriority = TuningSortService.getTuningPriority(
-          a.tuning,
-          sortMode,
-        );
-        final bPriority = TuningSortService.getTuningPriority(
-          b.tuning,
-          sortMode,
-        );
+    switch (sortMode) {
+      case CatalogSortMode.title:
+        sorted.sort((a, b) {
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
 
-        if (aPriority != bPriority) {
-          return aPriority.compareTo(bPriority);
-        }
+      case CatalogSortMode.artist:
+        sorted.sort((a, b) {
+          final aArtist = a.artist.isEmpty ? 'zzz' : a.artist.toLowerCase();
+          final bArtist = b.artist.isEmpty ? 'zzz' : b.artist.toLowerCase();
+          final artistCompare = aArtist.compareTo(bArtist);
+          if (artistCompare != 0) return artistCompare;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
 
-        // Within same tuning priority, sort by artist then title
-        final artistCompare = a.artist.toLowerCase().compareTo(
-          b.artist.toLowerCase(),
-        );
-        if (artistCompare != 0) return artistCompare;
-        return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-      });
+      case CatalogSortMode.bpm:
+        sorted.sort((a, b) {
+          // Null/0 BPM goes to bottom
+          if (a.bpm == null || a.bpm == 0) return 1;
+          if (b.bpm == null || b.bpm == 0) return -1;
+          final bpmCompare = a.bpm!.compareTo(b.bpm!);
+          if (bpmCompare != 0) return bpmCompare;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
+
+      case CatalogSortMode.bpmDesc:
+        sorted.sort((a, b) {
+          // Null/0 BPM goes to bottom
+          if (a.bpm == null || a.bpm == 0) return 1;
+          if (b.bpm == null || b.bpm == 0) return -1;
+          final bpmCompare = b.bpm!.compareTo(
+            a.bpm!,
+          ); // Reversed for descending
+          if (bpmCompare != 0) return bpmCompare;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
+
+      case CatalogSortMode.duration:
+        sorted.sort((a, b) {
+          final aDuration = a.durationSeconds;
+          final bDuration = b.durationSeconds;
+          // 0 duration goes to bottom
+          if (aDuration == 0) return 1;
+          if (bDuration == 0) return -1;
+          final durationCompare = aDuration.compareTo(bDuration);
+          if (durationCompare != 0) return durationCompare;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
+
+      case CatalogSortMode.durationDesc:
+        sorted.sort((a, b) {
+          final aDuration = a.durationSeconds;
+          final bDuration = b.durationSeconds;
+          // 0 duration goes to bottom
+          if (aDuration == 0) return 1;
+          if (bDuration == 0) return -1;
+          final durationCompare = bDuration.compareTo(
+            aDuration,
+          ); // Reversed for descending
+          if (durationCompare != 0) return durationCompare;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
+
+      case CatalogSortMode.tuning:
+        sorted.sort((a, b) {
+          final aTuning = a.tuning ?? '';
+          final bTuning = b.tuning ?? '';
+          // Empty tuning goes to bottom
+          if (aTuning.isEmpty) return 1;
+          if (bTuning.isEmpty) return -1;
+
+          // Use predefined musical order from kTuningSortOrder
+          final aTuningLower = aTuning.toLowerCase();
+          final bTuningLower = bTuning.toLowerCase();
+          final aIndex = kTuningSortOrder.indexOf(aTuningLower);
+          final bIndex = kTuningSortOrder.indexOf(bTuningLower);
+
+          // Both tunings are in the predefined order
+          if (aIndex != -1 && bIndex != -1) {
+            final orderCompare = aIndex.compareTo(bIndex);
+            if (orderCompare != 0) return orderCompare;
+            return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+          }
+
+          // Only a is known - it comes first
+          if (aIndex != -1) return -1;
+
+          // Only b is known - it comes first
+          if (bIndex != -1) return 1;
+
+          // Neither is known - fallback to alphabetical
+          final tuningCompare = aTuningLower.compareTo(bTuningLower);
+          if (tuningCompare != 0) return tuningCompare;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+        break;
     }
 
     return sorted;
   }
 
-  /// Cycle to the next tuning sort mode (Catalog only).
-  /// Persists the new mode and re-sorts the songs.
-  Future<void> cycleTuningSortMode() async {
+  /// Set the sort mode for Catalog.
+  /// Immediately re-sorts the song list and persists selection in-memory
+  /// until changed by user or app restart.
+  void setSortMode(CatalogSortMode newMode) {
     if (!state.isCatalog) return; // Only for Catalog
 
-    final bandId = _bandId;
-    if (bandId == null) return;
-
-    final newMode = state.tuningSortMode.next;
-
-    // Persist the new mode
-    await TuningSortService.setSortMode(
-      bandId: bandId,
-      setlistId: state.setlistId,
-      mode: newMode,
-    );
-
     // Re-sort songs with new mode
-    final sortedSongs = _applySorting(
-      state.songs,
-      isCatalog: true,
-      sortMode: newMode,
-    );
+    final sortedSongs = _applySorting(state.songs, sortMode: newMode);
 
-    state = state.copyWith(tuningSortMode: newMode, songs: sortedSongs);
+    state = state.copyWith(catalogSortMode: newMode, songs: sortedSongs);
 
     if (kDebugMode) {
-      debugPrint('[SetlistDetail] Changed tuning sort to: ${newMode.label}');
+      debugPrint('[SetlistDetail] Changed catalog sort to: ${newMode.label}');
     }
   }
 
@@ -486,6 +551,19 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
           setlistId: state.setlistId,
           songId: songId,
         );
+      }
+
+      // ASYNC SAFETY: Verify bandId hasn't changed during the await
+      final currentBandId = _bandId;
+      if (currentBandId != bandId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistDetail] Discarding delete result: '
+            'bandId changed from $bandId to $currentBandId',
+          );
+        }
+        state = state.copyWith(isDeleting: false);
+        return false;
       }
 
       // Update local state - remove the song
@@ -562,6 +640,19 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         songIdsInOrder: songIds,
         bandId: bandId,
       );
+
+      // ASYNC SAFETY: Verify bandId hasn't changed during the await
+      final currentBandId = _bandId;
+      if (currentBandId != bandId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistDetail] Discarding reorder result: '
+            'bandId changed from $bandId to $currentBandId',
+          );
+        }
+        state = state.copyWith(isReordering: false);
+        return false;
+      }
 
       // Success: clear the backup (current order is now the "known good")
       state = state.copyWith(isReordering: false, clearLastKnownGood: true);
@@ -986,6 +1077,22 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       songArtist: artist,
     );
 
+    // ASYNC SAFETY: Verify bandId hasn't changed during the await
+    final currentBandId = _bandId;
+    if (currentBandId != bandId) {
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistDetail] Discarding addSong result: '
+          'bandId changed from $bandId to $currentBandId',
+        );
+      }
+      return AddSongResult(
+        setlistSongId: null,
+        songTitle: songTitle,
+        songArtist: artist,
+      );
+    }
+
     if (result.success) {
       // Reload to get the updated list with the new song
       await loadSongs();
@@ -1021,6 +1128,19 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         setlistId: state.setlistId,
         newName: newName,
       );
+
+      // ASYNC SAFETY: Verify bandId hasn't changed during the await
+      final currentBandId = _bandId;
+      if (currentBandId != bandId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistDetail] Discarding rename result: '
+            'bandId changed from $bandId to $currentBandId',
+          );
+        }
+        return false;
+      }
+
       state = state.copyWith(setlistName: newName);
       debugPrint('[SetlistDetail] Renamed setlist to "$newName"');
       return true;
