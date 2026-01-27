@@ -69,7 +69,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   String _searchQuery = '';
 
   // Track current tuning sort mode to detect changes
-  TuningSortMode? _lastTuningSortMode;
+  CatalogSortMode? _lastCatalogSortMode;
 
   // Track current name (can be renamed)
   late String _currentName;
@@ -321,6 +321,24 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             .read(setlistDetailProvider.notifier)
             .addSong(songId, title, artist);
       },
+    );
+  }
+
+  /// Show sort options bottom sheet (Catalog only)
+  void _showSortOptions(
+    BuildContext context,
+    WidgetRef ref,
+    CatalogSortMode currentMode,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isDismissible: true,
+      enableDrag: true,
+      builder: (context) => _CatalogSortSheet(currentMode: currentMode),
     );
   }
 
@@ -834,14 +852,14 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(setlistDetailProvider);
 
-    // Detect tuning sort mode changes and trigger animation
-    if (_lastTuningSortMode != null &&
-        _lastTuningSortMode != state.tuningSortMode &&
-        !state.isCatalog) {
+    // Detect catalog sort mode changes and trigger animation
+    if (_lastCatalogSortMode != null &&
+        _lastCatalogSortMode != state.catalogSortMode &&
+        state.isCatalog) {
       // Sort mode changed - play the subtle reorder animation
       _sortAnimController.forward(from: 0);
     }
-    _lastTuningSortMode = state.tuningSortMode;
+    _lastCatalogSortMode = state.catalogSortMode;
 
     // Listen for errors
     ref.listen<SetlistDetailState>(setlistDetailProvider, (previous, next) {
@@ -892,13 +910,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Tuning sort toggle (Catalog only, text-only)
+          // Sort button (Catalog only)
           if (state.isCatalog && state.songs.isNotEmpty) ...[
-            _TuningSortToggle(
-              mode: state.tuningSortMode,
-              onTap: () => ref
-                  .read(setlistDetailProvider.notifier)
-                  .cycleTuningSortMode(),
+            _ActionButton(
+              icon: Icons.sort_rounded,
+              label: 'Sort',
+              onTap: () =>
+                  _showSortOptions(context, ref, state.catalogSortMode),
             ),
             const SizedBox(width: 8),
           ],
@@ -1770,44 +1788,90 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
 // Sort mode is persisted via TuningSortService (SharedPreferences).
 // ============================================================================
 
-class _TuningSortToggle extends StatelessWidget {
-  final TuningSortMode mode;
+/// Bottom sheet for selecting Catalog sort mode
+class _CatalogSortSheet extends ConsumerWidget {
+  final CatalogSortMode currentMode;
+
+  const _CatalogSortSheet({required this.currentMode});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.pagePadding,
+          vertical: Spacing.space24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Text('Sort Catalog', style: AppTextStyles.headline),
+            const SizedBox(height: Spacing.space16),
+
+            // Sort options
+            ...CatalogSortMode.values.map((mode) {
+              final isSelected = mode == currentMode;
+              return _SortOption(
+                label: mode.label,
+                isSelected: isSelected,
+                onTap: () {
+                  ref.read(setlistDetailProvider.notifier).setSortMode(mode);
+                  Navigator.of(context).pop();
+                },
+              );
+            }),
+
+            const SizedBox(height: Spacing.space8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Individual sort option tile
+class _SortOption extends StatelessWidget {
+  final String label;
+  final bool isSelected;
   final VoidCallback onTap;
 
-  const _TuningSortToggle({required this.mode, required this.onTap});
+  const _SortOption({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Get the color for the current tuning mode
-    final badgeColor = tuningBadgeColor(mode.dbValue);
-
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space12,
-          vertical: Spacing.space8,
+          horizontal: Spacing.space16,
+          vertical: Spacing.space12,
         ),
         decoration: BoxDecoration(
-          color: badgeColor.withValues(alpha: 0.2),
+          color: isSelected
+              ? AppColors.accent.withValues(alpha: 0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(
-            color: badgeColor.withValues(alpha: 0.4),
-            width: 1,
-          ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.swap_vert_rounded, size: 16, color: badgeColor),
-            const SizedBox(width: 4),
-            Text(
-              mode.label,
-              style: AppTextStyles.footnote.copyWith(
-                color: badgeColor,
-                fontWeight: FontWeight.w600,
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.body.copyWith(
+                  color: isSelected ? AppColors.accent : AppColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
             ),
+            if (isSelected)
+              Icon(Icons.check_rounded, color: AppColors.accent, size: 20),
           ],
         ),
       ),

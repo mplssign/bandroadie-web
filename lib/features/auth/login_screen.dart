@@ -313,7 +313,8 @@ class _LoginScreenState extends State<LoginScreen>
     } catch (e) {
       debugPrint('Unexpected error: $e');
       setState(() {
-        _message = 'Error: ${e.toString()}\n\nPlease try again or contact support.';
+        _message =
+            'Error: ${e.toString()}\n\nPlease try again or contact support.';
         _isLoading = false;
       });
     }

@@ -1,26 +1,47 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================================
-// TUNING SORT SERVICE
-// Persists per-setlist tuning sort preferences using SharedPreferences.
+// CATALOG SORT SERVICE
+// Manages catalog sorting preferences and provides sorting logic.
 //
-// KEY FORMAT: "tuning_sort_<bandId>_<setlistId>"
-// VALUE: The tuning key string (e.g., "standard", "half_step", "drop_d")
+// SORT MODES:
+// - Title: Alphabetical by song title
+// - Artist: Alphabetical by artist/band name
+// - BPM: Ascending or descending by beats per minute
+// - Duration: Ascending or descending by song length
+// - Tuning: Grouped by tuning type (Standard, Drop D, etc.)
 //
-// SORT ORDER (fixed priority):
-// 1. standard
-// 2. drop_d
-// 3. half_step
-// 4. full_step
-// 5. any other tunings (alphabetical by label)
-//
-// When a sort mode is selected, songs with that tuning appear FIRST,
-// then remaining songs follow in the fixed order above.
+// Catalog sort mode is preserved in-memory and persists across navigation
+// until explicitly changed by the user or app restart.
+// Custom setlists always use position order from database.
 // ============================================================================
 
+/// Available sort modes for the Catalog
+enum CatalogSortMode {
+  title('Song Title (A–Z)', 'title'),
+  artist('Artist / Band (A–Z)', 'artist'),
+  bpm('BPM (Low → High)', 'bpm'),
+  bpmDesc('BPM (High → Low)', 'bpm_desc'),
+  duration('Duration (Short → Long)', 'duration'),
+  durationDesc('Duration (Long → Short)', 'duration_desc'),
+  tuning('Guitar Tuning', 'tuning');
+
+  final String label;
+  final String key;
+
+  const CatalogSortMode(this.label, this.key);
+
+  /// Get mode from key
+  static CatalogSortMode fromKey(String key) {
+    return CatalogSortMode.values.firstWhere(
+      (mode) => mode.key == key,
+      orElse: () => CatalogSortMode.title,
+    );
+  }
+}
+
 /// Fixed tuning order for consistent sorting.
-/// Songs with the selected tuning appear first, then remaining songs
-/// are sorted by this order, then by artist, then by title.
+/// When sorting by tuning, songs are grouped in this order.
 const List<String> kTuningSortOrder = [
   'standard',
   'drop_d',
@@ -28,16 +49,8 @@ const List<String> kTuningSortOrder = [
   'full_step',
 ];
 
-/// Available tuning sort modes that the user can cycle through.
-/// The toggle cycles: Standard → Half-Step → Full-Step → Drop D → Standard
-const List<TuningSortMode> kTuningSortModes = [
-  TuningSortMode.standard,
-  TuningSortMode.halfStep,
-  TuningSortMode.fullStep,
-  TuningSortMode.dropD,
-];
-
-/// Tuning sort mode enum with display labels
+/// Legacy tuning sort mode enum (kept for backwards compatibility)
+/// This is now mapped to CatalogSortMode.tuning
 enum TuningSortMode {
   standard('Standard', 'standard'),
   halfStep('Half-Step', 'half_step'),
@@ -51,9 +64,9 @@ enum TuningSortMode {
 
   /// Get the next mode in the cycle
   TuningSortMode get next {
-    final currentIndex = kTuningSortModes.indexOf(this);
-    final nextIndex = (currentIndex + 1) % kTuningSortModes.length;
-    return kTuningSortModes[nextIndex];
+    final currentIndex = TuningSortMode.values.indexOf(this);
+    final nextIndex = (currentIndex + 1) % TuningSortMode.values.length;
+    return TuningSortMode.values[nextIndex];
   }
 
   /// Parse from database value string

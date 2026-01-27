@@ -143,7 +143,7 @@ class SetlistsAppBar extends ConsumerWidget {
           ),
           const Spacer(),
           // Centered app logo
-          const AnimatedBandRoadieLogo(height: 24),
+          const AnimatedBandRoadieLogo(height: 18),
           const Spacer(),
           // Avatar with band image/initials
           GestureDetector(

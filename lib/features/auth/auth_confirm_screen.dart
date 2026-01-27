@@ -178,7 +178,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
 
       debugPrint('🚀 Navigating to app');
       debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
+
       // On web, navigate to /app route explicitly to update URL
       // On mobile, just push AuthGate
       if (kIsWeb) {
