@@ -292,32 +292,15 @@ class _LoginScreenState extends State<LoginScreen>
       final redirectUrl = kIsWeb
           ? 'https://bandroadie.com/app'
           : 'bandroadie://login-callback/';
-      
-      debugPrint('[LoginScreen] ════════════════════════════════════════');
-      debugPrint('[LoginScreen] Sending magic link');
-      debugPrint('[LoginScreen] Email: $email');
-      debugPrint('[LoginScreen] Platform: ${kIsWeb ? "Web" : "Mobile"}');
-      debugPrint('[LoginScreen] Redirect URL: $redirectUrl');
-      debugPrint('[LoginScreen] ════════════════════════════════════════');
 
       await supabase.auth.signInWithOtp(
         email: email,
         emailRedirectTo: redirectUrl,
       );
 
-      debugPrint('[LoginScreen] ✅ OTP request completed successfully');
-      debugPrint('[LoginScreen] Note: This only means the request was sent to Supabase,');
-      debugPrint('[LoginScreen] not that the email was delivered.');
-
       setState(() {
-        _message = '✅ Magic link request sent!\n\n'
-            'Check your email: $email\n\n'
-            '💡 If you don\'t see it:\n'
-            '• Check spam/junk folder\n'
-            '• Wait 2-3 minutes for delivery\n'
-            '• Verify email spelling\n'
-            '• Try a different email provider (Gmail works best)\n\n'
-            '⚠️ Still no email? Your Supabase project may need email configuration.';
+        _message = 'Check your email for the login link.\n\n'
+            '💡 Tip: Check your spam folder if you don\'t see it in a few minutes.';
         _isLoading = false;
       });
     } on AuthException catch (e) {
