@@ -266,7 +266,7 @@ class AppTheme {
       // ----------------------------------------
       // DEFAULT FONT FAMILY
       // ----------------------------------------
-      fontFamily: GoogleFonts.dmSans().fontFamily,
+      fontFamily: GoogleFonts.interTight().fontFamily,
 
       // ----------------------------------------
       // DIVIDER

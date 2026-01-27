@@ -6,7 +6,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:screenOrientation="portrait"
@@ -26,14 +26,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <!-- Deep link for Supabase magic link auth -->
-            <intent-filter android:autoVerify="true">
+            <!-- Note: Do NOT use android:autoVerify with custom schemes -->
+            <!-- autoVerify is only for verified HTTPS App Links -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data
                     android:scheme="bandroadie"
-                    android:host="login-callback"
-                    android:pathPattern=".*"/>
+                    android:host="login-callback"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

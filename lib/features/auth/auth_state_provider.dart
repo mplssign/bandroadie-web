@@ -60,7 +60,9 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
     debugPrint('   Session: ${session != null ? "✅ Present" : "❌ None"}');
     if (session != null) {
       debugPrint('   User: ${session.user.email}');
-      debugPrint('   Expires: ${DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000)}');
+      debugPrint(
+        '   Expires: ${DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000)}',
+      );
     }
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
@@ -70,7 +72,9 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
         .listen((data) {
           debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           debugPrint('🔔 AUTH EVENT: ${data.event.name}');
-          debugPrint('   Session: ${data.session != null ? "✅ Present" : "❌ None"}');
+          debugPrint(
+            '   Session: ${data.session != null ? "✅ Present" : "❌ None"}',
+          );
           if (data.session != null) {
             debugPrint('   User: ${data.session!.user.email}');
           }

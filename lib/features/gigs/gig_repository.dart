@@ -62,53 +62,128 @@ class GigRepository {
   }
 
   /// Fetches only potential (unconfirmed) gigs for the specified band.
+  /// For dashboard display, filters to only show gigs with end time in the future.
   Future<List<Gig>> fetchPotentialGigs(String? bandId) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError();
     }
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
 
     final response = await supabase
         .from('gigs')
         .select(_gigSelectClause)
         .eq('band_id', bandId)
         .eq('is_potential', true)
+        .gte('date', today)
         .order('date', ascending: true);
 
-    return response.map<Gig>((json) => Gig.fromJson(json)).toList();
+    // Filter client-side by end time to exclude events that have already ended
+    final now = DateTime.now().toUtc();
+    final gigs = response
+        .map<Gig>((json) => Gig.fromJson(json))
+        .where((gig) {
+          try {
+            // Combine date and end time to get the actual end DateTime
+            final endDateTime = DateTime(
+              gig.date.year,
+              gig.date.month,
+              gig.date.day,
+              int.parse(gig.endTime.split(':')[0]),
+              int.parse(gig.endTime.split(':')[1]),
+            ).toUtc();
+            return endDateTime.isAfter(now);
+          } catch (e) {
+            // If parsing fails, include the gig to be safe
+            return true;
+          }
+        })
+        .toList();
+
+    return gigs;
   }
 
   /// Fetches only confirmed gigs for the specified band.
+  /// For dashboard display, filters to only show gigs with end time in the future.
   Future<List<Gig>> fetchConfirmedGigs(String? bandId) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError();
     }
+
+    final today = DateTime.now().toIso8601String().split('T')[0];
 
     final response = await supabase
         .from('gigs')
         .select(_gigSelectClause)
         .eq('band_id', bandId)
         .eq('is_potential', false)
+        .gte('date', today)
         .order('date', ascending: true);
 
-    return response.map<Gig>((json) => Gig.fromJson(json)).toList();
+    // Filter client-side by end time to exclude events that have already ended
+    final now = DateTime.now().toUtc();
+    final gigs = response
+        .map<Gig>((json) => Gig.fromJson(json))
+        .where((gig) {
+          try {
+            // Combine date and end time to get the actual end DateTime
+            final endDateTime = DateTime(
+              gig.date.year,
+              gig.date.month,
+              gig.date.day,
+              int.parse(gig.endTime.split(':')[0]),
+              int.parse(gig.endTime.split(':')[1]),
+            ).toUtc();
+            return endDateTime.isAfter(now);
+          } catch (e) {
+            // If parsing fails, include the gig to be safe
+            return true;
+          }
+        })
+        .toList();
+
+    return gigs;
   }
 
-  /// Fetches upcoming gigs (date >= now) for the specified band.
+  /// Fetches upcoming gigs (end time in the future) for the specified band.
+  /// Filters based on end time to ensure past gigs don't appear.
   Future<List<Gig>> fetchUpcomingGigs(String? bandId) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError();
     }
 
-    final now = DateTime.now().toIso8601String();
+    final today = DateTime.now().toIso8601String().split('T')[0];
 
     final response = await supabase
         .from('gigs')
         .select(_gigSelectClause)
         .eq('band_id', bandId)
-        .gte('date', now)
+        .gte('date', today)
         .order('date', ascending: true);
 
-    return response.map<Gig>((json) => Gig.fromJson(json)).toList();
+    // Filter client-side by end time to exclude events that have already ended
+    final now = DateTime.now().toUtc();
+    final gigs = response
+        .map<Gig>((json) => Gig.fromJson(json))
+        .where((gig) {
+          try {
+            // Combine date and end time to get the actual end DateTime
+            final endDateTime = DateTime(
+              gig.date.year,
+              gig.date.month,
+              gig.date.day,
+              int.parse(gig.endTime.split(':')[0]),
+              int.parse(gig.endTime.split(':')[1]),
+            ).toUtc();
+            return endDateTime.isAfter(now);
+          } catch (e) {
+            // If parsing fails, include the gig to be safe
+            return true;
+          }
+        })
+        .toList();
+
+    return gigs;
   }
 
   // ==========================================================================
