@@ -255,25 +255,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
       final acceptedCount = data?['accepted_count'] as int? ?? 0;
       final bandNames = List<String>.from(data?['band_names'] ?? []);
 
-      // Show success message if any bands were joined
-      if (mounted && acceptedCount > 0) {
-        setState(() {
-          if (bandNames.length == 1) {
-            _pendingInviteMessage = "You've joined ${bandNames.first}!";
-          } else {
-            _pendingInviteMessage = "You've joined $acceptedCount bands!";
-          }
-        });
-
-        // Clear message after a delay
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            setState(() {
-              _pendingInviteMessage = null;
-            });
-          }
-        });
-      }
+      // Don't show success message - user doesn't need notification
 
       if (mounted) {
         setState(() {
