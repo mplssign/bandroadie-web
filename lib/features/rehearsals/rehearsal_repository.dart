@@ -112,7 +112,7 @@ class RehearsalRepository {
           int.parse(rehearsal.endTime.split(':')[0]),
           int.parse(rehearsal.endTime.split(':')[1]),
         ).toUtc();
-        
+
         if (endDateTime.isAfter(now)) {
           return rehearsal;
         }

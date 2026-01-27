@@ -1,0 +1,29 @@
+# Ignore everything except build/web
+*
+!build
+build/*
+!build/web
+!build/web/**
+
+# Explicitly ignore large directories
+.dart_tool
+.idea
+.vscode
+ios
+android
+macos
+linux
+windows
+test
+.git
+node_modules
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.metadata
+
+# Ignore other files
+*.log
+*.lock
+pubspec.lock

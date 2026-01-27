@@ -57,7 +57,7 @@ class _HeroMobile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          
+
           // Subtext - larger and bold
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
@@ -80,7 +80,7 @@ class _HeroMobile extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          
+
           // Primary CTA
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
@@ -96,11 +96,7 @@ class _HeroMobile extends StatelessWidget {
               spacing: 12,
               runSpacing: 12,
               alignment: WrapAlignment.center,
-              children: [
-                _AppStoreCTA(),
-                _GooglePlayCTA(),
-                _WebAppCTA(),
-              ],
+              children: [_AppStoreCTA(), _GooglePlayCTA(), _WebAppCTA()],
             ),
           ),
         ],
@@ -145,7 +141,10 @@ class _HeroDesktop extends StatelessWidget {
                   builder: (context, value, child) {
                     return Transform.scale(
                       scale: value,
-                      child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
+                      child: Opacity(
+                        opacity: value.clamp(0.0, 1.0),
+                        child: child,
+                      ),
                     );
                   },
                   child: SvgPicture.asset(
@@ -154,7 +153,7 @@ class _HeroDesktop extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Subtext - larger and bold
                 TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0.0, end: 1.0),
@@ -176,7 +175,7 @@ class _HeroDesktop extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 48),
-                
+
                 // CTAs
                 TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0.0, end: 1.0),
@@ -191,17 +190,13 @@ class _HeroDesktop extends StatelessWidget {
                   child: Wrap(
                     spacing: 16,
                     runSpacing: 16,
-                    children: [
-                      _AppStoreCTA(),
-                      _GooglePlayCTA(),
-                      _WebAppCTA(),
-                    ],
+                    children: [_AppStoreCTA(), _GooglePlayCTA(), _WebAppCTA()],
                   ),
                 ),
               ],
             ),
           ),
-          
+
           // Right: Phone mockup with animation
           const SizedBox(width: 80),
           Flexible(
@@ -215,10 +210,7 @@ class _HeroDesktop extends StatelessWidget {
                 builder: (context, value, child) {
                   return Transform.translate(
                     offset: Offset(30 * (1 - value), 0),
-                    child: Opacity(
-                      opacity: value,
-                      child: child,
-                    ),
+                    child: Opacity(opacity: value, child: child),
                   );
                 },
                 child: Padding(
@@ -256,7 +248,8 @@ class _AppStoreCTA extends StatelessWidget {
       label: 'App Store',
       icon: Icons.apple,
       isPrimary: true,
-      onPressed: () => _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
+      onPressed: () =>
+          _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
     );
   }
 }
@@ -321,7 +314,9 @@ class _CTAButton extends StatelessWidget {
             : null,
         color: isPrimary ? null : AppColors.cardBg,
         border: Border.all(
-          color: isPrimary ? Colors.white.withValues(alpha: 0.2) : AppColors.borderMuted,
+          color: isPrimary
+              ? Colors.white.withValues(alpha: 0.2)
+              : AppColors.borderMuted,
           width: 1,
         ),
         boxShadow: isPrimary && !isComingSoon

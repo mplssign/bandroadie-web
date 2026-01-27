@@ -54,6 +54,15 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     debugPrint('🔐 AUTH CONFIRM: Starting magic link verification');
     debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // DEBUG: Check current URL to see what parameters we received
+    if (kIsWeb) {
+      final currentUrl = Uri.base.toString();
+      debugPrint('🌐 Current URL: $currentUrl');
+      debugPrint('🔍 Query parameters: ${Uri.base.queryParameters}');
+      debugPrint('🔍 Fragment: ${Uri.base.fragment}');
+    }
+    
     final tokenHash = widget.tokenHash;
     final code = widget.code;
     final type = widget.type ?? 'email';
@@ -67,6 +76,10 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     if ((tokenHash == null || tokenHash.isEmpty) &&
         (code == null || code.isEmpty)) {
       debugPrint('❌ ERROR: No token or code provided');
+      debugPrint('💡 This usually means:');
+      debugPrint('   1. The URL query parameters were stripped');
+      debugPrint('   2. The email template redirect URL is wrong');
+      debugPrint('   3. The link was copied incorrectly');
       setState(() {
         _error = 'missing_token';
         _loading = false;

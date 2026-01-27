@@ -8,8 +8,9 @@ class FeaturesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 900;
-    
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 900;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -33,9 +34,7 @@ class FeaturesSection extends StatelessWidget {
           Text(
             'Everything Your Band Needs',
             textAlign: TextAlign.center,
-            style: AppTextStyles.title3.copyWith(
-              fontSize: isMobile ? 32 : 40,
-            ),
+            style: AppTextStyles.title3.copyWith(fontSize: isMobile ? 32 : 40),
           ),
           const SizedBox(height: 16),
           Text(
@@ -47,13 +46,27 @@ class FeaturesSection extends StatelessWidget {
             ),
           ),
           SizedBox(height: isMobile ? 40 : 60),
-          
+
           // Features grid
           LayoutBuilder(
             builder: (context, constraints) {
-              final spacing = isMobile ? 24.0 : 32.0;
-              final cardWidth = isMobile ? double.infinity : (constraints.maxWidth - (spacing * 3)) / 4;
+              // Determine number of columns based on width
+              final int columns;
+              final double spacing;
               
+              if (constraints.maxWidth < 700) {
+                columns = 1;
+                spacing = 24.0;
+              } else if (constraints.maxWidth < 1200) {
+                columns = 2;
+                spacing = 24.0;
+              } else {
+                columns = 4;
+                spacing = 32.0;
+              }
+              
+              final cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
               return Wrap(
                 spacing: spacing,
                 runSpacing: spacing,
@@ -64,7 +77,8 @@ class FeaturesSection extends StatelessWidget {
                     child: _FeatureCard(
                       icon: Icons.headset_rounded,
                       title: 'Rehearsals',
-                      description: 'Schedule rehearsals, add notes, and keep everyone aligned.',
+                      description:
+                          'Schedule rehearsals, add notes, and keep everyone aligned.',
                     ),
                   ),
                   SizedBox(
@@ -72,7 +86,8 @@ class FeaturesSection extends StatelessWidget {
                     child: _FeatureCard(
                       icon: Icons.mic_rounded,
                       title: 'Gigs & Potential Gigs',
-                      description: 'Track confirmed shows and "maybes" with venue details and notes.',
+                      description:
+                          'Track all the details of confirmed & potential shows',
                     ),
                   ),
                   SizedBox(
@@ -80,7 +95,8 @@ class FeaturesSection extends StatelessWidget {
                     child: _FeatureCard(
                       icon: Icons.calendar_month_rounded,
                       title: 'Band Calendar',
-                      description: 'A shared calendar for rehearsals, gigs, setlists, and blackout dates.',
+                      description:
+                          'A shared calendar for rehearsals, gigs, setlists, and blackout dates.',
                     ),
                   ),
                   SizedBox(
@@ -88,7 +104,8 @@ class FeaturesSection extends StatelessWidget {
                     child: _FeatureCard(
                       icon: Icons.queue_music_rounded,
                       title: 'Setlists',
-                      description: 'Build setlists with song order, tempo, key, and performance notes.',
+                      description:
+                          'Build setlists with song order, tempo, key, and performance notes.',
                     ),
                   ),
                 ],
@@ -127,12 +144,15 @@ class _FeatureCardState extends State<_FeatureCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         transform: Matrix4.translationValues(0, _isHovered ? -8 : 0, 0),
+        constraints: const BoxConstraints(minHeight: 280),
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
           color: AppColors.cardBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _isHovered ? AppColors.accent.withValues(alpha: 0.4) : AppColors.borderMuted,
+            color: _isHovered
+                ? AppColors.accent.withValues(alpha: 0.4)
+                : AppColors.borderMuted,
             width: 1,
           ),
           boxShadow: _isHovered
@@ -157,26 +177,23 @@ class _FeatureCardState extends State<_FeatureCard> {
                 color: AppColors.accent.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                widget.icon,
-                size: 32,
-                color: AppColors.accent,
-              ),
+              child: Icon(widget.icon, size: 32, color: AppColors.accent),
             ),
             const SizedBox(height: 24),
-            
+
             // Title
             Text(
               widget.title,
               style: AppTextStyles.headline.copyWith(fontSize: 24),
             ),
             const SizedBox(height: 12),
-            
+
             // Description
             Text(
               widget.description,
               style: AppTextStyles.callout.copyWith(
-                fontSize: 16,
+                fontFamily: 'Caveat',
+                fontSize: 20,
                 color: AppColors.textSecondary,
                 height: 1.5,
               ),

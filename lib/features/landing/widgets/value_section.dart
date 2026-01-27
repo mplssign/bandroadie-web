@@ -9,7 +9,7 @@ class ValueSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -34,14 +34,23 @@ class ValueSection extends StatelessWidget {
         children: [
           // Main headline
           Text(
-            'Everything Your Band Needs — In One Place',
+            'Built by a Musician. For Musicians.',
             textAlign: TextAlign.center,
-            style: AppTextStyles.title3.copyWith(
-              fontSize: isMobile ? 32 : 40,
+            style: AppTextStyles.title3.copyWith(fontSize: isMobile ? 32 : 40),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Well, a Drummer, so kind of A Musician',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.callout.copyWith(
+              fontFamily: 'Caveat',
+              fontSize: 20,
+              color: AppColors.textSecondary,
+              height: 1.5,
             ),
           ),
           SizedBox(height: isMobile ? 40 : 60),
-          
+
           // Value points
           Wrap(
             spacing: isMobile ? 0 : 40,
@@ -63,13 +72,15 @@ class ValueSection extends StatelessWidget {
               _ValuePoint(
                 icon: Icons.phone_iphone_rounded,
                 title: 'Mobile-First',
-                description: 'Access everything from your phone, tablet, or computer.',
+                description:
+                    'Access everything from your phone, tablet, or computer.',
                 isMobile: isMobile,
               ),
               _ValuePoint(
                 icon: Icons.cloud_sync_rounded,
                 title: 'Always in Sync',
-                description: 'Real-time updates keep everyone on the same page.',
+                description:
+                    'Real-time updates keep everyone on the same page.',
                 isMobile: isMobile,
               ),
             ],
@@ -107,14 +118,10 @@ class _ValuePoint extends StatelessWidget {
               color: AppColors.accent.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 40,
-              color: AppColors.accent,
-            ),
+            child: Icon(icon, size: 40, color: AppColors.accent),
           ),
           const SizedBox(height: 24),
-          
+
           // Title
           Text(
             title,
@@ -122,13 +129,14 @@ class _ValuePoint extends StatelessWidget {
             style: AppTextStyles.headline.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 12),
-          
+
           // Description
           Text(
             description,
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              fontSize: 16,
+              fontFamily: 'Caveat',
+              fontSize: 20,
               color: AppColors.textSecondary,
               height: 1.5,
             ),
