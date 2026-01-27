@@ -57,7 +57,9 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     final code = widget.code;
     final type = widget.type ?? 'email';
     debugPrint('📧 Token hash: ${tokenHash?.substring(0, 10) ?? "null"}...');
-    debugPrint('🔑 PKCE code: ${code != null ? "${code.substring(0, 10)}..." : "null"}');
+    debugPrint(
+      '🔑 PKCE code: ${code != null ? "${code.substring(0, 10)}..." : "null"}',
+    );
     debugPrint('📝 Type: $type');
 
     // Check if we have either a code (PKCE) or token_hash
@@ -90,16 +92,24 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           debugPrint('❌ PKCE exchange failed: $e');
           final errorMessage = e.toString().toLowerCase();
           // Detect specific error types
-          final isExpired = errorMessage.contains('expired') || errorMessage.contains('invalid');
-          final isBrowserMismatch = errorMessage.contains('code verifier') || errorMessage.contains('pkce');
+          final isExpired =
+              errorMessage.contains('expired') ||
+              errorMessage.contains('invalid');
+          final isBrowserMismatch =
+              errorMessage.contains('code verifier') ||
+              errorMessage.contains('pkce');
           setState(() {
-            _error = isExpired ? 'expired_link' : (isBrowserMismatch ? 'browser_mismatch' : 'auth_failed');
+            _error = isExpired
+                ? 'expired_link'
+                : (isBrowserMismatch ? 'browser_mismatch' : 'auth_failed');
             _loading = false;
           });
           return;
         }
       } else if (tokenHash != null && tokenHash.startsWith('pkce_')) {
-        debugPrint('🔄 PKCE token_hash detected, using verifyOTP with magiclink type...');
+        debugPrint(
+          '🔄 PKCE token_hash detected, using verifyOTP with magiclink type...',
+        );
         final response = await Supabase.instance.client.auth.verifyOTP(
           tokenHash: tokenHash,
           type: OtpType.magiclink,
@@ -151,7 +161,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       if (!mounted) return;
 
       debugPrint('⏳ Waiting for auth state provider to sync...');
-      
+
       // Wait for the auth state provider to recognize the session
       int attempts = 0;
       const maxAttempts = 10; // 5 seconds max
@@ -167,7 +177,9 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       }
 
       if (attempts >= maxAttempts) {
-        debugPrint('⚠️ WARNING: Auth state provider did not sync, proceeding anyway');
+        debugPrint(
+          '⚠️ WARNING: Auth state provider did not sync, proceeding anyway',
+        );
       }
 
       if (!mounted) return;
@@ -186,15 +198,16 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     } on AuthException catch (e) {
       debugPrint('❌ AUTH EXCEPTION: ${e.message}');
       debugPrint('   Status code: ${e.statusCode}');
-      
+
       // Classify error types for better user messaging
       final errorMsg = e.message.toLowerCase();
       String errorType;
-      
+
       if (errorMsg.contains('expired') || errorMsg.contains('invalid grant')) {
         errorType = 'expired_link';
         debugPrint('   Classification: Expired or reused link');
-      } else if (errorMsg.contains('code verifier') || errorMsg.contains('pkce')) {
+      } else if (errorMsg.contains('code verifier') ||
+          errorMsg.contains('pkce')) {
         errorType = 'browser_mismatch';
         debugPrint('   Classification: Browser mismatch (PKCE)');
       } else if (errorMsg.contains('already been consumed')) {
@@ -207,7 +220,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         errorType = e.message;
         debugPrint('   Classification: Other error');
       }
-      
+
       setState(() {
         _error = errorType;
         _loading = false;
@@ -292,7 +305,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
+            onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
             icon: const Icon(Icons.refresh),
             label: const Text('Request New Magic Link'),
           ),
@@ -307,7 +320,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     String title;
     String message;
     Color iconColor;
-    
+
     switch (_error) {
       case 'expired_link':
       case 'reused_link':
@@ -324,21 +337,24 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         icon = Icons.link_off;
         iconColor = Colors.red;
         title = 'Invalid Link';
-        message = 'The magic link appears to be incomplete or corrupted. Please request a new one.';
+        message =
+            'The magic link appears to be incomplete or corrupted. Please request a new one.';
         break;
       case 'no_user_id':
         icon = Icons.person_off;
         iconColor = Colors.red;
         title = 'Authentication Failed';
-        message = "We couldn't verify your identity. Please try logging in again.";
+        message =
+            "We couldn't verify your identity. Please try logging in again.";
         break;
       default:
         icon = Icons.error_outline;
         iconColor = Colors.red;
         title = 'Authentication Error';
-        message = _error ?? 'Something went wrong during login. Please try again.';
+        message =
+            _error ?? 'Something went wrong during login. Please try again.';
     }
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
@@ -363,16 +379,13 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
+            onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
             icon: const Icon(Icons.email),
             label: const Text('Request New Magic Link'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF43F5E),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
