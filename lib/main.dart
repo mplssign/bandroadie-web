@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/services/app_version_service.dart';
@@ -16,6 +17,12 @@ import 'features/legal/privacy_policy_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Use path-based URLs instead of hash-based URLs on web
+  // This allows /app to work instead of requiring /#/app
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
 
   // Lock app to portrait mode only
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -90,20 +97,17 @@ class BandRoadieApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
-        
+
         // Landing page at root (only on web)
         if (uri.path == '/' && kIsWeb) {
-          return fadeSlideRoute(
-            page: const LandingPage(),
-            settings: settings,
-          );
+          return fadeSlideRoute(page: const LandingPage(), settings: settings);
         }
-        
+
         // Web app at /app (or default on mobile)
         if (uri.path == '/app' || (uri.path == '/' && !kIsWeb)) {
           return fadeSlideRoute(page: const AuthGate(), settings: settings);
         }
-        
+
         if (uri.path == '/privacy') {
           // Use custom fade+slide transition for all routes
           return fadeSlideRoute(
