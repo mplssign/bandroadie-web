@@ -299,8 +299,7 @@ class _LoginScreenState extends State<LoginScreen>
       );
 
       setState(() {
-        _message = 'Check your email for the login link.\n\n'
-            '💡 Tip: Check your spam folder if you don\'t see it in a few minutes.';
+        _message = 'Check your email for the login link';
         _isLoading = false;
       });
     } on AuthException catch (e) {
