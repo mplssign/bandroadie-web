@@ -28,16 +28,18 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="icons/Icon-512.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/Icon-512.png" />
 
   <title>BandRoadie</title>
   <link rel="manifest" href="manifest.json">
-  
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=Caveat:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
   <style>
     body {
       margin: 0;
@@ -45,7 +47,7 @@
       background: #050505;
       overflow: hidden;
     }
-    
+
     #loading {
       position: fixed;
       top: 0;
@@ -59,7 +61,7 @@
       justify-content: center;
       z-index: 9999;
     }
-    
+
     #loading-spinner {
       width: 50px;
       height: 50px;
@@ -68,11 +70,13 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
-    
+
     #loading-text {
       margin-top: 20px;
       color: rgba(255, 255, 255, 0.7);
@@ -88,15 +92,15 @@
     <div id="loading-spinner"></div>
     <div id="loading-text">Loading BandRoadie...</div>
   </div>
-  
+
   <script>
     // Remove loading screen when Flutter is ready
-    window.addEventListener('flutter-first-frame', function() {
+    window.addEventListener('flutter-first-frame', function () {
       var loading = document.getElementById('loading');
       if (loading) {
         loading.style.transition = 'opacity 0.3s';
         loading.style.opacity = '0';
-        setTimeout(function() {
+        setTimeout(function () {
           loading.remove();
           document.body.style.overflow = 'auto';
         }, 300);

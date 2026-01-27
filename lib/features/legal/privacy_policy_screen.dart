@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/design_tokens.dart';
+import '../../shared/widgets/animated_logo.dart';
 
 /// Privacy Policy screen - accessible without authentication at /privacy
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -22,14 +23,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
               )
             : null,
-        title: const Text(
-          'Privacy Policy',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: const BandRoadieLogo(height: 32),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

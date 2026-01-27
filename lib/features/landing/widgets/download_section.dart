@@ -10,7 +10,7 @@ class DownloadSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -34,9 +34,7 @@ class DownloadSection extends StatelessWidget {
           Text(
             'Get BandRoadie',
             textAlign: TextAlign.center,
-            style: AppTextStyles.title3.copyWith(
-              fontSize: isMobile ? 36 : 48,
-            ),
+            style: AppTextStyles.title3.copyWith(fontSize: isMobile ? 36 : 48),
           ),
           const SizedBox(height: 16),
           Text(
@@ -48,17 +46,13 @@ class DownloadSection extends StatelessWidget {
             ),
           ),
           SizedBox(height: isMobile ? 40 : 60),
-          
+
           // Download buttons - all on same row
           Wrap(
             spacing: 16,
             runSpacing: 16,
             alignment: WrapAlignment.center,
-            children: [
-              _AppStoreButton(),
-              _GooglePlayButton(),
-              _WebAppButton(),
-            ],
+            children: [_AppStoreButton(), _GooglePlayButton(), _WebAppButton()],
           ),
         ],
       ),
@@ -73,7 +67,8 @@ class _AppStoreButton extends StatelessWidget {
       icon: Icons.apple,
       topText: 'Download on the',
       mainText: 'App Store',
-      onPressed: () => _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
+      onPressed: () =>
+          _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
       isAvailable: true,
     );
   }
@@ -86,7 +81,9 @@ class _GooglePlayButton extends StatelessWidget {
       icon: Icons.android,
       topText: 'GET IT ON',
       mainText: 'Google Play',
-      onPressed: () => _launchUrl('https://play.google.com/store/apps/details?id=com.bandroadie.app'),
+      onPressed: () => _launchUrl(
+        'https://play.google.com/store/apps/details?id=com.bandroadie.app',
+      ),
       isAvailable: false,
     );
   }
@@ -100,10 +97,7 @@ class _WebAppButton extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 180),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.accent,
-          width: 2,
-        ),
+        border: Border.all(color: AppColors.accent, width: 2),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -123,11 +117,7 @@ class _WebAppButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.web,
-                  size: 36,
-                  color: AppColors.accent,
-                ),
+                Icon(Icons.web, size: 36, color: AppColors.accent),
                 const SizedBox(width: 12),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -231,7 +221,9 @@ class _OfficialBadge extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
-                        color: isAvailable ? Colors.white.withValues(alpha: 0.9) : AppColors.textSecondary,
+                        color: isAvailable
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : AppColors.textSecondary,
                         height: 1,
                       ),
                     ),
@@ -243,14 +235,19 @@ class _OfficialBadge extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
-                            color: isAvailable ? Colors.white : AppColors.textSecondary,
+                            color: isAvailable
+                                ? Colors.white
+                                : AppColors.textSecondary,
                             height: 1,
                           ),
                         ),
                         if (!isAvailable) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.accent.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),

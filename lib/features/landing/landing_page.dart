@@ -6,18 +6,19 @@ import 'widgets/hero_section.dart';
 import 'widgets/features_section.dart';
 import 'widgets/value_section.dart';
 import 'widgets/screenshots_section.dart';
-import 'widgets/download_section.dart';
+import 'widgets/social_section.dart';
 import 'widgets/footer_section.dart';
 
 /// Landing page for BandRoadie - Zenity-inspired design
-/// 
+///
 /// Sections:
 /// 1. Hero with app name, tagline, and CTAs
 /// 2. Features grid (Rehearsals, Gigs, Calendar, Setlists)
 /// 3. Value proposition (Why BandRoadie)
 /// 4. Screenshots carousel
 /// 5. Download CTAs
-/// 6. Footer with legal links
+/// 6. Social media
+/// 7. Footer with legal links
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
@@ -34,7 +35,7 @@ class _LandingPageState extends State<LandingPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    
+
     // Small delay to ensure smooth rendering
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
@@ -76,47 +77,50 @@ class _LandingPageState extends State<LandingPage> {
               child: SizedBox.shrink(), // Invisible until loaded
             )
           : Stack(
-        children: [
-          // Main content
-          SingleChildScrollView(
-            controller: _scrollController,
-            child: Column(
               children: [
-                const HeroSection(),
-                ScrollAnimatedWidget(
-                  offset: const Offset(0, 80),
-                  child: const FeaturesSection(),
+                // Main content
+                SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Column(
+                    children: [
+                      const HeroSection(),
+                      ScrollAnimatedWidget(
+                        offset: const Offset(0, 80),
+                        child: const FeaturesSection(),
+                      ),
+                      ScrollAnimatedWidget(
+                        offset: const Offset(0, 80),
+                        child: const ValueSection(),
+                      ),
+                      ScrollAnimatedWidget(
+                        offset: const Offset(0, 80),
+                        child: const ScreenshotsSection(),
+                      ),
+                      ScrollAnimatedWidget(
+                        offset: const Offset(0, 80),
+                        child: const SocialSection(),
+                      ),
+                      const FooterSection(),
+                    ],
+                  ),
                 ),
-                ScrollAnimatedWidget(
-                  offset: const Offset(0, 80),
-                  child: const ValueSection(),
-                ),
-                ScrollAnimatedWidget(
-                  offset: const Offset(0, 80),
-                  child: const ScreenshotsSection(),
-                ),
-                ScrollAnimatedWidget(
-                  offset: const Offset(0, 80),
-                  child: const DownloadSection(),
-                ),
-                const FooterSection(),
+
+                // Scroll to top FAB
+                if (_showScrollToTop)
+                  Positioned(
+                    right: 24,
+                    bottom: 24,
+                    child: FloatingActionButton(
+                      onPressed: _scrollToTop,
+                      backgroundColor: AppColors.accent,
+                      child: const Icon(
+                        Icons.arrow_upward,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
-          
-          // Scroll to top FAB
-          if (_showScrollToTop)
-            Positioned(
-              right: 24,
-              bottom: 24,
-              child: FloatingActionButton(
-                onPressed: _scrollToTop,
-                backgroundColor: AppColors.accent,
-                child: const Icon(Icons.arrow_upward, color: Colors.black),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

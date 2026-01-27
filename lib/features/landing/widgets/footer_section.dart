@@ -10,7 +10,7 @@ class FooterSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
@@ -19,46 +19,41 @@ class FooterSection extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.cardBg,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.borderMuted,
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
       ),
       child: Column(
         children: [
-          // Links
-          Wrap(
-            spacing: isMobile ? 16 : 32,
-            runSpacing: 16,
-            alignment: WrapAlignment.center,
+          // Social media links
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _FooterLink(
-                label: 'Privacy Policy',
-                onTap: () async {
-                  final uri = Uri.parse('https://bandroadie.com/privacy');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  }
-                },
+              _SocialIconButton(
+                icon: Icons.camera_alt,
+                label: 'Instagram',
+                url: 'https://www.instagram.com/bandroadie26/',
               ),
-              _FooterLink(
-                label: 'Terms of Service',
-                onTap: () {
-                  // TODO: Add terms of service page
-                },
-              ),
-              _FooterLink(
-                label: 'Support',
-                onTap: () {
-                  // TODO: Add support/contact page
-                },
+              const SizedBox(width: 16),
+              _SocialIconButton(
+                icon: Icons.facebook,
+                label: 'Facebook',
+                url: 'https://www.facebook.com/BandRaodie',
               ),
             ],
           ),
+          const SizedBox(height: 32),
+
+          // Links
+          _FooterLink(
+            label: 'Privacy Policy',
+            onTap: () async {
+              final uri = Uri.parse('https://bandroadie.com/privacy');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+            },
+          ),
           const SizedBox(height: 24),
-          
+
           // Copyright
           Text(
             '© ${DateTime.now().year} BandRoadie. All rights reserved.',
@@ -78,10 +73,7 @@ class _FooterLink extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _FooterLink({
-    required this.label,
-    required this.onTap,
-  });
+  const _FooterLink({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -89,12 +81,46 @@ class _FooterLink extends StatelessWidget {
       onPressed: onTap,
       style: TextButton.styleFrom(
         foregroundColor: AppColors.textSecondary,
-        textStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
       child: Text(label),
+    );
+  }
+}
+
+class _SocialIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String url;
+
+  const _SocialIconButton({
+    required this.icon,
+    required this.label,
+    required this.url,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () async {
+          final uri = Uri.parse(url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.cardBg,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.borderMuted, width: 1),
+          ),
+          child: Icon(icon, color: AppColors.textPrimary, size: 24),
+        ),
+      ),
     );
   }
 }

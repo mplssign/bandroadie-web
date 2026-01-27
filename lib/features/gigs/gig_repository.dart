@@ -80,25 +80,22 @@ class GigRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
-    final gigs = response
-        .map<Gig>((json) => Gig.fromJson(json))
-        .where((gig) {
-          try {
-            // Combine date and end time to get the actual end DateTime
-            final endDateTime = DateTime(
-              gig.date.year,
-              gig.date.month,
-              gig.date.day,
-              int.parse(gig.endTime.split(':')[0]),
-              int.parse(gig.endTime.split(':')[1]),
-            ).toUtc();
-            return endDateTime.isAfter(now);
-          } catch (e) {
-            // If parsing fails, include the gig to be safe
-            return true;
-          }
-        })
-        .toList();
+    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
+      try {
+        // Combine date and end time to get the actual end DateTime
+        final endDateTime = DateTime(
+          gig.date.year,
+          gig.date.month,
+          gig.date.day,
+          int.parse(gig.endTime.split(':')[0]),
+          int.parse(gig.endTime.split(':')[1]),
+        ).toUtc();
+        return endDateTime.isAfter(now);
+      } catch (e) {
+        // If parsing fails, include the gig to be safe
+        return true;
+      }
+    }).toList();
 
     return gigs;
   }
@@ -122,25 +119,22 @@ class GigRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
-    final gigs = response
-        .map<Gig>((json) => Gig.fromJson(json))
-        .where((gig) {
-          try {
-            // Combine date and end time to get the actual end DateTime
-            final endDateTime = DateTime(
-              gig.date.year,
-              gig.date.month,
-              gig.date.day,
-              int.parse(gig.endTime.split(':')[0]),
-              int.parse(gig.endTime.split(':')[1]),
-            ).toUtc();
-            return endDateTime.isAfter(now);
-          } catch (e) {
-            // If parsing fails, include the gig to be safe
-            return true;
-          }
-        })
-        .toList();
+    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
+      try {
+        // Combine date and end time to get the actual end DateTime
+        final endDateTime = DateTime(
+          gig.date.year,
+          gig.date.month,
+          gig.date.day,
+          int.parse(gig.endTime.split(':')[0]),
+          int.parse(gig.endTime.split(':')[1]),
+        ).toUtc();
+        return endDateTime.isAfter(now);
+      } catch (e) {
+        // If parsing fails, include the gig to be safe
+        return true;
+      }
+    }).toList();
 
     return gigs;
   }
@@ -163,25 +157,22 @@ class GigRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
-    final gigs = response
-        .map<Gig>((json) => Gig.fromJson(json))
-        .where((gig) {
-          try {
-            // Combine date and end time to get the actual end DateTime
-            final endDateTime = DateTime(
-              gig.date.year,
-              gig.date.month,
-              gig.date.day,
-              int.parse(gig.endTime.split(':')[0]),
-              int.parse(gig.endTime.split(':')[1]),
-            ).toUtc();
-            return endDateTime.isAfter(now);
-          } catch (e) {
-            // If parsing fails, include the gig to be safe
-            return true;
-          }
-        })
-        .toList();
+    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
+      try {
+        // Combine date and end time to get the actual end DateTime
+        final endDateTime = DateTime(
+          gig.date.year,
+          gig.date.month,
+          gig.date.day,
+          int.parse(gig.endTime.split(':')[0]),
+          int.parse(gig.endTime.split(':')[1]),
+        ).toUtc();
+        return endDateTime.isAfter(now);
+      } catch (e) {
+        // If parsing fails, include the gig to be safe
+        return true;
+      }
+    }).toList();
 
     return gigs;
   }
