@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -184,13 +185,24 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
 
       if (!mounted) return;
 
-      debugPrint('🚀 Navigating to AuthGate');
+      debugPrint('🚀 Navigating to app');
       debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const AuthGate()),
-        (route) => false, // Remove all previous routes
-      );
+      
+      // On web, navigate to /app route explicitly to update URL
+      // On mobile, just push AuthGate
+      if (kIsWeb) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/app',
+          (route) => false, // Remove all previous routes
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false, // Remove all previous routes
+        );
+      }
 
       setState(() {
         _loading = false;
