@@ -892,8 +892,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Tuning sort toggle (non-Catalog only, text-only)
-          if (!state.isCatalog && state.songs.isNotEmpty) ...[
+          // Tuning sort toggle (Catalog only, text-only)
+          if (state.isCatalog && state.songs.isNotEmpty) ...[
             _TuningSortToggle(
               mode: state.tuningSortMode,
               onTap: () => ref
