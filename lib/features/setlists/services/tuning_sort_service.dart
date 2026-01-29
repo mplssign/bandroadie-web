@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================================
@@ -95,10 +96,15 @@ class TuningSortService {
     required String bandId,
     required String setlistId,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = _buildKey(bandId, setlistId);
-    final value = prefs.getString(key);
-    return TuningSortMode.fromDbValue(value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _buildKey(bandId, setlistId);
+      final value = prefs.getString(key);
+      return TuningSortMode.fromDbValue(value);
+    } catch (e) {
+      debugPrint('[TuningSortService] ⚠️ Failed to load sort mode: $e');
+      return TuningSortMode.standard; // Default fallback
+    }
   }
 
   /// Persist the sort mode for a setlist.
@@ -107,9 +113,14 @@ class TuningSortService {
     required String setlistId,
     required TuningSortMode mode,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = _buildKey(bandId, setlistId);
-    await prefs.setString(key, mode.dbValue);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _buildKey(bandId, setlistId);
+      await prefs.setString(key, mode.dbValue);
+    } catch (e) {
+      debugPrint('[TuningSortService] ⚠️ Failed to persist sort mode: $e');
+      // Sort preference not persisting is non-critical
+    }
   }
 
   /// Clear the sort mode for a setlist (reverts to default).
@@ -117,9 +128,14 @@ class TuningSortService {
     required String bandId,
     required String setlistId,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = _buildKey(bandId, setlistId);
-    await prefs.remove(key);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = _buildKey(bandId, setlistId);
+      await prefs.remove(key);
+    } catch (e) {
+      debugPrint('[TuningSortService] ⚠️ Failed to clear sort mode: $e');
+      // Silent failure acceptable for cleanup
+    }
   }
 
   /// Get the sort priority for a tuning value using rotation logic.

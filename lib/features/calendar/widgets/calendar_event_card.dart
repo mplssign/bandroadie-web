@@ -206,7 +206,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
 }
 
 /// Deep blue/indigo date badge matching Figma design
-/// Weekday: uppercase, large and bold (e.g., SAT)
+/// Month: uppercase, large and bold (e.g., JAN)
 /// Day: very large, bold
 class _DateBadge extends StatelessWidget {
   final DateTime date;
@@ -214,9 +214,9 @@ class _DateBadge extends StatelessWidget {
 
   const _DateBadge({required this.date, required this.eventType});
 
-  String get _dayOfWeek {
-    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    return days[date.weekday - 1];
+  String get _monthAbbreviation {
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    return months[date.month - 1];
   }
 
   @override
@@ -234,9 +234,9 @@ class _DateBadge extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Day of week - UPPERCASE, large and bold (e.g., "SAT")
+          // Month abbreviation - UPPERCASE, large and bold (e.g., "JAN")
           Text(
-            _dayOfWeek,
+            _monthAbbreviation,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
