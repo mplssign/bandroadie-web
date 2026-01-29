@@ -101,16 +101,17 @@ class NotificationRepository {
     await _supabase
         .from('notification_preferences')
         .update({
-          'gig_updates': prefs.gigUpdates,
-          'rehearsal_updates': prefs.rehearsalUpdates,
+          'notifications_enabled': prefs.notificationsEnabled,
+          'gigs_enabled': prefs.gigsEnabled,
+          'potential_gigs_enabled': prefs.potentialGigsEnabled,
+          'rehearsals_enabled': prefs.rehearsalsEnabled,
+          'blockouts_enabled': prefs.blockoutsEnabled,
+          // Keep legacy fields for backwards compatibility
           'setlist_updates': prefs.setlistUpdates,
           'availability_requests': prefs.availabilityRequests,
           'member_updates': prefs.memberUpdates,
           'push_enabled': prefs.pushEnabled,
           'in_app_enabled': prefs.inAppEnabled,
-          'quiet_hours_start': prefs.quietHoursStart,
-          'quiet_hours_end': prefs.quietHoursEnd,
-          'timezone': prefs.timezone,
         })
         .eq('user_id', prefs.userId);
   }
