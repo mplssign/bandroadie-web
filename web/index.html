@@ -118,6 +118,7 @@
     the page when a new version is detected.
     
     A sessionStorage flag prevents infinite reload loops.
+    DATA LOSS PREVENTION: Checks window.bandroadieEditInProgress before reloading.
   -->
   <script>
     (function () {
@@ -125,6 +126,25 @@
       if (!('serviceWorker' in navigator)) return;
 
       var RELOAD_FLAG = 'br_sw_reloaded';
+
+      // DATA LOSS PREVENTION: Global flag to prevent reload during active editing.
+      // Flutter app can set window.bandroadieEditInProgress = true when users
+      // are editing forms, songs, setlists, or other content.
+      // This defers service worker updates until editing is complete.
+      window.bandroadieEditInProgress = window.bandroadieEditInProgress || false;
+      window.bandroadieUpdatePending = false;
+
+      // Helper function to safely reload, checking for unsaved changes
+      function safeReload() {
+        if (window.bandroadieEditInProgress) {
+          window.bandroadieUpdatePending = true;
+          console.log('[ServiceWorker] Update deferred - edit in progress. Reload manually to apply.');
+          return false;
+        }
+        sessionStorage.setItem(RELOAD_FLAG, 'true');
+        window.location.reload();
+        return true;
+      }
 
       // Prevent reload loops: if we already reloaded this session, don't do it again
       if (sessionStorage.getItem(RELOAD_FLAG)) return;
@@ -140,9 +160,8 @@
 
         // Check for waiting worker on initial load
         if (registration.waiting) {
-          sessionStorage.setItem(RELOAD_FLAG, 'true');
           registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          window.location.reload();
+          safeReload();
           return;
         }
 
@@ -154,9 +173,8 @@
           newWorker.addEventListener('statechange', function () {
             // When new worker is installed and waiting, reload to activate it
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              sessionStorage.setItem(RELOAD_FLAG, 'true');
               newWorker.postMessage({ type: 'SKIP_WAITING' });
-              window.location.reload();
+              safeReload();
             }
           });
         });
@@ -165,8 +183,7 @@
       // Also handle controllerchange event for when a new SW takes over
       navigator.serviceWorker.addEventListener('controllerchange', function () {
         if (!sessionStorage.getItem(RELOAD_FLAG)) {
-          sessionStorage.setItem(RELOAD_FLAG, 'true');
-          window.location.reload();
+          safeReload();
         }
       });
     })();

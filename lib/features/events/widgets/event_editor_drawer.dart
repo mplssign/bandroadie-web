@@ -13,6 +13,7 @@ import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/utils/title_case_formatter.dart';
 import '../../../shared/widgets/currency_input_field.dart';
+import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
 import '../../gigs/gig_controller.dart';
 import '../../gigs/gig_response_repository.dart';
@@ -908,6 +909,94 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   /// Whether this is edit mode
   bool get _isEditMode => widget.mode == EventEditorMode.edit;
 
+  /// Check if the selected date conflicts with any band member's block-out dates.
+  /// Returns a list of member names who are unavailable on this date.
+  Future<List<String>> _checkBlockOutConflicts() async {
+    try {
+      // Fetch block-outs for the band
+      final blockOuts = await ref
+          .read(blockOutRepositoryProvider)
+          .fetchBlockOutsForBand(widget.bandId);
+
+      // Normalize selected date to midnight for comparison
+      final normalizedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+
+      // Find block-outs that match this date
+      final conflictingBlockOuts = blockOuts.where((blockOut) {
+        final blockOutDate = DateTime(
+          blockOut.date.year,
+          blockOut.date.month,
+          blockOut.date.day,
+        );
+        return blockOutDate.isAtSameMomentAs(normalizedDate);
+      }).toList();
+
+      if (conflictingBlockOuts.isEmpty) {
+        return [];
+      }
+
+      // Fetch member names for conflicting user IDs
+      final userIds = conflictingBlockOuts.map((bo) => bo.userId).toSet();
+      final membersState = ref.read(membersProvider);
+      final unavailableMembers = <String>[];
+
+      for (final userId in userIds) {
+        final member = membersState.members
+            .where((m) => m.userId == userId)
+            .firstOrNull;
+        if (member != null) {
+          unavailableMembers.add(member.name);
+        }
+      }
+
+      return unavailableMembers;
+    } catch (e) {
+      // If check fails, don't block the save - just log and continue
+      debugPrint('[EventEditor] Block-out conflict check failed: $e');
+      return [];
+    }
+  }
+
+  /// Show a non-blocking informational dialog about block-out conflicts
+  Future<void> _showBlockOutConflictDialog(List<String> unavailableMembers) async {
+    if (!mounted) return;
+
+    final message = unavailableMembers.length == 1
+        ? 'Band member ${unavailableMembers.first} is not available this day.'
+        : 'Band members ${unavailableMembers.join(", ")} are not available this day.';
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBgElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Availability Notice',
+          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          message,
+          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'OK',
+              style: AppTextStyles.calloutEmphasized.copyWith(
+                color: AppColors.accent,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleSave() async {
     // Clear previous errors
     setState(() {
@@ -923,6 +1012,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _errorMessage = errors.first;
       });
       return;
+    }
+
+    // Check for block-out conflicts (non-blocking, informational only)
+    final unavailableMembers = await _checkBlockOutConflicts();
+    if (unavailableMembers.isNotEmpty) {
+      await _showBlockOutConflictDialog(unavailableMembers);
+      // Continue with save after showing dialog
     }
 
     setState(() {

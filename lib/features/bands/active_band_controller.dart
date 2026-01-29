@@ -232,20 +232,40 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
   /// Load persisted band ID from SharedPreferences
   Future<String?> _loadPersistedBandId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_activeBandIdKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_activeBandIdKey);
+    } catch (e) {
+      debugPrint(
+        '[ActiveBand] ⚠️ SharedPreferences unavailable (private browsing?): $e',
+      );
+      debugPrint('[ActiveBand] Falling back to in-memory state only');
+      return null;
+    }
   }
 
   /// Persist band ID to SharedPreferences
   Future<void> _persistBandId(String bandId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_activeBandIdKey, bandId);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_activeBandIdKey, bandId);
+    } catch (e) {
+      debugPrint(
+        '[ActiveBand] ⚠️ Failed to persist band ID (private browsing?): $e',
+      );
+      debugPrint('[ActiveBand] Band selection will not survive page reload');
+    }
   }
 
   /// Clear persisted band ID
   Future<void> _clearPersistedBandId() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_activeBandIdKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_activeBandIdKey);
+    } catch (e) {
+      debugPrint('[ActiveBand] ⚠️ Failed to clear persisted band ID: $e');
+      // Silent failure is acceptable for clear operations
+    }
   }
 
   /// Fetch all bands for the current user and restore persisted selection

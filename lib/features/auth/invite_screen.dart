@@ -192,9 +192,19 @@ class _InviteScreenState extends State<InviteScreen> {
 
       // Store the invite token in SharedPreferences so AuthGate can pick it up
       // This handles the case where the redirect doesn't work as expected
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(kPendingInviteTokenKey, token!);
-      debugPrint('[InviteScreen] Stored pending invite token: $token');
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(kPendingInviteTokenKey, token!);
+        debugPrint('[InviteScreen] Stored pending invite token: $token');
+      } catch (e) {
+        debugPrint(
+          '[InviteScreen] ❌ CRITICAL: Failed to persist invite token: $e',
+        );
+        debugPrint(
+          '[InviteScreen] Private browsing mode may prevent invite acceptance',
+        );
+        // Continue anyway - the URL parameter may still work
+      }
 
       debugPrint(
         '[InviteScreen] Sending magic link to $email with redirect: $redirectUrl',
@@ -437,14 +447,24 @@ class _InviteScreenState extends State<InviteScreen> {
 class PendingInviteHelper {
   /// Check if there's a pending invite token stored
   static Future<String?> getPendingInviteToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(kPendingInviteTokenKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(kPendingInviteTokenKey);
+    } catch (e) {
+      debugPrint('[PendingInviteHelper] ⚠️ SharedPreferences unavailable: $e');
+      return null;
+    }
   }
 
   /// Clear the pending invite token
   static Future<void> clearPendingInviteToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(kPendingInviteTokenKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(kPendingInviteTokenKey);
+    } catch (e) {
+      debugPrint('[PendingInviteHelper] ⚠️ Failed to clear invite token: $e');
+      // Silent failure acceptable for cleanup operations
+    }
   }
 
   /// Accept a pending invite by calling the edge function

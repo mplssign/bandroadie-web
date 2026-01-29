@@ -90,47 +90,59 @@ class EventsRepository {
     Rehearsal? firstRehearsal;
     String? parentId;
 
-    for (var i = 0; i < dates.length; i++) {
-      final date = dates[i];
-      final isFirst = i == 0;
+    try {
+      for (var i = 0; i < dates.length; i++) {
+        final date = dates[i];
+        final isFirst = i == 0;
 
-      final data = {
-        'band_id': bandId,
-        'date': date.toIso8601String().split('T')[0],
-        'start_time': formData.startTimeDisplay,
-        'end_time': formData.endTimeDisplay,
-        'location': formData.location,
-        'notes': formData.notes,
-        'setlist_id': formData.setlistId,
-        // Recurrence fields - store on all instances for consistency
-        'is_recurring': formData.isRecurring,
-        'recurrence_frequency': formData.isRecurring
-            ? formData.recurrence?.frequency.name
-            : null,
-        'recurrence_days': formData.isRecurring
-            ? formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList()
-            : null,
-        'recurrence_until': formData.isRecurring
-            ? formData.recurrence?.untilDate?.toIso8601String().split('T')[0]
-            : null,
-        // Link child instances to parent (first rehearsal)
-        'parent_rehearsal_id': isFirst ? null : parentId,
-      };
+        final data = {
+          'band_id': bandId,
+          'date': date.toIso8601String().split('T')[0],
+          'start_time': formData.startTimeDisplay,
+          'end_time': formData.endTimeDisplay,
+          'location': formData.location,
+          'notes': formData.notes,
+          'setlist_id': formData.setlistId,
+          // Recurrence fields - store on all instances for consistency
+          'is_recurring': formData.isRecurring,
+          'recurrence_frequency': formData.isRecurring
+              ? formData.recurrence?.frequency.name
+              : null,
+          'recurrence_days': formData.isRecurring
+              ? formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList()
+              : null,
+          'recurrence_until': formData.isRecurring
+              ? formData.recurrence?.untilDate?.toIso8601String().split('T')[0]
+              : null,
+          // Link child instances to parent (first rehearsal)
+          'parent_rehearsal_id': isFirst ? null : parentId,
+        };
 
-      final response = await supabase
-          .from('rehearsals')
-          .insert(data)
-          .select()
-          .single();
+        debugPrint('[EventsRepository] Inserting rehearsal with data: $data');
 
-      if (isFirst) {
-        firstRehearsal = Rehearsal.fromJson(response);
-        parentId = firstRehearsal.id;
+        final response = await supabase
+            .from('rehearsals')
+            .insert(data)
+            .select()
+            .single();
+
+        debugPrint('[EventsRepository] Successfully created rehearsal');
+
+        if (isFirst) {
+          firstRehearsal = Rehearsal.fromJson(response);
+          parentId = firstRehearsal.id;
+        }
       }
-    }
 
-    invalidateCache(bandId);
-    return firstRehearsal!;
+      invalidateCache(bandId);
+      return firstRehearsal!;
+    } catch (e, st) {
+      debugPrint('[EventsRepository] ERROR creating rehearsal:');
+      debugPrint('  Error: $e');
+      debugPrint('  Type: ${e.runtimeType}');
+      debugPrint('  Stack: $st');
+      rethrow;
+    }
   }
 
   /// Generate all dates for a recurring event based on recurrence config

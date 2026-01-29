@@ -24,11 +24,6 @@ class AnimatedBandRoadieLogo extends StatelessWidget {
       height: height,
       fit: BoxFit.contain,
       semanticsLabel: 'Band Roadie Logo',
-      placeholderBuilder: (context) => Image.asset(
-        'assets/images/bandroadie_horiz.png',
-        height: height,
-        fit: BoxFit.contain,
-      ),
     );
   }
 }
@@ -47,11 +42,6 @@ class BandRoadieLogo extends StatelessWidget {
       height: height,
       fit: BoxFit.contain,
       semanticsLabel: 'Band Roadie Logo',
-      placeholderBuilder: (context) => Image.asset(
-        'assets/images/bandroadie_horiz.png',
-        height: height,
-        fit: BoxFit.contain,
-      ),
     );
   }
 }

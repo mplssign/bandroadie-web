@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/services/supabase_client.dart';
 import '../../app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
+import '../notifications/notification_settings_screen.dart';
 
 // ============================================================================
 // SETTINGS SCREEN
@@ -57,25 +58,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   List<SettingsItem> _buildSettingsItems() {
     // Regular settings items (add more here as needed)
     final regularItems = <SettingsItem>[
-      // Future items can be added here:
-      // SettingsItem(
-      //   icon: Icons.notifications_outlined,
-      //   label: 'Notifications',
-      //   subtitle: 'Manage push notifications',
-      //   onTap: () => _openNotifications(),
-      // ),
-      // SettingsItem(
-      //   icon: Icons.palette_outlined,
-      //   label: 'Appearance',
-      //   subtitle: 'Theme and display options',
-      //   onTap: () => _openAppearance(),
-      // ),
-      // SettingsItem(
-      //   icon: Icons.info_outline,
-      //   label: 'About',
-      //   subtitle: 'App info and licenses',
-      //   onTap: () => _openAbout(),
-      // ),
+      SettingsItem(
+        icon: Icons.notifications_outlined,
+        label: 'Notifications',
+        subtitle: 'Manage push notifications',
+        onTap: _openNotifications,
+      ),
     ];
 
     // Delete Account - always last (enforced here)
@@ -88,6 +76,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     return [...regularItems, deleteAccountItem];
+  }
+
+  /// Navigate to notification settings
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const NotificationSettingsScreen(),
+      ),
+    );
   }
 
   /// Show confirmation dialog for account deletion
