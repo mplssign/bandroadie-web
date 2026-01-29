@@ -82,9 +82,6 @@ supabase/.branches/
 # ========================
 # Build artifacts (Flutter)
 # ========================
-build/*
-!build/web/
-!build/web/**
+build/
 app.*.symbols
 app.*.map.json
-.vercel
