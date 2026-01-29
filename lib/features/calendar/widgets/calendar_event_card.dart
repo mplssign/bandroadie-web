@@ -215,7 +215,20 @@ class _DateBadge extends StatelessWidget {
   const _DateBadge({required this.date, required this.eventType});
 
   String get _monthAbbreviation {
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
     return months[date.month - 1];
   }
 

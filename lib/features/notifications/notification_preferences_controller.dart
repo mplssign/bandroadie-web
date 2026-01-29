@@ -14,10 +14,12 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 });
 
 final notificationPreferencesProvider =
-    AsyncNotifierProvider<NotificationPreferencesController,
-        NotificationPreferences>(() {
-  return NotificationPreferencesController();
-});
+    AsyncNotifierProvider<
+      NotificationPreferencesController,
+      NotificationPreferences
+    >(() {
+      return NotificationPreferencesController();
+    });
 
 class NotificationPreferencesController
     extends AsyncNotifier<NotificationPreferences> {

@@ -962,7 +962,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   /// Show a non-blocking informational dialog about block-out conflicts
-  Future<void> _showBlockOutConflictDialog(List<String> unavailableMembers) async {
+  Future<void> _showBlockOutConflictDialog(
+    List<String> unavailableMembers,
+  ) async {
     if (!mounted) return;
 
     final message = unavailableMembers.length == 1

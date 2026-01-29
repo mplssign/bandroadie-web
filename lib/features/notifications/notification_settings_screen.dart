@@ -48,11 +48,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic prefs,
-  ) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, dynamic prefs) {
     final notificationsEnabled = prefs.notificationsEnabled as bool;
 
     return ListView(
@@ -186,10 +182,7 @@ class _MasterToggleCard extends StatelessWidget {
   final bool enabled;
   final ValueChanged<bool> onChanged;
 
-  const _MasterToggleCard({
-    required this.enabled,
-    required this.onChanged,
-  });
+  const _MasterToggleCard({required this.enabled, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -212,10 +205,7 @@ class _MasterToggleCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Notifications',
-                  style: AppTextStyles.calloutEmphasized,
-                ),
+                Text('Notifications', style: AppTextStyles.calloutEmphasized),
                 const SizedBox(height: 4),
                 Text(
                   enabled ? 'You\'ll receive updates' : 'All notifications off',
