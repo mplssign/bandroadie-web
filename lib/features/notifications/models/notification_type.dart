@@ -9,9 +9,11 @@ enum NotificationType {
   gigUpdated('gig_updated'),
   gigCancelled('gig_cancelled'),
   gigConfirmed('gig_confirmed'),
+  potentialGigCreated('potential_gig_created'),
   rehearsalCreated('rehearsal_created'),
   rehearsalUpdated('rehearsal_updated'),
   rehearsalCancelled('rehearsal_cancelled'),
+  blockoutCreated('blockout_created'),
   setlistUpdated('setlist_updated'),
   availabilityRequest('availability_request'),
   availabilityResponse('availability_response'),
@@ -37,11 +39,14 @@ enum NotificationType {
       case NotificationType.gigUpdated:
       case NotificationType.gigCancelled:
       case NotificationType.gigConfirmed:
+      case NotificationType.potentialGigCreated:
         return NotificationCategory.gigs;
       case NotificationType.rehearsalCreated:
       case NotificationType.rehearsalUpdated:
       case NotificationType.rehearsalCancelled:
         return NotificationCategory.rehearsals;
+      case NotificationType.blockoutCreated:
+        return NotificationCategory.blockouts;
       case NotificationType.setlistUpdated:
         return NotificationCategory.setlists;
       case NotificationType.availabilityRequest:
@@ -57,4 +62,11 @@ enum NotificationType {
 }
 
 /// Notification categories for preferences
-enum NotificationCategory { gigs, rehearsals, setlists, availability, members }
+enum NotificationCategory {
+  gigs,
+  rehearsals,
+  blockouts,
+  setlists,
+  availability,
+  members,
+}

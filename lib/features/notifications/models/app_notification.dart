@@ -44,6 +44,7 @@ class AppNotification {
       case NotificationType.gigUpdated:
       case NotificationType.gigCancelled:
       case NotificationType.gigConfirmed:
+      case NotificationType.potentialGigCreated:
       case NotificationType.availabilityRequest:
       case NotificationType.availabilityResponse:
         return gigId != null ? '/gig/$gigId' : null;
@@ -51,6 +52,8 @@ class AppNotification {
       case NotificationType.rehearsalUpdated:
       case NotificationType.rehearsalCancelled:
         return rehearsalId != null ? '/rehearsal/$rehearsalId' : null;
+      case NotificationType.blockoutCreated:
+        return '/calendar';
       case NotificationType.setlistUpdated:
         return setlistId != null ? '/setlist/$setlistId' : null;
       case NotificationType.memberJoined:

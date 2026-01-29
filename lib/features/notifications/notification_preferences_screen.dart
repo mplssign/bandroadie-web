@@ -108,7 +108,7 @@ class _NotificationPreferencesScreenState
             _buildToggleTile(
               title: 'Gig Updates',
               subtitle: 'New gigs, changes, and confirmations',
-              value: prefs.gigUpdates,
+              value: prefs.gigsEnabled,
               onChanged: (value) {
                 ref
                     .read(notificationPreferencesProvider.notifier)
@@ -120,7 +120,7 @@ class _NotificationPreferencesScreenState
             _buildToggleTile(
               title: 'Rehearsal Updates',
               subtitle: 'Rehearsal schedules and changes',
-              value: prefs.rehearsalUpdates,
+              value: prefs.rehearsalsEnabled,
               onChanged: (value) {
                 ref
                     .read(notificationPreferencesProvider.notifier)
