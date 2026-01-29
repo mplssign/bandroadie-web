@@ -86,14 +86,14 @@ class NotificationPreferencesNotifier
   Future<void> toggleGigUpdates(bool value) async {
     final current = state.value;
     if (current != null) {
-      await updatePreferences(current.copyWith(gigUpdates: value));
+      await updatePreferences(current.copyWith(gigsEnabled: value));
     }
   }
 
   Future<void> toggleRehearsalUpdates(bool value) async {
     final current = state.value;
     if (current != null) {
-      await updatePreferences(current.copyWith(rehearsalUpdates: value));
+      await updatePreferences(current.copyWith(rehearsalsEnabled: value));
     }
   }
 
