@@ -85,3 +85,5 @@ supabase/.branches/
 build/
 app.*.symbols
 app.*.map.json
+.vercel
+.env*.local
