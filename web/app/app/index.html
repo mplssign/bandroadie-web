@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="/app/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Band management app for rehearsals, gigs, setlists, and member coordination.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="BandRoadie">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/Icon-512.png" />
+
+  <title>BandRoadie</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=Caveat:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050505;
+      overflow: hidden;
+    }
+
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #050505;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    #loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(248, 63, 94, 0.2);
+      border-top-color: #F43F5E;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loading-text {
+      margin-top: 20px;
+      color: rgba(255, 255, 255, 0.7);
+      font-family: 'Inter Tight', -apple-system, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">
+    <div id="loading-spinner"></div>
+    <div id="loading-text">Loading BandRoadie...</div>
+  </div>
+
+  <script>
+    // Remove loading screen when Flutter is ready
+    window.addEventListener('flutter-first-frame', function () {
+      var loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.transition = 'opacity 0.3s';
+        loading.style.opacity = '0';
+        setTimeout(function () {
+          loading.remove();
+          document.body.style.overflow = 'auto';
+        }, 300);
+      }
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+
+  <!--
+    Service Worker Update Handler
+    
+    PURPOSE: Force cached browsers to receive the latest deployment automatically.
+    This script aggressively checks for service worker updates and reloads
+    the page when a new version is detected.
+    
+    A sessionStorage flag prevents infinite reload loops.
+    DATA LOSS PREVENTION: Checks window.bandroadieEditInProgress before reloading.
+  -->
+  <script>
+    (function () {
+      // Guard: Only run if service workers are supported
+      if (!('serviceWorker' in navigator)) return;
+
+      var RELOAD_FLAG = 'br_sw_reloaded';
+
+      // DATA LOSS PREVENTION: Global flag to prevent reload during active editing.
+      // Flutter app can set window.bandroadieEditInProgress = true when users
+      // are editing forms, songs, setlists, or other content.
+      // This defers service worker updates until editing is complete.
+      window.bandroadieEditInProgress = window.bandroadieEditInProgress || false;
+      window.bandroadieUpdatePending = false;
+
+      // Helper function to safely reload, checking for unsaved changes
+      function safeReload() {
+        if (window.bandroadieEditInProgress) {
+          window.bandroadieUpdatePending = true;
+          console.log('[ServiceWorker] Update deferred - edit in progress. Reload manually to apply.');
+          return false;
+        }
+        sessionStorage.setItem(RELOAD_FLAG, 'true');
+        window.location.reload();
+        return true;
+      }
+
+      // Prevent reload loops: if we already reloaded this session, don't do it again
+      if (sessionStorage.getItem(RELOAD_FLAG)) return;
+
+      // Force check for updates immediately on page load
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATES' });
+      }
+
+      navigator.serviceWorker.ready.then(function (registration) {
+        // Force update check on every page load
+        registration.update().catch(function () { });
+
+        // Check for waiting worker on initial load
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          safeReload();
+          return;
+        }
+
+        // Listen for new service worker updates
+        registration.addEventListener('updatefound', function () {
+          var newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', function () {
+            // When new worker is installed and waiting, reload to activate it
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              safeReload();
+            }
+          });
+        });
+      });
+
+      // Also handle controllerchange event for when a new SW takes over
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+          safeReload();
+        }
+      });
+    })();
+  </script>
+</body>
+
+</html>
