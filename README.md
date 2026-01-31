@@ -1,6 +1,6 @@
-# Band Roadie
+# BandRoadie
 
-Band Roadie is a mobile app for managing the real-life logistics of being in a band —
+BandRoadie is a mobile app for managing the real-life logistics of being in a band —
 gigs, rehearsals, setlists, calendars, and members — without the chaos.
 
 Built by a musician who got tired of group texts, spreadsheets, and  
@@ -8,7 +8,7 @@ Built by a musician who got tired of group texts, spreadsheets, and
 
 ---
 
-## What Band Roadie Does
+## What BandRoadie Does
 
 - Magic-link login (no passwords)
 - Band dashboards with upcoming rehearsals and gigs
@@ -90,7 +90,7 @@ Edit the file with your Supabase URL and anon key.
 
 Magic Link Deep Linking
 
-Band Roadie uses deep linking for authentication:
+BandRoadie uses deep linking for authentication:
 
 bandroadie://login-callback
 
@@ -119,4 +119,4 @@ Private repository.
 
 ⸻
 
-© Band Roadie
+© BandRoadie

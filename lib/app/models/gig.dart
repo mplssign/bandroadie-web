@@ -24,6 +24,7 @@ class Gig {
   final DateTime date;
   final String startTime;
   final String endTime;
+  final String? loadInTime; // Optional load-in time (e.g., "6:00 PM")
   final String location;
   final String? setlistId;
   final String? setlistName;
@@ -56,6 +57,7 @@ class Gig {
     required this.date,
     required this.startTime,
     required this.endTime,
+    this.loadInTime,
     required this.location,
     this.setlistId,
     this.setlistName,
@@ -77,6 +79,7 @@ class Gig {
       date: DateTime.parse(json['date'] as String),
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
+      loadInTime: json['load_in_time'] as String?,
       location: json['location'] as String,
       setlistId: json['setlist_id'] as String?,
       setlistName: json['setlist_name'] as String?,
@@ -98,6 +101,7 @@ class Gig {
       'date': date.toIso8601String().split('T')[0], // date only
       'start_time': startTime,
       'end_time': endTime,
+      'load_in_time': loadInTime,
       'location': location,
       'setlist_id': setlistId,
       'setlist_name': setlistName,

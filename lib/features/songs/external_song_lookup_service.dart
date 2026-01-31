@@ -212,56 +212,20 @@ class ExternalSongLookupService {
 
     final tracks = (data['data'] as List?) ?? [];
 
-    // Fetch BPM for each track in parallel (with concurrency limit)
-    final results = <SongLookupResult>[];
-
-    for (final track in tracks) {
-      final spotifyId = track['spotify_id'] as String?;
-      int? bpm;
-
-      // Fetch BPM if we have a Spotify ID
-      if (spotifyId != null) {
-        bpm = await _fetchSpotifyBpm(spotifyId);
-      }
-
-      results.add(
-        SongLookupResult(
-          title: track['title'] as String? ?? 'Unknown',
-          artist: track['artist'] as String? ?? 'Unknown Artist',
-          spotifyId: spotifyId,
-          durationSeconds: track['duration_seconds'] as int?,
-          albumArtwork: track['album_artwork'] as String?,
-          bpm: bpm,
-          source: SongSource.spotify,
-        ),
+    // Map tracks to search results (no BPM fetching)
+    final results = tracks.map<SongLookupResult>((track) {
+      return SongLookupResult(
+        title: track['title'] as String? ?? 'Unknown',
+        artist: track['artist'] as String? ?? 'Unknown Artist',
+        spotifyId: track['spotify_id'] as String?,
+        durationSeconds: track['duration_seconds'] as int?,
+        albumArtwork: track['album_artwork'] as String?,
+        bpm: null, // BPM is user-managed, not auto-fetched
+        source: SongSource.spotify,
       );
-    }
+    }).toList();
 
     return results;
-  }
-
-  /// Fetch BPM for a Spotify track
-  Future<int?> _fetchSpotifyBpm(String spotifyId) async {
-    try {
-      final response = await _supabase.functions.invoke(
-        'spotify_audio_features',
-        body: {'spotify_id': spotifyId},
-      );
-
-      if (response.status != 200) {
-        return null;
-      }
-
-      final data = response.data;
-      if (data == null || data['ok'] != true) {
-        return null;
-      }
-
-      return data['data']?['bpm'] as int?;
-    } catch (e) {
-      debugPrint('[ExternalSongLookup] BPM fetch failed for $spotifyId: $e');
-      return null;
-    }
   }
 
   /// Search MusicBrainz via Edge Function (fallback)

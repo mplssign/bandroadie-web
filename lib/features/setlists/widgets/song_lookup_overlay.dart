@@ -273,7 +273,9 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         bandId: widget.bandId,
         title: result.title,
         artist: result.artist,
+        bpm: result.bpm,
         durationSeconds: result.durationSeconds,
+        albumArtwork: result.albumArtwork,
         spotifyId: result.spotifyId,
         musicbrainzId: result.musicbrainzId,
       );

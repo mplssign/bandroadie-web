@@ -1,7 +1,7 @@
 import { getBaseUrl } from '@/lib/config/site';
 
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || '1.2.3';
-export const APP_NAME = 'Band Roadie';
+export const APP_NAME = 'BandRoadie';
 export const APP_URL = getBaseUrl();
 
 export const ROLES = [
