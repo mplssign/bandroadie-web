@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
+import '../services/custom_tuning_service.dart';
 import 'animated_value_text.dart';
 
 // ============================================================================
@@ -252,6 +253,40 @@ class _SongCardState extends State<SongCard>
   /// NO border - filled background only, pill shape
   Widget _buildTuningBadge() {
     final tuning = widget.song.tuning;
+
+    // For custom tunings, need to fetch the name asynchronously
+    if (tuning != null && CustomTuningService.isCustomTuningId(tuning)) {
+      return FutureBuilder<String>(
+        future: _getCustomTuningLabel(tuning),
+        builder: (context, snapshot) {
+          final shortLabel = snapshot.data ?? 'Custom';
+          final bgColor = tuningBadgeColor(tuning);
+          final textColor = tuningBadgeTextColor(bgColor);
+
+          return Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.space12,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(100), // Pill shape
+            ),
+            child: Text(
+              shortLabel,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                height: 1,
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    // Standard preset tuning
     final shortLabel = tuningShortLabel(tuning);
     final bgColor = tuningBadgeColor(tuning);
     final textColor = tuningBadgeTextColor(bgColor);
@@ -276,5 +311,12 @@ class _SongCardState extends State<SongCard>
         ),
       ),
     );
+  }
+
+  /// Get custom tuning label (name from stored custom tuning)
+  Future<String> _getCustomTuningLabel(String customTuningId) async {
+    final service = CustomTuningService();
+    final customTuning = await service.findCustomTuningById(customTuningId);
+    return customTuning?.name ?? 'Custom';
   }
 }

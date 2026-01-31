@@ -23,6 +23,13 @@ String tuningShortLabel(String? tuningName) {
   // Normalize for lookup: trim whitespace
   final normalized = tuningName.trim();
 
+  // Check if it's a custom tuning ID (format: custom_<timestamp>)
+  if (normalized.startsWith('custom_')) {
+    // For custom tuning IDs, return 'Custom' as a fallback
+    // The caller should look up the actual name from CustomTuningService
+    return 'Custom';
+  }
+
   // Short label mapping
   const shortLabels = <String, String>{
     // Standard tunings (match id or name)
@@ -106,6 +113,11 @@ Color tuningBadgeColor(String? tuningKey) {
 
   // Normalize: trim, lowercase for comparison
   final normalized = tuningKey.trim().toLowerCase();
+
+  // Custom tunings get slate color
+  if (normalized.startsWith('custom_')) {
+    return const Color(0xFF64748B); // Slate for custom tunings
+  }
 
   // Color mapping (case-insensitive keys)
   final colorMap = <String, Color>{

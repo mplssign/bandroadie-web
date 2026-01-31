@@ -265,7 +265,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final items = _buildSettingsItems();
-    final hasRegularItems = items.length > 1;
+    // Separate Delete Account from regular items
+    final regularItems = items.where((item) => !item.isDestructive).toList();
+    final deleteAccountItem = items.firstWhere((item) => item.isDestructive);
 
     return Scaffold(
       backgroundColor: _SettingsTokens.background,
@@ -309,41 +311,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              itemCount:
-                  items.length + (hasRegularItems ? 1 : 0), // +1 for divider
-              itemBuilder: (context, index) {
-                // If we have regular items, add a divider before Delete Account
-                if (hasRegularItems && index == items.length - 1) {
-                  // Divider before destructive section
-                  return Column(
-                    children: [
-                      const SizedBox(height: 24),
+          : Column(
+              children: [
+                // Scrollable area for regular settings items
+                Expanded(
+                  child: regularItems.isEmpty
+                      ? const SizedBox.shrink()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          itemCount: regularItems.length,
+                          itemBuilder: (context, index) {
+                            return _SettingsListItem(item: regularItems[index]);
+                          },
+                        ),
+                ),
+
+                // Bottom-anchored Delete Account section
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (regularItems.isNotEmpty) ...[
                       const Divider(
                         color: _SettingsTokens.divider,
                         height: 1,
                         indent: 16,
                         endIndent: 16,
                       ),
-                      const SizedBox(height: 24),
-                      _SettingsListItem(item: items.last),
+                      const SizedBox(height: 8),
                     ],
-                  );
-                }
-
-                // Adjust index if we added the divider
-                final itemIndex = hasRegularItems && index >= items.length - 1
-                    ? items.length - 1
-                    : index;
-
-                // Skip if we already rendered the last item with divider
-                if (hasRegularItems && index == items.length) {
-                  return const SizedBox.shrink();
-                }
-
-                return _SettingsListItem(item: items[itemIndex]);
-              },
+                    _SettingsListItem(item: deleteAccountItem),
+                    // Bottom safe area padding
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.bottom + 16,
+                    ),
+                  ],
+                ),
+              ],
             ),
     );
   }
