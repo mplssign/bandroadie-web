@@ -97,6 +97,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   int _selectedMinutes = 0;
   bool _isPM = true;
   int _durationMinutes = 60; // Default 1h, stored in minutes
+  // Load-in time state (gigs only, optional)
+  int? _loadInHour;
+  int? _loadInMinutes;
+  bool? _loadInIsPM;
   final _locationController = TextEditingController();
   final _nameController = TextEditingController();
   final _notesController = TextEditingController();
@@ -196,6 +200,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _selectedMinutes = data.minutes;
       _isPM = data.isPM;
       _durationMinutes = data.duration.minutes;
+      // Populate load-in time if present
+      if (data.loadInHour != null &&
+          data.loadInMinutes != null &&
+          data.loadInIsPM != null) {
+        _loadInHour = data.loadInHour;
+        _loadInMinutes = data.loadInMinutes;
+        _loadInIsPM = data.loadInIsPM;
+      }
       _locationController.text = data.location;
       if (data.name != null) _nameController.text = data.name!;
       if (data.notes != null) _notesController.text = data.notes!;
@@ -752,6 +764,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               untilDate: _untilDate,
             )
           : null,
+      loadInHour: _loadInHour,
+      loadInMinutes: _loadInMinutes,
+      loadInIsPM: _loadInIsPM,
       isPotentialGig: _eventType == EventType.gig && _isPotentialGig,
       selectedMemberIds: _selectedMemberIds,
       additionalDates: _isMultiDate ? _additionalDates : [],
@@ -792,6 +807,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         current.minutes != initial.minutes ||
         current.isPM != initial.isPM ||
         current.duration != initial.duration ||
+        current.loadInHour != initial.loadInHour ||
+        current.loadInMinutes != initial.loadInMinutes ||
+        current.loadInIsPM != initial.loadInIsPM ||
         !_stringsEqual(current.location, initial.location) ||
         !_stringsEqual(current.notes, initial.notes) ||
         !_stringsEqual(current.name, initial.name) ||
@@ -1469,6 +1487,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       ? _buildLocationAutocomplete()
                       : _buildGigCityAutocomplete(),
 
+                  // 5.5 Load-in Time (gigs only, optional)
+                  if (_eventType == EventType.gig) ...[
+                    const SizedBox(height: Spacing.space16),
+                    _buildLoadInTimeSelector(),
+                  ],
+
                   const SizedBox(height: Spacing.space16),
 
                   // 6. Setlist Selector (optional for both gigs and rehearsals)
@@ -1975,6 +1999,165 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ],
         ),
       ],
+    );
+  }
+
+  /// Load-in time selector (optional, gigs only)
+  /// Uses the same UI pattern as Start Time
+  Widget _buildLoadInTimeSelector() {
+    // If no load-in time is set, show a "Set Load-in Time" button
+    if (_loadInHour == null || _loadInMinutes == null || _loadInIsPM == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Load-in Time',
+            style: AppTextStyles.footnote.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _isSaving
+                ? null
+                : () {
+                    setState(() {
+                      _loadInHour = 6;
+                      _loadInMinutes = 0;
+                      _loadInIsPM = true;
+                    });
+                  },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.scaffoldBg,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                border: Border.all(color: AppColors.borderMuted),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Set Load-in Time (Optional)',
+                    style: AppTextStyles.callout.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // If load-in time is set, show the picker with a clear button
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Load-in Time',
+              style: AppTextStyles.footnote.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            GestureDetector(
+              onTap: _isSaving
+                  ? null
+                  : () {
+                      setState(() {
+                        _loadInHour = null;
+                        _loadInMinutes = null;
+                        _loadInIsPM = null;
+                      });
+                    },
+              child: Text(
+                'Clear',
+                style: AppTextStyles.footnote.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            // Hour dropdown
+            Expanded(
+              child: _buildDropdown(
+                value: _loadInHour!,
+                items: List.generate(12, (i) => i + 1),
+                onChanged: (v) => setState(() => _loadInHour = v!),
+                labelBuilder: (v) => v.toString(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Minutes dropdown
+            Expanded(
+              child: _buildDropdown(
+                value: _loadInMinutes!,
+                items: [0, 15, 30, 45],
+                onChanged: (v) => setState(() => _loadInMinutes = v!),
+                labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
+              ),
+            ),
+            const SizedBox(width: 8),
+            // AM/PM toggle
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.scaffoldBg,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildLoadInAmPmButton('AM', !_loadInIsPM!),
+                  _buildLoadInAmPmButton('PM', _loadInIsPM!),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadInAmPmButton(String label, bool isSelected) {
+    return GestureDetector(
+      onTap: _isSaving
+          ? null
+          : () {
+              setState(() {
+                _loadInIsPM = label == 'PM';
+              });
+              HapticFeedback.selectionClick();
+            },
+      child: AnimatedContainer(
+        duration: AppDurations.fast,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius - 2),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.footnote.copyWith(
+            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 

@@ -1,4 +1,4 @@
-# Band Roadie - Complete Application Documentation
+# BandRoadie - Complete Application Documentation
 
 ## Quick Reference for New AI Chat Sessions
 
@@ -718,6 +718,44 @@ SUPABASE_ANON_KEY=your-anon-key-here
 
 ## Changelog
 
+### January 29, 2026 - Build 30 (v1.0.13+30)
+
+#### In-App Notification UI Removed
+- **Goal:** Transition to push-only notification model by removing in-app notification UI elements
+- **Removed Components:**
+  - Notification bell icon from app header
+  - Full notification feed screen (`notifications_screen.dart`)
+  - Notification card widget (`notification_card.dart`)
+  - Notification navigation service for deep linking
+  - All routes and navigation to notification screens
+- **Preserved Infrastructure:**
+  - Backend notification system (database tables, triggers, Edge Functions)
+  - Notification repository for data access
+  - Notification controller for state management
+  - Notification preferences screen and settings
+  - Push notification service infrastructure (not yet initialized)
+  - Device token management RPCs
+- **Impact:** App now has dormant backend notification system ready for future push notification implementation
+- **Code Quality:** App compiles cleanly, `flutter analyze` passes with 0 errors
+
+#### Comprehensive Code Review Conducted
+- **Type:** READ-ONLY architecture and safety analysis
+- **Scope:** Repository pattern, band isolation, state management, memory management, production readiness
+- **Critical Findings:**
+  - 🔴 C1: StreamSubscription memory leak risk in AuthStateNotifier
+  - 🔴 C2: Band switching does NOT reset all band-scoped state (stale data risk)
+  - 🔴 C3: No repository cache invalidation after band switch
+  - 🟠 H1-H4: High-priority risks in notification triggers, concurrent edits, PKCE verifier, unbounded caches
+- **12 Edge Cases Documented:** Authentication, band switching, concurrent edits, RLS, platform-specific scenarios
+- **Guardrails Established:** NON-NEGOTIABLE patterns for database safety, architecture, and code style
+- **Production Assessment:** Functional and deployable, but band switching state isolation (C2) is critical bug to fix
+- **Documentation:** Full review added to [BAND_ROADIE_DOCUMENTATION.md](BAND_ROADIE_DOCUMENTATION.md#code-review--architecture-analysis-january-29-2026)
+
+#### Database Triggers Created
+| Migration File | Purpose |
+|----------------|---------|
+| `20260128210000_notification_triggers.sql` | Auto-create notification records when gigs, rehearsals, or blockouts are created. Uses `RETURN NEW` pattern (safe - never blocks writes), fires AFTER INSERT only, SECURITY DEFINER for RLS bypass |
+
 ### January 14, 2026
 
 #### Keyboard Handling Fixes
@@ -802,4 +840,182 @@ SUPABASE_ANON_KEY=your-anon-key-here
 
 ---
 
-This comprehensive documentation provides everything needed to understand, develop, and maintain the Band Roadie application. The app represents a complete band management solution with modern cross-platform technologies and user-centered design.
+## Code Review & Architecture Analysis (January 29, 2026)
+
+### Version at Review
+- **Version:** 1.0.13+30 (Build 30)
+- **Review Type:** Comprehensive READ-ONLY analysis
+- **Scope:** Architecture, data safety, state management, memory management, production readiness
+
+### ✅ What Is Solid
+
+#### Repository Pattern & Data Layer
+- Clean separation between data access (repositories) and state management (controllers)
+- Consistent error handling with custom error types (`SetlistQueryError`, `NoBandSelectedError`)
+- Strong type safety - all repositories return typed models, not raw JSON
+
+#### Band Isolation Architecture
+- Every operation requires `bandId` - enforced at repository level
+- RLS policies mirror application logic (band_members join pattern)
+- Catalog setlist properly scoped per-band with `is_catalog` flag
+- Active band persistence via SharedPreferences with graceful fallbacks
+
+#### Database Trigger Safety
+- All notification triggers use `RETURN NEW` pattern (never blocks writes)
+- Fire `AFTER INSERT` only (not UPDATE/DELETE)
+- Use `SECURITY DEFINER` appropriately for RLS bypass where needed
+- Consistent date formatting across triggers
+
+#### State Management (Riverpod 3.x)
+- Modern `Notifier` pattern (not deprecated StateNotifier)
+- Provider disposal hooks properly used for cleanup
+- Appropriate use of `ref.invalidate()` for cache busting
+
+#### Resource Cleanup
+- Controllers cancel debounce timers in `dispose()`
+- Animation controllers properly disposed
+- Text controllers and focus nodes cleaned up
+- `ref.onDispose()` used for StreamSubscription cancellation
+
+### ⚠️ Critical Risks Identified
+
+#### 🔴 C1: StreamSubscription Memory Leak in AuthStateNotifier
+- **File:** `lib/features/auth/auth_state_provider.dart` (lines 51-70)
+- **Issue:** `_authSubscription` created in `build()` method
+- **Risk:** If notifier is rebuilt without disposal, old subscription leaks
+- **Impact:** Memory growth on iOS/Android after hours of use, battery drain
+- **Why Critical:** Auth events fire frequently (token refresh every 60min)
+- **Test:** Open app → Background → Foreground 20x → Check memory
+- **Mitigation:** Verify `ref.onDispose()` always cancels subscription
+
+#### 🔴 C2: Band Switching Does NOT Reset All Band-Scoped State
+- **File:** `lib/features/bands/active_band_controller.dart` (lines 318-325)
+- **Critical Comment:** "When switching bands, all band-scoped data should be reset"
+- **Issue:** Comment says it happens, but NO code triggers invalidation
+- **Risk:** Stale data from previous band visible after switch
+- **Missing:** No `ref.invalidate()` calls for:
+  - `setlistsProvider`
+  - `gigsProvider`
+  - `rehearsalsProvider`
+  - `membersProvider`
+  - Notification feed
+- **Impact:** User sees Band A's setlists when Band B is active
+- **Test:** Create event in Band A → Switch to Band B → Check if Band A's events still visible
+
+#### 🔴 C3: No Repository Invalidation After Band Switch
+- **Files:** All `*_repository.dart` files with cache
+- **Issue:** Repositories have in-memory caches keyed by bandId, but no global invalidation
+- **Risk:** After band switch, cached data from previous band may persist if bandId lookup fails
+- **Missing:** No listener in repositories for `activeBandProvider` changes
+
+### ⚠️ High Priority Risks
+
+#### 🟠 H1: Notification Triggers Have No Error Recovery
+- **File:** `supabase/migrations/20260128210000_notification_triggers.sql`
+- **Issue:** Triggers use `EXCEPTION WHEN OTHERS THEN NULL;` pattern (silent failure)
+- **Risk:** If notification creation fails, no audit trail or retry mechanism
+- **Impact:** Users miss critical notifications (gig invites, rehearsal changes)
+- **Recommendation:** Log to `notification_errors` table for debugging
+
+#### 🟠 H2: Race Condition in Concurrent Setlist Edits
+- **File:** `lib/features/setlists/setlist_repository.dart`
+- **Issue:** No optimistic locking or version field on `setlist_songs.position`
+- **Risk:** Two users reorder songs simultaneously → last write wins, positions corrupt
+- **Impact:** Song order shuffled, duplicate positions possible
+- **Test:** User A drags song to position 3 → User B drags different song to position 3 → Both save
+
+#### 🟠 H3: PKCE Verifier Lost on App Restart
+- **File:** `lib/app/services/deep_link_service.dart` (lines 147-150)
+- **Comment:** "This usually means the code verifier was lost"
+- **Risk:** User clicks magic link → App restarts → Auth fails with cryptic error
+- **Impact:** Login broken for cold-start users, requires re-sending magic link
+- **Root Cause:** PKCE verifier stored in memory, not persisted
+
+#### 🟠 H4: Repositories Have No Max Cache Size
+- **Files:** `lib/features/events/events_repository.dart`, `lib/features/setlists/setlist_repository.dart`
+- **Issue:** Cache grows unbounded (`Map<String, _CacheEntry>`)
+- **Risk:** User in 20 bands viewing 12 months of events → 240 cache entries
+- **Impact:** Memory pressure on iOS, app killed in background
+
+### 🧪 Critical Edge Cases to Test
+
+#### Authentication & Session
+1. **PKCE Verifier Loss:** Start login → Close app → Click magic link → App cold-starts
+2. **Concurrent Logins:** Login on Device A → Login on Device B → Check Device A
+3. **Token Expiry Mid-Operation:** Open app → Wait 61 minutes → Create rehearsal
+
+#### Band Switching
+4. **Band Switch During Active Edit:** Open event editor → Switch bands → Save event
+5. **Band Switch with Stale Cache:** Load Band A's setlists → Switch to Band B → Pull-to-refresh
+6. **Switching to Band with Same-Named Setlist:** Both bands have "Rock Covers" setlist
+
+#### Concurrent Edits
+7. **Simultaneous Song Reorder:** Device A reorders songs → Device B reorders same setlist → Both save
+8. **Notification Preference Toggle Race:** Toggle "Gigs Enabled" on iPhone → Simultaneously toggle on iPad
+
+#### Notification Triggers
+9. **Trigger Exception During Event Creation:** Create gig → Notification trigger fails
+10. **Notification Trigger Creates Duplicate:** Create recurring rehearsal (10 instances)
+
+#### RLS & Data Access
+11. **User Removed from Band Mid-Session:** User A opens Band X → Admin removes User A → User A tries to edit setlist
+12. **Legacy Songs with NULL band_id:** Update BPM of legacy song → Uses `update_song_metadata` RPC
+
+### 🧱 Guardrails to Keep (NON-NEGOTIABLE)
+
+#### Database Safety
+- ✅ **Triggers always `RETURN NEW`** - Never block writes
+- ✅ **Triggers only `AFTER INSERT`** - No UPDATE/DELETE side effects
+- ✅ **RLS uses `band_members` join** - Never trust `auth.uid()` alone
+- ✅ **SECURITY DEFINER only for legacy data** - RLS bypass must be documented
+
+#### Application Architecture
+- ✅ **Repositories never depend on notification system** - Already preserved
+- ✅ **Every query requires bandId** - `NoBandSelectedError` pattern
+- ✅ **Catalog is per-band** - Never global
+- ✅ **Comment: "Switching bands MUST reset all band-scoped state"** - MUST BE ENFORCED
+
+#### Code Patterns
+- ✅ **Notifier pattern** - Not deprecated StateNotifier
+- ✅ **ref.onDispose() for cleanup** - Prevents memory leaks
+- ✅ **User-friendly error messages** - No raw SQL errors to users
+- ✅ **Brand voice in feedback** - 🎸 emoji + roadie humor
+
+### 🧭 Recommended Improvements
+
+#### Top 3 Priorities Before Next Major Release
+1. **Fix C2:** Implement band switching state reset (add `ref.invalidate()` calls to `selectBand()`)
+2. **Fix C1:** Verify StreamSubscription cleanup in AuthStateNotifier (test with memory profiler)
+3. **Fix H2:** Add optimistic locking to setlist song reordering (prevent corruption)
+
+#### Architecture Enhancements
+- **Global State Reset on Band Switch:** Add `BandSwitchCoordinator` that calls `ref.invalidate()` for all band-scoped providers
+- **Repository Base Class:** Extract common patterns (caching, error handling, bandId validation)
+- **Cache with LRU Eviction:** Limit cache size (e.g., 50 entries per repository)
+
+#### Data Safety
+- **Optimistic Locking for Setlist Songs:** Add `version` field to `setlist_songs` table
+- **Notification Trigger Error Logging:** Create `notification_errors` table for failed executions
+- **PKCE Verifier Persistence:** Store verifier in secure storage (Keychain/Keystore)
+
+#### User Experience
+- **Band Switch Confirmation:** Show bottom sheet: "Switch to Band X? Unsaved changes will be lost."
+- **Expired Invitation Handling:** Check `expires_at` before showing "Join Band" UI
+- **Session Expiry Warning:** 5 minutes before token expires, show warning to save work
+
+### Production Readiness Assessment
+
+| Category | Status | Notes |
+|----------|--------|-------|
+| **Architecture** | 🟢 Solid | Feature-first structure, clean separation |
+| **Data Safety** | 🟡 Good | RLS + triggers safe, but no optimistic locking |
+| **State Management** | 🟡 Good | Riverpod 3.x used correctly, band switching incomplete |
+| **Memory Management** | 🟠 Needs Work | StreamSubscriptions cleaned up, but unbounded caches |
+| **Error Handling** | 🟢 Solid | Comprehensive try-catch, typed exceptions |
+| **Production Ready** | 🟠 Mostly | Functional, but critical band switching bug exists |
+
+**Overall Assessment:** Application is functional and deployable, but the band switching state isolation issue (C2) is a critical bug that should be fixed before promoting multi-band usage. Memory management concerns (C1, H4) should be addressed for long-term stability.
+
+---
+
+This comprehensive documentation provides everything needed to understand, develop, and maintain the BandRoadie application. The app represents a complete band management solution with modern cross-platform technologies and user-centered design.

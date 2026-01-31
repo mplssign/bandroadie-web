@@ -193,6 +193,11 @@ class EventFormData {
   final bool isRecurring;
   final RecurrenceConfig? recurrence;
 
+  // Load-in time fields (gigs only, optional)
+  final int? loadInHour; // 1-12
+  final int? loadInMinutes; // 0, 15, 30, 45
+  final bool? loadInIsPM;
+
   // Potential gig fields (gigs only)
   final bool isPotentialGig;
   final Set<String> selectedMemberIds; // User IDs of members to notify
@@ -232,6 +237,9 @@ class EventFormData {
     this.name,
     this.isRecurring = false,
     this.recurrence,
+    this.loadInHour,
+    this.loadInMinutes,
+    this.loadInIsPM,
     this.isPotentialGig = false,
     this.selectedMemberIds = const {},
     this.additionalDates = const [],
@@ -268,6 +276,17 @@ class EventFormData {
     final minStr = minutes.toString().padLeft(2, '0');
     final amPm = isPM ? 'PM' : 'AM';
     return '$hour:$minStr $amPm';
+  }
+
+  /// Convert load-in time to 12-hour display string (e.g., "6:00 PM")
+  /// Returns null if no load-in time is set
+  String? get loadInTimeDisplay {
+    if (loadInHour == null || loadInMinutes == null || loadInIsPM == null) {
+      return null;
+    }
+    final minStr = loadInMinutes!.toString().padLeft(2, '0');
+    final amPm = loadInIsPM! ? 'PM' : 'AM';
+    return '$loadInHour:$minStr $amPm';
   }
 
   /// Calculate end time based on duration
@@ -424,6 +443,17 @@ class EventFormData {
     final parsed = _parseTime(gig.startTime);
     final duration = _inferDuration(gig.startTime, gig.endTime);
 
+    // Parse load-in time if present
+    int? loadInHour;
+    int? loadInMinutes;
+    bool? loadInIsPM;
+    if (gig.loadInTime != null) {
+      final loadInParsed = _parseTime(gig.loadInTime!);
+      loadInHour = loadInParsed.hour;
+      loadInMinutes = loadInParsed.minutes;
+      loadInIsPM = loadInParsed.isPM;
+    }
+
     return EventFormData(
       type: EventType.gig,
       date: gig.date,
@@ -436,6 +466,9 @@ class EventFormData {
       name: gig.name,
       isRecurring: false,
       recurrence: null,
+      loadInHour: loadInHour,
+      loadInMinutes: loadInMinutes,
+      loadInIsPM: loadInIsPM,
       isPotentialGig: gig.isPotential,
       selectedMemberIds: gig.requiredMemberIds,
       additionalDates: gig.additionalDates.map((d) => d.date).toList(),

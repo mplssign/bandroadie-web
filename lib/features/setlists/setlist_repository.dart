@@ -2900,6 +2900,20 @@ class SetlistRepository {
           '[SetlistRepository] Created external song: "$normalizedTitle" by $normalizedArtist -> $newId',
         );
       }
+
+      // Fire-and-forget BPM enrichment if no BPM was provided
+      if (bpm == null) {
+        _attemptBpmEnrichment(
+          songId: newId,
+          bandId: bandId,
+          title: normalizedTitle,
+          artist: normalizedArtist,
+          spotifyId: spotifyId,
+        ).then((_) {
+          // Enrichment complete (or failed silently)
+        });
+      }
+
       return newId;
     } on PostgrestException catch (e) {
       // Handle unique constraint violation (race condition)
@@ -3432,23 +3446,6 @@ class SetlistRepository {
           }
         }
 
-        // If song still has no BPM (and we didn't just add one), try Spotify enrichment
-        if (existingBpm == null && !updates.containsKey('bpm')) {
-          // Fire and forget - don't await, let it run in background
-          enrichSongBpmFromSpotify(
-            songId: existingId,
-            bandId: bandId,
-            title: normalizedTitle,
-            artist: normalizedArtist,
-          ).then((enrichedBpm) {
-            if (enrichedBpm != null && kDebugMode) {
-              debugPrint(
-                '[SetlistRepository] Background BPM enrichment got: $enrichedBpm for existing song',
-              );
-            }
-          });
-        }
-
         return existingId;
       }
 
@@ -3496,23 +3493,6 @@ class SetlistRepository {
         );
       }
 
-      // If no BPM was provided, trigger background enrichment from Spotify
-      if (bpm == null) {
-        // Fire and forget - don't await, let it run in background
-        enrichSongBpmFromSpotify(
-          songId: newId,
-          bandId: bandId,
-          title: normalizedTitle,
-          artist: normalizedArtist,
-        ).then((enrichedBpm) {
-          if (enrichedBpm != null && kDebugMode) {
-            debugPrint(
-              '[SetlistRepository] Background BPM enrichment got: $enrichedBpm for $normalizedTitle',
-            );
-          }
-        });
-      }
-
       return newId;
     } on PostgrestException catch (e) {
       // Handle unique constraint violation (race condition)
@@ -3554,91 +3534,91 @@ class SetlistRepository {
   }
 
   // ==========================================================================
-  // BPM ENRICHMENT FROM SPOTIFY
+  // HYBRID BPM ENRICHMENT (SPOTIFY → ACOUSTICBRAINZ FALLBACK)
   // ==========================================================================
 
-  /// Enriches a song with BPM from Spotify if the song doesn't have BPM set.
+  /// Optional BPM enrichment using hybrid strategy:
+  /// 1. Try Spotify Audio Features (if spotifyId available)
+  /// 2. Fallback to AcousticBrainz
+  /// 3. Give up if both fail
   ///
-  /// This method:
-  /// 1. Searches Spotify for the song by title + artist
-  /// 2. Fetches audio features (BPM) for the best match
-  /// 3. Updates the song in the database with the BPM
+  /// CRITICAL RULES:
+  /// - Fire-and-forget ONLY - never awaited by callers
+  /// - Never throws exceptions
+  /// - Never blocks song creation
+  /// - Only enriches when BPM is null
+  /// - Clamps BPM to 40-240
+  /// - Updates with WHERE bpm IS NULL condition
   ///
-  /// Returns the BPM if found and saved, null otherwise.
-  /// This is a fire-and-forget operation - failures are logged but not thrown.
-  Future<int?> enrichSongBpmFromSpotify({
+  /// [songId] - ID of the song to enrich
+  /// [bandId] - Band ID for RLS bypass (required)
+  /// [title] - Song title for lookup
+  /// [artist] - Artist name for lookup
+  /// [spotifyId] - Optional Spotify track ID for direct audio features fetch
+  Future<void> _attemptBpmEnrichment({
     required String songId,
     required String bandId,
     required String title,
     required String artist,
+    String? spotifyId,
   }) async {
-    if (songId.isEmpty || title.isEmpty || artist.isEmpty) {
-      return null;
-    }
-
     try {
-      debugPrint('[SetlistRepository] Enriching BPM for "$title" by $artist');
-
-      // Search Spotify for the song
-      final searchResponse = await supabase.functions.invoke(
-        'spotify_search',
-        body: {'query': '$title $artist', 'limit': 1},
-      );
-
-      if (searchResponse.status != 200) {
-        debugPrint('[SetlistRepository] Spotify search failed');
-        return null;
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] 🎵 Attempting BPM enrichment for "$title" by $artist',
+        );
       }
 
-      final searchData = searchResponse.data;
-      if (searchData == null || searchData['ok'] != true) {
-        debugPrint('[SetlistRepository] Spotify search returned no results');
-        return null;
+      int? bpm;
+
+      // Strategy 1: Try Spotify Audio Features (if spotifyId available)
+      if (spotifyId != null) {
+        bpm = await _fetchSpotifyBpm(spotifyId, title, artist);
+        if (bpm != null) {
+          if (kDebugMode) {
+            debugPrint('[SetlistRepository] ✓ Spotify BPM=$bpm for "$title"');
+          }
+        }
       }
 
-      final tracks = (searchData['data'] as List?) ?? [];
-      if (tracks.isEmpty) {
-        debugPrint('[SetlistRepository] No Spotify tracks found');
-        return null;
+      // Strategy 2: Fallback to AcousticBrainz if Spotify failed
+      if (bpm == null) {
+        bpm = await _fetchAcousticBrainzBpm(title, artist);
+        if (bpm != null) {
+          if (kDebugMode) {
+            debugPrint(
+              '[SetlistRepository] ✓ AcousticBrainz BPM=$bpm for "$title"',
+            );
+          }
+        }
       }
 
-      final spotifyId = tracks[0]['spotify_id'] as String?;
-      if (spotifyId == null) {
-        debugPrint('[SetlistRepository] No Spotify ID in result');
-        return null;
+      // Give up if both strategies failed
+      if (bpm == null) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistRepository] No BPM found for "$title" by $artist',
+          );
+        }
+        return;
       }
 
-      // Fetch audio features (BPM)
-      final bpmResponse = await supabase.functions.invoke(
-        'spotify_audio_features',
-        body: {'spotify_id': spotifyId},
-      );
-
-      if (bpmResponse.status != 200) {
-        debugPrint('[SetlistRepository] Spotify audio features failed');
-        return null;
+      // Clamp BPM to sane values (40-240)
+      final clampedBpm = bpm.clamp(40, 240);
+      if (clampedBpm != bpm && kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ⚠️ Clamped BPM from $bpm to $clampedBpm',
+        );
       }
 
-      final bpmData = bpmResponse.data;
-      if (bpmData == null || bpmData['ok'] != true) {
-        debugPrint('[SetlistRepository] No BPM data returned');
-        return null;
-      }
-
-      final bpm = bpmData['data']?['bpm'] as int?;
-      if (bpm == null || bpm <= 0) {
-        debugPrint('[SetlistRepository] Invalid BPM value');
-        return null;
-      }
-
-      // Update the song with the BPM
-      // Must pass ALL 8 parameters to avoid PGRST203 function overload ambiguity
+      // Update song with WHERE bpm IS NULL condition via RPC
+      // This prevents overwriting user edits and handles legacy songs
       await supabase.rpc(
         'update_song_metadata',
         params: {
           'p_song_id': songId,
           'p_band_id': bandId,
-          'p_bpm': bpm,
+          'p_bpm': clampedBpm,
           'p_duration_seconds': null,
           'p_tuning': null,
           'p_notes': null,
@@ -3647,48 +3627,77 @@ class SetlistRepository {
         },
       );
 
-      debugPrint('[SetlistRepository] Enriched "$title" with BPM: $bpm');
-      return bpm;
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated BPM to $clampedBpm for song $songId',
+        );
+      }
     } catch (e) {
-      debugPrint('[SetlistRepository] BPM enrichment failed: $e');
+      // Never throw - enrichment is optional
+      if (kDebugMode) {
+        debugPrint('[SetlistRepository] BPM enrichment failed (non-fatal): $e');
+      }
+    }
+  }
+
+  /// Fetch BPM from Spotify Audio Features API.
+  /// Returns null on any failure (never throws).
+  Future<int?> _fetchSpotifyBpm(
+    String spotifyId,
+    String title,
+    String artist,
+  ) async {
+    try {
+      final response = await supabase.functions.invoke(
+        'spotify_audio_features',
+        body: {'spotify_id': spotifyId},
+      );
+
+      final data = response.data;
+      if (data is! Map || data['tempo'] == null) {
+        return null;
+      }
+
+      // Spotify returns tempo as double, round to int
+      final tempo = data['tempo'];
+      if (tempo is num) {
+        return tempo.round();
+      }
+
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SetlistRepository] Spotify BPM fetch failed: $e');
+      }
       return null;
     }
   }
 
-  /// Enriches multiple songs with missing BPM in the background.
-  ///
-  /// This is useful for batch enrichment after bulk add operations.
-  /// Runs in parallel with a concurrency limit to avoid rate limiting.
-  Future<void> enrichSongsBpmInBackground({
-    required String bandId,
-    required List<({String songId, String title, String artist})> songs,
-  }) async {
-    if (songs.isEmpty) return;
-
-    debugPrint(
-      '[SetlistRepository] Starting background BPM enrichment for ${songs.length} songs',
-    );
-
-    // Process in batches of 3 to avoid rate limiting
-    const batchSize = 3;
-    for (var i = 0; i < songs.length; i += batchSize) {
-      final batch = songs.skip(i).take(batchSize);
-      await Future.wait(
-        batch.map(
-          (song) => enrichSongBpmFromSpotify(
-            songId: song.songId,
-            bandId: bandId,
-            title: song.title,
-            artist: song.artist,
-          ),
-        ),
+  /// Fetch BPM from AcousticBrainz API via Edge Function.
+  /// Returns null on any failure (never throws).
+  Future<int?> _fetchAcousticBrainzBpm(String title, String artist) async {
+    try {
+      final response = await supabase.functions.invoke(
+        'acousticbrainz_bpm',
+        body: {'title': title, 'artist': artist},
       );
-      // Small delay between batches to avoid rate limiting
-      if (i + batchSize < songs.length) {
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-    }
 
-    debugPrint('[SetlistRepository] Background BPM enrichment complete');
+      final data = response.data;
+      if (data is! Map || data['bpm'] == null) {
+        return null;
+      }
+
+      final bpm = data['bpm'];
+      if (bpm is int) {
+        return bpm;
+      }
+
+      return null;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SetlistRepository] AcousticBrainz BPM fetch failed: $e');
+      }
+      return null;
+    }
   }
 }
