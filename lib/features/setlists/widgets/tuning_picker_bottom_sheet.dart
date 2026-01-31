@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../tuning/tuning_helpers.dart';
+import '../services/custom_tuning_service.dart';
+import 'custom_tuning_modal.dart';
 
 // ============================================================================
 // TUNING PICKER BOTTOM SHEET
@@ -113,7 +115,6 @@ const List<TuningGroup> tuningGroups = [
         name: 'Nashville',
         strings: 'E A D G B E (high)',
       ),
-      TuningOption(id: 'custom', name: 'Custom', strings: 'Custom tuning'),
     ],
   ),
 ];
@@ -284,6 +285,8 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
   late Animation<double> _fadeAnimation;
 
   TuningOption? _selectedOption;
+  List<TuningOption> _customTunings = [];
+  bool _isLoadingCustom = true;
 
   @override
   void initState() {
@@ -291,6 +294,9 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
 
     // Find the currently selected option
     _selectedOption = findTuningByIdOrName(widget.selectedTuningIdOrName);
+
+    // Load custom tunings
+    _loadCustomTunings();
 
     // Setup entrance animation with physics-based curve
     _animController = AnimationController(
@@ -310,6 +316,44 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     );
 
     _animController.forward();
+  }
+
+  Future<void> _loadCustomTunings() async {
+    final service = CustomTuningService();
+    final customTunings = await service.getCustomTunings();
+
+    setState(() {
+      _customTunings = customTunings
+          .map(
+            (ct) => TuningOption(id: ct.id, name: ct.name, strings: ct.strings),
+          )
+          .toList();
+      _isLoadingCustom = false;
+    });
+
+    // If selected tuning is custom, update selected option
+    if (widget.selectedTuningIdOrName != null &&
+        CustomTuningService.isCustomTuningId(widget.selectedTuningIdOrName)) {
+      final selected = _customTunings
+          .where((t) => t.id == widget.selectedTuningIdOrName)
+          .firstOrNull;
+      if (selected != null) {
+        setState(() => _selectedOption = selected);
+      }
+    }
+  }
+
+  Future<void> _handleAddCustomTuning() async {
+    final customTuning = await showCustomTuningModal(context);
+
+    if (customTuning != null) {
+      // Reload custom tunings to include the new one
+      await _loadCustomTunings();
+
+      // Auto-select the newly created tuning
+      HapticFeedback.selectionClick();
+      Navigator.of(context).pop(customTuning.id);
+    }
   }
 
   @override
@@ -435,16 +479,29 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
 
   int _buildItemCount() {
     int count = 0;
+
+    // Preset tuning groups
     for (final group in tuningGroups) {
       count += 1; // Section header
       count += group.options.length; // Options
     }
+
+    // Custom tunings section (if any exist or still loading)
+    if (!_isLoadingCustom || _customTunings.isNotEmpty) {
+      count += 1; // "Custom Tunings" section header
+      count += _customTunings.length; // Custom tuning options
+    }
+
+    // "Add Custom Tuning" button (always shown at bottom)
+    count += 1;
+
     return count;
   }
 
   Widget _buildListItem(int index) {
     int currentIndex = 0;
 
+    // Preset tuning groups
     for (final group in tuningGroups) {
       // Section header
       if (index == currentIndex) {
@@ -465,6 +522,32 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       }
     }
 
+    // Custom tunings section
+    if (!_isLoadingCustom || _customTunings.isNotEmpty) {
+      // Custom tunings header
+      if (index == currentIndex) {
+        return _buildSectionHeader('Custom Tunings');
+      }
+      currentIndex++;
+
+      // Custom tuning options
+      for (final option in _customTunings) {
+        if (index == currentIndex) {
+          return _TuningOptionRow(
+            option: option,
+            isSelected: _isSelected(option),
+            onTap: () => _selectTuning(option),
+          );
+        }
+        currentIndex++;
+      }
+    }
+
+    // "Add Custom Tuning" button (always last)
+    if (index == currentIndex) {
+      return _buildAddCustomTuningButton();
+    }
+
     return const SizedBox.shrink();
   }
 
@@ -482,6 +565,51 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
           fontSize: 13,
           fontWeight: FontWeight.w600,
           color: AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddCustomTuningButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.pagePadding,
+        Spacing.space24,
+        Spacing.pagePadding,
+        Spacing.space16,
+      ),
+      child: GestureDetector(
+        onTap: _handleAddCustomTuning,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.space16,
+            vertical: Spacing.space16,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            border: Border.all(
+              color: AppColors.accent.withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_rounded, color: AppColors.accent, size: 22),
+              const SizedBox(width: Spacing.space8),
+              Text(
+                'Add Custom Tuning',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.accent,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

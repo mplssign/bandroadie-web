@@ -18,7 +18,6 @@ import '../home/widgets/animated_bottom_nav_bar.dart';
 import '../home/widgets/band_switcher.dart';
 import '../home/widgets/side_drawer.dart';
 import '../members/members_tab_content.dart';
-import '../notifications/widgets/notification_pre_permission_modal.dart';
 import '../profile/my_profile_screen.dart';
 import '../profile/profile_screen.dart';
 import '../rehearsals/rehearsal_controller.dart';
@@ -53,28 +52,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  bool _hasShownPermissionPrompt = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Show notification permission pre-prompt after frame is built
-    // This ensures the app is fully loaded before showing the modal
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showPermissionPromptIfNeeded();
-    });
-  }
-
-  Future<void> _showPermissionPromptIfNeeded() async {
-    // Only show once per app session
-    if (_hasShownPermissionPrompt || !mounted) return;
-
-    _hasShownPermissionPrompt = true;
-
-    // Show the custom pre-permission modal if appropriate
-    // (It checks internally if it should show based on state)
-    await NotificationPrePermissionModal.showIfNeeded(context, ref);
-  }
+  // Note: Notification registration is handled in iOS AppDelegate.swift
+  // to properly register with APNs and appear in iOS Settings
 
   @override
   Widget build(BuildContext context) {

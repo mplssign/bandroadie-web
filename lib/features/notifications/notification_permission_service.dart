@@ -15,7 +15,6 @@ import 'web_notification_permission.dart';
 // ============================================================================
 
 /// Keys for persistent local state
-const String _kNotificationsPromptDismissed = 'notifications_prompt_dismissed';
 const String _kNotificationsEnabledInApp = 'notifications_enabled_in_app';
 
 /// Cross-platform notification permission status
@@ -70,13 +69,9 @@ class NotificationPermissionState {
   /// Whether notifications should be delivered
   /// Must be true for both app intent AND system permission
   bool get shouldDeliverNotifications =>
-      enabledInApp && systemPermission == NotificationPermissionStatus.granted;
-
-  /// Whether to show the custom pre-prompt modal
-  /// Only show if not dismissed AND system permission is not determined
-  bool get shouldShowPrePrompt =>
-      !promptDismissed &&
-      systemPermission == NotificationPermissionStatus.notDetermined;
+      enabledInApp &&
+      (systemPermission == NotificationPermissionStatus.granted ||
+          systemPermission == NotificationPermissionStatus.notApplicable);
 }
 
 /// Provider for notification permission service
@@ -97,7 +92,7 @@ class NotificationPermissionService
     _initialize();
 
     return const NotificationPermissionState(
-      promptDismissed: false,
+      promptDismissed: false, // No longer used, kept for state compatibility
       enabledInApp: true, // Default to true (user intent starts positive)
       systemPermission: NotificationPermissionStatus.notDetermined,
     );
@@ -108,22 +103,19 @@ class NotificationPermissionService
     final prefs = await SharedPreferences.getInstance();
 
     // Load persisted local state
-    final promptDismissed =
-        prefs.getBool(_kNotificationsPromptDismissed) ?? false;
     final enabledInApp = prefs.getBool(_kNotificationsEnabledInApp) ?? true;
 
     // Check system permission (platform-specific)
     final systemPermission = await _getSystemPermissionStatus();
 
     state = NotificationPermissionState(
-      promptDismissed: promptDismissed,
+      promptDismissed: false, // No longer used
       enabledInApp: enabledInApp,
       systemPermission: systemPermission,
     );
 
     debugPrint(
       '[NotificationPermissionService] Initialized: '
-      'promptDismissed=$promptDismissed, '
       'enabledInApp=$enabledInApp, '
       'systemPermission=$systemPermission',
     );
@@ -242,47 +234,6 @@ class NotificationPermissionService
   // --------------------------------------------------------------------------
   // USER ACTIONS
   // --------------------------------------------------------------------------
-
-  /// User dismissed the custom pre-prompt modal by tapping "Not now"
-  /// NEVER show the modal again automatically
-  Future<void> dismissPrePrompt() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kNotificationsPromptDismissed, true);
-    await prefs.setBool(_kNotificationsEnabledInApp, false);
-
-    state = state.copyWith(promptDismissed: true, enabledInApp: false);
-
-    debugPrint('[NotificationPermissionService] Pre-prompt dismissed by user');
-  }
-
-  /// User tapped "Enable notifications" in the custom pre-prompt
-  /// Show the iOS system permission dialog
-  Future<bool> requestPermissionFromPrePrompt() async {
-    // Mark pre-prompt as dismissed (never show again)
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kNotificationsPromptDismissed, true);
-
-    // Request iOS system permission
-    final granted = await _requestIOSPermission();
-
-    // Update app state based on result
-    await prefs.setBool(_kNotificationsEnabledInApp, granted);
-
-    final systemPermission = await _getSystemPermissionStatus();
-
-    state = state.copyWith(
-      promptDismissed: true,
-      enabledInApp: granted,
-      systemPermission: systemPermission,
-    );
-
-    debugPrint(
-      '[NotificationPermissionService] Permission requested from pre-prompt: '
-      'granted=$granted',
-    );
-
-    return granted;
-  }
 
   /// User toggled notifications OFF in settings
   /// Just update app state, DON'T trigger any permission requests
