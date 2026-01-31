@@ -1,7 +1,7 @@
-# Band Roadie - AI Coding Instructions
+# BandRoadie - AI Coding Instructions
 
 ## Project Overview
-Band Roadie is a cross-platform Flutter app (iOS, Android, macOS, Web) for band management—rehearsals, gigs, setlists, and member coordination. Backend is Supabase (PostgreSQL + Auth + Edge Functions).
+BandRoadie is a cross-platform Flutter app (iOS, Android, macOS, Web) for band management—rehearsals, gigs, setlists, and member coordination. Backend is Supabase (PostgreSQL + Auth + Edge Functions).
 
 ## Architecture
 

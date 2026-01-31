@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
+import 'notification_permission_service.dart';
 import 'notification_preferences_controller.dart';
+import 'widgets/notification_settings_modal.dart';
 
 // ============================================================================
 // NOTIFICATION SETTINGS SCREEN
-// Master toggle + 4 subcategory checkboxes for notification preferences
+// Apple-compliant notification permission flow with master toggle
+// Respects user intent and iOS permission reality at all times
 // ============================================================================
 
 class NotificationSettingsScreen extends ConsumerWidget {
@@ -16,6 +19,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefsAsync = ref.watch(notificationPreferencesProvider);
+    final permissionState = ref.watch(notificationPermissionProvider);
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
@@ -36,7 +40,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         ),
       ),
       body: prefsAsync.when(
-        data: (prefs) => _buildContent(context, ref, prefs),
+        data: (prefs) => _buildContent(context, ref, prefs, permissionState),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
           child: Text(
@@ -48,35 +52,82 @@ class NotificationSettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, dynamic prefs) {
-    final notificationsEnabled = prefs.notificationsEnabled as bool;
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic prefs,
+    NotificationPermissionState permissionState,
+  ) {
+    // App toggle represents USER INTENT
+    // Toggle can only be ON if system permission is granted
+    final appToggleEnabled =
+        permissionState.enabledInApp &&
+        (permissionState.systemPermission ==
+                NotificationPermissionStatus.granted ||
+            permissionState.systemPermission ==
+                NotificationPermissionStatus.notApplicable);
+
+    // Show warning banner if system permission is denied or permanently denied
+    final showPermissionDeniedBanner =
+        permissionState.systemPermission ==
+            NotificationPermissionStatus.denied ||
+        permissionState.systemPermission ==
+            NotificationPermissionStatus.permanentlyDenied;
 
     return ListView(
       padding: const EdgeInsets.all(Spacing.pagePadding),
       children: [
-        // Master toggle
+        // Warning banner (system permission denied)
+        if (showPermissionDeniedBanner) ...[
+          _buildPermissionDeniedBanner(context),
+          const SizedBox(height: Spacing.space16),
+        ],
+
+        // Master toggle (represents user intent + system reality)
         _MasterToggleCard(
-          enabled: notificationsEnabled,
+          enabled: appToggleEnabled,
           onChanged: (value) async {
-            try {
-              await ref
-                  .read(notificationPreferencesProvider.notifier)
-                  .updateNotificationsEnabled(value);
-            } catch (e) {
+            if (value) {
+              // User wants to ENABLE notifications
+              final service = ref.read(notificationPermissionProvider.notifier);
+              final result = await service.enableNotifications();
+
               if (context.mounted) {
-                showErrorSnackBar(
-                  context,
-                  message: 'Failed to update notification settings',
-                );
+                switch (result) {
+                  case NotificationToggleResult.enabled:
+                    // Success - refresh state
+                    await service.refreshSystemPermission();
+                    break;
+
+                  case NotificationToggleResult.denied:
+                    // User denied in iOS dialog - show feedback
+                    showErrorSnackBar(
+                      context,
+                      message: 'Notifications permission was denied',
+                    );
+                    break;
+
+                  case NotificationToggleResult.needsSystemSettings:
+                    // System permission denied - show "Open Settings" modal
+                    await NotificationSettingsModal.show(context);
+                    // Refresh state in case user enabled in Settings
+                    await service.refreshSystemPermission();
+                    break;
+                }
               }
+            } else {
+              // User wants to DISABLE notifications (simple)
+              final service = ref.read(notificationPermissionProvider.notifier);
+              await service.disableNotifications();
             }
           },
         ),
 
         const SizedBox(height: Spacing.space16),
 
-        // Subcategory section (only shown when notifications are enabled)
-        if (notificationsEnabled) ...[
+        // Subcategory section (only shown when app toggle is
+        // Subcategory section (only shown when app toggle is enabled)
+        if (appToggleEnabled) ...[
           Text(
             'Notify me when:',
             style: AppTextStyles.footnote.copyWith(
@@ -91,7 +142,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             label: 'Gigs',
             description: 'Someone schedules a confirmed gig',
             value: prefs.gigsEnabled as bool,
-            onChanged: notificationsEnabled
+            onChanged: appToggleEnabled
                 ? (value) async {
                     try {
                       await ref
@@ -112,7 +163,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             label: 'Potential Gigs',
             description: 'Someone creates a potential gig',
             value: prefs.potentialGigsEnabled as bool,
-            onChanged: notificationsEnabled
+            onChanged: appToggleEnabled
                 ? (value) async {
                     try {
                       await ref
@@ -133,7 +184,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             label: 'Rehearsals',
             description: 'Someone schedules a rehearsal',
             value: prefs.rehearsalsEnabled as bool,
-            onChanged: notificationsEnabled
+            onChanged: appToggleEnabled
                 ? (value) async {
                     try {
                       await ref
@@ -154,7 +205,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             label: 'Block-out Dates',
             description: 'Someone marks themselves unavailable',
             value: prefs.blockoutsEnabled as bool,
-            onChanged: notificationsEnabled
+            onChanged: appToggleEnabled
                 ? (value) async {
                     try {
                       await ref
@@ -170,6 +221,45 @@ class NotificationSettingsScreen extends ConsumerWidget {
           ),
         ],
       ],
+    );
+  }
+
+  /// Warning banner when system permission is denied
+  Widget _buildPermissionDeniedBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(Spacing.space16),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: AppColors.accent, size: 24),
+          const SizedBox(width: Spacing.space12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Notifications Disabled',
+                  style: AppTextStyles.calloutEmphasized.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'BandRoadie doesn\'t have permission to send notifications. '
+                  'Enable the toggle below to fix this.',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -219,7 +309,7 @@ class _MasterToggleCard extends StatelessWidget {
           Switch(
             value: enabled,
             onChanged: onChanged,
-            activeColor: AppColors.accent,
+            activeTrackColor: AppColors.accent,
           ),
         ],
       ),
