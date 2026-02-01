@@ -1,15 +1,15 @@
 {
+  "routes": [
+    {
+      "src": "/app/(.*)",
+      "dest": "/app/index.html"
+    }
+  ],
   "redirects": [
     {
       "source": "/app/app",
       "destination": "/app",
       "permanent": true
-    }
-  ],
-  "routes": [
-    {
-      "src": "/app/(.*)",
-      "dest": "/app/index.html"
     }
   ]
 }
