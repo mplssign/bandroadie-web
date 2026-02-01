@@ -1,22 +1,19 @@
 {
-  "outputDirectory": "build/web",
-  "buildCommand": null,
-  "framework": null,
   "routes": [
     {
-      "src": "/privacy",
-      "dest": "/privacy.html"
+      "src": "/app",
+      "dest": "/app/index.html"
     },
     {
-      "src": "/support",
-      "dest": "/support.html"
+      "src": "/app/(.*)",
+      "dest": "/app/$1"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/$1"
     }
   ]
 }
