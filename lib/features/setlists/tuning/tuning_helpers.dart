@@ -1,14 +1,46 @@
 import 'package:flutter/material.dart';
 
+import '../services/custom_tuning_service.dart';
+
 // ============================================================================
 // TUNING HELPERS
 // Centralized tuning utilities for short labels and badge colors.
 //
 // USAGE:
 // - tuningShortLabel(option) → badge-friendly label
+// - tuningShortLabelAsync(option) → badge-friendly label with custom tuning lookup
 // - tuningBadgeColor(tuningName) → Color for badge fill
 // - tuningBadgeTextColor(Color) → readable text color for badge
 // ============================================================================
+
+// Cache for custom tuning names to avoid repeated async lookups
+final Map<String, String> _customTuningNameCache = {};
+
+/// Initialize/refresh the custom tuning name cache
+/// Call this when the app starts or when custom tunings change
+Future<void> refreshCustomTuningCache() async {
+  final service = CustomTuningService();
+  final tunings = await service.getCustomTunings();
+  _customTuningNameCache.clear();
+  for (final tuning in tunings) {
+    _customTuningNameCache[tuning.id] = tuning.name;
+  }
+}
+
+/// Get the cached custom tuning name, or null if not in cache
+String? getCachedCustomTuningName(String id) {
+  return _customTuningNameCache[id];
+}
+
+/// Update cache with a single tuning (call after creating a new custom tuning)
+void cacheCustomTuningName(String id, String name) {
+  _customTuningNameCache[id] = name;
+}
+
+/// Remove a tuning from cache (call after deleting a custom tuning)
+void removeCachedCustomTuning(String id) {
+  _customTuningNameCache.remove(id);
+}
 
 // =============================================================================
 // SHORT LABEL MAPPING
@@ -17,7 +49,10 @@ import 'package:flutter/material.dart';
 
 /// Get a short label for display on badges (3-12 chars ideal)
 /// Falls back to input if no mapping found
-String tuningShortLabel(String? tuningName) {
+///
+/// For custom tunings, pass the custom name via [customName] parameter,
+/// or it will look up from cache. Falls back to 'Custom' if not found.
+String tuningShortLabel(String? tuningName, {String? customName}) {
   if (tuningName == null || tuningName.isEmpty) return 'Standard';
 
   // Normalize for lookup: trim whitespace
@@ -25,9 +60,12 @@ String tuningShortLabel(String? tuningName) {
 
   // Check if it's a custom tuning ID (format: custom_<timestamp>)
   if (normalized.startsWith('custom_')) {
-    // For custom tuning IDs, return 'Custom' as a fallback
-    // The caller should look up the actual name from CustomTuningService
-    return 'Custom';
+    // Use provided custom name, or look up from cache
+    if (customName != null && customName.isNotEmpty) {
+      return customName;
+    }
+    final cachedName = _customTuningNameCache[normalized];
+    return cachedName ?? 'Custom';
   }
 
   // Short label mapping

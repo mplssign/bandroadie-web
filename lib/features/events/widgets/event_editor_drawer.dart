@@ -2336,6 +2336,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     String? error,
     int maxLines = 1,
   }) {
+    // For multiline fields, use newline action; for single line, use done
+    final isMultiline = maxLines > 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2349,8 +2352,19 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         TextField(
           controller: controller,
           enabled: !_isSaving,
-          maxLines: maxLines,
-          textInputAction: TextInputAction.done,
+          maxLines: isMultiline
+              ? null
+              : maxLines, // null allows unlimited lines
+          minLines: isMultiline ? maxLines : null, // minimum visible lines
+          keyboardType: isMultiline
+              ? TextInputType.multiline
+              : TextInputType.text,
+          textInputAction: isMultiline
+              ? TextInputAction.newline
+              : TextInputAction.done,
+          textCapitalization: isMultiline
+              ? TextCapitalization.sentences
+              : TextCapitalization.none,
           style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
           // Trigger rebuild on text change so _hasChanges is re-evaluated
           // and the Update button enables/disables appropriately.

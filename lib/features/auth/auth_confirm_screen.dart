@@ -165,7 +165,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         }
         await Future.delayed(const Duration(milliseconds: 500));
         attempts++;
-        debugPrint('   Attempt ${attempts}/$maxAttempts...');
+        debugPrint('   Attempt $attempts/$maxAttempts...');
       }
 
       if (attempts >= maxAttempts) {

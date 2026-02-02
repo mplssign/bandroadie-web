@@ -105,21 +105,53 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
       return 'Please enter 6 guitar strings';
     }
 
-    // Normalize: remove extra spaces, convert to uppercase
-    final normalized = input.trim().toUpperCase().replaceAll(
-      RegExp(r'\s+'),
-      ' ',
-    );
+    // Parse notes from input - handles multiple formats:
+    // - Space-separated: "E A D G B E"
+    // - Comma-separated: "E,A,D,G,B,E"
+    // - No separator (if all single letters): "EADGBE"
+    // - No separator with sharps/flats: "Eb Ab Db Gb Bb Eb" or "EbAbDbGbBbEb"
+    final normalized = input.trim().toUpperCase();
 
-    // Split into individual notes
-    final notes = normalized.split(' ');
+    List<String> notes;
+
+    // First, try splitting by common separators
+    if (normalized.contains(' ') ||
+        normalized.contains(',') ||
+        normalized.contains('-')) {
+      // Split by any of these separators
+      notes = normalized
+          .split(RegExp(r'[\s,\-]+'))
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else {
+      // No separators - try to parse as concatenated notes
+      // For concatenated input like "EADGBE" or "EbAbDbGbBbEb"
+      // We need to be careful: B is both a note AND used for flat (lowercase b)
+      // Strategy: First check if length is 6 (all single notes), otherwise parse with modifiers
+
+      if (normalized.length == 6) {
+        // Exactly 6 characters - treat each as a single note
+        notes = normalized.split('');
+      } else {
+        // Longer input - parse note + optional modifier (# or lowercase b for flat)
+        // Since we uppercase the input, we need to handle 'B' specially
+        // Use the original input's case to distinguish 'b' (flat) from 'B' (note)
+        final original = input.trim();
+        final notePattern = RegExp(r'[A-Ga-g][#b]?');
+        notes = notePattern
+            .allMatches(original)
+            .map((m) => m.group(0)!.toUpperCase())
+            .toList();
+      }
+    }
 
     if (notes.length != 6) {
       return 'Must be exactly 6 strings (found ${notes.length})';
     }
 
-    // Validate each note: must be A-G with optional # or b
-    final validNotePattern = RegExp(r'^[A-G][#b]?$');
+    // Validate each note: must be A-G with optional # or B (for flats like Bb, Db)
+    // After uppercase normalization, flats appear as B (e.g., "EB" for Eb)
+    final validNotePattern = RegExp(r'^[A-G][#B]?$');
     for (int i = 0; i < notes.length; i++) {
       if (!validNotePattern.hasMatch(notes[i])) {
         return 'String ${i + 1} ("${notes[i]}") is invalid. Use A-G with optional # or b';
@@ -166,11 +198,35 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
     setState(() => _isSaving = true);
 
     try {
-      // Normalize strings input
-      final normalized = _stringsController.text
-          .trim()
-          .toUpperCase()
-          .replaceAll(RegExp(r'\s+'), ' ');
+      // Parse and normalize strings input using same logic as validation
+      final input = _stringsController.text.trim();
+      final upperInput = input.toUpperCase();
+      List<String> notes;
+
+      if (upperInput.contains(' ') ||
+          upperInput.contains(',') ||
+          upperInput.contains('-')) {
+        notes = upperInput
+            .split(RegExp(r'[\s,\-]+'))
+            .where((s) => s.isNotEmpty)
+            .toList();
+      } else {
+        // No separators
+        if (upperInput.length == 6) {
+          // Exactly 6 chars - treat each as a single note
+          notes = upperInput.split('');
+        } else {
+          // Parse with modifiers - use original case to detect flats
+          final notePattern = RegExp(r'[A-Ga-g][#b]?');
+          notes = notePattern
+              .allMatches(input)
+              .map((m) => m.group(0)!.toUpperCase())
+              .toList();
+        }
+      }
+
+      // Format as space-separated uppercase notes
+      final normalized = notes.map((n) => n.toUpperCase()).join(' ');
 
       // Save to service
       final service = CustomTuningService();

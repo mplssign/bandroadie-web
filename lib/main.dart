@@ -14,6 +14,7 @@ import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
 import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
+import 'features/setlists/tuning/tuning_helpers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +63,10 @@ Future<void> main() async {
   // Initialize deep link service for magic link handling in all app states
   // This must be after Supabase.initialize() but before runApp()
   await DeepLinkService.instance.initialize();
+
+  // Initialize custom tuning cache for displaying custom tuning names on badges
+  // This runs async in the background, doesn't block app startup
+  refreshCustomTuningCache();
 
   // Create provider container and set it on DeepLinkService
   // This allows DeepLinkService to notify the auth provider of session changes

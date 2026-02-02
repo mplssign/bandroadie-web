@@ -410,23 +410,31 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         );
         Navigator.of(context).pop();
       }
-    } on PostgrestException catch (e) {
+    } on PostgrestException catch (e, stack) {
       debugPrint('[CreateBand] PostgrestException: ${e.code} - ${e.message}');
+      debugPrint('[CreateBand] Details: ${e.details}');
+      debugPrint('[CreateBand] Hint: ${e.hint}');
+      debugPrint('[CreateBand] Stack: $stack');
       setState(() => _isSubmitting = false);
       if (mounted) {
         _showErrorSnackBar(_mapPostgrestError(e));
       }
-    } on StorageException catch (e) {
+    } on StorageException catch (e, stack) {
       debugPrint('[CreateBand] StorageException: ${e.message}');
+      debugPrint('[CreateBand] Stack: $stack');
       setState(() => _isSubmitting = false);
       if (mounted) {
         _showErrorSnackBar('Image upload failed: ${e.message}');
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[CreateBand] Error: $e');
+      debugPrint('[CreateBand] Error type: ${e.runtimeType}');
+      debugPrint('[CreateBand] Stack: $stack');
       setState(() => _isSubmitting = false);
       if (mounted) {
-        _showErrorSnackBar('Failed to create band');
+        _showErrorSnackBar(
+          'Failed to create band: ${e.toString().length > 50 ? e.toString().substring(0, 50) : e.toString()}',
+        );
       }
     }
   }

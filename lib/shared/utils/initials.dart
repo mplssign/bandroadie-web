@@ -11,8 +11,8 @@ import 'package:flutter/foundation.dart';
 /// Rules:
 /// - Trim whitespace, collapse multiple spaces
 /// - Split by spaces and hyphens
-/// - If multiple words: take first letter of each word
-/// - If 1 word: take all characters (up to maxLetters if specified)
+/// - If multiple words: take first letter of each word (up to maxLetters)
+/// - If 1 word: take only the first letter
 /// - Result is uppercased
 ///
 /// [name] The name to generate initials from
@@ -55,10 +55,9 @@ String bandInitials(
       result = result.substring(0, maxLetters);
     }
   } else {
-    // 1 word: take first [maxLetters] chars
+    // 1 word: take only the first letter (like initials should work)
     final word = words[0];
-    final charCount = word.length.clamp(0, maxLetters);
-    result = word.substring(0, charCount);
+    result = word.isNotEmpty ? word[0] : '';
   }
 
   final uppercased = result.toUpperCase();
