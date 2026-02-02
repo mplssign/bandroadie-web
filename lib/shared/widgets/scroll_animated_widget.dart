@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 /// Widget that animates into view when scrolled into viewport
 class ScrollAnimatedWidget extends StatefulWidget {

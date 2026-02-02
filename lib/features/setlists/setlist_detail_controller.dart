@@ -981,6 +981,67 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
+  /// Updates a song's YouTube links globally.
+  ///
+  /// Uses optimistic update pattern:
+  /// 1. Store original state
+  /// 2. Apply change immediately (UI feels instant)
+  /// 3. Persist to database
+  /// 4. On failure: revert to original and show error
+  Future<bool> updateSongYoutubeLinks(
+    String songId,
+    String? youtubeLinksJson,
+  ) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    debugPrint(
+      '[SetlistDetail] updateSongYoutubeLinks: songId=$songId, links=${youtubeLinksJson != null ? youtubeLinksJson.substring(0, youtubeLinksJson.length > 30 ? 30 : youtubeLinksJson.length) : 'null'}...',
+    );
+
+    // Store original state for rollback
+    final originalSongs = List<SetlistSong>.from(state.songs);
+
+    // Optimistic update - apply immediately so UI feels instant
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(
+          youtubeLinks: youtubeLinksJson,
+          clearYoutubeLinks:
+              youtubeLinksJson == null || youtubeLinksJson.isEmpty,
+        );
+      }
+      return song;
+    }).toList();
+    state = state.copyWith(songs: updatedSongs, clearError: true);
+
+    try {
+      await _repository.updateSongYoutubeLinks(
+        bandId: bandId,
+        songId: songId,
+        youtubeLinks: youtubeLinksJson,
+      );
+      debugPrint(
+        '[SetlistDetail] Successfully updated YouTube links for song $songId',
+      );
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('[SetlistDetail] Error updating YouTube links: $e');
+      debugPrint('[SetlistDetail] Stack trace: $stack');
+
+      // Revert optimistic update
+      state = state.copyWith(
+        songs: originalSongs,
+        error: 'Couldn\'t save YouTube links. Try again.',
+      );
+      return false;
+    }
+  }
+
   /// Updates a song's title and/or artist globally.
   ///
   /// Uses optimistic update pattern.

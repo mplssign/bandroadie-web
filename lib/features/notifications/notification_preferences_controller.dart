@@ -40,7 +40,7 @@ class NotificationPreferencesController
 
     try {
       await _repository.updatePreferences(updated);
-    } catch (e, st) {
+    } catch (e) {
       // Rollback on error
       state = AsyncValue.data(current);
       rethrow;
@@ -56,7 +56,7 @@ class NotificationPreferencesController
 
     try {
       await _repository.updatePreferences(updated);
-    } catch (e, st) {
+    } catch (e) {
       // Rollback on error
       state = AsyncValue.data(current);
       rethrow;
@@ -72,7 +72,7 @@ class NotificationPreferencesController
 
     try {
       await _repository.updatePreferences(updated);
-    } catch (e, st) {
+    } catch (e) {
       // Rollback on error
       state = AsyncValue.data(current);
       rethrow;
@@ -88,7 +88,7 @@ class NotificationPreferencesController
 
     try {
       await _repository.updatePreferences(updated);
-    } catch (e, st) {
+    } catch (e) {
       // Rollback on error
       state = AsyncValue.data(current);
       rethrow;
@@ -104,7 +104,7 @@ class NotificationPreferencesController
 
     try {
       await _repository.updatePreferences(updated);
-    } catch (e, st) {
+    } catch (e) {
       // Rollback on error
       state = AsyncValue.data(current);
       rethrow;

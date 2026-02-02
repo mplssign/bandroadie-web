@@ -553,7 +553,8 @@ class SetlistRepository {
               duration_seconds,
               tuning,
               album_artwork,
-              notes
+              notes,
+              youtube_links
             )
           ''')
           .eq('setlist_id', setlistId)
@@ -1780,6 +1781,97 @@ class SetlistRepository {
       rethrow;
     } catch (e) {
       debugPrint('[SetlistRepository] ❌ Error updating notes: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates a song's YouTube links (stored on the songs table - global).
+  ///
+  /// The [youtubeLinks] parameter should be a JSON string of the links array.
+  /// Uses RPC with SECURITY DEFINER to bypass RLS.
+  Future<void> updateSongYoutubeLinks({
+    required String bandId,
+    required String songId,
+    required String? youtubeLinks,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSongYoutubeLinks: songId=$songId, youtubeLinks=${youtubeLinks != null ? youtubeLinks.substring(0, youtubeLinks.length > 50 ? 50 : youtubeLinks.length) : 'null'}...',
+      );
+    }
+
+    try {
+      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Must pass ALL 9 parameters to avoid PGRST203 function overload ambiguity
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': youtubeLinks,
+        },
+      );
+
+      // Check RPC result
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        debugPrint('[SetlistRepository] RPC returned error: $error');
+        throw Exception(error);
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Updated YouTube links for song $songId (via RPC)',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 084_add_youtube_links_column.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
+      // RPC may not exist - fall back to direct update
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
+        );
+        await supabase
+            .from('songs')
+            .update({'youtube_links': youtubeLinks})
+            .eq('id', songId);
+        debugPrint(
+          '[SetlistRepository] ✓ Updated YouTube links for song $songId (direct)',
+        );
+        return;
+      }
+      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
+      rethrow;
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error updating YouTube links: $e');
       rethrow;
     }
   }

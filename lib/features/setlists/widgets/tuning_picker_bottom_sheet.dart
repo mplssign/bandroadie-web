@@ -347,12 +347,64 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     final customTuning = await showCustomTuningModal(context);
 
     if (customTuning != null) {
+      // Update the cache with the new tuning name
+      cacheCustomTuningName(customTuning.id, customTuning.name);
+
       // Reload custom tunings to include the new one
       await _loadCustomTunings();
 
       // Auto-select the newly created tuning
       HapticFeedback.selectionClick();
       Navigator.of(context).pop(customTuning.id);
+    }
+  }
+
+  Future<void> _handleDeleteCustomTuning(TuningOption option) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+        ),
+        title: Text(
+          'Delete Custom Tuning?',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${option.name}"? This cannot be undone.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      HapticFeedback.mediumImpact();
+
+      // Delete from service
+      final service = CustomTuningService();
+      await service.deleteCustomTuning(option.id);
+
+      // Remove from cache
+      removeCachedCustomTuning(option.id);
+
+      // Reload custom tunings
+      await _loadCustomTunings();
     }
   }
 
@@ -537,6 +589,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
             option: option,
             isSelected: _isSelected(option),
             onTap: () => _selectTuning(option),
+            onDelete: () => _handleDeleteCustomTuning(option),
           );
         }
         currentIndex++;
@@ -624,11 +677,13 @@ class _TuningOptionRow extends StatefulWidget {
   final TuningOption option;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onDelete; // Optional delete callback for custom tunings
 
   const _TuningOptionRow({
     required this.option,
     required this.isSelected,
     required this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -761,6 +816,28 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                     Icons.check_rounded,
                     color: AppColors.accent,
                     size: 20,
+                  ),
+                ),
+
+              // Delete button for custom tunings
+              if (widget.onDelete != null)
+                GestureDetector(
+                  onTap: widget.onDelete,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: Spacing.space8),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.red.shade400,
+                        size: 18,
+                      ),
+                    ),
                   ),
                 ),
             ],

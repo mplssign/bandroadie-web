@@ -659,6 +659,18 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         );
         debugPrint('[SetlistDetail] Tuning save result: $success');
       }
+
+      // Update YouTube links if changed
+      if (result.youtubeLinksChanged && result.youtubeLinks != null) {
+        debugPrint('[SetlistDetail] Saving YouTube links...');
+        // Convert list to JSON string for storage
+        final jsonString = YouTubeLink.listToJson(result.youtubeLinks!);
+        final success = await notifier.updateSongYoutubeLinks(
+          song.id,
+          jsonString,
+        );
+        debugPrint('[SetlistDetail] YouTube links save result: $success');
+      }
     }
   }
 
