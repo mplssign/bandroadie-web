@@ -1,21 +1,4 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false,
-  "redirects": [
-    {
-      "source": "/app/app",
-      "destination": "/app",
-      "permanent": true
-    }
-  ],
-  "routes": [
-    {
-      "src": "^/app/(.*)",
-      "dest": "/app/$1"
-    },
-    {
-      "src": "^/app/?$",
-      "dest": "/app/index.html"
-    }
-  ]
+  "trailingSlash": false
 }
