@@ -95,6 +95,22 @@
   </div>
 
   <script>
+    // CRITICAL: Capture URL fragment BEFORE Flutter processes it
+    // Supabase magic links put access_token in fragment: /auth/confirm?next=/#access_token=...
+    // This must run immediately, before any async code
+    (function () {
+      var fragment = window.location.hash;
+      if (fragment && fragment.indexOf('access_token=') !== -1) {
+        // Remove the leading # if present
+        var cleanFragment = fragment.startsWith('#') ? fragment.substring(1) : fragment;
+        // Store in sessionStorage for Flutter to retrieve
+        sessionStorage.setItem('supabase_auth_fragment', cleanFragment);
+        console.log('[Auth] Captured auth fragment, length:', cleanFragment.length);
+      }
+    })();
+  </script>
+
+  <script>
     // Remove loading screen when Flutter is ready
     window.addEventListener('flutter-first-frame', function () {
       var loading = document.getElementById('loading');

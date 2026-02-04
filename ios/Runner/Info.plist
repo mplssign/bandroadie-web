@@ -79,6 +79,13 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 
+	<!-- Background Modes for Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
 	<!-- Camera & Photo Library Permissions -->
 	<key>NSCameraUsageDescription</key>
 	<string>BandRoadie needs camera access to take photos for your band profile and gig memories.</string>

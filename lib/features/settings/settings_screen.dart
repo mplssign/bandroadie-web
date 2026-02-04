@@ -23,7 +23,6 @@ class _SettingsTokens {
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFF94A3B8); // slate-400
   static const Color destructive = Color(0xFFEF4444); // red-500
-  static const Color destructiveBg = Color(0xFF7F1D1D); // red-900
 }
 
 /// Settings item model for extensibility

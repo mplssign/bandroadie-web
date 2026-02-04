@@ -136,15 +136,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   // Per-date member availability for multi-date potential gigs (edit mode only).
   // Maps gigDateId (or 'primary' for main date) -> (userId -> response)
   Map<String, Map<String, String?>> _perDateAvailability = {};
-  Map<String, String?> _initialPerDateUserResponses =
-      {}; // Track initial per-date responses for current user
   bool _isLoadingPerDateAvailability = false;
 
   // Current user's RSVP response for this potential gig (edit mode only)
   String? _currentUserResponse; // 'yes', 'no', or null
-  String? _initialUserResponse; // Track initial value for change detection
   bool _isLoadingUserResponse = false;
-  bool _isSubmittingUserResponse = false;
 
   // Setlist state
   String? _selectedSetlistId;
@@ -180,6 +176,16 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   // Initial state tracking for edit mode (to detect changes)
   EventFormData? _initialFormData;
+
+  // Simple dirty flag - set to true when user modifies any field in edit mode
+  bool _isDirty = false;
+
+  /// Mark form as dirty (user made a change)
+  void _markDirty() {
+    if (widget.mode == EventEditorMode.edit && !_isDirty) {
+      setState(() => _isDirty = true);
+    }
+  }
 
   @override
   void initState() {
@@ -297,6 +303,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _notesHintController.initialize(
       hasInitialValue: isEdit && _notesController.text.isNotEmpty,
     );
+
+    // Add text controller listeners to track changes
+    _locationController.addListener(_markDirty);
+    _nameController.addListener(_markDirty);
+    _notesController.addListener(_markDirty);
+    _gigPayController.addListener(_markDirty);
   }
 
   @override
@@ -378,7 +390,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (mounted) {
         setState(() {
           _currentUserResponse = response;
-          _initialUserResponse = response; // Track for change detection
           _isLoadingUserResponse = false;
         });
       }
@@ -476,6 +487,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   /// Submit the current user's RSVP response
+  // ignore: unused_element
   Future<void> _submitUserResponse(String response) async {
     debugPrint(
       '[EventEditorDrawer] _submitUserResponse called with: $response',
@@ -497,7 +509,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       return;
     }
 
-    setState(() => _isSubmittingUserResponse = true);
     debugPrint('[EventEditorDrawer] Starting submission...');
 
     // Haptic feedback
@@ -518,7 +529,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (mounted) {
         setState(() {
           _currentUserResponse = response;
-          _isSubmittingUserResponse = false;
         });
 
         // Refresh gig data to update counts
@@ -542,14 +552,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     } on GigResponseError catch (e) {
       debugPrint('[EventEditorDrawer] GigResponseError: ${e.message}');
       if (mounted) {
-        setState(() => _isSubmittingUserResponse = false);
         showErrorSnackBar(context, message: e.userMessage);
       }
     } catch (e, stackTrace) {
       debugPrint('[EventEditorDrawer] Error submitting response: $e');
       debugPrint('[EventEditorDrawer] Stack trace: $stackTrace');
       if (mounted) {
-        setState(() => _isSubmittingUserResponse = false);
         showErrorSnackBar(
           context,
           message: 'Something went wrong — try again in a moment.',
@@ -675,6 +683,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _selectedDays.add(currentDay);
       }
     });
+    _markDirty();
     if (value) {
       _recurringAnimController.forward();
     } else {
@@ -696,6 +705,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _additionalDates = [];
       }
     });
+    _markDirty();
   }
 
   void _toggleMultiDate(bool value) {
@@ -706,6 +716,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _additionalDates = [];
       }
     });
+    _markDirty();
   }
 
   void _addAdditionalDate() {
@@ -716,6 +727,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           : _selectedDate;
       _additionalDates.add(lastDate.add(const Duration(days: 7)));
     });
+    _markDirty();
   }
 
   void _removeAdditionalDate(int index) {
@@ -725,6 +737,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       // Also remove from existingGigDateIds if present
       _existingGigDateIds.remove(dateToRemove);
     });
+    _markDirty();
   }
 
   void _updateAdditionalDate(int index, DateTime newDate) {
@@ -739,6 +752,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         }
       }
     });
+    _markDirty();
   }
 
   EventFormData _buildFormData() {
@@ -779,74 +793,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
-  /// Check if form has changes from initial state (edit mode only)
-  bool get _hasChanges {
-    if (widget.mode != EventEditorMode.edit || _initialFormData == null) {
-      return true; // Always allow save in create mode
-    }
-    final current = _buildFormData();
-    final initial = _initialFormData!;
-
-    // Compare all fields including gig-specific ones
-    // For selectedMemberIds, compare as Sets with stable ordering
-    final memberIdsChanged = !_setsEqual(
-      current.selectedMemberIds,
-      initial.selectedMemberIds,
-    );
-
-    // Check if additional dates changed (for multi-date potential gigs)
-    final additionalDatesChanged = !_dateListsEqual(
-      current.additionalDates,
-      initial.additionalDates,
-    );
-
-    // Use normalized string comparison for text fields
-    return current.type != initial.type ||
-        current.date != initial.date ||
-        current.hour != initial.hour ||
-        current.minutes != initial.minutes ||
-        current.isPM != initial.isPM ||
-        current.duration != initial.duration ||
-        current.loadInHour != initial.loadInHour ||
-        current.loadInMinutes != initial.loadInMinutes ||
-        current.loadInIsPM != initial.loadInIsPM ||
-        !_stringsEqual(current.location, initial.location) ||
-        !_stringsEqual(current.notes, initial.notes) ||
-        !_stringsEqual(current.name, initial.name) ||
-        current.isRecurring != initial.isRecurring ||
-        current.isPotentialGig != initial.isPotentialGig ||
-        memberIdsChanged ||
-        additionalDatesChanged ||
-        current.setlistId != initial.setlistId ||
-        current.gigPayCents != initial.gigPayCents ||
-        _currentUserResponse != _initialUserResponse ||
-        _perDateUserResponsesChanged();
-  }
-
-  /// Check if per-date availability responses have changed for multi-date potential gigs
-  bool _perDateUserResponsesChanged() {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return false;
-    if (!_isMultiDate || !_isPotentialGig) return false;
-
-    // Build current user's per-date responses
-    final currentResponses = <String, String?>{};
-    for (final entry in _perDateAvailability.entries) {
-      currentResponses[entry.key] = entry.value[userId];
-    }
-
-    // Compare with initial
-    if (currentResponses.length != _initialPerDateUserResponses.length) {
-      return true;
-    }
-    for (final entry in currentResponses.entries) {
-      if (_initialPerDateUserResponses[entry.key] != entry.value) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// Check if required fields are filled for gigs in create mode.
   /// For gigs: name and location are required.
   /// For rehearsals: no required text fields.
@@ -858,41 +804,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
     // Rehearsals have no required text fields
     return true;
-  }
-
-  /// Helper to compare two Sets for equality
-  bool _setsEqual<T>(Set<T> a, Set<T> b) {
-    if (a.length != b.length) return false;
-    return a.containsAll(b) && b.containsAll(a);
-  }
-
-  /// Helper to compare two lists of DateTime for equality
-  bool _dateListsEqual(List<DateTime> a, List<DateTime> b) {
-    if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      // Compare by date only (year, month, day)
-      if (a[i].year != b[i].year ||
-          a[i].month != b[i].month ||
-          a[i].day != b[i].day) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /// Helper to compare strings with normalization.
-  /// Treats null and empty string as equivalent.
-  /// Trims whitespace and collapses repeated spaces.
-  bool _stringsEqual(String? a, String? b) {
-    final normalizedA = _normalizeString(a);
-    final normalizedB = _normalizeString(b);
-    return normalizedA == normalizedB;
-  }
-
-  /// Normalize a string: trim, collapse whitespace, treat null as empty.
-  String _normalizeString(String? s) {
-    if (s == null) return '';
-    return s.trim().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   /// Convert duration in minutes to the closest EventDuration enum value.
@@ -1066,10 +977,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             formData: formData,
           );
 
-          // Save user availability response if it changed (potential gigs only)
-          if (_isPotentialGig &&
-              _currentUserResponse != null &&
-              _currentUserResponse != _initialUserResponse) {
+          // Save user availability response if set (potential gigs only)
+          if (_isPotentialGig && _currentUserResponse != null) {
             final userId = supabase.auth.currentUser?.id;
             if (userId != null) {
               await ref
@@ -1945,6 +1854,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         // Update selected days for recurring
         _selectedDays = {Weekday.values[picked.weekday % 7]};
       });
+      _markDirty();
     }
   }
 
@@ -1966,7 +1876,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               child: _buildDropdown(
                 value: _selectedHour,
                 items: List.generate(12, (i) => i + 1),
-                onChanged: (v) => setState(() => _selectedHour = v!),
+                onChanged: (v) {
+                  setState(() => _selectedHour = v!);
+                  _markDirty();
+                },
                 labelBuilder: (v) => v.toString(),
               ),
             ),
@@ -1976,7 +1889,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               child: _buildDropdown(
                 value: _selectedMinutes,
                 items: [0, 15, 30, 45],
-                onChanged: (v) => setState(() => _selectedMinutes = v!),
+                onChanged: (v) {
+                  setState(() => _selectedMinutes = v!);
+                  _markDirty();
+                },
                 labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
               ),
             ),
@@ -2026,6 +1942,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       _loadInMinutes = 0;
                       _loadInIsPM = true;
                     });
+                    _markDirty();
                   },
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -2079,6 +1996,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         _loadInMinutes = null;
                         _loadInIsPM = null;
                       });
+                      _markDirty();
                     },
               child: Text(
                 'Clear',
@@ -2098,7 +2016,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               child: _buildDropdown(
                 value: _loadInHour!,
                 items: List.generate(12, (i) => i + 1),
-                onChanged: (v) => setState(() => _loadInHour = v!),
+                onChanged: (v) {
+                  setState(() => _loadInHour = v!);
+                  _markDirty();
+                },
                 labelBuilder: (v) => v.toString(),
               ),
             ),
@@ -2108,7 +2029,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               child: _buildDropdown(
                 value: _loadInMinutes!,
                 items: [0, 15, 30, 45],
-                onChanged: (v) => setState(() => _loadInMinutes = v!),
+                onChanged: (v) {
+                  setState(() => _loadInMinutes = v!);
+                  _markDirty();
+                },
                 labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
               ),
             ),
@@ -2142,6 +2066,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               setState(() {
                 _loadInIsPM = label == 'PM';
               });
+              _markDirty();
               HapticFeedback.selectionClick();
             },
       child: AnimatedContainer(
@@ -2204,6 +2129,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               setState(() {
                 _isPM = label == 'PM';
               });
+              _markDirty();
               HapticFeedback.selectionClick();
             },
       child: AnimatedContainer(
@@ -2252,6 +2178,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                           9999,
                         );
                       });
+                      _markDirty();
                     },
               child: Container(
                 width: 56,
@@ -2303,6 +2230,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       setState(() {
                         _durationMinutes += 15;
                       });
+                      _markDirty();
                     },
               child: Container(
                 width: 56,
@@ -3120,18 +3048,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           );
 
       if (mounted) {
-        // Extract current user's initial responses for change detection
-        final userId = supabase.auth.currentUser?.id;
-        final initialUserResponses = <String, String?>{};
-        if (userId != null) {
-          for (final entry in responses.entries) {
-            initialUserResponses[entry.key] = entry.value[userId];
-          }
-        }
-
         setState(() {
           _perDateAvailability = responses;
-          _initialPerDateUserResponses = initialUserResponses;
           _isLoadingPerDateAvailability = false;
         });
       }
@@ -3221,6 +3139,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                     isLoading: false,
                     onPressed: () {
                       setState(() => _currentUserResponse = 'no');
+                      _markDirty();
                       HapticFeedback.selectionClick();
                     },
                   ),
@@ -3238,6 +3157,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                     isLoading: false,
                     onPressed: () {
                       setState(() => _currentUserResponse = 'yes');
+                      _markDirty();
                       HapticFeedback.selectionClick();
                     },
                   ),
@@ -3477,6 +3397,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                           _selectedDays.add(day);
                         }
                       });
+                      _markDirty();
                       HapticFeedback.selectionClick();
                     },
               child: AnimatedContainer(
@@ -3527,6 +3448,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         setState(() {
                           _frequency = freq;
                         });
+                        _markDirty();
                         HapticFeedback.selectionClick();
                       },
                 child: AnimatedContainer(
@@ -3605,6 +3527,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       setState(() {
                         _untilDate = null;
                       });
+                      _markDirty();
                     },
                     child: const Icon(
                       Icons.close_rounded,
@@ -3728,14 +3651,19 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       setState(() {
         _untilDate = picked;
       });
+      _markDirty();
     }
   }
 
   /// Bottom action buttons - both equal width (50% each)
   Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
-    // In create mode, also check if required fields are filled
-    // In edit mode, disable the button until changes are made
-    final canSave = !_isSaving && !_isDeleting && _hasChanges && _isFormValid;
+    // In create mode, always allow save if form is valid
+    // In edit mode, enable button if user made any change (_isDirty)
+    final canSave =
+        !_isSaving &&
+        !_isDeleting &&
+        _isFormValid &&
+        (widget.mode == EventEditorMode.create || _isDirty);
 
     return Container(
       padding: EdgeInsets.only(
@@ -3940,6 +3868,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   _selectedSetlistName = name;
                 }
               });
+              _markDirty();
               HapticFeedback.selectionClick();
             },
       child: AnimatedContainer(

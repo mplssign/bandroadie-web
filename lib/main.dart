@@ -1,4 +1,7 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +15,7 @@ import 'app/theme/app_animations.dart';
 import 'app/theme/app_theme.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
+import 'features/auth/invite_screen.dart';
 import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
@@ -59,6 +63,19 @@ Future<void> main() async {
       detectSessionInUri: kIsWeb,
     ),
   );
+
+  // Initialize Firebase for push notifications (iOS and Android only)
+  // macOS and Web don't need Firebase for this app's notification flow
+  if (!kIsWeb) {
+    try {
+      if (Platform.isIOS || Platform.isAndroid) {
+        await Firebase.initializeApp();
+      }
+    } catch (e) {
+      // Silently ignore Firebase init errors on unsupported platforms
+      debugPrint('[Main] Firebase init skipped: $e');
+    }
+  }
 
   // Initialize deep link service for magic link handling in all app states
   // This must be after Supabase.initialize() but before runApp()
@@ -121,10 +138,13 @@ class BandRoadieApp extends StatelessWidget {
             settings: settings,
           );
         }
-        // Legacy /invite route - redirect to AuthGate
-        // Invites are now handled automatically when user logs in
+        // Invite route - handles band invitations with token
         if (uri.path == '/invite') {
-          return fadeSlideRoute(page: const AuthGate(), settings: settings);
+          final token = uri.queryParameters['token'];
+          return fadeSlideRoute(
+            page: InviteScreen(token: token),
+            settings: settings,
+          );
         }
         if (uri.path == '/auth/confirm') {
           final tokenHash = uri.queryParameters['token_hash'];

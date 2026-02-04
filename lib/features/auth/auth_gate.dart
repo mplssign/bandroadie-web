@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/services/auth_debug_logger.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../bands/active_band_controller.dart';
+import '../notifications/push_notification_service.dart';
 import '../profile/my_profile_screen.dart';
 import '../shell/app_shell.dart';
 import '../shell/no_band_shell.dart';
@@ -134,6 +136,10 @@ class _AuthGateState extends ConsumerState<AuthGate>
                 false; // Allow invite check for new session
           });
           _checkProfileComplete();
+          // Register FCM token for push notifications (native only)
+          if (!kIsWeb) {
+            _registerPushToken();
+          }
         } else {
           // Signed out - reset all state
           setState(() {
@@ -148,6 +154,44 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // If we have a session, check profile completeness
     if (authState.isAuthenticated) {
       _checkProfileComplete();
+      // Also register push token for existing sessions (native only)
+      if (!kIsWeb) {
+        _registerPushToken();
+      }
+    }
+  }
+
+  /// Register FCM token for push notifications
+  Future<void> _registerPushToken() async {
+    try {
+      debugPrint('[AuthGate] Starting push token registration...');
+      final service = ref.read(pushNotificationServiceProvider);
+      await service.initialize();
+      debugPrint('[AuthGate] Push service initialized');
+
+      // Check if permission already granted, if not request it
+      var hasPermission = await service.hasPermission();
+      debugPrint('[AuthGate] Has permission: $hasPermission');
+
+      if (!hasPermission) {
+        // Request permission if not already granted
+        hasPermission = await service.requestPermission();
+        debugPrint('[AuthGate] Permission requested, result: $hasPermission');
+      }
+
+      if (hasPermission) {
+        await service.registerToken();
+        debugPrint(
+          '[AuthGate] Push notification token registered successfully',
+        );
+      } else {
+        debugPrint(
+          '[AuthGate] Push permission denied - skipping token registration',
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('[AuthGate] Error registering push token: $e');
+      debugPrint('[AuthGate] Stack trace: $stack');
     }
   }
 
@@ -251,10 +295,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
         return;
       }
 
-      final data = response.data as Map<String, dynamic>?;
-      final acceptedCount = data?['accepted_count'] as int? ?? 0;
-      final bandNames = List<String>.from(data?['band_names'] ?? []);
-
+      // Response data available if needed: response.data
       // Don't show success message - user doesn't need notification
 
       if (mounted) {

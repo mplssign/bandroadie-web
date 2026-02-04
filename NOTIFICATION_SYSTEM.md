@@ -15,6 +15,88 @@ Lightweight, event-driven push notification system that informs band members of 
 
 ---
 
+## Implementation Status (Updated February 2026)
+
+### ✅ Fully Implemented
+- **iOS Push Notifications**: Working on iOS 15+ devices
+- **Android Push Notifications**: Configured, requires app update for users
+- **FCM HTTP v1 API**: Modern OAuth2-based authentication (replaced deprecated legacy API)
+- **Database Triggers**: Auto-create notifications on gig/rehearsal/blockout INSERT
+- **Webhook Integration**: Supabase webhook fires Edge Function on notification INSERT
+- **Device Token Management**: Register/unregister tokens on login/logout
+
+### Platform Requirements
+| Platform | Min Version | Update Required |
+|----------|-------------|-----------------|
+| iOS | iOS 15+ | Yes (for UIBackgroundModes) |
+| Android | API 21+ | Yes (for google-services.json) |
+| Web | N/A | Not yet implemented |
+| macOS | macOS 12+ | Not yet implemented |
+
+---
+
+## Firebase Configuration
+
+### Required Supabase Secrets
+
+Configure in **Supabase Dashboard → Edge Functions → Secrets**:
+
+| Secret Name | Value | Source |
+|-------------|-------|--------|
+| `FIREBASE_PROJECT_ID` | `bandroadie-65b18` | Firebase Console → Project Settings → General |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Entire JSON file contents | Firebase Console → Project Settings → Service Accounts → Generate New Private Key |
+
+### Firebase Console Setup
+
+1. **Project**: `bandroadie-65b18`
+2. **Apps Registered**:
+   - iOS: `com.bandroadie.app` (Bundle ID)
+   - Android: `com.bandroadie.app` (Package Name)
+
+### Platform-Specific Configuration
+
+#### iOS (`ios/Runner/Info.plist`)
+```xml
+<!-- Required for background push notifications -->
+<key>UIBackgroundModes</key>
+<array>
+    <string>fetch</string>
+    <string>remote-notification</string>
+</array>
+```
+
+#### iOS (`ios/Runner/AppDelegate.swift`)
+```swift
+// Register for remote notifications on launch
+UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+    if granted {
+        DispatchQueue.main.async {
+            UIApplication.shared.registerForRemoteNotifications()
+        }
+    }
+}
+```
+
+#### Android (`android/app/google-services.json`)
+- Download from Firebase Console → Project Settings → Android app
+- Place in `android/app/google-services.json`
+
+#### Android (`android/settings.gradle.kts`)
+```kotlin
+plugins {
+    id("com.google.gms.google-services") version "4.4.2" apply false
+}
+```
+
+#### Android (`android/app/build.gradle.kts`)
+```kotlin
+plugins {
+    id("com.google.gms.google-services") version "4.4.2"
+}
+```
+
+---
+
 ## Data Model
 
 ### 1. Notification Preferences (per user)
@@ -121,44 +203,72 @@ actor_user_id UUID (who triggered it)
 
 ## Backend Logic
 
-### Edge Function: `send-notification`
+### Edge Function: `send-push`
 
-**Location:** `supabase/functions/send-notification/index.ts`
+**Location:** `supabase/functions/send-push/index.ts`
 
-**Input (POST):**
-```json
-{
-  "bandId": "uuid",
-  "actorUserId": "uuid",
-  "notificationType": "gig_created",
-  "title": "Gig at Blue Note",
-  "body": "Tony created a gig for MAR 17, 2026",
-  "metadata": { "gig_id": "uuid", "gig_date": "2026-03-17" }
-}
-```
+**Trigger:** Database webhook fires on INSERT to `notifications` table
+
+**Authentication:** FCM HTTP v1 API with OAuth2 service account authentication
+- Generates JWT signed with service account private key (RS256)
+- Exchanges JWT for short-lived access token via Google OAuth2
+- Uses access token for FCM API calls
 
 **Process:**
-1. Fetch all band members (exclude actor)
-2. Check each member's `notification_preferences`:
-   - Skip if `notifications_enabled = false`
-   - Skip if category-specific toggle = false (e.g., `gigs_enabled = false`)
-3. Get FCM tokens for eligible members
-4. Create in-app notification records (always, regardless of push)
-5. Send FCM push notifications (multicast to all tokens)
+1. Receive webhook payload with notification record
+2. Fetch FCM tokens from `device_tokens` for recipient user
+3. Generate OAuth2 access token from service account key
+4. Send individual FCM requests to each device token
+5. Clean up invalid/unregistered tokens automatically
+6. Log success/failure counts
 
-**Output:**
+**FCM Payload Structure:**
 ```json
 {
-  "success": true,
-  "recipients": 4,  // eligible users
-  "sent": 3         // successful FCM sends
+  "message": {
+    "token": "device_fcm_token",
+    "notification": {
+      "title": "Gig at Blue Note",
+      "body": "Tony created a gig for MAR 17, 2026"
+    },
+    "data": {
+      "notification_id": "uuid",
+      "type": "gig_created",
+      "band_id": "uuid",
+      "click_action": "FLUTTER_NOTIFICATION_CLICK"
+    },
+    "apns": {
+      "payload": {
+        "aps": { "sound": "default", "badge": 1 }
+      }
+    },
+    "android": {
+      "priority": "high",
+      "notification": {
+        "sound": "default",
+        "click_action": "FLUTTER_NOTIFICATION_CLICK"
+      }
+    }
+  }
 }
 ```
 
 **Environment Variables:**
-- `FCM_SERVER_KEY` - Firebase Cloud Messaging server key
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+| Variable | Description |
+|----------|-------------|
+| `FIREBASE_PROJECT_ID` | Firebase project ID (e.g., `bandroadie-65b18`) |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Full JSON service account key (stringified) |
+| `SUPABASE_URL` | Auto-provided by Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Auto-provided by Supabase |
+
+### Database Webhook
+
+**Name:** `send_push_on_notification`
+- **Table:** `notifications`
+- **Event:** INSERT
+- **Method:** POST
+- **URL:** `https://nekwjxvgbveheooyorjo.supabase.co/functions/v1/send-push`
+- **Headers:** `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`
 
 ---
 
@@ -305,12 +415,19 @@ Run in order:
 ### Edge Function Deployment
 
 ```bash
-# Deploy the send-notification function
-supabase functions deploy send-notification
+# Deploy the send-push function
+npx supabase functions deploy send-push --project-ref nekwjxvgbveheooyorjo
 
-# Set environment variables
-supabase secrets set FCM_SERVER_KEY=your_fcm_server_key_here
+# Set Firebase credentials (in Supabase Dashboard → Edge Functions → Secrets)
+# FIREBASE_PROJECT_ID = bandroadie-65b18
+# FIREBASE_SERVICE_ACCOUNT_KEY = <entire JSON file from Firebase Console>
 ```
+
+**To get service account key:**
+1. Go to Firebase Console → Project Settings → Service Accounts
+2. Click "Generate New Private Key"
+3. Download JSON file
+4. Copy entire contents to `FIREBASE_SERVICE_ACCOUNT_KEY` secret
 
 ---
 
@@ -369,28 +486,75 @@ These can be added later without breaking existing functionality.
 
 ### Notifications not sending
 
-1. Check FCM_SERVER_KEY is set:
-   ```bash
-   supabase secrets list
-   ```
+1. **Check Firebase secrets are set:**
+   - Go to Supabase Dashboard → Edge Functions → Secrets
+   - Verify `FIREBASE_PROJECT_ID` and `FIREBASE_SERVICE_ACCOUNT_KEY` exist
 
-2. Verify Edge Function is deployed:
+2. **Check Edge Function logs:**
    ```bash
-   supabase functions list
+   npx supabase functions logs send-push --project-ref nekwjxvgbveheooyorjo
    ```
+   
+   Common errors:
+   - `Firebase not configured: missing FIREBASE_PROJECT_ID...` → Secrets not set
+   - `Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY` → Invalid JSON in secret
+   - `Failed to get access token` → Service account key is invalid or expired
+   - `UNREGISTERED` → Device token is stale (auto-cleaned)
 
-3. Check trigger fired:
+3. **Verify webhook is configured:**
+   - Go to Supabase Dashboard → Database → Webhooks
+   - Look for `send_push_on_notification` webhook on `notifications` table
+
+4. **Check notification was created:**
    ```sql
    SELECT * FROM notifications 
    WHERE created_at > now() - interval '1 hour'
    ORDER BY created_at DESC;
    ```
 
-4. Check user preferences:
+5. **Check device has registered token:**
    ```sql
-   SELECT * FROM notification_preferences 
-   WHERE user_id = 'uuid';
+   SELECT * FROM device_tokens 
+   WHERE user_id = 'recipient-user-id';
    ```
+
+### iOS notifications not appearing
+
+1. **Check Info.plist has UIBackgroundModes:**
+   ```xml
+   <key>UIBackgroundModes</key>
+   <array>
+       <string>fetch</string>
+       <string>remote-notification</string>
+   </array>
+   ```
+
+2. **Check iOS notification settings:**
+   - Settings → Notifications → BandRoadie
+   - Ensure "Allow Notifications" is ON
+   - Enable Banners, Lock Screen, Notification Center
+
+3. **Check Focus mode / Do Not Disturb** is not blocking notifications
+
+4. **Test with app closed** (not in foreground)
+
+### Android notifications not appearing
+
+1. **Verify google-services.json exists:**
+   - File: `android/app/google-services.json`
+   - Must match package name `com.bandroadie.app`
+
+2. **Verify Gradle plugin is applied:**
+   - `android/settings.gradle.kts` has `com.google.gms.google-services`
+   - `android/app/build.gradle.kts` applies the plugin
+
+3. **Rebuild app after adding google-services.json**
+
+### FCM Legacy API Error (404)
+
+If you see `Not Found` or `404` errors in logs:
+- The legacy FCM API (`fcm.googleapis.com/fcm/send`) was deprecated June 2024
+- Solution: Use FCM HTTP v1 API with OAuth2 authentication (current implementation)
 
 ### UI not loading preferences
 
@@ -413,26 +577,47 @@ These can be added later without breaking existing functionality.
 ```
 lib/features/notifications/
 ├── models/
-│   └── notification_preferences.dart     # Data model
-├── notification_repository.dart           # Supabase data access
+│   └── notification_preferences.dart       # Data model
+├── notification_repository.dart            # Supabase data access + device token management
 ├── notification_preferences_controller.dart  # Riverpod state
-├── notification_settings_screen.dart      # Settings UI
-└── push_notification_service.dart         # FCM integration (existing)
+├── notification_settings_screen.dart       # Settings UI
+└── push_notification_service.dart          # FCM integration + foreground notifications
+
+lib/features/auth/
+└── auth_gate.dart                          # Initializes push service + registers token on login
 
 lib/features/settings/
-└── settings_screen.dart                   # Added Notifications item
+└── settings_screen.dart                    # Links to notification settings
 ```
 
 ### Backend (Supabase)
 ```
 supabase/migrations/
-├── 20260109_notifications.sql             # Base tables (existing)
-├── 20260128_notification_categories.sql   # New preference columns
-└── 20260128_notification_triggers.sql     # Auto-send triggers
+├── 20260109_notifications.sql              # Base tables (existing)
+├── 20260128_notification_categories.sql    # New preference columns
+└── 20260128_notification_triggers.sql      # Auto-send triggers
 
 supabase/functions/
-└── send-notification/
-    └── index.ts                           # FCM delivery logic
+└── send-push/
+    └── index.ts                            # FCM HTTP v1 API delivery
+```
+
+### iOS Configuration
+```
+ios/Runner/
+├── Info.plist                              # UIBackgroundModes for remote-notification
+├── AppDelegate.swift                       # UNUserNotificationCenter registration
+└── GoogleService-Info.plist                # Firebase iOS config (from Firebase Console)
+```
+
+### Android Configuration
+```
+android/
+├── settings.gradle.kts                     # Google Services plugin declaration
+├── build.gradle.kts                        # Buildscript classpath
+└── app/
+    ├── build.gradle.kts                    # Google Services plugin applied
+    └── google-services.json                # Firebase Android config (from Firebase Console)
 ```
 
 ---
@@ -443,7 +628,33 @@ This notification system is:
 - **Lightweight**: Minimal code changes, no complex state management
 - **Flexible**: Easy to add new notification types
 - **Respectful**: Users control what they see via granular preferences
-- **Reliable**: Degrades gracefully (in-app notifications always work, push is best-effort)
-- **Non-blocking**: Failures don't break core app functionality
+- **Reliable**: Degrades gracefully (failures don't break core app functionality)
+- **Non-blocking**: Push delivery failures never gate writes
+
+### Architecture Flow
+```
+1. User creates gig/rehearsal/blockout
+        ↓
+2. Database trigger (notify_band_members) fires
+        ↓
+3. Notification record inserted into `notifications` table
+        ↓
+4. Webhook (send_push_on_notification) fires
+        ↓
+5. Edge Function (send-push) called
+        ↓
+6. OAuth2 token generated from service account
+        ↓
+7. FCM HTTP v1 API sends to each device token
+        ↓
+8. Push notification appears on user's device
+```
+
+### Key Technical Decisions
+1. **FCM HTTP v1 API** - Uses modern OAuth2 authentication instead of deprecated server keys
+2. **Individual sends** - Each device gets its own FCM request (no multicast) for better error handling
+3. **Auto-cleanup** - Invalid/unregistered tokens automatically deleted from `device_tokens`
+4. **Webhook-triggered** - Edge Function fires on database INSERT, not API call
+5. **Never blocks writes** - All triggers use `RETURN NEW` pattern
 
 The implementation follows Band Roadie's architecture patterns (Riverpod, Repository, Supabase RLS) and maintains the app's brand voice in notification copy.
