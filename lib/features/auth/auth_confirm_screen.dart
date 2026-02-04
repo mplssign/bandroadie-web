@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/utils/web_storage.dart';
 import 'auth_gate.dart';
 import 'auth_state_provider.dart';
 
@@ -27,7 +28,6 @@ class AuthConfirmScreen extends ConsumerStatefulWidget {
 class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   bool _loading = true;
   String? _error;
-  bool _isInAppBrowser = false;
 
   @override
   void initState() {
@@ -41,23 +41,114 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   void _detectInAppBrowser() {
     // Check user agent for common in-app browser patterns
     // Note: This is a best-effort detection
-    try {
-      // In Flutter web, we'd need to use dart:html, but for now
-      // we'll handle this in the error flow
-      _isInAppBrowser = false;
-    } catch (e) {
-      _isInAppBrowser = false;
+    // In Flutter web, we'd need to use dart:html, but for now
+    // we'll handle this in the error flow
+  }
+
+  /// Navigate to the main app after successful auth
+  void _navigateToHome() {
+    debugPrint('🚀 Navigating to app from fragment auth');
+    if (kIsWeb) {
+      Navigator.pushNamedAndRemoveUntil(context, '/app', (route) => false);
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false,
+      );
     }
   }
 
   Future<void> _handleConfirm() async {
     final tokenHash = widget.tokenHash;
     final code = widget.code;
-    final type = widget.type ?? 'email';
 
-    // Check if we have either a code (PKCE) or token_hash
+    // On web, Supabase magic links put access_token in the URL fragment (after #)
+    // The fragment is captured by JavaScript in index.html and stored in sessionStorage
+    if (kIsWeb) {
+      // First check if we already have a session
+      final existingSession = Supabase.instance.client.auth.currentSession;
+      if (existingSession != null) {
+        debugPrint('✅ Session already established');
+        debugPrint('   User: ${existingSession.user.email}');
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        _navigateToHome();
+        return;
+      }
+
+      // Try to get the auth fragment from sessionStorage (captured by JS in index.html)
+      final fragment = getSupabaseAuthFragment();
+      debugPrint(
+        '🔍 Retrieved auth fragment from sessionStorage: ${fragment != null ? "found (${fragment.length} chars)" : "null"}',
+      );
+
+      if (fragment != null && fragment.contains('access_token=')) {
+        debugPrint('📝 Found access_token in fragment, parsing...');
+        try {
+          // Parse fragment: access_token=...&refresh_token=...&expires_at=...
+          final params = Uri.splitQueryString(fragment);
+
+          final accessToken = params['access_token'];
+          final refreshToken = params['refresh_token'];
+
+          debugPrint(
+            '   access_token: ${accessToken != null ? "${accessToken.substring(0, 20)}..." : "null"}',
+          );
+          debugPrint('   refresh_token: ${refreshToken ?? "null"}');
+
+          if (accessToken != null && refreshToken != null) {
+            debugPrint('✅ Tokens found, setting session manually...');
+
+            // Clear the stored fragment since we're using it
+            clearSupabaseAuthFragment();
+
+            final response = await Supabase.instance.client.auth.setSession(
+              refreshToken,
+            );
+            if (response.session != null) {
+              debugPrint('✅ Session set successfully!');
+              debugPrint('   User: ${response.session!.user.email}');
+              await Future.delayed(const Duration(milliseconds: 500));
+              if (!mounted) return;
+              _navigateToHome();
+              return;
+            } else {
+              debugPrint('❌ setSession returned null session');
+            }
+          } else {
+            debugPrint(
+              '❌ Missing tokens - access: ${accessToken != null}, refresh: ${refreshToken != null}',
+            );
+          }
+        } catch (e) {
+          debugPrint('❌ Error parsing/setting session from fragment: $e');
+        }
+      } else {
+        debugPrint('❌ No access_token in sessionStorage fragment');
+      }
+    }
+
+    // Check if we have either a code (PKCE) or token_hash from query parameters
     if ((tokenHash == null || tokenHash.isEmpty) &&
         (code == null || code.isEmpty)) {
+      // On web, wait a bit in case Supabase is still processing
+      if (kIsWeb) {
+        debugPrint('⏳ No query params - waiting for session...');
+
+        for (int i = 0; i < 10; i++) {
+          await Future.delayed(const Duration(milliseconds: 250));
+          final session = Supabase.instance.client.auth.currentSession;
+          if (session != null) {
+            debugPrint('✅ Session established after ${(i + 1) * 250}ms');
+            if (!mounted) return;
+            _navigateToHome();
+            return;
+          }
+        }
+
+        debugPrint('❌ Timeout waiting for session');
+      }
       setState(() {
         _error = 'missing_token';
         _loading = false;

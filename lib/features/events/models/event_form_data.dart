@@ -52,14 +52,30 @@ enum RecurrenceFrequency {
 
 /// Duration options (in minutes)
 enum EventDuration {
+  min15(15, '15m'),
   min30(30, '30m'),
+  min45(45, '45m'),
   hour1(60, '1h'),
+  hour1_15(75, '1h 15m'),
   hour1_30(90, '1h 30m'),
+  hour1_45(105, '1h 45m'),
   hour2(120, '2h'),
+  hour2_15(135, '2h 15m'),
   hour2_30(150, '2h 30m'),
+  hour2_45(165, '2h 45m'),
   hour3(180, '3h'),
+  hour3_15(195, '3h 15m'),
   hour3_30(210, '3h 30m'),
-  hour4(240, '4h');
+  hour3_45(225, '3h 45m'),
+  hour4(240, '4h'),
+  hour4_15(255, '4h 15m'),
+  hour4_30(270, '4h 30m'),
+  hour4_45(285, '4h 45m'),
+  hour5(300, '5h'),
+  hour5_15(315, '5h 15m'),
+  hour5_30(330, '5h 30m'),
+  hour5_45(345, '5h 45m'),
+  hour6(360, '6h');
 
   final int minutes;
   final String label;

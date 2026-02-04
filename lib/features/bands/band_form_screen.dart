@@ -1257,6 +1257,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     );
   }
 
+  // ignore: unused_element
   Future<void> _pickImage() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,

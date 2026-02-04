@@ -17,11 +17,32 @@
 |------|---------|
 | `.env` | Supabase credentials (SUPABASE_URL, SUPABASE_ANON_KEY) |
 | `android/app/build.gradle.kts` | Android Kotlin DSL config (namespace, applicationId) |
+| `android/app/google-services.json` | Firebase Android config for push notifications |
 | `android/app/src/main/AndroidManifest.xml` | Deep links, v2 embedding |
-| `ios/Runner/Info.plist` | iOS URL schemes, app config |
+| `ios/Runner/Info.plist` | iOS URL schemes, UIBackgroundModes for push |
+| `ios/Runner/GoogleService-Info.plist` | Firebase iOS config |
 | `macos/Runner/Info.plist` | macOS URL schemes, app config |
 | `macos/Runner/*.entitlements` | macOS network permissions |
 | `lib/main.dart` | App entry point, Supabase init |
+
+### Push Notification Architecture
+The app uses **Firebase Cloud Messaging (FCM) with Supabase Edge Functions**:
+1. User creates gig/rehearsal/blockout → Database trigger fires
+2. Notification record inserted → Webhook triggers Edge Function
+3. Edge Function authenticates via OAuth2 service account
+4. FCM HTTP v1 API sends push to registered device tokens
+5. Notification appears on recipient's device
+
+**Key Push Files:**
+- [lib/features/notifications/push_notification_service.dart](lib/features/notifications/push_notification_service.dart) - FCM token management
+- [supabase/functions/send-push/index.ts](supabase/functions/send-push/index.ts) - FCM delivery Edge Function
+- [NOTIFICATION_SYSTEM.md](NOTIFICATION_SYSTEM.md) - Complete notification documentation
+
+**Required Supabase Secrets:**
+| Secret | Description |
+|--------|-------------|
+| `FIREBASE_PROJECT_ID` | Firebase project ID (`bandroadie-65b18`) |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Full JSON service account key |
 
 ### Authentication Architecture
 The app uses **Supabase Magic Link Authentication with PKCE flow**:

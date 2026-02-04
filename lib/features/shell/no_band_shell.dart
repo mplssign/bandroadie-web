@@ -58,7 +58,9 @@ class NoBandShell extends ConsumerWidget {
           Positioned.fill(
             child: _NoBandContent(
               onOpenMenu: () => overlayNotifier.openMenuDrawer(),
-              onOpenBandSwitcher: () => overlayNotifier.openBandSwitcher(),
+              onOpenBandSwitcher: bandState.userBands.isNotEmpty
+                  ? () => overlayNotifier.openBandSwitcher()
+                  : null,
             ),
           ),
 
@@ -88,12 +90,9 @@ class NoBandShell extends ConsumerWidget {
 /// The welcome content shown when user has no bands
 class _NoBandContent extends StatefulWidget {
   final VoidCallback onOpenMenu;
-  final VoidCallback onOpenBandSwitcher;
+  final VoidCallback? onOpenBandSwitcher;
 
-  const _NoBandContent({
-    required this.onOpenMenu,
-    required this.onOpenBandSwitcher,
-  });
+  const _NoBandContent({required this.onOpenMenu, this.onOpenBandSwitcher});
 
   @override
   State<_NoBandContent> createState() => _NoBandContentState();
@@ -226,15 +225,18 @@ class _NoBandContentState extends State<_NoBandContent>
                     ),
                     onPressed: widget.onOpenMenu,
                   ),
-                  // Band switcher button (to create band)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.groups_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    onPressed: widget.onOpenBandSwitcher,
-                  ),
+                  // Band switcher button (only shown if user has bands)
+                  if (widget.onOpenBandSwitcher != null)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.groups_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: widget.onOpenBandSwitcher,
+                    )
+                  else
+                    const SizedBox(width: 48), // Placeholder to maintain layout
                 ],
               ),
             ),
@@ -438,10 +440,14 @@ class _BandSwitcherLayer extends ConsumerWidget {
           context,
         ).push(fadeSlideRoute(page: const CreateBandScreen()));
       },
-      onEditBand: () {
-        // No active band to edit in this state
-        onClose();
-      },
+      // Only show Edit Band button if there are bands
+      onEditBand: bands.isNotEmpty
+          ? () {
+              onClose();
+              // Navigate to edit band screen if there's an active band
+              // (this shouldn't happen in NoBandShell, but handle gracefully)
+            }
+          : null,
     );
   }
 }

@@ -10,7 +10,6 @@ class CommunitySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 900;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Container(
       width: double.infinity,

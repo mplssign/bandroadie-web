@@ -86,8 +86,9 @@ class NotificationPermissionPrompt extends ConsumerWidget {
               Expanded(
                 child: TextButton(
                   onPressed: () {
-                    ref.read(permissionPromptDismissedProvider.notifier).state =
-                        true;
+                    ref
+                        .read(permissionPromptDismissedProvider.notifier)
+                        .dismiss();
                   },
                   child: Text(
                     'Not Now',
