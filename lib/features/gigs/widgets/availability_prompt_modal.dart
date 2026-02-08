@@ -259,7 +259,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                       ],
                     ),
 
-                    // "Not Sure Yet" link - closes without submitting
+                    // "Not Sure Yet" link - closes without saving, will show again next app open
                     const SizedBox(height: 16),
                     Center(
                       child: TextButton(

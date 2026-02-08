@@ -103,6 +103,10 @@ class _AuthGateState extends ConsumerState<AuthGate>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ref.read(authStateProvider.notifier).refreshSession();
+          // Clear app icon badge when app opens (native only)
+          if (!kIsWeb) {
+            ref.read(pushNotificationServiceProvider).clearBadge();
+          }
         }
       });
     }

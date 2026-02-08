@@ -1,0 +1,4 @@
+# Allow unauthenticated access to calendar feed
+# Authentication is handled via the calendar_token query parameter
+[functions."calendar-feed"]
+verify_jwt = false

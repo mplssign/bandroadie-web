@@ -23,6 +23,7 @@ import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
 import 'widgets/add_block_out_drawer.dart';
 import 'widgets/calendar_app_bar.dart';
+import 'widgets/calendar_subscription_dialog.dart';
 import 'widgets/calendar_bottom_nav_bar.dart';
 import 'widgets/calendar_event_card.dart';
 import 'widgets/calendar_grid.dart';
@@ -420,6 +421,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                 ),
               ),
             ],
+          ),
+
+          // Subscribe to Calendar link
+          const SizedBox(height: Spacing.space16),
+          Center(
+            child: GestureDetector(
+              onTap: () => showCalendarSubscriptionDialog(context, ref),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.space16,
+                  vertical: Spacing.space8,
+                ),
+                child: Text(
+                  '+ Subscribe to Calendar',
+                  style: TextStyle(
+                    color: AppColors.accent,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
           ),
 
           const SizedBox(height: Spacing.space24),
