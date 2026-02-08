@@ -10,8 +10,9 @@ import 'tuning_picker_bottom_sheet.dart';
 // Variant of SongCard optimized for ReorderableListView with inline editing.
 //
 // RESPONSIVE LAYOUT:
-// - Top row: Title/Artist (left) + Delete icon (right)
-// - Bottom row (metrics): BPM | Duration | Edit | Tuning
+// - Top row: Title/Artist + Edit icon (top-right)
+// - Bottom row (metrics): BPM | Duration | Tuning
+// DELETE: Handled by parent Dismissible (swipe left to delete)
 //   - Uses MainAxisAlignment.spaceBetween for equidistant spacing
 //   - BPM left-aligns with song title
 //   - Tuning right-aligns with delete icon
@@ -32,8 +33,8 @@ class ReorderableSongCard extends StatefulWidget {
   final SetlistSong song;
   final int index;
   final bool isDraggable;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
   final Future<bool> Function(String tuning)? onTuningChanged;
 
   const ReorderableSongCard({
@@ -41,8 +42,8 @@ class ReorderableSongCard extends StatefulWidget {
     required this.song,
     required this.index,
     this.isDraggable = true,
+    this.onTap,
     this.onEdit,
-    this.onDelete,
     this.onTuningChanged,
   });
 
@@ -194,6 +195,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
 
               // Content area - wrapped in Listener to prevent drag events from bubbling
               // This ensures only the drag handle can initiate reordering
+              // GestureDetector inside handles card body taps (opens lyrics view)
               Positioned(
                 left: SongCardLayout.contentLeftPadding,
                 right: 0,
@@ -203,82 +205,82 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                   onPointerDown:
                       (_) {}, // Absorb pointer events to prevent drag
                   behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: SongCardLayout.cardHorizontalPadding,
-                      top: SongCardLayout.cardVerticalPadding,
-                      bottom: SongCardLayout.cardVerticalPadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ============================================
-                        // TOP ROW: Title/Artist (left) + Delete (right)
-                        // Delete icon anchored to far right edge
-                        // ============================================
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Title/Artist block - left-aligned, takes available space
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.song.title,
-                                    style: AppTextStyles.title3,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.song.artist,
-                                    style: AppTextStyles.callout,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.onTap,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: SongCardLayout.cardHorizontalPadding,
+                        top: SongCardLayout.cardVerticalPadding,
+                        bottom: SongCardLayout.cardVerticalPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ============================================
+                          // TOP ROW: Title/Artist
+                          // ============================================
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.song.title,
+                                style: AppTextStyles.title3,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            // Delete icon - anchored to far right
-                            SizedBox(
-                              width: SongCardLayout.trashIconHitSize,
-                              height: SongCardLayout.trashIconHitSize,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                iconSize: SongCardLayout.trashIconSize,
-                                onPressed: widget.onDelete,
-                                icon: const Icon(
-                                  Icons.delete_outline_rounded,
+                              const SizedBox(height: 4),
+                              Text(
+                                widget.song.artist,
+                                style: AppTextStyles.callout,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+
+                          const Spacer(),
+
+                          // Error message (if any)
+                          if (_editError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                _editError!,
+                                style: const TextStyle(
                                   color: AppColors.accent,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
 
-                        const Spacer(),
+                          // ============================================
+                          // METRICS ROW: Responsive flexbox layout
+                          // Left: BPM (fixed) | Right: Duration → Edit → Tuning (flex)
+                          // ============================================
+                          _buildMetricsRow(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
-                        // Error message (if any)
-                        if (_editError != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              _editError!,
-                              style: const TextStyle(
-                                color: AppColors.accent,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-
-                        // ============================================
-                        // METRICS ROW: Responsive flexbox layout
-                        // Left: BPM (fixed) | Right: Duration → Edit → Tuning (flex)
-                        // ============================================
-                        _buildMetricsRow(),
-                      ],
+              // Edit icon - top right, on top of content area
+              Positioned(
+                right: 8,
+                top: 8,
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 20,
+                    onPressed: widget.onEdit,
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -293,12 +295,12 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
   /// Metrics row with equidistant spacing.
   ///
   /// LAYOUT STRUCTURE:
-  /// [BPM] ←--equal space--→ [Duration] ←--equal space--→ [Edit] ←--equal space--→ [Tuning]
+  /// [BPM] ←--equal space--→ [Duration] ←--equal space--→ [Tuning]
   ///
-  /// Uses MainAxisAlignment.spaceBetween to distribute 4 elements evenly:
+  /// Uses MainAxisAlignment.spaceBetween to distribute 3 elements evenly:
   /// - BPM anchors to left edge (aligns with song title above)
-  /// - Tuning anchors to right edge (aligns with delete icon above)
-  /// - Duration and Edit are distributed evenly in between
+  /// - Tuning anchors to right edge
+  /// - Duration is distributed evenly in between
   /// - As screen width changes, spacing adjusts proportionally
   Widget _buildMetricsRow() {
     return SizedBox(
@@ -322,24 +324,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           _buildDurationValue(),
 
           // ================================================
-          // 3. EDIT ICON - third element, evenly spaced
-          // ================================================
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: 20,
-              onPressed: widget.onEdit,
-              icon: Icon(
-                Icons.edit_outlined,
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-
-          // ================================================
-          // 4. TUNING - anchors to right (aligns with delete)
+          // 3. TUNING - anchors to right
           // ================================================
           _buildTuningBadge(),
         ],

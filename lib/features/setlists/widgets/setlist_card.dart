@@ -16,6 +16,8 @@ class SetlistCard extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final VoidCallback? onEditName;
+  final int index;
+  final bool isDraggable;
 
   const SetlistCard({
     super.key,
@@ -23,6 +25,8 @@ class SetlistCard extends StatefulWidget {
     this.onTap,
     this.onLongPress,
     this.onEditName,
+    this.index = 0,
+    this.isDraggable = false,
   });
 
   @override
@@ -85,9 +89,74 @@ class _SetlistCardState extends State<SetlistCard>
 
   @override
   Widget build(BuildContext context) {
+    final innerContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Setlist name - Figma: Title3/Emphasized
+        // Show star icon for Catalog setlist
+        Row(
+          children: [
+            if (widget.setlist.isCatalog) ...[
+              const Icon(Icons.star, color: AppColors.accent, size: 18),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(
+                widget.setlist.name,
+                style: AppTextStyles.title3,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            // Edit icon for non-Catalog setlists
+            if (!widget.setlist.isCatalog && widget.onEditName != null)
+              GestureDetector(
+                onTap: widget.onEditName,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textSecondary,
+                    size: 18,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: Spacing.space8),
+        // Metadata - Figma: Callout/Regular gray
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '${widget.setlist.formattedSongCount} ',
+                style: AppTextStyles.callout,
+              ),
+              TextSpan(
+                text: '• ',
+                style: AppTextStyles.callout.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextSpan(
+                text: widget.setlist.formattedDuration,
+                style: AppTextStyles.callout,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
     final cardContent = Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.space16),
+      padding: EdgeInsets.only(
+        left: widget.isDraggable ? 0 : Spacing.space16,
+        right: Spacing.space16,
+        top: Spacing.space16,
+        bottom: Spacing.space16,
+      ),
       decoration: widget.setlist.isCatalog
           ? null // Catalog uses AnimatedGradientBorder
           : BoxDecoration(
@@ -98,65 +167,28 @@ class _SetlistCardState extends State<SetlistCard>
                 width: StandardCardBorder.width,
               ),
             ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Setlist name - Figma: Title3/Emphasized
-          // Show star icon for Catalog setlist
-          Row(
-            children: [
-              if (widget.setlist.isCatalog) ...[
-                const Icon(Icons.star, color: AppColors.accent, size: 18),
-                const SizedBox(width: 8),
-              ],
-              Expanded(
-                child: Text(
-                  widget.setlist.name,
-                  style: AppTextStyles.title3,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // Edit icon for non-Catalog setlists
-              if (!widget.setlist.isCatalog && widget.onEditName != null)
-                GestureDetector(
-                  onTap: widget.onEditName,
+      child: widget.isDraggable
+          ? Row(
+              children: [
+                // Drag handle
+                ReorderableDragStartListener(
+                  index: widget.index,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                    ),
                     child: Icon(
-                      Icons.edit_outlined,
-                      color: AppColors.textSecondary,
-                      size: 18,
+                      Icons.drag_indicator_rounded,
+                      size: 24,
+                      color: AppColors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: Spacing.space8),
-          // Metadata - Figma: Callout/Regular gray
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: '${widget.setlist.formattedSongCount} ',
-                  style: AppTextStyles.callout,
-                ),
-                TextSpan(
-                  text: '• ',
-                  style: AppTextStyles.callout.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                TextSpan(
-                  text: widget.setlist.formattedDuration,
-                  style: AppTextStyles.callout,
-                ),
+                // Content
+                Expanded(child: innerContent),
               ],
-            ),
-          ),
-        ],
-      ),
+            )
+          : innerContent,
     );
 
     return GestureDetector(

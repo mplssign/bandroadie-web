@@ -54,6 +54,7 @@ class Setlist {
   final String? bandId;
   final List<SetlistSong> songs;
   final bool isCatalog;
+  final int position;
 
   const Setlist({
     required this.id,
@@ -64,7 +65,32 @@ class Setlist {
     this.bandId,
     this.songs = const [],
     this.isCatalog = false,
+    this.position = 0,
   });
+
+  Setlist copyWith({
+    String? id,
+    String? name,
+    int? songCount,
+    Duration? totalDuration,
+    DateTime? lastUpdated,
+    String? bandId,
+    List<SetlistSong>? songs,
+    bool? isCatalog,
+    int? position,
+  }) {
+    return Setlist(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      songCount: songCount ?? this.songCount,
+      totalDuration: totalDuration ?? this.totalDuration,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      bandId: bandId ?? this.bandId,
+      songs: songs ?? this.songs,
+      isCatalog: isCatalog ?? this.isCatalog,
+      position: position ?? this.position,
+    );
+  }
 
   /// Create from Supabase query result
   /// Expected structure:
@@ -117,6 +143,7 @@ class Setlist {
       totalDuration: Duration(seconds: totalSeconds),
       lastUpdated: lastUpdated,
       isCatalog: isCatalog,
+      position: _asInt(json['position']),
     );
   }
 

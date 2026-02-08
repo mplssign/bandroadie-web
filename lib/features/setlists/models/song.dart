@@ -11,6 +11,7 @@ class Song {
   final String bandId;
   final String? spotifyId;
   final String? musicbrainzId;
+  final String? lyrics; // JSON string of LyricsData
 
   const Song({
     required this.id,
@@ -23,6 +24,7 @@ class Song {
     required this.bandId,
     this.spotifyId,
     this.musicbrainzId,
+    this.lyrics,
   });
 
   /// Duration as Dart Duration object
@@ -55,6 +57,7 @@ class Song {
       bandId: json['band_id'] as String,
       spotifyId: json['spotify_id'] as String?,
       musicbrainzId: json['musicbrainz_id'] as String?,
+      lyrics: json['lyrics'] as String?,
     );
   }
 }

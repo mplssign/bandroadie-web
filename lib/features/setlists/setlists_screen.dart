@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -241,6 +242,74 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
       return false;
     }
   }
+
+  /// Snapshot of setlist order before a drag, for rollback on failure.
+  List<Setlist>? _preReorderSnapshot;
+
+  /// Reorder setlists locally (optimistic UI).
+  /// [oldIndex] and [newIndex] are indices within the NON-catalog portion.
+  void reorderLocal(int oldIndex, int newIndex) {
+    // Separate catalog from reorderable setlists
+    final catalog = state.setlists.where((s) => s.isCatalog).toList();
+    final reorderable = state.setlists.where((s) => !s.isCatalog).toList();
+
+    // Save snapshot for rollback (only save once per drag sequence)
+    _preReorderSnapshot ??= List.of(state.setlists);
+
+    // SliverReorderableList convention
+    var adjustedNew = newIndex;
+    if (oldIndex < adjustedNew) adjustedNew--;
+
+    if (oldIndex < 0 ||
+        oldIndex >= reorderable.length ||
+        adjustedNew < 0 ||
+        adjustedNew >= reorderable.length) {
+      return;
+    }
+
+    final item = reorderable.removeAt(oldIndex);
+    reorderable.insert(adjustedNew, item);
+
+    // Update positions
+    final updated = reorderable.asMap().entries.map((e) {
+      return e.value.copyWith(position: e.key + 1);
+    }).toList();
+
+    final newState = state.copyWith(setlists: [...catalog, ...updated]);
+    state = newState;
+    _cachedState = newState;
+  }
+
+  /// Persist the current setlist order to Supabase.
+  /// Returns true on success, false on failure (state is reverted).
+  Future<bool> persistReorder() async {
+    final bandId = _bandId;
+    if (bandId == null || bandId.isEmpty) return false;
+
+    final nonCatalog = state.setlists.where((s) => !s.isCatalog).toList();
+    final ids = nonCatalog.map((s) => s.id).toList();
+
+    try {
+      await _repository.reorderSetlists(
+        bandId: bandId,
+        setlistIdsInOrder: ids,
+      );
+      _preReorderSnapshot = null; // Clear snapshot on success
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SetlistsNotifier] Error persisting reorder: $e');
+      }
+      // Revert to pre-reorder state
+      if (_preReorderSnapshot != null) {
+        final revertState = state.copyWith(setlists: _preReorderSnapshot);
+        state = revertState;
+        _cachedState = revertState;
+        _preReorderSnapshot = null;
+      }
+      return false;
+    }
+  }
 }
 
 /// Provider for setlists
@@ -268,6 +337,9 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
   // User profile data
   String? _userFirstName;
   String? _userLastName;
+
+  // Reorder debounce timer
+  Timer? _reorderDebounceTimer;
 
   @override
   void initState() {
@@ -342,6 +414,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
   @override
   void dispose() {
     _entranceController.dispose();
+    _reorderDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -549,6 +622,28 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
         }
       }
     }
+  }
+
+  /// Handle setlist reorder (drag-to-reorder)
+  void _handleReorder(int oldIndex, int newIndex) {
+    final notifier = ref.read(setlistsProvider.notifier);
+
+    // Apply local change immediately (optimistic UI)
+    notifier.reorderLocal(oldIndex, newIndex);
+
+    // Cancel any pending persist
+    _reorderDebounceTimer?.cancel();
+
+    // Schedule persist after debounce period
+    _reorderDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      final success = await notifier.persistReorder();
+
+      if (!success && mounted) {
+        showErrorSnackBar(context, message: 'Failed to reorder setlists');
+      }
+    });
   }
 
   Widget _buildAnimatedSection(int index, Widget child) {
@@ -869,6 +964,10 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     File? localImageFile,
     List<Setlist> setlists,
   ) {
+    // Separate catalog from reorderable setlists
+    final catalogSetlists = setlists.where((s) => s.isCatalog).toList();
+    final reorderableSetlists = setlists.where((s) => !s.isCatalog).toList();
+
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -888,7 +987,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
           ),
         ),
 
-        // Content
+        // Header + Catalog card(s)
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
           sliver: SliverToBoxAdapter(
@@ -929,33 +1028,152 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
 
                 const SizedBox(height: Spacing.space12),
 
-                // Setlist cards with staggered animation
-                ...List.generate(setlists.length, (index) {
-                  final setlist = setlists[index];
+                // Catalog card(s) - not draggable, always at top
+                ...catalogSetlists.map((setlist) {
                   return Padding(
-                    padding: EdgeInsets.only(
-                      bottom: index < setlists.length - 1 ? Spacing.space12 : 0,
-                    ),
+                    padding: const EdgeInsets.only(bottom: Spacing.space12),
                     child: _buildAnimatedSection(
-                      index + 1,
+                      1,
                       SwipeableSetlistCard(
                         setlist: setlist,
                         onTap: () => _onSetlistTap(setlist),
-                        onEditName: setlist.isCatalog
-                            ? null
-                            : () => _showRenameDialog(setlist),
                         onDeleteConfirmed: _confirmDelete,
                         onDuplicateConfirmed: _confirmDuplicate,
                       ),
                     ),
                   );
                 }),
-
-                // Bottom padding
-                const SizedBox(height: 24),
               ],
             ),
           ),
+        ),
+
+        // Reorderable setlist cards
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
+          sliver: SliverReorderableList(
+            itemCount: reorderableSetlists.length,
+            onReorder: _handleReorder,
+            itemBuilder: (context, index) {
+              final setlist = reorderableSetlists[index];
+              return Padding(
+                key: ValueKey(setlist.id),
+                padding: const EdgeInsets.only(bottom: Spacing.space12),
+                child: _buildAnimatedSection(
+                  index + 2, // +2 to account for header + catalog
+                  Dismissible(
+                    key: Key('dismiss_setlist_${setlist.id}'),
+                    direction: DismissDirection.horizontal,
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.endToStart) {
+                        return _confirmDelete(setlist);
+                      } else if (direction == DismissDirection.startToEnd) {
+                        return _confirmDuplicate(setlist).then((_) => false);
+                      }
+                      return false;
+                    },
+                    dismissThresholds: const {
+                      DismissDirection.endToStart: 0.4,
+                      DismissDirection.startToEnd: 0.4,
+                    },
+                    movementDuration: AppDurations.medium,
+                    background: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.only(left: Spacing.space24),
+                      decoration: BoxDecoration(
+                        color: AppColors.success,
+                        borderRadius: BorderRadius.circular(
+                          Spacing.buttonRadius,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.copy_rounded, color: Colors.white, size: 28),
+                          SizedBox(width: Spacing.space8),
+                          Text(
+                            'Duplicate',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    secondaryBackground: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: Spacing.space24),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: BorderRadius.circular(
+                          Spacing.buttonRadius,
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Delete',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          SizedBox(width: Spacing.space8),
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                    ),
+                    child: SetlistCard(
+                      setlist: setlist,
+                      index: index,
+                      isDraggable: true,
+                      onTap: () => _onSetlistTap(setlist),
+                      onEditName: () => _showRenameDialog(setlist),
+                    ),
+                  ),
+                ),
+              );
+            },
+            proxyDecorator: (child, index, animation) {
+              return AnimatedBuilder(
+                animation: animation,
+                builder: (context, child) {
+                  final scale = Tween<double>(begin: 1.0, end: 1.02).evaluate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOut,
+                    ),
+                  );
+                  return Transform.scale(
+                    scale: scale,
+                    child: Material(
+                      color: Colors.transparent,
+                      elevation: 8,
+                      shadowColor: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(
+                        Spacing.buttonRadius,
+                      ),
+                      child: child,
+                    ),
+                  );
+                },
+                child: child,
+              );
+            },
+          ),
+        ),
+
+        // Bottom padding
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
         ),
       ],
     );

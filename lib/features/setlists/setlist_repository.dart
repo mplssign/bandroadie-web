@@ -243,12 +243,13 @@ class SetlistRepository {
               band_id,
               total_duration,
               is_catalog,
+              position,
               created_at,
               updated_at,
               setlist_songs(count)
             ''')
             .eq('band_id', bandId)
-            .order('name', ascending: true);
+            .order('position', ascending: true);
       } on PostgrestException catch (e) {
         // If is_catalog column doesn't exist, fallback to basic query
         if (e.code == '42703' && e.message.contains('is_catalog')) {
@@ -265,6 +266,7 @@ class SetlistRepository {
                 name,
                 band_id,
                 total_duration,
+                position,
                 created_at,
                 updated_at,
                 setlist_songs(count)
@@ -398,11 +400,11 @@ class SetlistRepository {
         }
       }
 
-      // Sort: Catalog first, then alphabetically
+      // Sort: Catalog first, then by position
       setlists.sort((a, b) {
         if (a.isCatalog && !b.isCatalog) return -1;
         if (!a.isCatalog && b.isCatalog) return 1;
-        return a.name.compareTo(b.name);
+        return a.position.compareTo(b.position);
       });
 
       // ==== VERIFICATION LOGGING ====
@@ -554,7 +556,8 @@ class SetlistRepository {
               tuning,
               album_artwork,
               notes,
-              youtube_links
+              youtube_links,
+              lyrics
             )
           ''')
           .eq('setlist_id', setlistId)
@@ -994,6 +997,52 @@ class SetlistRepository {
   }
 
   // ==========================================================================
+  // SETLIST REORDERING
+  // ==========================================================================
+
+  /// Reorder setlists by updating their position column.
+  /// [setlistIdsInOrder] should contain the IDs in the desired order.
+  /// Catalog setlist should NOT be included (it's always position 0).
+  Future<void> reorderSetlists({
+    required String bandId,
+    required List<String> setlistIdsInOrder,
+  }) async {
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId cannot be empty');
+    }
+    if (setlistIdsInOrder.isEmpty) return;
+
+    if (kDebugMode) {
+      debugPrint('[SetlistRepository] reorderSetlists:');
+      debugPrint('  bandId: $bandId');
+      debugPrint('  setlistCount: ${setlistIdsInOrder.length}');
+    }
+
+    try {
+      // Update each setlist's position
+      // Position 0 is reserved for Catalog, so non-catalog starts at 1
+      for (int i = 0; i < setlistIdsInOrder.length; i++) {
+        await supabase
+            .from('setlists')
+            .update({'position': i + 1})
+            .eq('id', setlistIdsInOrder[i])
+            .eq('band_id', bandId);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Reordered ${setlistIdsInOrder.length} setlists',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SetlistRepository] Error reordering setlists: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // ==========================================================================
   // CATALOG HELPERS
   // ==========================================================================
 
@@ -1360,6 +1409,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1523,6 +1574,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1622,6 +1675,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1732,6 +1787,8 @@ class SetlistRepository {
           'p_notes': notes,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1822,6 +1879,7 @@ class SetlistRepository {
           'p_title': null,
           'p_artist': null,
           'p_youtube_links': youtubeLinks,
+          'p_lyrics': null,
         },
       );
 
@@ -1876,6 +1934,98 @@ class SetlistRepository {
     }
   }
 
+  /// Updates a song's lyrics (stored on the songs table - global, not per-setlist).
+  ///
+  /// The [lyrics] parameter should be a JSON string of LyricsData.
+  /// Uses RPC with SECURITY DEFINER to bypass RLS.
+  Future<void> updateSongLyrics({
+    required String bandId,
+    required String songId,
+    required String? lyrics,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSongLyrics: songId=$songId, lyrics=${lyrics != null ? lyrics.substring(0, lyrics.length > 50 ? 50 : lyrics.length) : 'null'}...',
+      );
+    }
+
+    try {
+      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Must pass ALL 10 parameters to avoid PGRST203 function overload ambiguity
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': lyrics,
+        },
+      );
+
+      // Check RPC result
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        debugPrint('[SetlistRepository] RPC returned error: $error');
+        throw Exception(error);
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Updated lyrics for song $songId (via RPC)',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      // PGRST203 = ambiguous function call (multiple overloads)
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist.',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
+      // RPC may not exist - fall back to direct update
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
+        );
+        await supabase
+            .from('songs')
+            .update({'lyrics': lyrics})
+            .eq('id', songId);
+        debugPrint(
+          '[SetlistRepository] ✓ Updated lyrics for song $songId (direct)',
+        );
+        return;
+      }
+      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
+      rethrow;
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error updating lyrics: $e');
+      rethrow;
+    }
+  }
+
   /// Updates a song's title and/or artist (stored on the songs table - global).
   ///
   /// Uses RPC with SECURITY DEFINER to bypass RLS.
@@ -1915,6 +2065,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': title,
           'p_artist': artist,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -3716,6 +3868,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
