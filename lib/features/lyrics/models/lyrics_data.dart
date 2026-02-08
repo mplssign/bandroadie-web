@@ -17,7 +17,7 @@ import 'dart:convert';
 /// [accentColorValue] is the vivid accent used for chip borders & icons.
 enum LyricsHighlight {
   none('none', 'None', 0x00000000, 0xFF64748B),
-  intro('intro', 'Intro', 0x33F59E0B, 0xFFF59E0B), // amber
+  intro('intro', 'Intro', 0x3322C55E, 0xFF22C55E), // green
   verse('verse', 'Verse', 0x332563EB, 0xFF2563EB), // blue
   preChorus('pre_chorus', 'Pre-Chorus', 0x33BE123C, 0xFFBE123C), // rose
   chorus('chorus', 'Chorus', 0x339333EA, 0xFF9333EA), // purple

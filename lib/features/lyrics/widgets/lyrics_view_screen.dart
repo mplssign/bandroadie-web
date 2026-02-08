@@ -351,35 +351,38 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
           // ── Primary FAB ──
           GestureDetector(
             onTap: _toggleAutoScroll,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: _isAutoScrolling
-                    ? AppColors.accent
-                    : AppColors.surfaceDark,
-                shape: BoxShape.circle,
-                border: Border.all(
+            child: Opacity(
+              opacity: 0.45,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
                   color: _isAutoScrolling
                       ? AppColors.accent
-                      : AppColors.borderMuted,
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
+                      : AppColors.surfaceDark,
+                  shape: BoxShape.circle,
+                  border: Border.all(
                     color: _isAutoScrolling
-                        ? AppColors.accent.withValues(alpha: 0.35)
-                        : Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                        ? AppColors.accent
+                        : AppColors.borderMuted,
+                    width: 1.5,
                   ),
-                ],
-              ),
-              child: Icon(
-                _isAutoScrolling ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
-                size: 28,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isAutoScrolling
+                          ? AppColors.accent.withValues(alpha: 0.35)
+                          : Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _isAutoScrolling ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
             ),
           ),
