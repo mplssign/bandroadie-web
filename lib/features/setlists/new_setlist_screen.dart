@@ -336,12 +336,11 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
       );
     } catch (e) {
       debugPrint('[SetlistShare] Error sharing: $e');
-      if (mounted) {
-        showErrorSnackBar(
-          context,
-          message: 'Failed to share setlist',
-        );
-      }
+      if (!context.mounted) return;
+      showErrorSnackBar(
+        context,
+        message: 'Failed to share setlist',
+      );
     }
   }
 

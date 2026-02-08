@@ -76,7 +76,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         return [first, last].where((s) => s.isNotEmpty).join(' ');
       },
       loading: () => '',
-      error: (_, __) => '',
+      error: (_, _) => '',
     );
 
     return Scaffold(

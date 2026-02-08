@@ -114,10 +114,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                   colors: [
                     const Color(
                       0xFF2563EB,
-                    ).withOpacity(0.60), // blue-600 (reduced)
+                    ).withValues(alpha: 0.60), // blue-600 (reduced)
                     const Color(
                       0xFF9333EA,
-                    ).withOpacity(0.60), // purple-600 (reduced)
+                    ).withValues(alpha: 0.60), // purple-600 (reduced)
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius), // 16px

@@ -2192,7 +2192,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _durationMinutes <= minDuration
-                        ? rose700.withOpacity(0.4)
+                        ? rose700.withValues(alpha: 0.4)
                         : rose700,
                     width: 2,
                   ),
@@ -2204,7 +2204,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: _durationMinutes <= minDuration
-                          ? rose700.withOpacity(0.4)
+                          ? rose700.withValues(alpha: 0.4)
                           : rose700,
                     ),
                   ),

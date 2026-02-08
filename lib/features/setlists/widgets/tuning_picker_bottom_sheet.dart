@@ -355,6 +355,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
 
       // Auto-select the newly created tuning
       HapticFeedback.selectionClick();
+      if (!mounted) return;
       Navigator.of(context).pop(customTuning.id);
     }
   }

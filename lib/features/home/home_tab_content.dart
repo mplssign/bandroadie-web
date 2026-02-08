@@ -328,7 +328,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         responseSummariesAsync.when(
           data: (summaries) => summaries,
           loading: () => {},
-          error: (_, __) => {},
+          error: (_, _) => {},
         );
 
     // Watch display band for header avatar (shows draft during editing)
