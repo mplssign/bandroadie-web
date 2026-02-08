@@ -109,19 +109,6 @@ class _SetlistCardState extends State<SetlistCard>
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            // Edit icon for non-Catalog setlists
-            if (!widget.setlist.isCatalog && widget.onEditName != null)
-              GestureDetector(
-                onTap: widget.onEditName,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.edit_outlined,
-                    color: AppColors.textSecondary,
-                    size: 18,
-                  ),
-                ),
-              ),
           ],
         ),
         const SizedBox(height: Spacing.space8),
@@ -149,16 +136,84 @@ class _SetlistCardState extends State<SetlistCard>
       ],
     );
 
+    // ── Draggable variant ──
+    // Matches ReorderableSongCard pattern exactly.
+    if (widget.isDraggable) {
+      return GestureDetector(
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        child: AnimatedBuilder(
+          animation: _tapController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Opacity(opacity: _opacityAnimation.value, child: child),
+            );
+          },
+          child: IntrinsicHeight(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.cardBg,
+                border: Border.all(
+                  color: StandardCardBorder.color,
+                  width: StandardCardBorder.width,
+                ),
+                borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
+              ),
+              child: Row(
+                children: [
+                  // Drag handle area
+                  ReorderableDragStartListener(
+                    index: widget.index,
+                    child: SizedBox(
+                      width: SongCardLayout.contentLeftPadding,
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: SongCardLayout.dragHandleLeft,
+                          ),
+                          child: Icon(
+                            Icons.drag_indicator_rounded,
+                            size: 24,
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Content area
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onTap,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          right: Spacing.space16,
+                          top: Spacing.space16,
+                          bottom: Spacing.space16,
+                        ),
+                        child: innerContent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ── Non-draggable variant (Catalog) — original layout ──
     final cardContent = Container(
       width: double.infinity,
-      padding: EdgeInsets.only(
-        left: widget.isDraggable ? 0 : Spacing.space16,
-        right: Spacing.space16,
-        top: Spacing.space16,
-        bottom: Spacing.space16,
-      ),
+      padding: const EdgeInsets.all(Spacing.space16),
       decoration: widget.setlist.isCatalog
-          ? null // Catalog uses AnimatedGradientBorder
+          ? null
           : BoxDecoration(
               color: AppColors.cardBg,
               borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
@@ -167,28 +222,7 @@ class _SetlistCardState extends State<SetlistCard>
                 width: StandardCardBorder.width,
               ),
             ),
-      child: widget.isDraggable
-          ? Row(
-              children: [
-                // Drag handle
-                ReorderableDragStartListener(
-                  index: widget.index,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                    ),
-                    child: Icon(
-                      Icons.drag_indicator_rounded,
-                      size: 24,
-                      color: AppColors.textSecondary.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ),
-                // Content
-                Expanded(child: innerContent),
-              ],
-            )
-          : innerContent,
+      child: innerContent,
     );
 
     return GestureDetector(

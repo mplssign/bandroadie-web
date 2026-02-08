@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +15,9 @@ import '../shell/overlay_state.dart';
 import 'models/setlist.dart';
 import 'new_setlist_screen.dart';
 import 'setlist_detail_screen.dart';
+import 'setlist_repository.dart';
 import 'setlists_screen.dart' show setlistsProvider;
+import 'widgets/setlist_card.dart';
 import 'widgets/setlists_app_bar.dart';
 import 'widgets/swipeable_setlist_card.dart';
 
@@ -37,6 +41,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
   late AnimationController _entranceController;
   List<Animation<double>> _fadeAnimations = [];
   List<Animation<Offset>> _slideAnimations = [];
+  Timer? _reorderDebounceTimer;
 
   @override
   void initState() {
@@ -83,6 +88,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
 
   @override
   void dispose() {
+    _reorderDebounceTimer?.cancel();
     _entranceController.dispose();
     super.dispose();
   }
@@ -161,6 +167,119 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
       return success;
     }
     return false;
+  }
+
+  Future<void> _showRenameDialog(Setlist setlist) async {
+    final controller = TextEditingController(text: setlist.name);
+    final formKey = GlobalKey<FormState>();
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: const Text(
+          'Rename Setlist',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              labelText: 'Setlist Name',
+              labelStyle: TextStyle(color: AppColors.textSecondary),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.textSecondary),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.accent),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Name cannot be empty';
+              }
+              return null;
+            },
+            onFieldSubmitted: (value) {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.of(context).pop(value.trim());
+              }
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.of(context).pop(controller.text.trim());
+              }
+            },
+            child: const Text(
+              'Save',
+              style: TextStyle(color: AppColors.accent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (newName != null && newName != setlist.name && mounted) {
+      try {
+        final bandId = ref.read(activeBandIdProvider);
+        if (bandId == null) return;
+
+        await ref
+            .read(setlistRepositoryProvider)
+            .renameSetlist(
+              bandId: bandId,
+              setlistId: setlist.id,
+              newName: newName,
+            );
+
+        // Refresh the list
+        await ref.read(setlistsProvider.notifier).refresh();
+
+        if (mounted) {
+          showAppSnackBar(context, message: 'Renamed to "$newName"');
+        }
+      } catch (e) {
+        if (mounted) {
+          showErrorSnackBar(context, message: 'Failed to rename setlist');
+        }
+      }
+    }
+  }
+
+  /// Handle setlist reorder (drag-to-reorder)
+  void _handleReorder(int oldIndex, int newIndex) {
+    final notifier = ref.read(setlistsProvider.notifier);
+
+    // Apply local change immediately (optimistic UI)
+    notifier.reorderLocal(oldIndex, newIndex);
+
+    // Cancel any pending persist
+    _reorderDebounceTimer?.cancel();
+
+    // Schedule persist after debounce period
+    _reorderDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      final success = await notifier.persistReorder();
+
+      if (!success && mounted) {
+        showErrorSnackBar(context, message: 'Failed to reorder setlists');
+      }
+    });
   }
 
   Widget _buildAnimatedSection(int index, Widget child) {
@@ -432,17 +551,18 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final setlist = setlists[index];
-                    return Padding(
+              // Catalog setlists (non-reorderable)
+              ...setlists.where((s) => s.isCatalog).map((setlist) {
+                final idx = setlists.indexOf(setlist);
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.pagePadding,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.only(bottom: Spacing.space12),
                       child: _buildAnimatedSection(
-                        index + 1,
+                        idx + 1,
                         SwipeableSetlistCard(
                           setlist: setlist,
                           onTap: () => _onSetlistTap(setlist),
@@ -450,8 +570,64 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                           onDuplicateConfirmed: (s) => _confirmDuplicate(s),
                         ),
                       ),
+                    ),
+                  ),
+                );
+              }),
+
+              // Reorderable setlist cards
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.pagePadding,
+                ),
+                sliver: SliverReorderableList(
+                  itemCount: setlists.where((s) => !s.isCatalog).length,
+                  onReorder: _handleReorder,
+                  itemBuilder: (context, index) {
+                    final reorderableSetlists =
+                        setlists.where((s) => !s.isCatalog).toList();
+                    final setlist = reorderableSetlists[index];
+                    return Padding(
+                      key: ValueKey(setlist.id),
+                      padding: const EdgeInsets.only(bottom: Spacing.space12),
+                      child: SetlistCard(
+                        setlist: setlist,
+                        index: index,
+                        isDraggable: true,
+                        onTap: () => _onSetlistTap(setlist),
+                      ),
                     );
-                  }, childCount: setlists.length),
+                  },
+                  proxyDecorator: (child, index, animation) {
+                    return AnimatedBuilder(
+                      animation: animation,
+                      builder: (context, child) {
+                        final scale = Tween<double>(
+                          begin: 1.0,
+                          end: 1.02,
+                        ).evaluate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOut,
+                          ),
+                        );
+                        return Transform.scale(
+                          scale: scale,
+                          child: Material(
+                            color: Colors.transparent,
+                            elevation: 8,
+                            shadowColor:
+                                Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(
+                              Spacing.buttonRadius,
+                            ),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: child,
+                    );
+                  },
                 ),
               ),
               SliverToBoxAdapter(

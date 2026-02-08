@@ -31,6 +31,7 @@ import 'setlist_repository.dart';
 import 'widgets/empty_setlists_state.dart';
 import 'widgets/setlists_app_bar.dart';
 import 'widgets/setlists_bottom_nav_bar.dart';
+import 'widgets/setlist_card.dart';
 import 'widgets/swipeable_setlist_card.dart';
 
 // ============================================================================
@@ -1059,86 +1060,12 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
               return Padding(
                 key: ValueKey(setlist.id),
                 padding: const EdgeInsets.only(bottom: Spacing.space12),
-                child: _buildAnimatedSection(
-                  index + 2, // +2 to account for header + catalog
-                  Dismissible(
-                    key: Key('dismiss_setlist_${setlist.id}'),
-                    direction: DismissDirection.horizontal,
-                    confirmDismiss: (direction) async {
-                      if (direction == DismissDirection.endToStart) {
-                        return _confirmDelete(setlist);
-                      } else if (direction == DismissDirection.startToEnd) {
-                        return _confirmDuplicate(setlist).then((_) => false);
-                      }
-                      return false;
-                    },
-                    dismissThresholds: const {
-                      DismissDirection.endToStart: 0.4,
-                      DismissDirection.startToEnd: 0.4,
-                    },
-                    movementDuration: AppDurations.medium,
-                    background: Container(
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: Spacing.space24),
-                      decoration: BoxDecoration(
-                        color: AppColors.success,
-                        borderRadius: BorderRadius.circular(
-                          Spacing.buttonRadius,
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.copy_rounded, color: Colors.white, size: 28),
-                          SizedBox(width: Spacing.space8),
-                          Text(
-                            'Duplicate',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    secondaryBackground: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: Spacing.space24),
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(
-                          Spacing.buttonRadius,
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Delete',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          SizedBox(width: Spacing.space8),
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ],
-                      ),
-                    ),
-                    child: SetlistCard(
-                      setlist: setlist,
-                      index: index,
-                      isDraggable: true,
-                      onTap: () => _onSetlistTap(setlist),
-                      onEditName: () => _showRenameDialog(setlist),
-                    ),
-                  ),
+                child: SetlistCard(
+                  setlist: setlist,
+                  index: index,
+                  isDraggable: true,
+                  onTap: () => _onSetlistTap(setlist),
+                  onEditName: () => _showRenameDialog(setlist),
                 ),
               );
             },

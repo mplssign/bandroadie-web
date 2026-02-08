@@ -233,6 +233,7 @@ class SetlistRepository {
       // If it fails with 42703 (column doesn't exist), fallback to basic query
       List<dynamic> response;
       bool hasIsCatalogColumn = true;
+      bool hasPositionColumn = true;
 
       try {
         response = await supabase
@@ -251,28 +252,75 @@ class SetlistRepository {
             .eq('band_id', bandId)
             .order('position', ascending: true);
       } on PostgrestException catch (e) {
-        // If is_catalog column doesn't exist, fallback to basic query
-        if (e.code == '42703' && e.message.contains('is_catalog')) {
-          if (kDebugMode) {
-            debugPrint(
-              '[SetlistRepository] is_catalog column not found, using fallback query',
-            );
+        // Handle missing columns gracefully
+        if (e.code == '42703') {
+          if (e.message.contains('position')) {
+            // position column doesn't exist yet - retry without it
+            if (kDebugMode) {
+              debugPrint(
+                '[SetlistRepository] position column not found, retrying without it',
+              );
+            }
+            hasPositionColumn = false;
+            try {
+              response = await supabase
+                  .from('setlists')
+                  .select('''
+                    id,
+                    name,
+                    band_id,
+                    total_duration,
+                    is_catalog,
+                    created_at,
+                    updated_at,
+                    setlist_songs(count)
+                  ''')
+                  .eq('band_id', bandId)
+                  .order('name', ascending: true);
+            } on PostgrestException catch (e2) {
+              if (e2.code == '42703' && e2.message.contains('is_catalog')) {
+                hasIsCatalogColumn = false;
+                response = await supabase
+                    .from('setlists')
+                    .select('''
+                      id,
+                      name,
+                      band_id,
+                      total_duration,
+                      created_at,
+                      updated_at,
+                      setlist_songs(count)
+                    ''')
+                    .eq('band_id', bandId)
+                    .order('name', ascending: true);
+              } else {
+                rethrow;
+              }
+            }
+          } else if (e.message.contains('is_catalog')) {
+            if (kDebugMode) {
+              debugPrint(
+                '[SetlistRepository] is_catalog column not found, using fallback query',
+              );
+            }
+            hasIsCatalogColumn = false;
+            response = await supabase
+                .from('setlists')
+                .select('''
+                  id,
+                  name,
+                  band_id,
+                  total_duration,
+                  position,
+                  created_at,
+                  updated_at,
+                  setlist_songs(count)
+                ''')
+                .eq('band_id', bandId)
+                .order('position', ascending: true);
+          } else {
+            rethrow;
           }
-          hasIsCatalogColumn = false;
-          response = await supabase
-              .from('setlists')
-              .select('''
-                id,
-                name,
-                band_id,
-                total_duration,
-                position,
-                created_at,
-                updated_at,
-                setlist_songs(count)
-              ''')
-              .eq('band_id', bandId)
-              .order('name', ascending: true);
         } else {
           rethrow;
         }
@@ -280,7 +328,7 @@ class SetlistRepository {
 
       if (kDebugMode) {
         debugPrint(
-          '[SetlistRepository] Query returned ${response.length} setlists (is_catalog column: $hasIsCatalogColumn)',
+          '[SetlistRepository] Query returned ${response.length} setlists (is_catalog: $hasIsCatalogColumn, position: $hasPositionColumn)',
         );
       }
 
