@@ -1,5 +1,6 @@
-// ignore_for_file: avoid_web_libraries_in_flutter
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show debugPrint;
 
 // ============================================================================
 // WEB NOTIFICATION PERMISSION (WEB IMPLEMENTATION)
@@ -26,7 +27,7 @@ Future<bool> requestWebNotificationPermission() async {
     final permission = await html.Notification.requestPermission();
     return permission == 'granted';
   } catch (e) {
-    print('[WebNotifications] Error requesting permission: $e');
+    debugPrint('[WebNotifications] Error requesting permission: $e');
     return false;
   }
 }

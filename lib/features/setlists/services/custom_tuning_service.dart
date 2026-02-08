@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -67,7 +68,7 @@ class CustomTuningService {
 
       return tunings;
     } catch (e) {
-      print('[CustomTuningService] Error loading tunings: $e');
+      debugPrint('[CustomTuningService] Error loading tunings: $e');
       return [];
     }
   }
@@ -103,7 +104,7 @@ class CustomTuningService {
     // Save back to storage
     await _saveAllTunings(existing);
 
-    print('[CustomTuningService] Saved custom tuning: $tuning');
+    debugPrint('[CustomTuningService] Saved custom tuning: $tuning');
 
     return tuning;
   }
@@ -114,12 +115,12 @@ class CustomTuningService {
     final updated = existing.where((t) => t.id != id).toList();
 
     if (updated.length == existing.length) {
-      print('[CustomTuningService] Tuning $id not found, nothing to delete');
+      debugPrint('[CustomTuningService] Tuning $id not found, nothing to delete');
       return;
     }
 
     await _saveAllTunings(updated);
-    print('[CustomTuningService] Deleted custom tuning: $id');
+    debugPrint('[CustomTuningService] Deleted custom tuning: $id');
   }
 
   /// Find a custom tuning by ID
@@ -149,6 +150,6 @@ class CustomTuningService {
   Future<void> clearAllCustomTunings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);
-    print('[CustomTuningService] Cleared all custom tunings');
+    debugPrint('[CustomTuningService] Cleared all custom tunings');
   }
 }

@@ -44,7 +44,7 @@ class NotificationSettingsModal extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.textMuted.withOpacity(0.1),
+                color: AppColors.textMuted.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

@@ -115,10 +115,10 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   colors: [
                     const Color(
                       0xFFF77800,
-                    ).withOpacity(0.60), // orange (reduced)
+                    ).withValues(alpha: 0.60), // orange (reduced)
                     const Color(
                       0xFFE11D48,
-                    ).withOpacity(0.60), // rose-600 (reduced)
+                    ).withValues(alpha: 0.60), // rose-600 (reduced)
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius), // 16px
