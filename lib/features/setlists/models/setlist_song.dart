@@ -26,6 +26,7 @@ class SetlistSong {
   final String? albumArtwork;
   final String? notes;
   final String? youtubeLinks; // JSON string of YouTube links
+  final String? lyrics; // JSON string of LyricsData
   final int position;
 
   /// Track whether values are overrides (for visual indicator)
@@ -43,6 +44,7 @@ class SetlistSong {
     this.albumArtwork,
     this.notes,
     this.youtubeLinks,
+    this.lyrics,
     required this.position,
     this.hasBpmOverride = false,
     this.hasDurationOverride = false,
@@ -104,6 +106,7 @@ class SetlistSong {
       albumArtwork: songData['album_artwork'] as String?,
       notes: songData['notes'] as String?,
       youtubeLinks: songData['youtube_links'] as String?,
+      lyrics: songData['lyrics'] as String?,
       position: json['position'] as int? ?? 0,
       // No more per-setlist overrides - values are global
       hasBpmOverride: false,
@@ -126,6 +129,8 @@ class SetlistSong {
     bool clearNotes = false,
     String? youtubeLinks,
     bool clearYoutubeLinks = false,
+    String? lyrics,
+    bool clearLyrics = false,
     bool? hasBpmOverride,
     bool? hasDurationOverride,
     bool? hasTuningOverride,
@@ -142,6 +147,7 @@ class SetlistSong {
       youtubeLinks: clearYoutubeLinks
           ? null
           : (youtubeLinks ?? this.youtubeLinks),
+      lyrics: clearLyrics ? null : (lyrics ?? this.lyrics),
       position: position ?? this.position,
       hasBpmOverride: hasBpmOverride ?? this.hasBpmOverride,
       hasDurationOverride: hasDurationOverride ?? this.hasDurationOverride,

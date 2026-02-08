@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/utils/title_case_formatter.dart';
+import '../../lyrics/models/lyrics_data.dart';
+import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'masked_duration_input.dart';
@@ -93,6 +95,7 @@ class SongDetailsResult {
   final int? bpm;
   final int? duration;
   final List<YouTubeLink>? youtubeLinks;
+  final String? lyrics; // JSON string of LyricsData
   final bool hasChanges;
 
   // Flags to indicate which fields were changed (needed to distinguish
@@ -104,6 +107,7 @@ class SongDetailsResult {
   final bool bpmChanged;
   final bool durationChanged;
   final bool youtubeLinksChanged;
+  final bool lyricsChanged;
 
   const SongDetailsResult({
     this.title,
@@ -113,6 +117,7 @@ class SongDetailsResult {
     this.bpm,
     this.duration,
     this.youtubeLinks,
+    this.lyrics,
     required this.hasChanges,
     this.titleChanged = false,
     this.artistChanged = false,
@@ -121,6 +126,7 @@ class SongDetailsResult {
     this.bpmChanged = false,
     this.durationChanged = false,
     this.youtubeLinksChanged = false,
+    this.lyricsChanged = false,
   });
 }
 
@@ -171,6 +177,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   late List<YouTubeLink> _youtubeLinks;
   late List<YouTubeLink> _originalYoutubeLinks;
 
+  // Lyrics
+  LyricsData? _currentLyrics;
+  String? _originalLyricsJson;
+
   bool _isEditingTitle = false;
   bool _isEditingArtist = false;
   bool _hasChanges = false;
@@ -197,6 +207,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
     _originalYoutubeLinks = YouTubeLink.listFromJson(widget.song.youtubeLinks);
     _youtubeLinks = List.from(_originalYoutubeLinks);
+
+    // Initialize lyrics
+    _originalLyricsJson = widget.song.lyrics;
+    _currentLyrics = LyricsData.fromJsonString(widget.song.lyrics);
 
     _titleController.addListener(_checkForChanges);
     _artistController.addListener(_checkForChanges);
@@ -271,6 +285,11 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _originalYoutubeLinks,
     );
 
+    final lyricsJson = _currentLyrics != null && _currentLyrics!.isNotEmpty
+        ? _currentLyrics!.toJsonString()
+        : null;
+    final lyricsChanged = lyricsJson != _originalLyricsJson;
+
     final anyChanged =
         titleChanged ||
         artistChanged ||
@@ -278,7 +297,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         tuningChanged ||
         bpmChanged ||
         durationChanged ||
-        youtubeLinksChanged;
+        youtubeLinksChanged ||
+        lyricsChanged;
 
     debugPrint(
       '[SongDetails] _checkForChanges: bpmChanged=$bpmChanged, anyChanged=$anyChanged',
@@ -381,6 +401,11 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _originalYoutubeLinks,
     );
 
+    final lyricsJson = _currentLyrics != null && _currentLyrics!.isNotEmpty
+        ? _currentLyrics!.toJsonString()
+        : null;
+    final lyricsChanged = lyricsJson != _originalLyricsJson;
+
     debugPrint(
       '[SongDetails] bpmChanged: $bpmChanged (newBpm=$newBpm, original=${widget.song.bpm})',
     );
@@ -395,6 +420,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       duration:
           _currentDurationSeconds, // Always include so handler can check durationChanged flag
       youtubeLinks: youtubeLinksChanged ? _youtubeLinks : null,
+      lyrics: lyricsChanged ? lyricsJson : null,
       hasChanges: _hasChanges,
       titleChanged: titleChanged,
       artistChanged: artistChanged,
@@ -403,6 +429,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       bpmChanged: bpmChanged,
       durationChanged: durationChanged,
       youtubeLinksChanged: youtubeLinksChanged,
+      lyricsChanged: lyricsChanged,
     );
 
     Navigator.of(context).pop(result);
@@ -938,8 +965,34 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // YouTube Links Section
-        _buildYouTubeSection(),
+        // Action buttons row: + Add Lyrics  |  + Add YouTube
+        Row(
+          children: [
+            _buildAddLyricsButton(),
+            const SizedBox(width: 20),
+            _buildYouTubeAddButton(),
+          ],
+        ),
+        // YouTube link buttons (if any)
+        if (_youtubeLinks.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(_youtubeLinks.length, (index) {
+              final link = _youtubeLinks[index];
+              final displayTitle = link.title.length > 25
+                  ? '${link.title.substring(0, 25)}...'
+                  : link.title;
+              return _buildYouTubeLinkButton(displayTitle, link.url, index);
+            }),
+          ),
+        ],
+        // Lyrics preview (if any)
+        if (_currentLyrics != null && _currentLyrics!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _buildLyricsPreview(),
+        ],
         const SizedBox(height: 16),
         // Notes Section
         Text(
@@ -979,47 +1032,115 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
   }
 
-  /// Builds the YouTube links section with + Add YouTube button and link buttons
-  Widget _buildYouTubeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // + Add YouTube button
-        GestureDetector(
-          onTap: _showAddYouTubeModal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, color: AppColors.accent, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                'Add YouTube',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Display existing YouTube link buttons
-        if (_youtubeLinks.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(_youtubeLinks.length, (index) {
-              final link = _youtubeLinks[index];
-              // Truncate title to 25 characters
-              final displayTitle = link.title.length > 25
-                  ? '${link.title.substring(0, 25)}...'
-                  : link.title;
-              return _buildYouTubeLinkButton(displayTitle, link.url, index);
-            }),
+  /// + Add YouTube button widget
+  Widget _buildYouTubeAddButton() {
+    return GestureDetector(
+      onTap: _showAddYouTubeModal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.add, color: AppColors.accent, size: 18),
+          const SizedBox(width: 4),
+          Text(
+            'Add YouTube',
+            style: AppTextStyles.body.copyWith(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
-      ],
+      ),
     );
+  }
+
+  /// + Add Lyrics button widget
+  Widget _buildAddLyricsButton() {
+    final hasLyrics = _currentLyrics != null && _currentLyrics!.isNotEmpty;
+    return GestureDetector(
+      onTap: _showLyricsEditor,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            hasLyrics ? Icons.edit_note : Icons.add,
+            color: AppColors.accent,
+            size: 18,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            hasLyrics ? 'Edit Lyrics' : 'Add Lyrics',
+            style: AppTextStyles.body.copyWith(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Preview card showing first few lines of lyrics
+  Widget _buildLyricsPreview() {
+    final preview = _currentLyrics!.plainText;
+    final previewText = preview.length > 120
+        ? '${preview.substring(0, 120)}...'
+        : preview;
+
+    return GestureDetector(
+      onTap: _showLyricsEditor,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.scaffoldBg,
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          border: Border.all(color: AppColors.borderMuted),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lyrics, color: AppColors.textMuted, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  'Lyrics',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const Spacer(),
+                Icon(Icons.edit, color: AppColors.textMuted, size: 14),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              previewText,
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Open lyrics editor sheet
+  Future<void> _showLyricsEditor() async {
+    final result = await showLyricsEditor(context, initialData: _currentLyrics);
+
+    if (result != null) {
+      setState(() {
+        _currentLyrics = result;
+        _hasChanges = true;
+      });
+      _checkForChanges();
+    }
   }
 
   /// Builds a single YouTube link button with tap-to-open and X to delete

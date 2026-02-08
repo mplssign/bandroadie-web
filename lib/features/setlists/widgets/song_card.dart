@@ -13,25 +13,21 @@ import 'animated_value_text.dart';
 // - Drag handle icon (left, 6px from edge)
 // - Song title (20px white semibold, 36px from left)
 // - Artist name (16px gray, below title)
-// - Delete icon (top right, rose/red)
 // - Tags row: BPM, Duration, Tuning (with colored backgrounds)
+// DELETE: Handled by parent Dismissible (swipe left to delete)
 // Card height: 121px
 // ============================================================================
 
 class SongCard extends StatefulWidget {
   final SetlistSong song;
   final VoidCallback? onTap;
-  final VoidCallback? onDelete;
   final bool showDragHandle;
-  final bool showDeleteIcon;
 
   const SongCard({
     super.key,
     required this.song,
     this.onTap,
-    this.onDelete,
     this.showDragHandle = true,
-    this.showDeleteIcon = true,
   });
 
   @override
@@ -131,46 +127,38 @@ class _SongCardState extends State<SongCard>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top row: title/artist left + trash right
-                    Row(
+                    // Top row: title/artist
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title/Artist block
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.song.title,
-                                style: AppTextStyles.title3,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
+                        Text(
+                          widget.song.title,
+                          style: AppTextStyles.title3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
                                 widget.song.artist,
                                 style: AppTextStyles.callout,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                        ),
-                        // Trash icon
-                        if (widget.showDeleteIcon)
-                          SizedBox(
-                            width: SongCardLayout.trashIconHitSize,
-                            height: SongCardLayout.trashIconHitSize,
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              iconSize: SongCardLayout.trashIconSize,
-                              onPressed: widget.onDelete,
-                              icon: const Icon(
-                                Icons.delete_outline_rounded,
-                                color: AppColors.accent,
-                              ),
                             ),
-                          ),
+                            if (widget.song.lyrics != null &&
+                                widget.song.lyrics!.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.lyrics,
+                                size: 14,
+                                color: AppColors.textMuted,
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
 

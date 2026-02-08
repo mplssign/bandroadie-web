@@ -115,7 +115,9 @@ class CustomTuningService {
     final updated = existing.where((t) => t.id != id).toList();
 
     if (updated.length == existing.length) {
-      debugPrint('[CustomTuningService] Tuning $id not found, nothing to delete');
+      debugPrint(
+        '[CustomTuningService] Tuning $id not found, nothing to delete',
+      );
       return;
     }
 

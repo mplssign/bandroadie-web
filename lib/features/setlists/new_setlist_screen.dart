@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -18,6 +19,8 @@ import 'widgets/back_only_app_bar.dart';
 import 'widgets/bulk_add_songs_overlay.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/song_lookup_overlay.dart';
+import '../lyrics/models/lyrics_data.dart';
+import '../lyrics/widgets/lyrics_view_screen.dart';
 
 // ============================================================================
 // NEW SETLIST SCREEN
@@ -330,17 +333,11 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           ? box.localToGlobal(Offset.zero) & box.size
           : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 56);
 
-      await Share.share(
-        text,
-        sharePositionOrigin: position,
-      );
+      await Share.share(text, sharePositionOrigin: position);
     } catch (e) {
       debugPrint('[SetlistShare] Error sharing: $e');
       if (!context.mounted) return;
-      showErrorSnackBar(
-        context,
-        message: 'Failed to share setlist',
-      );
+      showErrorSnackBar(context, message: 'Failed to share setlist');
     }
   }
 
@@ -434,27 +431,27 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     return result ?? false;
   }
 
-  /// Handle song deletion
-  Future<void> _handleDelete(String songId, String songTitle) async {
+  /// Handle song deletion (returns true if deleted, for Dismissible)
+  Future<bool> _handleDelete(String songId, String songTitle) async {
     final state = ref.read(setlistDetailProvider);
 
     final confirmed = await _showDeleteDialog(songTitle, state.isCatalog);
-    if (!confirmed) return;
+    if (!confirmed) return false;
 
     final notifier = ref.read(setlistDetailProvider.notifier);
 
     final success = await notifier.deleteSong(songId);
 
-    if (mounted) {
-      if (success) {
-        showAppSnackBar(
-          context,
-          message: state.isCatalog
-              ? 'Song removed from Catalog and all setlists'
-              : 'Song removed from setlist',
-        );
-      }
+    if (mounted && success) {
+      HapticFeedback.heavyImpact();
+      showAppSnackBar(
+        context,
+        message: state.isCatalog
+            ? 'Song removed from Catalog and all setlists'
+            : 'Song removed from setlist',
+      );
     }
+    return success;
   }
 
   /// Handle reorder
@@ -642,14 +639,58 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               return Padding(
                 key: ValueKey(song.id),
                 padding: const EdgeInsets.only(bottom: Spacing.space12),
-                child: ReorderableSongCard(
-                  song: song,
-                  index: index,
-                  onEdit: () {},
-                  onDelete: () => _handleDelete(song.id, song.title),
-                  onTuningChanged: (tuning) => ref
-                      .read(setlistDetailProvider.notifier)
-                      .updateSongTuning(song.id, tuning),
+                child: Dismissible(
+                  key: Key('dismiss_${song.id}'),
+                  direction: DismissDirection.endToStart,
+                  dismissThresholds: const {DismissDirection.endToStart: 0.4},
+                  confirmDismiss: (_) => _handleDelete(song.id, song.title),
+                  background: const SizedBox.shrink(),
+                  secondaryBackground: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: Spacing.space24),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        SizedBox(width: Spacing.space8),
+                        Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  child: ReorderableSongCard(
+                    song: song,
+                    index: index,
+                    onTap: () {
+                      final lyrics = LyricsData.fromJsonString(song.lyrics);
+                      if (lyrics.blocks.isNotEmpty) {
+                        showLyricsViewScreen(
+                          context,
+                          lyrics: lyrics,
+                          songId: song.id,
+                          songTitle: song.title,
+                        );
+                      }
+                    },
+                    onEdit: () {},
+                    onTuningChanged: (tuning) => ref
+                        .read(setlistDetailProvider.notifier)
+                        .updateSongTuning(song.id, tuning),
+                  ),
                 ),
               );
             },

@@ -35,4 +35,18 @@ import UserNotifications
                            didFailToRegisterForRemoteNotificationsWithError error: Error) {
     print("❌ Failed to register for remote notifications: \(error)")
   }
+
+  // Clear badge count whenever the app comes to the foreground
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+    application.applicationIconBadgeNumber = 0
+    if #available(iOS 16.0, *) {
+      UNUserNotificationCenter.current().setBadgeCount(0) { error in
+        if let error = error {
+          print("❌ Failed to clear badge: \(error)")
+        }
+      }
+    }
+    // Remove all delivered notifications from the notification center
+    UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+  }
 }

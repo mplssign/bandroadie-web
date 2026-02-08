@@ -1042,6 +1042,63 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
+  /// Updates a song's lyrics globally.
+  ///
+  /// Uses optimistic update pattern:
+  /// 1. Store original state
+  /// 2. Apply change immediately (UI feels instant)
+  /// 3. Persist to database
+  /// 4. On failure: revert to original and show error
+  Future<bool> updateSongLyrics(String songId, String? lyricsJson) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    debugPrint(
+      '[SetlistDetail] updateSongLyrics: songId=$songId, lyrics=${lyricsJson != null ? lyricsJson.substring(0, lyricsJson.length > 30 ? 30 : lyricsJson.length) : 'null'}...',
+    );
+
+    // Store original state for rollback
+    final originalSongs = List<SetlistSong>.from(state.songs);
+
+    // Optimistic update - apply immediately so UI feels instant
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(
+          lyrics: lyricsJson,
+          clearLyrics: lyricsJson == null || lyricsJson.isEmpty,
+        );
+      }
+      return song;
+    }).toList();
+    state = state.copyWith(songs: updatedSongs, clearError: true);
+
+    try {
+      await _repository.updateSongLyrics(
+        bandId: bandId,
+        songId: songId,
+        lyrics: lyricsJson,
+      );
+      debugPrint(
+        '[SetlistDetail] Successfully updated lyrics for song $songId',
+      );
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('[SetlistDetail] Error updating lyrics: $e');
+      debugPrint('[SetlistDetail] Stack trace: $stack');
+
+      // Revert optimistic update
+      state = state.copyWith(
+        songs: originalSongs,
+        error: 'Couldn\'t save lyrics. Try again.',
+      );
+      return false;
+    }
+  }
+
   /// Updates a song's title and/or artist globally.
   ///
   /// Uses optimistic update pattern.
