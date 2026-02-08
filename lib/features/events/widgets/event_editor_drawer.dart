@@ -1227,6 +1227,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       // Invalidate cache
       repository.invalidateCache(widget.bandId);
 
+      debugPrint('[EventEditorDrawer] Refreshing providers after delete...');
+
       // Refresh providers directly to ensure immediate UI update
       // This is more reliable than relying on onSaved callback after pop
       // Await both to ensure data is refreshed before closing drawer
@@ -1234,15 +1236,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         ref.read(gigProvider.notifier).refresh(),
         ref.read(rehearsalProvider.notifier).refresh(),
       ]);
-      ref
+      await ref
           .read(calendarProvider.notifier)
           .invalidateAndRefresh(bandId: widget.bandId);
+
+      debugPrint('[EventEditorDrawer] Refresh complete, popping...');
 
       // Success feedback
       HapticFeedback.mediumImpact();
       if (mounted) {
         Navigator.of(context).pop(true);
         widget.onSaved?.call(); // Refresh caller's data (dashboard + calendar)
+        debugPrint('[EventEditorDrawer] onSaved called');
 
         final message = deleteEntireSeries && _isPartOfRecurringSeries
             ? 'All recurring rehearsals deleted'

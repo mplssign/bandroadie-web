@@ -55,10 +55,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   /// Subscription for band ID changes - must be stored to prevent memory leaks
   ProviderSubscription<String?>? _bandIdSubscription;
 
-  /// Session-level flag to only show availability popup once per app session
-  /// Static so it persists across widget rebuilds but resets when app restarts
-  static bool _hasShownAvailabilityPromptThisSession = false;
-
   @override
   void initState() {
     super.initState();
@@ -151,18 +147,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     }
   }
 
-  /// Check for pending potential gigs and show prompt modals
-  /// Only shows once per app session (first visit to dashboard)
+  /// Check for pending potential gigs and show prompt modals.
+  /// Shows every time the app opens until the user responds to each pending gig.
+  /// Once a user responds, that gig is filtered out by fetchPendingPotentialGigs().
   void _checkPendingGigPrompts() {
     debugPrint('[HomeTabContent] _checkPendingGigPrompts called');
-
-    // Only show availability popup once per session
-    if (_hasShownAvailabilityPromptThisSession) {
-      debugPrint(
-        '[HomeTabContent] Already shown availability prompt this session, skipping',
-      );
-      return;
-    }
 
     if (!mounted) {
       debugPrint('[HomeTabContent] Not mounted, returning');
@@ -178,9 +167,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     debugPrint(
       '[HomeTabContent] Checking pending gig prompts for band $bandId',
     );
-
-    // Mark as shown for this session
-    _hasShownAvailabilityPromptThisSession = true;
 
     // Delay slightly to ensure UI is ready
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -610,7 +596,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 if (gigState.potentialGigs.isNotEmpty) ...[
                                   _AnimatedCardEntrance(
                                     delay: const Duration(milliseconds: 0),
-                                    child: _buildStackedPotentialGigs(
+                                    child: _buildHorizontalPotentialGigs(
                                       gigState.potentialGigs,
                                       responseSummaries,
                                       membersState.members.length,
@@ -738,8 +724,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     );
   }
 
-  /// Builds a vertical list of potential gig cards, sorted by date proximity
-  Widget _buildStackedPotentialGigs(
+  /// Builds a horizontal scrolling list of potential gig cards, sorted by date proximity
+  Widget _buildHorizontalPotentialGigs(
     List<Gig> potentialGigs,
     Map<String, GigResponseSummary> responseSummaries,
     int memberCount,
@@ -754,23 +740,23 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       return const SizedBox.shrink();
     }
 
-    // Display as a vertical list with spacing
-    return Column(
-      children: [
-        for (int i = 0; i < upcomingPotentialGigs.length; i++) ...[
-          Builder(
-            builder: (context) {
-              final gig = upcomingPotentialGigs[i];
-              return PotentialGigCard(
-                gig: gig,
-                onTap: () => _openEditGigSheet(gig),
-              );
-            },
-          ),
-          if (i < upcomingPotentialGigs.length - 1)
-            const SizedBox(height: Spacing.space16),
-        ],
-      ],
+    // Display as horizontal scrolling list
+    return SizedBox(
+      height: Spacing.potentialGigCardHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: upcomingPotentialGigs.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final gig = upcomingPotentialGigs[index];
+          return PotentialGigCard(
+            gig: gig,
+            width: Spacing.potentialGigCardWidth,
+            onTap: () => _openEditGigSheet(gig),
+          );
+        },
+      ),
     );
   }
 

@@ -145,6 +145,19 @@ Deno.serve(async (req) => {
 
         if (tokensError) throw tokensError;
 
+        // Count unread notifications for badge (including this new one)
+        const { count: unreadCount, error: countError } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipient_user_id', recipientUserId)
+            .is('read_at', null);
+
+        if (countError) {
+            console.error('Error counting unread notifications:', countError);
+        }
+        const badgeCount = unreadCount ?? 1;
+        console.log(`Badge count for user: ${badgeCount}`);
+
         if (!tokens || tokens.length === 0) {
             console.log(`No FCM tokens found for user ${recipientUserId}`);
             return new Response(
@@ -203,7 +216,7 @@ Deno.serve(async (req) => {
                         payload: {
                             aps: {
                                 sound: 'default',
-                                badge: 1,
+                                badge: badgeCount,
                             },
                         },
                     },

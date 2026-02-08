@@ -19,6 +19,7 @@ import 'widgets/add_block_out_drawer.dart';
 import 'widgets/calendar_app_bar.dart';
 import 'widgets/calendar_event_card.dart';
 import 'widgets/calendar_grid.dart';
+import 'widgets/calendar_subscription_dialog.dart';
 import 'widgets/day_detail_bottom_sheet.dart';
 
 // ============================================================================
@@ -93,6 +94,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   }
 
   void _refreshCalendarData() {
+    debugPrint('[CalendarTabContent] _refreshCalendarData called');
     // Refresh rehearsals and gigs
     ref.read(rehearsalProvider.notifier).refresh();
     ref.read(gigProvider.notifier).refresh();
@@ -199,6 +201,10 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   Widget build(BuildContext context) {
     final bandState = ref.watch(activeBandProvider);
     final calendarState = ref.watch(calendarProvider);
+
+    debugPrint(
+      '[CalendarTabContent] build called with ${calendarState.allEvents.length} events, ${calendarState.eventsForMonth.length} this month',
+    );
 
     // Watch display band for header avatar (shows draft during editing)
     final displayBand = ref.watch(displayBandProvider);
@@ -313,52 +319,75 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
               calendarState: calendarState,
               onPreviousMonth: () =>
                   ref.read(calendarProvider.notifier).previousMonth(),
-              onNextMonth: () => ref.read(calendarProvider.notifier).nextMonth(),
-            onDayTap: _handleDayTap,
-          ),
+              onNextMonth: () =>
+                  ref.read(calendarProvider.notifier).nextMonth(),
+              onDayTap: _handleDayTap,
+            ),
 
-          const SizedBox(height: Spacing.space16),
+            const SizedBox(height: Spacing.space16),
 
-          // Action buttons row
-          Row(
-            children: [
-              Expanded(
-                child: BrandActionButton(
-                  icon: Icons.add_rounded,
-                  label: 'Add Event',
-                  onPressed: _handleAddEvent,
+            // Action buttons row
+            Row(
+              children: [
+                Expanded(
+                  child: BrandActionButton(
+                    icon: Icons.add_rounded,
+                    label: 'Add Event',
+                    onPressed: _handleAddEvent,
+                  ),
+                ),
+                const SizedBox(width: Spacing.space12),
+                Expanded(
+                  child: BrandActionButton(
+                    icon: Icons.block_rounded,
+                    label: 'Block Out',
+                    onPressed: _handleBlockOut,
+                  ),
+                ),
+              ],
+            ),
+
+            // + Subscribe to Calendar text button
+            const SizedBox(height: Spacing.space16),
+            Center(
+              child: GestureDetector(
+                onTap: () => showCalendarSubscriptionDialog(context, ref),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.space16,
+                    vertical: Spacing.space8,
+                  ),
+                  child: Text(
+                    '+ Subscribe to Calendar',
+                    style: TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: Spacing.space12),
-              Expanded(
-                child: BrandActionButton(
-                  icon: Icons.block_rounded,
-                  label: 'Block Out',
-                  onPressed: _handleBlockOut,
-                ),
-              ),
-            ],
-          ),
+            ),
 
-          const SizedBox(height: Spacing.space24),
+            const SizedBox(height: Spacing.space24),
 
-          // This Month's Events section
-          _EventsSection(
-            events: calendarState.eventsForMonth,
-            onEventTap: _openEditEventSheet,
-          ),
+            // This Month's Events section
+            _EventsSection(
+              events: calendarState.eventsForMonth,
+              onEventTap: _openEditEventSheet,
+            ),
 
-          // Bottom padding for nav bar (extra space to scroll past)
-          SizedBox(
-            height:
-                Spacing.space48 +
-                Spacing.bottomNavHeight +
-                MediaQuery.of(context).padding.bottom +
-                32, // Extra scroll clearance
-          ),
-        ],
+            // Bottom padding for nav bar (extra space to scroll past)
+            SizedBox(
+              height:
+                  Spacing.space48 +
+                  Spacing.bottomNavHeight +
+                  MediaQuery.of(context).padding.bottom +
+                  32, // Extra scroll clearance
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 }

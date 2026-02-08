@@ -20,7 +20,15 @@ class PotentialGigCard extends StatefulWidget {
   final Gig gig;
   final VoidCallback? onTap;
 
-  const PotentialGigCard({super.key, required this.gig, this.onTap});
+  /// Optional fixed width for horizontal scroll mode
+  final double? width;
+
+  const PotentialGigCard({
+    super.key,
+    required this.gig,
+    this.onTap,
+    this.width,
+  });
 
   @override
   State<PotentialGigCard> createState() => _PotentialGigCardState();
@@ -98,6 +106,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
           animation: _gradientController,
           builder: (context, child) {
             return Container(
+              width: widget.width,
               constraints: const BoxConstraints(minHeight: 130),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -133,75 +142,55 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Left side - Title with info icon
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    '!',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Potential Gig',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
+                        // Left side - Title
+                        Text(
+                          'Potential Gig',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
 
+                        const SizedBox(width: 8),
+
                         // Right side - date/time (or "Multiple options" for multi-date gigs)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              widget.gig.isMultiDate
-                                  ? 'Multiple options'
-                                  : _formatDateLine(widget.gig.date),
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                height: 1.2,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                widget.gig.isMultiDate
+                                    ? 'Multiple options'
+                                    : _formatShortDate(widget.gig.date),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.gig.isMultiDate
-                                  ? _formatMultiDateRange(widget.gig.allDates)
-                                  : TimeFormatter.formatRange(
-                                      widget.gig.startTime,
-                                      widget.gig.endTime,
-                                    ),
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                                height: 1.2,
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.gig.isMultiDate
+                                    ? _formatMultiDateRange(widget.gig.allDates)
+                                    : TimeFormatter.formatRange(
+                                        widget.gig.startTime,
+                                        widget.gig.endTime,
+                                      ),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  height: 1.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -248,8 +237,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
     );
   }
 
-  String _formatDateLine(DateTime date) {
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  /// Shorter date format for compact card layout: "Feb 6, 2026"
+  String _formatShortDate(DateTime date) {
     final months = [
       'Jan',
       'Feb',
@@ -264,7 +253,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
       'Nov',
       'Dec',
     ];
-    return '${days[date.weekday - 1]} ${months[date.month - 1]} ${date.day}, ${date.year}';
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   /// Format a range of dates for multi-date potential gigs

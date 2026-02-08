@@ -439,19 +439,29 @@ class EventFormData {
     return (hour: parsed.hour, minutes: parsed.minutes, isPM: parsed.isPM);
   }
 
-  /// Infer duration from start and end times using TimeFormatter
+  /// Infer duration from start and end times using TimeFormatter.
+  /// Returns the closest EventDuration enum value to the computed duration.
   static EventDuration _inferDuration(String startTime, String endTime) {
     final durationMinutes = TimeFormatter.durationMinutes(startTime, endTime);
 
-    // Map to closest EventDuration
-    if (durationMinutes <= 45) return EventDuration.min30;
-    if (durationMinutes <= 75) return EventDuration.hour1;
-    if (durationMinutes <= 105) return EventDuration.hour1_30;
-    if (durationMinutes <= 135) return EventDuration.hour2;
-    if (durationMinutes <= 165) return EventDuration.hour2_30;
-    if (durationMinutes <= 195) return EventDuration.hour3;
-    if (durationMinutes <= 225) return EventDuration.hour3_30;
-    return EventDuration.hour4;
+    // Try exact match first
+    for (final d in EventDuration.values) {
+      if (d.minutes == durationMinutes) return d;
+    }
+
+    // Find the closest EventDuration value
+    EventDuration closest = EventDuration.values.first;
+    int minDiff = (closest.minutes - durationMinutes).abs();
+
+    for (final d in EventDuration.values) {
+      final diff = (d.minutes - durationMinutes).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = d;
+      }
+    }
+
+    return closest;
   }
 
   /// Create EventFormData from a Gig model

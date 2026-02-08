@@ -52,6 +52,10 @@ class Spacing {
   /// Figma: gig card height 126px
   static const double gigCardHeight = 126.0;
 
+  /// Potential gig card dimensions for horizontal scroll
+  static const double potentialGigCardHeight = 130.0;
+  static const double potentialGigCardWidth = 300.0;
+
   /// Figma: active nav item 80x53
   static const double navItemWidth = 80.0;
   static const double navItemHeight = 53.0;

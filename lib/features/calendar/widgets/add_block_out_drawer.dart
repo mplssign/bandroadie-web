@@ -261,6 +261,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     try {
       final repository = ref.read(blockOutRepositoryProvider);
 
+      debugPrint('[BlockOutDrawer] Deleting block out span...');
+
       // Delete all dates in the span
       await repository.deleteBlockOutSpan(
         userId: widget.existingBlockOut!.userId,
@@ -269,11 +271,14 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         endDate: widget.existingBlockOut!.endDate,
       );
 
+      debugPrint('[BlockOutDrawer] Delete completed, calling onSaved...');
+
       // Success feedback
       HapticFeedback.mediumImpact();
       if (mounted) {
         Navigator.of(context).pop(true);
         widget.onSaved?.call();
+        debugPrint('[BlockOutDrawer] onSaved called');
 
         showSuccessSnackBar(context, message: 'Block out deleted');
       }

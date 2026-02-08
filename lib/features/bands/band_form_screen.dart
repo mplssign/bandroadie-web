@@ -977,6 +977,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final user = supabase.auth.currentUser;
     if (user == null || widget.initialBand == null) return;
 
+    // Debug: Check current user's role in this band
+    final bandId = widget.initialBand!.id;
+    final myMembership = _members
+        .where((m) => m['user_id'] == user.id)
+        .toList();
+    debugPrint('[RemoveMember] Current user: ${user.id}');
+    debugPrint('[RemoveMember] Band ID: $bandId');
+    debugPrint('[RemoveMember] My membership: $myMembership');
+    debugPrint('[RemoveMember] Target member: $member');
+
     // Prevent removing yourself
     if (member['user_id'] == user.id) {
       _showErrorSnackBar('You cannot remove yourself from the band');
@@ -1061,14 +1071,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         showSuccessSnackBar(context, message: '$displayName removed from band');
       }
     } on PostgrestException catch (e) {
-      debugPrint('[RemoveMember] PostgrestException: ${e.code} - ${e.message}');
+      debugPrint(
+        '[RemoveMember] PostgrestException: ${e.code} - ${e.message} - ${e.details}',
+      );
       if (mounted) {
-        _showErrorSnackBar('Failed to remove member');
+        _showErrorSnackBar('Failed to remove member: ${e.message}');
       }
     } catch (e) {
       debugPrint('[RemoveMember] Error: $e');
       if (mounted) {
-        _showErrorSnackBar('Failed to remove member');
+        _showErrorSnackBar('Failed to remove member: $e');
       }
     }
   }

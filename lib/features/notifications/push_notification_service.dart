@@ -59,6 +59,8 @@ class PushNotificationService {
     // Initialize local notifications for foreground display (mobile only)
     if (!kIsWeb) {
       await _initializeLocalNotifications();
+      // Clear badge when app opens
+      await clearBadge();
     }
 
     // Listen for foreground messages
@@ -74,6 +76,41 @@ class PushNotificationService {
     }
 
     debugPrint('[PushNotificationService] Initialized');
+  }
+
+  /// Clear the app icon badge count
+  Future<void> clearBadge() async {
+    try {
+      if (Platform.isIOS || Platform.isMacOS) {
+        // On iOS/macOS, use the platform-specific implementation to set badge to 0
+        final iosPlugin = _localNotifications
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >();
+        if (iosPlugin != null) {
+          // Show a silent notification with badge 0 to clear it, then cancel
+          await _localNotifications.show(
+            0, // notification id
+            null, // no title (silent)
+            null, // no body (silent)
+            const NotificationDetails(
+              iOS: DarwinNotificationDetails(
+                presentAlert: false,
+                presentBadge: true,
+                presentSound: false,
+                badgeNumber: 0, // Clear badge
+              ),
+            ),
+          );
+          // Cancel the silent notification immediately
+          await _localNotifications.cancel(0);
+          debugPrint('[PushNotificationService] Badge cleared to 0');
+        }
+      }
+      // Android doesn't have native badge support the same way
+    } catch (e) {
+      debugPrint('[PushNotificationService] Error clearing badge: $e');
+    }
   }
 
   /// Request notification permission (with soft pre-prompt handled by caller)

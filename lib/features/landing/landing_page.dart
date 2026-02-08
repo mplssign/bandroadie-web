@@ -4,6 +4,7 @@ import '../../app/theme/design_tokens.dart';
 import '../../shared/widgets/scroll_animated_widget.dart';
 import 'widgets/hero_section.dart';
 import 'widgets/features_section.dart';
+import 'widgets/support_section.dart';
 import 'widgets/value_section.dart';
 import 'widgets/screenshots_section.dart';
 import 'widgets/social_section.dart';
@@ -87,6 +88,10 @@ class _LandingPageState extends State<LandingPage> {
                       ScrollAnimatedWidget(
                         offset: const Offset(0, 80),
                         child: const FeaturesSection(),
+                      ),
+                      ScrollAnimatedWidget(
+                        offset: const Offset(0, 80),
+                        child: const SupportSection(),
                       ),
                       ScrollAnimatedWidget(
                         offset: const Offset(0, 80),

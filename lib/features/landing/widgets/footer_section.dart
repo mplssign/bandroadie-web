@@ -38,6 +38,12 @@ class FooterSection extends StatelessWidget {
                 label: 'Facebook',
                 url: 'https://www.facebook.com/BandRaodie',
               ),
+              const SizedBox(width: 16),
+              _SocialIconButton(
+                icon: Icons.email_rounded,
+                label: 'Email',
+                url: 'mailto:hello@bandroadie.com',
+              ),
             ],
           ),
           const SizedBox(height: 32),

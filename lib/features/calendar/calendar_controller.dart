@@ -199,8 +199,14 @@ class CalendarNotifier extends Notifier<CalendarState> {
   /// Load all events (gigs + rehearsals + block outs) for the active band
   Future<void> loadEvents({bool forceRefresh = false}) async {
     final bandId = _bandId;
-    if (bandId == null || bandId.isEmpty) return;
+    if (bandId == null || bandId.isEmpty) {
+      debugPrint('[CalendarController] loadEvents skipped - no bandId');
+      return;
+    }
 
+    debugPrint(
+      '[CalendarController] loadEvents starting for band $bandId (forceRefresh=$forceRefresh)',
+    );
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
@@ -260,7 +266,10 @@ class CalendarNotifier extends Notifier<CalendarState> {
 
       if (kDebugMode) {
         debugPrint(
-          '[CalendarController] Loaded ${gigs.length} gigs, ${rehearsals.length} rehearsals, ${blockOuts.length} block outs (${blockOutSpans.length} spans)',
+          '[CalendarController] State updated with ${events.length} total events:',
+        );
+        debugPrint(
+          '[CalendarController] - ${gigs.length} gigs, ${rehearsals.length} rehearsals, ${blockOuts.length} block outs (${blockOutSpans.length} spans)',
         );
       }
     } catch (e) {
@@ -410,7 +419,8 @@ class CalendarNotifier extends Notifier<CalendarState> {
 
   /// Invalidate cache for a specific band and force reload.
   /// Call this after deleting/modifying events from Dashboard or other screens.
-  void invalidateAndRefresh({required String bandId}) {
+  /// Returns a Future so callers can await the refresh completion.
+  Future<void> invalidateAndRefresh({required String bandId}) async {
     // Clear cache entries for this band only
     final keysToRemove = _cache.keys
         .where((key) => key.startsWith('$bandId-'))
@@ -423,8 +433,8 @@ class CalendarNotifier extends Notifier<CalendarState> {
       '[Calendar] invalidateAndRefresh for band $bandId, cleared ${keysToRemove.length} cached months',
     );
 
-    // Force reload events
-    loadEvents(forceRefresh: true);
+    // Force reload events and await completion
+    await loadEvents(forceRefresh: true);
   }
 
   /// Navigate to the previous month
