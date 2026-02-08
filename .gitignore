@@ -17,6 +17,7 @@ Thumbs.db
 # ========================
 .env
 .env.*
+.env*.local
 *.pem
 *.key
 
@@ -85,5 +86,25 @@ supabase/.branches/
 build/
 app.*.symbols
 app.*.map.json
-.vercel
-.env*.local
+
+# ========================
+# Flutter Web build output
+# ========================
+web/app/
+web/assets/
+web/canvaskit/
+web/icons/
+web/*.js
+web/*.js.map
+web/flutter_service_worker.js*
+web/manifest.json
+
+# ========================
+# Firebase (optional future-proofing)
+# ========================
+.firebase/
+
+# ========================
+# Test artifacts
+# ========================
+test/.dart_tool/
