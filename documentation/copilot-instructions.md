@@ -63,13 +63,32 @@ Song cards use tap-to-edit for BPM, Duration, Tuning. Save on blur, show saving 
 ### RLS Bypass for Legacy Data
 Songs with `NULL band_id` require RPC functions (`update_song_metadata`, `clear_song_metadata`) that use `SECURITY DEFINER` to bypass Row Level Security.
 
+### Event Editor Drawer
+The Add/Edit Event drawer (`lib/features/events/widgets/event_editor_drawer.dart`) is a large stateful widget (~4000 lines) covering rehearsals, gigs, and potential gigs.
+
+**Key conventions:**
+- **Event title field:** No auto title-case. Uses `TextCapitalization.sentences` — user capitalization is preserved exactly (supports acronyms like NAMM, SXSW)
+- **Location and city fields:** Still use `TitleCaseTextFormatter` and `TextCapitalization.words`
+- **Potential gig multi-date:** When potential gig toggle is ON, a "+ Add another date" button appears directly below the date picker. No separate "Multiple" toggle exists — the feature is always available for potential gigs
+- **Additional dates are cleared** when the potential gig toggle is turned OFF
+
 ## Supabase Integration
 
 ### Authentication
 Magic link with PKCE flow. Key files:
 - `lib/features/auth/login_screen.dart` - `signInWithOtp()`
 - `lib/features/auth/auth_confirm_screen.dart` - Web token verification with `verifyOTP()`
+- `lib/features/auth/auth_gate.dart` - Routes new users to `OnboardingGateScreen`
 - Deep link scheme: `bandroadie://login-callback/`
+
+### Onboarding Flow
+First-time users see an animated onboarding (`lib/features/onboarding/onboarding_screen.dart`) with:
+- Cinematic splash (logo bounce, tagline blur→sharp, rose glow)
+- 3-step wizard: Name → Zip → Birthday (spring-based card transitions)
+- Confetti celebration on completion
+- "Skip for now" on every step — skippable, not blocking
+- Data saves to `users` table (first_name, zip, birthday)
+- Uses `confetti` package, scoped `_OB` design tokens (pure black bg, rose accent)
 
 ### Database Queries
 Use `supabase.from('table').select()` with explicit column lists. Join syntax:

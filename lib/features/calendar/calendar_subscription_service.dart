@@ -37,7 +37,9 @@ class CalendarSubscriptionService {
 
       return '$_feedBaseUrl?token=$token';
     } catch (e) {
-      debugPrint('[CalendarSubscriptionService] Error getting subscription URL: $e');
+      debugPrint(
+        '[CalendarSubscriptionService] Error getting subscription URL: $e',
+      );
       return null;
     }
   }
@@ -48,7 +50,9 @@ class CalendarSubscriptionService {
       final response = await _client.rpc('get_my_calendar_token');
       return response as String?;
     } catch (e) {
-      debugPrint('[CalendarSubscriptionService] Error getting calendar token: $e');
+      debugPrint(
+        '[CalendarSubscriptionService] Error getting calendar token: $e',
+      );
       return null;
     }
   }

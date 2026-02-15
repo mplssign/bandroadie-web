@@ -22,17 +22,23 @@ typedef SetlistActionCallback = Future<bool> Function(Setlist setlist);
 class SwipeableSetlistCard extends StatefulWidget {
   final Setlist setlist;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final VoidCallback? onEditName;
   final SetlistActionCallback? onDeleteConfirmed;
   final SetlistActionCallback? onDuplicateConfirmed;
+  final int index;
+  final bool isDraggable;
 
   const SwipeableSetlistCard({
     super.key,
     required this.setlist,
     this.onTap,
+    this.onLongPress,
     this.onEditName,
     this.onDeleteConfirmed,
     this.onDuplicateConfirmed,
+    this.index = 0,
+    this.isDraggable = false,
   });
 
   @override
@@ -71,7 +77,10 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
       child: SetlistCard(
         setlist: widget.setlist,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         onEditName: widget.onEditName,
+        index: widget.index,
+        isDraggable: widget.isDraggable,
       ),
     );
   }

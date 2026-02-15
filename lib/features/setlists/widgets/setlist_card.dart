@@ -177,8 +177,9 @@ class _SetlistCardState extends State<SetlistCard>
                           child: Icon(
                             Icons.drag_indicator_rounded,
                             size: 24,
-                            color:
-                                AppColors.textSecondary.withValues(alpha: 0.6),
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                       ),
