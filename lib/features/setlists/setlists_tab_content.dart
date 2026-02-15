@@ -17,7 +17,6 @@ import 'new_setlist_screen.dart';
 import 'setlist_detail_screen.dart';
 import 'setlist_repository.dart';
 import 'setlists_screen.dart' show setlistsProvider;
-import 'widgets/setlist_card.dart';
 import 'widgets/setlists_app_bar.dart';
 import 'widgets/swipeable_setlist_card.dart';
 
@@ -584,17 +583,21 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   itemCount: setlists.where((s) => !s.isCatalog).length,
                   onReorder: _handleReorder,
                   itemBuilder: (context, index) {
-                    final reorderableSetlists =
-                        setlists.where((s) => !s.isCatalog).toList();
+                    final reorderableSetlists = setlists
+                        .where((s) => !s.isCatalog)
+                        .toList();
                     final setlist = reorderableSetlists[index];
                     return Padding(
                       key: ValueKey(setlist.id),
                       padding: const EdgeInsets.only(bottom: Spacing.space12),
-                      child: SetlistCard(
+                      child: SwipeableSetlistCard(
                         setlist: setlist,
                         index: index,
                         isDraggable: true,
                         onTap: () => _onSetlistTap(setlist),
+                        onEditName: () => _showRenameDialog(setlist),
+                        onDeleteConfirmed: (s) => _confirmDelete(s),
+                        onDuplicateConfirmed: (s) => _confirmDuplicate(s),
                       ),
                     );
                   },
@@ -602,22 +605,19 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                     return AnimatedBuilder(
                       animation: animation,
                       builder: (context, child) {
-                        final scale = Tween<double>(
-                          begin: 1.0,
-                          end: 1.02,
-                        ).evaluate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOut,
-                          ),
-                        );
+                        final scale = Tween<double>(begin: 1.0, end: 1.02)
+                            .evaluate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOut,
+                              ),
+                            );
                         return Transform.scale(
                           scale: scale,
                           child: Material(
                             color: Colors.transparent,
                             elevation: 8,
-                            shadowColor:
-                                Colors.black.withValues(alpha: 0.3),
+                            shadowColor: Colors.black.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(
                               Spacing.buttonRadius,
                             ),

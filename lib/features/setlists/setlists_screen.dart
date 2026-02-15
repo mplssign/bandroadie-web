@@ -31,7 +31,6 @@ import 'setlist_repository.dart';
 import 'widgets/empty_setlists_state.dart';
 import 'widgets/setlists_app_bar.dart';
 import 'widgets/setlists_bottom_nav_bar.dart';
-import 'widgets/setlist_card.dart';
 import 'widgets/swipeable_setlist_card.dart';
 
 // ============================================================================
@@ -291,10 +290,7 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     final ids = nonCatalog.map((s) => s.id).toList();
 
     try {
-      await _repository.reorderSetlists(
-        bandId: bandId,
-        setlistIdsInOrder: ids,
-      );
+      await _repository.reorderSetlists(bandId: bandId, setlistIdsInOrder: ids);
       _preReorderSnapshot = null; // Clear snapshot on success
       return true;
     } catch (e) {
@@ -1060,12 +1056,14 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
               return Padding(
                 key: ValueKey(setlist.id),
                 padding: const EdgeInsets.only(bottom: Spacing.space12),
-                child: SetlistCard(
+                child: SwipeableSetlistCard(
                   setlist: setlist,
                   index: index,
                   isDraggable: true,
                   onTap: () => _onSetlistTap(setlist),
                   onEditName: () => _showRenameDialog(setlist),
+                  onDeleteConfirmed: _confirmDelete,
+                  onDuplicateConfirmed: _confirmDuplicate,
                 ),
               );
             },
@@ -1074,10 +1072,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                 animation: animation,
                 builder: (context, child) {
                   final scale = Tween<double>(begin: 1.0, end: 1.02).evaluate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOut,
-                    ),
+                    CurvedAnimation(parent: animation, curve: Curves.easeOut),
                   );
                   return Transform.scale(
                     scale: scale,
@@ -1085,9 +1080,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       color: Colors.transparent,
                       elevation: 8,
                       shadowColor: Colors.black.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(
-                        Spacing.buttonRadius,
-                      ),
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                       child: child,
                     ),
                   );
@@ -1099,9 +1092,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
         ),
 
         // Bottom padding
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 24),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
     );
   }

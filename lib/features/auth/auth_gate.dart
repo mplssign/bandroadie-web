@@ -8,6 +8,7 @@ import 'package:bandroadie/app/services/auth_debug_logger.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../bands/active_band_controller.dart';
 import '../notifications/push_notification_service.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../profile/my_profile_screen.dart';
 import '../shell/app_shell.dart';
 import '../shell/no_band_shell.dart';
@@ -440,7 +441,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
         to: 'profile_gate',
         reason: 'Profile incomplete',
       );
-      return ProfileGateScreen(
+      return OnboardingGateScreen(
         onProfileSaved: onProfileSaved,
         onSkip: onSkipProfile,
       );
@@ -534,7 +535,29 @@ class _AuthGateState extends ConsumerState<AuthGate>
   }
 }
 
-/// Wrapper for MyProfileScreen that allows skipping profile completion
+/// Animated onboarding experience for first-time users.
+/// Falls back to the classic ProfileGateScreen if needed.
+class OnboardingGateScreen extends StatelessWidget {
+  final VoidCallback onProfileSaved;
+  final VoidCallback? onSkip;
+
+  const OnboardingGateScreen({
+    super.key,
+    required this.onProfileSaved,
+    this.onSkip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: onSkip != null,
+      child: OnboardingScreen(onComplete: onProfileSaved, onSkip: onSkip),
+    );
+  }
+}
+
+/// Legacy wrapper for MyProfileScreen that allows skipping profile completion.
+/// Still used when editing an existing profile from settings.
 class ProfileGateScreen extends StatelessWidget {
   final VoidCallback onProfileSaved;
   final VoidCallback? onSkip;
@@ -548,7 +571,6 @@ class ProfileGateScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // Allow pop if onSkip is provided (user can skip profile)
       canPop: onSkip != null,
       child: MyProfileScreen(
         isGated: true,

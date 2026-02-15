@@ -124,7 +124,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Set<String> _selectedMemberIds = {};
 
   // Multi-date state for potential gigs
-  bool _isMultiDate = false;
   List<DateTime> _additionalDates = [];
   Map<DateTime, String> _existingGigDateIds = {}; // For edit mode
 
@@ -227,7 +226,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _isPotentialGig = data.isPotentialGig;
       _selectedMemberIds = Set.from(data.selectedMemberIds);
       // Populate multi-date state for edit mode
-      _isMultiDate = data.additionalDates.isNotEmpty;
       _additionalDates = List.from(data.additionalDates);
       _existingGigDateIds = Map.from(data.existingGigDateIds);
       // Populate setlist state for edit mode
@@ -256,7 +254,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _loadMemberAvailability();
 
         // Load per-date availability for multi-date potential gigs
-        if (_isMultiDate && _additionalDates.isNotEmpty) {
+        if (_additionalDates.isNotEmpty) {
           _loadPerDateAvailability();
         }
 
@@ -699,19 +697,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         final members = ref.read(membersProvider).members;
         _selectedMemberIds = members.map((m) => m.userId).toSet();
       }
-      // When disabling potential gig, reset multi-date state
-      if (!value) {
-        _isMultiDate = false;
-        _additionalDates = [];
-      }
-    });
-    _markDirty();
-  }
-
-  void _toggleMultiDate(bool value) {
-    setState(() {
-      _isMultiDate = value;
-      // When toggling off, remove all additional dates
+      // When disabling potential gig, clear additional dates
       if (!value) {
         _additionalDates = [];
       }
@@ -783,7 +769,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       loadInIsPM: _loadInIsPM,
       isPotentialGig: _eventType == EventType.gig && _isPotentialGig,
       selectedMemberIds: _selectedMemberIds,
-      additionalDates: _isMultiDate ? _additionalDates : [],
+      additionalDates: (_eventType == EventType.gig && _isPotentialGig)
+          ? _additionalDates
+          : [],
       existingGigDateIds: _existingGigDateIds,
       setlistId: _selectedSetlistId,
       setlistName: _selectedSetlistName,
@@ -998,7 +986,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
           // Save per-date availability responses for multi-date potential gigs
           if (_isPotentialGig &&
-              _isMultiDate &&
+              _additionalDates.isNotEmpty &&
               _perDateAvailability.isNotEmpty) {
             await _savePerDateResponses();
           }
@@ -1597,23 +1585,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Widget _buildDatePicker() {
+    final showMultiDate = _eventType == EventType.gig && _isPotentialGig;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label row with optional "Multiple" toggle for potential gigs
-        Row(
-          children: [
-            Text(
-              'Date',
-              style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const Spacer(),
-            // Show "Multiple" toggle only for potential gigs
-            if (_eventType == EventType.gig && _isPotentialGig)
-              _buildMultipleDatesToggle(),
-          ],
+        // Label row
+        Text(
+          'Date',
+          style: AppTextStyles.footnote.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 6),
         // Primary date picker
@@ -1622,81 +1604,50 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           onTap: _isSaving ? null : _showDatePicker,
           showRemoveButton: false,
         ),
-        // Additional date pickers (when multi-date is enabled)
-        if (_isMultiDate) ...[
+        // Additional date pickers (potential gigs)
+        if (showMultiDate) ...[
           for (int i = 0; i < _additionalDates.length; i++) ...[
             const SizedBox(height: 8),
             _buildSingleDatePicker(
               date: _additionalDates[i],
               onTap: _isSaving ? null : () => _showAdditionalDatePicker(i),
               showRemoveButton: true,
-              showAddButton: i == _additionalDates.length - 1,
               onRemove: () => _removeAdditionalDate(i),
-              onAdd: _addAdditionalDate,
             ),
           ],
-          // Show add button if no additional dates yet
-          if (_additionalDates.isEmpty) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _isSaving ? null : _addAdditionalDate,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(
-                    color: AppColors.borderMuted,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_rounded, size: 18, color: AppColors.accent),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Add another date',
-                      style: AppTextStyles.callout.copyWith(
-                        color: AppColors.accent,
-                      ),
-                    ),
-                  ],
+          // Always show "+ Add another date" button for potential gigs
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _isSaving ? null : _addAdditionalDate,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.scaffoldBg,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.4),
+                  style: BorderStyle.solid,
                 ),
               ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_rounded, size: 18, color: AppColors.accent),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Add another date',
+                    style: AppTextStyles.callout.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ],
       ],
-    );
-  }
-
-  /// Builds the "Multiple" toggle button
-  Widget _buildMultipleDatesToggle() {
-    return GestureDetector(
-      onTap: _isSaving ? null : () => _toggleMultiDate(!_isMultiDate),
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: _isMultiDate ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _isMultiDate ? AppColors.accent : AppColors.borderMuted,
-          ),
-        ),
-        child: Text(
-          'Multiple',
-          style: AppTextStyles.footnote.copyWith(
-            color: _isMultiDate ? Colors.white : AppColors.textSecondary,
-            fontWeight: _isMultiDate ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
     );
   }
 
@@ -1705,9 +1656,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     required DateTime date,
     required VoidCallback? onTap,
     required bool showRemoveButton,
-    bool showAddButton = false,
     VoidCallback? onRemove,
-    VoidCallback? onAdd,
   }) {
     return Row(
       children: [
@@ -1740,48 +1689,26 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
           ),
         ),
-        // Show +/- controls for additional dates (not the primary date)
-        if (showRemoveButton || showAddButton) ...[
+        // Show remove control for additional dates (not the primary date)
+        if (showRemoveButton) ...[
           const SizedBox(width: 8),
-          // Remove button
-          if (showRemoveButton)
-            GestureDetector(
-              onTap: _isSaving ? null : onRemove,
-              child: Container(
-                width: 36,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderMuted),
-                ),
-                child: const Icon(
-                  Icons.remove_rounded,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
+          GestureDetector(
+            onTap: _isSaving ? null : onRemove,
+            child: Container(
+              width: 36,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.scaffoldBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderMuted),
+              ),
+              child: const Icon(
+                Icons.remove_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
               ),
             ),
-          if (showRemoveButton && showAddButton) const SizedBox(width: 4),
-          // Add button (only on the last date picker)
-          if (showAddButton)
-            GestureDetector(
-              onTap: _isSaving ? null : onAdd,
-              child: Container(
-                width: 36,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderMuted),
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  size: 20,
-                  color: AppColors.accent,
-                ),
-              ),
-            ),
+          ),
         ],
       ],
     );
@@ -2519,9 +2446,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   controller: controller,
                   focusNode: focusNode,
                   enabled: !_isSaving,
-                  textCapitalization: TextCapitalization.words,
+                  textCapitalization: TextCapitalization.sentences,
                   textInputAction: TextInputAction.done,
-                  inputFormatters: [TitleCaseTextFormatter()],
                   style: AppTextStyles.callout.copyWith(
                     color: AppColors.textPrimary,
                   ),
@@ -2777,7 +2703,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final isMultiDateEditMode =
         widget.mode == EventEditorMode.edit &&
         widget.existingEventId != null &&
-        _isMultiDate &&
         _additionalDates.isNotEmpty;
 
     // Container with conditional rose border when toggle is ON
@@ -3038,7 +2963,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   /// Load per-date availability for multi-date potential gigs
   Future<void> _loadPerDateAvailability() async {
     final gigId = widget.existingEventId;
-    if (gigId == null || !_isMultiDate) return;
+    if (gigId == null || _additionalDates.isEmpty) return;
 
     setState(() => _isLoadingPerDateAvailability = true);
 

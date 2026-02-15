@@ -176,9 +176,11 @@ band-roadie/
 │   │   ├── auth/                 # Authentication screens
 │   │   ├── bands/                # Band management
 │   │   ├── calendar/             # Calendar views
+│   │   ├── events/               # Event editor drawer (gigs, rehearsals)
 │   │   ├── gigs/                 # Gig management
 │   │   ├── home/                 # Home/Dashboard
 │   │   ├── members/              # Member management
+│   │   ├── onboarding/           # Animated first-time onboarding
 │   │   ├── profile/              # User profile
 │   │   ├── rehearsals/           # Rehearsal scheduling
 │   │   └── setlists/             # Setlist management
@@ -203,7 +205,7 @@ band-roadie/
 ### 1. Authentication System
 - **Magic Link Authentication:** Passwordless login via email
 - **PKCE Flow:** Secure authentication flow
-- **Profile Completion:** Required profile setup for new users
+- **Animated Onboarding:** Cinematic first-time experience with splash screen, 3-step wizard (name, zip, birthday), and confetti celebration
 - **Session Management:** Persistent sessions with automatic refresh
 - **Protected Routes:** Middleware-based route protection
 
@@ -232,6 +234,8 @@ band-roadie/
 - **Gig Creation:** Schedule performances and shows
 - **Venue Management:** Track performance locations
 - **Potential Gigs:** Mark uncertain gigs for later confirmation
+- **Multi-Date Potential Gigs:** Add multiple date options directly when potential gig is enabled (no separate toggle needed)
+- **Event Title:** User-typed capitalization is preserved exactly (no auto title-case)
 - **Member Responses:** Track who can/cannot attend
 - **Setlist Assignment:** Link setlists to specific gigs
 
@@ -273,16 +277,26 @@ band-roadie/
 - **Personal Information:** Name, phone, address, birthday
 - **Musical Roles:** Assign and manage musical roles/instruments
 - **Custom Roles:** Create custom roles beyond standard instruments
-- **Profile Completion:** Required setup for new users
+- **Profile Completion:** Handled via animated onboarding flow (see User Experience Flow)
 - **Settings:** User preferences and account settings
 
 ## User Experience Flow
 
-### New User Journey
+### New User Journey (Animated Onboarding)
 1. **Registration:** Email-based registration with magic link
-2. **Profile Setup:** Required profile completion with personal info and roles
-3. **Band Access:** Create new band or accept invitation
-4. **Dashboard:** Access to main application features
+2. **Cinematic Splash:** Logo scales in with bounce animation, tagline fades in with blur-to-sharp effect, radial rose glow on black background
+3. **Onboarding Wizard:** 3-step fluid card transitions with spring-based animations:
+   - **Step 1 — Name:** "What should we call you?" (first name only)
+   - **Step 2 — Zip Code:** Location input with shake validation
+   - **Step 3 — Birthday:** Month pills (ALL CAPS, rose outline/filled) + day selector
+4. **Completion Celebration:** Confetti burst, logo reappear, "You're all set!" message
+5. **Skip Option:** "Skip for now" available on every step, routes to band access
+6. **Band Access:** Create new band or accept invitation
+7. **Dashboard:** Access to main application features
+
+**Key files:**
+- `lib/features/onboarding/onboarding_screen.dart` — Full onboarding experience (splash, wizard, celebration)
+- `lib/features/auth/auth_gate.dart` — Routes new users to `OnboardingGateScreen`
 
 ### Existing User Journey
 1. **Login:** Magic link authentication
@@ -665,9 +679,11 @@ Another Artist                    - BPM • Drop D
 
 ### Authentication
 | File | Purpose |
-|------|---------|
+|------|----------|
 | `lib/features/auth/login_screen.dart` | Magic link login UI, `signInWithOtp()` call |
 | `lib/features/auth/auth_confirm_screen.dart` | Web token verification with `verifyOTP()` |
+| `lib/features/auth/auth_gate.dart` | Auth routing: Login → Onboarding → NoBandShell/AppShell |
+| `lib/features/onboarding/onboarding_screen.dart` | Animated onboarding (splash, wizard, celebration) |
 | `lib/main.dart` | Supabase initialization, deep link handling |
 
 ### Platform Configuration
@@ -689,6 +705,14 @@ Another Artist                    - BPM • Drop D
 | `lib/features/setlists/widgets/reorderable_song_card.dart` | Song card with inline editing |
 | `lib/features/setlists/services/bulk_song_parser.dart` | Bulk paste parsing logic |
 | `lib/features/setlists/tuning/tuning_helpers.dart` | Tuning normalization and display |
+
+### Event Management
+| File | Purpose |
+|------|---------|
+| `lib/features/events/widgets/event_editor_drawer.dart` | Add/Edit Event drawer (~4000 lines, gigs + rehearsals) |
+| `lib/features/events/models/event_form_data.dart` | Event form data model with `EventType`, `EventFormData` |
+| `lib/app/models/gig_date.dart` | `GigDate` model for multi-date potential gigs |
+| `lib/shared/utils/title_case_formatter.dart` | `TitleCaseTextFormatter` (used by location/city fields, NOT event title) |
 
 ### Database Migrations
 | Migration | Purpose |
@@ -738,6 +762,44 @@ SUPABASE_ANON_KEY=your-anon-key-here
 ---
 
 ## Changelog
+
+### February 14, 2026
+
+#### Animated Onboarding Experience (New)
+- **Goal:** Replace the static profile completion screen with a premium, cinematic first-time user experience
+- **New File:** `lib/features/onboarding/onboarding_screen.dart` (~1550 lines)
+- **Phases:**
+  1. **Cinematic Splash:** Logo scales 0.85→1.0 with `easeOutBack` bounce, tagline fades in with blur-to-sharp effect, radial rose glow fades to pure black on transition
+  2. **3-Step Wizard:** Spring-based card transitions with animated progress dots
+     - Step 1: "What should we call you?" (first name only)
+     - Step 2: Zip code with shake validation on invalid input
+     - Step 3: Birthday — month pills (ALL CAPS, rose outline always, filled when selected) + day pills
+  3. **Completion Celebration:** Confetti burst via `confetti` package, logo reappear, "You're all set!" message
+- **Design:** Pure black background (`#000000`), rose accent (`#BE123C`), DM Sans font, equal-width Back/Next buttons, "Skip for now" in white on every step
+- **Data:** Upserts first_name, zip, birthday to Supabase `users` table
+- **Routing:** "Done" and "Skip for now" both route through `onSkip` callback in `auth_gate.dart`
+- **Auth Gate Changes:** `lib/features/auth/auth_gate.dart` now routes to `OnboardingGateScreen` instead of the old `ProfileGateScreen` for first-time users
+- **Dependency Added:** `confetti: ^0.8.0` in `pubspec.yaml`
+
+#### Event Editor — Multi-Date UX Simplified
+- **Goal:** Make multi-date support for potential gigs more discoverable by removing the hidden "Multiple" toggle
+- **Changes:**
+  - Removed `_isMultiDate` state variable, `_toggleMultiDate()` method, and `_buildMultipleDatesToggle()` widget
+  - When **Potential Gig is ON**, a "+ Add another date" button now appears directly below the primary date picker — no extra toggle needed
+  - When **Potential Gig is OFF**, additional dates are automatically cleared
+  - Removed `showAddButton` / `onAdd` params from `_buildSingleDatePicker()` (inline + button removed from date rows)
+  - All `_isMultiDate` references replaced with `_isPotentialGig`-based or `_additionalDates.isNotEmpty`-based logic
+  - "+ Add another date" button uses rose accent border with 0.4 alpha and bold text for visibility
+- **File:** `lib/features/events/widgets/event_editor_drawer.dart`
+
+#### Event Title — Removed Auto Title-Case Formatting
+- **Goal:** Allow users full control over event title capitalization (acronyms like NAMM, SXSW, DIY FEST)
+- **Changes:**
+  - Removed `TitleCaseTextFormatter()` input formatter from event name/title field
+  - Changed `TextCapitalization.words` to `TextCapitalization.sentences` for standard keyboard behavior
+  - Location and city fields remain unchanged (still title-cased)
+- **Backward Compatibility:** Existing saved event titles are NOT reformatted — change is forward-only
+- **File:** `lib/features/events/widgets/event_editor_drawer.dart`
 
 ### January 29, 2026 - Build 30 (v1.0.13+30)
 
