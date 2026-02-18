@@ -3242,6 +3242,156 @@ class SetlistRepository {
   }
 
   // ==========================================================================
+  // BULK ADD EXISTING SONGS TO SETLIST
+  // ==========================================================================
+
+  /// Bulk-adds existing songs (by ID) to a target setlist.
+  ///
+  /// Uses batch inserts instead of per-song round trips.
+  /// Ensures all songs are also in Catalog.
+  ///
+  /// Returns ({int added, int skipped}).
+  Future<({int added, int skipped})> addExistingSongsToSetlistBulk({
+    required String bandId,
+    required String setlistId,
+    required List<String> songIds,
+  }) async {
+    if (bandId.isEmpty || setlistId.isEmpty || songIds.isEmpty) {
+      return (added: 0, skipped: 0);
+    }
+
+    // Step 1: Ensure Catalog exists
+    final catalogId = await ensureCatalogSetlist(bandId);
+    final targetIsCatalog = setlistId == catalogId;
+
+    // Step 2: Find which songs are already in Catalog
+    final existingCatalogRows = await supabase
+        .from('setlist_songs')
+        .select('song_id')
+        .eq('setlist_id', catalogId)
+        .inFilter('song_id', songIds);
+
+    final inCatalog = (existingCatalogRows as List)
+        .map((r) => r['song_id'] as String)
+        .toSet();
+
+    // Step 3: Bulk-insert missing songs into Catalog
+    final missingFromCatalog = songIds
+        .where((id) => !inCatalog.contains(id))
+        .toList();
+
+    if (missingFromCatalog.isNotEmpty) {
+      // Get current max position in Catalog
+      final posResult = await supabase
+          .from('setlist_songs')
+          .select('position')
+          .eq('setlist_id', catalogId)
+          .order('position', ascending: false)
+          .limit(1);
+
+      int nextPos = (posResult as List).isNotEmpty
+          ? ((posResult[0]['position'] as int? ?? 0) + 1)
+          : 0;
+
+      final catalogInserts = <Map<String, dynamic>>[];
+      for (final songId in missingFromCatalog) {
+        catalogInserts.add({
+          'setlist_id': catalogId,
+          'song_id': songId,
+          'position': nextPos++,
+          'bpm': null,
+          'tuning': null,
+          'duration_seconds': null,
+        });
+      }
+
+      // Batch insert in chunks of 200 to stay under Supabase limits
+      for (var i = 0; i < catalogInserts.length; i += 200) {
+        final chunk = catalogInserts.skip(i).take(200).toList();
+        await supabase
+            .from('setlist_songs')
+            .upsert(chunk, onConflict: 'setlist_id,song_id');
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] Bulk-added ${missingFromCatalog.length} songs to Catalog',
+        );
+      }
+    }
+
+    // Step 4: If target IS Catalog, we're done
+    if (targetIsCatalog) {
+      return (
+        added: missingFromCatalog.length,
+        skipped: songIds.length - missingFromCatalog.length,
+      );
+    }
+
+    // Step 5: Find which songs are already in the target setlist
+    final existingTargetRows = await supabase
+        .from('setlist_songs')
+        .select('song_id')
+        .eq('setlist_id', setlistId)
+        .inFilter('song_id', songIds);
+
+    final inTarget = (existingTargetRows as List)
+        .map((r) => r['song_id'] as String)
+        .toSet();
+
+    final missingFromTarget = songIds
+        .where((id) => !inTarget.contains(id))
+        .toList();
+
+    if (missingFromTarget.isEmpty) {
+      return (added: 0, skipped: songIds.length);
+    }
+
+    // Step 6: Get current max position in target setlist
+    final targetPosResult = await supabase
+        .from('setlist_songs')
+        .select('position')
+        .eq('setlist_id', setlistId)
+        .order('position', ascending: false)
+        .limit(1);
+
+    int targetNextPos = (targetPosResult as List).isNotEmpty
+        ? ((targetPosResult[0]['position'] as int? ?? 0) + 1)
+        : 0;
+
+    // Step 7: Bulk-insert into target setlist
+    final targetInserts = <Map<String, dynamic>>[];
+    for (final songId in missingFromTarget) {
+      targetInserts.add({
+        'setlist_id': setlistId,
+        'song_id': songId,
+        'position': targetNextPos++,
+        'bpm': null,
+        'tuning': null,
+        'duration_seconds': null,
+      });
+    }
+
+    for (var i = 0; i < targetInserts.length; i += 200) {
+      final chunk = targetInserts.skip(i).take(200).toList();
+      await supabase
+          .from('setlist_songs')
+          .upsert(chunk, onConflict: 'setlist_id,song_id');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] Bulk-added ${missingFromTarget.length} songs to setlist $setlistId',
+      );
+    }
+
+    return (
+      added: missingFromTarget.length,
+      skipped: songIds.length - missingFromTarget.length,
+    );
+  }
+
+  // ==========================================================================
   // ADD SONG TO SETLIST (WITH CATALOG GUARANTEE)
   // ==========================================================================
 

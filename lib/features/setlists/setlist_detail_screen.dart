@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
+import '../../shared/widgets/loading_overlay.dart';
 import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
 import '../bands/active_band_controller.dart';
@@ -491,83 +492,75 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       selectedSongCount: _selectedSongIds.length,
     );
 
-    if (result == null) return;
+    if (result == null || !mounted) return;
 
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
 
     final repository = ref.read(setlistRepositoryProvider);
 
-    String targetSetlistId;
-    String targetSetlistName;
+    // Show loading overlay immediately for multi-song operations
+    final songCount = _selectedSongIds.length;
+    final dismiss = showLoadingOverlay(
+      context,
+      message: result.createNew
+          ? 'Creating setlist and adding $songCount ${songCount == 1 ? 'song' : 'songs'}…'
+          : 'Adding $songCount ${songCount == 1 ? 'song' : 'songs'} to setlist…',
+    );
 
-    // Create new setlist if requested
-    if (result.createNew && result.newSetlistName != null) {
-      try {
+    try {
+      String targetSetlistId;
+      String targetSetlistName;
+
+      // Create new setlist if requested
+      if (result.createNew && result.newSetlistName != null) {
         final newSetlist = await repository.createSetlist(
           bandId: bandId,
           name: result.newSetlistName!,
         );
         targetSetlistId = newSetlist.id;
         targetSetlistName = newSetlist.name;
-      } catch (e) {
-        if (mounted) {
-          showErrorSnackBar(context, message: 'Failed to create setlist');
+      } else {
+        targetSetlistId = result.setlistId!;
+        targetSetlistName = result.setlistName!;
+      }
+
+      // Bulk-add all selected songs
+      final bulkResult = await repository.addExistingSongsToSetlistBulk(
+        bandId: bandId,
+        setlistId: targetSetlistId,
+        songIds: _selectedSongIds.toList(),
+      );
+
+      // Refresh setlists to update counts
+      ref.read(setlistsProvider.notifier).refresh();
+
+      // Exit select mode
+      _exitSelectMode();
+
+      // Show result snackbar
+      if (mounted) {
+        if (bulkResult.added > 0) {
+          final songWord = bulkResult.added == 1 ? 'song' : 'songs';
+          showAppSnackBar(
+            context,
+            message:
+                '🎸 Added ${bulkResult.added} $songWord to "$targetSetlistName"',
+          );
+        } else if (bulkResult.skipped > 0) {
+          showAppSnackBar(
+            context,
+            message: 'Songs already in "$targetSetlistName"',
+          );
         }
-        return;
       }
-    } else {
-      targetSetlistId = result.setlistId!;
-      targetSetlistName = result.setlistName!;
-    }
-
-    // Add all selected songs to the target setlist
-    int addedCount = 0;
-    int skippedCount = 0;
-
-    for (final songId in _selectedSongIds) {
-      try {
-        final song = ref
-            .read(setlistDetailProvider)
-            .songs
-            .firstWhere((s) => s.id == songId);
-        final addResult = await repository.addSongToSetlistEnsureCatalog(
-          bandId: bandId,
-          setlistId: targetSetlistId,
-          songId: songId,
-          songTitle: song.title,
-          songArtist: song.artist,
-        );
-        if (addResult.wasAlreadyInSetlist) {
-          skippedCount++;
-        } else if (addResult.success) {
-          addedCount++;
-        }
-      } catch (e) {
-        debugPrint('[SelectMode] Error adding song $songId: $e');
+    } catch (e) {
+      debugPrint('[SelectMode] Error in bulk add: $e');
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Failed to add songs to setlist');
       }
-    }
-
-    // Refresh setlists to update counts
-    ref.read(setlistsProvider.notifier).refresh();
-
-    // Exit select mode
-    _exitSelectMode();
-
-    // Show result snackbar
-    if (mounted) {
-      if (addedCount > 0) {
-        final songWord = addedCount == 1 ? 'song' : 'songs';
-        showAppSnackBar(
-          context,
-          message: '🎸 Added $addedCount $songWord to "$targetSetlistName"',
-        );
-      } else if (skippedCount > 0) {
-        showAppSnackBar(
-          context,
-          message: 'Songs already in "$targetSetlistName"',
-        );
-      }
+    } finally {
+      dismiss();
     }
   }
 

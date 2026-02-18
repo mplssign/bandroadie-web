@@ -223,7 +223,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
           .from('users')
           .select('first_name, last_name')
           .eq('id', userId)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 8));
 
       final firstName = response?['first_name'] as String?;
       final lastName = response?['last_name'] as String?;
@@ -291,7 +292,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
       final response = await supabase.functions.invoke(
         'accept-invite',
         body: {}, // No body needed, uses JWT for auth
-      );
+      ).timeout(const Duration(seconds: 8));
 
       if (response.status != 200) {
         setState(() {

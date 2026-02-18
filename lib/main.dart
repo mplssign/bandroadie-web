@@ -32,8 +32,11 @@ Future<void> main() async {
   // Lock app to portrait mode only
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // Initialize app version service
-  await AppVersionService.init();
+  // Initialize app version service (timeout: shouldn't block forever)
+  await AppVersionService.init().timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => debugPrint('[Main] AppVersionService.init timed out'),
+  );
 
   // Load .env file (silently fails if not present)
   await loadEnvConfig();
@@ -51,35 +54,56 @@ Future<void> main() async {
   // - App launched from link (cold start)
   // - App resumed from background via link
   // - App already open when link tapped
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-    authOptions: FlutterAuthClientOptions(
-      // Web uses implicit flow (simpler, works better with email links)
-      // Native uses PKCE (more secure for deep links)
-      authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
-      // On web: enable auto-detection so Supabase handles session from URL
-      // On native: disable it - we handle deep links manually for iPad/background support
-      detectSessionInUri: kIsWeb,
-    ),
-  );
+  // Timeout prevents indefinite hang if network is unreachable during session restore
+  try {
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      authOptions: FlutterAuthClientOptions(
+        // Web uses implicit flow (simpler, works better with email links)
+        // Native uses PKCE (more secure for deep links)
+        authFlowType: kIsWeb ? AuthFlowType.implicit : AuthFlowType.pkce,
+        // On web: enable auto-detection so Supabase handles session from URL
+        // On native: disable it - we handle deep links manually for iPad/background support
+        detectSessionInUri: kIsWeb,
+      ),
+    ).timeout(const Duration(seconds: 10));
+  } catch (e) {
+    debugPrint('[Main] Supabase init error/timeout: $e');
+    // If Supabase fails to init within timeout, show config error
+    runApp(ConfigErrorApp(
+      errorMessage: 'Failed to connect to server.\n'
+          'Please check your internet connection and restart the app.\n\n'
+          'Error: $e',
+    ));
+    return;
+  }
 
   // Initialize Firebase for push notifications (iOS and Android only)
   // macOS and Web don't need Firebase for this app's notification flow
+  // Timeout prevents hang on devices with outdated/missing Google Play Services
   if (!kIsWeb) {
     try {
       if (Platform.isIOS || Platform.isAndroid) {
-        await Firebase.initializeApp();
+        await Firebase.initializeApp()
+            .timeout(const Duration(seconds: 5));
       }
     } catch (e) {
-      // Silently ignore Firebase init errors on unsupported platforms
+      // Silently ignore Firebase init errors/timeouts — push notifications
+      // won't work but the app remains fully functional
       debugPrint('[Main] Firebase init skipped: $e');
     }
   }
 
   // Initialize deep link service for magic link handling in all app states
   // This must be after Supabase.initialize() but before runApp()
-  await DeepLinkService.instance.initialize();
+  // Timeout prevents hang if getInitialLink() stalls on certain Android devices
+  try {
+    await DeepLinkService.instance.initialize()
+        .timeout(const Duration(seconds: 3));
+  } catch (e) {
+    debugPrint('[Main] DeepLinkService init error/timeout: $e');
+  }
 
   // Initialize custom tuning cache for displaying custom tuning names on badges
   // This runs async in the background, doesn't block app startup
