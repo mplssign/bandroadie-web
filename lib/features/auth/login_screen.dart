@@ -24,7 +24,7 @@
 // - If MediaQuery.disableAnimations is true, skip to final state instantly.
 // ============================================================================
 
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,6 +34,7 @@ import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import '../../shared/widgets/animated_logo.dart';
 import 'auth_gate.dart';
+import 'auth_redirect.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -287,11 +288,9 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      // Web: Redirect to /app and let Supabase auto-detect session from URL
-      // Native: Use deep link scheme
-      final redirectUrl = kIsWeb
-          ? 'https://bandroadie.com/app'
-          : 'bandroadie://login-callback/';
+      // Centralized redirect — see auth_redirect.dart for web/native logic
+      final redirectUrl = authRedirectUrl();
+      debugPrint('[LoginScreen] OTP redirectUrl: $redirectUrl');
 
       await supabase.auth.signInWithOtp(
         email: email,

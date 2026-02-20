@@ -289,10 +289,12 @@ class _AuthGateState extends ConsumerState<AuthGate>
       });
 
       // Call the edge function which has admin privileges to accept invites
-      final response = await supabase.functions.invoke(
-        'accept-invite',
-        body: {}, // No body needed, uses JWT for auth
-      ).timeout(const Duration(seconds: 8));
+      final response = await supabase.functions
+          .invoke(
+            'accept-invite',
+            body: {}, // No body needed, uses JWT for auth
+          )
+          .timeout(const Duration(seconds: 8));
 
       if (response.status != 200) {
         setState(() {

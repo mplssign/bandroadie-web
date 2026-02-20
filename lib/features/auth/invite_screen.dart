@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_gate.dart';
+import 'auth_redirect.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -186,9 +187,9 @@ class _InviteScreenState extends State<InviteScreen> {
     });
 
     try {
-      // Build redirect URL that includes the invite token
+      // Centralized redirect — see auth_redirect.dart for web/native logic
       final token = widget.token;
-      final redirectUrl = 'https://bandroadie.com/invite?token=$token';
+      final redirectUrl = authRedirectUrlWithPath('/invite?token=$token');
 
       // Store the invite token in SharedPreferences so AuthGate can pick it up
       // This handles the case where the redirect doesn't work as expected
