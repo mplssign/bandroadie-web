@@ -15,34 +15,19 @@ typedef ShareCallback = Function(BuildContext context);
 
 class ActionButtonsRow extends StatelessWidget {
   final VoidCallback? onSongLookup;
-  final VoidCallback? onBulkPaste;
   final ShareCallback? onShare;
 
-  const ActionButtonsRow({
-    super.key,
-    this.onSongLookup,
-    this.onBulkPaste,
-    this.onShare,
-  });
+  const ActionButtonsRow({super.key, this.onSongLookup, this.onShare});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Song Lookup button
+        // Unified "Add to Setlist" button
         _ActionButton(
-          icon: Icons.search_rounded,
-          label: 'Song Lookup',
+          icon: Icons.add_rounded,
+          label: 'Add to Setlist',
           onTap: onSongLookup,
-        ),
-
-        const SizedBox(width: 8),
-
-        // Bulk Paste button
-        _ActionButton(
-          icon: Icons.list_rounded,
-          label: 'Bulk Paste',
-          onTap: onBulkPaste,
         ),
 
         const SizedBox(width: 8),

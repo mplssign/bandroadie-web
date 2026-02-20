@@ -15,10 +15,9 @@ import 'setlist_repository.dart';
 import 'setlists_screen.dart' show setlistsProvider;
 import 'tuning/tuning_helpers.dart';
 import 'widgets/action_buttons_row.dart';
+import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
 import 'widgets/back_only_app_bar.dart';
-import 'widgets/bulk_add_songs_overlay.dart';
 import 'widgets/reorderable_song_card.dart';
-import 'widgets/song_lookup_overlay.dart';
 import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
 
@@ -239,42 +238,28 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     }
   }
 
-  /// Handle Song Lookup tap
-  void _handleSongLookup() {
+  /// Handle Add to Setlist tap — unified overlay
+  void _handleAddToSetlist() {
     if (_setlistId == null) return;
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
+    final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
 
-    showSongLookupOverlay(
+    showAddToSetlistOverlay(
       context: context,
       bandId: bandId,
       setlistId: _setlistId!,
+      bandName: bandName,
       onSongAdded: (songId, title, artist) async {
         return ref
             .read(setlistDetailProvider.notifier)
             .addSong(songId, title, artist);
       },
-    );
-  }
-
-  /// Handle Bulk Paste tap
-  void _handleBulkPaste() {
-    if (_setlistId == null) return;
-    final bandId = ref.read(activeBandIdProvider);
-    if (bandId == null) return;
-
-    showBulkAddSongsOverlay(
-      context: context,
-      bandId: bandId,
-      setlistId: _setlistId!,
-      onComplete: (addedCount, setlistSongIds) {
+      onBulkComplete: (addedCount, setlistSongIds) {
         // Refresh the song list
         ref.read(setlistDetailProvider.notifier).loadSongs();
-
-        // Refresh setlists list to update song count and duration stats
         ref.read(setlistsProvider.notifier).refresh();
 
-        // Show success snackbar with undo option
         if (mounted && addedCount > 0) {
           showAppSnackBar(
             context,
@@ -289,6 +274,39 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                 : null,
           );
         }
+      },
+      onAddSpecialItem:
+          ({
+            required type,
+            durationMinutes,
+            durationSeconds,
+            purposes,
+            customPurposes,
+            saveAsTemplate = true,
+          }) async {
+            final success = await ref
+                .read(setlistDetailProvider.notifier)
+                .addSpecialItem(
+                  type: type,
+                  durationMinutes: durationMinutes,
+                  durationSeconds: durationSeconds,
+                  purposes: purposes,
+                  customPurposes: customPurposes,
+                  saveAsTemplate: saveAsTemplate,
+                );
+            if (mounted && success) {
+              showAppSnackBar(context, message: '${type.displayName} added');
+            }
+            return success;
+          },
+      onAddExistingTemplate: (template) async {
+        final success = await ref
+            .read(setlistDetailProvider.notifier)
+            .addExistingTemplate(template);
+        if (mounted && success) {
+          showAppSnackBar(context, message: '${template.displayTitle} added');
+        }
+        return success;
       },
     );
   }
@@ -615,8 +633,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   child: FadeTransition(
                     opacity: _headerFade,
                     child: ActionButtonsRow(
-                      onSongLookup: _handleSongLookup,
-                      onBulkPaste: _handleBulkPaste,
+                      onSongLookup: _handleAddToSetlist,
                       onShare: _handleShare,
                     ),
                   ),
@@ -854,8 +871,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   child: FadeTransition(
                     opacity: _headerFade,
                     child: ActionButtonsRow(
-                      onSongLookup: _handleSongLookup,
-                      onBulkPaste: _handleBulkPaste,
+                      onSongLookup: _handleAddToSetlist,
                       onShare: _handleShare,
                     ),
                   ),
@@ -911,7 +927,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                 const SizedBox(height: Spacing.space32),
 
                 GestureDetector(
-                  onTap: _handleSongLookup,
+                  onTap: _handleAddToSetlist,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: Spacing.space24,

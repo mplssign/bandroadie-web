@@ -250,6 +250,10 @@ class SetlistRepository {
               setlist_songs(count)
             ''')
             .eq('band_id', bandId)
+            .or(
+              'item_type.eq.song,item_type.is.null',
+              referencedTable: 'setlist_songs',
+            )
             .order('position', ascending: true);
       } on PostgrestException catch (e) {
         // Handle missing columns gracefully
@@ -276,6 +280,10 @@ class SetlistRepository {
                     setlist_songs(count)
                   ''')
                   .eq('band_id', bandId)
+                  .or(
+                    'item_type.eq.song,item_type.is.null',
+                    referencedTable: 'setlist_songs',
+                  )
                   .order('name', ascending: true);
             } on PostgrestException catch (e2) {
               if (e2.code == '42703' && e2.message.contains('is_catalog')) {
@@ -292,6 +300,10 @@ class SetlistRepository {
                       setlist_songs(count)
                     ''')
                     .eq('band_id', bandId)
+                    .or(
+                      'item_type.eq.song,item_type.is.null',
+                      referencedTable: 'setlist_songs',
+                    )
                     .order('name', ascending: true);
               } else {
                 rethrow;
@@ -317,6 +329,10 @@ class SetlistRepository {
                   setlist_songs(count)
                 ''')
                 .eq('band_id', bandId)
+                .or(
+                  'item_type.eq.song,item_type.is.null',
+                  referencedTable: 'setlist_songs',
+                )
                 .order('position', ascending: true);
           } else {
             rethrow;
@@ -527,6 +543,32 @@ class SetlistRepository {
         code: 'UNEXPECTED',
         message: e.toString(),
         reason: 'unexpected',
+      );
+    }
+  }
+
+  // ==========================================================================
+  // UPDATE TOTAL DURATION
+  // ==========================================================================
+
+  /// Updates the stored total_duration on a setlist row.
+  ///
+  /// Called after any mutation that changes the items in a setlist (add/remove
+  /// song, add/remove special item, edit duration). This keeps the stored value
+  /// in sync so setlist cards show the correct total.
+  Future<void> updateTotalDuration({
+    required String setlistId,
+    required int totalSeconds,
+  }) async {
+    try {
+      await supabase
+          .from('setlists')
+          .update({'total_duration': totalSeconds})
+          .eq('id', setlistId);
+    } catch (e) {
+      // Non-critical — don't fail the operation if duration update fails
+      debugPrint(
+        '[SetlistRepository] Failed to update total_duration for $setlistId: $e',
       );
     }
   }
@@ -1045,6 +1087,57 @@ class SetlistRepository {
   }
 
   // ==========================================================================
+  // MIXED ITEM REORDERING (songs + special items)
+  // ==========================================================================
+
+  /// Reorder setlist items (songs + special items) using setlist_songs row IDs.
+  ///
+  /// This updates each row's position directly by its primary key (id column),
+  /// supporting both song rows and special item rows.
+  Future<void> reorderSetlistItems({
+    required String setlistId,
+    required List<String> rowIdsInOrder,
+  }) async {
+    if (setlistId.isEmpty) {
+      throw ArgumentError('setlistId cannot be empty');
+    }
+    if (rowIdsInOrder.isEmpty) return;
+
+    debugPrint('[SetlistRepository] reorderSetlistItems:');
+    debugPrint('  setlistId: $setlistId');
+    debugPrint('  itemCount: ${rowIdsInOrder.length}');
+
+    try {
+      // First, shift all positions to a high offset to avoid UNIQUE constraint
+      // violations during reordering (setlist_songs has UNIQUE(setlist_id, position))
+      final offset = rowIdsInOrder.length + 1000;
+      for (int i = 0; i < rowIdsInOrder.length; i++) {
+        await supabase
+            .from('setlist_songs')
+            .update({'position': offset + i})
+            .eq('id', rowIdsInOrder[i])
+            .eq('setlist_id', setlistId);
+      }
+
+      // Now set the desired positions (0, 1, 2, ...)
+      for (int i = 0; i < rowIdsInOrder.length; i++) {
+        await supabase
+            .from('setlist_songs')
+            .update({'position': i})
+            .eq('id', rowIdsInOrder[i])
+            .eq('setlist_id', setlistId);
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Reordered ${rowIdsInOrder.length} items',
+      );
+    } catch (e) {
+      debugPrint('[SetlistRepository] Error reordering items: $e');
+      rethrow;
+    }
+  }
+
+  // ==========================================================================
   // SETLIST REORDERING
   // ==========================================================================
 
@@ -1162,7 +1255,11 @@ class SetlistRepository {
         response = await supabase
             .from('setlists')
             .select('id, name, is_catalog, created_at, setlist_songs(count)')
-            .eq('band_id', bandId);
+            .eq('band_id', bandId)
+            .or(
+              'item_type.eq.song,item_type.is.null',
+              referencedTable: 'setlist_songs',
+            );
       } on PostgrestException catch (e) {
         if (e.code == '42703') {
           // is_catalog column doesn't exist, use fallback
@@ -1170,7 +1267,11 @@ class SetlistRepository {
           response = await supabase
               .from('setlists')
               .select('id, name, created_at, setlist_songs(count)')
-              .eq('band_id', bandId);
+              .eq('band_id', bandId)
+              .or(
+                'item_type.eq.song,item_type.is.null',
+                referencedTable: 'setlist_songs',
+              );
         } else {
           rethrow;
         }
@@ -2937,6 +3038,10 @@ class SetlistRepository {
             ''')
             .eq('band_id', bandId)
             .eq('setlist_type', 'catalog')
+            .or(
+              'item_type.eq.song,item_type.is.null',
+              referencedTable: 'setlist_songs',
+            )
             .maybeSingle();
       } on PostgrestException {
         // setlist_type column may not exist, try is_catalog
@@ -2954,6 +3059,10 @@ class SetlistRepository {
             ''')
             .eq('band_id', bandId)
             .eq('is_catalog', true)
+            .or(
+              'item_type.eq.song,item_type.is.null',
+              referencedTable: 'setlist_songs',
+            )
             .maybeSingle();
       }
 
@@ -2970,6 +3079,10 @@ class SetlistRepository {
             ''')
           .eq('band_id', bandId)
           .or('name.ilike.Catalog,name.ilike.All Songs')
+          .or(
+            'item_type.eq.song,item_type.is.null',
+            referencedTable: 'setlist_songs',
+          )
           .order('created_at', ascending: true)
           .limit(1)
           .maybeSingle();
@@ -3615,9 +3728,6 @@ class SetlistRepository {
   // BULK ADD SONGS
   // ==========================================================================
 
-  /// Result of bulk add operation
-  static const _bulkAddBatchSize = 50;
-
   /// Bulk add songs from parsed rows.
   ///
   /// This method:
@@ -3653,104 +3763,293 @@ class SetlistRepository {
     }
 
     try {
-      // Step 0: Verify user is a band member (diagnostic)
-      final userId = supabase.auth.currentUser?.id;
-      if (kDebugMode) {
-        debugPrint('[SetlistRepository] Checking band membership...');
-        debugPrint('[SetlistRepository]   userId: $userId');
-        debugPrint('[SetlistRepository]   bandId: $bandId');
-
-        final memberCheck = await supabase
-            .from('band_members')
-            .select('status')
-            .eq('band_id', bandId)
-            .eq('user_id', userId!)
-            .maybeSingle();
-
-        debugPrint('[SetlistRepository]   memberCheck result: $memberCheck');
-        if (memberCheck == null) {
-          debugPrint(
-            '[SetlistRepository]   ⚠️ User is NOT in band_members table for this band!',
-          );
-        } else if (memberCheck['status'] != 'active') {
-          debugPrint(
-            '[SetlistRepository]   ⚠️ User membership status is: ${memberCheck['status']} (not active)',
-          );
-        } else {
-          debugPrint('[SetlistRepository]   ✓ User is an active band member');
-        }
-      }
-
-      // Step 1: Ensure Catalog exists
+      // ── Step 1: Ensure Catalog exists (1 request) ──────────────────────
       final catalogId = await ensureCatalogSetlist(bandId);
       final isCatalog = setlistId == catalogId;
 
       if (kDebugMode) {
         debugPrint(
-          '[SetlistRepository] Bulk adding ${validRows.length} songs to band $bandId',
+          '[BulkAdd] Adding ${validRows.length} songs  '
+          '(catalog=$catalogId, target=$setlistId, isCatalog=$isCatalog)',
         );
-        debugPrint('[SetlistRepository] Catalog ID: $catalogId');
-        debugPrint('[SetlistRepository] Target setlist is Catalog: $isCatalog');
       }
 
-      var addedCount = 0;
-      final addedSetlistSongIds = <String>[];
+      // ── Step 2: Batch-fetch existing songs for this band (1 request) ──
+      final existingSongs = await supabase
+          .from('songs')
+          .select(
+            'id, title, artist, bpm, tuning, duration_seconds, album_artwork',
+          )
+          .eq('band_id', bandId);
 
-      // Process in batches to avoid timeout
-      for (var i = 0; i < validRows.length; i += _bulkAddBatchSize) {
-        final batch = validRows.skip(i).take(_bulkAddBatchSize).toList();
+      // Build a lookup: "lowertitle|lowerartist" -> song row
+      final songLookup = <String, Map<String, dynamic>>{};
+      for (final s in (existingSongs as List)) {
+        final key =
+            '${(s['title'] as String).toLowerCase()}|${(s['artist'] as String).toLowerCase()}';
+        songLookup[key] = s as Map<String, dynamic>;
+      }
 
-        for (final row in batch) {
+      // ── Step 3: Resolve song IDs (create missing, enrich existing) ────
+      // Collect songs that need inserting
+      final toInsert = <Map<String, dynamic>>[];
+      // Map row index → songId (filled as we go)
+      final resolvedSongIds = List<String?>.filled(validRows.length, null);
+
+      for (var i = 0; i < validRows.length; i++) {
+        final row = validRows[i];
+        final normTitle = toTitleCase(row.title.trim());
+        final normArtist = toTitleCase(row.artist.trim());
+        final key = '${normTitle.toLowerCase()}|${normArtist.toLowerCase()}';
+
+        final existing = songLookup[key];
+        if (existing != null) {
+          resolvedSongIds[i] = existing['id'] as String;
+
+          // Enrich with any missing data (collect updates)
+          final updates = <String, dynamic>{};
+          if (row.bpm != null && existing['bpm'] == null) {
+            updates['bpm'] = row.bpm;
+          }
+          if (row.tuning != null && existing['tuning'] == null) {
+            final dbTuning = tuningToDbEnum(row.tuning);
+            if (dbTuning != null) updates['tuning'] = dbTuning;
+          }
+          if (updates.isNotEmpty) {
+            // Fire-and-forget; enrichment is non-critical
+            supabase
+                .from('songs')
+                .update(updates)
+                .eq('id', existing['id'] as String)
+                .then((_) {}, onError: (_) {});
+          }
+        } else {
+          // Need to insert — build the row
+          final insertData = <String, dynamic>{
+            'band_id': bandId,
+            'title': normTitle,
+            'artist': normArtist,
+          };
+          if (row.bpm != null) insertData['bpm'] = row.bpm;
+          final dbTuning = tuningToDbEnum(row.tuning);
+          if (dbTuning != null) insertData['tuning'] = dbTuning;
+
+          toInsert.add(insertData);
+          // Mark index for later resolution (negative offset into toInsert)
+          resolvedSongIds[i] = null;
+
+          // Also add to lookup so duplicate rows in the same batch share
+          // the same insert (we'll resolve later).
+          songLookup[key] = insertData;
+        }
+      }
+
+      // Batch-insert new songs.
+      // We already filtered out songs that exist in the lookup, so a plain
+      // insert is sufficient.  Chunks of 50 keep payload sizes manageable.
+      if (toInsert.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint('[BulkAdd] Inserting ${toInsert.length} new songs…');
+        }
+
+        // De-duplicate toInsert by (title, artist) key so we don't send
+        // duplicate rows in the same batch (e.g. user pasted the same song
+        // twice).
+        final seen = <String>{};
+        final deduped = <Map<String, dynamic>>[];
+        for (final row in toInsert) {
+          final key =
+              '${(row['title'] as String).toLowerCase()}|${(row['artist'] as String).toLowerCase()}';
+          if (seen.add(key)) deduped.add(row);
+        }
+
+        const chunkSize = 50;
+        for (var c = 0; c < deduped.length; c += chunkSize) {
+          final chunk = deduped.sublist(
+            c,
+            c + chunkSize > deduped.length ? deduped.length : c + chunkSize,
+          );
           try {
-            // Step 2: Create or find the song
-            final songId = await _createOrFindSong(
-              bandId: bandId,
-              title: row.title,
-              artist: row.artist,
-              bpm: row.bpm,
-              tuning: row.tuning,
-            );
-
-            if (songId == null) {
-              if (kDebugMode) {
-                debugPrint(
-                  '[SetlistRepository] Failed to create/find song: ${row.title}',
-                );
-              }
-              continue;
-            }
-
-            // Step 3: Add to Catalog (always)
-            await addSongToSetlist(setlistId: catalogId, songId: songId);
-
-            // Step 4: Add to target setlist (if not Catalog)
-            if (!isCatalog) {
-              final setlistSongId = await addSongToSetlist(
-                setlistId: setlistId,
-                songId: songId,
-              );
-              if (setlistSongId != null) {
-                addedSetlistSongIds.add(setlistSongId);
-              }
-            }
-
-            addedCount++;
+            await supabase.from('songs').insert(chunk);
           } catch (e) {
+            // If a batch fails (e.g. partial duplicate), fall back to
+            // inserting one-by-one so the rest still succeed.
             if (kDebugMode) {
               debugPrint(
-                '[SetlistRepository] Error adding song "${row.title}": $e',
+                '[BulkAdd] Batch insert failed ($e), inserting one-by-one…',
               );
             }
-            // Continue with next song
+            for (final row in chunk) {
+              try {
+                await supabase.from('songs').insert(row);
+              } catch (_) {
+                // Skip duplicates / errors for individual songs
+              }
+            }
+          }
+        }
+
+        // Re-fetch to get IDs for all songs (existing + newly created)
+        // This is cheaper than selecting from each insert individually
+        final allKeys = <String>[];
+        for (var i = 0; i < validRows.length; i++) {
+          if (resolvedSongIds[i] == null) {
+            allKeys.add(toTitleCase(validRows[i].title.trim()));
+          }
+        }
+
+        if (allKeys.isNotEmpty) {
+          final refetched = await supabase
+              .from('songs')
+              .select('id, title, artist')
+              .eq('band_id', bandId)
+              .inFilter('title', allKeys);
+
+          final refetchedLookup = <String, String>{};
+          for (final s in (refetched as List)) {
+            final key =
+                '${(s['title'] as String).toLowerCase()}|${(s['artist'] as String).toLowerCase()}';
+            refetchedLookup[key] = s['id'] as String;
+          }
+
+          for (var i = 0; i < validRows.length; i++) {
+            if (resolvedSongIds[i] == null) {
+              final row = validRows[i];
+              final normTitle = toTitleCase(row.title.trim());
+              final normArtist = toTitleCase(row.artist.trim());
+              final key =
+                  '${normTitle.toLowerCase()}|${normArtist.toLowerCase()}';
+              resolvedSongIds[i] = refetchedLookup[key];
+            }
           }
         }
       }
 
+      // Filter out any rows we couldn't resolve
+      final songIds = <String>[];
+      for (var i = 0; i < validRows.length; i++) {
+        final id = resolvedSongIds[i];
+        if (id != null && !songIds.contains(id)) {
+          songIds.add(id);
+        }
+      }
+
       if (kDebugMode) {
-        debugPrint('[SetlistRepository] Bulk add complete: $addedCount songs');
-        debugPrint(
-          '[SetlistRepository] Setlist song IDs for undo: ${addedSetlistSongIds.length}',
-        );
+        debugPrint('[BulkAdd] Resolved ${songIds.length} unique song IDs');
+      }
+
+      // ── Step 4: Batch-fetch existing setlist entries (1-2 requests) ───
+      final catalogExisting = await supabase
+          .from('setlist_songs')
+          .select('song_id')
+          .eq('setlist_id', catalogId)
+          .inFilter('song_id', songIds);
+
+      final catalogExistingIds = (catalogExisting as List)
+          .map((e) => e['song_id'] as String)
+          .toSet();
+
+      Set<String> targetExistingIds = {};
+      if (!isCatalog) {
+        final targetExisting = await supabase
+            .from('setlist_songs')
+            .select('song_id')
+            .eq('setlist_id', setlistId)
+            .inFilter('song_id', songIds);
+        targetExistingIds = (targetExisting as List)
+            .map((e) => e['song_id'] as String)
+            .toSet();
+      }
+
+      // ── Step 5: Get max positions (1-2 requests) ─────────────────────
+      int catalogNextPos = 0;
+      {
+        final posResult = await supabase
+            .from('setlist_songs')
+            .select('position')
+            .eq('setlist_id', catalogId)
+            .order('position', ascending: false)
+            .limit(1);
+        if ((posResult as List).isNotEmpty) {
+          catalogNextPos = (posResult[0]['position'] as int? ?? 0) + 1;
+        }
+      }
+
+      int targetNextPos = 0;
+      if (!isCatalog) {
+        final posResult = await supabase
+            .from('setlist_songs')
+            .select('position')
+            .eq('setlist_id', setlistId)
+            .order('position', ascending: false)
+            .limit(1);
+        if ((posResult as List).isNotEmpty) {
+          targetNextPos = (posResult[0]['position'] as int? ?? 0) + 1;
+        }
+      }
+
+      // ── Step 6: Build batch inserts for setlist_songs ─────────────────
+      final catalogInserts = <Map<String, dynamic>>[];
+      final targetInserts = <Map<String, dynamic>>[];
+
+      for (final songId in songIds) {
+        // Always ensure song is in Catalog
+        if (!catalogExistingIds.contains(songId)) {
+          catalogInserts.add({
+            'setlist_id': catalogId,
+            'song_id': songId,
+            'position': catalogNextPos++,
+            'bpm': null,
+            'tuning': null,
+            'duration_seconds': null,
+          });
+        }
+
+        // Add to target setlist (if not Catalog and not already there)
+        if (!isCatalog && !targetExistingIds.contains(songId)) {
+          targetInserts.add({
+            'setlist_id': setlistId,
+            'song_id': songId,
+            'position': targetNextPos++,
+            'bpm': null,
+            'tuning': null,
+            'duration_seconds': null,
+          });
+        }
+      }
+
+      // ── Step 7: Execute batch inserts (1-2 requests) ──────────────────
+      if (catalogInserts.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint(
+            '[BulkAdd] Inserting ${catalogInserts.length} catalog entries…',
+          );
+        }
+        await supabase.from('setlist_songs').insert(catalogInserts);
+      }
+
+      final addedSetlistSongIds = <String>[];
+      if (targetInserts.isNotEmpty) {
+        if (kDebugMode) {
+          debugPrint(
+            '[BulkAdd] Inserting ${targetInserts.length} setlist entries…',
+          );
+        }
+        final inserted = await supabase
+            .from('setlist_songs')
+            .insert(targetInserts)
+            .select('id');
+        for (final row in (inserted as List)) {
+          addedSetlistSongIds.add(row['id'] as String);
+        }
+      }
+
+      final addedCount = isCatalog
+          ? catalogInserts.length
+          : targetInserts.length;
+
+      if (kDebugMode) {
+        debugPrint('[BulkAdd] Complete: $addedCount songs added');
       }
 
       return BulkAddResult(
@@ -3814,164 +4113,6 @@ class SetlistRepository {
     } catch (e) {
       debugPrint('[SetlistRepository] Unexpected error undoing bulk add: $e');
       return 0;
-    }
-  }
-
-  /// Create a new song or find existing one by (band_id, title, artist).
-  ///
-  /// If an existing song is found, enriches it with any missing data
-  /// (bpm, tuning, durationSeconds, albumArtwork) - never overwrites non-null values.
-  ///
-  /// Returns the song ID, or null if creation failed.
-  Future<String?> _createOrFindSong({
-    required String bandId,
-    required String title,
-    required String artist,
-    int? bpm,
-    String? tuning,
-    int? durationSeconds,
-    String? albumArtwork,
-  }) async {
-    // Apply title case to normalize song title and artist
-    final normalizedTitle = toTitleCase(title.trim());
-    final normalizedArtist = toTitleCase(artist.trim());
-
-    debugPrint(
-      '[SetlistRepository] _createOrFindSong: title=$normalizedTitle, artist=$normalizedArtist, bpm=$bpm, tuning=$tuning',
-    );
-    try {
-      // First, try to find existing song
-      final existing = await supabase
-          .from('songs')
-          .select('id, bpm, tuning, duration_seconds, album_artwork')
-          .eq('band_id', bandId)
-          .ilike('title', normalizedTitle)
-          .ilike('artist', normalizedArtist)
-          .limit(1);
-
-      if ((existing as List).isNotEmpty) {
-        final existingId = existing[0]['id'] as String;
-        final existingBpm = existing[0]['bpm'] as int?;
-
-        if (kDebugMode) {
-          debugPrint(
-            '[SetlistRepository] Found existing song: $normalizedTitle by $normalizedArtist -> $existingId',
-          );
-        }
-
-        // Enrich existing song with any missing data (never overwrite non-null)
-        final updates = <String, dynamic>{};
-
-        if (bpm != null && existingBpm == null) {
-          updates['bpm'] = bpm;
-        }
-        if (tuning != null && existing[0]['tuning'] == null) {
-          final dbTuning = tuningToDbEnum(tuning);
-          if (dbTuning != null) {
-            updates['tuning'] = dbTuning;
-          }
-        }
-        if (durationSeconds != null &&
-            existing[0]['duration_seconds'] == null) {
-          updates['duration_seconds'] = durationSeconds;
-        }
-        if (albumArtwork != null && existing[0]['album_artwork'] == null) {
-          updates['album_artwork'] = albumArtwork;
-        }
-
-        if (updates.isNotEmpty) {
-          await supabase.from('songs').update(updates).eq('id', existingId);
-          if (kDebugMode) {
-            debugPrint(
-              '[SetlistRepository] Enriched song with missing data: $updates',
-            );
-          }
-        }
-
-        return existingId;
-      }
-
-      // Create new song with title-cased values
-      final insertData = <String, dynamic>{
-        'band_id': bandId,
-        'title': normalizedTitle,
-        'artist': normalizedArtist,
-      };
-
-      if (bpm != null) {
-        insertData['bpm'] = bpm;
-      }
-
-      if (durationSeconds != null) {
-        insertData['duration_seconds'] = durationSeconds;
-      }
-
-      if (albumArtwork != null) {
-        insertData['album_artwork'] = albumArtwork;
-      }
-
-      // Convert app tuning ID to database enum value
-      // The database uses enum: 'standard', 'drop_d', 'half_step', 'full_step'
-      final dbTuning = tuningToDbEnum(tuning);
-      if (dbTuning != null) {
-        insertData['tuning'] = dbTuning;
-        if (kDebugMode) {
-          debugPrint('[SetlistRepository] Mapped tuning: $tuning -> $dbTuning');
-        }
-      } else if (tuning != null && kDebugMode) {
-        debugPrint('[SetlistRepository] Unsupported tuning skipped: $tuning');
-      }
-
-      final result = await supabase
-          .from('songs')
-          .insert(insertData)
-          .select('id')
-          .single();
-
-      final newId = result['id'] as String;
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] Created new song: $normalizedTitle by $normalizedArtist -> $newId',
-        );
-      }
-
-      return newId;
-    } on PostgrestException catch (e) {
-      // Handle unique constraint violation (race condition)
-      if (e.code == '23505') {
-        // Try to find the existing song
-        final existing = await supabase
-            .from('songs')
-            .select('id')
-            .eq('band_id', bandId)
-            .ilike('title', title.trim())
-            .ilike('artist', artist.trim())
-            .limit(1);
-
-        if ((existing as List).isNotEmpty) {
-          return existing[0]['id'] as String;
-        }
-      }
-      // RLS violation - user is not a member of the band
-      if (e.code == '42501') {
-        debugPrint('[SetlistRepository] RLS ERROR creating song: $e');
-        debugPrint('[SetlistRepository]   bandId: $bandId');
-        debugPrint(
-          '[SetlistRepository]   userId: ${supabase.auth.currentUser?.id}',
-        );
-        debugPrint(
-          '[SetlistRepository]   This usually means the user is not a member of the band,',
-        );
-        debugPrint(
-          '[SetlistRepository]   or the is_band_member() function is not deployed.',
-        );
-      } else {
-        debugPrint('[SetlistRepository] Error creating song: $e');
-      }
-      return null;
-    } catch (e) {
-      debugPrint('[SetlistRepository] Unexpected error creating song: $e');
-      return null;
     }
   }
 

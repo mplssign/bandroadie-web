@@ -71,11 +71,14 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('[Main] Supabase init error/timeout: $e');
     // If Supabase fails to init within timeout, show config error
-    runApp(ConfigErrorApp(
-      errorMessage: 'Failed to connect to server.\n'
-          'Please check your internet connection and restart the app.\n\n'
-          'Error: $e',
-    ));
+    runApp(
+      ConfigErrorApp(
+        errorMessage:
+            'Failed to connect to server.\n'
+            'Please check your internet connection and restart the app.\n\n'
+            'Error: $e',
+      ),
+    );
     return;
   }
 
@@ -85,8 +88,7 @@ Future<void> main() async {
   if (!kIsWeb) {
     try {
       if (Platform.isIOS || Platform.isAndroid) {
-        await Firebase.initializeApp()
-            .timeout(const Duration(seconds: 5));
+        await Firebase.initializeApp().timeout(const Duration(seconds: 5));
       }
     } catch (e) {
       // Silently ignore Firebase init errors/timeouts — push notifications
@@ -99,8 +101,9 @@ Future<void> main() async {
   // This must be after Supabase.initialize() but before runApp()
   // Timeout prevents hang if getInitialLink() stalls on certain Android devices
   try {
-    await DeepLinkService.instance.initialize()
-        .timeout(const Duration(seconds: 3));
+    await DeepLinkService.instance.initialize().timeout(
+      const Duration(seconds: 3),
+    );
   } catch (e) {
     debugPrint('[Main] DeepLinkService init error/timeout: $e');
   }

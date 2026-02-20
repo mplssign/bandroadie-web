@@ -5,57 +5,64 @@ import '../../../app/theme/design_tokens.dart';
 
 // ============================================================================
 // MASKED DURATION INPUT
-// A currency-style input for time duration in MM:SS format.
+// A currency-style input for time duration in MM:SS or M:SS format.
 //
 // Behavior:
-// - When focused/tapped, the value clears to 00:00 and cursor goes to end
+// - When focused/tapped, the value clears and cursor goes to end
 // - Digits are inserted from the right and shift left as more are added
-// - The colon (:) remains fixed at position 2
+// - The colon (:) remains fixed
 // - Backspace removes the rightmost digit and shifts remaining digits right
 // - Only numeric input is accepted (0-9)
-// - Maximum of 4 digits (MMSS)
+// - maxDigits=4 → MM:SS (default), maxDigits=3 → M:SS
 // - Cursor always stays at the end
 //
-// Example typing sequence:
-//   Initial: 03:30 (existing value)
+// Example typing sequence (MM:SS, maxDigits=4):
 //   Tap/Focus → 00:00 (cleared)
 //   Type 1 → 00:01
 //   Type 2 → 00:12
 //   Type 3 → 01:23
 //   Type 4 → 12:34
+//
+// Example typing sequence (M:SS, maxDigits=3):
+//   Tap/Focus → 0:00 (cleared)
+//   Type 1 → 0:01
+//   Type 2 → 0:12
+//   Type 3 → 1:23
 // ============================================================================
 
-/// Formats a raw numeric string (up to 4 digits) into MM:SS format.
+/// Formats a raw numeric string into MM:SS or M:SS format.
 ///
-/// Examples:
-///   "" → "00:00"
-///   "1" → "00:01"
-///   "12" → "00:12"
-///   "123" → "01:23"
-///   "1234" → "12:34"
-///   "12345" → "23:45" (overflow: only last 4 digits kept)
-String formatDurationMasked(String rawDigits) {
+/// [maxDigits] controls the format:
+///   4 (default) → MM:SS (colon at position 2)
+///   3 → M:SS (colon at position 1)
+///
+/// MM:SS examples: "" → "00:00", "1" → "00:01", "1234" → "12:34"
+/// M:SS examples:  "" → "0:00",  "1" → "0:01",  "123" → "1:23"
+String formatDurationMasked(String rawDigits, {int maxDigits = 4}) {
   // Remove any non-digit characters
   final digits = rawDigits.replaceAll(RegExp(r'[^0-9]'), '');
 
-  // Take only the last 4 digits (in case of overflow)
-  final trimmed = digits.length > 4
-      ? digits.substring(digits.length - 4)
+  // Take only the last maxDigits digits (in case of overflow)
+  final trimmed = digits.length > maxDigits
+      ? digits.substring(digits.length - maxDigits)
       : digits;
 
-  // Pad with leading zeros to ensure 4 characters
-  final padded = trimmed.padLeft(4, '0');
+  // Pad with leading zeros
+  final padded = trimmed.padLeft(maxDigits, '0');
 
-  // Insert colon at position 2
-  return '${padded.substring(0, 2)}:${padded.substring(2, 4)}';
+  // Insert colon: for maxDigits=4 → position 2, for maxDigits=3 → position 1
+  final colonPos = maxDigits - 2;
+  return '${padded.substring(0, colonPos)}:${padded.substring(colonPos)}';
 }
 
 /// Parses a MM:SS formatted string back to total seconds.
+/// Seconds values > 59 are normalized (e.g. "00:83" → 83 seconds).
 ///
 /// Examples:
 ///   "00:00" → 0
 ///   "01:30" → 90
 ///   "12:34" → 754
+///   "00:83" → 83
 int parseDurationMasked(String formatted) {
   final parts = formatted.split(':');
   if (parts.length != 2) return 0;
@@ -66,18 +73,18 @@ int parseDurationMasked(String formatted) {
   return (minutes * 60) + seconds;
 }
 
-/// Converts total seconds to the raw 4-digit string for the masked input.
+/// Converts total seconds to the raw digit string for the masked input.
 ///
-/// Examples:
-///   0 → "0000"
-///   90 → "0130"
-///   754 → "1234"
-String secondsToRawDigits(int totalSeconds) {
-  // Clamp to max of 99:59 (5999 seconds)
-  final clamped = totalSeconds.clamp(0, 5999);
+/// [maxDigits] controls the format:
+///   4 (default) → "MMSS" (max 99:59 = 5999s)
+///   3 → "MSS" (max 9:59 = 599s)
+String secondsToRawDigits(int totalSeconds, {int maxDigits = 4}) {
+  final maxSeconds = maxDigits == 3 ? 599 : 5999;
+  final minDigits = maxDigits - 2;
+  final clamped = totalSeconds.clamp(0, maxSeconds);
   final minutes = clamped ~/ 60;
   final seconds = clamped % 60;
-  return '${minutes.toString().padLeft(2, '0')}${seconds.toString().padLeft(2, '0')}';
+  return '${minutes.toString().padLeft(minDigits, '0')}${seconds.toString().padLeft(2, '0')}';
 }
 
 /// A masked text input for duration in MM:SS format.
@@ -105,6 +112,9 @@ class MaskedDurationInput extends StatefulWidget {
   /// Focus node (optional, one will be created if not provided)
   final FocusNode? focusNode;
 
+  /// Maximum digits: 4 for MM:SS (default), 3 for M:SS
+  final int maxDigits;
+
   const MaskedDurationInput({
     super.key,
     this.initialSeconds = 0,
@@ -114,6 +124,7 @@ class MaskedDurationInput extends StatefulWidget {
     this.borderColor,
     this.enabled = true,
     this.focusNode,
+    this.maxDigits = 4,
   });
 
   @override
@@ -125,7 +136,7 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
   late FocusNode _focusNode;
   bool _ownsFocusNode = false;
 
-  // Raw digits without formatting (max 4 digits: MMSS)
+  // Raw digits without formatting (max determined by widget.maxDigits)
   String _rawDigits = '';
 
   // Track if user has typed any digits during this focus session
@@ -140,10 +151,15 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
     super.initState();
 
     // Initialize raw digits from initial seconds
-    _rawDigits = secondsToRawDigits(widget.initialSeconds);
+    _rawDigits = secondsToRawDigits(
+      widget.initialSeconds,
+      maxDigits: widget.maxDigits,
+    );
 
     // Create controller with formatted initial value
-    _controller = TextEditingController(text: formatDurationMasked(_rawDigits));
+    _controller = TextEditingController(
+      text: formatDurationMasked(_rawDigits, maxDigits: widget.maxDigits),
+    );
 
     // Use provided focus node or create our own
     if (widget.focusNode != null) {
@@ -162,8 +178,13 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
     super.didUpdateWidget(oldWidget);
 
     // If initial seconds changed externally, update the display
-    if (widget.initialSeconds != oldWidget.initialSeconds) {
-      _rawDigits = secondsToRawDigits(widget.initialSeconds);
+    // BUT NOT while focused — the user is actively typing, don't overwrite
+    if (widget.initialSeconds != oldWidget.initialSeconds &&
+        !_focusNode.hasFocus) {
+      _rawDigits = secondsToRawDigits(
+        widget.initialSeconds,
+        maxDigits: widget.maxDigits,
+      );
       _updateDisplay();
     }
   }
@@ -212,7 +233,10 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
 
   /// Updates the display text from raw digits
   void _updateDisplay() {
-    final formatted = formatDurationMasked(_rawDigits);
+    final formatted = formatDurationMasked(
+      _rawDigits,
+      maxDigits: widget.maxDigits,
+    );
     _controller.text = formatted;
     _moveCursorToEnd();
   }
@@ -239,12 +263,12 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
       // The formatting will handle the left-shift display
       final newRaw = _rawDigits.replaceFirst(RegExp(r'^0+'), '') + key;
 
-      // Limit to 4 digits max (99:59)
-      if (newRaw.length <= 4) {
+      // Limit to maxDigits max
+      if (newRaw.length <= widget.maxDigits) {
         _rawDigits = newRaw;
       } else {
-        // Overflow: keep only last 4 digits
-        _rawDigits = newRaw.substring(newRaw.length - 4);
+        // Overflow: keep only last maxDigits digits
+        _rawDigits = newRaw.substring(newRaw.length - widget.maxDigits);
       }
     }
 

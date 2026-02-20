@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/constants/app_constants.dart';
 import '../bands/active_band_controller.dart';
+import 'models/setlist_item.dart';
+import 'models/setlist_item_type.dart';
 import 'models/setlist_song.dart';
+import 'models/special_item.dart';
 import 'services/tuning_sort_service.dart';
 import 'setlist_repository.dart';
 import 'setlists_screen.dart';
+import 'special_item_repository.dart';
 
 // ============================================================================
 // SONG UPDATE BROADCASTER
@@ -126,6 +130,13 @@ class SetlistDetailState {
   /// Defaults to title sort on app launch.
   final CatalogSortMode catalogSortMode;
 
+  /// Mixed items list (songs + breaks + pauses) for non-Catalog setlists.
+  /// Empty for Catalog setlists (which only have songs).
+  final List<SetlistItem> items;
+
+  /// Last successfully persisted item order (for rollback on failure).
+  final List<SetlistItem>? lastKnownGoodItems;
+
   const SetlistDetailState({
     this.setlistId = '',
     this.setlistName = '',
@@ -136,10 +147,22 @@ class SetlistDetailState {
     this.error,
     this.lastKnownGoodSongs,
     this.catalogSortMode = CatalogSortMode.title,
+    this.items = const [],
+    this.lastKnownGoodItems,
   });
 
-  /// Total duration of all songs
+  /// Total duration of all items (songs + breaks/pauses that contribute).
+  /// For Catalog: uses songs list only.
+  /// For non-Catalog: uses items list if available, otherwise songs.
   Duration get totalDuration {
+    if (items.isNotEmpty) {
+      return items.fold(Duration.zero, (sum, item) {
+        if (item.contributesToRuntime) {
+          return sum + Duration(seconds: item.durationSeconds);
+        }
+        return sum;
+      });
+    }
     return songs.fold(Duration.zero, (sum, song) => sum + song.duration);
   }
 
@@ -150,17 +173,42 @@ class SetlistDetailState {
     return '${hours}h ${minutes.toString().padLeft(2, '0')}m';
   }
 
-  /// Song count
-  int get songCount => songs.length;
+  /// Song count (only actual songs, not breaks/pauses)
+  int get songCount {
+    if (items.isNotEmpty) {
+      return items.where((i) => i.isSong).length;
+    }
+    return songs.length;
+  }
+
+  /// Total item count (songs + breaks + pauses)
+  int get itemCount => items.isNotEmpty ? items.length : songs.length;
+
+  /// Count of special items (breaks + pauses)
+  int get specialItemCount {
+    return items.where((i) => i.isSpecial).length;
+  }
 
   /// Formatted song count with pluralization
   String get formattedSongCount {
     return '$songCount ${songCount == 1 ? 'song' : 'songs'}';
   }
 
+  /// Formatted item count including special items
+  String get formattedItemCount {
+    final sc = songCount;
+    final sic = specialItemCount;
+    final songStr = '$sc ${sc == 1 ? 'song' : 'songs'}';
+    if (sic == 0) return songStr;
+    return '$songStr, $sic ${sic == 1 ? 'break' : 'breaks'}';
+  }
+
   /// Is this the Catalog setlist?
   /// Detection: Uses the shared constant kCatalogSetlistName from app_constants.
   bool get isCatalog => setlistName == kCatalogSetlistName;
+
+  /// Whether this setlist has mixed items (non-Catalog with items loaded)
+  bool get hasMixedItems => items.isNotEmpty && !isCatalog;
 
   SetlistDetailState copyWith({
     String? setlistId,
@@ -174,6 +222,9 @@ class SetlistDetailState {
     List<SetlistSong>? lastKnownGoodSongs,
     bool clearLastKnownGood = false,
     CatalogSortMode? catalogSortMode,
+    List<SetlistItem>? items,
+    List<SetlistItem>? lastKnownGoodItems,
+    bool clearLastKnownGoodItems = false,
   }) {
     return SetlistDetailState(
       setlistId: setlistId ?? this.setlistId,
@@ -187,6 +238,10 @@ class SetlistDetailState {
           ? null
           : (lastKnownGoodSongs ?? this.lastKnownGoodSongs),
       catalogSortMode: catalogSortMode ?? this.catalogSortMode,
+      items: items ?? this.items,
+      lastKnownGoodItems: clearLastKnownGoodItems
+          ? null
+          : (lastKnownGoodItems ?? this.lastKnownGoodItems),
     );
   }
 }
@@ -281,7 +336,29 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
     }
 
-    state = state.copyWith(songs: updatedSongs);
+    // Also update the items list if we have mixed items
+    List<SetlistItem>? updatedItems;
+    if (state.hasMixedItems) {
+      updatedItems = state.items.map((item) {
+        if (item.isSong && item.song?.id == event.songId) {
+          final updatedSong = item.song!.copyWith(
+            title: event.title ?? item.song!.title,
+            artist: event.artist ?? item.song!.artist,
+            bpm: event.bpm ?? item.song!.bpm,
+            durationSeconds:
+                event.durationSeconds ?? item.song!.durationSeconds,
+            notes: event.notes ?? item.song!.notes,
+            tuning: event.tuning ?? item.song!.tuning,
+            clearBpm: event.clearBpm,
+            clearNotes: event.clearNotes,
+          );
+          return item.copyWith(song: updatedSong);
+        }
+        return item;
+      }).toList();
+    }
+
+    state = state.copyWith(songs: updatedSongs, items: updatedItems);
   }
 
   /// Override state setter to cache state for rebuild preservation
@@ -292,6 +369,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   }
 
   SetlistRepository get _repository => ref.read(setlistRepositoryProvider);
+  SpecialItemRepository get _specialItemRepo =>
+      ref.read(specialItemRepositoryProvider);
   String? get _bandId => ref.read(activeBandIdProvider);
 
   /// Load songs for this setlist with band scoping.
@@ -322,49 +401,97 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
 
     try {
-      var songs = await _repository.fetchSongsForSetlist(
-        bandId: bandId,
-        setlistId: state.setlistId,
-      );
+      if (state.isCatalog) {
+        // Catalog: only songs, no special items
+        var songs = await _repository.fetchSongsForSetlist(
+          bandId: bandId,
+          setlistId: state.setlistId,
+        );
 
-      // ASYNC SAFETY: Verify bandId hasn't changed during the await
-      // Prevents cross-band data leakage on rapid band switching
-      final currentBandId = _bandId;
-      if (currentBandId != bandId) {
+        // ASYNC SAFETY: Verify bandId hasn't changed during the await
+        final currentBandId = _bandId;
+        if (currentBandId != bandId) {
+          if (kDebugMode) {
+            debugPrint(
+              '[SetlistDetail] Discarding stale load result: '
+              'bandId changed from $bandId to $currentBandId',
+            );
+          }
+          return;
+        }
+
+        songs = _applySorting(songs, sortMode: state.catalogSortMode);
+
+        state = state.copyWith(
+          songs: songs,
+          items: const [],
+          isLoading: false,
+          clearLastKnownGood: true,
+          clearLastKnownGoodItems: true,
+        );
+
         if (kDebugMode) {
           debugPrint(
-            '[SetlistDetail] Discarding stale load result: '
-            'bandId changed from $bandId to $currentBandId',
+            '[SetlistDetail] Loaded ${songs.length} songs for Catalog',
           );
-        }
-        return; // Discard result - band context changed
-      }
-
-      // Apply sorting ONLY for Catalog setlists
-      // Non-Catalog setlists respect the custom position order from the database
-      if (state.isCatalog) {
-        songs = _applySorting(songs, sortMode: state.catalogSortMode);
-      }
-
-      state = state.copyWith(
-        songs: songs,
-        isLoading: false,
-        clearLastKnownGood: true, // Loaded data is now the source of truth
-      );
-
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistDetail] Loaded ${songs.length} songs for ${state.setlistName}',
-        );
-        if (state.isCatalog) {
           debugPrint(
             '[SetlistDetail] Catalog sort mode: ${state.catalogSortMode.label}',
           );
-        } else {
+        }
+
+        // Persist computed total duration so setlist cards stay in sync
+        await _repository.updateTotalDuration(
+          setlistId: state.setlistId,
+          totalSeconds: state.totalDuration.inSeconds,
+        );
+      } else {
+        // Non-Catalog: fetch mixed items (songs + special items)
+        final mixedItems = await _specialItemRepo.fetchSetlistItems(
+          bandId: bandId,
+          setlistId: state.setlistId,
+        );
+
+        // ASYNC SAFETY: Verify bandId hasn't changed during the await
+        final currentBandId = _bandId;
+        if (currentBandId != bandId) {
+          if (kDebugMode) {
+            debugPrint(
+              '[SetlistDetail] Discarding stale load result: '
+              'bandId changed from $bandId to $currentBandId',
+            );
+          }
+          return;
+        }
+
+        // Extract songs for backward compatibility with existing methods
+        final songs = mixedItems
+            .where((i) => i.isSong && i.song != null)
+            .map((i) => i.song!)
+            .toList();
+
+        state = state.copyWith(
+          songs: songs,
+          items: mixedItems,
+          isLoading: false,
+          clearLastKnownGood: true,
+          clearLastKnownGoodItems: true,
+        );
+
+        if (kDebugMode) {
+          final breakCount = mixedItems.where((i) => i.isSetBreak).length;
+          final pauseCount = mixedItems.where((i) => i.isPause).length;
           debugPrint(
-            '[SetlistDetail] Using custom position order from database',
+            '[SetlistDetail] Loaded ${mixedItems.length} items: '
+            '${songs.length} songs, $breakCount breaks, $pauseCount pauses '
+            'for ${state.setlistName}',
           );
         }
+
+        // Persist computed total duration so setlist cards stay in sync
+        await _repository.updateTotalDuration(
+          setlistId: state.setlistId,
+          totalSeconds: state.totalDuration.inSeconds,
+        );
       }
     } on SetlistQueryError catch (e) {
       debugPrint('[SetlistDetail] SetlistQueryError: $e');
@@ -574,7 +701,22 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         return entry.value.copyWith(position: entry.key);
       }).toList();
 
-      state = state.copyWith(songs: reindexedSongs, isDeleting: false);
+      // Also update items if we have mixed items
+      List<SetlistItem>? updatedItems;
+      if (state.hasMixedItems) {
+        final filtered = state.items
+            .where((i) => !(i.isSong && i.song?.id == songId))
+            .toList();
+        updatedItems = filtered.asMap().entries.map((entry) {
+          return entry.value.copyWith(position: entry.key);
+        }).toList();
+      }
+
+      state = state.copyWith(
+        songs: reindexedSongs,
+        items: updatedItems,
+        isDeleting: false,
+      );
 
       // Refresh setlists list to update song count and duration stats
       ref.read(setlistsProvider.notifier).refresh();
@@ -591,55 +733,112 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
-  /// Reorder songs locally (optimistic update).
+  /// Reorder items locally (optimistic update).
+  ///
+  /// For non-Catalog: reorders the items list (mixed songs + breaks/pauses).
+  /// For Catalog: reorders the songs list (songs only).
   ///
   /// Saves the current order as "last known good" before applying changes,
   /// so we can revert if persistence fails.
   void reorderLocal(int oldIndex, int newIndex) {
     if (oldIndex == newIndex) return;
 
-    // Save current order as last known good (only if not already saved)
-    final lastGood =
-        state.lastKnownGoodSongs ?? List<SetlistSong>.from(state.songs);
+    if (state.hasMixedItems) {
+      // Non-Catalog: reorder items list
+      final lastGood =
+          state.lastKnownGoodItems ?? List<SetlistItem>.from(state.items);
 
-    final songs = List<SetlistSong>.from(state.songs);
-    final song = songs.removeAt(oldIndex);
+      final items = List<SetlistItem>.from(state.items);
+      final item = items.removeAt(oldIndex);
 
-    // Adjust newIndex if moving down
-    final adjustedIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    songs.insert(adjustedIndex, song);
+      final adjustedIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+      items.insert(adjustedIndex, item);
 
-    // Update positions
-    final reindexedSongs = songs.asMap().entries.map((entry) {
-      return entry.value.copyWith(position: entry.key);
-    }).toList();
+      final reindexedItems = items.asMap().entries.map((entry) {
+        return entry.value.copyWith(position: entry.key);
+      }).toList();
 
-    debugPrint('[SetlistDetail] reorderLocal: $oldIndex -> $newIndex');
+      // Also keep songs in sync
+      final songs = reindexedItems
+          .where((i) => i.isSong && i.song != null)
+          .map((i) => i.song!)
+          .toList();
 
-    state = state.copyWith(songs: reindexedSongs, lastKnownGoodSongs: lastGood);
+      debugPrint(
+        '[SetlistDetail] reorderLocal (items): $oldIndex -> $newIndex',
+      );
+
+      state = state.copyWith(
+        items: reindexedItems,
+        songs: songs,
+        lastKnownGoodItems: lastGood,
+      );
+    } else {
+      // Catalog or legacy: reorder songs list
+      final lastGood =
+          state.lastKnownGoodSongs ?? List<SetlistSong>.from(state.songs);
+
+      final songs = List<SetlistSong>.from(state.songs);
+      final song = songs.removeAt(oldIndex);
+
+      final adjustedIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+      songs.insert(adjustedIndex, song);
+
+      final reindexedSongs = songs.asMap().entries.map((entry) {
+        return entry.value.copyWith(position: entry.key);
+      }).toList();
+
+      debugPrint(
+        '[SetlistDetail] reorderLocal (songs): $oldIndex -> $newIndex',
+      );
+
+      state = state.copyWith(
+        songs: reindexedSongs,
+        lastKnownGoodSongs: lastGood,
+      );
+    }
   }
 
   /// Persist reorder to database.
   ///
-  /// On success: clears the lastKnownGoodSongs (current order becomes "known good").
-  /// On failure: reverts to lastKnownGoodSongs and shows error.
+  /// For non-Catalog: uses setlist_songs row IDs (supports mixed items).
+  /// For Catalog: uses song IDs (backward compatible).
+  ///
+  /// On success: clears the lastKnownGood (current order becomes "known good").
+  /// On failure: reverts to lastKnownGood and shows error.
   Future<bool> persistReorder() async {
     state = state.copyWith(isReordering: true, clearError: true);
 
-    final songIds = state.songs.map((s) => s.id).toList();
     final bandId = _bandId;
 
-    debugPrint('[SetlistDetail] persistReorder:');
-    debugPrint('  setlistId: ${state.setlistId}');
-    debugPrint('  bandId: $bandId');
-    debugPrint('  songCount: ${songIds.length}');
-
     try {
-      await _repository.reorderSongs(
-        setlistId: state.setlistId,
-        songIdsInOrder: songIds,
-        bandId: bandId,
-      );
+      if (state.hasMixedItems) {
+        // Non-Catalog: reorder using setlist_songs row IDs
+        final rowIds = state.items.map((i) => i.setlistSongId).toList();
+
+        debugPrint('[SetlistDetail] persistReorder (items):');
+        debugPrint('  setlistId: ${state.setlistId}');
+        debugPrint('  itemCount: ${rowIds.length}');
+
+        await _repository.reorderSetlistItems(
+          setlistId: state.setlistId,
+          rowIdsInOrder: rowIds,
+        );
+      } else {
+        // Catalog or legacy: reorder using song IDs
+        final songIds = state.songs.map((s) => s.id).toList();
+
+        debugPrint('[SetlistDetail] persistReorder (songs):');
+        debugPrint('  setlistId: ${state.setlistId}');
+        debugPrint('  bandId: $bandId');
+        debugPrint('  songCount: ${songIds.length}');
+
+        await _repository.reorderSongs(
+          setlistId: state.setlistId,
+          songIdsInOrder: songIds,
+          bandId: bandId,
+        );
+      }
 
       // ASYNC SAFETY: Verify bandId hasn't changed during the await
       final currentBandId = _bandId;
@@ -655,31 +854,61 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
 
       // Success: clear the backup (current order is now the "known good")
-      state = state.copyWith(isReordering: false, clearLastKnownGood: true);
+      state = state.copyWith(
+        isReordering: false,
+        clearLastKnownGood: true,
+        clearLastKnownGoodItems: true,
+      );
       debugPrint('[SetlistDetail] ✓ Persisted reorder successfully');
       return true;
     } catch (e) {
       debugPrint('[SetlistDetail] ✗ Error persisting reorder: $e');
 
-      // Revert to last known good order
-      final lastGood = state.lastKnownGoodSongs;
-      if (lastGood != null && lastGood.isNotEmpty) {
-        debugPrint('[SetlistDetail] Reverting to last known good order');
-        state = state.copyWith(
-          songs: lastGood,
-          isReordering: false,
-          error: 'Failed to save order. Changes reverted.',
-          clearLastKnownGood: true,
-        );
+      if (state.hasMixedItems) {
+        // Revert items to last known good order
+        final lastGood = state.lastKnownGoodItems;
+        if (lastGood != null && lastGood.isNotEmpty) {
+          debugPrint(
+            '[SetlistDetail] Reverting items to last known good order',
+          );
+          final songs = lastGood
+              .where((i) => i.isSong && i.song != null)
+              .map((i) => i.song!)
+              .toList();
+          state = state.copyWith(
+            items: lastGood,
+            songs: songs,
+            isReordering: false,
+            error: 'Failed to save order. Changes reverted.',
+            clearLastKnownGoodItems: true,
+          );
+        } else {
+          debugPrint('[SetlistDetail] No backup available, triggering refetch');
+          state = state.copyWith(
+            isReordering: false,
+            error: 'Failed to save order. Reloading...',
+          );
+          Future.microtask(() => loadSongs());
+        }
       } else {
-        // No backup available - trigger a refetch
-        debugPrint('[SetlistDetail] No backup available, triggering refetch');
-        state = state.copyWith(
-          isReordering: false,
-          error: 'Failed to save order. Reloading...',
-        );
-        // Refetch from server to get the actual persisted order
-        Future.microtask(() => loadSongs());
+        // Revert songs to last known good order
+        final lastGood = state.lastKnownGoodSongs;
+        if (lastGood != null && lastGood.isNotEmpty) {
+          debugPrint('[SetlistDetail] Reverting to last known good order');
+          state = state.copyWith(
+            songs: lastGood,
+            isReordering: false,
+            error: 'Failed to save order. Changes reverted.',
+            clearLastKnownGood: true,
+          );
+        } else {
+          debugPrint('[SetlistDetail] No backup available, triggering refetch');
+          state = state.copyWith(
+            isReordering: false,
+            error: 'Failed to save order. Reloading...',
+          );
+          Future.microtask(() => loadSongs());
+        }
       }
       return false;
     }
@@ -1308,6 +1537,179 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       state = state.copyWith(
         isDeleting: false,
         error: 'Failed to delete setlist. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  // ==========================================================================
+  // SPECIAL ITEMS (Set Breaks & Pauses)
+  // ==========================================================================
+
+  /// Add a special item (set break or pause) to this setlist.
+  ///
+  /// Creates the template in the database, then adds it to the setlist,
+  /// then reloads the item list.
+  ///
+  /// Cannot add special items to the Catalog.
+  Future<bool> addSpecialItem({
+    required SetlistItemType type,
+    int? durationMinutes,
+    int? durationSeconds,
+    List<String>? purposes,
+    List<String>? customPurposes,
+    bool saveAsTemplate = true,
+  }) async {
+    if (state.isCatalog) {
+      debugPrint('[SetlistDetail] Cannot add breaks to Catalog');
+      state = state.copyWith(
+        error: 'Breaks and pauses can only be added to setlists.',
+      );
+      return false;
+    }
+
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    try {
+      // 1. Create the template
+      debugPrint(
+        '[SetlistDetail] Step 1: Creating template for ${type.displayName}...',
+      );
+      late final SpecialItem template;
+      try {
+        template = await _specialItemRepo.createTemplate(
+          bandId: bandId,
+          type: type,
+          durationMinutes: durationMinutes,
+          durationSeconds: durationSeconds,
+          purposes: purposes,
+          customPurposes: customPurposes,
+          isSavedTemplate: saveAsTemplate,
+        );
+        debugPrint('[SetlistDetail] Step 1 OK: template ${template.id}');
+      } catch (e, stack) {
+        debugPrint('[SetlistDetail] Step 1 FAILED (createTemplate): $e');
+        debugPrint('[SetlistDetail] Stack: $stack');
+        rethrow;
+      }
+
+      // 2. Add to setlist at the top so it's immediately visible
+      debugPrint(
+        '[SetlistDetail] Step 2: Adding to setlist ${state.setlistId}...',
+      );
+      try {
+        await _specialItemRepo.addToSetlist(
+          setlistId: state.setlistId,
+          specialItemId: template.id,
+          itemType: type,
+          insertAtTop: true,
+        );
+        debugPrint('[SetlistDetail] Step 2 OK: added to setlist');
+      } catch (e, stack) {
+        debugPrint('[SetlistDetail] Step 2 FAILED (addToSetlist): $e');
+        debugPrint('[SetlistDetail] Stack: $stack');
+        rethrow;
+      }
+
+      debugPrint('[SetlistDetail] Added ${type.displayName} to setlist');
+
+      // 3. Reload list and refresh in the background so the overlay
+      //    closes instantly while the UI catches up.
+      loadSongs();
+      ref.read(setlistsProvider.notifier).refresh();
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('[SetlistDetail] Error adding special item: $e');
+      debugPrint('[SetlistDetail] Stack: $stack');
+      state = state.copyWith(
+        error: 'Failed to add ${type.displayName}. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Add an existing template to this setlist.
+  ///
+  /// Reuses an existing special item template (by ID) and adds it to the setlist.
+  Future<bool> addExistingTemplate(SpecialItem template) async {
+    if (state.isCatalog) {
+      state = state.copyWith(
+        error: 'Breaks and pauses can only be added to setlists.',
+      );
+      return false;
+    }
+
+    try {
+      await _specialItemRepo.addToSetlist(
+        setlistId: state.setlistId,
+        specialItemId: template.id,
+        itemType: template.type,
+        insertAtTop: true,
+      );
+
+      debugPrint(
+        '[SetlistDetail] Added existing template ${template.id} to setlist',
+      );
+
+      // Reload list and refresh in the background so the overlay
+      // closes instantly while the UI catches up.
+      loadSongs();
+      ref.read(setlistsProvider.notifier).refresh();
+
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error adding template: $e');
+      state = state.copyWith(error: 'Failed to add item. Please try again.');
+      return false;
+    }
+  }
+
+  /// Delete a special item from this setlist (by setlist_songs row ID).
+  ///
+  /// This removes the setlist_songs row, NOT the template.
+  Future<bool> deleteItem(String setlistSongId) async {
+    state = state.copyWith(isDeleting: true, clearError: true);
+
+    try {
+      await _specialItemRepo.removeFromSetlist(setlistSongId: setlistSongId);
+
+      // Update local state - remove the item from items list
+      if (state.hasMixedItems) {
+        final updatedItems = state.items
+            .where((i) => i.setlistSongId != setlistSongId)
+            .toList();
+        final reindexedItems = updatedItems.asMap().entries.map((entry) {
+          return entry.value.copyWith(position: entry.key);
+        }).toList();
+
+        final songs = reindexedItems
+            .where((i) => i.isSong && i.song != null)
+            .map((i) => i.song!)
+            .toList();
+
+        state = state.copyWith(
+          items: reindexedItems,
+          songs: songs,
+          isDeleting: false,
+        );
+      } else {
+        state = state.copyWith(isDeleting: false);
+      }
+
+      ref.read(setlistsProvider.notifier).refresh();
+
+      debugPrint('[SetlistDetail] Deleted item $setlistSongId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error deleting item: $e');
+      state = state.copyWith(
+        isDeleting: false,
+        error: 'Failed to delete item. Please try again.',
       );
       return false;
     }

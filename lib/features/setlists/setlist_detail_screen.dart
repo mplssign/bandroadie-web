@@ -12,20 +12,24 @@ import '../../shared/widgets/loading_overlay.dart';
 import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
 import '../bands/active_band_controller.dart';
+import 'models/setlist_item.dart';
 import 'models/setlist_song.dart';
 import 'services/setlist_print_handler.dart';
 import 'services/tuning_sort_service.dart';
 import 'setlist_detail_controller.dart';
 import 'setlist_repository.dart';
 import 'setlists_screen.dart' show setlistsProvider;
+import 'special_item_repository.dart';
 import 'tuning/tuning_helpers.dart';
 import 'widgets/back_only_app_bar.dart';
-import 'widgets/bulk_add_songs_overlay.dart';
+import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
+import 'widgets/pause_creator.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/selection_circle.dart';
+import 'widgets/set_break_creator.dart';
 import 'widgets/setlist_picker_bottom_sheet.dart';
 import 'widgets/song_details_bottom_sheet.dart';
-import 'widgets/song_lookup_overlay.dart';
+import 'widgets/special_item_card.dart';
 
 // ============================================================================
 // SETLIST DETAIL SCREEN
@@ -312,19 +316,77 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     });
   }
 
-  /// Handle Song Lookup tap
-  void _handleSongLookup() {
+  /// Handle Add to Setlist tap — unified overlay
+  void _showAddToSetlistOverlay() {
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
+    final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
 
-    showSongLookupOverlay(
+    final state = ref.read(setlistDetailProvider);
+
+    showAddToSetlistOverlay(
       context: context,
       bandId: bandId,
       setlistId: widget.setlistId,
+      bandName: bandName,
+      isCatalog: state.isCatalog,
       onSongAdded: (songId, title, artist) async {
         return ref
             .read(setlistDetailProvider.notifier)
             .addSong(songId, title, artist);
+      },
+      onBulkComplete: (addedCount, setlistSongIds) {
+        // Refresh the song list
+        ref.read(setlistDetailProvider.notifier).loadSongs();
+        ref.read(setlistsProvider.notifier).refresh();
+
+        if (mounted && addedCount > 0) {
+          showAppSnackBar(
+            context,
+            message: '$addedCount song${addedCount == 1 ? '' : 's'} added',
+            duration: const Duration(seconds: 4),
+            action: setlistSongIds.isNotEmpty
+                ? SnackBarAction(
+                    label: 'UNDO',
+                    textColor: AppColors.accent,
+                    onPressed: () => _handleUndoBulkAdd(setlistSongIds),
+                  )
+                : null,
+          );
+        }
+      },
+      onAddSpecialItem:
+          ({
+            required type,
+            durationMinutes,
+            durationSeconds,
+            purposes,
+            customPurposes,
+            saveAsTemplate = true,
+          }) async {
+            final success = await ref
+                .read(setlistDetailProvider.notifier)
+                .addSpecialItem(
+                  type: type,
+                  durationMinutes: durationMinutes,
+                  durationSeconds: durationSeconds,
+                  purposes: purposes,
+                  customPurposes: customPurposes,
+                  saveAsTemplate: saveAsTemplate,
+                );
+            if (mounted && success) {
+              showAppSnackBar(context, message: '${type.displayName} added');
+            }
+            return success;
+          },
+      onAddExistingTemplate: (template) async {
+        final success = await ref
+            .read(setlistDetailProvider.notifier)
+            .addExistingTemplate(template);
+        if (mounted && success) {
+          showAppSnackBar(context, message: '${template.displayTitle} added');
+        }
+        return success;
       },
     );
   }
@@ -344,41 +406,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       isDismissible: true,
       enableDrag: true,
       builder: (context) => _CatalogSortSheet(currentMode: currentMode),
-    );
-  }
-
-  /// Handle Bulk Paste tap
-  void _handleBulkPaste() {
-    final bandId = ref.read(activeBandIdProvider);
-    if (bandId == null) return;
-
-    showBulkAddSongsOverlay(
-      context: context,
-      bandId: bandId,
-      setlistId: widget.setlistId,
-      onComplete: (addedCount, setlistSongIds) {
-        // Refresh the song list
-        ref.read(setlistDetailProvider.notifier).loadSongs();
-
-        // Refresh setlists list to update song count and duration stats
-        ref.read(setlistsProvider.notifier).refresh();
-
-        // Show success snackbar with undo option
-        if (mounted && addedCount > 0) {
-          showAppSnackBar(
-            context,
-            message: '$addedCount song${addedCount == 1 ? '' : 's'} added',
-            duration: const Duration(seconds: 4),
-            action: setlistSongIds.isNotEmpty
-                ? SnackBarAction(
-                    label: 'UNDO',
-                    textColor: AppColors.accent,
-                    onPressed: () => _handleUndoBulkAdd(setlistSongIds),
-                  )
-                : null,
-          );
-        }
-      },
     );
   }
 
@@ -403,6 +430,164 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         message: 'Removed $removedCount song${removedCount == 1 ? '' : 's'}',
       );
     }
+  }
+
+  /// Delete a special item (break/pause) from the setlist
+  Future<bool> _handleDeleteItem(
+    String setlistSongId,
+    String displayTitle,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: const Text(
+          'Remove Item',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Remove "$displayTitle" from this setlist?',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return false;
+
+    final success = await ref
+        .read(setlistDetailProvider.notifier)
+        .deleteItem(setlistSongId);
+
+    if (mounted && success) {
+      HapticFeedback.heavyImpact();
+      showAppSnackBar(context, message: 'Item removed from setlist');
+    }
+    return success;
+  }
+
+  /// Edit a special item (show the appropriate creator sheet)
+  Future<void> _handleEditSpecialItem(SetlistItem item) async {
+    if (item.specialItem == null) return;
+
+    if (item.isSetBreak) {
+      final result = await showSetBreakCreator(
+        context,
+        existingItem: item.specialItem,
+      );
+      if (result == null || !mounted) return;
+
+      // Handle delete
+      if (result.deleted) {
+        await _handleDeleteItem(item.setlistSongId, item.displayTitle);
+        return;
+      }
+
+      // Update the template via repository
+      try {
+        final repo = ref.read(specialItemRepositoryProvider);
+        await repo.updateTemplate(
+          itemId: item.specialItem!.id,
+          durationMinutes: result.durationMinutes,
+          isSavedTemplate: result.saveAsTemplate,
+        );
+        // Reload
+        ref.read(setlistDetailProvider.notifier).loadSongs();
+      } catch (e) {
+        debugPrint('[SetlistDetail] Error updating break: $e');
+      }
+    } else if (item.isPause) {
+      final result = await showPauseCreator(
+        context,
+        existingItem: item.specialItem,
+      );
+      if (result == null || !mounted) return;
+
+      // Handle delete
+      if (result.deleted) {
+        await _handleDeleteItem(item.setlistSongId, item.displayTitle);
+        return;
+      }
+
+      try {
+        final repo = ref.read(specialItemRepositoryProvider);
+        await repo.updateTemplate(
+          itemId: item.specialItem!.id,
+          purposes: result.purposes,
+          customPurposes: result.customPurposes,
+          durationSeconds: result.durationSeconds,
+          clearDurationSeconds: result.durationSeconds == null,
+          isSavedTemplate: result.saveAsTemplate,
+        );
+        ref.read(setlistDetailProvider.notifier).loadSongs();
+      } catch (e) {
+        debugPrint('[SetlistDetail] Error updating pause: $e');
+      }
+    }
+  }
+
+  /// Reusable dismiss background for swipe-to-delete
+  Widget _buildDismissBackground() {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: Spacing.space24),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Delete',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          SizedBox(width: Spacing.space8),
+          Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+        ],
+      ),
+    );
+  }
+
+  /// Reusable proxy decorator for drag animation
+  Widget _buildProxyDecorator(
+    Widget child,
+    int index,
+    Animation<double> animation,
+  ) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final scale = Tween<double>(
+          begin: 1.0,
+          end: 1.02,
+        ).evaluate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+        return Transform.scale(
+          scale: scale,
+          child: Material(
+            color: Colors.transparent,
+            elevation: 8,
+            shadowColor: Colors.black.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
   }
 
   /// Enter search mode
@@ -696,6 +881,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final text = _generateShareText(
       setlistName: _currentName,
       songs: state.songs,
+      items: state.items.isNotEmpty ? state.items : null,
     );
 
     try {
@@ -775,9 +961,52 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   String _generateShareText({
     required String setlistName,
     required List<SetlistSong> songs,
+    List<SetlistItem>? items,
   }) {
     final buffer = StringBuffer();
 
+    // If we have mixed items, use the items-based format
+    if (items != null && items.isNotEmpty) {
+      // Header block
+      buffer.writeln(setlistName);
+      final songCount = items.where((i) => i.isSong).length;
+      final specialCount = items.where((i) => i.isSpecial).length;
+      final totalSeconds = items.fold<int>(
+        0,
+        (sum, i) => sum + (i.contributesToRuntime ? i.durationSeconds : 0),
+      );
+      final countParts = <String>[];
+      countParts.add('$songCount song${songCount == 1 ? '' : 's'}');
+      if (specialCount > 0) {
+        countParts.add('$specialCount break${specialCount == 1 ? '' : 's'}');
+      }
+      buffer.writeln(
+        '${countParts.join(', ')} • ${_formatTotalDuration(totalSeconds)}',
+      );
+      buffer.writeln();
+
+      // Item list
+      for (int i = 0; i < items.length; i++) {
+        final item = items[i];
+        if (item.isSong && item.song != null) {
+          buffer.writeln(item.song!.title);
+          buffer.writeln(_formatSongSecondLine(item.song!));
+        } else if (item.isSetBreak) {
+          buffer.writeln(
+            '--- SET BREAK${item.specialItem?.durationMinutes != null ? ' (${item.specialItem!.durationMinutes} min)' : ''} ---',
+          );
+        } else if (item.isPause) {
+          final title = item.specialItem?.displayTitle ?? 'Pause';
+          buffer.writeln('[ $title ]');
+        }
+        if (i < items.length - 1) {
+          buffer.writeln();
+        }
+      }
+      return buffer.toString();
+    }
+
+    // Songs-only format (Catalog or fallback)
     // Header block
     buffer.writeln(setlistName);
     buffer.writeln(_formatHeaderSubline(songs));
@@ -936,18 +1165,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ),
             const SizedBox(width: 8),
           ],
-          // Song Lookup button
+          // Unified "Add to Setlist" button
           _ActionButton(
-            icon: Icons.search_rounded,
-            label: 'Song Lookup',
-            onTap: _handleSongLookup,
-          ),
-          const SizedBox(width: 8),
-          // Bulk Paste button
-          _ActionButton(
-            icon: Icons.list_rounded,
-            label: 'Bulk Paste',
-            onTap: _handleBulkPaste,
+            icon: Icons.add_rounded,
+            label: 'Add to Setlist',
+            onTap: _showAddToSetlistOverlay,
           ),
           const SizedBox(width: 8),
           // Search filter button (icon only)
@@ -1230,7 +1452,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         const SizedBox(height: 6),
         // Metadata
         Text(
-          '${state.formattedSongCount} • ${state.formattedDuration}',
+          state.isCatalog
+              ? '${state.formattedSongCount} • ${state.formattedDuration}'
+              : '${state.formattedItemCount} • ${state.formattedDuration}',
           style: AppTextStyles.headline.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -1443,7 +1667,110 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       ];
     }
 
-    // Non-Catalog, not searching: reorderable list
+    // Non-Catalog, not searching: reorderable list with mixed items
+    // Uses state.items for mixed content (songs + breaks + pauses)
+    final displayItems = state.hasMixedItems ? state.items : <SetlistItem>[];
+
+    // If we have mixed items, use the items-based rendering
+    if (displayItems.isNotEmpty) {
+      return [
+        AnimatedBuilder(
+          animation: _sortAnimController,
+          builder: (context, child) {
+            return SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.pagePadding,
+              ),
+              sliver: SliverOpacity(
+                opacity: _sortFadeAnimation.value,
+                sliver: SliverReorderableList(
+                  itemCount: displayItems.length,
+                  onReorder: _handleReorder,
+                  itemBuilder: (context, index) {
+                    final item = displayItems[index];
+
+                    if (item.isSpecial && item.specialItem != null) {
+                      // Special item (break or pause)
+                      return Padding(
+                        key: ValueKey(item.uniqueKey),
+                        padding: const EdgeInsets.only(bottom: Spacing.space12),
+                        child: Dismissible(
+                          key: Key('dismiss_${item.uniqueKey}'),
+                          direction: DismissDirection.endToStart,
+                          dismissThresholds: const {
+                            DismissDirection.endToStart: 0.4,
+                          },
+                          confirmDismiss: (_) => _handleDeleteItem(
+                            item.setlistSongId,
+                            item.displayTitle,
+                          ),
+                          background: const SizedBox.shrink(),
+                          secondaryBackground: _buildDismissBackground(),
+                          child: SpecialItemCard(
+                            item: item.specialItem!,
+                            index: index,
+                            isDraggable: true,
+                            onTap: () {
+                              // Tap on special item - could show edit sheet
+                            },
+                            onEdit: () => _handleEditSpecialItem(item),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // Song item
+                    final song = item.song!;
+                    return Padding(
+                      key: ValueKey(item.uniqueKey),
+                      padding: const EdgeInsets.only(bottom: Spacing.space12),
+                      child: Dismissible(
+                        key: Key('dismiss_${item.uniqueKey}'),
+                        direction: DismissDirection.endToStart,
+                        dismissThresholds: const {
+                          DismissDirection.endToStart: 0.4,
+                        },
+                        confirmDismiss: (_) =>
+                            _handleDelete(song.id, song.title),
+                        background: const SizedBox.shrink(),
+                        secondaryBackground: _buildDismissBackground(),
+                        child: ReorderableSongCard(
+                          song: song,
+                          index: index,
+                          isDraggable: true,
+                          onTap: () {
+                            final lyrics = LyricsData.fromJsonString(
+                              song.lyrics,
+                            );
+                            if (lyrics.blocks.isNotEmpty) {
+                              showLyricsViewScreen(
+                                context,
+                                lyrics: lyrics,
+                                songId: song.id,
+                                songTitle: song.title,
+                              );
+                            } else {
+                              _handleSongTap(song);
+                            }
+                          },
+                          onEdit: () => _handleSongTap(song),
+                          onTuningChanged: (tuning) => ref
+                              .read(setlistDetailProvider.notifier)
+                              .updateSongTuning(song.id, tuning),
+                        ),
+                      ),
+                    );
+                  },
+                  proxyDecorator: _buildProxyDecorator,
+                ),
+              ),
+            );
+          },
+        ),
+      ];
+    }
+
+    // Non-Catalog, songs only (no special items loaded yet)
     return [
       AnimatedBuilder(
         animation: _sortAnimController,
@@ -1524,33 +1851,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     ),
                   );
                 },
-                proxyDecorator: (child, index, animation) {
-                  return AnimatedBuilder(
-                    animation: animation,
-                    builder: (context, child) {
-                      final scale = Tween<double>(begin: 1.0, end: 1.02)
-                          .evaluate(
-                            CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOut,
-                            ),
-                          );
-                      return Transform.scale(
-                        scale: scale,
-                        child: Material(
-                          color: Colors.transparent,
-                          elevation: 8,
-                          shadowColor: Colors.black.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(
-                            Spacing.buttonRadius,
-                          ),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: child,
-                  );
-                },
+                proxyDecorator: _buildProxyDecorator,
               ),
             ),
           );
