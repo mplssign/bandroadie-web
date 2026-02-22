@@ -6,15 +6,23 @@ import '../tuning/tuning_helpers.dart';
 /// Song model for display within a setlist.
 /// Maps to public.songs joined with public.setlist_songs.
 ///
-/// DATA MAPPING:
+/// All metadata is stored globally on the songs table (single source of truth).
+/// The setlist_songs table only stores the song reference and position.
+/// Edits to any field propagate to every setlist containing this song.
+///
+/// DATA MAPPING (all from songs table):
 /// - songs.id -> id
 /// - songs.title -> title
 /// - songs.artist -> artist
-/// - songs.bpm (or setlist_songs.bpm override) -> bpm
-/// - songs.duration_seconds (or setlist_songs.duration_seconds override) -> durationSeconds
-/// - songs.tuning (or setlist_songs.tuning override) -> tuning
+/// - songs.bpm -> bpm
+/// - songs.duration_seconds -> durationSeconds
+/// - songs.tuning -> tuning
 /// - songs.album_artwork -> albumArtwork
 /// - songs.notes -> notes
+/// - songs.youtube_links -> youtubeLinks
+/// - songs.lyrics -> lyrics
+///
+/// DATA MAPPING (from setlist_songs table):
 /// - setlist_songs.position -> position
 class SetlistSong {
   final String id;
@@ -26,12 +34,8 @@ class SetlistSong {
   final String? albumArtwork;
   final String? notes;
   final String? youtubeLinks; // JSON string of YouTube links
+  final String? lyrics; // JSON string of LyricsData
   final int position;
-
-  /// Track whether values are overrides (for visual indicator)
-  final bool hasBpmOverride;
-  final bool hasDurationOverride;
-  final bool hasTuningOverride;
 
   const SetlistSong({
     required this.id,
@@ -43,15 +47,9 @@ class SetlistSong {
     this.albumArtwork,
     this.notes,
     this.youtubeLinks,
+    this.lyrics,
     required this.position,
-    this.hasBpmOverride = false,
-    this.hasDurationOverride = false,
-    this.hasTuningOverride = false,
   });
-
-  /// Whether any override exists for this song in this setlist
-  bool get hasAnyOverride =>
-      hasBpmOverride || hasDurationOverride || hasTuningOverride;
 
   /// Duration as Dart Duration object
   Duration get duration => Duration(seconds: durationSeconds);
@@ -92,8 +90,8 @@ class SetlistSong {
   factory SetlistSong.fromSupabase(Map<String, dynamic> json) {
     final songData = json['songs'] as Map<String, dynamic>;
 
-    // BPM, duration, and tuning are GLOBAL (stored on songs table)
-    // Position is per-setlist (stored on setlist_songs table)
+    // All metadata is GLOBAL (stored on songs table)
+    // Only position is per-setlist (stored on setlist_songs table)
     return SetlistSong(
       id: songData['id'] as String,
       title: songData['title'] as String? ?? 'Untitled',
@@ -104,11 +102,8 @@ class SetlistSong {
       albumArtwork: songData['album_artwork'] as String?,
       notes: songData['notes'] as String?,
       youtubeLinks: songData['youtube_links'] as String?,
+      lyrics: songData['lyrics'] as String?,
       position: json['position'] as int? ?? 0,
-      // No more per-setlist overrides - values are global
-      hasBpmOverride: false,
-      hasDurationOverride: false,
-      hasTuningOverride: false,
     );
   }
 
@@ -126,9 +121,8 @@ class SetlistSong {
     bool clearNotes = false,
     String? youtubeLinks,
     bool clearYoutubeLinks = false,
-    bool? hasBpmOverride,
-    bool? hasDurationOverride,
-    bool? hasTuningOverride,
+    String? lyrics,
+    bool clearLyrics = false,
   }) {
     return SetlistSong(
       id: id,
@@ -139,13 +133,10 @@ class SetlistSong {
       tuning: tuning ?? this.tuning,
       albumArtwork: albumArtwork,
       notes: clearNotes ? null : (notes ?? this.notes),
-      youtubeLinks: clearYoutubeLinks
-          ? null
-          : (youtubeLinks ?? this.youtubeLinks),
+      youtubeLinks:
+          clearYoutubeLinks ? null : (youtubeLinks ?? this.youtubeLinks),
+      lyrics: clearLyrics ? null : (lyrics ?? this.lyrics),
       position: position ?? this.position,
-      hasBpmOverride: hasBpmOverride ?? this.hasBpmOverride,
-      hasDurationOverride: hasDurationOverride ?? this.hasDurationOverride,
-      hasTuningOverride: hasTuningOverride ?? this.hasTuningOverride,
     );
   }
 }

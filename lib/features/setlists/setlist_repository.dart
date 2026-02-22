@@ -235,9 +235,7 @@ class SetlistRepository {
       bool hasIsCatalogColumn = true;
 
       try {
-        response = await supabase
-            .from('setlists')
-            .select('''
+        response = await supabase.from('setlists').select('''
               id,
               name,
               band_id,
@@ -246,9 +244,7 @@ class SetlistRepository {
               created_at,
               updated_at,
               setlist_songs(count)
-            ''')
-            .eq('band_id', bandId)
-            .order('name', ascending: true);
+            ''').eq('band_id', bandId).order('name', ascending: true);
       } on PostgrestException catch (e) {
         // If is_catalog column doesn't exist, fallback to basic query
         if (e.code == '42703' && e.message.contains('is_catalog')) {
@@ -258,9 +254,7 @@ class SetlistRepository {
             );
           }
           hasIsCatalogColumn = false;
-          response = await supabase
-              .from('setlists')
-              .select('''
+          response = await supabase.from('setlists').select('''
                 id,
                 name,
                 band_id,
@@ -268,9 +262,7 @@ class SetlistRepository {
                 created_at,
                 updated_at,
                 setlist_songs(count)
-              ''')
-              .eq('band_id', bandId)
-              .order('name', ascending: true);
+              ''').eq('band_id', bandId).order('name', ascending: true);
         } else {
           rethrow;
         }
@@ -298,9 +290,8 @@ class SetlistRepository {
                 countData.isNotEmpty &&
                 countData[0] is Map) {
               final count = (countData[0] as Map)['count'];
-              songCount = (count is int)
-                  ? count
-                  : (count is num ? count.toInt() : 0);
+              songCount =
+                  (count is int) ? count : (count is num ? count.toInt() : 0);
             }
           }
 
@@ -407,9 +398,8 @@ class SetlistRepository {
 
       // ==== VERIFICATION LOGGING ====
       if (kDebugMode) {
-        final catalogCount = setlists
-            .where((s) => s.isCatalog || isCatalogName(s.name))
-            .length;
+        final catalogCount =
+            setlists.where((s) => s.isCatalog || isCatalogName(s.name)).length;
         debugPrint(
           '════════════════════════════════════════════════════════════',
         );
@@ -537,14 +527,9 @@ class SetlistRepository {
       }
 
       // Step 2: Fetch songs with nested join
-      final response = await supabase
-          .from('setlist_songs')
-          .select('''
+      final response = await supabase.from('setlist_songs').select('''
             song_id,
             position,
-            bpm,
-            tuning,
-            duration_seconds,
             songs!inner (
               id,
               title,
@@ -554,11 +539,10 @@ class SetlistRepository {
               tuning,
               album_artwork,
               notes,
-              youtube_links
+              youtube_links,
+              lyrics
             )
-          ''')
-          .eq('setlist_id', setlistId)
-          .order('position', ascending: true);
+          ''').eq('setlist_id', setlistId).order('position', ascending: true);
 
       if (kDebugMode) {
         debugPrint(
@@ -830,14 +814,11 @@ class SetlistRepository {
     required String songId,
   }) async {
     // Step 1: Get all setlist IDs for this band
-    final setlistsResponse = await supabase
-        .from('setlists')
-        .select('id')
-        .eq('band_id', bandId);
+    final setlistsResponse =
+        await supabase.from('setlists').select('id').eq('band_id', bandId);
 
-    final setlistIds = setlistsResponse
-        .map<String>((s) => s['id'] as String)
-        .toList();
+    final setlistIds =
+        setlistsResponse.map<String>((s) => s['id'] as String).toList();
 
     if (setlistIds.isNotEmpty) {
       // Step 2: Delete from all setlist_songs in this band
@@ -915,9 +896,8 @@ class SetlistRepository {
         debugPrint('[SetlistRepository] Verifying persisted positions:');
         for (int i = 0; i < verify.length && i < 5; i++) {
           final v = verify[i];
-          final expectedSongId = i < songIdsInOrder.length
-              ? songIdsInOrder[i]
-              : '?';
+          final expectedSongId =
+              i < songIdsInOrder.length ? songIdsInOrder[i] : '?';
           final match = v['song_id'] == expectedSongId ? '✓' : '✗';
           debugPrint(
             '  [$i] $match pos=${v['position']} song=${(v['song_id'] as String).substring(0, 8)}... expected=${expectedSongId.substring(0, 8)}...',
@@ -1084,9 +1064,8 @@ class SetlistRepository {
 
       for (final row in response) {
         final name = row['name'] as String? ?? '';
-        final isCatalogFlag = hasIsCatalogColumn
-            ? (row['is_catalog'] as bool? ?? false)
-            : false;
+        final isCatalogFlag =
+            hasIsCatalogColumn ? (row['is_catalog'] as bool? ?? false) : false;
 
         // Include if is_catalog=true OR name matches Catalog/All Songs
         if (isCatalogFlag || isCatalogName(name)) {
@@ -1231,8 +1210,7 @@ class SetlistRepository {
           if (currentName.toLowerCase() != 'catalog') {
             await supabase
                 .from('setlists')
-                .update({'name': kCatalogSetlistName})
-                .eq('id', setlistId);
+                .update({'name': kCatalogSetlistName}).eq('id', setlistId);
           }
         } else {
           rethrow;
@@ -1269,9 +1247,8 @@ class SetlistRepository {
           .select('song_id')
           .eq('setlist_id', targetSetlistId);
 
-      final existingIds = (targetSongs as List)
-          .map((r) => r['song_id'] as String)
-          .toSet();
+      final existingIds =
+          (targetSongs as List).map((r) => r['song_id'] as String).toSet();
 
       // Get max position in target
       final posResult = await supabase
@@ -1360,6 +1337,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1523,6 +1502,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1563,8 +1544,7 @@ class SetlistRepository {
         );
         await supabase
             .from('songs')
-            .update({'duration_seconds': durationSeconds})
-            .eq('id', songId);
+            .update({'duration_seconds': durationSeconds}).eq('id', songId);
         debugPrint(
           '[SetlistRepository] ✓ Updated duration to $durationSeconds for song $songId (direct)',
         );
@@ -1622,6 +1602,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1663,8 +1645,7 @@ class SetlistRepository {
         );
         await supabase
             .from('songs')
-            .update({'tuning': dbTuning})
-            .eq('id', songId);
+            .update({'tuning': dbTuning}).eq('id', songId);
         debugPrint(
           '[SetlistRepository] ✓ Updated tuning to $dbTuning for song $songId (direct)',
         );
@@ -1674,8 +1655,7 @@ class SetlistRepository {
       // Check for enum cast error (invalid tuning value)
       // PostgreSQL returns 22P02 for invalid_text_representation
       // PostgREST may wrap this as various codes
-      final isEnumError =
-          e.message.contains('invalid input value for enum') ||
+      final isEnumError = e.message.contains('invalid input value for enum') ||
           e.message.contains('tuning_type') ||
           e.code == '22P02' ||
           e.code == '400';
@@ -1720,7 +1700,7 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 8 parameters to avoid PGRST203 function overload ambiguity
+      // Must pass ALL 10 parameters to avoid PGRST203 function overload ambiguity
       final result = await supabase.rpc(
         'update_song_metadata',
         params: {
@@ -1732,6 +1712,8 @@ class SetlistRepository {
           'p_notes': notes,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -1788,7 +1770,7 @@ class SetlistRepository {
   /// Updates a song's YouTube links (stored on the songs table - global).
   ///
   /// The [youtubeLinks] parameter should be a JSON string of the links array.
-  /// Uses RPC with SECURITY DEFINER to bypass RLS.
+  /// Uses direct update on the songs table. Falls back to RPC for legacy songs.
   Future<void> updateSongYoutubeLinks({
     required String bandId,
     required String songId,
@@ -1808,70 +1790,123 @@ class SetlistRepository {
     }
 
     try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 9 parameters to avoid PGRST203 function overload ambiguity
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': null,
-          'p_duration_seconds': null,
-          'p_tuning': null,
-          'p_notes': null,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': youtubeLinks,
-        },
-      );
-
-      // Check RPC result
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
-      }
-
+      // Direct update on songs table
+      await supabase
+          .from('songs')
+          .update({'youtube_links': youtubeLinks}).eq('id', songId);
       debugPrint(
-        '[SetlistRepository] ✓ Updated YouTube links for song $songId (via RPC)',
+        '[SetlistRepository] ✓ Updated YouTube links for song $songId (direct)',
       );
     } on PostgrestException catch (e) {
       debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+        '[SetlistRepository] PostgrestException on direct youtube_links update: code=${e.code}, message=${e.message}',
       );
 
-      // PGRST203 = ambiguous function call (multiple overloads)
-      if (e.code == 'PGRST203') {
+      // RLS may block direct update for legacy songs with NULL band_id.
+      // Fall back to RPC with SECURITY DEFINER which now supports p_youtube_links.
+      if (e.code == '42501' || e.message.contains('policy')) {
         debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 084_add_youtube_links_column.sql',
+          '[SetlistRepository] RLS blocked direct update, falling back to RPC',
         );
-        throw Exception('Server configuration error. Please contact support.');
+        await supabase.rpc(
+          'update_song_metadata',
+          params: {
+            'p_song_id': songId,
+            'p_band_id': bandId,
+            'p_bpm': null,
+            'p_duration_seconds': null,
+            'p_tuning': null,
+            'p_notes': null,
+            'p_title': null,
+            'p_artist': null,
+            'p_youtube_links': youtubeLinks,
+            'p_lyrics': null,
+          },
+        );
+        debugPrint(
+          '[SetlistRepository] ✓ Updated YouTube links for song $songId (via RPC fallback)',
+        );
+      } else {
+        rethrow;
       }
-
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase
-            .from('songs')
-            .update({'youtube_links': youtubeLinks})
-            .eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated YouTube links for song $songId (direct)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
-      rethrow;
     } catch (e) {
+      if (e is PostgrestException) rethrow;
       debugPrint('[SetlistRepository] ❌ Error updating YouTube links: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates a song's lyrics (stored on the songs table - global, not per-setlist).
+  ///
+  /// The [lyrics] parameter should be a JSON string of LyricsData.
+  /// Uses direct update on the songs table. For legacy songs with NULL band_id,
+  /// falls back to the RPC with SECURITY DEFINER to bypass RLS.
+  Future<void> updateSongLyrics({
+    required String bandId,
+    required String songId,
+    required String? lyrics,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSongLyrics: songId=$songId, lyrics=${lyrics != null ? lyrics.substring(0, lyrics.length > 50 ? 50 : lyrics.length) : 'null'}...',
+      );
+    }
+
+    try {
+      // Direct update on songs table
+      await supabase.from('songs').update({'lyrics': lyrics}).eq('id', songId);
+      debugPrint(
+        '[SetlistRepository] ✓ Updated lyrics for song $songId (direct)',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException on direct lyrics update: code=${e.code}, message=${e.message}',
+      );
+
+      // RLS may block direct update for legacy songs with NULL band_id.
+      // Fall back to RPC with SECURITY DEFINER which now supports p_lyrics.
+      if (e.code == '42501' || e.message.contains('policy')) {
+        debugPrint(
+          '[SetlistRepository] RLS blocked direct update, falling back to RPC',
+        );
+        final result = await supabase.rpc(
+          'update_song_metadata',
+          params: {
+            'p_song_id': songId,
+            'p_band_id': bandId,
+            'p_bpm': null,
+            'p_duration_seconds': null,
+            'p_tuning': null,
+            'p_notes': null,
+            'p_title': null,
+            'p_artist': null,
+            'p_youtube_links': null,
+            'p_lyrics': lyrics,
+          },
+        );
+
+        if (result is Map && result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
+
+        debugPrint(
+          '[SetlistRepository] ✓ Updated lyrics for song $songId (via RPC fallback)',
+        );
+      } else {
+        rethrow;
+      }
+    } catch (e) {
+      if (e is PostgrestException) rethrow;
+      debugPrint('[SetlistRepository] ❌ Error updating lyrics: $e');
       rethrow;
     }
   }
@@ -1903,7 +1938,7 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 8 parameters to avoid PGRST203 function overload ambiguity
+      // Must pass ALL 10 parameters to avoid PGRST203 function overload ambiguity
       final result = await supabase.rpc(
         'update_song_metadata',
         params: {
@@ -1915,6 +1950,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': title,
           'p_artist': artist,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 
@@ -2446,14 +2483,11 @@ class SetlistRepository {
     required String originalName,
   }) async {
     // Get all existing setlist names in this band
-    final existingSetlists = await supabase
-        .from('setlists')
-        .select('name')
-        .eq('band_id', bandId);
+    final existingSetlists =
+        await supabase.from('setlists').select('name').eq('band_id', bandId);
 
-    final existingNames = existingSetlists
-        .map<String>((s) => s['name'] as String)
-        .toSet();
+    final existingNames =
+        existingSetlists.map<String>((s) => s['name'] as String).toSet();
 
     // Try "Name (Copy)" first
     final baseCopyName = '$originalName (Copy)';
@@ -2522,8 +2556,7 @@ class SetlistRepository {
       // Check if it's a "function doesn't exist" error
       // PGRST202: Function not found in schema cache
       // 42883: Function does not exist (PostgreSQL error)
-      final isFunctionNotFound =
-          e.code == 'PGRST202' ||
+      final isFunctionNotFound = e.code == 'PGRST202' ||
           e.code == '42883' ||
           e.message.contains('does not exist') ||
           e.message.contains('could not find');
@@ -2740,9 +2773,7 @@ class SetlistRepository {
             .maybeSingle();
       } on PostgrestException {
         // setlist_type column may not exist, try is_catalog
-        response = await supabase
-            .from('setlists')
-            .select('''
+        response = await supabase.from('setlists').select('''
               id,
               name,
               band_id,
@@ -2751,10 +2782,7 @@ class SetlistRepository {
               created_at,
               updated_at,
               setlist_songs(count)
-            ''')
-            .eq('band_id', bandId)
-            .eq('is_catalog', true)
-            .maybeSingle();
+            ''').eq('band_id', bandId).eq('is_catalog', true).maybeSingle();
       }
 
       response ??= await supabase
@@ -2825,9 +2853,7 @@ class SetlistRepository {
     }
 
     try {
-      final response = await supabase
-          .from('songs')
-          .select('''
+      final response = await supabase.from('songs').select('''
             id,
             title,
             artist,
@@ -2835,10 +2861,11 @@ class SetlistRepository {
             duration_seconds,
             tuning,
             album_artwork,
-            band_id
-          ''')
-          .eq('band_id', bandId)
-          .order('title', ascending: true);
+            band_id,
+            notes,
+            youtube_links,
+            lyrics
+          ''').eq('band_id', bandId).order('title', ascending: true);
 
       if (kDebugMode) {
         debugPrint(
@@ -2980,11 +3007,8 @@ class SetlistRepository {
         insertData['musicbrainz_id'] = musicbrainzId;
       }
 
-      final result = await supabase
-          .from('songs')
-          .insert(insertData)
-          .select('id')
-          .single();
+      final result =
+          await supabase.from('songs').insert(insertData).select('id').single();
 
       final newId = result['id'] as String;
       if (kDebugMode) {
@@ -3097,13 +3121,11 @@ class SetlistRepository {
         final catalogSongId = wasAlreadyInCatalog
             ? (existingCatalog as List)[0]['id'] as String
             : (await supabase
-                          .from('setlist_songs')
-                          .select('id')
-                          .eq('setlist_id', catalogId)
-                          .eq('song_id', songId)
-                          .limit(1)
-                      as List)[0]['id']
-                  as String;
+                .from('setlist_songs')
+                .select('id')
+                .eq('setlist_id', catalogId)
+                .eq('song_id', songId)
+                .limit(1) as List)[0]['id'] as String;
 
         return AddSongResult(
           setlistSongId: catalogSongId,
@@ -3572,11 +3594,8 @@ class SetlistRepository {
         debugPrint('[SetlistRepository] Unsupported tuning skipped: $tuning');
       }
 
-      final result = await supabase
-          .from('songs')
-          .insert(insertData)
-          .select('id')
-          .single();
+      final result =
+          await supabase.from('songs').insert(insertData).select('id').single();
 
       final newId = result['id'] as String;
       if (kDebugMode) {
@@ -3716,6 +3735,8 @@ class SetlistRepository {
           'p_notes': null,
           'p_title': null,
           'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
         },
       );
 

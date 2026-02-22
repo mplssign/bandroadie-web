@@ -48,11 +48,25 @@ class PushNotificationService {
   // Callback for silent data refresh
   void Function(Map<String, dynamic> data)? onSilentRefresh;
 
+  /// Guard against duplicate initialization.
+  /// Without this, each call to initialize() adds a NEW listener to
+  /// onMessage/onMessageOpenedApp, causing duplicate local notifications.
+  bool _initialized = false;
+
   PushNotificationService(this._repository);
 
   /// Initialize the push notification service
   /// Call this early in app startup (after Firebase.initializeApp)
   Future<void> initialize() async {
+    if (_initialized) {
+      debugPrint('[PushNotificationService] Already initialized, skipping');
+      // Still clear badge on re-entry (e.g. app resume)
+      if (!kIsWeb) {
+        await clearBadge();
+      }
+      return;
+    }
+
     // Set background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -75,6 +89,7 @@ class PushNotificationService {
       _handleNotificationOpen(initialMessage);
     }
 
+    _initialized = true;
     debugPrint('[PushNotificationService] Initialized');
   }
 
@@ -83,10 +98,9 @@ class PushNotificationService {
     try {
       if (Platform.isIOS || Platform.isMacOS) {
         // On iOS/macOS, use the platform-specific implementation to set badge to 0
-        final iosPlugin = _localNotifications
-            .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin
-            >();
+        final iosPlugin =
+            _localNotifications.resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin>();
         if (iosPlugin != null) {
           // Show a silent notification with badge 0 to clear it, then cancel
           await _localNotifications.show(
@@ -124,7 +138,7 @@ class PushNotificationService {
 
     final granted =
         settings.authorizationStatus == AuthorizationStatus.authorized ||
-        settings.authorizationStatus == AuthorizationStatus.provisional;
+            settings.authorizationStatus == AuthorizationStatus.provisional;
 
     debugPrint('[PushNotificationService] Permission granted: $granted');
     return granted;
@@ -227,8 +241,7 @@ class PushNotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(androidChannel);
   }
 

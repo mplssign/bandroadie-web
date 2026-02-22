@@ -10,6 +10,8 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import '../lyrics/models/lyrics_data.dart';
+import '../lyrics/widgets/lyrics_view_screen.dart';
 import 'models/bulk_song_row.dart';
 import 'models/setlist_item.dart';
 import 'models/setlist_item_type.dart';
@@ -1027,6 +1029,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         );
         debugPrint('[SetlistDetail] YouTube links save result: $success');
       }
+
+      // Update lyrics if changed
+      if (result.lyricsChanged) {
+        debugPrint('[SetlistDetail] Saving lyrics...');
+        final success = await notifier.updateSongLyrics(song.id, result.lyrics);
+        debugPrint('[SetlistDetail] Lyrics save result: $success');
+      }
     }
   }
 
@@ -1714,6 +1723,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                         song: song,
                         index: index,
                         isDraggable: false,
+                        onTap: () {
+                          final lyrics = LyricsData.fromJsonString(song.lyrics);
+                          showLyricsViewScreen(
+                            context,
+                            lyrics: lyrics,
+                            songId: song.id,
+                            songTitle: song.title,
+                          );
+                        },
                         onEdit: () => _handleSongTap(song),
                         onDelete: () => _handleDelete(song.id, song.title),
                         onTuningChanged: (tuning) => ref
@@ -1825,6 +1843,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                         song: song,
                         index: index,
                         isDraggable: true,
+                        onTap: () {
+                          final lyrics = LyricsData.fromJsonString(song.lyrics);
+                          showLyricsViewScreen(
+                            context,
+                            lyrics: lyrics,
+                            songId: song.id,
+                            songTitle: song.title,
+                          );
+                        },
                         onEdit: () => _handleSongTap(song),
                         onDelete: () => _handleDelete(song.id, song.title),
                         onTuningChanged: (tuning) => ref
@@ -1843,6 +1870,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                       song: song,
                       index: index,
                       isDraggable: true,
+                      onTap: () {
+                        final lyrics = LyricsData.fromJsonString(song.lyrics);
+                        showLyricsViewScreen(
+                          context,
+                          lyrics: lyrics,
+                          songId: song.id,
+                          songTitle: song.title,
+                        );
+                      },
                       onEdit: () => _handleSongTap(song),
                       onDelete: () => _handleDelete(song.id, song.title),
                       onTuningChanged: (tuning) => ref

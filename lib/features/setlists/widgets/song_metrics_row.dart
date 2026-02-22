@@ -28,12 +28,6 @@ class SongMetricsRow extends StatelessWidget {
   /// Tuning identifier (e.g., "drop_d", "standard_e")
   final String tuning;
 
-  /// Whether BPM has an override (affects styling)
-  final bool hasBpmOverride;
-
-  /// Whether duration has an override (affects styling)
-  final bool hasDurationOverride;
-
   /// Callback when BPM is tapped (only fires for non-null values)
   final VoidCallback? onBpmTap;
 
@@ -51,8 +45,6 @@ class SongMetricsRow extends StatelessWidget {
     required this.bpm,
     required this.durationSeconds,
     required this.tuning,
-    this.hasBpmOverride = false,
-    this.hasDurationOverride = false,
     this.onBpmTap,
     this.onDurationTap,
     this.onTuningTap,
@@ -124,7 +116,6 @@ class SongMetricsRow extends StatelessWidget {
       isPlaceholder: isBpmPlaceholder,
       onTap: isBpmPlaceholder ? null : onBpmTap,
       backgroundColor: const Color(0xFF2C2C2C),
-      borderColor: hasBpmOverride ? AppColors.accent : null,
     );
   }
 
@@ -137,7 +128,6 @@ class SongMetricsRow extends StatelessWidget {
       isPlaceholder: isPlaceholder,
       onTap: isPlaceholder ? null : onDurationTap,
       backgroundColor: const Color(0xFF2C2C2C),
-      borderColor: hasDurationOverride ? AppColors.accent : null,
     );
   }
 

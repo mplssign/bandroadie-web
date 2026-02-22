@@ -28,12 +28,16 @@ class SongUpdateEvent {
   final int? durationSeconds;
   final String? notes;
   final String? tuning;
+  final String? youtubeLinks;
+  final String? lyrics;
   final DateTime timestamp;
 
   /// Flags to indicate which fields should be cleared to null
   /// (needed because null means "no change" by default)
   final bool clearBpm;
   final bool clearNotes;
+  final bool clearYoutubeLinks;
+  final bool clearLyrics;
 
   SongUpdateEvent({
     required this.songId,
@@ -43,8 +47,12 @@ class SongUpdateEvent {
     this.durationSeconds,
     this.notes,
     this.tuning,
+    this.youtubeLinks,
+    this.lyrics,
     this.clearBpm = false,
     this.clearNotes = false,
+    this.clearYoutubeLinks = false,
+    this.clearLyrics = false,
   }) : timestamp = DateTime.now();
 }
 
@@ -308,8 +316,12 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       durationSeconds: event.durationSeconds ?? song.durationSeconds,
       notes: event.notes ?? song.notes,
       tuning: event.tuning ?? song.tuning,
+      youtubeLinks: event.youtubeLinks ?? song.youtubeLinks,
+      lyrics: event.lyrics ?? song.lyrics,
       clearBpm: event.clearBpm,
       clearNotes: event.clearNotes,
+      clearYoutubeLinks: event.clearYoutubeLinks,
+      clearLyrics: event.clearLyrics,
     );
 
     // RACE CONDITION FIX: Re-sort Catalog to maintain consistent ordering
@@ -1101,6 +1113,16 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         '[SetlistDetail] Successfully updated YouTube links for song $songId',
       );
 
+      // Broadcast the update to other setlists
+      ref.read(songUpdateBroadcasterProvider.notifier).broadcast(
+            SongUpdateEvent(
+              songId: songId,
+              youtubeLinks: youtubeLinksJson ?? '',
+              clearYoutubeLinks:
+                  youtubeLinksJson == null || youtubeLinksJson.isEmpty,
+            ),
+          );
+
       return true;
     } catch (e, stack) {
       debugPrint('[SetlistDetail] Error updating YouTube links: $e');
@@ -1110,6 +1132,72 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       state = state.copyWith(
         songs: originalSongs,
         error: 'Couldn\'t save YouTube links. Try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's lyrics globally.
+  ///
+  /// Uses optimistic update pattern:
+  /// 1. Store original state
+  /// 2. Apply change immediately (UI feels instant)
+  /// 3. Persist to database
+  /// 4. On failure: revert to original and show error
+  Future<bool> updateSongLyrics(String songId, String? lyricsJson) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    debugPrint(
+      '[SetlistDetail] updateSongLyrics: songId=$songId, lyrics=${lyricsJson != null ? lyricsJson.substring(0, lyricsJson.length > 30 ? 30 : lyricsJson.length) : 'null'}...',
+    );
+
+    // Store original state for rollback
+    final originalSongs = List<SetlistSong>.from(state.songs);
+
+    // Optimistic update - apply immediately so UI feels instant
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(
+          lyrics: lyricsJson,
+          clearLyrics: lyricsJson == null || lyricsJson.isEmpty,
+        );
+      }
+      return song;
+    }).toList();
+    state = state.copyWith(songs: updatedSongs, clearError: true);
+
+    try {
+      await _repository.updateSongLyrics(
+        bandId: bandId,
+        songId: songId,
+        lyrics: lyricsJson,
+      );
+      debugPrint(
+        '[SetlistDetail] Successfully updated lyrics for song $songId',
+      );
+
+      // Broadcast the update to other setlists
+      ref.read(songUpdateBroadcasterProvider.notifier).broadcast(
+            SongUpdateEvent(
+              songId: songId,
+              lyrics: lyricsJson ?? '',
+              clearLyrics: lyricsJson == null || lyricsJson.isEmpty,
+            ),
+          );
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('[SetlistDetail] Error updating lyrics: $e');
+      debugPrint('[SetlistDetail] Stack trace: $stack');
+
+      // Revert optimistic update
+      state = state.copyWith(
+        songs: originalSongs,
+        error: 'Couldn\'t save lyrics. Try again.',
       );
       return false;
     }
