@@ -1,0 +1,4 @@
+# Disable JWT verification — this function is called by a pg_net trigger
+# that authenticates via X-Internal-Secret, not a Supabase JWT.
+[functions."send-push"]
+verify_jwt = false

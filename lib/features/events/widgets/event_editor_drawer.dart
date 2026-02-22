@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1039,7 +1040,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               : '${_eventType.displayName} created',
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[EventEditor] ERROR saving event:');
+      debugPrint('  Error: $e');
+      debugPrint('  Type: ${e.runtimeType}');
+      debugPrint('  Stack: $st');
       setState(() {
         _isSaving = false;
         _errorMessage = _mapErrorToMessage(e);

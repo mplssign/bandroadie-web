@@ -24,6 +24,8 @@
 // - If MediaQuery.disableAnimations is true, skip to final state instantly.
 // ============================================================================
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -288,10 +290,16 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       // Web: Redirect to /app and let Supabase auto-detect session from URL
-      // Native: Use deep link scheme
-      final redirectUrl = kIsWeb
-          ? 'https://bandroadie.com/app'
-          : 'bandroadie://login-callback/';
+      // Android: Use verified App Link (https://bandroadie.com/auth/callback)
+      // iOS/macOS: Use custom scheme (bandroadie://login-callback/)
+      final String redirectUrl;
+      if (kIsWeb) {
+        redirectUrl = 'https://bandroadie.com/app';
+      } else if (!kIsWeb && Platform.isAndroid) {
+        redirectUrl = 'https://bandroadie.com/auth/callback';
+      } else {
+        redirectUrl = 'bandroadie://login-callback/';
+      }
 
       await supabase.auth.signInWithOtp(
         email: email,

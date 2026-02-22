@@ -119,7 +119,9 @@ class DeepLinkService {
 
       if (code != null) {
         // PKCE flow - exchange code for session
-        debugPrint('[DeepLinkService] PKCE flow - exchanging code: ${code.substring(0, 10)}...');
+        debugPrint(
+          '[DeepLinkService] PKCE flow - exchanging code: ${code.substring(0, 10)}...',
+        );
         try {
           final response = await Supabase.instance.client.auth
               .exchangeCodeForSession(code);
@@ -136,7 +138,9 @@ class DeepLinkService {
               '[DeepLinkService] Session confirmed for user: ${session.user.email}',
             );
           } else {
-            debugPrint('[DeepLinkService] WARNING: Session is null after successful exchange!');
+            debugPrint(
+              '[DeepLinkService] WARNING: Session is null after successful exchange!',
+            );
           }
 
           // Force refresh auth provider state to ensure UI updates
@@ -145,10 +149,19 @@ class DeepLinkService {
 
           onAuthSuccess?.call();
         } on AuthException catch (e) {
-          debugPrint('[DeepLinkService] PKCE exchange AuthException: ${e.message}');
-          debugPrint('[DeepLinkService] This usually means the code verifier was lost (e.g., app restart or logout before link clicked)');
-          AuthDebugLogger.sessionExchange(success: false, errorType: 'pkce_verifier_missing');
-          onAuthError?.call('Login link expired or was opened incorrectly. Please request a new magic link.');
+          debugPrint(
+            '[DeepLinkService] PKCE exchange AuthException: ${e.message}',
+          );
+          debugPrint(
+            '[DeepLinkService] This usually means the code verifier was lost (e.g., app restart or logout before link clicked)',
+          );
+          AuthDebugLogger.sessionExchange(
+            success: false,
+            errorType: 'pkce_verifier_missing',
+          );
+          onAuthError?.call(
+            'Login link expired or was opened incorrectly. Please request a new magic link.',
+          );
         }
       } else if (accessToken != null && refreshToken != null) {
         // Implicit flow - set session directly
@@ -217,6 +230,13 @@ class DeepLinkService {
   bool _isAuthCallback(Uri uri) {
     // Match bandroadie://login-callback/ or bandroadie://login-callback
     if (uri.scheme == 'bandroadie' && uri.host == 'login-callback') {
+      return true;
+    }
+
+    // Match verified Android App Link: https://bandroadie.com/auth/callback
+    if (uri.scheme == 'https' &&
+        uri.host == 'bandroadie.com' &&
+        uri.path.startsWith('/auth/')) {
       return true;
     }
 

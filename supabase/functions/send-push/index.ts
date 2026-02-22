@@ -1,18 +1,32 @@
 // supabase/functions/send-push/index.ts
 // Edge function to send push notifications via Firebase Cloud Messaging HTTP v1 API
 //
-// Called AFTER notification record is created in database
-// Only handles FCM delivery, does not create notification records
+// Called AFTER INSERT on notifications via a pg_net trigger.
+// Only handles FCM delivery — does not create notification records.
+//
+// SECURITY:
+//   • The SQL trigger sends a non-privileged shared secret in X-Internal-Secret.
+//   • This function validates that header against PUSH_TRIGGER_SECRET (env var).
+//   • SUPABASE_SERVICE_ROLE_KEY is read from Deno.env (auto-injected by runtime)
+//     and used ONLY inside this function to create the Supabase admin client.
+//   • No service_role key ever touches SQL.
+//   • verify_jwt = false in config.toml (no JWT required).
+//   • Secrets are NEVER logged or returned in responses.
 //
 // Required environment variables:
-// - FIREBASE_PROJECT_ID: Your Firebase project ID (e.g., "bandroadie-12345")
-// - FIREBASE_SERVICE_ACCOUNT_KEY: The full JSON service account key (stringified)
+//   Auto-provided by Supabase:
+//     SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+//   Set via Dashboard → Edge Functions → Secrets:
+//     PUSH_TRIGGER_SECRET          (must match Vault push_trigger_secret)
+//     FIREBASE_PROJECT_ID
+//     FIREBASE_SERVICE_ACCOUNT_KEY (full JSON, stringified)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const PUSH_TRIGGER_SECRET = Deno.env.get("PUSH_TRIGGER_SECRET") ?? "";
 const FIREBASE_PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID");
 const FIREBASE_SERVICE_ACCOUNT_KEY = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_KEY");
 
@@ -112,7 +126,7 @@ Deno.serve(async (req) => {
     const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey",
+        "Access-Control-Allow-Headers": "Content-Type, X-Internal-Secret, x-client-info, apikey",
     };
 
     if (req.method === "OPTIONS") {
@@ -127,6 +141,15 @@ Deno.serve(async (req) => {
     }
 
     try {
+        // Validate the request using the shared internal secret (NOT a service role key)
+        const internalSecret = req.headers.get("X-Internal-Secret");
+        if (!PUSH_TRIGGER_SECRET || !internalSecret || internalSecret !== PUSH_TRIGGER_SECRET) {
+            return new Response(
+                JSON.stringify({ error: "Unauthorized" }),
+                { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+        }
+
         const payload: WebhookPayload = await req.json();
 
         // Extract notification details from webhook
@@ -284,13 +307,14 @@ Deno.serve(async (req) => {
         );
 
     } catch (error) {
+        // Log internally but never expose secret-adjacent details in response
         console.error('Error sending push notification:', error);
         // Return success anyway - push delivery failures should never block
         return new Response(
             JSON.stringify({
                 success: true,
                 sent: 0,
-                error: error.message
+                error: 'internal_error'
             }),
             {
                 status: 200, // Return 200 to prevent retries

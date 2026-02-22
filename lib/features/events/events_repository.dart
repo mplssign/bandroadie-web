@@ -469,7 +469,18 @@ class EventsRepository {
           : null,
     };
 
-    final response = await supabase.from('gigs').insert(data).select().single();
+    debugPrint('[EventsRepository] Inserting gig with data: $data');
+
+    final Map<String, dynamic> response;
+    try {
+      response = await supabase.from('gigs').insert(data).select().single();
+    } catch (e, st) {
+      debugPrint('[EventsRepository] ERROR creating gig:');
+      debugPrint('  Error: $e');
+      debugPrint('  Type: ${e.runtimeType}');
+      debugPrint('  Stack: $st');
+      rethrow;
+    }
     final gigId = response['id'] as String;
 
     // Create additional dates for multi-date potential gigs
