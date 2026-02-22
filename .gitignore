@@ -108,3 +108,4 @@ web/manifest.json
 # Test artifacts
 # ========================
 test/.dart_tool/
+.vercel

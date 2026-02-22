@@ -32,6 +32,7 @@ class ReorderableSongCard extends StatefulWidget {
   final SetlistSong song;
   final int index;
   final bool isDraggable;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final Future<bool> Function(String tuning)? onTuningChanged;
@@ -41,6 +42,7 @@ class ReorderableSongCard extends StatefulWidget {
     required this.song,
     required this.index,
     this.isDraggable = true,
+    this.onTap,
     this.onEdit,
     this.onDelete,
     this.onTuningChanged,
@@ -89,6 +91,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
 
   void _handleTapUp(TapUpDetails details) {
     _tapController.reverse();
+    widget.onTap?.call();
   }
 
   void _handleTapCancel() {

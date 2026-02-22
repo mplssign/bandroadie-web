@@ -172,12 +172,9 @@ class SpecialItemRepository {
           special_item_id,
           item_type,
           position,
-          bpm,
-          tuning,
-          duration_seconds,
           songs(
             id, title, artist, bpm, duration_seconds, tuning,
-            album_artwork, notes, youtube_links
+            album_artwork, notes, youtube_links, lyrics
           ),
           setlist_special_items(
             id, band_id, type, duration_minutes, duration_seconds,

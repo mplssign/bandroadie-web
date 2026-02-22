@@ -1,5 +1,8 @@
 /// Song model for search results (not tied to a setlist).
 /// Maps to public.songs table.
+///
+/// This is the single source of truth for all song metadata.
+/// All setlists reference the same Song entity by ID.
 class Song {
   final String id;
   final String title;
@@ -11,6 +14,9 @@ class Song {
   final String bandId;
   final String? spotifyId;
   final String? musicbrainzId;
+  final String? notes;
+  final String? youtubeLinks; // JSON string of YouTube links
+  final String? lyrics; // JSON string of LyricsData
 
   const Song({
     required this.id,
@@ -23,6 +29,9 @@ class Song {
     required this.bandId,
     this.spotifyId,
     this.musicbrainzId,
+    this.notes,
+    this.youtubeLinks,
+    this.lyrics,
   });
 
   /// Duration as Dart Duration object
@@ -55,6 +64,9 @@ class Song {
       bandId: json['band_id'] as String,
       spotifyId: json['spotify_id'] as String?,
       musicbrainzId: json['musicbrainz_id'] as String?,
+      notes: json['notes'] as String?,
+      youtubeLinks: json['youtube_links'] as String?,
+      lyrics: json['lyrics'] as String?,
     );
   }
 }

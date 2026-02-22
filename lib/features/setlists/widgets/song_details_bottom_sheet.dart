@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/utils/title_case_formatter.dart';
+import '../../lyrics/models/lyrics_data.dart';
+import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'masked_duration_input.dart';
@@ -93,6 +95,7 @@ class SongDetailsResult {
   final int? bpm;
   final int? duration;
   final List<YouTubeLink>? youtubeLinks;
+  final String? lyrics;
   final bool hasChanges;
 
   // Flags to indicate which fields were changed (needed to distinguish
@@ -104,6 +107,7 @@ class SongDetailsResult {
   final bool bpmChanged;
   final bool durationChanged;
   final bool youtubeLinksChanged;
+  final bool lyricsChanged;
 
   const SongDetailsResult({
     this.title,
@@ -113,6 +117,7 @@ class SongDetailsResult {
     this.bpm,
     this.duration,
     this.youtubeLinks,
+    this.lyrics,
     required this.hasChanges,
     this.titleChanged = false,
     this.artistChanged = false,
@@ -121,6 +126,7 @@ class SongDetailsResult {
     this.bpmChanged = false,
     this.durationChanged = false,
     this.youtubeLinksChanged = false,
+    this.lyricsChanged = false,
   });
 }
 
@@ -171,6 +177,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   late List<YouTubeLink> _youtubeLinks;
   late List<YouTubeLink> _originalYoutubeLinks;
 
+  // Lyrics state
+  late String? _currentLyrics;
+  late String? _originalLyrics;
+
   bool _isEditingTitle = false;
   bool _isEditingArtist = false;
   bool _hasChanges = false;
@@ -197,6 +207,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
     _originalYoutubeLinks = YouTubeLink.listFromJson(widget.song.youtubeLinks);
     _youtubeLinks = List.from(_originalYoutubeLinks);
+
+    // Initialize lyrics from song data
+    _originalLyrics = widget.song.lyrics;
+    _currentLyrics = widget.song.lyrics;
 
     _titleController.addListener(_checkForChanges);
     _artistController.addListener(_checkForChanges);
@@ -270,15 +284,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _youtubeLinks,
       _originalYoutubeLinks,
     );
+    final lyricsChanged = _currentLyrics != _originalLyrics;
 
-    final anyChanged =
-        titleChanged ||
+    final anyChanged = titleChanged ||
         artistChanged ||
         notesChanged ||
         tuningChanged ||
         bpmChanged ||
         durationChanged ||
-        youtubeLinksChanged;
+        youtubeLinksChanged ||
+        lyricsChanged;
 
     debugPrint(
       '[SongDetails] _checkForChanges: bpmChanged=$bpmChanged, anyChanged=$anyChanged',
@@ -380,6 +395,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _youtubeLinks,
       _originalYoutubeLinks,
     );
+    final lyricsChanged = _currentLyrics != _originalLyrics;
 
     debugPrint(
       '[SongDetails] bpmChanged: $bpmChanged (newBpm=$newBpm, original=${widget.song.bpm})',
@@ -395,6 +411,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       duration:
           _currentDurationSeconds, // Always include so handler can check durationChanged flag
       youtubeLinks: youtubeLinksChanged ? _youtubeLinks : null,
+      lyrics: lyricsChanged ? _currentLyrics : null,
       hasChanges: _hasChanges,
       titleChanged: titleChanged,
       artistChanged: artistChanged,
@@ -403,13 +420,67 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       bpmChanged: bpmChanged,
       durationChanged: durationChanged,
       youtubeLinksChanged: youtubeLinksChanged,
+      lyricsChanged: lyricsChanged,
     );
 
     Navigator.of(context).pop(result);
   }
 
   void _handleCancel() {
-    Navigator.of(context).pop();
+    if (_hasChanges) {
+      _showUnsavedChangesDialog();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Shows a confirmation dialog when there are unsaved changes.
+  Future<void> _showUnsavedChangesDialog() async {
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+        ),
+        title: Text(
+          'Unsaved Changes',
+          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Are you sure you want to leave without saving?',
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'Discard',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
+            child: Text(
+              'Keep Editing',
+              style: AppTextStyles.body.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (discard == true && mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   /// Show modal to add a new YouTube link
@@ -428,8 +499,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           'Add YouTube Link',
           style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
         ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: titleController,
@@ -483,36 +556,42 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () {
+                final title = titleController.text.trim();
+                final url = urlController.text.trim();
+                if (title.isNotEmpty && url.isNotEmpty) {
+                  Navigator.of(context)
+                      .pop(YouTubeLink(title: title, url: url));
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              child: Text(
+                'Save',
+                style: AppTextStyles.body.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'Cancel',
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () {
-              final title = titleController.text.trim();
-              final url = urlController.text.trim();
-              if (title.isNotEmpty && url.isNotEmpty) {
-                Navigator.of(context).pop(YouTubeLink(title: title, url: url));
-              }
-            },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
-            child: Text(
-              'Save',
-              style: AppTextStyles.body.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
 
@@ -560,45 +639,49 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           child: Opacity(opacity: _fadeAnimation.value, child: child),
         );
       },
-      child: Container(
-        margin: EdgeInsets.only(bottom: bottomPadding),
-        constraints: BoxConstraints(
-          maxHeight: screenHeight * 0.85,
-          minHeight: screenHeight * 0.6,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(Spacing.cardRadius),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          _handleCancel();
+        },
+        child: Container(
+          margin: EdgeInsets.only(bottom: bottomPadding),
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.85,
+            minHeight: screenHeight * 0.6,
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDragHandle(),
-            _buildHeader(),
-            const Divider(color: AppColors.borderMuted, height: 1),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(Spacing.space16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSongInfo(),
-                    const SizedBox(height: Spacing.space24),
-                    _buildMetricsRow(),
-                    const SizedBox(height: Spacing.space24),
-                    _buildNotesSection(),
-                    const SizedBox(height: Spacing.space24),
-                    _buildActions(),
-                    SizedBox(
-                      height: MediaQuery.of(context).padding.bottom + 16,
-                    ),
-                  ],
+          decoration: BoxDecoration(
+            color: AppColors.surfaceDark,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(Spacing.cardRadius),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDragHandle(),
+              _buildHeader(),
+              const Divider(color: AppColors.borderMuted, height: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(Spacing.space16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSongInfo(),
+                      const SizedBox(height: Spacing.space24),
+                      _buildMetricsRow(),
+                      const SizedBox(height: Spacing.space24),
+                      _buildNotesSection(),
+                      const SizedBox(height: Spacing.space24),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+              _buildFixedBottomActions(),
+            ],
+          ),
         ),
       ),
     );
@@ -622,23 +705,36 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         horizontal: Spacing.space16,
         vertical: Spacing.space12,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              'Song Details',
-              style: AppTextStyles.title3.copyWith(fontSize: 18),
-            ),
-          ),
-          GestureDetector(
-            onTap: _handleCancel,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: const Icon(
-                Icons.close_rounded,
-                size: 24,
-                color: AppColors.textSecondary,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Song Details',
+                  style: AppTextStyles.title3.copyWith(fontSize: 18),
+                ),
               ),
+              GestureDetector(
+                onTap: _handleCancel,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 24,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Changes apply to this song everywhere.',
+            style: AppTextStyles.callout.copyWith(
+              color: AppColors.textMuted,
+              fontSize: 12,
             ),
           ),
         ],
@@ -938,8 +1034,13 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // YouTube Links Section
-        _buildYouTubeSection(),
+        // Add Lyrics + Add YouTube on the same row
+        _buildAddButtonsRow(),
+        const SizedBox(height: 12),
+        // Lyrics preview (if lyrics exist)
+        _buildLyricsPreview(),
+        // YouTube link buttons (if links exist)
+        _buildYouTubeLinksList(),
         const SizedBox(height: 16),
         // Notes Section
         Text(
@@ -979,12 +1080,36 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
   }
 
-  /// Builds the YouTube links section with + Add YouTube button and link buttons
-  Widget _buildYouTubeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// Builds the horizontal row with + Add Lyrics and + Add YouTube buttons
+  Widget _buildAddButtonsRow() {
+    final hasLyrics = _currentLyrics != null && _currentLyrics!.isNotEmpty;
+
+    return Row(
       children: [
-        // + Add YouTube button
+        // + Add Lyrics (first)
+        GestureDetector(
+          onTap: _showLyricsEditor,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                hasLyrics ? Icons.edit_note : Icons.add,
+                color: AppColors.accent,
+                size: 18,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                hasLyrics ? 'Edit Lyrics' : 'Add Lyrics',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 20),
+        // + Add YouTube (second)
         GestureDetector(
           onTap: _showAddYouTubeModal,
           child: Row(
@@ -1002,23 +1127,63 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             ],
           ),
         ),
-        // Display existing YouTube link buttons
-        if (_youtubeLinks.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(_youtubeLinks.length, (index) {
-              final link = _youtubeLinks[index];
-              // Truncate title to 25 characters
-              final displayTitle = link.title.length > 25
-                  ? '${link.title.substring(0, 25)}...'
-                  : link.title;
-              return _buildYouTubeLinkButton(displayTitle, link.url, index);
-            }),
-          ),
-        ],
       ],
+    );
+  }
+
+  /// Builds the lyrics preview (shown below the add buttons row when lyrics exist)
+  Widget _buildLyricsPreview() {
+    final hasLyrics = _currentLyrics != null && _currentLyrics!.isNotEmpty;
+    if (!hasLyrics) return const SizedBox.shrink();
+
+    final lyricsData = LyricsData.fromJsonString(_currentLyrics);
+    if (lyricsData.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: _showLyricsEditor,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.scaffoldBg,
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            border: Border.all(color: AppColors.borderMuted),
+          ),
+          child: Text(
+            lyricsData.plainText.length > 120
+                ? '${lyricsData.plainText.substring(0, 120)}…'
+                : lyricsData.plainText,
+            style: AppTextStyles.footnote.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the YouTube link buttons list (shown below the add buttons row)
+  Widget _buildYouTubeLinksList() {
+    if (_youtubeLinks.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(_youtubeLinks.length, (index) {
+          final link = _youtubeLinks[index];
+          final displayTitle = link.title.length > 25
+              ? '${link.title.substring(0, 25)}...'
+              : link.title;
+          return _buildYouTubeLinkButton(displayTitle, link.url, index);
+        }),
+      ),
     );
   }
 
@@ -1065,14 +1230,90 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
   }
 
-  Widget _buildActions() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextButton(
+  /// Opens the lyrics editor bottom sheet
+  Future<void> _showLyricsEditor() async {
+    final currentData = _currentLyrics != null && _currentLyrics!.isNotEmpty
+        ? LyricsData.fromJsonString(_currentLyrics)
+        : null;
+
+    final result = await showLyricsEditor(
+      context,
+      initialData: currentData,
+    );
+
+    if (result != null) {
+      setState(() {
+        if (result.isEmpty) {
+          _currentLyrics = null;
+        } else {
+          _currentLyrics = result.toJsonString();
+        }
+        _checkForChanges();
+      });
+    }
+  }
+
+  /// Fixed bottom action area: full-width Save + centered Cancel below
+  Widget _buildFixedBottomActions() {
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceDark,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.borderMuted.withValues(alpha: 0.5),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        left: Spacing.space16,
+        right: Spacing.space16,
+        top: 12,
+        bottom: bottomSafe + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Full-width Save button
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _hasChanges ? _handleSave : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: _hasChanges
+                    ? AppColors.accent
+                    : AppColors.borderMuted.withValues(alpha: 0.3),
+                disabledBackgroundColor:
+                    AppColors.borderMuted.withValues(alpha: 0.3),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                ),
+              ),
+              child: Text(
+                'Save',
+                style: AppTextStyles.body.copyWith(
+                  color: _hasChanges ? Colors.white : AppColors.textMuted,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Centered Cancel text button
+          TextButton(
             onPressed: _handleCancel,
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
             ),
             child: Text(
               'Cancel',
@@ -1082,31 +1323,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: FilledButton(
-            onPressed: _hasChanges ? _handleSave : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: _hasChanges
-                  ? AppColors.accent
-                  : AppColors.surfaceDark,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-            ),
-            child: Text(
-              'Save',
-              style: AppTextStyles.body.copyWith(
-                color: _hasChanges ? Colors.white : AppColors.textMuted,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

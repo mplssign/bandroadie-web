@@ -1,6 +1,5 @@
 import Flutter
 import UIKit
-import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -9,30 +8,19 @@ import UserNotifications
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    
-    // Register for remote notifications so app appears in iOS Settings
-    if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-        if granted {
-          DispatchQueue.main.async {
-            UIApplication.shared.registerForRemoteNotifications()
-          }
-        }
-      }
-    }
-    
+
+    // Push notification permission and APNS registration are handled by the
+    // firebase_messaging Flutter plugin. Calling requestAuthorization() or
+    // registerForRemoteNotifications() here races Firebase initialization and
+    // causes the APNS token to be lost.
+    //
+    // Flow:
+    // 1. Firebase.initializeApp() runs in Dart main()
+    // 2. Firebase sets up APNS method swizzling
+    // 3. PushNotificationService.requestPermission() triggers the iOS dialog
+    // 4. Firebase plugin calls registerForRemoteNotifications() and captures
+    //    the APNS token via swizzling
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
-  }
-  
-  // Handle successful registration
-  override func application(_ application: UIApplication, 
-                           didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    print("✅ Registered for remote notifications")
-  }
-  
-  // Handle registration failure
-  override func application(_ application: UIApplication,
-                           didFailToRegisterForRemoteNotificationsWithError error: Error) {
-    print("❌ Failed to register for remote notifications: \(error)")
   }
 }
