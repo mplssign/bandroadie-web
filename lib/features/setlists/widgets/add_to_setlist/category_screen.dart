@@ -171,7 +171,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                       child: _CategoryButton(
                         icon: Icons.timer_outlined,
                         label: 'Set Break',
-                        subtitle: 'Intermission between sets',
+                        subtitle: 'Break between sets',
                         accentColor: const Color(0xFFBE123C),
                         onTap: () => widget.onCategorySelected(
                           AddToSetlistCategory.setBreak,
@@ -214,11 +214,11 @@ class _CategoryScreenState extends State<CategoryScreen>
 
     final slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: Interval(delay, end, curve: Curves.easeOutCubic),
-          ),
-        );
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: Interval(delay, end, curve: Curves.easeOutCubic),
+      ),
+    );
 
     return AnimatedBuilder(
       animation: _entranceController,

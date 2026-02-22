@@ -8,14 +8,17 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import 'models/bulk_song_row.dart';
+import 'models/setlist_item_type.dart';
 import 'models/setlist_song.dart';
 import 'setlist_detail_controller.dart';
 import 'setlist_repository.dart';
 import 'setlists_screen.dart' show setlistsProvider;
 import 'tuning/tuning_helpers.dart';
 import 'widgets/action_buttons_row.dart';
+import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
+import 'widgets/add_to_setlist/bulk_entry_screen.dart';
 import 'widgets/back_only_app_bar.dart';
-import 'widgets/bulk_add_songs_overlay.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/song_lookup_overlay.dart';
 
@@ -83,13 +86,13 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.0, 0.5, curve: Curves.easeOutQuart),
-          ),
-        );
+    _headerSlide =
+        Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutQuart),
+      ),
+    );
   }
 
   @override
@@ -236,6 +239,195 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     }
   }
 
+  /// Handle “+ Add to Setlist” tap — opens the unified overlay.
+  void _handleAddToSetlist() {
+    if (_setlistId == null) return;
+    final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
+    final bandId = ref.read(activeBandIdProvider);
+    showAddToSetlistOverlay(
+      context: context,
+      isCatalog: false,
+      defaultArtist: bandName,
+      onOriginalSongsSubmitted: (songs) async {
+        if (bandId == null || _setlistId == null) return 0;
+        return _handleOriginalSongsSubmit(bandId, songs);
+      },
+      onBulkSongsSubmitted: (validRows) async {
+        if (bandId == null || _setlistId == null) {
+          return const BulkEntryResult(addedCount: 0, setlistSongIds: []);
+        }
+        return _handleBulkSongsSubmit(bandId, validRows);
+      },
+      onSetBreakSubmitted: (durationMinutes, {saveAsTemplate = false}) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addSpecialItem(
+          type: SetlistItemType.setBreak,
+          durationMinutes: durationMinutes,
+          saveAsTemplate: saveAsTemplate,
+        );
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Set Break added — ${durationMinutes}m break',
+          );
+        }
+        return success;
+      },
+      onPauseSubmitted: (config) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addSpecialItem(
+          type: SetlistItemType.pause,
+          durationSeconds: config.durationSeconds,
+          purposes: config.purposes,
+          customPurposes: config.customPurposes,
+          saveAsTemplate: config.saveAsTemplate,
+        );
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Pause added to setlist!',
+          );
+        }
+        return success;
+      },
+      onSavedPauseSelected: (template) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addExistingTemplate(template);
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Pause added to setlist!',
+          );
+        }
+        return success;
+      },
+      onCategorySelected: (category) {
+        switch (category) {
+          case AddToSetlistCategory.cover:
+            _handleSongLookup();
+          case AddToSetlistCategory.bulk:
+          case AddToSetlistCategory.original:
+          case AddToSetlistCategory.setBreak:
+          case AddToSetlistCategory.pause:
+            // All handled inside overlay
+            break;
+        }
+      },
+    );
+  }
+
+  /// Create original songs via the repository and add them to this setlist.
+  Future<int> _handleOriginalSongsSubmit(
+    String bandId,
+    List<({String title, String artist})> songs,
+  ) async {
+    final repository = ref.read(setlistRepositoryProvider);
+    var addedCount = 0;
+
+    for (final song in songs) {
+      try {
+        final songId = await _ensureSongRecord(
+          bandId,
+          song.title,
+          song.artist,
+        );
+        final result = await repository.addSongToSetlistEnsureCatalog(
+          bandId: bandId,
+          setlistId: _setlistId!,
+          songId: songId,
+          songTitle: song.title,
+          songArtist: song.artist,
+        );
+        if (result.success) addedCount++;
+      } catch (e) {
+        debugPrint('[NewSetlist] Error adding original song: $e');
+      }
+    }
+
+    if (addedCount > 0) {
+      ref.read(setlistDetailProvider.notifier).loadSongs();
+      ref.read(setlistsProvider.notifier).refresh();
+
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          message: '$addedCount song${addedCount == 1 ? '' : 's'} added',
+        );
+      }
+    }
+    return addedCount;
+  }
+
+  /// Find or create a song record in the songs table.
+  Future<String> _ensureSongRecord(
+    String bandId,
+    String title,
+    String artist,
+  ) async {
+    final result = await supabase
+        .from('songs')
+        .select('id')
+        .eq('band_id', bandId)
+        .ilike('title', title.trim())
+        .ilike('artist', artist.trim())
+        .limit(1);
+
+    if ((result as List).isNotEmpty) {
+      return result[0]['id'] as String;
+    }
+
+    final inserted = await supabase
+        .from('songs')
+        .insert({
+          'band_id': bandId,
+          'title': title.trim(),
+          'artist': artist.trim(),
+        })
+        .select('id')
+        .single();
+
+    return inserted['id'] as String;
+  }
+
+  /// Bulk add songs via the repository (called from BulkEntryScreen).
+  Future<BulkEntryResult> _handleBulkSongsSubmit(
+    String bandId,
+    List<BulkSongRow> validRows,
+  ) async {
+    final repository = ref.read(setlistRepositoryProvider);
+    final result = await repository.bulkAddSongs(
+      bandId: bandId,
+      setlistId: _setlistId!,
+      rows: validRows,
+    );
+
+    if (result.hasAddedSongs) {
+      ref.read(setlistDetailProvider.notifier).loadSongs();
+      ref.read(setlistsProvider.notifier).refresh();
+
+      if (mounted && result.addedCount > 0) {
+        showAppSnackBar(
+          context,
+          message:
+              '${result.addedCount} song${result.addedCount == 1 ? '' : 's'} added',
+          duration: const Duration(seconds: 4),
+          action: result.setlistSongIds.isNotEmpty
+              ? SnackBarAction(
+                  label: 'UNDO',
+                  textColor: AppColors.accent,
+                  onPressed: () => _handleUndoBulkAdd(result.setlistSongIds),
+                )
+              : null,
+        );
+      }
+    }
+
+    return BulkEntryResult(
+      addedCount: result.addedCount,
+      setlistSongIds: result.setlistSongIds,
+    );
+  }
+
   /// Handle Song Lookup tap
   void _handleSongLookup() {
     if (_setlistId == null) return;
@@ -250,42 +442,6 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         return ref
             .read(setlistDetailProvider.notifier)
             .addSong(songId, title, artist);
-      },
-    );
-  }
-
-  /// Handle Bulk Paste tap
-  void _handleBulkPaste() {
-    if (_setlistId == null) return;
-    final bandId = ref.read(activeBandIdProvider);
-    if (bandId == null) return;
-
-    showBulkAddSongsOverlay(
-      context: context,
-      bandId: bandId,
-      setlistId: _setlistId!,
-      onComplete: (addedCount, setlistSongIds) {
-        // Refresh the song list
-        ref.read(setlistDetailProvider.notifier).loadSongs();
-
-        // Refresh setlists list to update song count and duration stats
-        ref.read(setlistsProvider.notifier).refresh();
-
-        // Show success snackbar with undo option
-        if (mounted && addedCount > 0) {
-          showAppSnackBar(
-            context,
-            message: '$addedCount song${addedCount == 1 ? '' : 's'} added',
-            duration: const Duration(seconds: 4),
-            action: setlistSongIds.isNotEmpty
-                ? SnackBarAction(
-                    label: 'UNDO',
-                    textColor: AppColors.accent,
-                    onPressed: () => _handleUndoBulkAdd(setlistSongIds),
-                  )
-                : null,
-          );
-        }
       },
     );
   }
@@ -404,9 +560,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
   String _formatSongSecondLine(SetlistSong song) {
     final left = song.artist;
-    final bpmText = song.bpm != null && song.bpm! > 0
-        ? '${song.bpm} BPM'
-        : '- BPM';
+    final bpmText =
+        song.bpm != null && song.bpm! > 0 ? '${song.bpm} BPM' : '- BPM';
     final tuningText = tuningShortLabel(song.tuning);
     final right = '$bpmText • $tuningText';
 
@@ -619,8 +774,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   child: FadeTransition(
                     opacity: _headerFade,
                     child: ActionButtonsRow(
-                      onSongLookup: _handleSongLookup,
-                      onBulkPaste: _handleBulkPaste,
+                      onAddToSetlist: _handleAddToSetlist,
                       onShare: _handleShare,
                     ),
                   ),
@@ -814,8 +968,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   child: FadeTransition(
                     opacity: _headerFade,
                     child: ActionButtonsRow(
-                      onSongLookup: _handleSongLookup,
-                      onBulkPaste: _handleBulkPaste,
+                      onAddToSetlist: _handleAddToSetlist,
                       onShare: _handleShare,
                     ),
                   ),
@@ -846,9 +999,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     size: 40,
                   ),
                 ),
-
                 const SizedBox(height: Spacing.space24),
-
                 Text(
                   'Silence is Golden...',
                   style: GoogleFonts.dmSans(
@@ -857,9 +1008,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     color: AppColors.textPrimary,
                   ),
                 ),
-
                 const SizedBox(height: Spacing.space12),
-
                 Text(
                   "But this setlist is looking a bit too quiet.\nTime to add some bangers!",
                   textAlign: TextAlign.center,
@@ -867,11 +1016,9 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     color: AppColors.textSecondary,
                   ),
                 ),
-
                 const SizedBox(height: Spacing.space32),
-
                 GestureDetector(
-                  onTap: _handleSongLookup,
+                  onTap: _handleAddToSetlist,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: Spacing.space24,
@@ -891,7 +1038,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Add Songs',
+                          'Add to Setlist',
                           style: AppTextStyles.button.copyWith(
                             color: AppColors.accent,
                           ),

@@ -36,8 +36,7 @@ Future<void> showSongLookupOverlay({
     String songId,
     String title,
     String artist,
-  )
-  onSongAdded,
+  ) onSongAdded,
 }) {
   return showGeneralDialog(
     context: context,
@@ -80,8 +79,7 @@ class SongLookupOverlay extends ConsumerStatefulWidget {
     String songId,
     String title,
     String artist,
-  )
-  onSongAdded;
+  ) onSongAdded;
 
   const SongLookupOverlay({
     super.key,
@@ -350,30 +348,48 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
       child: Row(
         children: [
-          // Back button
+          // Back button — left
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
-              padding: const EdgeInsets.all(8),
-              child: const Icon(
-                Icons.arrow_back_ios_rounded,
-                size: 20,
-                color: AppColors.textPrimary,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 8,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.chevron_left_rounded,
+                    color: AppColors.accent,
+                    size: 22,
+                  ),
+                  Text(
+                    'Back',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.accent,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
 
-          const SizedBox(width: Spacing.space8),
-
-          // Title
+          // Centered title
           Expanded(
-            child: Text(
-              'Song Lookup',
-              style: AppTextStyles.title3.copyWith(fontSize: 18),
+            child: Center(
+              child: Text(
+                'Song Lookup',
+                style: AppTextStyles.title3.copyWith(
+                  fontSize: 18,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
 
-          // Close button
+          // Close button — right
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
