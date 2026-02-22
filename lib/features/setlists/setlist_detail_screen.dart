@@ -1,13 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import 'models/bulk_song_row.dart';
+import 'models/setlist_item.dart';
+import 'models/setlist_item_type.dart';
 import 'models/setlist_song.dart';
 import 'services/setlist_print_handler.dart';
 import 'services/tuning_sort_service.dart';
@@ -15,13 +20,17 @@ import 'setlist_detail_controller.dart';
 import 'setlist_repository.dart';
 import 'setlists_screen.dart' show setlistsProvider;
 import 'tuning/tuning_helpers.dart';
+import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
+import 'widgets/add_to_setlist/bulk_entry_screen.dart';
 import 'widgets/back_only_app_bar.dart';
-import 'widgets/bulk_add_songs_overlay.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/selection_circle.dart';
 import 'widgets/setlist_picker_bottom_sheet.dart';
 import 'widgets/song_details_bottom_sheet.dart';
 import 'widgets/song_lookup_overlay.dart';
+import 'widgets/special_item_card.dart';
+import 'special_item_repository.dart';
+import 'models/special_item.dart';
 
 // ============================================================================
 // SETLIST DETAIL SCREEN
@@ -110,13 +119,12 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     );
 
     // Fade from 1.0 → 0.7 → 1.0 (subtle pulse effect)
-    _sortFadeAnimation =
-        TweenSequence<double>([
-          TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.7), weight: 40),
-          TweenSequenceItem(tween: Tween(begin: 0.7, end: 1.0), weight: 60),
-        ]).animate(
-          CurvedAnimation(parent: _sortAnimController, curve: Curves.easeInOut),
-        );
+    _sortFadeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.7), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 0.7, end: 1.0), weight: 60),
+    ]).animate(
+      CurvedAnimation(parent: _sortAnimController, curve: Curves.easeInOut),
+    );
   }
 
   void _setupAnimations() {
@@ -131,13 +139,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.0, 0.5, curve: Curves.easeOutQuart),
-          ),
-        );
+    _headerSlide =
+        Tween<Offset>(begin: const Offset(0, 0.03), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutQuart),
+      ),
+    );
   }
 
   @override
@@ -307,6 +315,389 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     });
   }
 
+  /// Handle “+ Add to Setlist” tap — opens the unified overlay.
+  void _handleOpenAddOverlay() async {
+    final state = ref.read(setlistDetailProvider);
+    final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
+    final bandId = ref.read(activeBandIdProvider);
+
+    // Fetch saved templates for both categories
+    List<SpecialItem> savedSetBreaks = [];
+    List<SpecialItem> savedPauses = [];
+    if (bandId != null) {
+      final repo = ref.read(specialItemRepositoryProvider);
+      try {
+        final results = await Future.wait([
+          repo.fetchTemplates(
+            bandId: bandId,
+            type: SetlistItemType.setBreak,
+          ),
+          repo.fetchTemplates(
+            bandId: bandId,
+            type: SetlistItemType.pause,
+          ),
+        ]);
+        savedSetBreaks = results[0];
+        savedPauses = results[1];
+      } catch (_) {
+        // Non-critical — overlay still works without templates
+      }
+    }
+
+    if (!mounted) return;
+
+    showAddToSetlistOverlay(
+      context: context,
+      isCatalog: state.isCatalog,
+      defaultArtist: bandName,
+      savedSetBreaks: savedSetBreaks,
+      savedPauses: savedPauses,
+      onOriginalSongsSubmitted: (songs) async {
+        if (bandId == null) return 0;
+        return _handleOriginalSongsSubmit(bandId, songs);
+      },
+      onBulkSongsSubmitted: (validRows) async {
+        if (bandId == null) {
+          return const BulkEntryResult(addedCount: 0, setlistSongIds: []);
+        }
+        return _handleBulkSongsSubmit(bandId, validRows);
+      },
+      onSetBreakSubmitted: (durationMinutes, {saveAsTemplate = false}) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addSpecialItem(
+          type: SetlistItemType.setBreak,
+          durationMinutes: durationMinutes,
+          saveAsTemplate: saveAsTemplate,
+        );
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Set Break added — ${durationMinutes}m break',
+          );
+        }
+        return success;
+      },
+      onPauseSubmitted: (config) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addSpecialItem(
+          type: SetlistItemType.pause,
+          durationSeconds: config.durationSeconds,
+          purposes: config.purposes,
+          customPurposes: config.customPurposes,
+          saveAsTemplate: config.saveAsTemplate,
+        );
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Pause added to setlist!',
+          );
+        }
+        return success;
+      },
+      onSavedPauseSelected: (template) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addExistingTemplate(template);
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Pause added to setlist!',
+          );
+        }
+        return success;
+      },
+      onSavedSetBreakSelected: (template) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.addExistingTemplate(template);
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Set Break added to setlist!',
+          );
+        }
+        return success;
+      },
+      onDeleteTemplate: (templateId) async {
+        final repo = ref.read(specialItemRepositoryProvider);
+        try {
+          await repo.deleteTemplate(templateId);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
+      onCategorySelected: (category) {
+        switch (category) {
+          case AddToSetlistCategory.cover:
+            _handleSongLookup();
+          case AddToSetlistCategory.bulk:
+          case AddToSetlistCategory.original:
+          case AddToSetlistCategory.setBreak:
+          case AddToSetlistCategory.pause:
+            // All handled inside overlay
+            break;
+        }
+      },
+    );
+  }
+
+  /// Handle deletion of a special item (set break / pause).
+  Future<void> _handleDeleteSpecialItem(SetlistItem item) async {
+    final label = item.specialItem?.displayLabel ?? item.type.displayName;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Remove $label?',
+          style: AppTextStyles.title3,
+        ),
+        content: Text(
+          'Remove this ${item.type.displayName.toLowerCase()} from the setlist?',
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.button.copyWith(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'Remove',
+              style: AppTextStyles.button.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final notifier = ref.read(setlistDetailProvider.notifier);
+    final success = await notifier.deleteSpecialItem(item.id);
+
+    if (mounted && success) {
+      showAppSnackBar(context, message: '$label removed');
+    }
+  }
+
+  /// Confirm-and-delete for Dismissible swipe on special items.
+  /// Returns true if the item was deleted (card should be dismissed).
+  Future<bool> _confirmDeleteSpecialItem(SetlistItem item) async {
+    final label = item.specialItem?.displayLabel ?? item.type.displayName;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Remove $label?', style: AppTextStyles.title3),
+        content: Text(
+          'Remove this ${item.type.displayName.toLowerCase()} from the setlist?',
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.button.copyWith(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'Remove',
+              style: AppTextStyles.button.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return false;
+
+    HapticFeedback.heavyImpact();
+    final notifier = ref.read(setlistDetailProvider.notifier);
+    final success = await notifier.deleteSpecialItem(item.id);
+
+    if (mounted && success) {
+      showAppSnackBar(context, message: '$label removed');
+    }
+    return success;
+  }
+
+  /// Open the edit overlay for an existing set break or pause in the setlist.
+  void _handleEditSpecialItem(SetlistItem item) {
+    final specialItem = item.specialItem;
+    if (specialItem == null) return;
+
+    showEditSpecialItemOverlay(
+      context: context,
+      item: specialItem,
+      onSetBreakUpdated: (specialItemId, durationMinutes) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.updateSpecialItem(
+          specialItemId: specialItemId,
+          durationMinutes: durationMinutes,
+        );
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Set Break updated — ${durationMinutes}m break',
+          );
+        }
+        return success;
+      },
+      onPauseUpdated: (specialItemId, config) async {
+        final notifier = ref.read(setlistDetailProvider.notifier);
+        final success = await notifier.updateSpecialItem(
+          specialItemId: specialItemId,
+          durationSeconds: config.durationSeconds,
+          purposes: config.purposes,
+          customPurposes: config.customPurposes,
+        );
+        if (mounted && success) {
+          showSuccessSnackBar(
+            context,
+            message: 'Pause updated!',
+          );
+        }
+        return success;
+      },
+    );
+  }
+
+  /// Handle reorder for mixed items (songs + breaks + pauses).
+  void _handleItemReorder(int oldIndex, int newIndex) {
+    final notifier = ref.read(setlistDetailProvider.notifier);
+
+    notifier.reorderItemsLocal(oldIndex, newIndex);
+
+    _reorderDebounceTimer?.cancel();
+    _reorderDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+      await notifier.persistItemReorder();
+    });
+  }
+
+  /// Create original songs via the repository and add them to this setlist.
+  Future<int> _handleOriginalSongsSubmit(
+    String bandId,
+    List<({String title, String artist})> songs,
+  ) async {
+    final repository = ref.read(setlistRepositoryProvider);
+    var addedCount = 0;
+
+    for (final song in songs) {
+      try {
+        final songId = await _ensureSongRecord(
+          bandId,
+          song.title,
+          song.artist,
+        );
+        final result = await repository.addSongToSetlistEnsureCatalog(
+          bandId: bandId,
+          setlistId: widget.setlistId,
+          songId: songId,
+          songTitle: song.title,
+          songArtist: song.artist,
+        );
+        if (result.success) addedCount++;
+      } catch (e) {
+        debugPrint('[SetlistDetail] Error adding original song: $e');
+      }
+    }
+
+    if (addedCount > 0) {
+      ref.read(setlistDetailProvider.notifier).loadSongs();
+      ref.read(setlistsProvider.notifier).refresh();
+
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          message: '$addedCount song${addedCount == 1 ? '' : 's'} added',
+        );
+      }
+    }
+    return addedCount;
+  }
+
+  /// Find or create a song record in the songs table.
+  Future<String> _ensureSongRecord(
+    String bandId,
+    String title,
+    String artist,
+  ) async {
+    final result = await supabase
+        .from('songs')
+        .select('id')
+        .eq('band_id', bandId)
+        .ilike('title', title.trim())
+        .ilike('artist', artist.trim())
+        .limit(1);
+
+    if ((result as List).isNotEmpty) {
+      return result[0]['id'] as String;
+    }
+
+    final inserted = await supabase
+        .from('songs')
+        .insert({
+          'band_id': bandId,
+          'title': title.trim(),
+          'artist': artist.trim(),
+        })
+        .select('id')
+        .single();
+
+    return inserted['id'] as String;
+  }
+
+  /// Bulk add songs via the repository (called from BulkEntryScreen).
+  Future<BulkEntryResult> _handleBulkSongsSubmit(
+    String bandId,
+    List<BulkSongRow> validRows,
+  ) async {
+    final repository = ref.read(setlistRepositoryProvider);
+    final result = await repository.bulkAddSongs(
+      bandId: bandId,
+      setlistId: widget.setlistId,
+      rows: validRows,
+    );
+
+    if (result.hasAddedSongs) {
+      ref.read(setlistDetailProvider.notifier).loadSongs();
+      ref.read(setlistsProvider.notifier).refresh();
+
+      if (mounted && result.addedCount > 0) {
+        showAppSnackBar(
+          context,
+          message:
+              '${result.addedCount} song${result.addedCount == 1 ? '' : 's'} added',
+          duration: const Duration(seconds: 4),
+          action: result.setlistSongIds.isNotEmpty
+              ? SnackBarAction(
+                  label: 'UNDO',
+                  textColor: AppColors.accent,
+                  onPressed: () => _handleUndoBulkAdd(result.setlistSongIds),
+                )
+              : null,
+        );
+      }
+    }
+
+    return BulkEntryResult(
+      addedCount: result.addedCount,
+      setlistSongIds: result.setlistSongIds,
+    );
+  }
+
   /// Handle Song Lookup tap
   void _handleSongLookup() {
     final bandId = ref.read(activeBandIdProvider);
@@ -339,41 +730,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       isDismissible: true,
       enableDrag: true,
       builder: (context) => _CatalogSortSheet(currentMode: currentMode),
-    );
-  }
-
-  /// Handle Bulk Paste tap
-  void _handleBulkPaste() {
-    final bandId = ref.read(activeBandIdProvider);
-    if (bandId == null) return;
-
-    showBulkAddSongsOverlay(
-      context: context,
-      bandId: bandId,
-      setlistId: widget.setlistId,
-      onComplete: (addedCount, setlistSongIds) {
-        // Refresh the song list
-        ref.read(setlistDetailProvider.notifier).loadSongs();
-
-        // Refresh setlists list to update song count and duration stats
-        ref.read(setlistsProvider.notifier).refresh();
-
-        // Show success snackbar with undo option
-        if (mounted && addedCount > 0) {
-          showAppSnackBar(
-            context,
-            message: '$addedCount song${addedCount == 1 ? '' : 's'} added',
-            duration: const Duration(seconds: 4),
-            action: setlistSongIds.isNotEmpty
-                ? SnackBarAction(
-                    label: 'UNDO',
-                    textColor: AppColors.accent,
-                    onPressed: () => _handleUndoBulkAdd(setlistSongIds),
-                  )
-                : null,
-          );
-        }
-      },
     );
   }
 
@@ -758,9 +1114,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     );
 
     if (confirmed == true && mounted) {
-      final success = await ref
-          .read(setlistDetailProvider.notifier)
-          .deleteSetlist();
+      final success =
+          await ref.read(setlistDetailProvider.notifier).deleteSetlist();
       if (success && mounted) {
         Navigator.of(context).pop(); // Return to setlists screen
       }
@@ -836,9 +1191,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   /// Right-justifies BPM/Tuning within a fixed width
   String _formatSongSecondLine(SetlistSong song) {
     final left = song.artist;
-    final bpmText = song.bpm != null && song.bpm! > 0
-        ? '${song.bpm} BPM'
-        : '- BPM';
+    final bpmText =
+        song.bpm != null && song.bpm! > 0 ? '${song.bpm} BPM' : '- BPM';
     final tuningText = tuningShortLabel(song.tuning);
     final right = '$bpmText • $tuningText';
 
@@ -932,18 +1286,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ),
             const SizedBox(width: 8),
           ],
-          // Song Lookup button
+          // + Add to Setlist button (unified overlay)
           _ActionButton(
-            icon: Icons.search_rounded,
-            label: 'Song Lookup',
-            onTap: _handleSongLookup,
-          ),
-          const SizedBox(width: 8),
-          // Bulk Paste button
-          _ActionButton(
-            icon: Icons.list_rounded,
-            label: 'Bulk Paste',
-            onTap: _handleBulkPaste,
+            icon: Icons.add_rounded,
+            label: 'Add to Setlist',
+            onTap: _handleOpenAddOverlay,
           ),
           const SizedBox(width: 8),
           // Search filter button (icon only)
@@ -1126,8 +1473,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         // Bottom padding for nav bar (extra space to scroll past)
         SliverToBoxAdapter(
           child: SizedBox(
-            height:
-                Spacing.space48 +
+            height: Spacing.space48 +
                 Spacing.bottomNavHeight +
                 MediaQuery.of(context).padding.bottom +
                 32, // Extra scroll clearance
@@ -1286,8 +1632,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     // Apply search filter if active
     final displaySongs = _isSearching ? _filterSongs(state.songs) : state.songs;
 
-    // Empty state (no songs at all)
-    if (state.songs.isEmpty) {
+    // Empty state (no songs and no items at all)
+    if (state.songs.isEmpty && state.items.isEmpty) {
       return [SliverToBoxAdapter(child: _buildEmptyContent())];
     }
 
@@ -1384,7 +1730,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       ];
     }
 
-    // Non-Catalog, not searching: reorderable list
+    // Non-Catalog, not searching: reorderable list (mixed items or songs)
+    final useItems = state.items.isNotEmpty;
+    final itemCount = useItems ? state.items.length : displaySongs.length;
+
     return [
       AnimatedBuilder(
         animation: _sortAnimController,
@@ -1396,9 +1745,96 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             sliver: SliverOpacity(
               opacity: _sortFadeAnimation.value,
               sliver: SliverReorderableList(
-                itemCount: displaySongs.length,
-                onReorder: _handleReorder,
+                itemCount: itemCount,
+                onReorder: useItems ? _handleItemReorder : _handleReorder,
                 itemBuilder: (context, index) {
+                  if (useItems) {
+                    final item = state.items[index];
+
+                    // Special item (set break / pause)
+                    if (item.isSpecial) {
+                      final isNewlyInserted =
+                          state.newlyInsertedItemId == item.id;
+
+                      Widget card = Dismissible(
+                        key: Key('dismiss_special_${item.id}'),
+                        direction: DismissDirection.endToStart,
+                        dismissThresholds: const {
+                          DismissDirection.endToStart: 0.4,
+                        },
+                        confirmDismiss: (_) => _confirmDeleteSpecialItem(item),
+                        movementDuration: AppDurations.medium,
+                        background: const SizedBox.shrink(),
+                        secondaryBackground: Container(
+                          alignment: Alignment.centerRight,
+                          padding:
+                              const EdgeInsets.only(right: Spacing.space24),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius:
+                                BorderRadius.circular(Spacing.buttonRadius),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(width: Spacing.space8),
+                              Icon(Icons.delete_outline_rounded,
+                                  color: Colors.white, size: 22),
+                            ],
+                          ),
+                        ),
+                        child: SpecialItemCard(
+                          item: item,
+                          isDraggable: true,
+                          onTap: () => _handleEditSpecialItem(item),
+                          onDelete: () => _handleDeleteSpecialItem(item),
+                        ),
+                      );
+
+                      // Entry animation for newly inserted items
+                      if (isNewlyInserted) {
+                        card = _SlideInEntry(
+                          onComplete: () => ref
+                              .read(setlistDetailProvider.notifier)
+                              .clearNewlyInsertedItemId(),
+                          child: card,
+                        );
+                      }
+
+                      return Padding(
+                        key: ValueKey(item.listKey),
+                        padding: const EdgeInsets.only(bottom: Spacing.space12),
+                        child: card,
+                      );
+                    }
+
+                    // Song item — delegate to ReorderableSongCard
+                    final song = item.song!;
+                    return Padding(
+                      key: ValueKey(item.listKey),
+                      padding: const EdgeInsets.only(bottom: Spacing.space12),
+                      child: ReorderableSongCard(
+                        song: song,
+                        index: index,
+                        isDraggable: true,
+                        onEdit: () => _handleSongTap(song),
+                        onDelete: () => _handleDelete(song.id, song.title),
+                        onTuningChanged: (tuning) => ref
+                            .read(setlistDetailProvider.notifier)
+                            .updateSongTuning(song.id, tuning),
+                      ),
+                    );
+                  }
+
+                  // Fallback: songs-only (no items loaded)
                   final song = displaySongs[index];
                   return Padding(
                     key: ValueKey(song.id),
@@ -1419,13 +1855,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   return AnimatedBuilder(
                     animation: animation,
                     builder: (context, child) {
-                      final scale = Tween<double>(begin: 1.0, end: 1.02)
-                          .evaluate(
-                            CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOut,
-                            ),
-                          );
+                      final scale =
+                          Tween<double>(begin: 1.0, end: 1.02).evaluate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        ),
+                      );
                       return Transform.scale(
                         scale: scale,
                         child: Material(
@@ -1458,9 +1894,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   Widget _buildSelectModeBottomActions() {
     final hasSelection = _selectedSongIds.isNotEmpty;
     final selectedCount = _selectedSongIds.length;
-    final buttonLabel = selectedCount > 0
-        ? 'Add $selectedCount to Setlist'
-        : 'Add To Setlist';
+    final buttonLabel =
+        selectedCount > 0 ? 'Add $selectedCount to Setlist' : 'Add To Setlist';
 
     return Container(
       padding: EdgeInsets.only(
@@ -2075,6 +2510,67 @@ class _DeleteSongDialog extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ============================================================================
+// SLIDE-IN ENTRY ANIMATION
+// Horizontal slide-in for newly inserted special items.
+// Runs once, then calls [onComplete] so the controller can clear the flag.
+// ============================================================================
+
+class _SlideInEntry extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onComplete;
+
+  const _SlideInEntry({required this.child, required this.onComplete});
+
+  @override
+  State<_SlideInEntry> createState() => _SlideInEntryState();
+}
+
+class _SlideInEntryState extends State<_SlideInEntry>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: AppCurves.slideIn));
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward().then((_) {
+      if (mounted) widget.onComplete();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _slideAnimation,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: widget.child,
+      ),
     );
   }
 }

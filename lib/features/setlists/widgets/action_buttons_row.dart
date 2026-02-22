@@ -5,8 +5,7 @@ import '../../../app/theme/design_tokens.dart';
 // ============================================================================
 // ACTION BUTTONS ROW
 // Figma: Horizontal row with outlined buttons
-// - Song Lookup: Search icon + text, rose border
-// - Bulk Paste: List icon + text, rose border
+// - + Add to Setlist: Plus icon + text, rose border (opens unified overlay)
 // - Share: Share icon only, rose border
 // Buttons: 8px radius, 16px horizontal padding, 8px vertical padding
 // ============================================================================
@@ -14,14 +13,12 @@ import '../../../app/theme/design_tokens.dart';
 typedef ShareCallback = Function(BuildContext context);
 
 class ActionButtonsRow extends StatelessWidget {
-  final VoidCallback? onSongLookup;
-  final VoidCallback? onBulkPaste;
+  final VoidCallback? onAddToSetlist;
   final ShareCallback? onShare;
 
   const ActionButtonsRow({
     super.key,
-    this.onSongLookup,
-    this.onBulkPaste,
+    this.onAddToSetlist,
     this.onShare,
   });
 
@@ -29,20 +26,11 @@ class ActionButtonsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Song Lookup button
+        // + Add to Setlist button
         _ActionButton(
-          icon: Icons.search_rounded,
-          label: 'Song Lookup',
-          onTap: onSongLookup,
-        ),
-
-        const SizedBox(width: 8),
-
-        // Bulk Paste button
-        _ActionButton(
-          icon: Icons.list_rounded,
-          label: 'Bulk Paste',
-          onTap: onBulkPaste,
+          icon: Icons.add_rounded,
+          label: 'Add to Setlist',
+          onTap: onAddToSetlist,
         ),
 
         const SizedBox(width: 8),
