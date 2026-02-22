@@ -7,7 +7,8 @@
             "namespace": "android_app",
             "package_name": "com.bandroadie.app",
             "sha256_cert_fingerprints": [
-                "04:7A:EE:2C:88:04:59:33:63:4A:CC:AC:86:25:6E:0C:61:B8:74:84:29:8D:FA:D5:BB:CD:64:D2:39:DF:DC:D7"
+                "04:7A:EE:2C:88:04:59:33:63:4A:CC:AC:86:25:6E:0C:61:B8:74:84:29:8D:FA:D5:BB:CD:64:D2:39:DF:DC:D7",
+                "AC:0D:A0:42:75:9F:17:09:A1:78:FA:58:B2:6D:C9:39:97:96:D9:9B:25:39:C2:3D:65:9F:95:58:37:0E:74:CF"
             ]
         }
     }
