@@ -247,6 +247,14 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   String? _lastLoadedSetlistId;
   SetlistDetailState? _cachedState;
 
+  /// Guard against concurrent item reorder persists.
+  /// When true, a reorder HTTP call is in-flight.
+  bool _isItemReorderInFlight = false;
+
+  /// Set to true when a local reorder happens while a persist is in-flight,
+  /// signaling that we need to persist again after the current call completes.
+  bool _itemReorderPendingAfterFlight = false;
+
   @override
   SetlistDetailState build() {
     // Watch the selected setlist - when it changes, reset and refetch
@@ -1632,7 +1640,22 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   }
 
   /// Persist mixed-item reorder to database.
+  ///
+  /// Guarded against concurrent calls: if a persist is already in-flight,
+  /// marks a pending flag so the current call will re-persist with the
+  /// latest state after completion. This prevents UNIQUE constraint
+  /// violations from overlapping multi-step position updates.
   Future<bool> persistItemReorder() async {
+    // If a persist is already in-flight, mark pending and return.
+    // The in-flight call will re-persist with latest state when done.
+    if (_isItemReorderInFlight) {
+      _itemReorderPendingAfterFlight = true;
+      debugPrint('[SetlistDetail] Item reorder already in-flight, queued');
+      return true; // Optimistic: will be persisted when current call finishes
+    }
+
+    _isItemReorderInFlight = true;
+    _itemReorderPendingAfterFlight = false;
     state = state.copyWith(isReordering: true, clearError: true);
 
     final itemIds = state.items.map((i) => i.id).toList();
@@ -1643,6 +1666,16 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         itemIdsInOrder: itemIds,
       );
 
+      _isItemReorderInFlight = false;
+
+      // If another reorder happened while we were persisting,
+      // persist again with the latest state.
+      if (_itemReorderPendingAfterFlight) {
+        _itemReorderPendingAfterFlight = false;
+        debugPrint('[SetlistDetail] Re-persisting queued item reorder');
+        return persistItemReorder();
+      }
+
       state = state.copyWith(
         isReordering: false,
         clearLastKnownGoodItems: true,
@@ -1651,6 +1684,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       return true;
     } catch (e) {
       debugPrint('[SetlistDetail] Error persisting item reorder: $e');
+      _isItemReorderInFlight = false;
+      _itemReorderPendingAfterFlight = false;
 
       final lastGood = state.lastKnownGoodItems;
       if (lastGood != null && lastGood.isNotEmpty) {
