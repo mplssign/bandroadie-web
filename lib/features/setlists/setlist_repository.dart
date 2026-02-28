@@ -2238,9 +2238,12 @@ class SetlistRepository {
       final newSetlistId = newSetlistResponse['id'] as String;
 
       // Step 5: Copy all setlist_songs with their overrides
+      // Include special_item_id and item_type so set breaks / pauses
+      // are duplicated correctly alongside regular songs.
       final sourceSongs = await supabase
           .from('setlist_songs')
-          .select('song_id, position, bpm, tuning, duration_seconds')
+          .select(
+              'song_id, special_item_id, item_type, position, bpm, tuning, duration_seconds')
           .eq('setlist_id', setlistId)
           .order('position', ascending: true);
 
@@ -2249,6 +2252,8 @@ class SetlistRepository {
           return {
             'setlist_id': newSetlistId,
             'song_id': song['song_id'],
+            'special_item_id': song['special_item_id'],
+            'item_type': song['item_type'] ?? 'song',
             'position': song['position'],
             'bpm': song['bpm'],
             'tuning': song['tuning'],
