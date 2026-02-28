@@ -110,29 +110,34 @@ class SpecialItemRepository {
     required SetlistItemType itemType,
   }) async {
     // 1. Shift all existing items down by 1
-    // Use offset trick to avoid unique constraint violations on position
+    // Use offset trick to avoid unique constraint violations on position.
+    // Parallelise each phase — positions within a phase never collide.
     final existing = await supabase
         .from('setlist_songs')
         .select('id, position')
         .eq('setlist_id', setlistId)
         .order('position', ascending: false);
 
-    // Shift to high range first (avoids unique constraint)
-    for (int i = 0; i < (existing as List).length; i++) {
-      final row = existing[i];
-      await supabase
-          .from('setlist_songs')
-          .update({'position': 1000 + (row['position'] as int)}).eq(
-              'id', row['id'] as String);
-    }
+    final rows = existing as List;
 
-    // Then set final positions (+1 from original)
-    for (int i = 0; i < existing.length; i++) {
-      final row = existing[i];
-      await supabase
-          .from('setlist_songs')
-          .update({'position': (row['position'] as int) + 1}).eq(
-              'id', row['id'] as String);
+    // Phase 1: shift to high range (parallel — all targets are 1000+, no overlap)
+    if (rows.isNotEmpty) {
+      await Future.wait([
+        for (final row in rows)
+          supabase
+              .from('setlist_songs')
+              .update({'position': 1000 + (row['position'] as int)}).eq(
+                  'id', row['id'] as String),
+      ]);
+
+      // Phase 2: set final positions (+1 from original, parallel)
+      await Future.wait([
+        for (final row in rows)
+          supabase
+              .from('setlist_songs')
+              .update({'position': (row['position'] as int) + 1}).eq(
+                  'id', row['id'] as String),
+      ]);
     }
 
     // 2. Insert the special item at position 0
@@ -146,7 +151,7 @@ class SpecialItemRepository {
 
     debugPrint(
       '[SpecialItemRepo] Inserted ${itemType.displayName} at position 0, '
-      'shifted ${existing.length} existing items',
+      'shifted ${rows.length} existing items',
     );
   }
 
@@ -247,23 +252,26 @@ class SpecialItemRepository {
 
   /// Reorder all items in a setlist. Uses offset trick to avoid unique
   /// constraint violations on position.
+  /// Parallelises each phase — positions within a phase never collide.
   Future<void> reorderItems({
     required String setlistId,
     required List<String> itemIdsInOrder,
   }) async {
-    // Phase 1: shift all to high range
-    for (int i = 0; i < itemIdsInOrder.length; i++) {
-      await supabase
-          .from('setlist_songs')
-          .update({'position': 1000 + i}).eq('id', itemIdsInOrder[i]);
-    }
+    // Phase 1: shift all to high range (parallel)
+    await Future.wait([
+      for (int i = 0; i < itemIdsInOrder.length; i++)
+        supabase
+            .from('setlist_songs')
+            .update({'position': 1000 + i}).eq('id', itemIdsInOrder[i]),
+    ]);
 
-    // Phase 2: set final positions
-    for (int i = 0; i < itemIdsInOrder.length; i++) {
-      await supabase
-          .from('setlist_songs')
-          .update({'position': i}).eq('id', itemIdsInOrder[i]);
-    }
+    // Phase 2: set final positions (parallel)
+    await Future.wait([
+      for (int i = 0; i < itemIdsInOrder.length; i++)
+        supabase
+            .from('setlist_songs')
+            .update({'position': i}).eq('id', itemIdsInOrder[i]),
+    ]);
 
     debugPrint(
       '[SpecialItemRepo] Reordered ${itemIdsInOrder.length} items in $setlistId',
