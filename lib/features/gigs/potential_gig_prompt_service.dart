@@ -108,6 +108,7 @@ class PotentialGigPromptNotifier extends Notifier<PotentialGigPromptState> {
       }
 
       // Show prompts for each pending gig (oldest first - already sorted)
+      if (!context.mounted) return;
       await _showPromptsSequentially(
         context,
         pendingGigs: pendingGigs,

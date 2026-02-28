@@ -164,8 +164,8 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       if (code != null && code.isNotEmpty) {
         debugPrint('🔄 Using PKCE flow - exchanging code for session...');
         try {
-          final pkceResponse = await Supabase.instance.client.auth
-              .exchangeCodeForSession(code);
+          final pkceResponse =
+              await Supabase.instance.client.auth.exchangeCodeForSession(code);
           session = pkceResponse.session;
           user = session.user;
           debugPrint('✅ PKCE exchange successful');
@@ -175,11 +175,9 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           debugPrint('❌ PKCE exchange failed: $e');
           final errorMessage = e.toString().toLowerCase();
           // Detect specific error types
-          final isExpired =
-              errorMessage.contains('expired') ||
+          final isExpired = errorMessage.contains('expired') ||
               errorMessage.contains('invalid');
-          final isBrowserMismatch =
-              errorMessage.contains('code verifier') ||
+          final isBrowserMismatch = errorMessage.contains('code verifier') ||
               errorMessage.contains('pkce');
           setState(() {
             _error = isExpired
@@ -360,7 +358,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Column(
@@ -505,11 +503,11 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                 ],
               )
             : _error != null
-            ? _buildErrorUI()
-            : const Text(
-                'Login successful! Redirecting...',
-                style: TextStyle(color: Colors.white),
-              ),
+                ? _buildErrorUI()
+                : const Text(
+                    'Login successful! Redirecting...',
+                    style: TextStyle(color: Colors.white),
+                  ),
       ),
     );
   }

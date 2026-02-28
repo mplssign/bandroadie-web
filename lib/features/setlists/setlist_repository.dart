@@ -58,8 +58,12 @@ class SetlistQueryError {
     if (message.contains('network') || message.contains('connection')) {
       return 'Network error. Please check your connection.';
     }
+    // Delete-specific
+    if (reason == 'delete_blocked') {
+      return 'Failed to delete setlist. Please try again.';
+    }
     // Default
-    return 'Failed to load setlists. Please try again.';
+    return 'Something went wrong. Please try again.';
   }
 
   @override
@@ -233,6 +237,7 @@ class SetlistRepository {
       // If it fails with 42703 (column doesn't exist), fallback to basic query
       List<dynamic> response;
       bool hasIsCatalogColumn = true;
+      bool hasPositionColumn = true;
 
       try {
         response = await supabase.from('setlists').select('''
@@ -241,28 +246,69 @@ class SetlistRepository {
               band_id,
               total_duration,
               is_catalog,
+              position,
               created_at,
               updated_at,
               setlist_songs(count)
-            ''').eq('band_id', bandId).order('name', ascending: true);
+            ''').eq('band_id', bandId).order('position', ascending: true);
       } on PostgrestException catch (e) {
-        // If is_catalog column doesn't exist, fallback to basic query
-        if (e.code == '42703' && e.message.contains('is_catalog')) {
-          if (kDebugMode) {
-            debugPrint(
-              '[SetlistRepository] is_catalog column not found, using fallback query',
-            );
+        // Handle missing columns gracefully
+        if (e.code == '42703') {
+          if (e.message.contains('position')) {
+            // position column doesn't exist yet - retry without it
+            if (kDebugMode) {
+              debugPrint(
+                '[SetlistRepository] position column not found, retrying without it',
+              );
+            }
+            hasPositionColumn = false;
+            try {
+              response = await supabase.from('setlists').select('''
+                    id,
+                    name,
+                    band_id,
+                    total_duration,
+                    is_catalog,
+                    created_at,
+                    updated_at,
+                    setlist_songs(count)
+                  ''').eq('band_id', bandId).order('name', ascending: true);
+            } on PostgrestException catch (e2) {
+              if (e2.code == '42703' && e2.message.contains('is_catalog')) {
+                hasIsCatalogColumn = false;
+                response = await supabase.from('setlists').select('''
+                      id,
+                      name,
+                      band_id,
+                      total_duration,
+                      created_at,
+                      updated_at,
+                      setlist_songs(count)
+                    ''').eq('band_id', bandId).order('name', ascending: true);
+              } else {
+                rethrow;
+              }
+            }
+          } else if (e.message.contains('is_catalog')) {
+            if (kDebugMode) {
+              debugPrint(
+                '[SetlistRepository] is_catalog column not found, using fallback query',
+              );
+            }
+            hasIsCatalogColumn = false;
+            response = await supabase.from('setlists').select('''
+                  id,
+                  name,
+                  band_id,
+                  total_duration,
+                  position,
+                  created_at,
+                  updated_at,
+                  setlist_songs(count)
+                ''').eq('band_id', bandId).order('position', ascending: true);
+          } else {
+            rethrow;
           }
-          hasIsCatalogColumn = false;
-          response = await supabase.from('setlists').select('''
-                id,
-                name,
-                band_id,
-                total_duration,
-                created_at,
-                updated_at,
-                setlist_songs(count)
-              ''').eq('band_id', bandId).order('name', ascending: true);
         } else {
           rethrow;
         }
@@ -270,7 +316,7 @@ class SetlistRepository {
 
       if (kDebugMode) {
         debugPrint(
-          '[SetlistRepository] Query returned ${response.length} setlists (is_catalog column: $hasIsCatalogColumn)',
+          '[SetlistRepository] Query returned ${response.length} setlists (is_catalog: $hasIsCatalogColumn, position: $hasPositionColumn)',
         );
       }
 
@@ -725,14 +771,26 @@ class SetlistRepository {
         params: {'p_setlist_id': setlistId, 'p_song_id': songId},
       );
 
-      final result = response as Map<String, dynamic>?;
-      if (result == null || result['success'] != true) {
-        final error = result?['error'] ?? 'Unknown error';
+      debugPrint(
+        '[SetlistRepository] delete_song_from_setlist RPC response: $response (${response.runtimeType})',
+      );
+
+      if (response is Map) {
+        final result = Map<String, dynamic>.from(response);
+        if (result['success'] == true) {
+          debugPrint(
+            '[SetlistRepository] Removed song $songId from setlist $setlistId via RPC',
+          );
+          return;
+        }
+        final error = result['error'] ?? 'Unknown error';
         throw Exception(error);
       }
 
+      // If response is not a map, the RPC may return void or unexpected type
+      // Treat non-error responses as success
       debugPrint(
-        '[SetlistRepository] Removed song $songId from setlist $setlistId via RPC',
+        '[SetlistRepository] Removed song $songId from setlist $setlistId via RPC (non-map response)',
       );
     } on PostgrestException catch (e) {
       // Fallback if RPC doesn't exist yet
@@ -782,14 +840,25 @@ class SetlistRepository {
         params: {'p_band_id': bandId, 'p_song_id': songId},
       );
 
-      final result = response as Map<String, dynamic>?;
-      if (result == null || result['success'] != true) {
-        final error = result?['error'] ?? 'Unknown error';
+      debugPrint(
+        '[SetlistRepository] delete_song_from_catalog RPC response: $response (${response.runtimeType})',
+      );
+
+      if (response is Map) {
+        final result = Map<String, dynamic>.from(response);
+        if (result['success'] == true) {
+          debugPrint(
+            '[SetlistRepository] Deleted song $songId from band $bandId via RPC',
+          );
+          return;
+        }
+        final error = result['error'] ?? 'Unknown error';
         throw Exception(error);
       }
 
+      // Non-map response — treat as success
       debugPrint(
-        '[SetlistRepository] Deleted song $songId from band $bandId via RPC',
+        '[SetlistRepository] Deleted song $songId from band $bandId via RPC (non-map response)',
       );
     } on PostgrestException catch (e) {
       // Fallback if RPC doesn't exist yet
@@ -843,6 +912,52 @@ class SetlistRepository {
     debugPrint(
       '[SetlistRepository] Deleted song $songId from band $bandId (fallback)',
     );
+  }
+
+  // ==========================================================================
+  // REORDER SETLISTS
+  // ==========================================================================
+
+  /// Reorder setlists by updating their position column.
+  /// [setlistIdsInOrder] should contain the IDs in the desired order.
+  /// Catalog setlist should NOT be included (it's always position 0).
+  Future<void> reorderSetlists({
+    required String bandId,
+    required List<String> setlistIdsInOrder,
+  }) async {
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId cannot be empty');
+    }
+    if (setlistIdsInOrder.isEmpty) return;
+
+    if (kDebugMode) {
+      debugPrint('[SetlistRepository] reorderSetlists:');
+      debugPrint('  bandId: $bandId');
+      debugPrint('  setlistCount: ${setlistIdsInOrder.length}');
+    }
+
+    try {
+      // Update each setlist's position
+      // Position 0 is reserved for Catalog, so non-catalog starts at 1
+      for (int i = 0; i < setlistIdsInOrder.length; i++) {
+        await supabase
+            .from('setlists')
+            .update({'position': i + 1})
+            .eq('id', setlistIdsInOrder[i])
+            .eq('band_id', bandId);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Reordered ${setlistIdsInOrder.length} setlists',
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SetlistRepository] Error reordering setlists: $e');
+      }
+      rethrow;
+    }
   }
 
   // ==========================================================================
@@ -951,25 +1066,35 @@ class SetlistRepository {
     required List<String> songIdsInOrder,
   }) async {
     debugPrint(
-      '[SetlistRepository] Using fallback reorder (client-side upsert)',
+      '[SetlistRepository] Using fallback reorder (two-phase update)',
     );
 
-    // Build batch update payload
-    final updates = songIdsInOrder.asMap().entries.map((entry) {
-      return {
-        'setlist_id': setlistId,
-        'song_id': entry.value,
-        'position': entry.key,
-      };
-    }).toList();
+    // Two-phase approach to avoid UNIQUE(setlist_id, position) violations:
+    // Phase 1: shift all positions to a high temporary range (100000+)
+    // Phase 2: set final 0-based positions from the desired order
+    //
+    // This mirrors the approach used by the reorder_setlist_items RPC.
 
-    // Upsert all positions in one call
-    await supabase
-        .from('setlist_songs')
-        .upsert(updates, onConflict: 'setlist_id,song_id');
+    // Phase 1: Move all songs to temporary high positions
+    for (int i = 0; i < songIdsInOrder.length; i++) {
+      await supabase
+          .from('setlist_songs')
+          .update({'position': 100000 + i})
+          .eq('setlist_id', setlistId)
+          .eq('song_id', songIdsInOrder[i]);
+    }
+
+    // Phase 2: Set final positions
+    for (int i = 0; i < songIdsInOrder.length; i++) {
+      await supabase
+          .from('setlist_songs')
+          .update({'position': i})
+          .eq('setlist_id', setlistId)
+          .eq('song_id', songIdsInOrder[i]);
+    }
 
     debugPrint(
-      '[SetlistRepository] Fallback reordered ${updates.length} songs in setlist $setlistId',
+      '[SetlistRepository] Fallback reordered ${songIdsInOrder.length} songs in setlist $setlistId',
     );
   }
 
@@ -2068,31 +2193,48 @@ class SetlistRepository {
         );
       }
 
-      // RPC doesn't exist yet - fall back to direct delete
-      if (e.code == '42883' ||
-          e.code == 'PGRST202' ||
-          message.contains('does not exist')) {
-        debugPrint(
-          '[SetlistRepository] delete_setlist RPC not found (code=${e.code}), falling back to direct delete',
-        );
+      // RPC failed for a non-business-logic reason (function missing, schema
+      // mismatch, column doesn't exist inside RPC, etc.).  Fall back to the
+      // simpler direct-delete path which doesn't touch gigs/rehearsals.
+      debugPrint(
+        '[SetlistRepository] RPC failed (code=${e.code}), falling back to direct delete',
+      );
+      try {
         await _deleteSetlistDirectly(bandId: bandId, setlistId: setlistId);
         return;
+      } catch (fallbackError) {
+        debugPrint(
+          '[SetlistRepository] direct delete fallback also failed: $fallbackError',
+        );
+        if (fallbackError is SetlistQueryError) rethrow;
+        throw SetlistQueryError(
+          code: 'DELETE_FAILED',
+          message: fallbackError.toString(),
+          reason: 'delete_failed',
+        );
       }
-
-      throw SetlistQueryError(
-        code: e.code ?? 'UNKNOWN',
-        message: e.message,
-        details: e.details?.toString(),
-        hint: e.hint,
-      );
     } catch (e) {
       debugPrint('[SetlistRepository] deleteSetlist error: $e');
       if (e is SetlistQueryError) rethrow;
-      throw SetlistQueryError(
-        code: 'UNEXPECTED',
-        message: e.toString(),
-        reason: 'unexpected',
+
+      // Non-PostgrestException (network timeout, etc.) — also try direct delete
+      debugPrint(
+        '[SetlistRepository] non-Postgrest error, trying direct delete fallback',
       );
+      try {
+        await _deleteSetlistDirectly(bandId: bandId, setlistId: setlistId);
+        return;
+      } catch (fallbackError) {
+        debugPrint(
+          '[SetlistRepository] direct delete fallback also failed: $fallbackError',
+        );
+        if (fallbackError is SetlistQueryError) rethrow;
+        throw SetlistQueryError(
+          code: 'UNEXPECTED',
+          message: fallbackError.toString(),
+          reason: 'unexpected',
+        );
+      }
     }
   }
 
@@ -2137,6 +2279,40 @@ class SetlistRepository {
         );
       }
 
+      // Clear setlist references from gigs (prevent FK violation)
+      try {
+        await supabase
+            .from('gigs')
+            .update({'setlist_id': null, 'setlist_name': null})
+            .eq('band_id', bandId)
+            .filter('setlist_id', 'eq', setlistId);
+        debugPrint(
+          '[SetlistRepository] cleared gig references for setlist $setlistId',
+        );
+      } catch (e) {
+        // Columns may not exist or table may not have matching rows — safe to continue
+        debugPrint(
+          '[SetlistRepository] clearing gig references failed (non-fatal): $e',
+        );
+      }
+
+      // Clear setlist references from rehearsals (prevent FK violation)
+      try {
+        await supabase
+            .from('rehearsals')
+            .update({'setlist_id': null})
+            .eq('band_id', bandId)
+            .filter('setlist_id', 'eq', setlistId);
+        debugPrint(
+          '[SetlistRepository] cleared rehearsal references for setlist $setlistId',
+        );
+      } catch (e) {
+        // Columns may not exist or table may not have matching rows — safe to continue
+        debugPrint(
+          '[SetlistRepository] clearing rehearsal references failed (non-fatal): $e',
+        );
+      }
+
       // Delete setlist_songs first (FK constraint)
       await supabase.from('setlist_songs').delete().eq('setlist_id', setlistId);
       debugPrint('[SetlistRepository] deleted setlist_songs for $setlistId');
@@ -2148,15 +2324,45 @@ class SetlistRepository {
           .eq('id', setlistId)
           .eq('band_id', bandId);
 
+      // Verify deletion actually happened (RLS can silently skip deletes)
+      final verifyCheck = await supabase
+          .from('setlists')
+          .select('id')
+          .eq('id', setlistId)
+          .eq('band_id', bandId)
+          .maybeSingle();
+
+      if (verifyCheck != null) {
+        debugPrint(
+          '[SetlistRepository] WARNING: setlist $setlistId still exists after delete! RLS may be blocking.',
+        );
+        throw SetlistQueryError(
+          code: 'DELETE_FAILED',
+          message: 'Failed to delete setlist — it still exists in the database',
+          reason: 'delete_blocked',
+        );
+      }
+
       debugPrint('[SetlistRepository] Deleted setlist $setlistId directly');
     } on PostgrestException catch (e) {
       debugPrint(
         '[SetlistRepository] _deleteSetlistDirectly PostgrestException: code=${e.code}, message=${e.message}, details=${e.details}, hint=${e.hint}',
       );
-      rethrow;
+      throw SetlistQueryError(
+        code: e.code ?? 'DB_ERROR',
+        message: e.message,
+        details: e.details?.toString(),
+        hint: e.hint,
+        reason: 'delete_failed',
+      );
     } catch (e) {
       debugPrint('[SetlistRepository] _deleteSetlistDirectly error: $e');
-      rethrow;
+      if (e is SetlistQueryError) rethrow;
+      throw SetlistQueryError(
+        code: 'DELETE_FAILED',
+        message: e.toString(),
+        reason: 'delete_failed',
+      );
     }
   }
 

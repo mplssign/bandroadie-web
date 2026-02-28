@@ -286,7 +286,7 @@ class _NotificationPreferencesScreenState
           Switch.adaptive(
             value: value,
             onChanged: enabled ? onChanged : null,
-            activeColor: AppColors.accent,
+            activeTrackColor: AppColors.accent,
           ),
         ],
       ),

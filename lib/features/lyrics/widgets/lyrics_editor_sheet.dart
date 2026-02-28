@@ -89,7 +89,6 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
 
   // ── Formatting state ──────────────────────────────────────────────────────
   double _fontSize = 16.0;
-  bool _isBold = false;
   LyricsHighlight _activeHighlight = LyricsHighlight.none;
 
   /// Per-line highlight overrides.  Key = line index (0-based).
@@ -123,7 +122,6 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
     if (data != null && data.isNotEmpty) {
       _textController = _HighlightedLyricsController(text: data.plainText);
       _fontSize = data.defaultFontSize;
-      _isBold = data.defaultBold;
       // Pre-populate per-line highlights from existing block data.
       // plainText joins blocks with '\n\n'.  When split by '\n' that
       // separator produces exactly ONE blank line between blocks.
@@ -334,7 +332,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             text: '${prev.text}\n$lineText',
             highlight: highlight,
             fontSize: _fontSize,
-            isBold: _isBold,
+            isBold: true,
           ),
         );
       } else {
@@ -343,7 +341,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             text: lineText,
             highlight: highlight,
             fontSize: _fontSize,
-            isBold: _isBold,
+            isBold: true,
           ),
         );
       }
@@ -356,7 +354,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
       LyricsData(
         blocks: blocks,
         defaultFontSize: _fontSize,
-        defaultBold: _isBold,
+        defaultBold: true,
       ),
     );
   }
@@ -433,8 +431,6 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
         child: Row(
           children: [
             _buildFontSizeControl(),
-            const SizedBox(width: 10),
-            _buildBoldToggle(),
             const SizedBox(width: 10),
             // Vertical divider
             Container(width: 1, height: 28, color: AppColors.borderMuted),
@@ -513,37 +509,6 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
           icon,
           size: 16,
           color: enabled ? AppColors.accent : AppColors.textDisabled,
-        ),
-      ),
-    );
-  }
-
-  // ── Bold Toggle ───────────────────────────────────────────────────────────
-  Widget _buildBoldToggle() {
-    return GestureDetector(
-      onTap: () => setState(() => _isBold = !_isBold),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: _isBold
-              ? AppColors.accent.withValues(alpha: 0.2)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: _isBold ? AppColors.accent : AppColors.borderMuted,
-            width: 1.5,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          'B',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            color: _isBold ? AppColors.accent : AppColors.textSecondary,
-          ),
         ),
       ),
     );
@@ -631,7 +596,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
         style: TextStyle(
           color: AppColors.textPrimary,
           fontSize: _fontSize,
-          fontWeight: _isBold ? FontWeight.w700 : FontWeight.w400,
+          fontWeight: FontWeight.w700,
           height: 1.6,
         ),
         decoration: InputDecoration(

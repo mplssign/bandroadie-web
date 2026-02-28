@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'tuning_picker_bottom_sheet.dart';
@@ -35,6 +36,7 @@ class ReorderableSongCard extends StatefulWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onLyricsView;
   final Future<bool> Function(String tuning)? onTuningChanged;
 
   const ReorderableSongCard({
@@ -45,8 +47,15 @@ class ReorderableSongCard extends StatefulWidget {
     this.onTap,
     this.onEdit,
     this.onDelete,
+    this.onLyricsView,
     this.onTuningChanged,
   });
+
+  /// Whether the song has non-empty lyrics content.
+  bool get hasLyrics {
+    final lyrics = LyricsData.fromJsonString(song.lyrics);
+    return lyrics.isNotEmpty;
+  }
 
   @override
   State<ReorderableSongCard> createState() => _ReorderableSongCardState();
@@ -243,20 +252,21 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                                 ],
                               ),
                             ),
-                            // Delete icon - anchored to far right
-                            SizedBox(
-                              width: SongCardLayout.trashIconHitSize,
-                              height: SongCardLayout.trashIconHitSize,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                iconSize: SongCardLayout.trashIconSize,
-                                onPressed: widget.onDelete,
-                                icon: const Icon(
-                                  Icons.delete_outline_rounded,
-                                  color: AppColors.accent,
+                            // Lyrics icon - shown only when song has lyrics
+                            // Top-aligns with title, right-aligns with tuning badge
+                            if (widget.hasLyrics)
+                              GestureDetector(
+                                onTap: widget.onLyricsView,
+                                behavior: HitTestBehavior.opaque,
+                                child: const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Icon(
+                                    Icons.lyrics_outlined,
+                                    color: AppColors.accent,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
 

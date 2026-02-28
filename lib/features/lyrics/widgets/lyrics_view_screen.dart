@@ -314,8 +314,8 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
   // ── FAB ────────────────────────────────────────────────────────────────────
 
   Widget _buildScrollFab() {
-    // Speed controls appear automatically when auto-scrolling
-    final showSpeedControls = _isAutoScrolling && _toolbarVisible;
+    // Speed controls are always visible
+    const showSpeedControls = true;
 
     return Positioned(
       right: 16,

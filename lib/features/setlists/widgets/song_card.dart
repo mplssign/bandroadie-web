@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
@@ -22,6 +23,7 @@ class SongCard extends StatefulWidget {
   final SetlistSong song;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onLyricsView;
   final bool showDragHandle;
   final bool showDeleteIcon;
 
@@ -30,9 +32,16 @@ class SongCard extends StatefulWidget {
     required this.song,
     this.onTap,
     this.onDelete,
+    this.onLyricsView,
     this.showDragHandle = true,
     this.showDeleteIcon = true,
   });
+
+  /// Whether the song has non-empty lyrics content.
+  bool get hasLyrics {
+    final lyrics = LyricsData.fromJsonString(song.lyrics);
+    return lyrics.isNotEmpty;
+  }
 
   @override
   State<SongCard> createState() => _SongCardState();
@@ -156,18 +165,18 @@ class _SongCardState extends State<SongCard>
                             ],
                           ),
                         ),
-                        // Trash icon
-                        if (widget.showDeleteIcon)
-                          SizedBox(
-                            width: SongCardLayout.trashIconHitSize,
-                            height: SongCardLayout.trashIconHitSize,
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              iconSize: SongCardLayout.trashIconSize,
-                              onPressed: widget.onDelete,
-                              icon: const Icon(
-                                Icons.delete_outline_rounded,
+                        // Lyrics icon - shown only when song has lyrics
+                        // Top-aligns with title, right-aligns with tuning badge
+                        if (widget.showDeleteIcon && widget.hasLyrics)
+                          GestureDetector(
+                            onTap: widget.onLyricsView,
+                            behavior: HitTestBehavior.opaque,
+                            child: const Padding(
+                              padding: EdgeInsets.only(left: 8),
+                              child: Icon(
+                                Icons.lyrics_outlined,
                                 color: AppColors.accent,
+                                size: 28,
                               ),
                             ),
                           ),

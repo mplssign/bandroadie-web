@@ -355,6 +355,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
 
       // Auto-select the newly created tuning
       HapticFeedback.selectionClick();
+      if (!mounted) return;
       Navigator.of(context).pop(customTuning.id);
     }
   }
@@ -756,8 +757,8 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
             color: widget.isSelected
                 ? AppColors.accent.withValues(alpha: 0.12)
                 : (_isPressed
-                      ? AppColors.scaffoldBg.withValues(alpha: 0.5)
-                      : Colors.transparent),
+                    ? AppColors.scaffoldBg.withValues(alpha: 0.5)
+                    : Colors.transparent),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: widget.isSelected
                 ? Border.all(color: AppColors.accent, width: 1.5)

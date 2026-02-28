@@ -185,7 +185,7 @@ class _BannerContent extends StatelessWidget {
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,6 +39,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
   late AnimationController _entranceController;
   List<Animation<double>> _fadeAnimations = [];
   List<Animation<Offset>> _slideAnimations = [];
+  Timer? _reorderDebounceTimer;
 
   @override
   void initState() {
@@ -83,6 +86,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
 
   @override
   void dispose() {
+    _reorderDebounceTimer?.cancel();
     _entranceController.dispose();
     super.dispose();
   }
@@ -123,9 +127,8 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
     );
 
     if (confirmed == true) {
-      final (success, errorMessage) = await ref
-          .read(setlistsProvider.notifier)
-          .deleteSetlist(setlist.id);
+      final (success, errorMessage) =
+          await ref.read(setlistsProvider.notifier).deleteSetlist(setlist.id);
       if (success && mounted) {
         showAppSnackBar(context, message: '"${setlist.name}" deleted');
       } else if (!success && mounted) {
@@ -161,6 +164,28 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
       return success;
     }
     return false;
+  }
+
+  /// Handle setlist reorder (drag-to-reorder)
+  void _handleReorder(int oldIndex, int newIndex) {
+    final notifier = ref.read(setlistsProvider.notifier);
+
+    // Apply local change immediately (optimistic UI)
+    notifier.reorderLocal(oldIndex, newIndex);
+
+    // Cancel any pending persist
+    _reorderDebounceTimer?.cancel();
+
+    // Schedule persist after debounce period
+    _reorderDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      final success = await notifier.persistReorder();
+
+      if (!success && mounted) {
+        showErrorSnackBar(context, message: 'Failed to reorder setlists');
+      }
+    });
   }
 
   Widget _buildAnimatedSection(int index, Widget child) {
@@ -242,20 +267,20 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                 localImageFile,
               )
             : showError
-            ? _buildErrorState(
-                bandName,
-                bandAvatarColor,
-                bandImageUrl,
-                localImageFile,
-                setlistsState.error!,
-              )
-            : _buildContentState(
-                bandName,
-                bandAvatarColor,
-                bandImageUrl,
-                localImageFile,
-                setlistsToShow,
-              ),
+                ? _buildErrorState(
+                    bandName,
+                    bandAvatarColor,
+                    bandImageUrl,
+                    localImageFile,
+                    setlistsState.error!,
+                  )
+                : _buildContentState(
+                    bandName,
+                    bandAvatarColor,
+                    bandImageUrl,
+                    localImageFile,
+                    setlistsToShow,
+                  ),
       ),
     );
   }
@@ -432,17 +457,18 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final setlist = setlists[index];
-                    return Padding(
+              // Catalog setlists (non-reorderable)
+              ...setlists.where((s) => s.isCatalog).map((setlist) {
+                final idx = setlists.indexOf(setlist);
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.pagePadding,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.only(bottom: Spacing.space12),
                       child: _buildAnimatedSection(
-                        index + 1,
+                        idx + 1,
                         SwipeableSetlistCard(
                           setlist: setlist,
                           onTap: () => _onSetlistTap(setlist),
@@ -450,14 +476,70 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                           onDuplicateConfirmed: (s) => _confirmDuplicate(s),
                         ),
                       ),
+                    ),
+                  ),
+                );
+              }),
+
+              // Reorderable setlist cards
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.pagePadding,
+                ),
+                sliver: SliverReorderableList(
+                  itemCount: setlists.where((s) => !s.isCatalog).length,
+                  onReorder: _handleReorder,
+                  itemBuilder: (context, index) {
+                    final reorderableSetlists =
+                        setlists.where((s) => !s.isCatalog).toList();
+                    final setlist = reorderableSetlists[index];
+                    return Padding(
+                      key: ValueKey(setlist.id),
+                      padding: const EdgeInsets.only(bottom: Spacing.space12),
+                      child: SwipeableSetlistCard(
+                        setlist: setlist,
+                        index: index,
+                        isDraggable: true,
+                        onTap: () => _onSetlistTap(setlist),
+                        onDeleteConfirmed: (s) => _confirmDelete(s),
+                        onDuplicateConfirmed: (s) => _confirmDuplicate(s),
+                      ),
                     );
-                  }, childCount: setlists.length),
+                  },
+                  proxyDecorator: (child, index, animation) {
+                    return AnimatedBuilder(
+                      animation: animation,
+                      builder: (context, child) {
+                        final scale = Tween<double>(
+                          begin: 1.0,
+                          end: 1.02,
+                        ).evaluate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOut,
+                          ),
+                        );
+                        return Transform.scale(
+                          scale: scale,
+                          child: Material(
+                            color: Colors.transparent,
+                            elevation: 8,
+                            shadowColor: Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(
+                              Spacing.buttonRadius,
+                            ),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: child,
+                    );
+                  },
                 ),
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height:
-                      Spacing.space32 +
+                  height: Spacing.space32 +
                       Spacing.bottomNavHeight +
                       MediaQuery.of(context).padding.bottom,
                 ),

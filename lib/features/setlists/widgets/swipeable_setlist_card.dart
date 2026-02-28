@@ -22,17 +22,19 @@ typedef SetlistActionCallback = Future<bool> Function(Setlist setlist);
 class SwipeableSetlistCard extends StatefulWidget {
   final Setlist setlist;
   final VoidCallback? onTap;
-  final VoidCallback? onEditName;
   final SetlistActionCallback? onDeleteConfirmed;
   final SetlistActionCallback? onDuplicateConfirmed;
+  final int index;
+  final bool isDraggable;
 
   const SwipeableSetlistCard({
     super.key,
     required this.setlist,
     this.onTap,
-    this.onEditName,
     this.onDeleteConfirmed,
     this.onDuplicateConfirmed,
+    this.index = 0,
+    this.isDraggable = false,
   });
 
   @override
@@ -52,8 +54,7 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
   Widget build(BuildContext context) {
     // Catalog setlist can only be duplicated (swipe right), never deleted
     final swipeDirection = widget.setlist.isCatalog
-        ? DismissDirection
-              .startToEnd // Only allow swipe right (duplicate)
+        ? DismissDirection.startToEnd // Only allow swipe right (duplicate)
         : DismissDirection.horizontal; // Allow both directions
 
     return Dismissible(
@@ -71,7 +72,8 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
       child: SetlistCard(
         setlist: widget.setlist,
         onTap: widget.onTap,
-        onEditName: widget.onEditName,
+        index: widget.index,
+        isDraggable: widget.isDraggable,
       ),
     );
   }
@@ -96,7 +98,12 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
     }
   }
 
-  /// Confirm dismiss and trigger appropriate action
+  /// Confirm dismiss and trigger appropriate action.
+  ///
+  /// IMPORTANT: Always returns false so the Dismissible never removes the
+  /// child widget from the tree. Removal is handled by state management
+  /// (the notifier updates the list). Returning true would conflict with
+  /// SliverReorderableList which tracks children by itemCount.
   Future<bool> _handleConfirmDismiss(DismissDirection direction) async {
     if (direction == DismissDirection.endToStart) {
       // Swipe left → Delete
@@ -105,7 +112,8 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
         if (confirmed) {
           HapticFeedback.heavyImpact();
         }
-        return confirmed;
+        // Always return false — state update removes the card from the list
+        return false;
       }
     } else if (direction == DismissDirection.startToEnd) {
       // Swipe right → Duplicate
