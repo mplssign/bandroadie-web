@@ -1811,6 +1811,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                         ),
                         child: SpecialItemCard(
                           item: item,
+                          index: index,
                           isDraggable: true,
                           onTap: () => _handleEditSpecialItem(item),
                           onDelete: () => _handleDeleteSpecialItem(item),
