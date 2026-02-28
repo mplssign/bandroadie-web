@@ -14,6 +14,7 @@ import '../models/setlist_item.dart';
 
 class SpecialItemCard extends StatelessWidget {
   final SetlistItem item;
+  final int index;
   final bool isDraggable;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
@@ -21,6 +22,7 @@ class SpecialItemCard extends StatelessWidget {
   const SpecialItemCard({
     super.key,
     required this.item,
+    required this.index,
     this.isDraggable = true,
     this.onTap,
     this.onDelete,
@@ -94,7 +96,7 @@ class SpecialItemCard extends StatelessWidget {
             // Drag handle
             if (isDraggable)
               ReorderableDragStartListener(
-                index: item.position,
+                index: index,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
@@ -163,7 +165,7 @@ class SpecialItemCard extends StatelessWidget {
             // Drag handle
             if (isDraggable)
               ReorderableDragStartListener(
-                index: item.position,
+                index: index,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
