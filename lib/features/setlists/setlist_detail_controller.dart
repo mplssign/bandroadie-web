@@ -344,7 +344,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
     }
 
-    state = state.copyWith(songs: updatedSongs);
+    _syncSongStateWith(updatedSongs);
   }
 
   /// Override state setter to cache state for rebuild preservation
@@ -358,6 +358,37 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   SpecialItemRepository get _specialItemRepo =>
       ref.read(specialItemRepositoryProvider);
   String? get _bandId => ref.read(activeBandIdProvider);
+
+  /// Sync updated songs into both [state.songs] and [state.items].
+  ///
+  /// Non-Catalog setlists always populate items (even without set breaks),
+  /// so the UI reads song data from items — not songs. Whenever a song's
+  /// metadata changes, we must update both lists to keep the UI in sync.
+  void _syncSongStateWith(
+    List<SetlistSong> updatedSongs, {
+    bool clearError = false,
+  }) {
+    if (state.items.isNotEmpty) {
+      final songMap = {for (final s in updatedSongs) s.id: s};
+      final updatedItems = state.items.map((item) {
+        if (item.isSong && item.song != null) {
+          final updated = songMap[item.song!.id];
+          return updated != null ? item.copyWith(song: updated) : item;
+        }
+        return item;
+      }).toList();
+      state = state.copyWith(
+        songs: updatedSongs,
+        items: updatedItems,
+        clearError: clearError,
+      );
+    } else {
+      state = state.copyWith(
+        songs: updatedSongs,
+        clearError: clearError,
+      );
+    }
+  }
 
   /// Load songs for this setlist with band scoping.
   ///
@@ -661,7 +692,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         return false;
       }
 
-      // Update local state - remove the song
+      // Update local state - remove the song from songs list
       final updatedSongs = state.songs.where((s) => s.id != songId).toList();
 
       // Re-index positions
@@ -669,15 +700,33 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         return entry.value.copyWith(position: entry.key);
       }).toList();
 
-      state = state.copyWith(songs: reindexedSongs, isDeleting: false);
+      // Also update items list if it's populated (mixed items mode)
+      if (state.items.isNotEmpty) {
+        final updatedItems = state.items
+            .where((i) => !(i.isSong && i.song?.id == songId))
+            .toList()
+            .asMap()
+            .entries
+            .map((e) => e.value.copyWith(position: e.key))
+            .toList();
+
+        state = state.copyWith(
+          songs: reindexedSongs,
+          items: updatedItems,
+          isDeleting: false,
+        );
+      } else {
+        state = state.copyWith(songs: reindexedSongs, isDeleting: false);
+      }
 
       // Refresh setlists list to update song count and duration stats
       ref.read(setlistsProvider.notifier).refresh();
 
       debugPrint('[SetlistDetail] Deleted song $songId');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('[SetlistDetail] Error deleting song: $e');
+      debugPrint('[SetlistDetail] Stack trace: $stackTrace');
       state = state.copyWith(
         isDeleting: false,
         error: 'Failed to delete song. Please try again.',
@@ -803,13 +852,14 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Optimistic update
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
     final updatedSongs = state.songs.map((song) {
       if (song.id == songId) {
         return song.copyWith(bpm: bpm);
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs);
+    _syncSongStateWith(updatedSongs);
 
     try {
       debugPrint(
@@ -834,6 +884,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Failed to save BPM. Please try again.',
       );
       return false;
@@ -852,13 +903,14 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Optimistic update - clear the BPM
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
     final updatedSongs = state.songs.map((song) {
       if (song.id == songId) {
         return song.copyWith(clearBpm: true);
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs);
+    _syncSongStateWith(updatedSongs);
 
     try {
       await _repository.clearSongBpmOverride(
@@ -879,6 +931,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Failed to clear BPM. Please try again.',
       );
       return false;
@@ -905,13 +958,14 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Optimistic update
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
     final updatedSongs = state.songs.map((song) {
       if (song.id == songId) {
         return song.copyWith(durationSeconds: durationSeconds);
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs);
+    _syncSongStateWith(updatedSongs);
 
     try {
       await _repository.updateSongDurationOverride(
@@ -935,6 +989,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Failed to save duration. Please try again.',
       );
       return false;
@@ -966,6 +1021,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Store original state for rollback
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
 
     // Optimistic update - apply immediately so UI feels instant
     final updatedSongs = state.songs.map((song) {
@@ -974,7 +1030,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs, clearError: true);
+    _syncSongStateWith(updatedSongs, clearError: true);
 
     try {
       await _repository.updateSongTuningOverride(
@@ -1009,7 +1065,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
 
       // Revert optimistic update
-      state = state.copyWith(songs: originalSongs, error: errorMessage);
+      state = state.copyWith(
+          songs: originalSongs, items: originalItems, error: errorMessage);
       return false;
     }
   }
@@ -1034,6 +1091,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Store original state for rollback
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
 
     // Optimistic update - apply immediately so UI feels instant
     final updatedSongs = state.songs.map((song) {
@@ -1045,7 +1103,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs, clearError: true);
+    _syncSongStateWith(updatedSongs, clearError: true);
 
     try {
       await _repository.updateSongNotes(
@@ -1068,6 +1126,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Couldn\'t save notes. Try again.',
       );
       return false;
@@ -1097,6 +1156,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Store original state for rollback
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
 
     // Optimistic update - apply immediately so UI feels instant
     final updatedSongs = state.songs.map((song) {
@@ -1109,7 +1169,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs, clearError: true);
+    _syncSongStateWith(updatedSongs, clearError: true);
 
     try {
       await _repository.updateSongYoutubeLinks(
@@ -1139,6 +1199,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Couldn\'t save YouTube links. Try again.',
       );
       return false;
@@ -1165,6 +1226,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Store original state for rollback
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
 
     // Optimistic update - apply immediately so UI feels instant
     final updatedSongs = state.songs.map((song) {
@@ -1176,7 +1238,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs, clearError: true);
+    _syncSongStateWith(updatedSongs, clearError: true);
 
     try {
       await _repository.updateSongLyrics(
@@ -1205,6 +1267,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Couldn\'t save lyrics. Try again.',
       );
       return false;
@@ -1235,6 +1298,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     // Store original state for rollback
     final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
 
     // Optimistic update - apply immediately so UI feels instant
     final updatedSongs = state.songs.map((song) {
@@ -1246,7 +1310,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       }
       return song;
     }).toList();
-    state = state.copyWith(songs: updatedSongs, clearError: true);
+    _syncSongStateWith(updatedSongs, clearError: true);
 
     try {
       await _repository.updateSongTitleArtist(
@@ -1272,6 +1336,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       // Revert optimistic update
       state = state.copyWith(
         songs: originalSongs,
+        items: originalItems,
         error: 'Couldn\'t save changes. Try again.',
       );
       return false;
@@ -1429,7 +1494,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
   /// Add a special item (set break or pause) to this setlist.
   ///
-  /// Creates a template, inserts at position 0, reloads, and
+  /// Creates a template, appends at the end of the list, reloads, and
   /// sets [newlyInsertedItemId] so the UI can animate the entry.
   ///
   /// Cannot add special items to the Catalog.
@@ -1467,7 +1532,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         isSavedTemplate: saveAsTemplate,
       );
 
-      // 2. Add to setlist at position 0
+      // 2. Add to setlist at the end
       await _specialItemRepo.addToSetlist(
         setlistId: state.setlistId,
         specialItemId: template.id,
@@ -1478,10 +1543,10 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       await loadSongs();
 
       // 4. Set the newly-inserted item ID for animation
-      // The new item is at position 0 → first in the items list
+      // The new item is at the end → last in the items list
       if (state.items.isNotEmpty) {
         state = state.copyWith(
-          newlyInsertedItemId: state.items.first.id,
+          newlyInsertedItemId: state.items.last.id,
         );
       }
 
@@ -1551,7 +1616,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
       if (state.items.isNotEmpty) {
         state = state.copyWith(
-          newlyInsertedItemId: state.items.first.id,
+          newlyInsertedItemId: state.items.last.id,
         );
       }
 

@@ -6,8 +6,8 @@
 -- update_setlist_duration, which locks the setlists row, making this slow
 -- even with sequential calls (round-trip latency per row).
 --
--- This RPC shifts all existing positions +1 and inserts the new row at
--- position 0 in a single transaction — one round-trip instead of 2N+1.
+-- This RPC appends the new row at the end of the setlist (max position + 1)
+-- in a single transaction — one round-trip instead of 2N+1.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION add_special_item_to_setlist(
@@ -21,29 +21,19 @@ SECURITY DEFINER
 AS $$
 DECLARE
   v_existing_count INT;
+  v_max_position   INT;
+  v_new_position   INT;
   v_new_row_id     UUID;
 BEGIN
-  -- Count existing items (for the return value)
-  SELECT COUNT(*)
-    INTO v_existing_count
+  -- Count existing items and find the max position
+  SELECT COUNT(*), COALESCE(MAX(position), -1)
+    INTO v_existing_count, v_max_position
     FROM public.setlist_songs
    WHERE setlist_id = p_setlist_id;
 
-  IF v_existing_count > 0 THEN
-    -- Phase 1: shift all items to a high temporary range to avoid
-    -- UNIQUE(setlist_id, position) violations during the shift.
-    UPDATE public.setlist_songs
-       SET position = position + 100000
-     WHERE setlist_id = p_setlist_id;
+  v_new_position := v_max_position + 1;
 
-    -- Phase 2: set final positions (original + 1)
-    UPDATE public.setlist_songs
-       SET position = position - 100000 + 1
-     WHERE setlist_id = p_setlist_id
-       AND position >= 100000;
-  END IF;
-
-  -- Insert the new special item at position 0
+  -- Insert the new special item at the end
   INSERT INTO public.setlist_songs (
     setlist_id,
     song_id,
@@ -55,14 +45,15 @@ BEGIN
     NULL,
     p_special_item_id,
     p_item_type,
-    0
+    v_new_position
   )
   RETURNING id INTO v_new_row_id;
 
   RETURN jsonb_build_object(
     'success', true,
     'new_row_id', v_new_row_id,
-    'shifted_count', v_existing_count
+    'new_position', v_new_position,
+    'existing_count', v_existing_count
   );
 
 EXCEPTION WHEN OTHERS THEN

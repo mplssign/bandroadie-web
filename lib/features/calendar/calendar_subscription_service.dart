@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -36,7 +37,7 @@ class CalendarSubscriptionService {
 
       return '$_feedBaseUrl?token=$token';
     } catch (e) {
-      print('[CalendarSubscriptionService] Error getting subscription URL: $e');
+      debugPrint('[CalendarSubscriptionService] Error getting subscription URL: $e');
       return null;
     }
   }
@@ -47,7 +48,7 @@ class CalendarSubscriptionService {
       final response = await _client.rpc('get_my_calendar_token');
       return response as String?;
     } catch (e) {
-      print('[CalendarSubscriptionService] Error getting calendar token: $e');
+      debugPrint('[CalendarSubscriptionService] Error getting calendar token: $e');
       return null;
     }
   }
@@ -67,7 +68,7 @@ class CalendarSubscriptionService {
       if (newToken == null) return null;
       return '$_feedBaseUrl?token=$newToken';
     } catch (e) {
-      print('[CalendarSubscriptionService] Error regenerating token: $e');
+      debugPrint('[CalendarSubscriptionService] Error regenerating token: $e');
       return null;
     }
   }

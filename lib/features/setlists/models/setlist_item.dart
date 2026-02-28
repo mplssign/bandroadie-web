@@ -51,12 +51,12 @@ class SetlistItem {
   /// Unique key for list rendering. Combines type + id to avoid collisions.
   String get listKey => '${type.dbValue}-$id';
 
-  SetlistItem copyWith({int? position}) {
+  SetlistItem copyWith({int? position, SetlistSong? song}) {
     return SetlistItem(
       id: id,
       type: type,
       position: position ?? this.position,
-      song: song,
+      song: song ?? this.song,
       specialItem: specialItem,
     );
   }

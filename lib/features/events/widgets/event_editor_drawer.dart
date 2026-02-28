@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -280,11 +279,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     _recurringSlideAnimation =
         Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _recurringAnimController,
-            curve: Curves.easeOut,
-          ),
-        );
+      CurvedAnimation(
+        parent: _recurringAnimController,
+        curve: Curves.easeOut,
+      ),
+    );
 
     if (_isRecurring) {
       _recurringAnimController.value = 1.0;
@@ -517,9 +516,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     try {
       debugPrint('[EventEditorDrawer] Calling upsertResponse...');
-      await ref
-          .read(gigResponseRepositoryProvider)
-          .upsertResponse(
+      await ref.read(gigResponseRepositoryProvider).upsertResponse(
             gigId: gigId,
             bandId: widget.bandId,
             userId: userId,
@@ -723,9 +720,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   void _addAdditionalDate() {
     setState(() {
       // Add a new date, default to one week after the last date
-      final lastDate = _additionalDates.isNotEmpty
-          ? _additionalDates.last
-          : _selectedDate;
+      final lastDate =
+          _additionalDates.isNotEmpty ? _additionalDates.last : _selectedDate;
       _additionalDates.add(lastDate.add(const Duration(days: 7)));
     });
     _markDirty();
@@ -875,9 +871,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       final unavailableMembers = <String>[];
 
       for (final userId in userIds) {
-        final member = membersState.members
-            .where((m) => m.userId == userId)
-            .firstOrNull;
+        final member =
+            membersState.members.where((m) => m.userId == userId).firstOrNull;
         if (member != null) {
           unavailableMembers.add(member.name);
         }
@@ -982,9 +977,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           if (_isPotentialGig && _currentUserResponse != null) {
             final userId = supabase.auth.currentUser?.id;
             if (userId != null) {
-              await ref
-                  .read(gigResponseRepositoryProvider)
-                  .upsertResponse(
+              await ref.read(gigResponseRepositoryProvider).upsertResponse(
                     gigId: widget.existingEventId!,
                     bandId: widget.bandId,
                     userId: userId,
@@ -1565,8 +1558,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                     decoration: BoxDecoration(
                       color: isSelected
                           ? (isDisabled
-                                ? AppColors.accent.withValues(alpha: 0.5)
-                                : AppColors.accent)
+                              ? AppColors.accent.withValues(alpha: 0.5)
+                              : AppColors.accent)
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(
                         Spacing.buttonRadius - 2,
@@ -1578,8 +1571,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       style: AppTextStyles.calloutEmphasized.copyWith(
                         color: isSelected
                             ? (isDisabled
-                                  ? AppColors.textPrimary.withValues(alpha: 0.7)
-                                  : AppColors.textPrimary)
+                                ? AppColors.textPrimary.withValues(alpha: 0.7)
+                                : AppColors.textPrimary)
                             : AppColors.textSecondary,
                       ),
                     ),
@@ -2197,7 +2190,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: _durationMinutes <= minDuration
-                        ? rose700.withOpacity(0.4)
+                        ? rose700.withValues(alpha: 0.4)
                         : rose700,
                     width: 2,
                   ),
@@ -2209,7 +2202,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: _durationMinutes <= minDuration
-                          ? rose700.withOpacity(0.4)
+                          ? rose700.withValues(alpha: 0.4)
                           : rose700,
                     ),
                   ),
@@ -2290,16 +2283,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         TextField(
           controller: controller,
           enabled: !_isSaving,
-          maxLines: isMultiline
-              ? null
-              : maxLines, // null allows unlimited lines
+          maxLines:
+              isMultiline ? null : maxLines, // null allows unlimited lines
           minLines: isMultiline ? maxLines : null, // minimum visible lines
-          keyboardType: isMultiline
-              ? TextInputType.multiline
-              : TextInputType.text,
-          textInputAction: isMultiline
-              ? TextInputAction.newline
-              : TextInputAction.done,
+          keyboardType:
+              isMultiline ? TextInputType.multiline : TextInputType.text,
+          textInputAction:
+              isMultiline ? TextInputAction.newline : TextInputAction.done,
           textCapitalization: isMultiline
               ? TextCapitalization.sentences
               : TextCapitalization.none,
@@ -2379,100 +2369,98 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             debugPrint('[RehearsalLocation] selected suggestion: $selection');
             setState(() {});
           },
-          fieldViewBuilder:
-              (
-                BuildContext context,
-                TextEditingController fieldController,
-                FocusNode focusNode,
-                VoidCallback onFieldSubmitted,
-              ) {
-                // Sync the field controller with our location controller
-                fieldController.addListener(() {
-                  _locationController.text = fieldController.text;
-                });
-                return TextField(
-                  controller: fieldController,
-                  focusNode: focusNode,
-                  enabled: !_isSaving,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.done,
-                  inputFormatters: [TitleCaseTextFormatter()],
-                  style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textPrimary,
+          fieldViewBuilder: (
+            BuildContext context,
+            TextEditingController fieldController,
+            FocusNode focusNode,
+            VoidCallback onFieldSubmitted,
+          ) {
+            // Sync the field controller with our location controller
+            fieldController.addListener(() {
+              _locationController.text = fieldController.text;
+            });
+            return TextField(
+              controller: fieldController,
+              focusNode: focusNode,
+              enabled: !_isSaving,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [TitleCaseTextFormatter()],
+              style: AppTextStyles.callout.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'e.g., Studio, Venue Address',
+                hintStyle: AppTextStyles.callout.copyWith(
+                  color: AppColors.textMuted,
+                ),
+                filled: true,
+                fillColor: AppColors.scaffoldBg,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderMuted,
                   ),
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'e.g., Studio, Venue Address',
-                    hintStyle: AppTextStyles.callout.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.scaffoldBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(
-                        color: AppColors.borderMuted,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(
-                        color: AppColors.borderMuted,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(color: AppColors.accent),
-                    ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderMuted,
                   ),
-                );
-              },
-          optionsViewBuilder:
-              (
-                BuildContext context,
-                AutocompleteOnSelected<String> onSelected,
-                Iterable<String> options,
-              ) {
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBgElevated,
-                        borderRadius: BorderRadius.circular(
-                          Spacing.buttonRadius,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+              ),
+            );
+          },
+          optionsViewBuilder: (
+            BuildContext context,
+            AutocompleteOnSelected<String> onSelected,
+            Iterable<String> options,
+          ) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBgElevated,
+                    borderRadius: BorderRadius.circular(
+                      Spacing.buttonRadius,
+                    ),
+                    border: Border.all(color: AppColors.borderMuted),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final option = options.elementAt(index);
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          option,
+                          style: AppTextStyles.callout.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                        border: Border.all(color: AppColors.borderMuted),
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final option = options.elementAt(index);
-                          return ListTile(
-                            dense: true,
-                            title: Text(
-                              option,
-                              style: AppTextStyles.callout.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            onTap: () => onSelected(option),
-                          );
-                        },
-                      ),
-                    ),
+                        onTap: () => onSelected(option),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ),
+            );
+          },
         ),
         FieldHint(
           text: "We'll remember locations you've used before.",
@@ -2513,108 +2501,105 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             );
             setState(() => _gigNameSuggestions = []);
           },
-          fieldViewBuilder:
-              (
-                BuildContext context,
-                TextEditingController controller,
-                FocusNode focusNode,
-                VoidCallback onFieldSubmitted,
-              ) {
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  enabled: !_isSaving,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.done,
-                  inputFormatters: [TitleCaseTextFormatter()],
-                  style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textPrimary,
+          fieldViewBuilder: (
+            BuildContext context,
+            TextEditingController controller,
+            FocusNode focusNode,
+            VoidCallback onFieldSubmitted,
+          ) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: !_isSaving,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [TitleCaseTextFormatter()],
+              style: AppTextStyles.callout.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'e.g., The Blue Note, SummerFest 2026',
+                hintStyle: AppTextStyles.callout.copyWith(
+                  color: AppColors.textMuted,
+                ),
+                filled: true,
+                fillColor: AppColors.scaffoldBg,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(
+                    color: _fieldErrors['name'] != null
+                        ? AppColors.error
+                        : AppColors.borderMuted,
                   ),
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'e.g., The Blue Note, SummerFest 2026',
-                    hintStyle: AppTextStyles.callout.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.scaffoldBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: BorderSide(
-                        color: _fieldErrors['name'] != null
-                            ? AppColors.error
-                            : AppColors.borderMuted,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: BorderSide(
-                        color: _fieldErrors['name'] != null
-                            ? AppColors.error
-                            : AppColors.borderMuted,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: BorderSide(
-                        color: _fieldErrors['name'] != null
-                            ? AppColors.error
-                            : AppColors.accent,
-                      ),
-                    ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(
+                    color: _fieldErrors['name'] != null
+                        ? AppColors.error
+                        : AppColors.borderMuted,
                   ),
-                );
-              },
-          optionsViewBuilder:
-              (
-                BuildContext context,
-                AutocompleteOnSelected<String> onSelected,
-                Iterable<String> options,
-              ) {
-                if (options.isEmpty) return const SizedBox.shrink();
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      width:
-                          MediaQuery.of(context).size.width -
-                          (Spacing.pagePadding * 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBgElevated,
-                        borderRadius: BorderRadius.circular(
-                          Spacing.buttonRadius,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(
+                    color: _fieldErrors['name'] != null
+                        ? AppColors.error
+                        : AppColors.accent,
+                  ),
+                ),
+              ),
+            );
+          },
+          optionsViewBuilder: (
+            BuildContext context,
+            AutocompleteOnSelected<String> onSelected,
+            Iterable<String> options,
+          ) {
+            if (options.isEmpty) return const SizedBox.shrink();
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  width: MediaQuery.of(context).size.width -
+                      (Spacing.pagePadding * 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBgElevated,
+                    borderRadius: BorderRadius.circular(
+                      Spacing.buttonRadius,
+                    ),
+                    border: Border.all(color: AppColors.borderMuted),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final option = options.elementAt(index);
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          option,
+                          style: AppTextStyles.callout.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                        border: Border.all(color: AppColors.borderMuted),
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final option = options.elementAt(index);
-                          return ListTile(
-                            dense: true,
-                            title: Text(
-                              option,
-                              style: AppTextStyles.callout.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            onTap: () => onSelected(option),
-                          );
-                        },
-                      ),
-                    ),
+                        onTap: () => onSelected(option),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ),
+            );
+          },
         ),
         if (_fieldErrors['name'] != null) ...[
           const SizedBox(height: 4),
@@ -2666,100 +2651,97 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             );
             setState(() => _gigCitySuggestions = []);
           },
-          fieldViewBuilder:
-              (
-                BuildContext context,
-                TextEditingController controller,
-                FocusNode focusNode,
-                VoidCallback onFieldSubmitted,
-              ) {
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  enabled: !_isSaving,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.done,
-                  inputFormatters: [TitleCaseTextFormatter()],
-                  style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textPrimary,
+          fieldViewBuilder: (
+            BuildContext context,
+            TextEditingController controller,
+            FocusNode focusNode,
+            VoidCallback onFieldSubmitted,
+          ) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: !_isSaving,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              inputFormatters: [TitleCaseTextFormatter()],
+              style: AppTextStyles.callout.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'e.g., Chicago, IL',
+                hintStyle: AppTextStyles.callout.copyWith(
+                  color: AppColors.textMuted,
+                ),
+                filled: true,
+                fillColor: AppColors.scaffoldBg,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderMuted,
                   ),
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'e.g., Chicago, IL',
-                    hintStyle: AppTextStyles.callout.copyWith(
-                      color: AppColors.textMuted,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.scaffoldBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(
-                        color: AppColors.borderMuted,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(
-                        color: AppColors.borderMuted,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(color: AppColors.accent),
-                    ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(
+                    color: AppColors.borderMuted,
                   ),
-                );
-              },
-          optionsViewBuilder:
-              (
-                BuildContext context,
-                AutocompleteOnSelected<String> onSelected,
-                Iterable<String> options,
-              ) {
-                if (options.isEmpty) return const SizedBox.shrink();
-                return Align(
-                  alignment: Alignment.topLeft,
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    child: Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
-                      width:
-                          MediaQuery.of(context).size.width -
-                          (Spacing.pagePadding * 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBgElevated,
-                        borderRadius: BorderRadius.circular(
-                          Spacing.buttonRadius,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+              ),
+            );
+          },
+          optionsViewBuilder: (
+            BuildContext context,
+            AutocompleteOnSelected<String> onSelected,
+            Iterable<String> options,
+          ) {
+            if (options.isEmpty) return const SizedBox.shrink();
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  width: MediaQuery.of(context).size.width -
+                      (Spacing.pagePadding * 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBgElevated,
+                    borderRadius: BorderRadius.circular(
+                      Spacing.buttonRadius,
+                    ),
+                    border: Border.all(color: AppColors.borderMuted),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final option = options.elementAt(index);
+                      return ListTile(
+                        dense: true,
+                        title: Text(
+                          option,
+                          style: AppTextStyles.callout.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                        border: Border.all(color: AppColors.borderMuted),
-                      ),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: options.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final option = options.elementAt(index);
-                          return ListTile(
-                            dense: true,
-                            title: Text(
-                              option,
-                              style: AppTextStyles.callout.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            onTap: () => onSelected(option),
-                          );
-                        },
-                      ),
-                    ),
+                        onTap: () => onSelected(option),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ),
+            );
+          },
         ),
         FieldHint(
           text: "Auto-fills based on past gigs.",
@@ -2779,8 +2761,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final members = membersState.members;
 
     // Check if this is a multi-date potential gig in edit mode
-    final isMultiDateEditMode =
-        widget.mode == EventEditorMode.edit &&
+    final isMultiDateEditMode = widget.mode == EventEditorMode.edit &&
         widget.existingEventId != null &&
         _isMultiDate &&
         _additionalDates.isNotEmpty;
@@ -2843,24 +2824,24 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             alignment: Alignment.topCenter,
             child: _isPotentialGig
                 ? isMultiDateEditMode
-                      // Multi-date layout: per-date sections
-                      ? _buildMultiDateAvailabilitySection(
-                          members,
-                          membersState.isLoading,
-                        )
-                      // Single-date layout: existing behavior
-                      : Column(
-                          children: [
-                            _buildMemberSelectionGrid(
-                              members,
-                              membersState.isLoading,
-                            ),
-                            // Your Availability section (edit mode only)
-                            if (widget.mode == EventEditorMode.edit &&
-                                widget.existingEventId != null)
-                              _buildUserAvailabilitySection(),
-                          ],
-                        )
+                    // Multi-date layout: per-date sections
+                    ? _buildMultiDateAvailabilitySection(
+                        members,
+                        membersState.isLoading,
+                      )
+                    // Single-date layout: existing behavior
+                    : Column(
+                        children: [
+                          _buildMemberSelectionGrid(
+                            members,
+                            membersState.isLoading,
+                          ),
+                          // Your Availability section (edit mode only)
+                          if (widget.mode == EventEditorMode.edit &&
+                              widget.existingEventId != null)
+                            _buildUserAvailabilitySection(),
+                        ],
+                      )
                 : const SizedBox.shrink(),
           ),
         ],
@@ -3049,13 +3030,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     try {
       final gigDateIds = _existingGigDateIds.values.toList();
-      final responses = await ref
-          .read(gigResponseRepositoryProvider)
-          .fetchAllDateResponses(
-            gigId: gigId,
-            bandId: widget.bandId,
-            gigDateIds: gigDateIds,
-          );
+      final responses =
+          await ref.read(gigResponseRepositoryProvider).fetchAllDateResponses(
+                gigId: gigId,
+                bandId: widget.bandId,
+                gigDateIds: gigDateIds,
+              );
 
       if (mounted) {
         setState(() {
@@ -3304,24 +3284,21 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
 
     // Check for duplicate first names
-    final sameFirstName = allMembers
-        .where((m) => m.firstName == firstName)
-        .toList();
+    final sameFirstName =
+        allMembers.where((m) => m.firstName == firstName).toList();
 
     if (sameFirstName.length <= 1) {
       // Unique first name - just use it
-      final label = firstName.length > 10
-          ? '${firstName.substring(0, 9)}…'
-          : firstName;
+      final label =
+          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName;
       return _MemberDisambiguation(line1: label);
     }
 
     // Multiple members with same first name - need disambiguation
     if (member.lastName == null || member.lastName!.isEmpty) {
       // No last name available, use first name only
-      final label = firstName.length > 10
-          ? '${firstName.substring(0, 9)}…'
-          : firstName;
+      final label =
+          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName;
       return _MemberDisambiguation(line1: label);
     }
 
@@ -3346,9 +3323,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     // Line 1: First name
     // Line 2: Full last name (shrinks to fit)
     return _MemberDisambiguation(
-      line1: firstName.length > 10
-          ? '${firstName.substring(0, 9)}…'
-          : firstName,
+      line1:
+          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName,
       line2: member.lastName!,
       requiresTwoLines: true,
     );
@@ -3418,9 +3394,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected
-                        ? AppColors.accent
-                        : AppColors.borderMuted,
+                    color:
+                        isSelected ? AppColors.accent : AppColors.borderMuted,
                   ),
                 ),
                 alignment: Alignment.center,
@@ -3471,9 +3446,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                     color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.accent
-                          : AppColors.borderMuted,
+                      color:
+                          isSelected ? AppColors.accent : AppColors.borderMuted,
                     ),
                   ),
                   alignment: Alignment.center,
@@ -3669,8 +3643,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
     // In create mode, always allow save if form is valid
     // In edit mode, enable button if user made any change (_isDirty)
-    final canSave =
-        !_isSaving &&
+    final canSave = !_isSaving &&
         !_isDeleting &&
         _isFormValid &&
         (widget.mode == EventEditorMode.create || _isDirty);
@@ -3960,9 +3933,8 @@ class _AvailabilityButton extends StatelessWidget {
         ? const Color(0xFF22C55E) // green-500
         : const Color(0xFFEF4444); // red-500
 
-    final backgroundColor = isSelected
-        ? activeColor.withValues(alpha: 0.2)
-        : AppColors.scaffoldBg;
+    final backgroundColor =
+        isSelected ? activeColor.withValues(alpha: 0.2) : AppColors.scaffoldBg;
 
     final borderColor = isSelected ? activeColor : AppColors.borderMuted;
 

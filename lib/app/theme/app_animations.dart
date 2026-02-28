@@ -245,7 +245,7 @@ class AnimatedLoadingButton extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: isLoading ? bgColor.withOpacity(0.7) : bgColor,
+          color: isLoading ? bgColor.withValues(alpha: 0.7) : bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(

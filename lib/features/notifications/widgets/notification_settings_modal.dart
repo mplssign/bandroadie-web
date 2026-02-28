@@ -44,7 +44,7 @@ class NotificationSettingsModal extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.textMuted.withOpacity(0.1),
+                color: AppColors.textMuted.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -72,9 +72,9 @@ class NotificationSettingsModal extends StatelessWidget {
             Text(
               isIOS
                   ? 'Notifications are disabled for BandRoadie on this device. '
-                        'To enable them, you\'ll need to update your system settings.'
+                      'To enable them, you\'ll need to update your system settings.'
                   : 'Notifications are disabled for BandRoadie. '
-                        'To enable them, you\'ll need to update your app settings.',
+                      'To enable them, you\'ll need to update your app settings.',
               style: AppTextStyles.callout.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.4,

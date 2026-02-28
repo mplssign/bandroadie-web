@@ -104,11 +104,11 @@ class SpecialItemRepository {
   // ADD SPECIAL ITEM TO SETLIST
   // ==========================================================================
 
-  /// Insert a special item at position 0, shifting all existing items down.
+  /// Append a special item at the end of the setlist.
   ///
   /// Uses the `add_special_item_to_setlist` RPC for an atomic,
-  /// single-transaction insert+shift. Falls back to sequential client-side
-  /// updates if the RPC is not yet deployed.
+  /// single-transaction insert. Falls back to sequential client-side
+  /// logic if the RPC is not yet deployed.
   Future<void> addToSetlist({
     required String setlistId,
     required String specialItemId,
@@ -126,8 +126,8 @@ class SpecialItemRepository {
 
       if (response is Map && response['success'] == true) {
         debugPrint(
-          '[SpecialItemRepo] ✓ Added ${itemType.displayName} at position 0 via RPC, '
-          'shifted ${response['shifted_count']} items',
+          '[SpecialItemRepo] ✓ Added ${itemType.displayName} at position '
+          '${response['new_position']} via RPC',
         );
         return;
       }
@@ -139,7 +139,8 @@ class SpecialItemRepository {
       }
 
       debugPrint('[SpecialItemRepo] Unexpected add RPC response: $response');
-      throw Exception('Unexpected response from add_special_item_to_setlist RPC');
+      throw Exception(
+          'Unexpected response from add_special_item_to_setlist RPC');
     } on PostgrestException catch (e) {
       // RPC not found — fall back to sequential client-side updates.
       if (e.code == 'PGRST202' || e.code == '42883') {
@@ -157,50 +158,35 @@ class SpecialItemRepository {
     }
   }
 
-  /// Fallback: sequential shift + insert when the RPC is not deployed.
+  /// Fallback: append at end when the RPC is not deployed.
   Future<void> _addToSetlistFallback({
     required String setlistId,
     required String specialItemId,
     required SetlistItemType itemType,
   }) async {
+    // Find the current max position
     final existing = await supabase
         .from('setlist_songs')
-        .select('id, position')
+        .select('position')
         .eq('setlist_id', setlistId)
-        .order('position', ascending: false);
+        .order('position', ascending: false)
+        .limit(1);
 
     final rows = existing as List;
+    final maxPosition = rows.isNotEmpty ? (rows.first['position'] as int) : -1;
+    final newPosition = maxPosition + 1;
 
-    if (rows.isNotEmpty) {
-      // Phase 1: shift to high range (sequential)
-      for (final row in rows) {
-        await supabase
-            .from('setlist_songs')
-            .update({'position': 100000 + (row['position'] as int)}).eq(
-                'id', row['id'] as String);
-      }
-
-      // Phase 2: set final positions (+1 from original, sequential)
-      for (final row in rows) {
-        await supabase
-            .from('setlist_songs')
-            .update({'position': (row['position'] as int) + 1}).eq(
-                'id', row['id'] as String);
-      }
-    }
-
-    // Insert the special item at position 0
+    // Insert the special item at the end
     await supabase.from('setlist_songs').insert({
       'setlist_id': setlistId,
       'song_id': null,
       'special_item_id': specialItemId,
       'item_type': itemType.dbValue,
-      'position': 0,
+      'position': newPosition,
     });
 
     debugPrint(
-      '[SpecialItemRepo] Fallback: inserted ${itemType.displayName} at position 0, '
-      'shifted ${rows.length} existing items',
+      '[SpecialItemRepo] Fallback: inserted ${itemType.displayName} at position $newPosition',
     );
   }
 

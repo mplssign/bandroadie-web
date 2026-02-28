@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,6 +9,8 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import '../lyrics/models/lyrics_data.dart';
+import '../lyrics/widgets/lyrics_view_screen.dart';
 import 'models/bulk_song_row.dart';
 import 'models/setlist_item_type.dart';
 import 'models/setlist_song.dart';
@@ -471,6 +474,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
   /// Handle Share tap
   /// iOS requires sharePositionOrigin to position the share sheet
+  // ignore: use_build_context_synchronously
   void _handleShare(BuildContext context) async {
     final state = ref.read(setlistDetailProvider);
     final text = _generateShareText(
@@ -481,9 +485,12 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     try {
       // On iOS/macOS, Share.share() needs sharePositionOrigin for the popover
       // We use the center of the screen as a fallback since we don't have the button position
+      if (!mounted) return;
+      // ignore: use_build_context_synchronously
       final box = context.findRenderObject() as RenderBox?;
       final position = box != null
           ? box.localToGlobal(Offset.zero) & box.size
+          // ignore: use_build_context_synchronously
           : Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 56);
 
       await Share.share(
@@ -494,6 +501,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
       debugPrint('[SetlistShare] Error sharing: $e');
       if (mounted) {
         showErrorSnackBar(
+          // ignore: use_build_context_synchronously
           context,
           message: 'Failed to share setlist',
         );
@@ -611,6 +619,32 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         );
       }
     }
+  }
+
+  /// Confirm and delete a song via swipe-to-dismiss.
+  /// Always returns false because deleteSong() removes the item from state,
+  /// which rebuilds the widget tree without the dismissed item.
+  Future<bool> _confirmDeleteSong(String songId, String songTitle) async {
+    final state = ref.read(setlistDetailProvider);
+
+    final confirmed = await _showDeleteDialog(songTitle, state.isCatalog);
+    if (!confirmed || !mounted) return false;
+
+    HapticFeedback.heavyImpact();
+    final notifier = ref.read(setlistDetailProvider.notifier);
+    final success = await notifier.deleteSong(songId);
+
+    if (mounted && success) {
+      showAppSnackBar(
+        context,
+        message: state.isCatalog
+            ? 'Song removed from Catalog and all setlists'
+            : 'Song removed from setlist',
+      );
+    }
+    // Always return false — the state update already removed the item
+    // from the widget tree.
+    return false;
   }
 
   /// Handle reorder
@@ -797,14 +831,59 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               return Padding(
                 key: ValueKey(song.id),
                 padding: const EdgeInsets.only(bottom: Spacing.space12),
-                child: ReorderableSongCard(
-                  song: song,
-                  index: index,
-                  onEdit: () {},
-                  onDelete: () => _handleDelete(song.id, song.title),
-                  onTuningChanged: (tuning) => ref
-                      .read(setlistDetailProvider.notifier)
-                      .updateSongTuning(song.id, tuning),
+                child: Dismissible(
+                  key: Key('dismiss_song_${song.id}'),
+                  direction: DismissDirection.endToStart,
+                  dismissThresholds: const {
+                    DismissDirection.endToStart: 0.4,
+                  },
+                  confirmDismiss: (_) =>
+                      _confirmDeleteSong(song.id, song.title),
+                  movementDuration: AppDurations.medium,
+                  background: const SizedBox.shrink(),
+                  secondaryBackground: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: Spacing.space24),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Delete',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        SizedBox(width: Spacing.space8),
+                        Icon(Icons.delete_outline_rounded,
+                            color: Colors.white, size: 22),
+                      ],
+                    ),
+                  ),
+                  child: ReorderableSongCard(
+                    song: song,
+                    index: index,
+                    onTap: () {},
+                    onLyricsView: () {
+                      final lyrics = LyricsData.fromJsonString(song.lyrics);
+                      showLyricsViewScreen(
+                        context,
+                        lyrics: lyrics,
+                        songId: song.id,
+                        songTitle: song.title,
+                      );
+                    },
+                    onEdit: () {},
+                    onDelete: () => _handleDelete(song.id, song.title),
+                    onTuningChanged: (tuning) => ref
+                        .read(setlistDetailProvider.notifier)
+                        .updateSongTuning(song.id, tuning),
+                  ),
                 ),
               );
             },

@@ -118,7 +118,10 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     final bandId = _bandId;
     if (bandId == null || bandId.isEmpty) return;
 
-    state = state.copyWith(isLoading: true, clearError: true);
+    // Update both state and cache to loading so build() never returns stale data
+    final loadingState = state.copyWith(isLoading: true, clearError: true);
+    state = loadingState;
+    _cachedState = loadingState;
 
     try {
       final setlists = await _repository.fetchSetlistsForBand(bandId);
@@ -182,11 +185,12 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     try {
       await _repository.deleteSetlist(bandId: bandId, setlistId: setlistId);
 
-      // Remove from local state
-      final updatedSetlists = state.setlists
-          .where((s) => s.id != setlistId)
-          .toList();
-      state = state.copyWith(setlists: updatedSetlists);
+      // Remove from local state AND update cache so build() stays consistent
+      final updatedSetlists =
+          state.setlists.where((s) => s.id != setlistId).toList();
+      final newState = state.copyWith(setlists: updatedSetlists);
+      state = newState;
+      _cachedState = newState;
 
       if (kDebugMode) {
         debugPrint('[SetlistsScreen] Deleted setlist $setlistId');
@@ -202,7 +206,7 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
         'permission_denied' =>
           'You do not have permission to delete this setlist',
         'not_found' => 'Setlist not found',
-        _ => e.userMessage,
+        _ => 'Failed to delete setlist. Please try again.',
       };
       return (false, userMessage);
     } catch (e) {
@@ -237,6 +241,74 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[SetlistsScreen] Unexpected duplicate error: $e');
+      }
+      return false;
+    }
+  }
+
+  /// Snapshot of setlist order before a drag, for rollback on failure.
+  List<Setlist>? _preReorderSnapshot;
+
+  /// Reorder setlists locally (optimistic UI).
+  /// [oldIndex] and [newIndex] are indices within the NON-catalog portion.
+  void reorderLocal(int oldIndex, int newIndex) {
+    // Separate catalog from reorderable setlists
+    final catalog = state.setlists.where((s) => s.isCatalog).toList();
+    final reorderable = state.setlists.where((s) => !s.isCatalog).toList();
+
+    // Save snapshot for rollback (only save once per drag sequence)
+    _preReorderSnapshot ??= List.of(state.setlists);
+
+    // SliverReorderableList convention
+    var adjustedNew = newIndex;
+    if (oldIndex < adjustedNew) adjustedNew--;
+
+    if (oldIndex < 0 ||
+        oldIndex >= reorderable.length ||
+        adjustedNew < 0 ||
+        adjustedNew >= reorderable.length) {
+      return;
+    }
+
+    final item = reorderable.removeAt(oldIndex);
+    reorderable.insert(adjustedNew, item);
+
+    // Update positions
+    final updated = reorderable.asMap().entries.map((e) {
+      return e.value.copyWith(position: e.key + 1);
+    }).toList();
+
+    final newState = state.copyWith(setlists: [...catalog, ...updated]);
+    state = newState;
+    _cachedState = newState;
+  }
+
+  /// Persist the current setlist order to Supabase.
+  /// Returns true on success, false on failure (state is reverted).
+  Future<bool> persistReorder() async {
+    final bandId = _bandId;
+    if (bandId == null || bandId.isEmpty) return false;
+
+    final nonCatalog = state.setlists.where((s) => !s.isCatalog).toList();
+    final ids = nonCatalog.map((s) => s.id).toList();
+
+    try {
+      await _repository.reorderSetlists(
+        bandId: bandId,
+        setlistIdsInOrder: ids,
+      );
+      _preReorderSnapshot = null; // Clear snapshot on success
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[SetlistsNotifier] Error persisting reorder: $e');
+      }
+      // Revert to pre-reorder state
+      if (_preReorderSnapshot != null) {
+        final revertState = state.copyWith(setlists: _preReorderSnapshot);
+        state = revertState;
+        _cachedState = revertState;
+        _preReorderSnapshot = null;
       }
       return false;
     }
@@ -417,9 +489,8 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     );
 
     if (confirmed == true) {
-      final (success, errorMessage) = await ref
-          .read(setlistsProvider.notifier)
-          .deleteSetlist(setlist.id);
+      final (success, errorMessage) =
+          await ref.read(setlistsProvider.notifier).deleteSetlist(setlist.id);
       if (success && mounted) {
         showAppSnackBar(context, message: '"${setlist.name}" deleted');
       } else if (!success && mounted) {
@@ -459,98 +530,6 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     return false;
   }
 
-  /// Shows a dialog to rename a setlist.
-  Future<void> _showRenameDialog(Setlist setlist) async {
-    final controller = TextEditingController(text: setlist.name);
-    final formKey = GlobalKey<FormState>();
-
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
-        title: const Text(
-          'Rename Setlist',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: controller,
-            autofocus: true,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
-              labelText: 'Setlist Name',
-              labelStyle: TextStyle(color: AppColors.textSecondary),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: AppColors.textSecondary),
-              ),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: AppColors.accent),
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Name cannot be empty';
-              }
-              return null;
-            },
-            onFieldSubmitted: (value) {
-              if (formKey.currentState?.validate() ?? false) {
-                Navigator.of(context).pop(value.trim());
-              }
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
-                Navigator.of(context).pop(controller.text.trim());
-              }
-            },
-            child: const Text(
-              'Save',
-              style: TextStyle(color: AppColors.accent),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (newName != null && newName != setlist.name && mounted) {
-      try {
-        final bandId = ref.read(activeBandIdProvider);
-        if (bandId == null) return;
-
-        await ref
-            .read(setlistRepositoryProvider)
-            .renameSetlist(
-              bandId: bandId,
-              setlistId: setlist.id,
-              newName: newName,
-            );
-
-        // Refresh the list
-        await ref.read(setlistsProvider.notifier).refresh();
-
-        if (mounted) {
-          showAppSnackBar(context, message: 'Renamed to "$newName"');
-        }
-      } catch (e) {
-        if (mounted) {
-          showErrorSnackBar(context, message: 'Failed to rename setlist');
-        }
-      }
-    }
-  }
-
   Widget _buildAnimatedSection(int index, Widget child) {
     if (index >= _fadeAnimations.length) {
       return child;
@@ -583,8 +562,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
       userName = '${_userFirstName ?? ''} ${_userLastName ?? ''}'.trim();
       if (userName.isEmpty) userName = 'User';
     } else {
-      userName =
-          currentUser?.userMetadata?['full_name'] as String? ??
+      userName = currentUser?.userMetadata?['full_name'] as String? ??
           currentUser?.userMetadata?['name'] as String? ??
           'User';
     }
@@ -653,27 +631,27 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
               localImageFile,
             )
           : showError
-          ? _buildErrorState(
-              bandName,
-              bandAvatarColor,
-              bandImageUrl,
-              localImageFile,
-              setlistsState.error!,
-            )
-          : showEmpty
-          ? _buildEmptyState(
-              bandName,
-              bandAvatarColor,
-              bandImageUrl,
-              localImageFile,
-            )
-          : _buildContentState(
-              bandName,
-              bandAvatarColor,
-              bandImageUrl,
-              localImageFile,
-              setlistsToShow,
-            ),
+              ? _buildErrorState(
+                  bandName,
+                  bandAvatarColor,
+                  bandImageUrl,
+                  localImageFile,
+                  setlistsState.error!,
+                )
+              : showEmpty
+                  ? _buildEmptyState(
+                      bandName,
+                      bandAvatarColor,
+                      bandImageUrl,
+                      localImageFile,
+                    )
+                  : _buildContentState(
+                      bandName,
+                      bandAvatarColor,
+                      bandImageUrl,
+                      localImageFile,
+                      setlistsToShow,
+                    ),
       bottomNavigationBar: SetlistsBottomNavBar(
         onDashboardTap: _navigateToDashboard,
         // Use default navigation for Calendar and Members
@@ -941,9 +919,6 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       SwipeableSetlistCard(
                         setlist: setlist,
                         onTap: () => _onSetlistTap(setlist),
-                        onEditName: setlist.isCatalog
-                            ? null
-                            : () => _showRenameDialog(setlist),
                         onDeleteConfirmed: _confirmDelete,
                         onDuplicateConfirmed: _confirmDuplicate,
                       ),

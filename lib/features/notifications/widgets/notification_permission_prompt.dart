@@ -38,9 +38,9 @@ class NotificationPermissionPrompt extends ConsumerWidget {
       margin: const EdgeInsets.all(Spacing.pagePadding),
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.1),
+        color: AppColors.accent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
