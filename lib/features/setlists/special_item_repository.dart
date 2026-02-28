@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'models/setlist_item.dart';
@@ -111,7 +112,7 @@ class SpecialItemRepository {
   }) async {
     // 1. Shift all existing items down by 1
     // Use offset trick to avoid unique constraint violations on position.
-    // Parallelise each phase — positions within a phase never collide.
+    // Sequential to avoid trigger lock contention on the setlists row.
     final existing = await supabase
         .from('setlist_songs')
         .select('id, position')
@@ -120,24 +121,22 @@ class SpecialItemRepository {
 
     final rows = existing as List;
 
-    // Phase 1: shift to high range (parallel — all targets are 1000+, no overlap)
     if (rows.isNotEmpty) {
-      await Future.wait([
-        for (final row in rows)
-          supabase
-              .from('setlist_songs')
-              .update({'position': 1000 + (row['position'] as int)}).eq(
-                  'id', row['id'] as String),
-      ]);
+      // Phase 1: shift to high range (sequential)
+      for (final row in rows) {
+        await supabase
+            .from('setlist_songs')
+            .update({'position': 100000 + (row['position'] as int)}).eq(
+                'id', row['id'] as String);
+      }
 
-      // Phase 2: set final positions (+1 from original, parallel)
-      await Future.wait([
-        for (final row in rows)
-          supabase
-              .from('setlist_songs')
-              .update({'position': (row['position'] as int) + 1}).eq(
-                  'id', row['id'] as String),
-      ]);
+      // Phase 2: set final positions (+1 from original, sequential)
+      for (final row in rows) {
+        await supabase
+            .from('setlist_songs')
+            .update({'position': (row['position'] as int) + 1}).eq(
+                'id', row['id'] as String);
+      }
     }
 
     // 2. Insert the special item at position 0
@@ -250,31 +249,81 @@ class SpecialItemRepository {
   // REORDER MIXED ITEMS
   // ==========================================================================
 
-  /// Reorder all items in a setlist. Uses offset trick to avoid unique
-  /// constraint violations on position.
-  /// Parallelises each phase — positions within a phase never collide.
+  /// Reorder all items in a setlist.
+  ///
+  /// Uses the `reorder_setlist_items` RPC for an atomic, single-transaction
+  /// update that avoids UNIQUE constraint violations and trigger-induced
+  /// lock contention from parallel HTTP calls.
+  ///
+  /// Falls back to sequential client-side updates if the RPC is not deployed.
   Future<void> reorderItems({
     required String setlistId,
     required List<String> itemIdsInOrder,
   }) async {
-    // Phase 1: shift all to high range (parallel)
-    await Future.wait([
-      for (int i = 0; i < itemIdsInOrder.length; i++)
-        supabase
-            .from('setlist_songs')
-            .update({'position': 1000 + i}).eq('id', itemIdsInOrder[i]),
-    ]);
+    if (itemIdsInOrder.isEmpty) return;
 
-    // Phase 2: set final positions (parallel)
-    await Future.wait([
-      for (int i = 0; i < itemIdsInOrder.length; i++)
-        supabase
-            .from('setlist_songs')
-            .update({'position': i}).eq('id', itemIdsInOrder[i]),
-    ]);
+    try {
+      final response = await supabase.rpc(
+        'reorder_setlist_items',
+        params: {
+          'p_setlist_id': setlistId,
+          'p_row_ids': itemIdsInOrder,
+        },
+      );
+
+      if (response is Map && response['success'] == true) {
+        debugPrint(
+          '[SpecialItemRepo] ✓ Reordered ${response['reordered_count']} items via RPC',
+        );
+        return;
+      }
+
+      if (response is Map && response['success'] == false) {
+        final error = response['error'] ?? 'Unknown RPC error';
+        debugPrint('[SpecialItemRepo] RPC error: $error');
+        throw Exception('Reorder items failed: $error');
+      }
+
+      debugPrint('[SpecialItemRepo] Unexpected RPC response: $response');
+      throw Exception('Unexpected response from reorder_setlist_items RPC');
+    } on PostgrestException catch (e) {
+      // RPC not found — fall back to sequential client-side updates.
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SpecialItemRepo] reorder_setlist_items RPC not found, using fallback',
+        );
+        await _reorderItemsFallback(
+          setlistId: setlistId,
+          itemIdsInOrder: itemIdsInOrder,
+        );
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  /// Fallback: sequential two-phase position update.
+  /// Each phase runs one row at a time to avoid trigger lock contention.
+  Future<void> _reorderItemsFallback({
+    required String setlistId,
+    required List<String> itemIdsInOrder,
+  }) async {
+    // Phase 1: shift all to high range (sequential to avoid lock contention)
+    for (int i = 0; i < itemIdsInOrder.length; i++) {
+      await supabase
+          .from('setlist_songs')
+          .update({'position': 100000 + i}).eq('id', itemIdsInOrder[i]);
+    }
+
+    // Phase 2: set final positions
+    for (int i = 0; i < itemIdsInOrder.length; i++) {
+      await supabase
+          .from('setlist_songs')
+          .update({'position': i}).eq('id', itemIdsInOrder[i]);
+    }
 
     debugPrint(
-      '[SpecialItemRepo] Reordered ${itemIdsInOrder.length} items in $setlistId',
+      '[SpecialItemRepo] Fallback reordered ${itemIdsInOrder.length} items in $setlistId',
     );
   }
 }
