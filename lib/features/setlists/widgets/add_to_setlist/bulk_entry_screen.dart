@@ -118,8 +118,11 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   final List<_RowData> _rows = [];
   bool _isSubmitting = false;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _csvController = TextEditingController();
 
   int _focusedRowIndex = 0;
+  bool _isLoadingSongs = false;
+  String? _ingestionSummary;
 
   // -------------------------------------------------------
   // Lifecycle
@@ -147,6 +150,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
       r.dispose();
     }
     _scrollController.dispose();
+    _csvController.dispose();
     super.dispose();
   }
 
@@ -196,47 +200,71 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   }
 
   // -------------------------------------------------------
-  // Paste handling
+  // CSV Ingestion
   // -------------------------------------------------------
 
-  void _handlePasteFromText(int rowIndex, String pastedText) {
-    // 1. Normalize line endings (CRLF → LF, lone CR → LF).
-    final normalized =
-        pastedText.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  void _handleCsvIngestion() {
+    if (_isLoadingSongs) return;
 
-    // 2. Split into rows FIRST.
-    final lines =
-        normalized.split('\n').where((line) => line.trim().isNotEmpty).toList();
-    if (lines.isEmpty) return;
+    final text = _csvController.text.trim();
+    if (text.isEmpty) return;
 
-    // 3. Distribute parsed rows into the table.
+    setState(() => _isLoadingSongs = true);
+
+    final parseResult = BulkSongParser.instance.parse(
+      text,
+      maxRows: _kMaxRows,
+    );
+
+    _populateTableFromParseResult(parseResult);
+
+    // Clear the text field — table is now the source of truth.
+    _csvController.clear();
+
+    // Build advisory summary.
+    final validCount = parseResult.validRows.length;
+    final skippedCount = parseResult.invalidRows.length;
+    final dupeCount = parseResult.duplicatesRemoved;
+    final parts = <String>[];
+    parts.add('Loaded $validCount song${validCount == 1 ? '' : 's'}');
+    if (skippedCount > 0) {
+      parts.add('$skippedCount skipped');
+    }
+    if (dupeCount > 0) {
+      parts.add('$dupeCount duplicate${dupeCount == 1 ? '' : 's'} removed');
+    }
+
     setState(() {
-      for (var i = 0; i < lines.length; i++) {
-        final targetIdx = rowIndex + i;
-        while (targetIdx >= _rows.length && _rows.length < _kMaxRows) {
-          _rows.add(_createRow());
-        }
-        if (targetIdx >= _rows.length) break;
-
-        // 4. Split columns PER ROW (never split the entire string by \t).
-        final cols = _parsePasteColumns(lines[i]);
-        final row = _rows[targetIdx];
-        row.artist.text = cols.isNotEmpty ? cols[0] : '';
-        row.song.text = cols.length > 1 ? cols[1] : '';
-        row.bpm.text = cols.length > 2 ? cols[2] : '';
-        row.tuning.text = cols.length > 3 ? cols[3] : '';
-      }
+      _ingestionSummary = validCount > 0 ? parts.join(', ') : 'No valid songs found';
+      _isLoadingSongs = false;
     });
   }
 
-  List<String> _parsePasteColumns(String line) {
-    if (line.contains('\t')) {
-      return line.split('\t').map((c) => c.trim()).take(4).toList();
+  void _populateTableFromParseResult(BulkSongParseResult parseResult) {
+    // 1. Release focus before disposing rows.
+    FocusManager.instance.primaryFocus?.unfocus();
+    _focusedRowIndex = 0;
+
+    // 2. Dispose all existing rows.
+    for (final r in _rows) {
+      r.dispose();
     }
-    if (line.contains(',')) {
-      return line.split(',').map((c) => c.trim()).take(4).toList();
+    _rows.clear();
+
+    // 3. Create new rows from valid parsed data.
+    for (final parsed in parseResult.validRows) {
+      final row = _createRow();
+      row.artist.text = parsed.artist;
+      row.song.text = parsed.title;
+      row.bpm.text = parsed.bpm?.toString() ?? '';
+      row.tuning.text = parsed.tuningLabel ?? parsed.tuning ?? '';
+      _rows.add(row);
     }
-    return line.split(RegExp(r'\s{2,}')).map((c) => c.trim()).take(4).toList();
+
+    // 4. Ensure at least one empty row.
+    if (_rows.isEmpty) {
+      _rows.add(_createRow());
+    }
   }
 
   // -------------------------------------------------------
@@ -306,12 +334,96 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             Spacing.space16,
             0,
           ),
-          child: Text(
-            'Paste from a spreadsheet or type directly into the table.',
-            style: AppTextStyles.body.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _csvController,
+                maxLines: 5,
+                minLines: 3,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                  fontFamily: 'monospace',
+                ),
+                decoration: InputDecoration(
+                  hintText:
+                      'Paste CSV or tab-delimited data here…\n'
+                      'Artist, Song, BPM, Tuning\n'
+                      'e.g.: Aerosmith, Eat The Rich, 123, Standard',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted.withValues(alpha: 0.5),
+                    fontFamily: 'monospace',
+                  ),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.04),
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderMuted,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.borderMuted,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.accent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: Spacing.space8),
+              SizedBox(
+                height: 40,
+                child: GestureDetector(
+                  onTap: _isLoadingSongs ? null : _handleCsvIngestion,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _isLoadingSongs
+                          ? AppColors.accent.withValues(alpha: 0.4)
+                          : AppColors.accent,
+                      borderRadius:
+                          BorderRadius.circular(Spacing.buttonRadius),
+                    ),
+                    alignment: Alignment.center,
+                    child: _isLoadingSongs
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            'Load Songs',
+                            style: AppTextStyles.button.copyWith(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              if (_ingestionSummary != null) ...[
+                const SizedBox(height: Spacing.space8),
+                Text(
+                  _ingestionSummary!,
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: Spacing.space12),
@@ -469,14 +581,13 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
       flex: flex,
       child: SizedBox(
         height: _kCellHeight,
-        child: _PasteAwareTextField(
+        child: _TableTextField(
           controller: controller,
           focusNode: focusNode,
           hint: hint,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           textCapitalization: textCapitalization,
-          onPasteText: (text) => _handlePasteFromText(rowIndex, text),
         ),
       ),
     );
@@ -650,58 +761,27 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
 }
 
 // ============================================================================
-// _PasteInterceptFormatter
+// _TableTextField
 //
-// A TextInputFormatter that detects multi-cell paste (text containing tabs or
-// newlines). When detected it forwards the raw text to [onPaste] and returns
-// the old value — blocking the native paste from entering the single cell.
-// Normal typing passes through unchanged.
+// Simple text field for table cells. No paste interception — CSV ingestion
+// is handled by the dedicated multiline text field above the table.
 // ============================================================================
 
-class _PasteInterceptFormatter extends TextInputFormatter {
-  final void Function(String pastedText) onPaste;
-
-  _PasteInterceptFormatter(this.onPaste);
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
-    if (text.contains('\t') || text.contains('\n') || text.contains('\r')) {
-      onPaste(text);
-      return oldValue; // block native paste from entering this cell
-    }
-    return newValue;
-  }
-}
-
-// ============================================================================
-// _PasteAwareTextField
-//
-// Wraps a TextField with a _PasteInterceptFormatter so that multi-cell
-// spreadsheet paste is routed to the parent handler instead of being dumped
-// into a single cell.  Single-value edits pass through normally.
-// ============================================================================
-
-class _PasteAwareTextField extends StatelessWidget {
+class _TableTextField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hint;
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final TextCapitalization textCapitalization;
-  final void Function(String text) onPasteText;
 
-  const _PasteAwareTextField({
+  const _TableTextField({
     required this.controller,
     required this.focusNode,
     required this.hint,
     required this.keyboardType,
     this.inputFormatters,
     required this.textCapitalization,
-    required this.onPasteText,
   });
 
   @override
@@ -710,10 +790,7 @@ class _PasteAwareTextField extends StatelessWidget {
       controller: controller,
       focusNode: focusNode,
       keyboardType: keyboardType,
-      inputFormatters: [
-        _PasteInterceptFormatter(onPasteText),
-        ...?inputFormatters,
-      ],
+      inputFormatters: inputFormatters,
       textCapitalization: textCapitalization,
       style: const TextStyle(
         fontSize: 13,
