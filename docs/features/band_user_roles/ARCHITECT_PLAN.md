@@ -56,6 +56,8 @@ Current → New mapping:
 - Only the **band creator** receives `admin` by default when creating a new band.
 - All **invited members** default to `member` when they join.
 
+**Roles are scoped per band.** A user who is `admin` in Band A can simultaneously be `member` in Band B. There is no global role — every permission check queries `band_members` filtered by `band_id`. Role changes in one band have zero effect on the user's role in other bands.
+
 ### 3.2 Database Migration
 
 **New migration file:** `supabase/migrations/YYYYMMDD_band_user_roles.sql`
@@ -913,3 +915,272 @@ The RBAC deployment follows a three-phase rollout to ensure zero UX disruption:
 - Audit log for role changes
 - Real-time role change push notifications
 - Multi-band role synchronization
+
+Below is your finalized ARCHITECT PLAN with the Safe Production Rollout Checklist appended as a new section.
+
+I preserved all numbering and structure exactly as-is and added this as Section 9 so it cleanly attaches to the existing plan without modifying prior content.
+
+⸻
+
+9. Safe Production Rollout Checklist
+
+This checklist must be executed in order. Do not skip steps. Do not combine phases.
+
+This rollout assumes:
+	•	Compatibility-first strategy (all existing active members → admin)
+	•	Zero permission regression at deployment
+	•	ENUM conversion + RLS tightening + RPC hardening in one migration
+
+⸻
+
+9.1 Pre-Deployment Safety Checks (Staging or Local Replica)
+
+Before running the migration in production:
+
+1. Snapshot production
+	•	Confirm automated Supabase backups are active.
+	•	Optionally export a manual snapshot:
+
+supabase db dump -f pre_rbac_backup.sql
+
+This is rollback insurance.
+
+⸻
+
+2. Audit current role values
+Run in production SQL editor:
+
+SELECT role, COUNT(*)
+FROM public.band_members
+GROUP BY role;
+
+Expected:
+	•	owner
+	•	admin
+	•	member
+
+If any unexpected values appear, STOP and investigate.
+
+⸻
+
+3. Confirm no direct DELETE policies on bands exist
+
+SELECT policyname, cmd
+FROM pg_policies
+WHERE tablename = 'bands';
+
+If a permissive DELETE policy exists, confirm your migration drops it.
+
+⸻
+
+9.2 Migration Deployment (Phase 1)
+
+Deploy the SQL migration only.
+
+Do NOT deploy app update yet.
+
+supabase migration up
+
+or via CI/CD.
+
+⸻
+
+9.3 Immediate Post-Migration Verification (Production)
+
+Run the following immediately after deployment:
+
+⸻
+
+1. Confirm ENUM exists
+
+SELECT enumlabel
+FROM pg_enum
+JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+WHERE typname = 'band_role_type'
+ORDER BY enumsortorder;
+
+Expected:
+
+admin
+member
+contributor
+
+
+⸻
+
+2. Confirm all active members are admin
+
+SELECT COUNT(*) AS non_admin_active
+FROM public.band_members
+WHERE status = 'active'
+AND role != 'admin';
+
+Expected:
+
+0
+
+If not zero, STOP and investigate.
+
+⸻
+
+3. Confirm no owner values remain
+
+SELECT COUNT(*)
+FROM public.band_members
+WHERE role::TEXT = 'owner';
+
+Expected:
+
+0
+
+
+⸻
+
+4. Confirm default role is member
+
+SELECT column_default
+FROM information_schema.columns
+WHERE table_name = 'band_members'
+AND column_name = 'role';
+
+Expected:
+
+'member'::band_role_type
+
+
+⸻
+
+5. Verify RLS DELETE policy on bands
+
+SELECT policyname, cmd
+FROM pg_policies
+WHERE tablename = 'bands'
+AND cmd = 'DELETE';
+
+Expected:
+Only:
+
+Only admins can delete bands
+
+No other DELETE policies should exist.
+
+⸻
+
+9.4 Smoke Tests (Before App Release)
+
+Using an existing production account:
+	•	Create gig → should succeed
+	•	Edit gig → should succeed
+	•	Delete gig → should succeed
+	•	Delete band → should succeed
+	•	Remove member → should succeed
+
+Why? Because all active users are now admin.
+
+If any of these fail, STOP.
+
+⸻
+
+9.5 App Release (Phase 2)
+
+Only after database validation:
+	•	Release Flutter update with:
+	•	BandPermissions abstraction
+	•	Role management sheet
+	•	UI guards
+	•	Contributor enforcement UI
+
+Because all users are admin at this point:
+	•	No existing workflow breaks
+	•	No user sees unexpected permission denial
+	•	All restrictions are opt-in via role reassignment
+
+⸻
+
+9.6 Post-App Release Validation
+
+After app rollout:
+
+1. Create test band
+	•	Creator should be admin.
+
+2. Invite new user
+	•	Invited user should default to member.
+
+Verify:
+
+SELECT role
+FROM public.band_members
+WHERE band_id = '<new_band_id>';
+
+Expected:
+	•	Creator → admin
+	•	Invited user → member
+
+⸻
+
+3. Test role reassignment
+From UI:
+	•	Change member → contributor
+	•	Toggle sub-permissions
+	•	Attempt restricted action
+	•	Confirm RLS blocks correctly
+
+⸻
+
+9.7 Monitoring Window (First 48 Hours)
+
+Watch for:
+	•	RPC permission denied errors
+	•	Unexpected RLS violations
+	•	Support tickets mentioning:
+	•	“Can’t delete band”
+	•	“Can’t create gig”
+	•	“Lost access”
+
+If errors appear:
+	•	Check band_members.role distribution
+	•	Confirm RLS policies in pg_policies
+	•	Verify ENUM cast succeeded
+
+⸻
+
+9.8 Rollback Plan (Emergency Only)
+
+If catastrophic issue occurs:
+	1.	Restore from backup:
+
+supabase db reset --db-url <production_backup>
+
+	2.	Or manually revert:
+	•	Drop ENUM
+	•	Revert RLS policies
+	•	Restore original RPCs
+	•	Restore role column to TEXT
+
+Rollback is invasive — backup restoration is safer.
+
+⸻
+
+9.9 Deployment Invariants (Must Never Be Violated)
+	•	No active member loses permissions at migration time.
+	•	At least one admin must always exist per band.
+	•	ENUM conversion must not partially apply.
+	•	SECURITY DEFINER functions must always set search_path = public.
+	•	No permissive DELETE policy may exist on public.bands.
+
+If any invariant fails, halt rollout.
+
+⸻
+
+Final State Summary
+
+After full rollout:
+	•	All existing active members start as admin.
+	•	Only band creators are admin by default going forward.
+	•	Invited members default to member.
+	•	Roles are scoped per band — a user can hold different roles in different bands.
+	•	Contributor role available with sub-permissions.
+	•	RLS enforces all critical permissions.
+	•	UI reflects permission state.
+	•	No surprise permission regressions.
