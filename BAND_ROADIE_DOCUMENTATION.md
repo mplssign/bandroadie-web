@@ -212,7 +212,8 @@ band-roadie/
 - **Band Creation:** Create new bands with member invitations
 - **Band Switching:** Easy switching between bands
 - **Member Management:** Invite, manage, and remove band members
-- **Role-Based Access:** Different permission levels for band members
+- **Role-Based Access Control:** Database-enforced RBAC with three roles (`admin`, `member`, `contributor`)
+- **Admin-Only Destructive Actions:** Band deletion and member removal require `admin` role, enforced at RLS and RPC layers
 
 ### 3. Dashboard
 - **Centralized Hub:** Overview of upcoming events and quick actions
@@ -276,6 +277,27 @@ band-roadie/
 - **Profile Completion:** Required setup for new users
 - **Settings:** User preferences and account settings
 
+### 10. Role-Based Access Control (RBAC)
+Full database-enforced role system replacing the previous membership-only access model.
+
+**Three Roles:**
+| Role | Capabilities |
+|------|-------------|
+| `admin` | Full authority — CRUD all entities, delete band, remove members, manage roles |
+| `member` | Full CRUD for gigs, rehearsals, setlists — cannot delete band, remove members, or change roles |
+| `contributor` | Limited, configurable — sub-permissions control access to gigs, setlists, calendar, members |
+
+**Key architectural properties:**
+- **ENUM-enforced:** `band_members.role` uses PostgreSQL ENUM type `band_role_type`, not TEXT
+- **RLS-enforced:** Row Level Security policies check `role` + `status`, not just membership
+- **RPC-hardened:** Destructive actions (`delete_band`, `remove_band_member`, `update_member_role`) use SECURITY DEFINER with explicit role checks, `FOR UPDATE` locking, and `SET search_path = public`
+- **UI abstraction:** `BandPermissions` helper + `currentUserPermissionsProvider` centralize permission logic in Flutter
+- **Contributor sub-permissions:** `contributor_permissions` table controls fine-grained access (create gigs, view setlists, view calendar, view members, create potential gigs only)
+
+**Compatibility-first rollout:** All existing active members were promoted to `admin` during migration to preserve the status quo (before RBAC, every member had unrestricted access). New invited members default to `member`. Band admins can manually reassign roles via the Role Management UI.
+
+**Architecture plan:** See [docs/features/band_user_roles/ARCHITECT_PLAN.md](docs/features/band_user_roles/ARCHITECT_PLAN.md) for full implementation details.
+
 ## User Experience Flow
 
 ### New User Journey
@@ -316,8 +338,14 @@ band-roadie/
 -- Core Tables
 users              # User profiles and authentication
 bands              # Band information
-band_members       # Many-to-many band membership
+band_members       # Many-to-many band membership (role: band_role_type ENUM)
 band_invitations   # Email invitations to join bands
+
+-- RBAC
+band_role_type     # PostgreSQL ENUM: 'admin', 'member', 'contributor'
+contributor_permissions  # Sub-permissions for contributor role
+                   #   can_create_gigs, can_create_potential_gigs_only,
+                   #   can_view_setlists, can_view_calendar, can_view_members
 
 -- Event Management
 rehearsals         # Rehearsal scheduling
@@ -339,14 +367,20 @@ tunings            # Instrument tuning definitions
 The app uses PostgreSQL functions with `SECURITY DEFINER` to handle operations that bypass Row Level Security:
 
 ```sql
--- Update song metadata (BPM, duration, tuning) for legacy songs
+-- Song metadata RPCs (legacy NULL band_id bypass)
 update_song_metadata(p_song_id, p_band_id, p_bpm, p_duration_seconds, p_tuning)
-
--- Clear song metadata fields
 clear_song_metadata(p_song_id, p_band_id, p_clear_bpm, p_clear_duration, p_clear_tuning)
+
+-- RBAC RPCs (admin-only destructive actions)
+delete_band(p_band_id)            -- Admin-only, FOR UPDATE lock, last-admin check
+update_member_role(p_band_id, p_user_id, p_new_role)  -- Admin-only, prevents self-demotion if last admin
+remove_band_member(p_band_id, p_user_id)              -- Admin-only, prevents last-admin removal
+get_user_band_role(p_band_id)     -- Returns current user's role (SECURITY INVOKER — intentional)
 ```
 
-These RPCs are necessary because some legacy songs have `NULL` band_id values and would be blocked by RLS policies.
+**Song metadata RPCs** are necessary because some legacy songs have `NULL` band_id values and would be blocked by RLS policies.
+
+**RBAC RPCs** use `SECURITY DEFINER` with `SET search_path = public` and `FOR UPDATE` row locking to prevent race conditions (e.g., two admins simultaneously demoting each other, leaving no admin).
 
 ### Flutter Architecture
 - **Feature-First:** Code organized by feature, not layer
@@ -405,6 +439,16 @@ Vercel **must have the following environment variables** set for the build to su
 - **Band Privacy:** Members only see their bands' information
 - **Invitation Security:** Time-limited invitation links
 
+### Role-Based Access Control Security
+- **ENUM Type Enforcement:** `band_role_type` PostgreSQL ENUM prevents invalid role values at the storage layer
+- **RLS Role Checks:** All RLS policies verify `role` + `status` on `band_members`, not just membership existence
+- **WITH CHECK on UPDATE:** All UPDATE RLS policies include WITH CHECK clauses to prevent privilege escalation
+- **Admin-Only DELETE on Bands:** Explicit RLS policy restricts band deletion to admins; legacy permissive DELETE policies dropped
+- **FOR UPDATE Locking:** RPCs that modify roles use `FOR UPDATE` to prevent last-admin race conditions
+- **Search Path Pinning:** All `SECURITY DEFINER` functions use `SET search_path = public` to prevent search-path hijacking
+- **SECURITY INVOKER for Read:** `get_user_band_role()` deliberately uses SECURITY INVOKER so RLS applies naturally
+- **Contributor Permission Isolation:** `contributor_permissions` enforced at both RLS and UI layers (defense-in-depth)
+
 ## Development & Deployment
 
 ### Development Setup
@@ -443,6 +487,41 @@ RESEND_API_KEY=            # Resend email API key (Edge Functions)
 - **Analysis:** `flutter analyze` for static analysis
 
 ## Current State & Recent Changes
+
+### Version 1.4.0 (March 2026)
+
+#### Role-Based Access Control (RBAC)
+- **What changed:** Replaced membership-only access model with full database-enforced RBAC
+- **Before:** Any active band member could delete bands, remove members, create/edit/delete all entities. Roles (`owner`, `admin`, `member`) were cosmetic labels with no enforcement.
+- **After:** Three enforced roles (`admin`, `member`, `contributor`) with strict RLS policies, hardened RPCs, and ENUM-based schema enforcement.
+
+**Database changes:**
+- `band_members.role` converted from TEXT to PostgreSQL ENUM `band_role_type`
+- New `contributor_permissions` table for fine-grained contributor access
+- RLS policies rewritten to check `role` + `status` (not just membership)
+- All UPDATE RLS policies include WITH CHECK clauses
+- Explicit admin-only DELETE policy on `bands` table (legacy permissive policies dropped)
+
+**New/hardened RPCs:**
+- `delete_band(p_band_id)` — Admin-only, FOR UPDATE lock, search_path pinned
+- `update_member_role(p_band_id, p_user_id, p_new_role)` — Admin-only, last-admin protection
+- `remove_band_member(p_band_id, p_user_id)` — Admin-only, last-admin protection
+- `get_user_band_role(p_band_id)` — SECURITY INVOKER (intentional)
+
+**Flutter layer:**
+- `BandPermissions` pure Dart helper + `ContributorPermissions` model
+- `currentUserPermissionsProvider` centralizes permission logic
+- Role Management modal in member kebab menu (admin-only)
+- UI guards for destructive actions
+
+**Migration strategy — compatibility-first:**
+- All existing active members promoted to `admin` (preserves status quo)
+- No existing user lost any capability at deploy time
+- New invited members default to `member`
+- New band creators default to `admin`
+- Band admins can reassign roles manually via Role Management UI
+
+**Architecture plan:** [docs/features/band_user_roles/ARCHITECT_PLAN.md](docs/features/band_user_roles/ARCHITECT_PLAN.md)
 
 ### Version 1.3.2 (January 2026)
 
@@ -660,6 +739,8 @@ Another Artist                    - BPM • Drop D
 - **Advanced Setlist Features:** Tempo mapping, key changes
 - **Native App Store Releases:** iOS App Store and Google Play
 - **Payment Integration:** Premium features and subscriptions
+- **RBAC Audit Logging:** Track role changes with timestamp and actor
+- **Backup Band Data:** Admin-only data export feature
 
 ## Key Files Reference
 
@@ -698,6 +779,17 @@ Another Artist                    - BPM • Drop D
 | `069_fix_rls_remove_is_active.sql` | Fix RLS policies removing is_active check |
 | `070_fix_catalog_deletion_cascade.sql` | Allow Catalog deletion on band cascade |
 | `078_drop_old_update_song_metadata_overloads.sql` | Drop old function overloads, keep single 8-parameter version |
+| `xxx_band_user_roles.sql` | RBAC migration: ENUM type, role promotion, RLS rewrite, RPCs, contributor_permissions |
+
+### RBAC / Permissions
+| File | Purpose |
+|------|---------|
+| `docs/features/band_user_roles/ARCHITECT_PLAN.md` | Full RBAC architecture plan |
+| `lib/app/models/band_member.dart` | `BandRole` enum (`admin`, `member`, `contributor`) |
+| `lib/features/members/members_repository.dart` | Member data access, `isCurrentUserAdmin()` |
+| `lib/features/members/members_controller.dart` | `MembersNotifier` with permission state |
+| `lib/features/members/member_vm.dart` | Member view model with `isAdmin` getter |
+| `lib/features/members/widgets/member_card.dart` | Kebab menu with role management option |
 
 ## Support & Documentation
 
@@ -988,7 +1080,10 @@ SUPABASE_ANON_KEY=your-anon-key-here
 - ✅ **Triggers always `RETURN NEW`** - Never block writes
 - ✅ **Triggers only `AFTER INSERT`** - No UPDATE/DELETE side effects
 - ✅ **RLS uses `band_members` join** - Never trust `auth.uid()` alone
-- ✅ **SECURITY DEFINER only for legacy data** - RLS bypass must be documented
+- ✅ **RLS checks role + status** - Membership alone is insufficient; must verify `role` and `status = 'active'`
+- ✅ **SECURITY DEFINER for legacy data and RBAC RPCs** - RLS bypass must be documented; all use `SET search_path = public`
+- ✅ **FOR UPDATE on admin-count queries** - Prevents last-admin race conditions in role/member RPCs
+- ✅ **ENUM for role column** - `band_role_type` prevents invalid values at storage layer
 
 #### Application Architecture
 - ✅ **Repositories never depend on notification system** - Already preserved
