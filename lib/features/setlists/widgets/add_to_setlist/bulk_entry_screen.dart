@@ -123,6 +123,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   int _focusedRowIndex = 0;
   bool _isLoadingSongs = false;
   String? _ingestionSummary;
+  bool _hasLoadedSongs = false;
 
   // -------------------------------------------------------
   // Lifecycle
@@ -134,14 +135,6 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     for (var i = 0; i < _kInitialRows; i++) {
       _rows.add(_createRow());
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 350), () {
-        if (mounted && _rows.isNotEmpty) {
-          _rows[0].artistFocus.requestFocus();
-        }
-      });
-    });
   }
 
   @override
@@ -207,7 +200,26 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     if (_isLoadingSongs) return;
 
     final text = _csvController.text.trim();
-    if (text.isEmpty) return;
+
+    // Empty text: clear table and hide it.
+    if (text.isEmpty) {
+      if (_hasLoadedSongs) {
+        FocusManager.instance.primaryFocus?.unfocus();
+        _focusedRowIndex = 0;
+        for (final r in _rows) {
+          r.dispose();
+        }
+        _rows.clear();
+        for (var i = 0; i < _kInitialRows; i++) {
+          _rows.add(_createRow());
+        }
+        setState(() {
+          _hasLoadedSongs = false;
+          _ingestionSummary = null;
+        });
+      }
+      return;
+    }
 
     setState(() => _isLoadingSongs = true);
 
@@ -235,7 +247,9 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     }
 
     setState(() {
-      _ingestionSummary = validCount > 0 ? parts.join(', ') : 'No valid songs found';
+      _hasLoadedSongs = true;
+      _ingestionSummary =
+          validCount > 0 ? parts.join(', ') : 'No valid songs found';
       _isLoadingSongs = false;
     });
   }
@@ -337,8 +351,17 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Text(
+                'Paste songs from a spreadsheet, then tap Load Songs.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: Spacing.space8),
               TextField(
                 controller: _csvController,
+                autofocus: true,
                 maxLines: 5,
                 minLines: 3,
                 style: const TextStyle(
@@ -347,8 +370,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
-                  hintText:
-                      'Paste CSV or tab-delimited data here…\n'
+                  hintText: 'Paste CSV or tab-delimited data here…\n'
                       'Artist, Song, BPM, Tuning\n'
                       'e.g.: Aerosmith, Eat The Rich, 123, Standard',
                   hintStyle: TextStyle(
@@ -390,8 +412,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                       color: _isLoadingSongs
                           ? AppColors.accent.withValues(alpha: 0.4)
                           : AppColors.accent,
-                      borderRadius:
-                          BorderRadius.circular(Spacing.buttonRadius),
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     ),
                     alignment: Alignment.center,
                     child: _isLoadingSongs
@@ -426,21 +447,25 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             ],
           ),
         ),
-        const SizedBox(height: Spacing.space12),
-        _buildColumnHeaders(),
-        Expanded(
-          child: GestureDetector(
-            onTap: _dismissKeyboard,
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(bottom: Spacing.space8),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              itemCount: _rows.length,
-              itemBuilder: (context, index) => _buildRow(index),
+        if (_hasLoadedSongs) ...[
+          const SizedBox(height: Spacing.space12),
+          _buildColumnHeaders(),
+          Expanded(
+            child: GestureDetector(
+              onTap: _dismissKeyboard,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.only(bottom: Spacing.space8),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                itemCount: _rows.length,
+                itemBuilder: (context, index) => _buildRow(index),
+              ),
             ),
           ),
-        ),
-        _buildAddRowButton(),
+          _buildAddRowButton(),
+        ] else
+          const Expanded(child: SizedBox.shrink()),
         if (keyboardHeight > 0) _buildKeyboardToolbar(),
         _buildFooter(hasValid, validCount),
       ],
