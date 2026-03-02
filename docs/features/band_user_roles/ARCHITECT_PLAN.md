@@ -44,10 +44,17 @@ Current → New mapping:
 |---------|-----|-------|
 | `owner` | `admin` | Merge owner → admin. First member / band creator gets admin. |
 | `admin` | `admin` | No change |
-| `member` | `member` | "Band Member" in UI |
+| `member` | `admin` | **Promoted during migration only** — see compatibility strategy below |
+| _(new post-migration)_ | `member` | "Band Member" in UI — default for newly invited members going forward |
 | _(new)_ | `contributor` | New role with sub-permissions |
 
-**Decision:** Collapse `owner` into `admin`. The `owner` concept adds complexity without user value — any Admin can do everything. The migration will UPDATE existing `owner` rows to `admin`.
+**Decision:** Collapse `owner` into `admin`. The `owner` concept adds complexity without user value — any Admin can do everything.
+
+**Compatibility-first rollout:** During migration, **all existing active band members** are promoted to `admin` regardless of their current role. This is a deliberate zero-regression strategy: before RBAC existed, every member had full access. Immediately restricting members to lower roles would silently remove capabilities they currently have, causing confusion and support load. Instead, every existing user retains full access after deployment, and band admins can then manually reorganize roles at their own pace using the new Role Management UI.
+
+**Going forward (post-migration):**
+- Only the **band creator** receives `admin` by default when creating a new band.
+- All **invited members** default to `member` when they join.
 
 ### 3.2 Database Migration
 
@@ -56,10 +63,18 @@ Current → New mapping:
 #### 3.2.1 Update role values
 
 ```sql
--- Step 1: Collapse owner → admin (before type change)
+-- Step 1: Collapse owner → admin (before bulk promotion)
 UPDATE public.band_members SET role = 'admin' WHERE role = 'owner';
 
--- Step 2: Create a PostgreSQL ENUM type for band roles
+-- Step 2: COMPATIBILITY MIGRATION — promote ALL existing active members to admin.
+-- Before RBAC, every band member had unrestricted access. Promoting everyone to
+-- admin ensures zero permission loss at deployment time. Band admins can then
+-- reorganize roles manually using the Role Management UI.
+-- Non-active rows (status = 'invited', 'inactive', 'removed') are left as-is
+-- since they don't have functional access anyway.
+UPDATE public.band_members SET role = 'admin' WHERE status = 'active';
+
+-- Step 3: Create a PostgreSQL ENUM type for band roles
 -- ENUM is stronger than a CHECK constraint: it is a distinct type enforced
 -- at the storage layer, prevents typos in future queries, and is indexable.
 DO $$ BEGIN
@@ -68,17 +83,20 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- Step 3: Alter column from TEXT to ENUM
+-- Step 4: Alter column from TEXT to ENUM
 -- Requires an explicit USING cast since the column currently holds TEXT values.
+-- All active rows are now 'admin'; non-active rows may still be 'member'.
+-- Both are valid ENUM values, so the cast is safe.
 ALTER TABLE public.band_members
   ALTER COLUMN role TYPE public.band_role_type
   USING role::public.band_role_type;
 
--- Step 4: Default new members to 'member'
+-- Step 5: Default new members to 'member' (applies to future INSERTs only)
+-- The band creator flow must explicitly set role = 'admin' for the creator.
 ALTER TABLE public.band_members
   ALTER COLUMN role SET DEFAULT 'member'::public.band_role_type;
 
--- Step 5: Drop any legacy CHECK constraint (now redundant with ENUM)
+-- Step 6: Drop any legacy CHECK constraint (now redundant with ENUM)
 ALTER TABLE public.band_members
   DROP CONSTRAINT IF EXISTS band_members_role_check;
 ```
@@ -744,6 +762,13 @@ Existing files will be modified to conditionally show/hide/disable actions based
 - **Risk:** A leftover permissive DELETE policy on `public.bands` (from earlier migrations or manual edits) would allow any member to delete a band even if the RPC is locked down.
 - **Mitigation:** The migration explicitly drops all known permissive DELETE policies on bands before creating the admin-only DELETE policy (see §3.2.4). The Engineer must verify in production with `SELECT * FROM pg_policies WHERE tablename = 'bands' AND cmd = 'DELETE'` after deployment.
 
+### 5.11 Compatibility-First Rollout (All Existing Members → Admin)
+- **Risk:** Promoting all existing active members to `admin` means every current user can delete bands, remove members, and change roles immediately after deployment.
+- **Accepted trade-off:** This is intentional. Before RBAC, every member already had unrestricted access (RLS only checked membership). Promoting to `admin` preserves the status quo. Silently demoting users would cause unexpected permission errors and support load.
+- **Post-deployment expectation:** Band admins (i.e., everyone initially) are expected to use the Role Management UI to assign `member` or `contributor` roles to other members as desired. This is a manual, opt-in process — no automated demotion occurs.
+- **No permission reduction at deploy time:** This is a hard constraint. The migration must not leave any active member with fewer capabilities than they had before RBAC was introduced.
+- **Non-active rows:** Members with `status != 'active'` (invited, inactive, removed) are not promoted. They retain their existing role value, which transitions safely through the ENUM cast.
+
 ---
 
 ## 6. Verification Plan
@@ -795,11 +820,68 @@ Must pass with zero errors. No new dependencies introduced.
 | Band settings | Edit + Delete | Edit (no delete) | No edit |
 | Setlists | Full CRUD | Full CRUD | View only |
 
-### 6.5 Regression Checks
+### 6.5 Post-Migration Verification Queries
+
+Run immediately after migration to confirm the compatibility-first rollout:
+
+```sql
+-- Confirm role distribution after migration
+-- Expected: all active rows are 'admin'; no 'owner' rows remain
+SELECT role, status, COUNT(*)
+FROM public.band_members
+GROUP BY role, status
+ORDER BY role, status;
+
+-- Verify: zero active members with role != 'admin'
+SELECT COUNT(*) AS non_admin_active
+FROM public.band_members
+WHERE status = 'active' AND role != 'admin';
+-- Expected: 0
+
+-- Verify: column default is 'member' for new inserts
+SELECT column_default
+FROM information_schema.columns
+WHERE table_name = 'band_members' AND column_name = 'role';
+-- Expected: 'member'::band_role_type
+
+-- Verify: ENUM type exists with correct values
+SELECT enumlabel
+FROM pg_enum
+JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+WHERE typname = 'band_role_type'
+ORDER BY enumsortorder;
+-- Expected: admin, member, contributor
+```
+
+### 6.6 Regression Checks
 - Band switching still works (activeBandProvider unaffected)
-- Existing members retain `member` role (not broken by migration)
+- All existing active members now have `admin` role (not broken by migration)
 - Former `owner` rows migrated to `admin`
-- Invitation flow still creates `member` role
+- Invitation flow still creates `member` role for new members
+- New band creation sets creator to `admin`
+
+### 6.7 Rollout Strategy
+
+The RBAC deployment follows a three-phase rollout to ensure zero UX disruption:
+
+**Phase 1 — Migrate and promote (SQL migration deployment)**
+- Deploy the SQL migration to production.
+- All existing active `band_members` rows are promoted to `admin`.
+- ENUM type enforced, RLS policies updated, RPCs hardened.
+- No app update required yet — existing app continues to work because all users are admin.
+- Verify with §6.5 queries.
+
+**Phase 2 — Release app with Role Management UI**
+- Deploy the Flutter app update containing the permissions provider, role management modal, and all UI guards.
+- All users see the Role Management UI in the kebab menu.
+- Since all users start as `admin`, the UI guards impose no new restrictions.
+- Band admins can now begin assigning `member` and `contributor` roles.
+
+**Phase 3 — Steady state (normal defaults for new members)**
+- New members joining via invitation receive `member` role by default.
+- New band creators receive `admin` by default.
+- The `contributor` role is available for admins to assign.
+- No further migration action needed — this is the ongoing behavior.
 
 ---
 
