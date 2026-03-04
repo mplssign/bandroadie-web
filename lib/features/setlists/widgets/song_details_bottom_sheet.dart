@@ -133,9 +133,11 @@ class SongDetailsResult {
 /// Show the song details bottom sheet.
 ///
 /// Returns a [SongDetailsResult] with any changes, or null if cancelled.
+/// When [isReadOnly] is true, all fields are non-editable (view-only mode).
 Future<SongDetailsResult?> showSongDetailsBottomSheet(
   BuildContext context, {
   required SetlistSong song,
+  bool isReadOnly = false,
 }) async {
   HapticFeedback.lightImpact();
 
@@ -145,14 +147,15 @@ Future<SongDetailsResult?> showSongDetailsBottomSheet(
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black54,
     useSafeArea: true,
-    builder: (context) => _SongDetailsSheet(song: song),
+    builder: (context) => _SongDetailsSheet(song: song, isReadOnly: isReadOnly),
   );
 }
 
 class _SongDetailsSheet extends StatefulWidget {
   final SetlistSong song;
+  final bool isReadOnly;
 
-  const _SongDetailsSheet({required this.song});
+  const _SongDetailsSheet({required this.song, this.isReadOnly = false});
 
   @override
   State<_SongDetailsSheet> createState() => _SongDetailsSheetState();
@@ -371,6 +374,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   }
 
   void _handleSave() {
+    // RBAC self-defense: block save in read-only mode
+    if (widget.isReadOnly) return;
     HapticFeedback.lightImpact();
     debugPrint('[SongDetails] _handleSave called');
 
@@ -731,7 +736,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
           const SizedBox(height: 4),
           Text(
-            'Changes apply to this song everywhere.',
+            widget.isReadOnly
+                ? 'View-only mode.'
+                : 'Changes apply to this song everywhere.',
             style: AppTextStyles.callout.copyWith(
               color: AppColors.textMuted,
               fontSize: 12,
@@ -755,7 +762,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
         ),
         const SizedBox(height: 8),
-        _isEditingTitle
+        _isEditingTitle && !widget.isReadOnly
             ? Container(
                 decoration: BoxDecoration(
                   color: AppColors.scaffoldBg,
@@ -778,7 +785,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 ),
               )
             : GestureDetector(
-                onTap: _startEditingTitle,
+                onTap: widget.isReadOnly ? null : _startEditingTitle,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -806,11 +813,12 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(
-                        Icons.edit_outlined,
-                        size: 18,
-                        color: AppColors.textMuted,
-                      ),
+                      if (!widget.isReadOnly)
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                     ],
                   ),
                 ),
@@ -827,7 +835,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
         ),
         const SizedBox(height: 8),
-        _isEditingArtist
+        _isEditingArtist && !widget.isReadOnly
             ? Container(
                 decoration: BoxDecoration(
                   color: AppColors.scaffoldBg,
@@ -852,7 +860,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 ),
               )
             : GestureDetector(
-                onTap: _startEditingArtist,
+                onTap: widget.isReadOnly ? null : _startEditingArtist,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -880,11 +888,12 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(
-                        Icons.edit_outlined,
-                        size: 18,
-                        color: AppColors.textMuted,
-                      ),
+                      if (!widget.isReadOnly)
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                     ],
                   ),
                 ),
@@ -923,6 +932,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 ),
                 child: TextField(
                   controller: _bpmController,
+                  readOnly: widget.isReadOnly,
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -966,6 +976,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               MaskedDurationInput(
                 initialSeconds: _currentDurationSeconds,
                 onChanged: _onDurationChanged,
+                enabled: !widget.isReadOnly,
                 backgroundColor: AppColors.scaffoldBg,
                 borderColor: AppColors.borderMuted,
                 textStyle: AppTextStyles.body.copyWith(
@@ -992,7 +1003,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               ),
               const SizedBox(height: 8),
               GestureDetector(
-                onTap: _selectTuning,
+                onTap: widget.isReadOnly ? null : _selectTuning,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1014,11 +1025,12 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.textMuted,
-                        size: 18,
-                      ),
+                      if (!widget.isReadOnly)
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
                     ],
                   ),
                 ),
@@ -1034,9 +1046,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Add Lyrics + Add YouTube on the same row
-        _buildAddButtonsRow(),
-        const SizedBox(height: 12),
+        // Add Lyrics + Add YouTube on the same row (hidden in read-only)
+        if (!widget.isReadOnly) _buildAddButtonsRow(),
+        if (!widget.isReadOnly) const SizedBox(height: 12),
         // Lyrics preview (if lyrics exist)
         _buildLyricsPreview(),
         // YouTube link buttons (if links exist)
@@ -1060,6 +1072,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
           child: TextField(
             controller: _notesController,
+            readOnly: widget.isReadOnly,
             maxLines: null,
             minLines: 8,
             textCapitalization: TextCapitalization.sentences,
@@ -1142,7 +1155,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
-        onTap: _showLyricsEditor,
+        onTap: widget.isReadOnly ? null : _showLyricsEditor,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
@@ -1217,14 +1230,15 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             ),
           ),
           const SizedBox(width: 4),
-          // Delete button
-          GestureDetector(
-            onTap: () => _removeYouTubeLink(index),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.close, color: AppColors.textMuted, size: 16),
+          // Delete button (hidden in read-only mode)
+          if (!widget.isReadOnly)
+            GestureDetector(
+              onTap: () => _removeYouTubeLink(index),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.close, color: AppColors.textMuted, size: 16),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -1282,41 +1296,44 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Full-width Save button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _hasChanges ? _handleSave : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: _hasChanges
-                    ? AppColors.accent
-                    : AppColors.borderMuted.withValues(alpha: 0.3),
-                disabledBackgroundColor:
-                    AppColors.borderMuted.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          // Full-width Save button (hidden in read-only mode)
+          if (!widget.isReadOnly)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _hasChanges ? _handleSave : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _hasChanges
+                      ? AppColors.accent
+                      : AppColors.borderMuted.withValues(alpha: 0.3),
+                  disabledBackgroundColor:
+                      AppColors.borderMuted.withValues(alpha: 0.3),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  ),
                 ),
-              ),
-              child: Text(
-                'Save',
-                style: AppTextStyles.body.copyWith(
-                  color: _hasChanges ? Colors.white : AppColors.textMuted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+                child: Text(
+                  'Save',
+                  style: AppTextStyles.body.copyWith(
+                    color: _hasChanges ? Colors.white : AppColors.textMuted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // Centered Cancel text button
+          if (!widget.isReadOnly) const SizedBox(height: 8),
+          // Centered Cancel/Close text button
           TextButton(
-            onPressed: _handleCancel,
+            onPressed: widget.isReadOnly
+                ? () => Navigator.of(context).pop()
+                : _handleCancel,
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
             ),
             child: Text(
-              'Cancel',
+              widget.isReadOnly ? 'Close' : 'Cancel',
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,

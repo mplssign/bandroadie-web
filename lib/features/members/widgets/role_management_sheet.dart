@@ -1,0 +1,610 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+
+import '../../../app/theme/design_tokens.dart';
+import '../../../app/services/supabase_client.dart';
+import '../../../shared/utils/snackbar_helper.dart';
+import '../../bands/active_band_controller.dart';
+import '../member_vm.dart';
+import '../members_controller.dart';
+import '../members_repository.dart';
+import '../permissions/contributor_permissions.dart';
+
+// ============================================================================
+// ROLE MANAGEMENT SHEET
+// Full-screen modal for changing a band member's role.
+// Admin only. Includes:
+//   - Member name heading
+//   - Current role display
+//   - Role toggle buttons (Admin / Band Member / Contributor)
+//   - Sub-permission toggles for contributor
+//   - Remove from band button (admin only)
+//   - Save / Cancel buttons
+// ============================================================================
+
+class RoleManagementSheet extends ConsumerStatefulWidget {
+  final MemberVM member;
+  final int adminCount;
+
+  const RoleManagementSheet({
+    super.key,
+    required this.member,
+    required this.adminCount,
+  });
+
+  @override
+  ConsumerState<RoleManagementSheet> createState() =>
+      _RoleManagementSheetState();
+}
+
+class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
+  late String _selectedRole;
+  late String _initialRole;
+  late ContributorPermissions _subPermissions;
+  late ContributorPermissions _initialSubPermissions;
+  bool _isSaving = false;
+  bool _isRemoving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Map 'owner' to 'admin' for backward safety
+    final currentRole = widget.member.bandRole;
+    _selectedRole = (currentRole == 'owner') ? 'admin' : currentRole;
+    _initialRole = _selectedRole;
+    _subPermissions = ContributorPermissions.allEnabled;
+    _initialSubPermissions = ContributorPermissions.allEnabled;
+
+    // Load actual sub-permissions for existing contributors
+    if (widget.member.isContributor) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadExistingPermissions();
+      });
+    }
+  }
+
+  /// Loads the member's saved contributor permissions from the database.
+  /// Sets both current and initial state so dirty-detection works correctly.
+  Future<void> _loadExistingPermissions() async {
+    final repo = ref.read(membersRepositoryProvider);
+    final existing = await repo.fetchContributorPermissions(
+      bandMemberId: widget.member.memberId,
+    );
+    if (mounted && existing != null) {
+      setState(() {
+        _subPermissions = existing;
+        _initialSubPermissions = existing;
+      });
+    }
+  }
+
+  bool get _isSelfAndLastAdmin {
+    // Check if viewing self AND they're the last admin
+    final currentUserId = supabase.auth.currentUser?.id;
+    return widget.member.userId == currentUserId &&
+        widget.member.isAdmin &&
+        widget.adminCount <= 1;
+  }
+
+  bool get _isLastAdmin {
+    return widget.member.isAdmin && widget.adminCount <= 1;
+  }
+
+  bool get _hasChanges {
+    // Check if role changed
+    if (_selectedRole != _initialRole) return true;
+    // If role is contributor, check sub-permission changes
+    if (_selectedRole == 'contributor') {
+      return !_permissionsEqual(_subPermissions, _initialSubPermissions);
+    }
+    return false;
+  }
+
+  /// Stable field-by-field comparison of contributor permissions.
+  bool _permissionsEqual(
+    ContributorPermissions a,
+    ContributorPermissions b,
+  ) {
+    return a.canCreateGigs == b.canCreateGigs &&
+        a.canCreatePotentialGigsOnly == b.canCreatePotentialGigsOnly &&
+        a.canViewSetlists == b.canViewSetlists &&
+        a.canViewCalendar == b.canViewCalendar &&
+        a.canViewMembers == b.canViewMembers;
+  }
+
+  Future<void> _saveRole() async {
+    if (!_hasChanges || _isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final bandId = ref.read(activeBandProvider).activeBandId;
+      if (bandId == null) return;
+
+      await ref.read(membersProvider.notifier).updateRole(
+            memberId: widget.member.memberId,
+            bandId: bandId,
+            newRole: _selectedRole,
+            subPermissions:
+                _selectedRole == 'contributor' ? _subPermissions : null,
+          );
+
+      if (mounted) {
+        showSuccessSnackBar(context, message: 'Role updated');
+        Navigator.of(context).pop();
+      }
+    } on PostgrestException catch (e) {
+      debugPrint(
+          '[RoleManagement] PostgrestException: ${e.message} (code: ${e.code})');
+      if (mounted) {
+        String message = 'Failed to update role';
+        if (e.message.contains('at least one admin must remain')) {
+          message = 'Cannot demote: at least one admin must remain';
+        } else if (e.message.contains('Permission denied')) {
+          message = 'Only admins can change roles';
+        } else if (e.message.contains('Member not found')) {
+          message = 'Member not found in this band';
+        } else if (e.message.contains('Could not find the function')) {
+          message = 'Server update needed — please try again in a moment';
+        }
+        showErrorSnackBar(context, message: message);
+      }
+    } catch (e) {
+      debugPrint('[RoleManagement] Unexpected error: $e (${e.runtimeType})');
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Failed to update role: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _removeMember() async {
+    if (_isRemoving) return;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Remove ${widget.member.name}?',
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'Are you sure you want to remove this member from the band? This cannot be undone.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isRemoving = true);
+
+    try {
+      final bandId = ref.read(activeBandProvider).activeBandId;
+      if (bandId == null) return;
+
+      final success = await ref
+          .read(membersProvider.notifier)
+          .removeMember(widget.member.memberId, bandId);
+
+      if (mounted) {
+        if (success) {
+          showSuccessSnackBar(context, message: 'Member removed');
+          Navigator.of(context).pop();
+        } else {
+          showErrorSnackBar(context, message: 'Failed to remove member');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Failed to remove member');
+      }
+    } finally {
+      if (mounted) setState(() => _isRemoving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldBg,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: AppColors.textPrimary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Manage Role',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(Spacing.pagePadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ─── Member name heading ───
+              Text(
+                widget.member.name,
+                style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _roleDisplayName(widget.member.bandRole),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // ─── Change role section ───
+              const Text(
+                'Change role',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Role toggle buttons
+              _buildRoleButton(
+                role: 'admin',
+                label: 'Admin',
+                description: 'Full access to everything',
+                enabled: !(_isLastAdmin && _selectedRole == 'admin'),
+              ),
+              const SizedBox(height: 8),
+              _buildRoleButton(
+                role: 'member',
+                label: 'Band Member',
+                description: 'Can manage gigs and setlists',
+                enabled: !_isSelfAndLastAdmin,
+              ),
+              const SizedBox(height: 8),
+              _buildRoleButton(
+                role: 'contributor',
+                label: 'Contributor',
+                description: 'Limited access with custom permissions',
+                enabled: !_isSelfAndLastAdmin,
+              ),
+
+              // ─── Contributor sub-permissions ───
+              if (_selectedRole == 'contributor') ...[
+                const SizedBox(height: 24),
+                const Text(
+                  'Contributor permissions',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildPermissionToggle(
+                  label: 'Can create gigs',
+                  value: _subPermissions.canCreateGigs,
+                  onChanged: (v) => setState(() {
+                    _subPermissions =
+                        _subPermissions.copyWith(canCreateGigs: v);
+                  }),
+                ),
+                _buildPermissionToggle(
+                  label: 'Potential gigs only',
+                  value: _subPermissions.canCreatePotentialGigsOnly,
+                  onChanged: (v) => setState(() {
+                    _subPermissions =
+                        _subPermissions.copyWith(canCreatePotentialGigsOnly: v);
+                  }),
+                ),
+                _buildPermissionToggle(
+                  label: 'Can view setlists',
+                  value: _subPermissions.canViewSetlists,
+                  onChanged: (v) => setState(() {
+                    _subPermissions =
+                        _subPermissions.copyWith(canViewSetlists: v);
+                  }),
+                ),
+                _buildPermissionToggle(
+                  label: 'Can view calendar',
+                  value: _subPermissions.canViewCalendar,
+                  onChanged: (v) => setState(() {
+                    _subPermissions =
+                        _subPermissions.copyWith(canViewCalendar: v);
+                  }),
+                ),
+                _buildPermissionToggle(
+                  label: 'Can view members',
+                  value: _subPermissions.canViewMembers,
+                  onChanged: (v) => setState(() {
+                    _subPermissions =
+                        _subPermissions.copyWith(canViewMembers: v);
+                  }),
+                ),
+              ],
+
+              // ─── Last admin warning ───
+              if (_isSelfAndLastAdmin) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: AppColors.warning, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'You are the only admin. You cannot change your own role.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.warning,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 32),
+
+              // ─── Save button ───
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    disabledBackgroundColor:
+                        AppColors.accent.withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ─── Cancel button ───
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+
+              // ─── Remove from band button ───
+              if (!_isLastAdmin) ...[
+                const SizedBox(height: 24),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _isRemoving ? null : _removeMember,
+                    icon: _isRemoving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.error),
+                            ),
+                          )
+                        : const Icon(Icons.person_remove_outlined,
+                            color: AppColors.error, size: 20),
+                    label: Text(
+                      _isRemoving ? 'Removing...' : 'Remove from band',
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleButton({
+    required String role,
+    required String label,
+    required String description,
+    bool enabled = true,
+  }) {
+    final isSelected = _selectedRole == role;
+
+    return GestureDetector(
+      onTap: enabled ? () => setState(() => _selectedRole = role) : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.accent.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.accent
+                : enabled
+                    ? AppColors.borderMuted
+                    : AppColors.borderMuted.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Radio indicator
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.accent
+                      : enabled
+                          ? AppColors.textSecondary
+                          : AppColors.textDisabled,
+                  width: 2,
+                ),
+                color: isSelected ? AppColors.accent : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            // Label + description
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: enabled
+                          ? AppColors.textPrimary
+                          : AppColors.textDisabled,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: enabled
+                          ? AppColors.textSecondary
+                          : AppColors.textDisabled,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionToggle({
+    required String label,
+    required bool value,
+    ValueChanged<bool>? onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: SwitchListTile(
+        title: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: onChanged != null
+                ? AppColors.textPrimary
+                : AppColors.textDisabled,
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        activeTrackColor: AppColors.accent,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+        dense: true,
+      ),
+    );
+  }
+
+  String _roleDisplayName(String role) {
+    switch (role) {
+      case 'admin':
+      case 'owner':
+        return 'Admin';
+      case 'member':
+        return 'Band Member';
+      case 'contributor':
+        return 'Contributor';
+      default:
+        return 'Band Member';
+    }
+  }
+}

@@ -11,6 +11,8 @@ import '../bands/active_band_controller.dart';
 import '../events/models/event_form_data.dart';
 import '../events/widgets/add_edit_event_bottom_sheet.dart';
 import '../gigs/gig_controller.dart';
+import '../members/permissions/band_permissions_provider.dart';
+import '../members/permissions/band_permissions.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../shell/overlay_state.dart';
 import 'calendar_controller.dart';
@@ -58,11 +60,11 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: AppCurves.slideIn,
-          ),
-        );
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: AppCurves.slideIn,
+      ),
+    );
 
     // Start entrance animation
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -85,10 +87,29 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   }
 
   void _handleAddEvent() {
+    // RBAC self-defense: verify permission before opening event editor
+    final permissionsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permissionsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms == null) return; // Still loading — no-op
+    if (perms.isContributor && !perms.canCreateGigs) {
+      showAppSnackBar(
+        context,
+        message: '🎸 You don\'t have permission to create events.',
+      );
+      return;
+    }
+
+    // Contributors can only create gigs, not rehearsals
+    final eventType = perms.isContributor ? EventType.gig : EventType.rehearsal;
+
     AddEditEventBottomSheet.show(
       context,
       ref: ref,
-      initialType: EventType.rehearsal,
+      initialType: eventType,
       onSaved: _refreshCalendarData,
     );
   }
@@ -102,6 +123,21 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   }
 
   void _handleBlockOut() {
+    // RBAC self-defense: block outs are for admins and members only
+    final blockOutPermsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = blockOutPermsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms?.isContributor == true) {
+      showAppSnackBar(
+        context,
+        message: '🎸 Block outs are for admins and members.',
+      );
+      return;
+    }
+
     final bandState = ref.read(activeBandProvider);
     final bandId = bandState.activeBand?.id;
 
@@ -126,12 +162,29 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     final calendarState = ref.read(calendarProvider);
     final eventsForDay = calendarState.eventsForDate(date);
 
+    // RBAC: Check if contributor can create events
+    final permissionsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permissionsAsync.whenOrNull(data: (p) => p);
+
     // If no events on this day, open Add Event drawer directly
     if (eventsForDay.isEmpty) {
+      // Contributor without gig permission: show snackbar instead
+      if (perms != null && perms.isContributor && !perms.canCreateGigs) {
+        showAppSnackBar(
+          context,
+          message: '🎸 You don\'t have permission to create events.',
+        );
+        return;
+      }
+
+      // Contributors can only create gigs, not rehearsals
+      final eventType =
+          (perms?.isContributor == true) ? EventType.gig : EventType.rehearsal;
+
       AddEditEventBottomSheet.show(
         context,
         ref: ref,
-        initialType: EventType.rehearsal,
+        initialType: eventType,
         initialDate: date,
         onSaved: _refreshCalendarData,
       );
@@ -147,16 +200,22 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
         Navigator.of(context).pop(); // Close bottom sheet
         _openEditEventSheet(event);
       },
-      onAddEvent: () {
-        Navigator.of(context).pop(); // Close day detail sheet
-        AddEditEventBottomSheet.show(
-          context,
-          ref: ref,
-          initialType: EventType.rehearsal,
-          initialDate: date,
-          onSaved: _refreshCalendarData,
-        );
-      },
+      // RBAC: Only pass onAddEvent if user has permission to create events
+      onAddEvent: (perms != null && perms.canCreateGigs)
+          ? () {
+              Navigator.of(context).pop(); // Close day detail sheet
+              // Contributors can only create gigs, not rehearsals
+              final eventType =
+                  perms.isContributor ? EventType.gig : EventType.rehearsal;
+              AddEditEventBottomSheet.show(
+                context,
+                ref: ref,
+                initialType: eventType,
+                initialDate: date,
+                onSaved: _refreshCalendarData,
+              );
+            }
+          : null,
     );
   }
 
@@ -185,7 +244,19 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       return;
     }
 
-    // Gigs and rehearsals: any band member can edit
+    // Gigs and rehearsals: check edit permissions
+    final editPermsAsync = ref.read(currentUserPermissionsProvider);
+    final editPerms = editPermsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    // Allow contributors to edit potential gigs they can create
+    final canEditEvent = editPerms != null &&
+        (editPerms.canEditGigs ||
+            (event.isPotentialGig && editPerms.canEditPotentialGigs));
+    if (!canEditEvent) return;
+
     AddEditEventBottomSheet.show(
       context,
       ref: ref,
@@ -201,6 +272,15 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   Widget build(BuildContext context) {
     final bandState = ref.watch(activeBandProvider);
     final calendarState = ref.watch(calendarProvider);
+
+    // RBAC: Watch permissions for calendar action gating
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final perms = permissionsAsync.when(
+      data: (p) => p,
+      loading: () =>
+          null, // null while loading — hide buttons to prevent flicker
+      error: (_, __) => null,
+    );
 
     debugPrint(
       '[CalendarTabContent] build called with ${calendarState.allEvents.length} events, ${calendarState.eventsForMonth.length} this month',
@@ -238,7 +318,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
                         }
                         return false; // Allow notification to continue bubbling
                       },
-                      child: _buildContent(calendarState),
+                      child: _buildContent(calendarState, perms),
                     ),
                   ),
                 ),
@@ -266,7 +346,53 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     );
   }
 
-  Widget _buildContent(CalendarState calendarState) {
+  /// Build action buttons based on permissions.
+  /// Admin/Member: both "Add Event" and "Block Out" in a Row.
+  /// Contributor with canCreateGigs: only "Create Event" button.
+  /// Contributor without: no buttons.
+  /// While permissions are loading (perms == null): no buttons to prevent flicker.
+  Widget _buildActionButtons(BandPermissions? perms) {
+    if (perms == null) {
+      // Loading — hide buttons to prevent flicker
+      return const SizedBox.shrink();
+    }
+
+    if (perms.isContributor) {
+      // Contributor with gig permission: show only "Create Event"
+      if (perms.canCreateGigs) {
+        return BrandActionButton(
+          icon: Icons.add_rounded,
+          label: 'Create Event',
+          onPressed: _handleAddEvent,
+        );
+      }
+      // Contributor without gig permission: no buttons
+      return const SizedBox.shrink();
+    }
+
+    // Admin/Member: both buttons
+    return Row(
+      children: [
+        Expanded(
+          child: BrandActionButton(
+            icon: Icons.add_rounded,
+            label: 'Add Event',
+            onPressed: _handleAddEvent,
+          ),
+        ),
+        const SizedBox(width: Spacing.space12),
+        Expanded(
+          child: BrandActionButton(
+            icon: Icons.block_rounded,
+            label: 'Block Out',
+            onPressed: _handleBlockOut,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent(CalendarState calendarState, BandPermissions? perms) {
     if (calendarState.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.accent),
@@ -326,26 +452,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
             const SizedBox(height: Spacing.space16),
 
-            // Action buttons row
-            Row(
-              children: [
-                Expanded(
-                  child: BrandActionButton(
-                    icon: Icons.add_rounded,
-                    label: 'Add Event',
-                    onPressed: _handleAddEvent,
-                  ),
-                ),
-                const SizedBox(width: Spacing.space12),
-                Expanded(
-                  child: BrandActionButton(
-                    icon: Icons.block_rounded,
-                    label: 'Block Out',
-                    onPressed: _handleBlockOut,
-                  ),
-                ),
-              ],
-            ),
+            // Action buttons row — permission-gated
+            _buildActionButtons(perms),
 
             // + Subscribe to Calendar text button
             const SizedBox(height: Spacing.space16),
@@ -379,8 +487,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
             // Bottom padding for nav bar (extra space to scroll past)
             SizedBox(
-              height:
-                  Spacing.space48 +
+              height: Spacing.space48 +
                   Spacing.bottomNavHeight +
                   MediaQuery.of(context).padding.bottom +
                   32, // Extra scroll clearance

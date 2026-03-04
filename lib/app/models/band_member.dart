@@ -4,7 +4,7 @@
 // This is the join table between users and bands.
 // ============================================================================
 
-enum BandRole { member, admin, owner }
+enum BandRole { admin, member, contributor }
 
 class BandMember {
   final String id;
@@ -34,10 +34,11 @@ class BandMember {
 
   static BandRole _parseRole(String? role) {
     switch (role) {
-      case 'owner':
-        return BandRole.owner;
       case 'admin':
+      case 'owner': // Backward safety: legacy 'owner' maps to admin
         return BandRole.admin;
+      case 'contributor':
+        return BandRole.contributor;
       default:
         return BandRole.member;
     }

@@ -22,6 +22,7 @@ import '../home/widgets/side_drawer.dart';
 import '../profile/my_profile_screen.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../settings/settings_screen.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import '../../app/constants/app_constants.dart';
 import 'new_setlist_screen.dart';
 import 'models/setlist.dart';
@@ -546,6 +547,14 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     final displayBand = ref.watch(displayBandProvider);
     final localImageFile = ref.watch(draftLocalImageProvider);
 
+    // RBAC: Watch permissions for setlist mutation gating
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canEdit = permissionsAsync.when(
+      data: (p) => p.canEditSetlists,
+      loading: () => false, // Fail closed — no mutation flicker
+      error: (_, __) => false, // Fail closed on error
+    );
+
     // Watch setlists provider (automatically reloads when band changes)
     final setlistsState = ref.watch(setlistsProvider);
 
@@ -651,6 +660,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       bandImageUrl,
                       localImageFile,
                       setlistsToShow,
+                      canEdit,
                     ),
       bottomNavigationBar: SetlistsBottomNavBar(
         onDashboardTap: _navigateToDashboard,
@@ -701,15 +711,22 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
             context,
           ).push(fadeSlideRoute(page: const CreateBandScreen()));
         },
-        onEditBand: () {
-          final activeBand = bandState.activeBand;
-          if (activeBand != null) {
-            _closeBandSwitcher();
-            Navigator.of(
-              context,
-            ).push(fadeSlideRoute(page: EditBandScreen(band: activeBand)));
-          }
-        },
+        onEditBand: permissionsAsync.when(
+          data: (p) => p.canEditBandSettings,
+          loading: () => false,
+          error: (_, __) => false,
+        )
+            ? () {
+                final activeBand = bandState.activeBand;
+                if (activeBand != null) {
+                  _closeBandSwitcher();
+                  Navigator.of(
+                    context,
+                  ).push(
+                      fadeSlideRoute(page: EditBandScreen(band: activeBand)));
+                }
+              }
+            : null,
         child: content,
       ),
     );
@@ -846,6 +863,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     String? bandImageUrl,
     File? localImageFile,
     List<Setlist> setlists,
+    bool canEdit,
   ) {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(
@@ -889,18 +907,19 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      TextButton.icon(
-                        onPressed: _navigateToCreateSetlist,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('New'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                      if (canEdit)
+                        TextButton.icon(
+                          onPressed: _navigateToCreateSetlist,
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('New'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.accent,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -919,8 +938,9 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       SwipeableSetlistCard(
                         setlist: setlist,
                         onTap: () => _onSetlistTap(setlist),
-                        onDeleteConfirmed: _confirmDelete,
-                        onDuplicateConfirmed: _confirmDuplicate,
+                        onDeleteConfirmed: canEdit ? _confirmDelete : null,
+                        onDuplicateConfirmed:
+                            canEdit ? _confirmDuplicate : null,
                       ),
                     ),
                   );

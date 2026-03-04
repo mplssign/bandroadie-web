@@ -10,9 +10,11 @@ import '../bands/band_form_screen.dart';
 import '../home/widgets/home_app_bar.dart';
 import '../shell/overlay_state.dart';
 import 'members_controller.dart';
+import 'member_vm.dart';
 import 'widgets/member_card.dart';
 import 'widgets/member_card_skeleton.dart';
 import 'widgets/members_empty_state.dart';
+import 'widgets/role_management_sheet.dart';
 
 // ============================================================================
 // MEMBERS TAB CONTENT
@@ -50,11 +52,11 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: AppCurves.slideIn,
-          ),
-        );
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: AppCurves.slideIn,
+      ),
+    );
 
     // Load data
     Future.microtask(() {
@@ -104,7 +106,12 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
     }
   }
 
+  // ignore: unused_element — Kept with self-defense per architect plan M3 (defense-in-depth)
   Future<void> _removeMember(String memberId) async {
+    // RBAC self-defense: only admin can remove members
+    final membersState = ref.read(membersProvider);
+    if (!membersState.isCurrentUserAdmin) return;
+
     final bandId = ref.read(activeBandProvider).activeBandId;
     if (bandId != null) {
       final success = await ref
@@ -119,6 +126,21 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
         }
       }
     }
+  }
+
+  void _openRoleManagement(MemberVM member) {
+    final membersState = ref.read(membersProvider);
+    final adminCount =
+        membersState.members.where((m) => m.isAdmin && m.isActive).length;
+
+    Navigator.of(context).push(
+      fadeSlideRoute(
+        page: RoleManagementSheet(
+          member: member,
+          adminCount: adminCount,
+        ),
+      ),
+    );
   }
 
   @override
@@ -272,8 +294,8 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
                     ),
                     child: MemberCard(
                       member: member,
-                      showRemoveOption: membersState.isCurrentUserAdmin,
-                      onRemove: () => _removeMember(member.memberId),
+                      showAdminActions: membersState.isCurrentUserAdmin,
+                      onManageRole: () => _openRoleManagement(member),
                       onTap: () {
                         // TODO: Open member detail in future
                       },
@@ -289,8 +311,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
           // Bottom padding for nav bar (extra space to scroll past)
           SliverToBoxAdapter(
             child: SizedBox(
-              height:
-                  Spacing.space48 +
+              height: Spacing.space48 +
                   Spacing.bottomNavHeight +
                   MediaQuery.of(context).padding.bottom +
                   32, // Extra scroll clearance

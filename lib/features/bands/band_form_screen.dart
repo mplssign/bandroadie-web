@@ -15,6 +15,7 @@ import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
 import '../../shared/utils/initials.dart';
 import '../../shared/utils/snackbar_helper.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import 'active_band_controller.dart';
 import 'widgets/band_avatar.dart';
 
@@ -69,12 +70,10 @@ class CapitalizeWordsTextFormatter extends TextInputFormatter {
 
     // Capitalize first letter of each word
     final words = newValue.text.split(' ');
-    final capitalized = words
-        .map((word) {
-          if (word.isEmpty) return word;
-          return word[0].toUpperCase() + word.substring(1);
-        })
-        .join(' ');
+    final capitalized = words.map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
 
     return TextEditingValue(text: capitalized, selection: newValue.selection);
   }
@@ -85,10 +84,10 @@ class BandFormScreen extends ConsumerStatefulWidget {
   final Band? initialBand; // Required for edit mode
 
   const BandFormScreen({super.key, required this.mode, this.initialBand})
-    : assert(
-        mode == BandFormMode.create || initialBand != null,
-        'initialBand is required for edit mode',
-      );
+      : assert(
+          mode == BandFormMode.create || initialBand != null,
+          'initialBand is required for edit mode',
+        );
 
   @override
   ConsumerState<BandFormScreen> createState() => _BandFormScreenState();
@@ -144,8 +143,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     );
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-        );
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
     _animController.forward();
 
     // Add listener for live avatar preview when name changes
@@ -467,15 +466,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
       // Update band in database
       final now = DateTime.now();
-      await supabase
-          .from('bands')
-          .update({
-            'name': bandName,
-            'avatar_color': _selectedAvatarColor,
-            'image_url': imageUrl,
-            'updated_at': now.toIso8601String(),
-          })
-          .eq('id', band.id);
+      await supabase.from('bands').update({
+        'name': bandName,
+        'avatar_color': _selectedAvatarColor,
+        'image_url': imageUrl,
+        'updated_at': now.toIso8601String(),
+      }).eq('id', band.id);
 
       // Create updated band object and update provider immediately
       // This ensures the header avatar updates without waiting for reload
@@ -691,8 +687,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           .from('band_invitations')
           .select('id, email, status, created_at')
           .eq('band_id', bandId)
-          .inFilter('status', ['pending', 'sent'])
-          .order('created_at', ascending: false);
+          .inFilter('status', ['pending', 'sent']).order('created_at',
+              ascending: false);
 
       final invitesList = List<Map<String, dynamic>>.from(invitesResponse);
 
@@ -979,9 +975,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
     // Debug: Check current user's role in this band
     final bandId = widget.initialBand!.id;
-    final myMembership = _members
-        .where((m) => m['user_id'] == user.id)
-        .toList();
+    final myMembership =
+        _members.where((m) => m['user_id'] == user.id).toList();
     debugPrint('[RemoveMember] Current user: ${user.id}');
     debugPrint('[RemoveMember] Band ID: $bandId');
     debugPrint('[RemoveMember] My membership: $myMembership');
@@ -1116,9 +1111,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       final bytes = await imageFile.readAsBytes();
       debugPrint('[Upload] Bytes read: ${bytes.length}');
 
-      await supabase.storage
-          .from('band-avatars')
-          .uploadBinary(
+      await supabase.storage.from('band-avatars').uploadBinary(
             fileName,
             bytes,
             fileOptions: FileOptions(
@@ -1626,7 +1619,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                                 _buildEmailInput(),
                                 const SizedBox(height: Spacing.space8),
                                 _buildEmailDomainShortcuts(),
-
                                 if (_inviteEmails.isNotEmpty) ...[
                                   const SizedBox(height: Spacing.space24),
                                   _buildSectionLabel('Invites sent'),
@@ -1836,8 +1828,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   scrollDirection: Axis.horizontal,
                   // TODO: Change back to AvatarColors.colors.length + 1 when image upload is working
                   itemCount: AvatarColors
-                      .colors
-                      .length, // Hide image upload button for now
+                      .colors.length, // Hide image upload button for now
                   itemBuilder: (context, index) {
                     // TODO: Uncomment this block when image upload is working
                     // if (index == 0) {
@@ -1882,13 +1873,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     final colorOption = AvatarColors.colors[colorIndex];
                     final isSelected =
                         colorOption.tailwindClass == _selectedAvatarColor &&
-                        _selectedImage == null &&
-                        !hasNetworkImage;
+                            _selectedImage == null &&
+                            !hasNetworkImage;
                     return Padding(
                       padding: EdgeInsets.only(
-                        right: colorIndex < AvatarColors.colors.length - 1
-                            ? 8
-                            : 0,
+                        right:
+                            colorIndex < AvatarColors.colors.length - 1 ? 8 : 0,
                       ),
                       child: GestureDetector(
                         onTap: () {
@@ -2037,9 +2027,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   vertical: Spacing.space8,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.transparent
-                      : const Color(0xFF444444),
+                  color:
+                      isSelected ? Colors.transparent : const Color(0xFF444444),
                   borderRadius: BorderRadius.circular(50),
                   border: isSelected
                       ? Border.all(color: AppColors.accent, width: 1)
@@ -2051,9 +2040,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     height: 1.33,
-                    color: isSelected
-                        ? AppColors.accent
-                        : const Color(0xFFF5F5F5),
+                    color:
+                        isSelected ? AppColors.accent : const Color(0xFFF5F5F5),
                   ),
                 ),
               ),
@@ -2229,32 +2217,47 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             ),
           ),
         ),
-        // Delete button (edit mode only)
+        // Delete button (edit mode only, admin only)
         if (_isEditMode) ...[
-          const SizedBox(height: Spacing.space8),
-          TextButton(
-            onPressed: (_isSubmitting || _isDeleting) ? null : _deleteBand,
-            child: _isDeleting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.accent,
-                      ),
-                    ),
-                  )
-                : const Text(
-                    'Delete',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.accent,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-          ),
+          // Only show delete button if user has canDeleteBand permission
+          Builder(builder: (context) {
+            final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+            final canDelete = permissionsAsync.when(
+              data: (perms) => perms.canDeleteBand,
+              loading: () => false,
+              error: (_, __) => false,
+            );
+            if (!canDelete) return const SizedBox.shrink();
+            return Column(
+              children: [
+                const SizedBox(height: Spacing.space8),
+                TextButton(
+                  onPressed:
+                      (_isSubmitting || _isDeleting) ? null : _deleteBand,
+                  child: _isDeleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.accent,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.accent,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          }),
         ],
       ],
     );

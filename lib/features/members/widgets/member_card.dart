@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../app/theme/design_tokens.dart';
 import '../../../app/utils/phone_formatter.dart';
 import '../member_vm.dart';
 
@@ -66,15 +65,15 @@ class _MemberCardTokens {
 class MemberCard extends StatefulWidget {
   final MemberVM member;
   final VoidCallback? onTap;
-  final VoidCallback? onRemove;
-  final bool showRemoveOption;
+  final VoidCallback? onManageRole;
+  final bool showAdminActions;
 
   const MemberCard({
     super.key,
     required this.member,
     this.onTap,
-    this.onRemove,
-    this.showRemoveOption = false,
+    this.onManageRole,
+    this.showAdminActions = false,
   });
 
   @override
@@ -143,8 +142,7 @@ class _MemberCardState extends State<MemberCard> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (widget.showRemoveOption && !widget.member.isOwner)
-                        _buildKebabMenu(),
+                      if (widget.showAdminActions) _buildAdminButton(),
                     ],
                   ),
 
@@ -360,71 +358,19 @@ class _MemberCardState extends State<MemberCard> {
     );
   }
 
-  Widget _buildKebabMenu() {
-    return PopupMenuButton<String>(
-      icon: Icon(
+  /// Direct admin action button — single tap opens RoleManagementSheet
+  Widget _buildAdminButton() {
+    return IconButton(
+      icon: const Icon(
         Icons.more_vert,
         color: _MemberCardTokens.textSecondary,
-        size: 24,
+        size: 20,
       ),
-      color: AppColors.surfaceDark,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) {
-        if (value == 'remove') {
-          _showRemoveConfirmation();
-        }
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'remove',
-          child: Row(
-            children: [
-              Icon(Icons.person_remove_outlined, color: AppColors.error),
-              SizedBox(width: 12),
-              Text(
-                'Remove from band',
-                style: TextStyle(color: AppColors.error),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showRemoveConfirmation() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Remove ${widget.member.name}?',
-          style: const TextStyle(color: AppColors.textPrimary),
-        ),
-        content: const Text(
-          'Are you sure you want to remove this member from the band?',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              widget.onRemove?.call();
-            },
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
+      onPressed: () => widget.onManageRole?.call(),
+      splashRadius: 20,
+      constraints: const BoxConstraints(
+        minWidth: 40,
+        minHeight: 40,
       ),
     );
   }

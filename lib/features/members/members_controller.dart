@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'member_vm.dart';
 import 'members_repository.dart';
 import 'pending_invite_vm.dart';
+import 'permissions/contributor_permissions.dart';
+import 'permissions/band_permissions_provider.dart';
 
 // ============================================================================
 // MEMBERS CONTROLLER
@@ -153,6 +155,40 @@ class MembersNotifier extends Notifier<MembersState> {
         debugPrint('[MembersController] Error removing member: $e');
       }
       return false;
+    }
+  }
+
+  /// Update a member's role in the band.
+  ///
+  /// Returns true if successful, false otherwise.
+  /// Throws on permission errors (caller not admin, last admin demotion, etc.)
+  Future<bool> updateRole({
+    required String memberId,
+    required String bandId,
+    required String newRole,
+    ContributorPermissions? subPermissions,
+  }) async {
+    try {
+      final success = await _repository.updateMemberRole(
+        memberId: memberId,
+        bandId: bandId,
+        newRole: newRole,
+        subPermissions: subPermissions,
+      );
+
+      if (success) {
+        // Invalidate permissions provider so UI updates
+        ref.invalidate(currentUserPermissionsProvider);
+        // Reload members to get updated roles
+        await loadMembers(bandId, forceRefresh: true);
+      }
+
+      return success;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MembersController] Error updating role: $e');
+      }
+      rethrow;
     }
   }
 
