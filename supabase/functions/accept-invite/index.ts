@@ -84,12 +84,15 @@ serve(async (req) => {
 
     for (const invite of invitations) {
       try {
-        // Add user to band_members
+        // Add user to band_members (only if not already a member).
+        // ignoreDuplicates = ON CONFLICT DO NOTHING — preserves the existing
+        // role (admin/contributor) for users who are already band members.
         await supabaseAdmin.from("band_members").upsert({
           band_id: invite.band_id,
           user_id: authUser.id,
           role: 'member',
-        }, { onConflict: "band_id,user_id" });
+          status: 'active',
+        }, { onConflict: "band_id,user_id", ignoreDuplicates: true });
 
         // Mark invitation as accepted
         await supabaseAdmin

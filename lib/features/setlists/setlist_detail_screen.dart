@@ -12,6 +12,7 @@ import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import 'models/bulk_song_row.dart';
 import 'models/setlist_item.dart';
 import 'models/setlist_item_type.dart';
@@ -970,8 +971,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   }
 
   /// Handle tapping a song card - show details bottom sheet
-  Future<void> _handleSongTap(SetlistSong song) async {
-    final result = await showSongDetailsBottomSheet(context, song: song);
+  /// When [readOnly] is true, the sheet opens in view-only mode.
+  Future<void> _handleSongTap(SetlistSong song, {bool readOnly = false}) async {
+    final result = await showSongDetailsBottomSheet(
+      context,
+      song: song,
+      isReadOnly: readOnly,
+    );
 
     if (result != null && result.hasChanges) {
       debugPrint('[SetlistDetail] Song edit result:');
@@ -1254,6 +1260,14 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(setlistDetailProvider);
 
+    // RBAC: Watch permissions for mutation gating
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canEdit = permissionsAsync.when(
+      data: (p) => p.canEditSetlists,
+      loading: () => false, // Fail closed — no mutation flicker
+      error: (_, __) => false, // Fail closed on error
+    );
+
     // Detect catalog sort mode changes and trigger animation
     if (_lastCatalogSortMode != null &&
         _lastCatalogSortMode != state.catalogSortMode &&
@@ -1280,7 +1294,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             Column(
               children: [
                 _buildAppBar(state),
-                Expanded(child: _buildBody(state)),
+                Expanded(child: _buildBody(state, canEdit)),
               ],
             ),
 
@@ -1306,13 +1320,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   }
 
   /// Build the action buttons row (default state)
-  Widget _buildActionButtonsRow(SetlistDetailState state) {
+  Widget _buildActionButtonsRow(SetlistDetailState state, bool canEdit) {
     return SingleChildScrollView(
       key: const ValueKey('action-buttons'),
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Sort button (Catalog only)
+          // Sort button (Catalog only) — read-only action, always visible
           if (state.isCatalog && state.songs.isNotEmpty) ...[
             _ActionButton(
               icon: Icons.sort_rounded,
@@ -1322,14 +1336,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ),
             const SizedBox(width: 8),
           ],
-          // + Add to Setlist button (unified overlay)
-          _ActionButton(
-            icon: Icons.add_rounded,
-            label: 'Add to Setlist',
-            onTap: _handleOpenAddOverlay,
-          ),
-          const SizedBox(width: 8),
-          // Search filter button (icon only)
+          // + Add to Setlist button (hidden for read-only)
+          if (canEdit) ...[
+            _ActionButton(
+              icon: Icons.add_rounded,
+              label: 'Add to Setlist',
+              onTap: _handleOpenAddOverlay,
+            ),
+            const SizedBox(width: 8),
+          ],
+          // Search filter button (icon only) — read-only action
           _ActionButton(icon: Icons.filter_list_rounded, onTap: _startSearch),
         ],
       ),
@@ -1407,7 +1423,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     );
   }
 
-  Widget _buildBody(SetlistDetailState state) {
+  Widget _buildBody(SetlistDetailState state, bool canEdit) {
     if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(
@@ -1418,10 +1434,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     // Single source of truth: always render the full layout.
     // Empty setlists show header + action row + empty content area.
-    return _buildContent(state);
+    return _buildContent(state, canEdit);
   }
 
-  Widget _buildContent(SetlistDetailState state) {
+  Widget _buildContent(SetlistDetailState state, bool canEdit) {
     return CustomScrollView(
       slivers: [
         // Header section (always shown)
@@ -1440,7 +1456,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   position: _headerSlide,
                   child: FadeTransition(
                     opacity: _headerFade,
-                    child: _buildHeaderSection(state),
+                    child: _buildHeaderSection(state, canEdit),
                   ),
                 ),
 
@@ -1466,7 +1482,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                       },
                       child: _isSearching
                           ? _buildSearchBar()
-                          : _buildActionButtonsRow(state),
+                          : _buildActionButtonsRow(state, canEdit),
                     ),
                   ),
                 ),
@@ -1480,10 +1496,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         // Songs area: either empty content or song list
         // Catalog uses regular SliverList (no reordering, sorted by artist)
         // Non-Catalog uses SliverReorderableList (draggable)
-        ..._buildSongsList(state),
+        ..._buildSongsList(state, canEdit),
 
-        // Delete button (non-Catalog only)
-        if (!state.isCatalog)
+        // Delete button (non-Catalog only, hidden for read-only)
+        if (!state.isCatalog && canEdit)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -1519,7 +1535,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     );
   }
 
-  Widget _buildHeaderSection(SetlistDetailState state) {
+  Widget _buildHeaderSection(SetlistDetailState state, bool canEdit) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1541,7 +1557,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (!state.isCatalog) ...[
+                  if (!state.isCatalog && canEdit) ...[
                     const SizedBox(width: 6),
                     GestureDetector(
                       onTap: _showRenameDialog,
@@ -1557,7 +1573,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ),
             // Right side: Select link (Catalog only) + Share icon
             // Select Mode toggle appears only for Catalog setlist
-            if (state.isCatalog && state.songs.isNotEmpty) ...[
+            if (state.isCatalog && state.songs.isNotEmpty && canEdit) ...[
               // Toggle between Select all / Unselect all when in select mode
               GestureDetector(
                 onTap: _isSelectMode
@@ -1664,7 +1680,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   }
 
   /// Build the songs list (filtered if searching)
-  List<Widget> _buildSongsList(SetlistDetailState state) {
+  List<Widget> _buildSongsList(SetlistDetailState state, bool canEdit) {
     // Apply search filter if active
     final displaySongs = _isSearching ? _filterSongs(state.songs) : state.songs;
 
@@ -1748,7 +1764,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                       padding: const EdgeInsets.only(bottom: Spacing.space12),
                       child: Dismissible(
                         key: Key('dismiss_song_${song.id}'),
-                        direction: DismissDirection.endToStart,
+                        direction: canEdit
+                            ? DismissDirection.endToStart
+                            : DismissDirection.none,
                         dismissThresholds: const {
                           DismissDirection.endToStart: 0.4,
                         },
@@ -1786,7 +1804,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                           song: song,
                           index: index,
                           isDraggable: false,
-                          onTap: () => _handleSongTap(song),
+                          onTap: () => _handleSongTap(song, readOnly: !canEdit),
                           onLyricsView: () {
                             final lyrics =
                                 LyricsData.fromJsonString(song.lyrics);
@@ -1797,11 +1815,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                               songTitle: song.title,
                             );
                           },
-                          onEdit: () => _handleSongTap(song),
-                          onDelete: () => _handleDelete(song.id, song.title),
-                          onTuningChanged: (tuning) => ref
-                              .read(setlistDetailProvider.notifier)
-                              .updateSongTuning(song.id, tuning),
+                          onEdit: canEdit ? () => _handleSongTap(song) : null,
+                          onDelete: canEdit
+                              ? () => _handleDelete(song.id, song.title)
+                              : null,
+                          onTuningChanged: canEdit
+                              ? (tuning) => ref
+                                  .read(setlistDetailProvider.notifier)
+                                  .updateSongTuning(song.id, tuning)
+                              : null,
                         ),
                       ),
                     );
@@ -1815,8 +1837,208 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     }
 
     // Non-Catalog, not searching: reorderable list (mixed items or songs)
+    // When !canEdit, use SliverList instead of SliverReorderableList
     final useItems = state.items.isNotEmpty;
     final itemCount = useItems ? state.items.length : displaySongs.length;
+
+    Widget itemBuilder(BuildContext context, int index) {
+      if (useItems) {
+        final item = state.items[index];
+
+        // Special item (set break / pause)
+        if (item.isSpecial) {
+          final isNewlyInserted = state.newlyInsertedItemId == item.id;
+
+          Widget card = Dismissible(
+            key: Key('dismiss_special_${item.id}'),
+            direction:
+                canEdit ? DismissDirection.endToStart : DismissDirection.none,
+            dismissThresholds: const {
+              DismissDirection.endToStart: 0.4,
+            },
+            confirmDismiss: (_) => _confirmDeleteSpecialItem(item),
+            movementDuration: AppDurations.medium,
+            background: const SizedBox.shrink(),
+            secondaryBackground: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: Spacing.space24),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Delete',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(width: Spacing.space8),
+                  Icon(Icons.delete_outline_rounded,
+                      color: Colors.white, size: 22),
+                ],
+              ),
+            ),
+            child: SpecialItemCard(
+              item: item,
+              index: index,
+              isDraggable: canEdit,
+              onTap: canEdit ? () => _handleEditSpecialItem(item) : null,
+              onDelete: canEdit ? () => _handleDeleteSpecialItem(item) : null,
+            ),
+          );
+
+          // Entry animation for newly inserted items
+          if (isNewlyInserted) {
+            card = _SlideInEntry(
+              onComplete: () => ref
+                  .read(setlistDetailProvider.notifier)
+                  .clearNewlyInsertedItemId(),
+              child: card,
+            );
+          }
+
+          return Padding(
+            key: ValueKey(item.listKey),
+            padding: const EdgeInsets.only(bottom: Spacing.space12),
+            child: card,
+          );
+        }
+
+        // Song item — delegate to ReorderableSongCard
+        final song = item.song!;
+        return Padding(
+          key: ValueKey(item.listKey),
+          padding: const EdgeInsets.only(bottom: Spacing.space12),
+          child: Dismissible(
+            key: Key('dismiss_song_${song.id}'),
+            direction:
+                canEdit ? DismissDirection.endToStart : DismissDirection.none,
+            dismissThresholds: const {
+              DismissDirection.endToStart: 0.4,
+            },
+            confirmDismiss: (_) => _confirmDeleteSong(song.id, song.title),
+            movementDuration: AppDurations.medium,
+            background: const SizedBox.shrink(),
+            secondaryBackground: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: Spacing.space24),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Delete',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(width: Spacing.space8),
+                  Icon(Icons.delete_outline_rounded,
+                      color: Colors.white, size: 22),
+                ],
+              ),
+            ),
+            child: ReorderableSongCard(
+              song: song,
+              index: index,
+              isDraggable: canEdit,
+              onTap: () => _handleSongTap(song, readOnly: !canEdit),
+              onLyricsView: () {
+                final lyrics = LyricsData.fromJsonString(song.lyrics);
+                showLyricsViewScreen(
+                  context,
+                  lyrics: lyrics,
+                  songId: song.id,
+                  songTitle: song.title,
+                );
+              },
+              onEdit: canEdit ? () => _handleSongTap(song) : null,
+              onDelete:
+                  canEdit ? () => _handleDelete(song.id, song.title) : null,
+              onTuningChanged: canEdit
+                  ? (tuning) => ref
+                      .read(setlistDetailProvider.notifier)
+                      .updateSongTuning(song.id, tuning)
+                  : null,
+            ),
+          ),
+        );
+      }
+
+      // Fallback: songs-only (no items loaded)
+      final song = displaySongs[index];
+      return Padding(
+        key: ValueKey(song.id),
+        padding: const EdgeInsets.only(bottom: Spacing.space12),
+        child: Dismissible(
+          key: Key('dismiss_song_${song.id}'),
+          direction:
+              canEdit ? DismissDirection.endToStart : DismissDirection.none,
+          dismissThresholds: const {
+            DismissDirection.endToStart: 0.4,
+          },
+          confirmDismiss: (_) => _confirmDeleteSong(song.id, song.title),
+          movementDuration: AppDurations.medium,
+          background: const SizedBox.shrink(),
+          secondaryBackground: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: Spacing.space24),
+            decoration: BoxDecoration(
+              color: AppColors.error,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Delete',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                SizedBox(width: Spacing.space8),
+                Icon(Icons.delete_outline_rounded,
+                    color: Colors.white, size: 22),
+              ],
+            ),
+          ),
+          child: ReorderableSongCard(
+            song: song,
+            index: index,
+            isDraggable: canEdit,
+            onTap: () => _handleSongTap(song, readOnly: !canEdit),
+            onLyricsView: () {
+              final lyrics = LyricsData.fromJsonString(song.lyrics);
+              showLyricsViewScreen(
+                context,
+                lyrics: lyrics,
+                songId: song.id,
+                songTitle: song.title,
+              );
+            },
+            onEdit: canEdit ? () => _handleSongTap(song) : null,
+            onDelete: canEdit ? () => _handleDelete(song.id, song.title) : null,
+            onTuningChanged: canEdit
+                ? (tuning) => ref
+                    .read(setlistDetailProvider.notifier)
+                    .updateSongTuning(song.id, tuning)
+                : null,
+          ),
+        ),
+      );
+    }
 
     return [
       AnimatedBuilder(
@@ -1828,236 +2050,46 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ),
             sliver: SliverOpacity(
               opacity: _sortFadeAnimation.value,
-              sliver: SliverReorderableList(
-                itemCount: itemCount,
-                onReorder: useItems ? _handleItemReorder : _handleReorder,
-                itemBuilder: (context, index) {
-                  if (useItems) {
-                    final item = state.items[index];
-
-                    // Special item (set break / pause)
-                    if (item.isSpecial) {
-                      final isNewlyInserted =
-                          state.newlyInsertedItemId == item.id;
-
-                      Widget card = Dismissible(
-                        key: Key('dismiss_special_${item.id}'),
-                        direction: DismissDirection.endToStart,
-                        dismissThresholds: const {
-                          DismissDirection.endToStart: 0.4,
-                        },
-                        confirmDismiss: (_) => _confirmDeleteSpecialItem(item),
-                        movementDuration: AppDurations.medium,
-                        background: const SizedBox.shrink(),
-                        secondaryBackground: Container(
-                          alignment: Alignment.centerRight,
-                          padding:
-                              const EdgeInsets.only(right: Spacing.space24),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius:
-                                BorderRadius.circular(Spacing.buttonRadius),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Delete',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
+              sliver: canEdit
+                  ? SliverReorderableList(
+                      itemCount: itemCount,
+                      onReorder: useItems ? _handleItemReorder : _handleReorder,
+                      itemBuilder: itemBuilder,
+                      proxyDecorator: (child, index, animation) {
+                        return AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) {
+                            final scale =
+                                Tween<double>(begin: 1.0, end: 1.02).evaluate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOut,
                               ),
-                              SizedBox(width: Spacing.space8),
-                              Icon(Icons.delete_outline_rounded,
-                                  color: Colors.white, size: 22),
-                            ],
-                          ),
-                        ),
-                        child: SpecialItemCard(
-                          item: item,
-                          index: index,
-                          isDraggable: true,
-                          onTap: () => _handleEditSpecialItem(item),
-                          onDelete: () => _handleDeleteSpecialItem(item),
-                        ),
-                      );
-
-                      // Entry animation for newly inserted items
-                      if (isNewlyInserted) {
-                        card = _SlideInEntry(
-                          onComplete: () => ref
-                              .read(setlistDetailProvider.notifier)
-                              .clearNewlyInsertedItemId(),
-                          child: card,
-                        );
-                      }
-
-                      return Padding(
-                        key: ValueKey(item.listKey),
-                        padding: const EdgeInsets.only(bottom: Spacing.space12),
-                        child: card,
-                      );
-                    }
-
-                    // Song item — delegate to ReorderableSongCard
-                    final song = item.song!;
-                    return Padding(
-                      key: ValueKey(item.listKey),
-                      padding: const EdgeInsets.only(bottom: Spacing.space12),
-                      child: Dismissible(
-                        key: Key('dismiss_song_${song.id}'),
-                        direction: DismissDirection.endToStart,
-                        dismissThresholds: const {
-                          DismissDirection.endToStart: 0.4,
-                        },
-                        confirmDismiss: (_) =>
-                            _confirmDeleteSong(song.id, song.title),
-                        movementDuration: AppDurations.medium,
-                        background: const SizedBox.shrink(),
-                        secondaryBackground: Container(
-                          alignment: Alignment.centerRight,
-                          padding:
-                              const EdgeInsets.only(right: Spacing.space24),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius:
-                                BorderRadius.circular(Spacing.buttonRadius),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Delete',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                            );
+                            return Transform.scale(
+                              scale: scale,
+                              child: Material(
+                                color: Colors.transparent,
+                                elevation: 8,
+                                shadowColor:
+                                    Colors.black.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(
+                                  Spacing.buttonRadius,
                                 ),
+                                child: child,
                               ),
-                              SizedBox(width: Spacing.space8),
-                              Icon(Icons.delete_outline_rounded,
-                                  color: Colors.white, size: 22),
-                            ],
-                          ),
-                        ),
-                        child: ReorderableSongCard(
-                          song: song,
-                          index: index,
-                          isDraggable: true,
-                          onTap: () => _handleSongTap(song),
-                          onLyricsView: () {
-                            final lyrics =
-                                LyricsData.fromJsonString(song.lyrics);
-                            showLyricsViewScreen(
-                              context,
-                              lyrics: lyrics,
-                              songId: song.id,
-                              songTitle: song.title,
                             );
                           },
-                          onEdit: () => _handleSongTap(song),
-                          onDelete: () => _handleDelete(song.id, song.title),
-                          onTuningChanged: (tuning) => ref
-                              .read(setlistDetailProvider.notifier)
-                              .updateSongTuning(song.id, tuning),
-                        ),
-                      ),
-                    );
-                  }
-
-                  // Fallback: songs-only (no items loaded)
-                  final song = displaySongs[index];
-                  return Padding(
-                    key: ValueKey(song.id),
-                    padding: const EdgeInsets.only(bottom: Spacing.space12),
-                    child: Dismissible(
-                      key: Key('dismiss_song_${song.id}'),
-                      direction: DismissDirection.endToStart,
-                      dismissThresholds: const {
-                        DismissDirection.endToStart: 0.4,
+                          child: child,
+                        );
                       },
-                      confirmDismiss: (_) =>
-                          _confirmDeleteSong(song.id, song.title),
-                      movementDuration: AppDurations.medium,
-                      background: const SizedBox.shrink(),
-                      secondaryBackground: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: Spacing.space24),
-                        decoration: BoxDecoration(
-                          color: AppColors.error,
-                          borderRadius:
-                              BorderRadius.circular(Spacing.buttonRadius),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Delete',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            SizedBox(width: Spacing.space8),
-                            Icon(Icons.delete_outline_rounded,
-                                color: Colors.white, size: 22),
-                          ],
-                        ),
-                      ),
-                      child: ReorderableSongCard(
-                        song: song,
-                        index: index,
-                        isDraggable: true,
-                        onTap: () => _handleSongTap(song),
-                        onLyricsView: () {
-                          final lyrics = LyricsData.fromJsonString(song.lyrics);
-                          showLyricsViewScreen(
-                            context,
-                            lyrics: lyrics,
-                            songId: song.id,
-                            songTitle: song.title,
-                          );
-                        },
-                        onEdit: () => _handleSongTap(song),
-                        onDelete: () => _handleDelete(song.id, song.title),
-                        onTuningChanged: (tuning) => ref
-                            .read(setlistDetailProvider.notifier)
-                            .updateSongTuning(song.id, tuning),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        itemBuilder,
+                        childCount: itemCount,
                       ),
                     ),
-                  );
-                },
-                proxyDecorator: (child, index, animation) {
-                  return AnimatedBuilder(
-                    animation: animation,
-                    builder: (context, child) {
-                      final scale =
-                          Tween<double>(begin: 1.0, end: 1.02).evaluate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOut,
-                        ),
-                      );
-                      return Transform.scale(
-                        scale: scale,
-                        child: Material(
-                          color: Colors.transparent,
-                          elevation: 8,
-                          shadowColor: Colors.black.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(
-                            Spacing.buttonRadius,
-                          ),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: child,
-                  );
-                },
-              ),
             ),
           );
         },

@@ -9,6 +9,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
 import 'models/bulk_song_row.dart';
@@ -660,6 +661,29 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
   @override
   Widget build(BuildContext context) {
+    // RBAC: Permission guard — bounce back if user cannot create setlists
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canCreate = permissionsAsync.when(
+      data: (p) => p.canCreateSetlists,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+    if (!canCreate) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pop();
+          showAppSnackBar(
+            context,
+            message: '🎸 You don\'t have permission to create setlists.',
+          );
+        }
+      });
+      return const Scaffold(
+        backgroundColor: AppColors.scaffoldBg,
+        body: SizedBox.shrink(),
+      );
+    }
+
     // Show creating state
     if (_isCreating) {
       return Scaffold(

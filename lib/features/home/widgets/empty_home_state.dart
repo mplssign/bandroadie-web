@@ -165,28 +165,36 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
 
                 const SizedBox(height: 17),
 
-                // Quick actions
-                _buildAnimatedSection(
-                  3,
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SectionHeader(title: 'Quick Actions'),
-                      const SizedBox(height: Spacing.space16),
-                      QuickActionsRow(
-                        onScheduleRehearsal: widget.onScheduleRehearsal,
-                        onCreateGig: widget.onCreateGig,
-                        onCreateSetlist: widget.onCreateSetlist,
-                        onBlockOut: widget.onBlockOut,
-                      ),
-                    ],
+                // Quick actions (only shown when at least one action is available)
+                if (widget.onScheduleRehearsal != null ||
+                    widget.onCreateGig != null ||
+                    widget.onCreateSetlist != null ||
+                    widget.onBlockOut != null)
+                  _buildAnimatedSection(
+                    3,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SectionHeader(title: 'Quick Actions'),
+                        const SizedBox(height: Spacing.space16),
+                        QuickActionsRow(
+                          onScheduleRehearsal: widget.onScheduleRehearsal,
+                          onCreateGig: widget.onCreateGig,
+                          onCreateSetlist: widget.onCreateSetlist,
+                          onBlockOut: widget.onBlockOut,
+                          showCreateGig: widget.onCreateGig != null,
+                          showCreateSetlist: widget.onCreateSetlist != null,
+                          showScheduleRehearsal:
+                              widget.onScheduleRehearsal != null,
+                          showBlockOut: widget.onBlockOut != null,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
                 // Bottom padding for nav bar (extra space to scroll past)
                 SizedBox(
-                  height:
-                      Spacing.space48 +
+                  height: Spacing.space48 +
                       Spacing.bottomNavHeight +
                       MediaQuery.of(context).padding.bottom +
                       32, // Extra scroll clearance

@@ -17,6 +17,7 @@ import '../gigs/gig_controller.dart';
 import '../gigs/gig_response_repository.dart';
 import '../gigs/potential_gig_prompt_service.dart';
 import '../members/members_controller.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
@@ -75,11 +76,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: AppCurves.slideIn,
-          ),
-        );
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: AppCurves.slideIn,
+      ),
+    );
 
     // Start entrance animation
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -172,18 +173,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
 
-      ref
-          .read(potentialGigPromptProvider.notifier)
-          .checkAndShowPendingPrompts(
-            context,
-            onResponseSubmitted: () {
-              // Refresh gig data after user responds.
-              // Response summaries auto-refresh via potentialGigResponseSummariesProvider
-              // which watches gigProvider - no manual invalidation needed here.
-              ref.read(gigProvider.notifier).refresh();
-              ref.invalidate(potentialGigResponseSummariesProvider);
-            },
-          );
+      ref.read(potentialGigPromptProvider.notifier).checkAndShowPendingPrompts(
+        context,
+        onResponseSubmitted: () {
+          // Refresh gig data after user responds.
+          // Response summaries auto-refresh via potentialGigResponseSummariesProvider
+          // which watches gigProvider - no manual invalidation needed here.
+          ref.read(gigProvider.notifier).refresh();
+          ref.invalidate(potentialGigResponseSummariesProvider);
+        },
+      );
     });
 
     // NOTE: Response summaries now load automatically via potentialGigResponseSummariesProvider
@@ -234,6 +233,15 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   }
 
   void _handleBlockOut() {
+    // RBAC: Block outs are for admins and members only
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms?.isContributor == true) return;
+
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
     BlockOutDrawer.show(
@@ -252,6 +260,17 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
   /// Open the Edit Event drawer for an existing gig
   void _openEditGigSheet(Gig gig) {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    // Allow contributors to edit potential gigs they can create
+    final canEdit = perms != null &&
+        (perms.canEditGigs || (gig.isPotential && perms.canEditPotentialGigs));
+    if (!canEdit) return;
+
     debugPrint(
       '[EditGig] Opening edit sheet for gig ${gig.id}, isMultiDate=${gig.isMultiDate}, additionalDates=${gig.additionalDates.length}',
     );
@@ -282,6 +301,15 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
   /// Open the Edit Event drawer for an existing rehearsal
   void _openEditRehearsalSheet(Rehearsal rehearsal) {
+    // Contributors cannot open the edit drawer
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms == null || !perms.canEditGigs) return;
+
     final bandId = ref.read(activeBandIdProvider);
     AddEditEventBottomSheet.show(
       context,
@@ -316,6 +344,26 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final hasRehearsal = rehearsalState.hasUpcomingRehearsal;
     final activeBandId = bandState.activeBandId;
 
+    // RBAC: Watch permissions for gating quick actions
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canCreateGig = permissionsAsync.when(
+      data: (perms) => perms.canCreateGigs,
+      loading: () => false, // Fail-closed — hide until permissions resolve
+      error: (_, __) => false,
+    );
+    final canCreateSetlist = permissionsAsync.when(
+      data: (perms) => perms.canCreateSetlists,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+    // NOTE: canCreateGig/canCreateSetlist are passed to _buildContentState below
+
+    final isContributor = permissionsAsync.when(
+      data: (perms) => perms.isContributor,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
     // Watch response summaries for potential gigs - this is the source of truth
     // for availability counts displayed on the PotentialGigCard.
     // The provider auto-refreshes when gigs/band change, and is invalidated
@@ -326,10 +374,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     // Use .when() pattern to safely extract value, defaulting to empty map while loading/error
     final Map<String, GigResponseSummary> responseSummaries =
         responseSummariesAsync.when(
-          data: (summaries) => summaries,
-          loading: () => {},
-          error: (_, __) => {},
-        );
+      data: (summaries) => summaries,
+      loading: () => {},
+      error: (_, __) => {},
+    );
 
     // Watch display band for header avatar (shows draft during editing)
     final displayBand = ref.watch(displayBandProvider);
@@ -339,8 +387,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final gigsForCurrentBand = gigState.loadedBandId == activeBandId;
     final rehearsalsForCurrentBand =
         rehearsalState.loadedBandId == activeBandId;
-    final dataIsStale =
-        activeBandId != null &&
+    final dataIsStale = activeBandId != null &&
         (!gigsForCurrentBand || !rehearsalsForCurrentBand);
 
     // Determine which state widget to show
@@ -375,15 +422,20 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         localImageFile: draftLocalImage,
         onMenuTap: _openDrawer,
         onAvatarTap: _openBandSwitcher,
-        onScheduleRehearsal: () => _openAddEventSheet(EventType.rehearsal),
-        onCreateGig: () => _openAddEventSheet(EventType.gig),
-        onCreateSetlist: () {
-          // Use custom fade+slide transition for smooth navigation
-          Navigator.of(
-            context,
-          ).push(fadeSlideRoute(page: const NewSetlistScreen()));
-        },
-        onBlockOut: _handleBlockOut,
+        onScheduleRehearsal: isContributor
+            ? null
+            : () => _openAddEventSheet(EventType.rehearsal),
+        onCreateGig:
+            canCreateGig ? () => _openAddEventSheet(EventType.gig) : null,
+        onCreateSetlist: canCreateSetlist
+            ? () {
+                // Use custom fade+slide transition for smooth navigation
+                Navigator.of(
+                  context,
+                ).push(fadeSlideRoute(page: const NewSetlistScreen()));
+              }
+            : null,
+        onBlockOut: isContributor ? null : _handleBlockOut,
       );
     } else if (gigState.error != null && gigsForCurrentBand) {
       // Only show error if it's for the current band
@@ -402,6 +454,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         setlistsState,
         displayBand,
         responseSummaries,
+        canCreateGig: canCreateGig,
+        canCreateSetlist: canCreateSetlist,
+        isContributor: isContributor,
       );
     }
 
@@ -530,8 +585,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     MembersState membersState,
     SetlistsState setlistsState,
     Band? displayBand,
-    Map<String, GigResponseSummary> responseSummaries,
-  ) {
+    Map<String, GigResponseSummary> responseSummaries, {
+    required bool canCreateGig,
+    required bool canCreateSetlist,
+    required bool isContributor,
+  }) {
     final activeBand = bandState.activeBand;
     final upcomingGig = gigState.nextConfirmedGig;
     final nextRehearsal = rehearsalState.nextRehearsal;
@@ -568,8 +626,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                     // Top padding for app bar
                     SliverToBoxAdapter(
                       child: SizedBox(
-                        height:
-                            Spacing.appBarHeight +
+                        height: Spacing.appBarHeight +
                             MediaQuery.of(context).padding.top,
                       ),
                     ),
@@ -630,8 +687,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                               setlistName: setlistName,
                                               onTap: () =>
                                                   _openEditRehearsalSheet(
-                                                    nextRehearsal,
-                                                  ),
+                                                nextRehearsal,
+                                              ),
                                             );
                                           },
                                         )
@@ -640,10 +697,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                           subtitle:
                                               'The stage is empty and the amps are cold.',
                                           buttonLabel: 'Schedule Rehearsal',
-                                          onButtonPressed: () =>
-                                              _openAddEventSheet(
-                                                EventType.rehearsal,
-                                              ),
+                                          onButtonPressed: isContributor
+                                              ? null
+                                              : () => _openAddEventSheet(
+                                                    EventType.rehearsal,
+                                                  ),
                                         ),
                                 ),
 
@@ -659,37 +717,72 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                           subtitle:
                                               'The world clearly isn\'t ready yet.',
                                           buttonLabel: 'Create Gig',
-                                          onButtonPressed: () =>
-                                              _openAddEventSheet(EventType.gig),
+                                          onButtonPressed: canCreateGig
+                                              ? () => _openAddEventSheet(
+                                                  EventType.gig)
+                                              : null,
                                         ),
                                 ),
 
-                                // Quick actions
-                                const SectionHeader(title: 'Quick Actions'),
-                                const SizedBox(height: Spacing.space16),
-                                _AnimatedCardEntrance(
-                                  delay: const Duration(milliseconds: 240),
-                                  child: QuickActionsRow(
-                                    onScheduleRehearsal: () =>
-                                        _openAddEventSheet(EventType.rehearsal),
-                                    onCreateGig: () =>
-                                        _openAddEventSheet(EventType.gig),
-                                    onCreateSetlist: () {
-                                      // Use custom fade+slide transition
-                                      Navigator.of(context).push(
-                                        fadeSlideRoute(
-                                          page: const NewSetlistScreen(),
+                                // Quick actions (hidden for contributors)
+                                // Quick actions - show section if at least one action button is visible
+                                Builder(builder: (context) {
+                                  final showRehearsal = !isContributor;
+                                  final showBlockOut = !isContributor;
+                                  final hasAnyButton = showRehearsal ||
+                                      canCreateSetlist ||
+                                      canCreateGig ||
+                                      showBlockOut;
+                                  if (!hasAnyButton) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SectionHeader(
+                                          title: 'Quick Actions'),
+                                      const SizedBox(height: Spacing.space16),
+                                      _AnimatedCardEntrance(
+                                        delay:
+                                            const Duration(milliseconds: 240),
+                                        child: QuickActionsRow(
+                                          onScheduleRehearsal: showRehearsal
+                                              ? () => _openAddEventSheet(
+                                                    EventType.rehearsal,
+                                                  )
+                                              : null,
+                                          onCreateGig: canCreateGig
+                                              ? () => _openAddEventSheet(
+                                                  EventType.gig)
+                                              : null,
+                                          onCreateSetlist: canCreateSetlist
+                                              ? () {
+                                                  // Use custom fade+slide transition
+                                                  Navigator.of(context).push(
+                                                    fadeSlideRoute(
+                                                      page:
+                                                          const NewSetlistScreen(),
+                                                    ),
+                                                  );
+                                                }
+                                              : null,
+                                          onBlockOut: showBlockOut
+                                              ? _handleBlockOut
+                                              : null,
+                                          showCreateGig: canCreateGig,
+                                          showCreateSetlist: canCreateSetlist,
+                                          showScheduleRehearsal: showRehearsal,
+                                          showBlockOut: showBlockOut,
                                         ),
-                                      );
-                                    },
-                                    onBlockOut: _handleBlockOut,
-                                  ),
-                                ),
+                                      ),
+                                    ],
+                                  );
+                                }),
 
                                 // Bottom padding for nav bar (extra space to scroll past)
                                 SizedBox(
-                                  height:
-                                      Spacing.space48 +
+                                  height: Spacing.space48 +
                                       Spacing.bottomNavHeight +
                                       MediaQuery.of(context).padding.bottom +
                                       32, // Extra scroll clearance

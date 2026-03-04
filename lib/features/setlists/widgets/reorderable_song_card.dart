@@ -336,20 +336,22 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
 
           // ================================================
           // 3. EDIT ICON - third element, evenly spaced
+          //    Hidden when onEdit is null (read-only mode)
           // ================================================
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              iconSize: 20,
-              onPressed: widget.onEdit,
-              icon: Icon(
-                Icons.edit_outlined,
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
+          if (widget.onEdit != null)
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                iconSize: 20,
+                onPressed: widget.onEdit,
+                icon: Icon(
+                  Icons.edit_outlined,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                ),
               ),
             ),
-          ),
 
           // ================================================
           // 4. TUNING - anchors to right (aligns with delete)
@@ -391,11 +393,38 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
 
   /// Builds the tuning badge with micro-interaction on tap
   /// NO border - filled background only, pill shape
+  /// When onTuningChanged is null, renders as non-interactive label
   Widget _buildTuningBadge() {
     final tuning = widget.song.tuning;
     final shortLabel = tuningShortLabel(tuning);
     final bgColor = tuningBadgeColor(tuning);
     final textColor = tuningBadgeTextColor(bgColor);
+
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space12,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: bgColor,
+        // NO border - filled background only
+        borderRadius: BorderRadius.circular(100), // Pill shape
+      ),
+      child: Text(
+        shortLabel,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+          height: 1,
+        ),
+      ),
+    );
+
+    // Non-interactive label when onTuningChanged is null (read-only)
+    if (widget.onTuningChanged == null) {
+      return badge;
+    }
 
     return GestureDetector(
       onTap: _isSaving ? null : _selectTuning,
@@ -405,26 +434,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
         builder: (context, value, child) {
           return Transform.scale(scale: value, child: child);
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.space12,
-            vertical: 6,
-          ),
-          decoration: BoxDecoration(
-            color: bgColor,
-            // NO border - filled background only
-            borderRadius: BorderRadius.circular(100), // Pill shape
-          ),
-          child: Text(
-            shortLabel,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-              height: 1,
-            ),
-          ),
-        ),
+        child: badge,
       ),
     );
   }

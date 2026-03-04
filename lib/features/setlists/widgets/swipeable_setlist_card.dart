@@ -52,10 +52,20 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
 
   @override
   Widget build(BuildContext context) {
+    // If both action callbacks are null (read-only mode), disable all swipe
+    final bool isReadOnly =
+        widget.onDeleteConfirmed == null && widget.onDuplicateConfirmed == null;
+
     // Catalog setlist can only be duplicated (swipe right), never deleted
-    final swipeDirection = widget.setlist.isCatalog
-        ? DismissDirection.startToEnd // Only allow swipe right (duplicate)
-        : DismissDirection.horizontal; // Allow both directions
+    final DismissDirection swipeDirection;
+    if (isReadOnly) {
+      swipeDirection = DismissDirection.none;
+    } else if (widget.setlist.isCatalog) {
+      swipeDirection =
+          DismissDirection.startToEnd; // Only allow swipe right (duplicate)
+    } else {
+      swipeDirection = DismissDirection.horizontal; // Allow both directions
+    }
 
     return Dismissible(
       key: Key('swipeable_setlist_${widget.setlist.id}'),

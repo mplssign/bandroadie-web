@@ -19,6 +19,7 @@ import '../../gigs/gig_controller.dart';
 import '../../gigs/gig_response_repository.dart';
 import '../../members/members_controller.dart';
 import '../../members/member_vm.dart';
+import '../../members/permissions/band_permissions_provider.dart';
 import '../../rehearsals/rehearsal_controller.dart';
 import '../../setlists/models/setlist.dart';
 import '../../setlists/new_setlist_screen.dart';
@@ -72,6 +73,10 @@ class EventEditorDrawer extends ConsumerStatefulWidget {
   /// Callback when editor is cancelled
   final VoidCallback? onCancelled;
 
+  /// When true, all form fields are non-interactive and save/delete are hidden.
+  /// Used for contributors who can view but not edit events.
+  final bool viewOnly;
+
   const EventEditorDrawer({
     super.key,
     this.mode = EventEditorMode.create,
@@ -82,6 +87,7 @@ class EventEditorDrawer extends ConsumerStatefulWidget {
     required this.bandId,
     this.onSaved,
     this.onCancelled,
+    this.viewOnly = false,
   });
 
   @override
@@ -122,6 +128,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   // Empty set means all members are required (default).
   bool _isPotentialGig = false;
   Set<String> _selectedMemberIds = {};
+
+  // RBAC: If true, contributor can only create potential gigs (toggle locked on)
+  bool _forcePotentialOnly = false;
 
   // Multi-date state for potential gigs
   bool _isMultiDate = false;
@@ -247,6 +256,22 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(membersProvider.notifier).loadMembers(widget.bandId);
       _loadLocationSuggestions();
+
+      // RBAC: If contributor with potential-only permission, force potential gig mode
+      if (widget.mode == EventEditorMode.create &&
+          _eventType == EventType.gig) {
+        final permissionsAsync = ref.read(currentUserPermissionsProvider);
+        permissionsAsync.whenData((perms) {
+          if (perms.canCreatePotentialGigsOnly && mounted) {
+            setState(() {
+              _isPotentialGig = true;
+              _forcePotentialOnly = true;
+            });
+            // Pre-select all members so validation passes
+            _preSelectAllMembersForPotentialGig();
+          }
+        });
+      }
 
       // Load current user's RSVP response and all member availability for potential gig in edit mode
       if (widget.mode == EventEditorMode.edit &&
@@ -925,6 +950,34 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _handleSave() async {
+    // RBAC self-defense: block save if viewOnly or insufficient permissions
+    if (widget.viewOnly) return;
+    final savePermsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = savePermsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms != null) {
+      if (widget.mode == EventEditorMode.create && !perms.canCreateGigs) {
+        if (mounted) {
+          showAppSnackBar(context,
+              message: '🎸 You don\'t have permission to create events.');
+        }
+        return;
+      }
+      if (widget.mode == EventEditorMode.edit && !perms.canEditGigs) {
+        // Allow contributors to save edits to potential gigs
+        if (!(_isPotentialGig && perms.canEditPotentialGigs)) {
+          if (mounted) {
+            showAppSnackBar(context,
+                message: '🎸 You don\'t have permission to edit events.');
+          }
+          return;
+        }
+      }
+    }
+
     // Clear previous errors
     setState(() {
       _errorMessage = null;
@@ -1177,6 +1230,25 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Future<void> _handleDelete({required bool deleteEntireSeries}) async {
     if (widget.existingEventId == null) return;
 
+    // RBAC self-defense: block delete if viewOnly or insufficient permissions
+    if (widget.viewOnly) return;
+    final deletePermsAsync = ref.read(currentUserPermissionsProvider);
+    final deletePerms = deletePermsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (deletePerms != null && !deletePerms.canDeleteGigs) {
+      // Allow contributors to delete potential gigs they can edit
+      if (!(_isPotentialGig && deletePerms.canEditPotentialGigs)) {
+        if (mounted) {
+          showAppSnackBar(context,
+              message: '🎸 You don\'t have permission to delete events.');
+        }
+        return;
+      }
+    }
+
     setState(() {
       _isDeleting = true;
       _errorMessage = null;
@@ -1313,9 +1385,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               children: [
                 Expanded(
                   child: Text(
-                    widget.mode == EventEditorMode.edit
-                        ? 'Edit ${_eventType.displayName}'
-                        : 'Add Event',
+                    widget.viewOnly
+                        ? '${_eventType.displayName} Details'
+                        : widget.mode == EventEditorMode.edit
+                            ? 'Edit ${_eventType.displayName}'
+                            : 'Add Event',
                     style: AppTextStyles.title3,
                   ),
                 ),
@@ -1346,125 +1420,135 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
           // Scrollable content
           Flexible(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: Spacing.pagePadding,
-                right: Spacing.pagePadding,
-                bottom: bottomPadding + safeBottom + 100,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Error banner
-                  if (_errorMessage != null) ...[
-                    _buildErrorBanner(),
-                    const SizedBox(height: Spacing.space16),
-                  ],
-
-                  // 1. Event Type Toggle
-                  _buildEventTypeToggle(),
-
-                  const SizedBox(height: Spacing.space20),
-
-                  // Gig name field (only for gigs) - with autocomplete
-                  if (_eventType == EventType.gig) ...[
-                    _buildGigNameAutocomplete(),
-                    const SizedBox(height: Spacing.space16),
-
-                    // Potential Gig Section - wrapped with optional rose border
-                    _buildPotentialGigContainer(),
-
-                    const SizedBox(height: Spacing.space12),
-                  ],
-
-                  // 2. Date Picker
-                  _buildDatePicker(),
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // 3. Start Time Selectors
-                  _buildTimeSelector(),
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // 4. Duration Toggles (4x2 grid)
-                  _buildDurationSelector(),
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // 5. Location/City Input (context-aware label)
-                  // Rehearsals get autocomplete from past locations
-                  // Gigs get autocomplete from past cities
-                  _eventType == EventType.rehearsal
-                      ? _buildLocationAutocomplete()
-                      : _buildGigCityAutocomplete(),
-
-                  // 5.5 Load-in Time (gigs only, optional)
-                  if (_eventType == EventType.gig) ...[
-                    const SizedBox(height: Spacing.space16),
-                    _buildLoadInTimeSelector(),
-                  ],
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // 6. Setlist Selector (optional for both gigs and rehearsals)
-                  _buildSetlistSelector(),
-
-                  // 7. Gig Pay (gigs only, optional)
-                  if (_eventType == EventType.gig) ...[
-                    const SizedBox(height: Spacing.space16),
-                    _buildGigPayField(),
-                  ],
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // Notes (optional)
-                  _buildTextField(
-                    label: 'Notes (optional)',
-                    controller: _notesController,
-                    hint: 'Any additional details...',
-                    maxLines: 3,
+            child: AbsorbPointer(
+              absorbing: widget.viewOnly,
+              child: Opacity(
+                opacity: widget.viewOnly ? 0.7 : 1.0,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: Spacing.pagePadding,
+                    right: Spacing.pagePadding,
+                    bottom: bottomPadding + safeBottom + 100,
                   ),
-                  FieldHint(
-                    text: "Optional — visible only to band members.",
-                    controller: _notesHintController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Error banner
+                      if (_errorMessage != null) ...[
+                        _buildErrorBanner(),
+                        const SizedBox(height: Spacing.space16),
+                      ],
+
+                      // 1. Event Type Toggle
+                      _buildEventTypeToggle(),
+
+                      const SizedBox(height: Spacing.space20),
+
+                      // Gig name field (only for gigs) - with autocomplete
+                      if (_eventType == EventType.gig) ...[
+                        _buildGigNameAutocomplete(),
+                        const SizedBox(height: Spacing.space16),
+
+                        // Potential Gig Section - wrapped with optional rose border
+                        _buildPotentialGigContainer(),
+
+                        const SizedBox(height: Spacing.space12),
+                      ],
+
+                      // 2. Date Picker
+                      _buildDatePicker(),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 3. Start Time Selectors
+                      _buildTimeSelector(),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 4. Duration Toggles (4x2 grid)
+                      _buildDurationSelector(),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 5. Location/City Input (context-aware label)
+                      // Rehearsals get autocomplete from past locations
+                      // Gigs get autocomplete from past cities
+                      _eventType == EventType.rehearsal
+                          ? _buildLocationAutocomplete()
+                          : _buildGigCityAutocomplete(),
+
+                      // 5.5 Load-in Time (gigs only, optional)
+                      if (_eventType == EventType.gig) ...[
+                        const SizedBox(height: Spacing.space16),
+                        _buildLoadInTimeSelector(),
+                      ],
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 6. Setlist Selector (optional for both gigs and rehearsals)
+                      _buildSetlistSelector(),
+
+                      // 7. Gig Pay (gigs only, optional)
+                      if (_eventType == EventType.gig) ...[
+                        const SizedBox(height: Spacing.space16),
+                        _buildGigPayField(),
+                      ],
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // Notes (optional)
+                      _buildTextField(
+                        label: 'Notes (optional)',
+                        controller: _notesController,
+                        hint: 'Any additional details...',
+                        maxLines: 3,
+                      ),
+                      FieldHint(
+                        text: "Optional — visible only to band members.",
+                        controller: _notesHintController,
+                      ),
+
+                      const SizedBox(height: Spacing.space20),
+
+                      // 6. Recurring Toggle (rehearsals only - gigs don't recur)
+                      if (_eventType == EventType.rehearsal) ...[
+                        _buildRecurringToggle(),
+
+                        // 7. Recurring Section (animated with slide + fade)
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
+                          alignment: Alignment.topCenter,
+                          child: _isRecurring
+                              ? SlideTransition(
+                                  position: _recurringSlideAnimation,
+                                  child: FadeTransition(
+                                    opacity: _recurringFadeAnimation,
+                                    child: _buildRecurringSection(),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+
+                      // Delete Event button (edit mode only, hidden in viewOnly)
+                      if (_isEditMode && !widget.viewOnly) ...[
+                        const SizedBox(height: Spacing.space24),
+                        _buildDeleteButton(),
+                      ],
+                    ],
                   ),
-
-                  const SizedBox(height: Spacing.space20),
-
-                  // 6. Recurring Toggle (rehearsals only - gigs don't recur)
-                  if (_eventType == EventType.rehearsal) ...[
-                    _buildRecurringToggle(),
-
-                    // 7. Recurring Section (animated with slide + fade)
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOut,
-                      alignment: Alignment.topCenter,
-                      child: _isRecurring
-                          ? SlideTransition(
-                              position: _recurringSlideAnimation,
-                              child: FadeTransition(
-                                opacity: _recurringFadeAnimation,
-                                child: _buildRecurringSection(),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-
-                  // Delete Event button (edit mode only)
-                  if (_isEditMode) ...[
-                    const SizedBox(height: Spacing.space24),
-                    _buildDeleteButton(),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
 
           // 8. Bottom Buttons (sticky) - Equal width
-          _buildBottomButtons(safeBottom, bottomPadding),
+          // In viewOnly mode, show a single "Close" button
+          if (widget.viewOnly)
+            _buildViewOnlyCloseButton(safeBottom, bottomPadding)
+          else
+            _buildBottomButtons(safeBottom, bottomPadding),
         ],
       ),
     );
@@ -1530,6 +1614,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     // In edit mode, the toggle is disabled to prevent type changes
     final isDisabled = _isEditMode || _isSaving;
 
+    // RBAC: Contributors can only create gigs, not rehearsals
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final isContributor =
+        permsAsync.whenOrNull(data: (p) => p.isContributor) ?? false;
+    final availableTypes = isContributor
+        ? EventType.values.where((t) => t != EventType.rehearsal).toList()
+        : EventType.values;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1540,7 +1632,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ),
           padding: const EdgeInsets.all(4),
           child: Row(
-            children: EventType.values.map((type) {
+            children: availableTypes.map((type) {
               final isSelected = _eventType == type;
               return Expanded(
                 child: GestureDetector(
@@ -1550,6 +1642,22 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                           setState(() {
                             _eventType = type;
                           });
+                          // RBAC: Re-check potential-only when switching to gig
+                          if (type == EventType.gig &&
+                              widget.mode == EventEditorMode.create) {
+                            final permsAsync =
+                                ref.read(currentUserPermissionsProvider);
+                            permsAsync.whenData((perms) {
+                              if (perms.canCreatePotentialGigsOnly && mounted) {
+                                setState(() {
+                                  _isPotentialGig = true;
+                                  _forcePotentialOnly = true;
+                                });
+                                // Pre-select all members so validation passes
+                                _preSelectAllMembersForPotentialGig();
+                              }
+                            });
+                          }
                           HapticFeedback.selectionClick();
                         },
                   child: AnimatedContainer(
@@ -2805,7 +2913,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               ),
               Switch.adaptive(
                 value: _isPotentialGig,
-                onChanged: _isSaving ? null : _togglePotentialGig,
+                onChanged: (_isSaving || _forcePotentialOnly)
+                    ? null
+                    : _togglePotentialGig,
                 activeTrackColor: AppColors.accent,
                 thumbColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
@@ -3700,6 +3810,47 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Close button for viewOnly mode — single centered button.
+  Widget _buildViewOnlyCloseButton(double safeBottom, double keyboardHeight) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: Spacing.pagePadding,
+        right: Spacing.pagePadding,
+        top: Spacing.space12,
+        bottom: safeBottom + keyboardHeight + Spacing.space12,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        border: Border(
+          top: BorderSide(color: AppColors.borderMuted.withValues(alpha: 0.5)),
+        ),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: OutlinedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            widget.onCancelled?.call();
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.textSecondary,
+            side: const BorderSide(color: AppColors.borderMuted),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            ),
+          ),
+          child: Text(
+            'Close',
+            style: AppTextStyles.calloutEmphasized.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
       ),
     );
   }

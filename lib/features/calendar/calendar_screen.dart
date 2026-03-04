@@ -6,6 +6,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/utils/event_permission_helper.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
@@ -80,11 +81,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: AppCurves.slideIn,
-          ),
-        );
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: AppCurves.slideIn,
+      ),
+    );
 
     // Load user profile data
     _loadUserProfile();
@@ -159,15 +160,37 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
   }
 
   void _handleAddEvent() {
+    // RBAC: Check permissions before opening event editor
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms == null) return;
+    if (perms.isContributor && !perms.canCreateGigs) return;
+
+    // Contributors can only create gigs, not rehearsals
+    final eventType = perms.isContributor ? EventType.gig : EventType.rehearsal;
+
     AddEditEventBottomSheet.show(
       context,
       ref: ref,
-      initialType: EventType.rehearsal,
+      initialType: eventType,
       onSaved: _refreshCalendarData,
     );
   }
 
   void _handleBlockOut() {
+    // RBAC: Block outs are for admins and members only
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms?.isContributor == true) return;
+
     final bandId = ref.read(activeBandProvider).activeBand?.id ?? '';
     BlockOutDrawer.show(
       context,
@@ -225,7 +248,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       return;
     }
 
-    // Gigs and rehearsals: any band member can edit
+    // Gigs and rehearsals: check edit permissions
+    final editPermsAsync = ref.read(currentUserPermissionsProvider);
+    final editPerms = editPermsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    // Allow contributors to edit potential gigs they can create
+    final canEditEvent = editPerms != null &&
+        (editPerms.canEditGigs ||
+            (event.isPotentialGig && editPerms.canEditPotentialGigs));
+    if (!canEditEvent) return;
+
     AddEditEventBottomSheet.show(
       context,
       ref: ref,
@@ -242,6 +277,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     final bandState = ref.watch(activeBandProvider);
     final calendarState = ref.watch(calendarProvider);
 
+    // RBAC: Watch permissions for action button gating
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final isContributor = permissionsAsync.when(
+      data: (p) => p.isContributor,
+      loading: () => true, // Fail-closed while loading
+      error: (_, __) => true,
+    );
+    final canCreateGig = permissionsAsync.when(
+      data: (p) => p.canCreateGigs,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
     // Watch display band for header avatar (shows draft during editing)
     final displayBand = ref.watch(displayBandProvider);
     final draftLocalImage = ref.watch(draftLocalImageProvider);
@@ -253,8 +301,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       userName = '${_userFirstName ?? ''} ${_userLastName ?? ''}'.trim();
       if (userName.isEmpty) userName = 'User';
     } else {
-      userName =
-          currentUser?.userMetadata?['full_name'] as String? ??
+      userName = currentUser?.userMetadata?['full_name'] as String? ??
           currentUser?.userMetadata?['name'] as String? ??
           'User';
     }
@@ -286,7 +333,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               opacity: _fadeAnimation,
               child: SlideTransition(
                 position: _slideAnimation,
-                child: _buildContent(calendarState),
+                child: _buildContent(calendarState,
+                    isContributor: isContributor, canCreateGig: canCreateGig),
               ),
             ),
           ),
@@ -354,7 +402,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     );
   }
 
-  Widget _buildContent(CalendarState calendarState) {
+  Widget _buildContent(CalendarState calendarState,
+      {required bool isContributor, required bool canCreateGig}) {
     if (calendarState.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.accent),
@@ -403,25 +452,36 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
           const SizedBox(height: Spacing.space16),
 
           // Action buttons row
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.add_rounded,
-                  label: 'Add Event',
-                  onTap: _handleAddEvent,
+          // Admin/Member: both "Add Event" and "Block Out"
+          // Contributor with canCreateGigs: only "Create Event"
+          // Contributor without: no buttons
+          if (!isContributor) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.add_rounded,
+                    label: 'Add Event',
+                    onTap: _handleAddEvent,
+                  ),
                 ),
-              ),
-              const SizedBox(width: Spacing.space12),
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.block_rounded,
-                  label: 'Block Out',
-                  onTap: _handleBlockOut,
+                const SizedBox(width: Spacing.space12),
+                Expanded(
+                  child: _ActionButton(
+                    icon: Icons.block_rounded,
+                    label: 'Block Out',
+                    onTap: _handleBlockOut,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ] else if (canCreateGig) ...[
+            _ActionButton(
+              icon: Icons.add_rounded,
+              label: 'Create Event',
+              onTap: _handleAddEvent,
+            ),
+          ],
 
           // Subscribe to Calendar link
           const SizedBox(height: Spacing.space16),
@@ -455,8 +515,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
           // Bottom padding for nav bar (extra space to scroll past)
           SizedBox(
-            height:
-                Spacing.space48 +
+            height: Spacing.space48 +
                 Spacing.bottomNavHeight +
                 MediaQuery.of(context).padding.bottom +
                 32, // Extra scroll clearance

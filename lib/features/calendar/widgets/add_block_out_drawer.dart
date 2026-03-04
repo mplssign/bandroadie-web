@@ -7,6 +7,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../members/permissions/band_permissions_provider.dart';
 import '../block_out_repository.dart';
 import '../models/calendar_event.dart';
 
@@ -151,6 +152,23 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Future<void> _handleSave() async {
+    // RBAC self-defense: contributors cannot create/edit block outs
+    final blockOutPermsAsync = ref.read(currentUserPermissionsProvider);
+    final blockOutPerms = blockOutPermsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (blockOutPerms?.isContributor == true) {
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          message: '🎸 Block outs are for admins and members.',
+        );
+      }
+      return;
+    }
+
     // Validate
     if (_untilDate != null && _untilDate!.isBefore(_startDate)) {
       setState(() {
@@ -655,8 +673,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                     style: AppTextStyles.callout.copyWith(
                       color: value != null
                           ? (_isReadOnly
-                                ? AppColors.textSecondary
-                                : AppColors.textPrimary)
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary)
                           : AppColors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
@@ -696,9 +714,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           enabled: !_isSaving && !_isDeleting && !_isReadOnly,
           maxLines: maxLines,
           style: AppTextStyles.callout.copyWith(
-            color: _isReadOnly
-                ? AppColors.textSecondary
-                : AppColors.textPrimary,
+            color:
+                _isReadOnly ? AppColors.textSecondary : AppColors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hint,

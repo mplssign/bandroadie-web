@@ -43,6 +43,7 @@ class AddEditEventBottomSheet {
     String? existingEventId,
     EventFormData? initialData,
     VoidCallback? onSaved,
+    bool viewOnly = false,
   }) {
     // Check band context before showing
     final bandId = ref.read(activeBandIdProvider);
@@ -68,6 +69,7 @@ class AddEditEventBottomSheet {
         existingEvent: initialData,
         bandId: bandId,
         onSaved: onSaved,
+        viewOnly: viewOnly,
       ),
     );
   }

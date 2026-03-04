@@ -130,9 +130,8 @@ class MemberVM {
     final userCity = userRow?['city'] as String?;
     final userZip = userRow?['zip'] as String?;
     final birthdayStr = userRow?['birthday'] as String?;
-    final userBirthday = birthdayStr != null
-        ? DateTime.tryParse(birthdayStr)
-        : null;
+    final userBirthday =
+        birthdayStr != null ? DateTime.tryParse(birthdayStr) : null;
     final profileCompleted = userRow?['profile_completed'] as bool? ?? false;
 
     // Extract musical roles:
@@ -223,11 +222,11 @@ class MemberVM {
   /// Whether this member is active
   bool get isActive => status == 'active';
 
-  /// Whether this member has admin/owner privileges
+  /// Whether this member has admin privileges
   bool get isAdmin => bandRole == 'admin' || bandRole == 'owner';
 
-  /// Whether this member is the band owner
-  bool get isOwner => bandRole == 'owner';
+  /// Whether this member is a contributor
+  bool get isContributor => bandRole == 'contributor';
 
   @override
   String toString() =>

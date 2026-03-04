@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bandroadie/app/models/band.dart';
 import '../home/widgets/animated_bottom_nav_bar.dart' show NavTabIndex;
+import '../members/permissions/band_permissions_provider.dart';
 import '../shell/tab_provider.dart';
 import 'band_repository.dart';
 
@@ -58,9 +59,8 @@ class DraftBandState {
   }) {
     return DraftBandState(
       band: band ?? this.band,
-      localImageFile: clearLocalImage
-          ? null
-          : (localImageFile ?? this.localImageFile),
+      localImageFile:
+          clearLocalImage ? null : (localImageFile ?? this.localImageFile),
       isEditing: isEditing ?? this.isEditing,
     );
   }
@@ -316,6 +316,9 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     await _persistBandId(band.id);
     state = state.copyWith(activeBand: band);
 
+    // Force permissions to re-fetch for the new band context
+    ref.invalidate(currentUserPermissionsProvider);
+
     // Navigate to Dashboard when switching bands
     ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
   }
@@ -427,6 +430,9 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
   Future<void> reset() async {
     await _clearPersistedBandId();
     state = const ActiveBandState();
+
+    // Clear cached permissions so they don't persist across accounts
+    ref.invalidate(currentUserPermissionsProvider);
   }
 }
 
@@ -442,8 +448,8 @@ final bandRepositoryProvider = Provider<BandRepository>((ref) {
 /// Provider for the active band state
 final activeBandProvider =
     NotifierProvider<ActiveBandNotifier, ActiveBandState>(() {
-      return ActiveBandNotifier();
-    });
+  return ActiveBandNotifier();
+});
 
 /// Provider for draft band state (used during editing)
 final draftBandProvider = NotifierProvider<DraftBandNotifier, DraftBandState>(

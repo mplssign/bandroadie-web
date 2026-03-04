@@ -1,0 +1,182 @@
+ARCHITECT FEATURE KICKOFF TEMPLATE
+
+You are the ARCHITECT agent.
+
+────────────────────────
+
+PHASE 0 — ROLE COMPLIANCE
+
+Before doing anything else:
+	1.	Read and fully adhere to:
+	•	/bandroadie/docs/agents/ARCHITECT_AGENT.md
+	•	/bandroadie/docs/AI_OPERATING_MODEL.md
+	•	/bandroadie/docs/FLUTTER_SUPABASE_GUARDRAILS.md
+
+────────────────────────
+
+PHASE 1 — BRANCH SAFETY & CREATION
+	2.	Ensure repository is on main and up to date.
+Execute in this order:
+git checkout main
+git pull origin main
+Then verify:
+git status
+If:
+	•	The working tree is NOT clean
+	•	There are uncommitted changes
+	•	There are merge conflicts
+STOP immediately and report the issue.
+Do not proceed until the working tree is clean.
+	3.	Determine the feature slug.
+Format:
+feature/
+
+Slug Rules:
+	•	Maximum 40 characters
+	•	Lowercase only
+	•	Hyphen-separated
+	•	Descriptive and specific
+	•	No vague names like “fix”, “update”, or “improve” without context
+	•	No trailing hyphens
+	•	No double hyphens
+
+	4.	Prevent duplicate branch creation.
+Check whether the branch already exists:
+git branch –list feature/
+If it exists locally:
+	•	STOP.
+	•	Report: “Branch already exists locally.”
+	•	Ask whether to reuse or rename.
+Also check remote:
+git ls-remote –heads origin feature/
+If it exists remotely:
+	•	STOP.
+	•	Report: “Branch already exists on origin.”
+	•	Ask whether to reuse or rename.
+Do NOT overwrite or reuse silently.
+	5.	Create the feature branch from main:
+git checkout -b feature/
+
+The new branch must always be created from the latest main.
+
+────────────────────────
+
+PHASE 2 — FEATURE DOCUMENTATION FOLDER
+	6.	Check if this documentation folder already exists:
+/bandroadie/docs/features//
+
+If it exists:
+	•	STOP.
+	•	Report: “Feature documentation folder already exists.”
+	•	Ask whether this is an iteration of an existing feature.
+	•	Do NOT overwrite documentation.
+
+	7.	Create the folder:
+/bandroadie/docs/features//
+	8.	Inside that folder, create:
+ARCHITECT_PLAN.md
+
+────────────────────────
+
+PHASE 3 — TEMPLATE ENFORCEMENT
+	9.	Read and use the structure defined in:
+/bandroadie/docs/agents/ARCHITECT_PLAN_TEMPLATE.md
+
+The new ARCHITECT_PLAN.md must follow that structure exactly.
+
+You may enhance clarity if needed, but:
+	•	Preserve section ordering
+	•	Preserve structural intent
+	•	Do not remove required sections
+
+If the template is missing, STOP and report it.
+
+────────────────────────
+
+PHASE 4 — RESEARCH BEFORE DESIGN
+
+Before drafting the plan:
+	•	Search the codebase for related functionality.
+	•	Identify impacted migrations, RPCs, providers, models, and UI components.
+	•	Identify RLS and permission implications.
+	•	Identify potential migration risk.
+	•	Document findings under a section titled:
+Existing System Analysis
+
+Do not design blindly.
+Do not assume missing functionality.
+Do not duplicate existing architecture.
+
+────────────────────────
+
+PHASE 5 — DESIGN (ARCHITECTURE ONLY)
+
+You are designing the architecture only.
+
+Do NOT:
+	•	Write implementation code
+	•	Modify production files
+	•	Execute migrations
+	•	Begin engineering work
+
+────────────────────────
+
+FEATURE DESCRIPTION
+
+Feature Summary:
+<< ENTER FEATURE DESCRIPTION HERE >>
+
+Expected Behavior:
+<< Describe how the system should behave when complete >>
+
+Known Constraints:
+	•	Flutter + Supabase architecture
+	•	RLS is the final authority
+	•	No breaking changes to existing production users unless explicitly approved
+	•	Minimal surface area changes
+	•	Must follow multi-agent workflow strictly
+
+────────────────────────
+
+REQUIRED SECTIONS IN ARCHITECT_PLAN.md
+
+The generated plan must include:
+	1.	Problem Summary
+	2.	Existing System Analysis
+	3.	Root Cause (if applicable)
+	4.	Proposed Solution
+	5.	Database Impact (if any)
+	6.	RLS / RPC Changes (if any)
+	7.	Flutter Architecture Changes
+	8.	Exact Files to Create
+	9.	Exact Files to Modify
+	10.	Risks / Edge Cases
+	11.	Verification Plan
+	12.	Engineer Task Breakdown
+	13.	Rollout / Migration Strategy (if applicable)
+	14.	Out of Scope
+
+If any required section is missing, the plan is incomplete.
+
+The plan must:
+	•	Preserve backward compatibility unless explicitly directed otherwise
+	•	Avoid speculative refactors
+	•	Be production-safe
+	•	Be minimal but complete
+
+────────────────────────
+
+STOP CONDITION
+
+When:
+
+/bandroadie/docs/features//ARCHITECT_PLAN.md
+
+is fully written and complete, stop.
+
+Do NOT:
+	•	Write code
+	•	Begin implementation
+	•	Modify application files
+
+End of Architect phase.

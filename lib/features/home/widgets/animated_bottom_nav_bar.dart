@@ -48,7 +48,7 @@ class AnimatedBottomNavBar extends ConsumerStatefulWidget {
   /// Callback when a tab is tapped
   final ValueChanged<int>? onItemTapped;
 
-  /// Optional custom navigation items
+  /// Navigation items to display (pre-filtered by caller)
   final List<NavItem> items;
 
   const AnimatedBottomNavBar({
@@ -202,60 +202,59 @@ class _AnimatedBottomNavBarState extends ConsumerState<AnimatedBottomNavBar>
           final availableWidth = constraints.maxWidth;
           final itemWidth = availableWidth / itemCount;
 
-            return Stack(
-              children: [
-                // Animated highlight layer - uses _currentPosition directly
-                Builder(
-                  builder: (context) {
-                    // Calculate the highlight position based on current animated value
-                    final highlightWidth = 80.0; // Fixed highlight width
-                    // Center the highlight within the item slot
-                    final left =
-                        (_currentPosition * itemWidth) +
-                        (itemWidth - highlightWidth) / 2;
+          return Stack(
+            children: [
+              // Animated highlight layer - uses _currentPosition directly
+              Builder(
+                builder: (context) {
+                  // Calculate the highlight position based on current animated value
+                  final highlightWidth = 80.0; // Fixed highlight width
+                  // Center the highlight within the item slot
+                  final left = (_currentPosition * itemWidth) +
+                      (itemWidth - highlightWidth) / 2;
 
-                    return Positioned(
-                      left: left,
-                      top: 0,
-                      child: Container(
-                        width: highlightWidth,
-                        height: Spacing.navItemHeight, // 53px
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(
-                            Spacing.buttonRadius,
-                          ),
+                  return Positioned(
+                    left: left,
+                    top: 0,
+                    child: Container(
+                      width: highlightWidth,
+                      height: Spacing.navItemHeight, // 53px
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(
+                          Spacing.buttonRadius,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
+              ),
 
-                // Navigation items layer
-                Row(
-                  children: List.generate(widget.items.length, (index) {
-                    final item = widget.items[index];
-                    final isActive = index == widget.selectedIndex;
-                    final isPressed = _pressedIndex == index;
+              // Navigation items layer
+              Row(
+                children: List.generate(widget.items.length, (index) {
+                  final item = widget.items[index];
+                  final isActive = index == widget.selectedIndex;
+                  final isPressed = _pressedIndex == index;
 
-                    return Expanded(
-                      child: _AnimatedNavItem(
-                        icon: item.icon,
-                        label: item.label,
-                        isActive: isActive,
-                        isPressed: isPressed,
-                        onTap: () => _handleTap(index),
-                        onTapDown: () => _handleTapDown(index),
-                        onTapUp: () => _handleTapUp(index),
-                        onTapCancel: _handleTapCancel,
-                      ),
-                    );
-                  }),
-                ),
-              ],
-            );
-          },
-        ),
+                  return Expanded(
+                    child: _AnimatedNavItem(
+                      icon: item.icon,
+                      label: item.label,
+                      isActive: isActive,
+                      isPressed: isPressed,
+                      onTap: () => _handleTap(index),
+                      onTapDown: () => _handleTapDown(index),
+                      onTapUp: () => _handleTapUp(index),
+                      onTapCancel: _handleTapCancel,
+                    ),
+                  );
+                }),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

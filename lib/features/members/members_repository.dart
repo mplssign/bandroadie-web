@@ -4,6 +4,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import '../profile/user_band_roles_repository.dart';
 import 'member_vm.dart';
 import 'pending_invite_vm.dart';
+import 'permissions/contributor_permissions.dart';
 
 // ============================================================================
 // MEMBERS REPOSITORY
@@ -69,7 +70,7 @@ class MembersRepository {
   /// Creates a MembersRepository with an optional UserBandRolesRepository.
   /// If none provided, creates a new instance (for backward compatibility).
   MembersRepository({UserBandRolesRepository? userBandRolesRepo})
-    : _userBandRolesRepo = userBandRolesRepo ?? UserBandRolesRepository();
+      : _userBandRolesRepo = userBandRolesRepo ?? UserBandRolesRepository();
 
   /// Fetches all members AND pending invites for the specified band.
   ///
@@ -116,8 +117,8 @@ class MembersRepository {
         .from('band_members')
         .select('id, user_id, role, status, joined_at')
         .eq('band_id', bandId)
-        .inFilter('status', ['active', 'invited'])
-        .order('joined_at', ascending: true);
+        .inFilter('status', ['active', 'invited']).order('joined_at',
+            ascending: true);
 
     final bandMemberRows = List<Map<String, dynamic>>.from(bandMembersResponse);
     // ignore: avoid_print
@@ -182,9 +183,8 @@ class MembersRepository {
         '[MembersRepository] ⚠️ Missing users: $missingUsersCount/${userIds.length}',
       );
       // Log which user IDs are missing (truncated for privacy)
-      final missingIds = userIds
-          .where((id) => !usersById.containsKey(id))
-          .toList();
+      final missingIds =
+          userIds.where((id) => !usersById.containsKey(id)).toList();
       // ignore: avoid_print
       print(
         '[MembersRepository]   Missing user ID prefixes: ${missingIds.take(5).map((id) => id.substring(0, 8)).toList()}',
@@ -356,6 +356,72 @@ class MembersRepository {
       // ignore: avoid_print
       print('[MembersRepository] Failed to remove member: $e');
       return false;
+    }
+  }
+
+  /// Fetches contributor permissions for a specific band member.
+  ///
+  /// Returns null if no permissions row exists (defaults should be applied by caller).
+  Future<ContributorPermissions?> fetchContributorPermissions({
+    required String bandMemberId,
+  }) async {
+    if (bandMemberId.isEmpty) return null;
+
+    try {
+      final response = await supabase
+          .from('contributor_permissions')
+          .select()
+          .eq('band_member_id', bandMemberId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return ContributorPermissions.fromJson(response);
+    } catch (e) {
+      // ignore: avoid_print
+      print('[MembersRepository] Failed to fetch contributor permissions: $e');
+      return null;
+    }
+  }
+
+  /// Updates a band member's role via the update_member_role RPC.
+  ///
+  /// [memberId] - The band_members row ID of the target
+  /// [bandId] - The band ID
+  /// [newRole] - 'admin', 'member', or 'contributor'
+  /// [subPermissions] - Optional contributor sub-permissions (only for contributor role)
+  ///
+  /// Returns true if successful. Throws on permission errors.
+  Future<bool> updateMemberRole({
+    required String memberId,
+    required String bandId,
+    required String newRole,
+    ContributorPermissions? subPermissions,
+  }) async {
+    if (bandId.isEmpty || memberId.isEmpty) return false;
+
+    try {
+      final params = <String, dynamic>{
+        'p_member_id': memberId,
+        'p_band_id': bandId,
+        'p_new_role': newRole,
+        // Always pass p_sub_permissions — PostgREST requires all params
+        // for reliable function resolution, even when the DB has a DEFAULT.
+        'p_sub_permissions':
+            (subPermissions != null && newRole == 'contributor')
+                ? subPermissions.toJson()
+                : null,
+      };
+
+      await supabase.rpc('update_member_role', params: params);
+
+      // Invalidate cache for this band
+      _cache.remove(bandId);
+
+      return true;
+    } catch (e) {
+      // ignore: avoid_print
+      print('[MembersRepository] Failed to update member role: $e');
+      rethrow;
     }
   }
 

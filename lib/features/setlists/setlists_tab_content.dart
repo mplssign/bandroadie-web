@@ -11,6 +11,7 @@ import '../../components/ui/confirm_action_dialog.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import '../shell/overlay_state.dart';
 import 'models/setlist.dart';
 import 'new_setlist_screen.dart';
@@ -204,6 +205,14 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
     final displayBand = ref.watch(displayBandProvider);
     final localImageFile = ref.watch(draftLocalImageProvider);
 
+    // RBAC: Watch permissions for setlist mutation gating
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canEdit = permissionsAsync.when(
+      data: (p) => p.canEditSetlists,
+      loading: () => false, // Fail closed — no mutation flicker
+      error: (_, __) => false, // Fail closed on error
+    );
+
     // Watch setlists provider
     final setlistsState = ref.watch(setlistsProvider);
 
@@ -280,6 +289,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                     bandImageUrl,
                     localImageFile,
                     setlistsToShow,
+                    canEdit,
                   ),
       ),
     );
@@ -399,6 +409,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
     String? imageUrl,
     dynamic localImage,
     List<Setlist> setlists,
+    bool canEdit,
   ) {
     return Stack(
       children: [
@@ -437,18 +448,19 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                               'Setlists',
                               style: AppTextStyles.displayMedium,
                             ),
-                            TextButton.icon(
-                              onPressed: _navigateToCreateSetlist,
-                              icon: const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('New'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.accent,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
+                            if (canEdit)
+                              TextButton.icon(
+                                onPressed: _navigateToCreateSetlist,
+                                icon: const Icon(Icons.add_rounded, size: 18),
+                                label: const Text('New'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.accent,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -472,8 +484,10 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                         SwipeableSetlistCard(
                           setlist: setlist,
                           onTap: () => _onSetlistTap(setlist),
-                          onDeleteConfirmed: (s) => _confirmDelete(s),
-                          onDuplicateConfirmed: (s) => _confirmDuplicate(s),
+                          onDeleteConfirmed:
+                              canEdit ? (s) => _confirmDelete(s) : null,
+                          onDuplicateConfirmed:
+                              canEdit ? (s) => _confirmDuplicate(s) : null,
                         ),
                       ),
                     ),
@@ -481,61 +495,86 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                 );
               }),
 
-              // Reorderable setlist cards
+              // Setlist cards: reorderable when canEdit, static list otherwise
               SliverPadding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: Spacing.pagePadding,
                 ),
-                sliver: SliverReorderableList(
-                  itemCount: setlists.where((s) => !s.isCatalog).length,
-                  onReorder: _handleReorder,
-                  itemBuilder: (context, index) {
-                    final reorderableSetlists =
-                        setlists.where((s) => !s.isCatalog).toList();
-                    final setlist = reorderableSetlists[index];
-                    return Padding(
-                      key: ValueKey(setlist.id),
-                      padding: const EdgeInsets.only(bottom: Spacing.space12),
-                      child: SwipeableSetlistCard(
-                        setlist: setlist,
-                        index: index,
-                        isDraggable: true,
-                        onTap: () => _onSetlistTap(setlist),
-                        onDeleteConfirmed: (s) => _confirmDelete(s),
-                        onDuplicateConfirmed: (s) => _confirmDuplicate(s),
-                      ),
-                    );
-                  },
-                  proxyDecorator: (child, index, animation) {
-                    return AnimatedBuilder(
-                      animation: animation,
-                      builder: (context, child) {
-                        final scale = Tween<double>(
-                          begin: 1.0,
-                          end: 1.02,
-                        ).evaluate(
-                          CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOut,
-                          ),
-                        );
-                        return Transform.scale(
-                          scale: scale,
-                          child: Material(
-                            color: Colors.transparent,
-                            elevation: 8,
-                            shadowColor: Colors.black.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(
-                              Spacing.buttonRadius,
+                sliver: canEdit
+                    ? SliverReorderableList(
+                        itemCount: setlists.where((s) => !s.isCatalog).length,
+                        onReorder: _handleReorder,
+                        itemBuilder: (context, index) {
+                          final reorderableSetlists =
+                              setlists.where((s) => !s.isCatalog).toList();
+                          final setlist = reorderableSetlists[index];
+                          return Padding(
+                            key: ValueKey(setlist.id),
+                            padding:
+                                const EdgeInsets.only(bottom: Spacing.space12),
+                            child: SwipeableSetlistCard(
+                              setlist: setlist,
+                              index: index,
+                              isDraggable: true,
+                              onTap: () => _onSetlistTap(setlist),
+                              onDeleteConfirmed: (s) => _confirmDelete(s),
+                              onDuplicateConfirmed: (s) => _confirmDuplicate(s),
                             ),
+                          );
+                        },
+                        proxyDecorator: (child, index, animation) {
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (context, child) {
+                              final scale = Tween<double>(
+                                begin: 1.0,
+                                end: 1.02,
+                              ).evaluate(
+                                CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOut,
+                                ),
+                              );
+                              return Transform.scale(
+                                scale: scale,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  elevation: 8,
+                                  shadowColor:
+                                      Colors.black.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(
+                                    Spacing.buttonRadius,
+                                  ),
+                                  child: child,
+                                ),
+                              );
+                            },
                             child: child,
-                          ),
-                        );
-                      },
-                      child: child,
-                    );
-                  },
-                ),
+                          );
+                        },
+                      )
+                    : SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final readOnlySetlists =
+                                setlists.where((s) => !s.isCatalog).toList();
+                            final setlist = readOnlySetlists[index];
+                            return Padding(
+                              key: ValueKey(setlist.id),
+                              padding: const EdgeInsets.only(
+                                  bottom: Spacing.space12),
+                              child: SwipeableSetlistCard(
+                                setlist: setlist,
+                                onTap: () => _onSetlistTap(setlist),
+                                onDeleteConfirmed: null,
+                                onDuplicateConfirmed: null,
+                              ),
+                            );
+                          },
+                          childCount:
+                              setlists.where((s) => !s.isCatalog).length,
+                        ),
+                      ),
               ),
               SliverToBoxAdapter(
                 child: SizedBox(
