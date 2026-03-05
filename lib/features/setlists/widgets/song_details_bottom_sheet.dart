@@ -364,12 +364,18 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       selectedTuningIdOrName: _currentTuning,
     );
 
-    if (result != null && result != _currentTuning) {
-      HapticFeedback.selectionClick();
-      setState(() {
-        _currentTuning = result;
-        _hasChanges = true;
-      });
+    if (result != null) {
+      // Compose the compound tuning string (e.g. "standard_e|capo:3")
+      final newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
+          result.tuningId;
+
+      if (newTuning != _currentTuning) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _currentTuning = newTuning;
+          _hasChanges = true;
+        });
+      }
     }
   }
 
@@ -904,7 +910,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
 
   /// Builds the metrics row with BPM, Duration, and Tuning in a single row
   Widget _buildMetricsRow() {
-    final tuningOption = findTuningByIdOrName(_currentTuning);
+    // Parse capo suffix so findTuningByIdOrName sees the base tuning
+    final baseTuning =
+        parseCapoTuning(_currentTuning).tuningId ?? _currentTuning;
+    final tuningOption = findTuningByIdOrName(baseTuning);
     final tuningDisplayName =
         tuningOption?.name ?? tuningShortLabel(_currentTuning);
 

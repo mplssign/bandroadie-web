@@ -11,14 +11,14 @@ import 'custom_tuning_modal.dart';
 // Reusable guitar tuning picker with grouped sections.
 //
 // Features:
-// - Grouped by "Standard & Drop Tunings" and "Open Tunings"
+// - Grouped by "Standard & Drop Tunings", "Open Tunings", "Special Tunings"
+// - Custom Tunings section with add/delete
+// - Capo fret selector (horizontal toggle, frets 1-12)
+// - Explicit Save / Cancel (no auto-save)
 // - 2-line rows: name + string notes
 // - Rose/500 accent for selection
 // - Physics-based entrance/exit animation
 // - Micro-interactions on tap
-//
-// NOTE: Currently limited to 4 tunings supported by legacy database enum.
-// Once migration is applied, all tunings can be enabled.
 // ============================================================================
 
 // =============================================================================
@@ -44,6 +44,14 @@ class TuningGroup {
   final List<TuningOption> options;
 
   const TuningGroup({required this.title, required this.options});
+}
+
+/// Result returned by the tuning picker when saved.
+class TuningPickerResult {
+  final String tuningId;
+  final int? capoFret;
+
+  const TuningPickerResult({required this.tuningId, this.capoFret});
 }
 
 // =============================================================================
@@ -244,24 +252,30 @@ TuningOption? findTuningByIdOrName(String? idOrName) {
 
 /// Show the tuning picker bottom sheet.
 ///
-/// Returns the selected tuning's name, or null if cancelled.
+/// Returns a [TuningPickerResult] with both tuning and optional capo fret,
+/// or null if cancelled.
+///
 /// [selectedTuningIdOrName] can be either an ID (e.g., "drop_d") or
 /// a name (e.g., "Drop D") for matching the current selection.
-Future<String?> showTuningPickerBottomSheet(
+/// [selectedCapoFret] is the currently saved capo fret (1-12), or null.
+Future<TuningPickerResult?> showTuningPickerBottomSheet(
   BuildContext context, {
   required String? selectedTuningIdOrName,
+  int? selectedCapoFret,
 }) async {
   // Light haptic feedback on open
   HapticFeedback.lightImpact();
 
-  return showModalBottomSheet<String>(
+  return showModalBottomSheet<TuningPickerResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black54,
     useSafeArea: true,
-    builder: (context) =>
-        _TuningPickerSheet(selectedTuningIdOrName: selectedTuningIdOrName),
+    builder: (context) => _TuningPickerSheet(
+      selectedTuningIdOrName: selectedTuningIdOrName,
+      selectedCapoFret: selectedCapoFret,
+    ),
   );
 }
 
@@ -271,8 +285,12 @@ Future<String?> showTuningPickerBottomSheet(
 
 class _TuningPickerSheet extends StatefulWidget {
   final String? selectedTuningIdOrName;
+  final int? selectedCapoFret;
 
-  const _TuningPickerSheet({this.selectedTuningIdOrName});
+  const _TuningPickerSheet({
+    this.selectedTuningIdOrName,
+    this.selectedCapoFret,
+  });
 
   @override
   State<_TuningPickerSheet> createState() => _TuningPickerSheetState();
@@ -284,7 +302,10 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
   late Animation<double> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
+  // Temporary state — not persisted until Save
   TuningOption? _selectedOption;
+  int? _selectedCapoFret;
+
   List<TuningOption> _customTunings = [];
   bool _isLoadingCustom = true;
 
@@ -292,8 +313,14 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
   void initState() {
     super.initState();
 
-    // Find the currently selected option
-    _selectedOption = findTuningByIdOrName(widget.selectedTuningIdOrName);
+    // Parse capo from the stored tuning string (e.g. "standard_e|capo:3")
+    final parsed = parseCapoTuning(widget.selectedTuningIdOrName);
+    final baseTuningId = parsed.tuningId;
+
+    // Initialize temporary state from incoming values
+    _selectedOption = findTuningByIdOrName(baseTuningId);
+    // Explicit param takes priority, then parsed value from the string
+    _selectedCapoFret = widget.selectedCapoFret ?? parsed.capoFret;
 
     // Load custom tunings
     _loadCustomTunings();
@@ -332,11 +359,12 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     });
 
     // If selected tuning is custom, update selected option
-    if (widget.selectedTuningIdOrName != null &&
-        CustomTuningService.isCustomTuningId(widget.selectedTuningIdOrName)) {
-      final selected = _customTunings
-          .where((t) => t.id == widget.selectedTuningIdOrName)
-          .firstOrNull;
+    final baseTuningId =
+        parseCapoTuning(widget.selectedTuningIdOrName).tuningId;
+    if (baseTuningId != null &&
+        CustomTuningService.isCustomTuningId(baseTuningId)) {
+      final selected =
+          _customTunings.where((t) => t.id == baseTuningId).firstOrNull;
       if (selected != null) {
         setState(() => _selectedOption = selected);
       }
@@ -353,10 +381,14 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       // Reload custom tunings to include the new one
       await _loadCustomTunings();
 
-      // Auto-select the newly created tuning
+      // Auto-select the newly created tuning in temp state
       HapticFeedback.selectionClick();
       if (!mounted) return;
-      Navigator.of(context).pop(customTuning.id);
+      final newOption =
+          _customTunings.where((t) => t.id == customTuning.id).firstOrNull;
+      if (newOption != null) {
+        setState(() => _selectedOption = newOption);
+      }
     }
   }
 
@@ -404,6 +436,11 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       // Remove from cache
       removeCachedCustomTuning(option.id);
 
+      // If the deleted tuning was selected, clear selection
+      if (_selectedOption?.id == option.id) {
+        setState(() => _selectedOption = null);
+      }
+
       // Reload custom tunings
       await _loadCustomTunings();
     }
@@ -417,8 +454,34 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
 
   void _selectTuning(TuningOption option) {
     HapticFeedback.selectionClick();
-    // Return the ID (e.g., "drop_d") for database storage
-    Navigator.of(context).pop(option.id);
+    setState(() => _selectedOption = option);
+  }
+
+  void _selectCapoFret(int fret) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      // Toggle: tap same fret to deselect
+      if (_selectedCapoFret == fret) {
+        _selectedCapoFret = null;
+      } else {
+        _selectedCapoFret = fret;
+      }
+    });
+  }
+
+  void _handleSave() {
+    if (_selectedOption == null) return;
+    HapticFeedback.lightImpact();
+    Navigator.of(context).pop(
+      TuningPickerResult(
+        tuningId: _selectedOption!.id,
+        capoFret: _selectedCapoFret,
+      ),
+    );
+  }
+
+  void _handleCancel() {
+    Navigator.of(context).pop();
   }
 
   bool _isSelected(TuningOption option) {
@@ -437,11 +500,11 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         );
       },
       child: DraggableScrollableSheet(
-        initialChildSize: 0.65,
+        initialChildSize: 0.75,
         minChildSize: 0.4,
-        maxChildSize: 0.85,
+        maxChildSize: 0.9,
         snap: true,
-        snapSizes: const [0.4, 0.65, 0.85],
+        snapSizes: const [0.4, 0.75, 0.9],
         builder: (context, scrollController) {
           return Container(
             decoration: BoxDecoration(
@@ -466,15 +529,49 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                   thickness: 1,
                 ),
 
-                // Tuning list
+                // Scrollable tuning list + capo + buttons
                 Expanded(
-                  child: ListView.builder(
+                  child: ListView(
                     controller: scrollController,
-                    padding: const EdgeInsets.only(bottom: Spacing.space32),
-                    itemCount: _buildItemCount(),
-                    itemBuilder: (context, index) {
-                      return _buildListItem(index);
-                    },
+                    padding: EdgeInsets.zero,
+                    children: [
+                      // Preset tuning groups
+                      for (final group in tuningGroups) ...[
+                        _buildSectionHeader(group.title),
+                        for (final option in group.options)
+                          _TuningOptionRow(
+                            option: option,
+                            isSelected: _isSelected(option),
+                            onTap: () => _selectTuning(option),
+                          ),
+                      ],
+
+                      // Custom tunings section
+                      if (!_isLoadingCustom || _customTunings.isNotEmpty) ...[
+                        _buildSectionHeader('Custom Tunings'),
+                        for (final option in _customTunings)
+                          _TuningOptionRow(
+                            option: option,
+                            isSelected: _isSelected(option),
+                            onTap: () => _selectTuning(option),
+                            onDelete: () => _handleDeleteCustomTuning(option),
+                          ),
+                      ],
+
+                      // Add Custom Tuning button
+                      _buildAddCustomTuningButton(),
+
+                      // Capo section
+                      _buildSectionHeader('Capo'),
+                      _buildCapoSubtext(),
+                      _buildCapoFretSelector(),
+
+                      // Save / Cancel buttons
+                      _buildSaveButton(),
+                      _buildCancelButton(),
+
+                      const SizedBox(height: Spacing.space32),
+                    ],
                   ),
                 ),
               ],
@@ -515,7 +612,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         children: [
           Text('Select Tuning', style: AppTextStyles.title3),
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: _handleCancel,
             child: Container(
               padding: const EdgeInsets.all(Spacing.space4),
               child: const Icon(
@@ -530,81 +627,6 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     );
   }
 
-  int _buildItemCount() {
-    int count = 0;
-
-    // Preset tuning groups
-    for (final group in tuningGroups) {
-      count += 1; // Section header
-      count += group.options.length; // Options
-    }
-
-    // Custom tunings section (if any exist or still loading)
-    if (!_isLoadingCustom || _customTunings.isNotEmpty) {
-      count += 1; // "Custom Tunings" section header
-      count += _customTunings.length; // Custom tuning options
-    }
-
-    // "Add Custom Tuning" button (always shown at bottom)
-    count += 1;
-
-    return count;
-  }
-
-  Widget _buildListItem(int index) {
-    int currentIndex = 0;
-
-    // Preset tuning groups
-    for (final group in tuningGroups) {
-      // Section header
-      if (index == currentIndex) {
-        return _buildSectionHeader(group.title);
-      }
-      currentIndex++;
-
-      // Options in this group
-      for (final option in group.options) {
-        if (index == currentIndex) {
-          return _TuningOptionRow(
-            option: option,
-            isSelected: _isSelected(option),
-            onTap: () => _selectTuning(option),
-          );
-        }
-        currentIndex++;
-      }
-    }
-
-    // Custom tunings section
-    if (!_isLoadingCustom || _customTunings.isNotEmpty) {
-      // Custom tunings header
-      if (index == currentIndex) {
-        return _buildSectionHeader('Custom Tunings');
-      }
-      currentIndex++;
-
-      // Custom tuning options
-      for (final option in _customTunings) {
-        if (index == currentIndex) {
-          return _TuningOptionRow(
-            option: option,
-            isSelected: _isSelected(option),
-            onTap: () => _selectTuning(option),
-            onDelete: () => _handleDeleteCustomTuning(option),
-          );
-        }
-        currentIndex++;
-      }
-    }
-
-    // "Add Custom Tuning" button (always last)
-    if (index == currentIndex) {
-      return _buildAddCustomTuningButton();
-    }
-
-    return const SizedBox.shrink();
-  }
-
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -616,9 +638,9 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 13,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: AppColors.textMuted,
+          color: AppColors.textPrimary,
         ),
       ),
     );
@@ -628,9 +650,9 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Spacing.pagePadding,
-        Spacing.space24,
+        Spacing.space12,
         Spacing.pagePadding,
-        Spacing.space16,
+        Spacing.space4,
       ),
       child: GestureDetector(
         onTap: _handleAddCustomTuning,
@@ -663,6 +685,196 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCapoSubtext() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.pagePadding,
+        0,
+        Spacing.pagePadding,
+        Spacing.space12,
+      ),
+      child: const Text(
+        'Select fret',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: AppColors.textSecondary,
+          height: 1.3,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCapoFretSelector() {
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
+        itemCount: 12,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final fret = index + 1;
+          final isSelected = _selectedCapoFret == fret;
+          return _CapoFretButton(
+            fret: fret,
+            isSelected: isSelected,
+            onTap: () => _selectCapoFret(fret),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    final hasSelection = _selectedOption != null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.pagePadding,
+        Spacing.space24,
+        Spacing.pagePadding,
+        Spacing.space8,
+      ),
+      child: GestureDetector(
+        onTap: hasSelection ? _handleSave : null,
+        child: Container(
+          width: double.infinity,
+          height: 48,
+          decoration: BoxDecoration(
+            color: hasSelection
+                ? AppColors.accent
+                : AppColors.accent.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            'Save',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: hasSelection
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.5),
+              height: 1.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCancelButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.pagePadding,
+        0,
+        Spacing.pagePadding,
+        Spacing.space8,
+      ),
+      child: GestureDetector(
+        onTap: _handleCancel,
+        child: Container(
+          width: double.infinity,
+          height: 44,
+          alignment: Alignment.center,
+          child: const Text(
+            'Cancel',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+              height: 1.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// CAPO FRET BUTTON
+// Styled to match the birthday toggle buttons in my_profile_screen.dart
+// =============================================================================
+
+class _CapoFretButton extends StatefulWidget {
+  final int fret;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CapoFretButton({
+    required this.fret,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_CapoFretButton> createState() => _CapoFretButtonState();
+}
+
+class _CapoFretButtonState extends State<_CapoFretButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _scaleController.forward(),
+      onTapUp: (_) {
+        _scaleController.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _scaleController.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: widget.isSelected ? AppColors.accent : Colors.transparent,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color:
+                  widget.isSelected ? AppColors.accent : AppColors.borderMuted,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              widget.fret.toString(),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color:
+                    widget.isSelected ? Colors.white : AppColors.textSecondary,
+                height: 1.2,
+              ),
+            ),
           ),
         ),
       ),
