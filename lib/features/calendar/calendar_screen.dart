@@ -487,7 +487,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
           const SizedBox(height: Spacing.space16),
           Center(
             child: GestureDetector(
-              onTap: () => showCalendarSubscriptionDialog(context, ref),
+              onTap: () {
+                final activeBand = ref.read(activeBandProvider).activeBand;
+                final bandId = activeBand?.id;
+                final bandName = activeBand?.name ?? 'Band';
+                if (bandId != null) {
+                  showCalendarSubscriptionDialog(
+                    context,
+                    ref,
+                    bandId: bandId,
+                    bandName: bandName,
+                  );
+                }
+              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: Spacing.space16,

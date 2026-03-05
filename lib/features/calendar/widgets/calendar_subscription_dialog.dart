@@ -12,15 +12,30 @@ import '../calendar_subscription_service.dart';
 // ============================================================================
 
 /// Show the calendar subscription dialog
-void showCalendarSubscriptionDialog(BuildContext context, WidgetRef ref) {
+void showCalendarSubscriptionDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String bandId,
+  required String bandName,
+}) {
   showDialog(
     context: context,
-    builder: (context) => const CalendarSubscriptionDialog(),
+    builder: (context) => CalendarSubscriptionDialog(
+      bandId: bandId,
+      bandName: bandName,
+    ),
   );
 }
 
 class CalendarSubscriptionDialog extends ConsumerStatefulWidget {
-  const CalendarSubscriptionDialog({super.key});
+  final String bandId;
+  final String bandName;
+
+  const CalendarSubscriptionDialog({
+    super.key,
+    required this.bandId,
+    required this.bandName,
+  });
 
   @override
   ConsumerState<CalendarSubscriptionDialog> createState() =>
@@ -33,7 +48,9 @@ class _CalendarSubscriptionDialogState
 
   @override
   Widget build(BuildContext context) {
-    final subscriptionUrlAsync = ref.watch(calendarSubscriptionUrlProvider);
+    final subscriptionUrlAsync = ref.watch(
+      calendarBandSubscriptionUrlProvider(widget.bandId),
+    );
 
     return Dialog(
       backgroundColor: AppColors.cardBg,
@@ -113,10 +130,10 @@ class _CalendarSubscriptionDialogState
           children: [
             Icon(Icons.calendar_month, color: AppColors.accent, size: 28),
             const SizedBox(width: Spacing.space12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Subscribe to Calendar',
-                style: TextStyle(
+                'Subscribe to ${widget.bandName} Calendar',
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w600,

@@ -12,6 +12,7 @@ class Band {
   final String? imageUrl;
   final String? createdBy;
   final String avatarColor;
+  final String timezone;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +22,7 @@ class Band {
     this.imageUrl,
     this.createdBy,
     this.avatarColor = 'bg-red-600',
+    this.timezone = 'America/Chicago',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +35,7 @@ class Band {
       imageUrl: json['image_url'] as String?,
       createdBy: json['created_by'] as String?,
       avatarColor: json['avatar_color'] as String? ?? 'bg-red-600',
+      timezone: json['timezone'] as String? ?? 'America/Chicago',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -45,6 +48,7 @@ class Band {
       'image_url': imageUrl,
       'created_by': createdBy,
       'avatar_color': avatarColor,
+      'timezone': timezone,
     };
   }
 
