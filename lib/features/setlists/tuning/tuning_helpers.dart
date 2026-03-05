@@ -13,6 +13,50 @@ import '../services/custom_tuning_service.dart';
 // - tuningBadgeTextColor(Color) → readable text color for badge
 // ============================================================================
 
+// =============================================================================
+// CAPO ENCODING
+// Capo is encoded inside the tuning string as "tuningId|capo:N" (N = 1-12).
+// Existing values without "|capo:" are treated as no-capo and work exactly
+// as before — full backwards compatibility.
+// =============================================================================
+
+/// Separator used to embed capo data inside the tuning string.
+const String _capoSeparator = '|capo:';
+
+/// Parse a stored tuning value into its base tuning ID and optional capo fret.
+///
+/// Examples:
+///   'standard_e'         → ('standard_e', null)
+///   'standard_e|capo:3'  → ('standard_e', 3)
+///   'drop_d|capo:7'      → ('drop_d', 7)
+///   null                 → (null, null)
+({String? tuningId, int? capoFret}) parseCapoTuning(String? raw) {
+  if (raw == null || raw.isEmpty) return (tuningId: null, capoFret: null);
+
+  final idx = raw.indexOf(_capoSeparator);
+  if (idx == -1) return (tuningId: raw, capoFret: null);
+
+  final base = raw.substring(0, idx);
+  final fretStr = raw.substring(idx + _capoSeparator.length);
+  final fret = int.tryParse(fretStr);
+
+  // Only accept valid fret numbers 1-12
+  if (fret != null && fret >= 1 && fret <= 12) {
+    return (tuningId: base, capoFret: fret);
+  }
+  // Malformed suffix → treat as no capo
+  return (tuningId: base, capoFret: null);
+}
+
+/// Compose a stored tuning string from a tuning ID and optional capo fret.
+///
+/// If [capoFret] is null or 0, returns [tuningId] unchanged (no suffix).
+String? composeCapoTuning(String? tuningId, int? capoFret) {
+  if (tuningId == null || tuningId.isEmpty) return tuningId;
+  if (capoFret == null || capoFret < 1 || capoFret > 12) return tuningId;
+  return '$tuningId$_capoSeparator$capoFret';
+}
+
 // Cache for custom tuning names to avoid repeated async lookups
 final Map<String, String> _customTuningNameCache = {};
 
@@ -52,20 +96,31 @@ void removeCachedCustomTuning(String id) {
 ///
 /// For custom tunings, pass the custom name via [customName] parameter,
 /// or it will look up from cache. Falls back to 'Custom' if not found.
+///
+/// If the tuning contains capo data (e.g. "standard_e|capo:3") the label
+/// is formatted as "Standard • C3".  Songs without capo show just "Standard".
 String tuningShortLabel(String? tuningName, {String? customName}) {
   if (tuningName == null || tuningName.isEmpty) return 'Standard';
 
+  // Parse capo suffix before any other processing
+  final parsed = parseCapoTuning(tuningName);
+  final baseTuning = parsed.tuningId ?? tuningName;
+  final capo = parsed.capoFret;
+
   // Normalize for lookup: trim whitespace
-  final normalized = tuningName.trim();
+  final normalized = baseTuning.trim();
 
   // Check if it's a custom tuning ID (format: custom_<timestamp>)
   if (normalized.startsWith('custom_')) {
     // Use provided custom name, or look up from cache
+    String base;
     if (customName != null && customName.isNotEmpty) {
-      return customName;
+      base = customName;
+    } else {
+      final cachedName = _customTuningNameCache[normalized];
+      base = cachedName ?? 'Custom';
     }
-    final cachedName = _customTuningNameCache[normalized];
-    return cachedName ?? 'Custom';
+    return capo != null ? '$base • C$capo' : base;
   }
 
   // Short label mapping
@@ -134,7 +189,8 @@ String tuningShortLabel(String? tuningName, {String? customName}) {
     'custom': 'Custom',
   };
 
-  return shortLabels[normalized] ?? normalized;
+  final baseLabel = shortLabels[normalized] ?? normalized;
+  return capo != null ? '$baseLabel • C$capo' : baseLabel;
 }
 
 // =============================================================================
@@ -143,14 +199,19 @@ String tuningShortLabel(String? tuningName, {String? customName}) {
 // =============================================================================
 
 /// Get the badge background color for a tuning
-/// Normalizes input and provides sensible default
+/// Normalizes input and provides sensible default.
+/// Capo suffix ("|capo:N") is stripped before lookup — colour is based
+/// on the base tuning only.
 Color tuningBadgeColor(String? tuningKey) {
   if (tuningKey == null || tuningKey.isEmpty) {
     return const Color(0xFF2563EB); // Default to Standard blue
   }
 
+  // Strip capo suffix first so colour is always based on the base tuning
+  final baseTuning = parseCapoTuning(tuningKey).tuningId ?? tuningKey;
+
   // Normalize: trim, lowercase for comparison
-  final normalized = tuningKey.trim().toLowerCase();
+  final normalized = baseTuning.trim().toLowerCase();
 
   // Custom tunings get slate color
   if (normalized.startsWith('custom_')) {
@@ -269,6 +330,11 @@ Color tuningBadgeTextColor(Color backgroundColor) {
 /// Maps new app tuning IDs to legacy enum values.
 /// Returns the legacy enum value if one exists, otherwise returns the input.
 ///
+/// Handles compound capo strings (e.g. "standard_e|capo:3"):
+/// 1. Strips the capo suffix
+/// 2. Maps the base tuning to the legacy enum
+/// 3. Reattaches the capo suffix
+///
 /// IMPORTANT: The production database may still use the legacy enum:
 ///   - standard (not standard_e)
 ///   - half_step (not half_step_down)
@@ -280,6 +346,11 @@ Color tuningBadgeTextColor(Color backgroundColor) {
 String? tuningToDbEnum(String? tuningId) {
   if (tuningId == null || tuningId.isEmpty) return null;
 
+  // Parse capo first so the mapping only sees the base tuning
+  final parsed = parseCapoTuning(tuningId);
+  final baseTuning = parsed.tuningId ?? tuningId;
+  final capo = parsed.capoFret;
+
   // Map NEW app IDs → LEGACY enum values (for pre-migration databases)
   // This is the REVERSE of what the old code did
   const newToLegacy = <String, String>{
@@ -290,28 +361,27 @@ String? tuningToDbEnum(String? tuningId) {
     // 'drop_d' stays as 'drop_d' - no change needed
   };
 
-  // If input matches a new ID, return the legacy enum value
-  if (newToLegacy.containsKey(tuningId)) {
-    return newToLegacy[tuningId];
-  }
+  // Map the base tuning, keeping as-is if no mapping exists
+  final mappedBase = newToLegacy[baseTuning] ?? baseTuning;
 
-  // Already a legacy value or unsupported by legacy enum
-  // Return as-is and let the database reject if it's incompatible
-  return tuningId;
+  // Recompose with capo suffix if present
+  return composeCapoTuning(mappedBase, capo);
 }
 
 /// Check if a tuning ID is supported by the legacy enum.
 /// This helps diagnose issues when the database hasn't been migrated.
+/// Handles compound capo strings by checking the base tuning only.
 bool isLegacyEnumSupported(String? tuningId) {
   if (tuningId == null || tuningId.isEmpty) return true;
+  final baseTuning = parseCapoTuning(tuningId).tuningId ?? tuningId;
   const legacyEnumValues = {'standard', 'drop_d', 'half_step', 'full_step'};
   const newIdsWithLegacyMapping = {
     'standard_e',
     'half_step_down',
     'whole_step_down',
   };
-  return legacyEnumValues.contains(tuningId) ||
-      newIdsWithLegacyMapping.contains(tuningId);
+  return legacyEnumValues.contains(baseTuning) ||
+      newIdsWithLegacyMapping.contains(baseTuning);
 }
 
 /// Get a user-friendly message if a tuning can't be saved due to legacy enum.
