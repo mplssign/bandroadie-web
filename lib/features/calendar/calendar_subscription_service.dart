@@ -10,13 +10,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Provider for CalendarSubscriptionService
 final calendarSubscriptionServiceProvider =
     Provider<CalendarSubscriptionService>((ref) {
-      return CalendarSubscriptionService(Supabase.instance.client);
-    });
+  return CalendarSubscriptionService(Supabase.instance.client);
+});
 
-/// Provider for the user's calendar subscription URL
+/// [DEPRECATED] Legacy user-scoped provider — kept for backward compatibility.
+/// Use calendarBandSubscriptionUrlProvider instead.
 final calendarSubscriptionUrlProvider = FutureProvider<String?>((ref) async {
   final service = ref.watch(calendarSubscriptionServiceProvider);
   return service.getSubscriptionUrl();
+});
+
+/// Band-scoped subscription URL provider (family by bandId)
+final calendarBandSubscriptionUrlProvider =
+    FutureProvider.family<String?, String>((ref, bandId) async {
+  final service = ref.watch(calendarSubscriptionServiceProvider);
+  return service.getBandSubscriptionUrl(bandId);
 });
 
 class CalendarSubscriptionService {
@@ -28,7 +36,7 @@ class CalendarSubscriptionService {
 
   CalendarSubscriptionService(this._client);
 
-  /// Get the user's calendar subscription URL
+  /// [DEPRECATED] Get the user's legacy calendar subscription URL
   /// Returns null if user is not authenticated
   Future<String?> getSubscriptionUrl() async {
     try {
@@ -37,23 +45,58 @@ class CalendarSubscriptionService {
 
       return '$_feedBaseUrl?token=$token';
     } catch (e) {
-      debugPrint('[CalendarSubscriptionService] Error getting subscription URL: $e');
+      debugPrint(
+          '[CalendarSubscriptionService] Error getting subscription URL: $e');
       return null;
     }
   }
 
-  /// Get or create the user's calendar token
+  /// Get a band-scoped calendar subscription URL
+  Future<String?> getBandSubscriptionUrl(String bandId) async {
+    try {
+      final token = await _client.rpc(
+        'get_band_calendar_token',
+        params: {'p_band_id': bandId},
+      );
+      if (token == null) return null;
+      return '$_feedBaseUrl?token=$token';
+    } catch (e) {
+      debugPrint(
+          '[CalendarSubscriptionService] Error getting band subscription URL: $e');
+      return null;
+    }
+  }
+
+  /// Regenerate the band-scoped calendar token (invalidates old URL)
+  /// Returns the new subscription URL
+  Future<String?> regenerateBandToken(String bandId) async {
+    try {
+      final newToken = await _client.rpc(
+        'regenerate_band_calendar_token',
+        params: {'p_band_id': bandId},
+      );
+      if (newToken == null) return null;
+      return '$_feedBaseUrl?token=$newToken';
+    } catch (e) {
+      debugPrint(
+          '[CalendarSubscriptionService] Error regenerating band token: $e');
+      return null;
+    }
+  }
+
+  /// Get or create the user's legacy calendar token
   Future<String?> _getOrCreateToken() async {
     try {
       final response = await _client.rpc('get_my_calendar_token');
       return response as String?;
     } catch (e) {
-      debugPrint('[CalendarSubscriptionService] Error getting calendar token: $e');
+      debugPrint(
+          '[CalendarSubscriptionService] Error getting calendar token: $e');
       return null;
     }
   }
 
-  /// Regenerate the calendar token (invalidates old subscription URLs)
+  /// [DEPRECATED] Regenerate the legacy calendar token
   /// Returns the new subscription URL
   Future<String?> regenerateToken() async {
     try {

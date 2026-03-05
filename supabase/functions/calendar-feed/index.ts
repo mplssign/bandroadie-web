@@ -76,12 +76,8 @@ function foldLine(line: string): string {
     return result;
 }
 
-// Parse time string like "7:00 PM" or "19:00" and combine with date
-function combineDateAndTime(dateStr: string, timeStr: string): string {
-    // Parse the date (YYYY-MM-DD)
-    const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
-
-    // Parse the time string
+// Parse time string like "7:00 PM" or "19:00" into { hours, minutes }
+function parseTimeString(timeStr: string): { hours: number; minutes: number } {
     let hours = 0;
     let minutes = 0;
 
@@ -102,15 +98,257 @@ function combineDateAndTime(dateStr: string, timeStr: string): string {
         }
     }
 
-    // Create UTC date string
-    const date = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
-    return date.toISOString();
+    return { hours, minutes };
+}
+
+// Format a date string + time string as a local iCal datetime: YYYYMMDDTHHMMSS
+function formatLocalDateTime(dateStr: string, timeStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
+    const { hours, minutes } = parseTimeString(timeStr);
+    const y = String(year);
+    const m = String(month).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    const h = String(hours).padStart(2, '0');
+    const min = String(minutes).padStart(2, '0');
+    return `${y}${m}${d}T${h}${min}00`;
+}
+
+// Compute a default end time 2 hours after start, as local datetime string
+function defaultEndLocalDateTime(dateStr: string, timeStr: string): string {
+    const [year, month, day] = dateStr.split('-').map(n => parseInt(n, 10));
+    const { hours, minutes } = parseTimeString(timeStr);
+    // Simple 2-hour offset; if it crosses midnight, cap at 23:59
+    let endHours = hours + 2;
+    if (endHours >= 24) endHours = 23;
+    const y = String(year);
+    const m = String(month).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    const h = String(endHours).padStart(2, '0');
+    const min = String(minutes).padStart(2, '0');
+    return `${y}${m}${d}T${h}${min}00`;
 }
 
 // Generate a stable UID for an event
 function generateUid(type: string, id: string, domain: string): string {
     return `${type}-${id}@${domain}`;
 }
+
+// Compute a deterministic ETag from event data and calendar metadata using SHA-1
+async function computeEtag(
+    gigs: GigEvent[],
+    rehearsals: RehearsalEvent[],
+    blockOuts: BlockOutEvent[],
+    calendarName: string,
+    timezone: string,
+): Promise<string> {
+    const source = JSON.stringify({
+        band: calendarName,
+        tz: timezone,
+        g: gigs.map(g => [g.id, g.date, g.start_time, g.end_time]),
+        r: rehearsals.map(r => [r.id, r.date, r.start_time, r.end_time]),
+        b: blockOuts.map(b => [b.id, b.date]),
+    });
+    const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(source));
+    return `"${Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("")}"`;
+}
+
+// Known VTIMEZONE definitions for IANA timezone identifiers.
+// These include standard/daylight transition rules for proper DST handling.
+const VTIMEZONE_DEFS: Record<string, string> = {
+    'America/New_York': [
+        'BEGIN:VTIMEZONE',
+        'TZID:America/New_York',
+        'BEGIN:STANDARD',
+        'DTSTART:19701101T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+        'TZOFFSETFROM:-0400',
+        'TZOFFSETTO:-0500',
+        'TZNAME:EST',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700308T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+        'TZOFFSETFROM:-0500',
+        'TZOFFSETTO:-0400',
+        'TZNAME:EDT',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'America/Chicago': [
+        'BEGIN:VTIMEZONE',
+        'TZID:America/Chicago',
+        'BEGIN:STANDARD',
+        'DTSTART:19701101T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+        'TZOFFSETFROM:-0500',
+        'TZOFFSETTO:-0600',
+        'TZNAME:CST',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700308T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+        'TZOFFSETFROM:-0600',
+        'TZOFFSETTO:-0500',
+        'TZNAME:CDT',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'America/Denver': [
+        'BEGIN:VTIMEZONE',
+        'TZID:America/Denver',
+        'BEGIN:STANDARD',
+        'DTSTART:19701101T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+        'TZOFFSETFROM:-0600',
+        'TZOFFSETTO:-0700',
+        'TZNAME:MST',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700308T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+        'TZOFFSETFROM:-0700',
+        'TZOFFSETTO:-0600',
+        'TZNAME:MDT',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'America/Los_Angeles': [
+        'BEGIN:VTIMEZONE',
+        'TZID:America/Los_Angeles',
+        'BEGIN:STANDARD',
+        'DTSTART:19701101T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+        'TZOFFSETFROM:-0700',
+        'TZOFFSETTO:-0800',
+        'TZNAME:PST',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700308T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+        'TZOFFSETFROM:-0800',
+        'TZOFFSETTO:-0700',
+        'TZNAME:PDT',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'America/Anchorage': [
+        'BEGIN:VTIMEZONE',
+        'TZID:America/Anchorage',
+        'BEGIN:STANDARD',
+        'DTSTART:19701101T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+        'TZOFFSETFROM:-0800',
+        'TZOFFSETTO:-0900',
+        'TZNAME:AKST',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700308T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+        'TZOFFSETFROM:-0900',
+        'TZOFFSETTO:-0800',
+        'TZNAME:AKDT',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'Pacific/Honolulu': [
+        'BEGIN:VTIMEZONE',
+        'TZID:Pacific/Honolulu',
+        'BEGIN:STANDARD',
+        'DTSTART:19700101T000000',
+        'TZOFFSETFROM:-1000',
+        'TZOFFSETTO:-1000',
+        'TZNAME:HST',
+        'END:STANDARD',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'Europe/London': [
+        'BEGIN:VTIMEZONE',
+        'TZID:Europe/London',
+        'BEGIN:STANDARD',
+        'DTSTART:19701025T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+        'TZOFFSETFROM:+0100',
+        'TZOFFSETTO:+0000',
+        'TZNAME:GMT',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700329T010000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+        'TZOFFSETFROM:+0000',
+        'TZOFFSETTO:+0100',
+        'TZNAME:BST',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'Europe/Paris': [
+        'BEGIN:VTIMEZONE',
+        'TZID:Europe/Paris',
+        'BEGIN:STANDARD',
+        'DTSTART:19701025T030000',
+        'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+        'TZOFFSETFROM:+0200',
+        'TZOFFSETTO:+0100',
+        'TZNAME:CET',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700329T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+        'TZOFFSETFROM:+0100',
+        'TZOFFSETTO:+0200',
+        'TZNAME:CEST',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'Europe/Berlin': [
+        'BEGIN:VTIMEZONE',
+        'TZID:Europe/Berlin',
+        'BEGIN:STANDARD',
+        'DTSTART:19701025T030000',
+        'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+        'TZOFFSETFROM:+0200',
+        'TZOFFSETTO:+0100',
+        'TZNAME:CET',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19700329T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+        'TZOFFSETFROM:+0100',
+        'TZOFFSETTO:+0200',
+        'TZNAME:CEST',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'Asia/Tokyo': [
+        'BEGIN:VTIMEZONE',
+        'TZID:Asia/Tokyo',
+        'BEGIN:STANDARD',
+        'DTSTART:19700101T000000',
+        'TZOFFSETFROM:+0900',
+        'TZOFFSETTO:+0900',
+        'TZNAME:JST',
+        'END:STANDARD',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+    'Australia/Sydney': [
+        'BEGIN:VTIMEZONE',
+        'TZID:Australia/Sydney',
+        'BEGIN:STANDARD',
+        'DTSTART:19700405T030000',
+        'RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU',
+        'TZOFFSETFROM:+1100',
+        'TZOFFSETTO:+1000',
+        'TZNAME:AEST',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'DTSTART:19701004T020000',
+        'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=1SU',
+        'TZOFFSETFROM:+1000',
+        'TZOFFSETTO:+1100',
+        'TZNAME:AEDT',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE',
+    ].join('\r\n'),
+};
 
 interface GigEvent {
     id: string;
@@ -175,38 +413,107 @@ Deno.serve(async (req) => {
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-        // Look up user by calendar token
-        const { data: user, error: userError } = await supabase
-            .from('users')
-            .select('id, first_name, last_name, calendar_token')
-            .eq('calendar_token', token)
+        // ---- Token resolution: band-scoped first, then legacy user token ----
+        let userId: string;
+        let userName: string;
+        let bandScopedBandId: string | null = null;
+        let bandTimezone = 'America/Chicago';
+        let calendarName: string;
+
+        // 1. Try band_calendar_subscriptions token
+        const { data: bandSub, error: bandSubError } = await supabase
+            .from('band_calendar_subscriptions')
+            .select('user_id, band_id')
+            .eq('token', token)
             .single();
 
-        if (userError || !user) {
-            console.error('Invalid calendar token:', token, 'Error:', userError?.message);
-            return new Response("Invalid or expired calendar token", { status: 404, headers: corsHeaders });
+        if (bandSub && !bandSubError) {
+            userId = bandSub.user_id;
+            bandScopedBandId = bandSub.band_id;
+
+            // Verify user is still a member of the band
+            const { data: membership } = await supabase
+                .from('band_members')
+                .select('band_id')
+                .eq('user_id', userId)
+                .eq('band_id', bandScopedBandId)
+                .single();
+
+            if (!membership) {
+                return new Response("User is no longer a member of this band", { status: 404, headers: corsHeaders });
+            }
+
+            // Get band info including timezone
+            const { data: band } = await supabase
+                .from('bands')
+                .select('name, timezone')
+                .eq('id', bandScopedBandId)
+                .single();
+
+            const bandName = band?.name || 'Band';
+            bandTimezone = band?.timezone || 'America/Chicago';
+            calendarName = bandName;
+
+            // Get user name for block-out events
+            const { data: userRow } = await supabase
+                .from('users')
+                .select('first_name, last_name')
+                .eq('id', userId)
+                .single();
+
+            userName = `${userRow?.first_name || ''} ${userRow?.last_name || ''}`.trim() || 'User';
+        } else {
+            // 2. Fallback: legacy user token
+            const { data: user, error: userError } = await supabase
+                .from('users')
+                .select('id, first_name, last_name, calendar_token')
+                .eq('calendar_token', token)
+                .single();
+
+            if (userError || !user) {
+                console.error('Invalid calendar token:', token, 'Error:', userError?.message);
+                return new Response("Invalid or expired calendar token", { status: 404, headers: corsHeaders });
+            }
+
+            userId = user.id;
+            userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User';
+            calendarName = `BandRoadie - ${userName}`;
         }
 
-        const userId = user.id;
-        const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User';
+        // Determine which bands to query
+        let bandIds: string[];
 
-        // Get all bands the user is a member of
-        const { data: bandMemberships, error: bandsError } = await supabase
-            .from('band_members')
-            .select('band_id, bands(id, name)')
-            .eq('user_id', userId);
+        if (bandScopedBandId) {
+            // Band-scoped: single band only
+            bandIds = [bandScopedBandId];
+        } else {
+            // Legacy: all bands the user belongs to
+            const { data: bandMemberships, error: bandsError } = await supabase
+                .from('band_members')
+                .select('band_id, bands(id, name)')
+                .eq('user_id', userId);
 
-        if (bandsError) throw bandsError;
+            if (bandsError) throw bandsError;
 
-        const bandIds = bandMemberships?.map(m => m.band_id) || [];
+            bandIds = bandMemberships?.map(m => m.band_id) || [];
+        }
 
         if (bandIds.length === 0) {
             // Return empty calendar
-            const emptyCalendar = generateCalendar([], [], [], userName);
+            const etag = await computeEtag([], [], [], calendarName, bandTimezone);
+            const ifNoneMatch = req.headers.get("if-none-match");
+            if (ifNoneMatch === etag) {
+                return new Response(null, { status: 304, headers: corsHeaders });
+            }
+            const emptyCalendar = generateCalendar([], [], [], calendarName, bandTimezone);
             return new Response(emptyCalendar, {
                 headers: {
                     "Content-Type": "text/calendar; charset=utf-8",
                     "Content-Disposition": "attachment; filename=bandroadie.ics",
+                    "Cache-Control": "no-cache",
+                    "ETag": etag,
+                    "Last-Modified": new Date().toUTCString(),
+                    "X-PUBLISHED-TTL": "PT15M",
                     ...corsHeaders,
                 },
             });
@@ -296,13 +603,23 @@ Deno.serve(async (req) => {
             reason: b.reason || '',
         }));
 
-        const calendar = generateCalendar(gigEvents, rehearsalEvents, blockOutEvents, userName);
+        const etag = await computeEtag(gigEvents, rehearsalEvents, blockOutEvents, calendarName, bandTimezone);
+        const ifNoneMatch = req.headers.get("if-none-match");
+
+        if (ifNoneMatch === etag) {
+            return new Response(null, { status: 304, headers: corsHeaders });
+        }
+
+        const calendar = generateCalendar(gigEvents, rehearsalEvents, blockOutEvents, calendarName, bandTimezone);
 
         return new Response(calendar, {
             headers: {
                 "Content-Type": "text/calendar; charset=utf-8",
                 "Content-Disposition": "attachment; filename=bandroadie.ics",
-                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Cache-Control": "no-cache",
+                "ETag": etag,
+                "Last-Modified": new Date().toUTCString(),
+                "X-PUBLISHED-TTL": "PT15M",
                 ...corsHeaders,
             },
         });
@@ -325,7 +642,8 @@ function generateCalendar(
     gigs: GigEvent[],
     rehearsals: RehearsalEvent[],
     blockOuts: BlockOutEvent[],
-    userName: string
+    calendarName: string,
+    timezone: string
 ): string {
     const domain = "bandroadie.com";
     const now = formatIcsDate(new Date().toISOString(), true);
@@ -336,9 +654,15 @@ function generateCalendar(
         'PRODID:-//BandRoadie//Calendar//EN',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
-        `X-WR-CALNAME:BandRoadie - ${escapeIcsText(userName)}`,
-        'X-WR-TIMEZONE:UTC',
+        `X-WR-CALNAME:${escapeIcsText(calendarName)}`,
+        `X-WR-TIMEZONE:${timezone}`,
     ];
+
+    // Add VTIMEZONE block if a definition is available for this timezone
+    const vtimezone = VTIMEZONE_DEFS[timezone];
+    if (vtimezone) {
+        lines.push(vtimezone);
+    }
 
     // Add gigs
     for (const gig of gigs) {
@@ -356,15 +680,30 @@ function generateCalendar(
         if (gig.notes) description += `\\n\\nNotes: ${gig.notes}`;
         if (gig.is_potential) description += `\\n\\n⚠️ This is a potential gig (not yet confirmed)`;
 
-        // Use all-day event for gigs (date only)
-        const startDate = formatAllDayDate(gig.date);
-        const endDate = getNextDay(gig.date);
-
         lines.push('BEGIN:VEVENT');
         lines.push(foldLine(`UID:${uid}`));
         lines.push(foldLine(`DTSTAMP:${now}`));
-        lines.push(foldLine(`DTSTART;VALUE=DATE:${startDate}`));
-        lines.push(foldLine(`DTEND;VALUE=DATE:${endDate}`));
+
+        if (gig.start_time) {
+            // Timed event with TZID
+            const startDt = formatLocalDateTime(gig.date, gig.start_time);
+            lines.push(foldLine(`DTSTART;TZID=${timezone}:${startDt}`));
+            if (gig.end_time) {
+                const endDt = formatLocalDateTime(gig.date, gig.end_time);
+                lines.push(foldLine(`DTEND;TZID=${timezone}:${endDt}`));
+            } else {
+                // Default 2 hours for gigs
+                const endDt = defaultEndLocalDateTime(gig.date, gig.start_time);
+                lines.push(foldLine(`DTEND;TZID=${timezone}:${endDt}`));
+            }
+        } else {
+            // All-day event (no time info)
+            const startDate = formatAllDayDate(gig.date);
+            const endDate = getNextDay(gig.date);
+            lines.push(foldLine(`DTSTART;VALUE=DATE:${startDate}`));
+            lines.push(foldLine(`DTEND;VALUE=DATE:${endDate}`));
+        }
+
         lines.push(foldLine(`SUMMARY:${escapeIcsText(summary)}`));
         if (gig.location) {
             lines.push(foldLine(`LOCATION:${escapeIcsText(gig.location)}`));
@@ -384,20 +723,17 @@ function generateCalendar(
         if (rehearsal.location) description += `\\nLocation: ${rehearsal.location}`;
         if (rehearsal.notes) description += `\\n\\nNotes: ${rehearsal.notes}`;
 
-        // Combine date + time strings to create proper timestamps
-        const startTimeISO = combineDateAndTime(rehearsal.date, rehearsal.start_time);
-        const endTimeISO = rehearsal.end_time
-            ? combineDateAndTime(rehearsal.date, rehearsal.end_time)
-            : new Date(new Date(startTimeISO).getTime() + 2 * 60 * 60 * 1000).toISOString(); // Default 2 hours
-
-        const startTime = formatIcsDate(startTimeISO, true);
-        const endTime = formatIcsDate(endTimeISO, true);
+        // Format as local time with TZID
+        const startDt = formatLocalDateTime(rehearsal.date, rehearsal.start_time);
+        const endDt = rehearsal.end_time
+            ? formatLocalDateTime(rehearsal.date, rehearsal.end_time)
+            : defaultEndLocalDateTime(rehearsal.date, rehearsal.start_time);
 
         lines.push('BEGIN:VEVENT');
         lines.push(foldLine(`UID:${uid}`));
         lines.push(foldLine(`DTSTAMP:${now}`));
-        lines.push(foldLine(`DTSTART:${startTime}`));
-        lines.push(foldLine(`DTEND:${endTime}`));
+        lines.push(foldLine(`DTSTART;TZID=${timezone}:${startDt}`));
+        lines.push(foldLine(`DTEND;TZID=${timezone}:${endDt}`));
         lines.push(foldLine(`SUMMARY:${escapeIcsText(summary)}`));
         if (rehearsal.location) {
             lines.push(foldLine(`LOCATION:${escapeIcsText(rehearsal.location)}`));

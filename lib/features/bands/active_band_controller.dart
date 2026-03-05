@@ -90,6 +90,7 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
       imageUrl: state.band!.imageUrl,
       createdBy: state.band!.createdBy,
       avatarColor: state.band!.avatarColor,
+      timezone: state.band!.timezone,
       createdAt: state.band!.createdAt,
       updatedAt: state.band!.updatedAt,
     );
@@ -109,6 +110,7 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
       imageUrl: null, // Clear image to show color-based initials avatar
       createdBy: state.band!.createdBy,
       avatarColor: avatarColor,
+      timezone: state.band!.timezone,
       createdAt: state.band!.createdAt,
       updatedAt: state.band!.updatedAt,
     );
@@ -127,6 +129,7 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
       imageUrl: imageUrl,
       createdBy: state.band!.createdBy,
       avatarColor: state.band!.avatarColor,
+      timezone: state.band!.timezone,
       createdAt: state.band!.createdAt,
       updatedAt: state.band!.updatedAt,
     );

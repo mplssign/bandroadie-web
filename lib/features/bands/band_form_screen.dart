@@ -116,6 +116,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   String _initialName = '';
   String _initialAvatarColor = 'bg-rose-500';
   String? _initialImageUrl;
+  String _initialTimezone = 'America/Chicago';
+  String _selectedTimezone = 'America/Chicago';
 
   // Edit mode: Members and Invitations
   final _inviteEmailController = TextEditingController();
@@ -165,6 +167,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       _initialName = band.name;
       _initialAvatarColor = band.avatarColor;
       _initialImageUrl = band.imageUrl;
+      _initialTimezone = band.timezone;
+      _selectedTimezone = band.timezone;
 
       // Initialize draft band state for real-time header preview
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -245,8 +249,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final colorChanged = _selectedAvatarColor != _initialAvatarColor;
     final imageChanged =
         _selectedImage != null || _uploadedImageUrl != _initialImageUrl;
+    final timezoneChanged = _selectedTimezone != _initialTimezone;
 
-    return nameChanged || colorChanged || imageChanged;
+    return nameChanged || colorChanged || imageChanged || timezoneChanged;
   }
 
   void _addEmail() {
@@ -470,6 +475,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         'name': bandName,
         'avatar_color': _selectedAvatarColor,
         'image_url': imageUrl,
+        'timezone': _selectedTimezone,
         'updated_at': now.toIso8601String(),
       }).eq('id', band.id);
 
@@ -481,6 +487,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         imageUrl: imageUrl,
         createdBy: band.createdBy,
         avatarColor: _selectedAvatarColor,
+        timezone: _selectedTimezone,
         createdAt: band.createdAt,
         updatedAt: now,
       );
@@ -1570,6 +1577,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                               _buildAvatarSection(),
                               const SizedBox(height: Spacing.space32),
 
+                              // Timezone picker (edit mode only, admin/manager)
+                              if (_isEditMode) ...[
+                                _buildTimezoneSection(),
+                                const SizedBox(height: Spacing.space32),
+                              ],
+
                               // Edit mode: Invite Members section
                               if (_isEditMode) ...[
                                 _buildSectionLabel('Invite Members'),
@@ -1936,6 +1949,106 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  // Common IANA timezone identifiers for the timezone picker
+  static const List<Map<String, String>> _timezoneOptions = [
+    {'value': 'America/New_York', 'label': 'Eastern (America/New_York)'},
+    {'value': 'America/Chicago', 'label': 'Central (America/Chicago)'},
+    {'value': 'America/Denver', 'label': 'Mountain (America/Denver)'},
+    {'value': 'America/Los_Angeles', 'label': 'Pacific (America/Los_Angeles)'},
+    {'value': 'America/Anchorage', 'label': 'Alaska (America/Anchorage)'},
+    {'value': 'Pacific/Honolulu', 'label': 'Hawaii (Pacific/Honolulu)'},
+    {'value': 'Europe/London', 'label': 'London (Europe/London)'},
+    {'value': 'Europe/Paris', 'label': 'Paris (Europe/Paris)'},
+    {'value': 'Europe/Berlin', 'label': 'Berlin (Europe/Berlin)'},
+    {'value': 'Asia/Tokyo', 'label': 'Tokyo (Asia/Tokyo)'},
+    {'value': 'Australia/Sydney', 'label': 'Sydney (Australia/Sydney)'},
+  ];
+
+  Widget _buildTimezoneSection() {
+    // Only admins/managers can edit timezone
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canEdit = permissionsAsync.when(
+      data: (p) => p.canEditBandSettings,
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel('Timezone'),
+        const SizedBox(height: Spacing.space6),
+        const Text(
+          'Used for calendar subscription feeds',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            height: 1.4,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: Spacing.space12),
+        DropdownButtonFormField<String>(
+          initialValue:
+              _timezoneOptions.any((tz) => tz['value'] == _selectedTimezone)
+                  ? _selectedTimezone
+                  : 'America/Chicago',
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.cardBgElevated,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: BorderSide(color: AppColors.borderMuted),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: BorderSide(color: AppColors.borderMuted),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: Spacing.space16,
+              vertical: Spacing.space12,
+            ),
+          ),
+          dropdownColor: AppColors.cardBgElevated,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 16,
+          ),
+          items: _timezoneOptions
+              .map((tz) => DropdownMenuItem<String>(
+                    value: tz['value'],
+                    child: Text(
+                      tz['label']!,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ))
+              .toList(),
+          onChanged: canEdit
+              ? (value) {
+                  if (value != null) {
+                    setState(() => _selectedTimezone = value);
+                  }
+                }
+              : null,
+        ),
+        if (!canEdit)
+          const Padding(
+            padding: EdgeInsets.only(top: Spacing.space8),
+            child: Text(
+              'Only admins can change the timezone',
+              style: TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }
