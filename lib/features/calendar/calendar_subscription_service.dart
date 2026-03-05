@@ -30,9 +30,8 @@ final calendarBandSubscriptionUrlProvider =
 class CalendarSubscriptionService {
   final SupabaseClient _client;
 
-  // Base URL for the calendar feed Edge Function
-  static const String _feedBaseUrl =
-      'https://nekwjxvgbveheooyorjo.supabase.co/functions/v1/calendar-feed';
+  // Base URL for the calendar feed — proxied through Vercel for trusted SSL
+  static const String _feedBaseUrl = 'https://bandroadie.com/api/calendar-feed';
 
   CalendarSubscriptionService(this._client);
 
@@ -53,18 +52,15 @@ class CalendarSubscriptionService {
 
   /// Get a band-scoped calendar subscription URL
   Future<String?> getBandSubscriptionUrl(String bandId) async {
-    try {
-      final token = await _client.rpc(
-        'get_band_calendar_token',
-        params: {'p_band_id': bandId},
-      );
-      if (token == null) return null;
-      return '$_feedBaseUrl?token=$token';
-    } catch (e) {
-      debugPrint(
-          '[CalendarSubscriptionService] Error getting band subscription URL: $e');
-      return null;
-    }
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+
+    final token = await _client.rpc(
+      'get_band_calendar_token',
+      params: {'p_band_id': bandId},
+    );
+    if (token == null) return null;
+    return '$_feedBaseUrl?token=$token';
   }
 
   /// Regenerate the band-scoped calendar token (invalidates old URL)
