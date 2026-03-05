@@ -11,39 +11,39 @@
 
 ### 1. Primary Fix: `ReorderableDragStartListener` uses builder index, not `item.position`
 
-| Check | Result |
-|---|---|
-| `_buildSetBreakCard` uses `index` (line 99) | **PASS** |
-| `_buildPauseCard` uses `index` (line 168) | **PASS** |
-| `index` is a `required` constructor parameter (line 18) | **PASS** |
+| Check                                                      | Result   |
+| ---------------------------------------------------------- | -------- |
+| `_buildSetBreakCard` uses `index` (line 99)                | **PASS** |
+| `_buildPauseCard` uses `index` (line 168)                  | **PASS** |
+| `index` is a `required` constructor parameter (line 18)    | **PASS** |
 | Screen passes `itemBuilder` index at call site (line 1814) | **PASS** |
 
 ### 2. No other drag listeners reference `item.position`
 
 Searched all `.dart` files for `item.position` in drag-related contexts. Zero matches. The only three `ReorderableDragStartListener` usages in the codebase:
 
-| File | Index source | Status |
-|---|---|---|
-| `special_item_card.dart` line 99 (set break) | `index` (builder param) | **Correct** |
-| `special_item_card.dart` line 168 (pause) | `index` (builder param) | **Correct** |
-| `reorderable_song_card.dart` line 165 | `widget.index` (builder param) | **Correct** (unchanged) |
+| File                                         | Index source                   | Status                  |
+| -------------------------------------------- | ------------------------------ | ----------------------- |
+| `special_item_card.dart` line 99 (set break) | `index` (builder param)        | **Correct**             |
+| `special_item_card.dart` line 168 (pause)    | `index` (builder param)        | **Correct**             |
+| `reorderable_song_card.dart` line 165        | `widget.index` (builder param) | **Correct** (unchanged) |
 
 ### 3. Regression Checks
 
-| Scenario | Risk | Verification |
-|---|---|---|
-| Song reorder | None | `ReorderableSongCard` was not modified. Uses `widget.index` as before. |
-| Mixed list reorder | None | `_handleItemReorder` / `reorderItemsLocal` unchanged. Operates on `oldIndex/newIndex` from Flutter framework. |
-| Set break reorder | Fixed | `SpecialItemCard` now receives correct 0-based index. |
-| Non-draggable `SpecialItemCard` | None | When `isDraggable: false`, `ReorderableDragStartListener` is not rendered; `index` is unused. |
+| Scenario                        | Risk  | Verification                                                                                                  |
+| ------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------- |
+| Song reorder                    | None  | `ReorderableSongCard` was not modified. Uses `widget.index` as before.                                        |
+| Mixed list reorder              | None  | `_handleItemReorder` / `reorderItemsLocal` unchanged. Operates on `oldIndex/newIndex` from Flutter framework. |
+| Set break reorder               | Fixed | `SpecialItemCard` now receives correct 0-based index.                                                         |
+| Non-draggable `SpecialItemCard` | None  | When `isDraggable: false`, `ReorderableDragStartListener` is not rendered; `index` is unused.                 |
 
 ### 4. Duplicate Keys
 
-| Key | Scope | Uniqueness |
-|---|---|---|
-| `ValueKey(item.listKey)` on Padding wrapper | Combines `type.dbValue` + `id` | Unique — `id` is the `setlist_songs` row PK |
-| `Key('dismiss_special_${item.id}')` on Dismissible | Uses row PK | Unique |
-| `ValueKey(item.listKey)` on song Padding wrapper | `'song-$id'` | Unique — different prefix from special items |
+| Key                                                | Scope                          | Uniqueness                                   |
+| -------------------------------------------------- | ------------------------------ | -------------------------------------------- |
+| `ValueKey(item.listKey)` on Padding wrapper        | Combines `type.dbValue` + `id` | Unique — `id` is the `setlist_songs` row PK  |
+| `Key('dismiss_special_${item.id}')` on Dismissible | Uses row PK                    | Unique                                       |
+| `ValueKey(item.listKey)` on song Padding wrapper   | `'song-$id'`                   | Unique — different prefix from special items |
 
 **No duplicate keys.** PASS.
 
@@ -71,6 +71,7 @@ flutter analyze lib/features/setlists/widgets/special_item_card.dart lib/feature
 ### 8. Performance (50+ item lists)
 
 No change to performance characteristics:
+
 - `SpecialItemCard` remains `StatelessWidget` (no added state, no animation controllers)
 - `index` is an `int` — zero allocation overhead
 - No new listeners, streams, or providers introduced
@@ -83,6 +84,7 @@ No change to performance characteristics:
 ## Stress Test Scenarios (Logic Review)
 
 ### Rapid drag + scroll
+
 - `onReorder` is debounced (500ms timer in `_handleItemReorder`)
 - `reorderItemsLocal` applies immediately (optimistic) using framework-provided indices
 - Rapid drags reset the timer; local state stays consistent
@@ -90,21 +92,25 @@ No change to performance characteristics:
 - **No issue.**
 
 ### Drag across viewport boundaries
+
 - Handled entirely by `SliverReorderableList` framework internals
 - `index` from `itemBuilder` is always correct for the current viewport render
 - **No issue.**
 
 ### Large list (50+ items)
+
 - `SliverReorderableList` only builds visible items (lazy)
 - `index` is a simple int parameter — no scaling concern
 - **No issue.**
 
 ### Drag after adding new set break
+
 - New item inserted → `items` list updated → widget tree rebuilds
 - Fresh `itemBuilder` invocation provides correct 0-based indices for all items
 - **No issue.**
 
 ### Drag after deleting items
+
 - **This was the original failure scenario.**
 - DB trigger reindexes positions to 1-based after delete
 - Before fix: `item.position` (1-based) was used as drag index → index mismatch → crash
@@ -112,6 +118,7 @@ No change to performance characteristics:
 - **Fixed.**
 
 ### Reorder after app relaunch
+
 - `loadSongs()` fetches fresh data; `item.position` values may be 1-based from DB
 - `itemBuilder` provides 0-based indices regardless of stored positions
 - `SpecialItemCard` uses `index` param, ignoring `item.position` for drag
@@ -151,9 +158,9 @@ None.
 
 ## Warnings
 
-| # | Warning | Severity |
-|---|---|---|
-| W1 | DB trigger `reorder_setlist_positions` still uses 1-based `ROW_NUMBER()`. While the UI fix makes this non-blocking, the inconsistency between 0-based client positions and 1-based post-delete DB positions is technical debt. Consider applying Architect Plan Fix 2 in a future migration. | Low |
+| #   | Warning                                                                                                                                                                                                                                                                                      | Severity |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| W1  | DB trigger `reorder_setlist_positions` still uses 1-based `ROW_NUMBER()`. While the UI fix makes this non-blocking, the inconsistency between 0-based client positions and 1-based post-delete DB positions is technical debt. Consider applying Architect Plan Fix 2 in a future migration. | Low      |
 
 ---
 

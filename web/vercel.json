@@ -16,7 +16,11 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!.well-known/).*)",
+      "source": "/api/calendar-feed",
+      "destination": "https://nekwjxvgbveheooyorjo.supabase.co/functions/v1/calendar-feed"
+    },
+    {
+      "source": "/((?!api/|.well-known/).*)",
       "destination": "/index.html"
     }
   ]
