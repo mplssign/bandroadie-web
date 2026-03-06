@@ -1,53 +1,66 @@
 # Commit Gate (QA Required Before Push)
 
-This project uses a QA gate. No code is pushed until QA passes.
+This project uses a QA gate.
+
+No code is committed or pushed until QA passes.
 
 ---
 
 ## Required Flow
 
-1) Architect produces a plan
-2) Engineer implements the plan in the workspace
-3) Engineer runs baseline checks
-4) QA reviews git diff and either PASS or FAIL
-5) Only after PASS, changes may be committed and pushed
+1. Architect produces a plan
+2. Engineer implements the plan in the workspace
+3. Engineer runs baseline checks
+4. Engineer prepares QA handoff and report
+5. QA reviews the plan, handoff, and git diff
+6. QA returns APPROVED or REQUIRES CHANGES
+7. Only after APPROVED may changes be committed and pushed
 
 ---
 
 ## Baseline Checks (Engineer Must Run)
 
-Required (always):
+Required:
 - flutter analyze
 
-Recommended (when relevant):
+When relevant:
 - flutter test
-- platform run checks (as applicable)
+- manual verification of the affected flow on at least one target platform
 
-Engineer must record results in the handoff.
+Engineer must record results in the handoff and ENGINEER_REPORT.md.
 
 ---
 
-## QA Review Inputs (Required)
+## QA Inputs (Required)
 
 QA must be given:
-- Original goal (1–3 sentences)
-- Architect plan summary (or link to it)
-- Engineer summary + files changed
+
+- active feature slug
+- Architect plan
+- Engineer report / handoff
+- files changed
 - git diff output
+- verification results
+
+---
+
+## QA Output (Required)
 
 QA must return:
-- PASS or FAIL
-- Critical Issues (must fix)
+
+- APPROVED or REQUIRES CHANGES
+- Regression Risk Level: LOW / MEDIUM / HIGH
+- Critical Issues (must fix before commit)
 - Warnings (should fix)
 - Suggestions (optional)
 
 ---
 
-## Commit Rules (Only After QA PASS)
+## Commit Rules (Only After QA APPROVED)
 
-1) Confirm working tree status
-2) Commit with clear message
-3) Push branch
+1. Confirm working tree status
+2. Commit with clear message
+3. Push branch
 
 Commands:
 
@@ -58,19 +71,20 @@ Commands:
 
 ---
 
-## If QA FAILS
+## If QA REQUIRES CHANGES
 
-- Engineer fixes only the items QA marks as Critical
+- Engineer fixes only the Critical Issues first
 - Re-run baseline checks
+- Update ENGINEER_REPORT.md if needed
 - Provide updated git diff
-- QA re-reviews until PASS
+- QA re-reviews until APPROVED
 
 ---
 
 ## Non-Negotiables
 
-- No push without QA PASS
-- No broad refactors under a feature/bug ticket
-- No initialization order changes without an explicit architecture decision recorded in docs/global/AI_DECISIONS.md
-- No new config paths without updating documentation/RUNTIME_CONFIG.md
-
+- No commit or push without QA approval
+- No broad refactors under a feature or bug ticket
+- No initialization order changes without explicit architecture approval
+- No new config paths without explicit documentation and approval
+- No hidden scope expansion after Architect sign-off
