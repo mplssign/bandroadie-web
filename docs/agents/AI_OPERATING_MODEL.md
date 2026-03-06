@@ -2,167 +2,219 @@
 
 This document defines how AI agents are used inside VS Code with GitHub Copilot.
 
-The goal is:
+The goals are:
+
 - Reduce hallucination
 - Prevent context rot
 - Maintain architectural integrity
 - Minimize token waste
-- Simulate a multi-agent development team
+- Enforce safe role separation
+- Simulate a disciplined multi-agent development workflow
 
 ---
 
 # Core Principle
 
-Each chat session must operate in a single role.
+Each chat session must operate in exactly one role.
 
 Never mix:
 - Architecture
 - Implementation
 - QA
 
-Each requires a new session.
+Each role requires a new session.
 
 ---
 
-# Agent Roles
+# Role Separation
 
-## 1. Architect
-
+## Architect
 Purpose:
-- Break features into atomic tasks
-- Validate system alignment
-- Identify risk
+- Understand the request
+- Research the system
+- Diagnose root cause (for bugs)
+- Design the safest minimal solution
+- Produce a structured plan for implementation
 
-Rules:
-- Never write production code
-- Never refactor implementation
-- Only return structured task lists
-
-Trigger:
-Used when starting a new feature or redesign.
+Architect does NOT:
+- Write production code
+- Modify files
+- Execute migrations
+- Refactor implementation
 
 ---
 
-## 2. Engineer
-
+## Engineer
 Purpose:
-- Implement exactly one atomic task
+- Implement the approved Architect plan
+- Make the smallest safe changes possible
+- Run baseline verification
+- Prepare the QA handoff
 
-Rules:
-- Modify only necessary files
-- Never change initialization order
-- Never introduce new configuration patterns
-- Ask before making assumptions
-
-Output:
-- Return full file content unless diff requested
-- Keep responses minimal
-
-Trigger:
-Used after Architect defines a task.
+Engineer does NOT:
+- Redesign architecture
+- Modify unrelated systems
+- Bypass guardrails
+- Commit or push before QA PASS
 
 ---
 
-## 3. QA Reviewer
-
+## QA Reviewer
 Purpose:
-- Review diffs only
+- Review implementation correctness
+- Validate diff safety
+- Check regression risk
+- Confirm architectural compliance
+- Approve or reject commit readiness
+
+QA does NOT:
+- Rewrite full files
+- Suggest large refactors
+- Implement fixes
+- Commit code
+
+---
+
+# Feature Identity Convention
+
+Every feature or bug must have a single canonical identifier.
+
+Format:
+
+feature/<slug>
 
 Rules:
-- Do not rewrite entire files
-- Focus on regressions
-- Focus on security
-- Focus on state and lifecycle correctness
+- lowercase only
+- hyphen-separated
+- descriptive and specific
+- no vague names like fix, update, improve
+- no trailing hyphens
+- no double hyphens
 
-Output grouped by:
-- Critical
-- Warning
-- Suggestion
+This identifier is used for:
+- branch name
+- feature documentation folder
+- Architect plan
+- Engineer report
+- QA report
 
-Trigger:
-Used after implementation is complete.
+Example:
+
+feature/rehearsal-delete-fix
+
+maps to:
+
+/bandroadie/docs/features/rehearsal-delete-fix/
+
+---
+
+# Required Workflow
+
+1. Structure the feature or bug input
+2. Architect creates the plan
+3. Engineer implements the plan
+4. Engineer runs baseline checks
+5. Engineer prepares QA handoff
+6. QA reviews and returns PASS or FAIL
+7. Only after PASS may code be committed and pushed
+
+No shortcuts.
 
 ---
 
 # Chat Lifecycle Rules
 
-1. Start new chat for each:
-   - Feature
-   - Task
-   - Role switch
+1. Start a new chat for each:
+   - feature
+   - bug
+   - role switch
 
-2. If a chat exceeds 20 messages:
-   - End it
-   - Start fresh
-   - Re-anchor with references
+2. If a chat becomes long or loses clarity:
+   - stop
+   - start fresh
+   - re-anchor from the source docs
 
-3. Never continue implementation after architecture discussion in the same thread.
+3. Never continue implementation in the same thread where architecture was discussed.
+
+4. Never begin QA in the same thread used for implementation.
 
 ---
 
 # Context Anchoring Protocol
 
-Before major work, restate constraints:
+Before major work, agents must load their governing documents.
 
-- Follow docs/global/ARCHITECTURE.md
-- Follow docs/global/AI_DECISIONS.md
-- Follow documentation/RUNTIME_CONFIG.md
-- Do not modify unrelated systems
+Always anchor to:
+- role-specific instructions
+- Flutter + Supabase guardrails
+- Architect plan (Engineer / QA)
+- QA gate (Engineer / QA)
 
-This prevents drift.
+If project docs conflict with ad hoc ideas, project docs win.
 
 ---
 
 # Token Efficiency Rules
 
-- Never paste entire repository
-- Only paste relevant file
-- Prefer diffs over full file reposts
-- Avoid “improve this file” prompts
-- Avoid open-ended brainstorming mid-implementation
+- Never paste the entire repository
+- Only inspect relevant files
+- Prefer diffs over reposting full files
+- Avoid open-ended brainstorming during implementation
+- Keep outputs structured and minimal
+- Use exact file paths whenever possible
 
 ---
 
 # Safety Rules
 
 - No secrets in code
-- No service_role keys
-- No config path changes
-- No initialization order changes
+- No service_role keys in client code
+- No config path changes without explicit approval
+- No initialization order changes without explicit architectural approval
 - No new dependencies without explicit approval
+- No broad refactors under a feature or bug ticket
 
 ---
 
-# Strict Mode Protocol
+# Bug-Fix Philosophy
 
-When implementation quality degrades:
+For bug fixes, agents must follow this order:
 
-Add:
+1. Reproduce
+2. Compare expected vs actual
+3. Identify likely failure layer
+4. Gather evidence
+5. Compare working vs failing path
+6. Check recent migrations / policies / triggers
+7. Identify root cause
+8. Design or implement the minimal safe fix
 
-"Do not modify unrelated files.
-Do not refactor structure.
-If assumptions are required, ask first."
+Never jump from bug report directly to solution.
 
 ---
 
 # Architectural Authority
 
-The following documents are the source of truth:
+The architecture plan created for the active feature is the implementation authority.
 
-- docs/global/ARCHITECTURE.md
-- docs/global/AI_DECISIONS.md
-- documentation/RUNTIME_CONFIG.md
+Hierarchy of authority:
 
-If AI suggestions conflict with these documents,
-the documents win.
+1. Safety / guardrail documents
+2. Architect plan
+3. Engineer implementation
+4. QA review
+
+Engineer must not override the Architect plan.
+QA must validate implementation against it.
 
 ---
 
 # Operating Philosophy
 
-The AI is not a creative partner.
-It is a disciplined engineering team.
+AI is not a creative partner for implementation.
+AI is a disciplined engineering team.
 
 Structure > Creativity
-Safety > Refactor speed
+Safety > Speed
 Consistency > Novelty
+Minimal change > Broad refactor

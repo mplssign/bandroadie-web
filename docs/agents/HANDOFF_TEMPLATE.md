@@ -4,64 +4,88 @@ Use this template every time work moves from one stage to the next.
 
 ---
 
-## 1) Goal
+## 1) Feature Identity
+
+- Feature Slug:
+- Feature Title:
+- Branch Name:
+- Docs Folder:
+
+---
+
+## 2) Goal
 
 - What are we trying to accomplish?
 
 ---
 
-## 2) Current State
+## 3) Current State
 
 - What is the current behavior?
 - Where in the app is it happening (screen / flow)?
-- Repro steps (for bugs), including platform(s)
+- Reproduction steps (for bugs), including platform(s)
 
 ---
 
-## 3) Constraints (Non-negotiables)
+## 4) Constraints (Non-Negotiables)
 
-- Follow docs/global/ARCHITECTURE.md
-- Follow docs/global/AI_DECISIONS.md
+- Follow the Architect plan
 - Follow documentation/RUNTIME_CONFIG.md
 - Minimal changes only
 - No initialization order changes
 - No new config loading paths
+- No unrelated refactors
+- Preserve platform-specific behavior
 
 ---
 
-## 4) Proposed Solution (Architect → Engineer)
+## 5) Proposed Solution (Architect → Engineer)
 
 - Summary of approach
 - Exact files to modify (paths)
+- Exact files to create (paths)
 - What NOT to touch
 - Edge cases / risks
+- System impact areas to watch
 
 ---
 
-## 5) Implementation Notes (Engineer → QA)
+## 6) Implementation Notes (Engineer → QA)
 
 - What was implemented (short summary)
 - Files changed (paths)
+- Files created (paths)
+- Migrations changed or added
 - Any assumptions made
 - Any TODOs left intentionally (should be rare)
 
 ---
 
-## 6) Verification Plan / Evidence
+## 7) Verification Plan / Evidence
 
 Commands run:
-- (paste command list)
+- flutter analyze
+- flutter test (if run)
+- other relevant commands
 
 Results:
-- (brief results: pass/fail + key output)
+- pass/fail + important output summary
 
 Manual checks:
-- (what to click/verify in app)
+- exact clicks / flows QA should verify
 
 ---
 
-## 7) QA Focus Areas
+## 8) QA Focus Areas
 
 - What QA should pay extra attention to
-- Known risky areas (auth/session, routing, init order, config, platform differences)
+- Known risky areas
+- Security / RLS review points
+- Regression-sensitive systems
 
+---
+
+## 9) Diff Reference
+
+- git diff included: yes / no
+- Any especially important diff sections to inspect
