@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1106,6 +1107,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     // Recurrence not supported yet - special case
     if (errorStr.contains('recurrence') || errorStr.contains('recurring')) {
       return 'Recurring events coming soon!';
+    }
+
+    // In debug mode, surface the actual Supabase error for diagnosis
+    if (kDebugMode) {
+      debugPrint('[EventEditor] Raw error for diagnosis: $error');
     }
 
     // Use centralized helper for all other errors
