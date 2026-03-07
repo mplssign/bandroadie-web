@@ -1260,9 +1260,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _errorMessage = null;
     });
 
-    try {
-      final repository = ref.read(eventsRepositoryProvider);
+    final repository = ref.read(eventsRepositoryProvider);
 
+    // PHASE 1: Execute the database delete.
+    // Separated from post-delete cleanup so that a failure in refresh/navigation
+    // does not mask a successful deletion with a false error message.
+    try {
       if (_eventType == EventType.rehearsal) {
         if (deleteEntireSeries && _isPartOfRecurringSeries) {
           // Delete the entire recurring series
@@ -1299,15 +1302,21 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           '[DeleteEvent] deleted gig ${widget.existingEventId} for band ${widget.bandId}',
         );
       }
+    } catch (e) {
+      debugPrint('[EventEditorDrawer] Delete call failed: $e');
+      setState(() {
+        _isDeleting = false;
+        _errorMessage = _mapDeleteErrorToMessage(e);
+      });
+      return;
+    }
 
-      // Invalidate cache
-      repository.invalidateCache(widget.bandId);
+    // PHASE 2: Delete succeeded — refresh UI and close drawer.
+    // Errors here are non-fatal: the record is already deleted.
+    repository.invalidateCache(widget.bandId);
 
+    try {
       debugPrint('[EventEditorDrawer] Refreshing providers after delete...');
-
-      // Refresh providers directly to ensure immediate UI update
-      // This is more reliable than relying on onSaved callback after pop
-      // Await both to ensure data is refreshed before closing drawer
       await Future.wait([
         ref.read(gigProvider.notifier).refresh(),
         ref.read(rehearsalProvider.notifier).refresh(),
@@ -1315,26 +1324,24 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       await ref
           .read(calendarProvider.notifier)
           .invalidateAndRefresh(bandId: widget.bandId);
-
       debugPrint('[EventEditorDrawer] Refresh complete, popping...');
-
-      // Success feedback
-      HapticFeedback.mediumImpact();
-      if (mounted) {
-        Navigator.of(context).pop(true);
-        widget.onSaved?.call(); // Refresh caller's data (dashboard + calendar)
-        debugPrint('[EventEditorDrawer] onSaved called');
-
-        final message = deleteEntireSeries && _isPartOfRecurringSeries
-            ? 'All recurring rehearsals deleted'
-            : '${_eventType.displayName} deleted';
-        showSuccessSnackBar(context, message: message);
-      }
     } catch (e) {
-      setState(() {
-        _isDeleting = false;
-        _errorMessage = _mapDeleteErrorToMessage(e);
-      });
+      // Non-fatal: data will refresh on next navigation or pull-to-refresh
+      debugPrint(
+          '[EventEditorDrawer] Post-delete refresh failed (non-fatal): $e');
+    }
+
+    // Success feedback
+    HapticFeedback.mediumImpact();
+    if (mounted) {
+      Navigator.of(context).pop(true);
+      widget.onSaved?.call(); // Refresh caller's data (dashboard + calendar)
+      debugPrint('[EventEditorDrawer] onSaved called');
+
+      final message = deleteEntireSeries && _isPartOfRecurringSeries
+          ? 'All recurring rehearsals deleted'
+          : '${_eventType.displayName} deleted';
+      showSuccessSnackBar(context, message: message);
     }
   }
 
