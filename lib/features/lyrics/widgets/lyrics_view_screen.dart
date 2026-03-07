@@ -314,9 +314,6 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
   // ── FAB ────────────────────────────────────────────────────────────────────
 
   Widget _buildScrollFab() {
-    // Speed controls are always visible
-    const showSpeedControls = true;
-
     return Positioned(
       right: 16,
       bottom: 24,
@@ -324,27 +321,21 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Speed controls (visible while auto-scrolling) ──
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: showSpeedControls
-                ? Column(
-                    key: const ValueKey('speed-controls'),
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _miniSpeedButton(
-                        icon: Icons.add,
-                        onTap: () => _changeScrollSpeed(10),
-                      ),
-                      const SizedBox(height: 8),
-                      _miniSpeedButton(
-                        icon: Icons.remove,
-                        onTap: () => _changeScrollSpeed(-10),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                  )
-                : const SizedBox.shrink(key: ValueKey('speed-hidden')),
+          // ── Speed controls ──
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _miniSpeedButton(
+                icon: Icons.add,
+                onTap: () => _changeScrollSpeed(10),
+              ),
+              const SizedBox(height: 8),
+              _miniSpeedButton(
+                icon: Icons.remove,
+                onTap: () => _changeScrollSpeed(-10),
+              ),
+              const SizedBox(height: 12),
+            ],
           ),
 
           // ── Primary FAB ──
