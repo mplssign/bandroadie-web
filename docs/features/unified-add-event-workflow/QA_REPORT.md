@@ -25,16 +25,16 @@ N/A — this is a feature, not a bug fix.
 
 ### Task-by-Task Verification
 
-| # | Architect Task | Status | Notes |
-|---|---|---|---|
-| 1 | Extend `EventType` enum with `blockOut` | ✅ | `displayName` = `'Block Out'` |
-| 2 | Block out form in Event Editor Drawer | ✅ | Start Date, End Date (optional), Reason (optional). RBAC toggle filtering, save/delete logic, edit mode population. +379 lines. |
-| 3 | Update `AddEditEventBottomSheet` wrapper | ✅ | `existingBlockOut` parameter pass-through |
-| 4 | Simplify `QuickActionsRow` | ✅ | 3 buttons → 1 `+ Add Event` + `+ Create Setlist` |
-| 5 | Update `EmptyHomeState` | ✅ | Consolidated callbacks |
-| 6 | Update dashboard screens | ✅ | Both `home_screen.dart` and `home_tab_content.dart` consolidated |
-| 7 | Update calendar screens | ✅ | Both screens: single button, block out edit routed through event editor |
-| 8 | Update tips & tricks text | ✅ | References "+ Add Event" |
+| #   | Architect Task                           | Status | Notes                                                                                                                           |
+| --- | ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Extend `EventType` enum with `blockOut`  | ✅     | `displayName` = `'Block Out'`                                                                                                   |
+| 2   | Block out form in Event Editor Drawer    | ✅     | Start Date, End Date (optional), Reason (optional). RBAC toggle filtering, save/delete logic, edit mode population. +379 lines. |
+| 3   | Update `AddEditEventBottomSheet` wrapper | ✅     | `existingBlockOut` parameter pass-through                                                                                       |
+| 4   | Simplify `QuickActionsRow`               | ✅     | 3 buttons → 1 `+ Add Event` + `+ Create Setlist`                                                                                |
+| 5   | Update `EmptyHomeState`                  | ✅     | Consolidated callbacks                                                                                                          |
+| 6   | Update dashboard screens                 | ✅     | Both `home_screen.dart` and `home_tab_content.dart` consolidated                                                                |
+| 7   | Update calendar screens                  | ✅     | Both screens: single button, block out edit routed through event editor                                                         |
+| 8   | Update tips & tricks text                | ✅     | References "+ Add Event"                                                                                                        |
 
 ### Architecture Compliance
 
@@ -66,18 +66,18 @@ N/A — this is a feature, not a bug fix.
 
 ## Files Verified
 
-| File | Change Type | Verified |
-|---|---|---|
-| `lib/features/events/models/event_form_data.dart` | Enum extension | ✅ |
-| `lib/features/events/widgets/event_editor_drawer.dart` | Block out form/logic | ✅ |
-| `lib/features/events/widgets/add_edit_event_bottom_sheet.dart` | Parameter pass-through | ✅ |
-| `lib/features/home/widgets/quick_actions_row.dart` | API simplification | ✅ |
-| `lib/features/home/widgets/empty_home_state.dart` | API simplification | ✅ |
-| `lib/features/home/home_screen.dart` | Handler consolidation | ✅ |
-| `lib/features/home/home_tab_content.dart` | Handler consolidation | ✅ |
-| `lib/features/calendar/calendar_screen.dart` | Single button, edit routing | ✅ |
-| `lib/features/calendar/calendar_tab_content.dart` | Single button, edit routing | ✅ |
-| `lib/components/overlays/tips_and_tricks_overlay.dart` | Tip text update | ✅ |
+| File                                                           | Change Type                 | Verified |
+| -------------------------------------------------------------- | --------------------------- | -------- |
+| `lib/features/events/models/event_form_data.dart`              | Enum extension              | ✅       |
+| `lib/features/events/widgets/event_editor_drawer.dart`         | Block out form/logic        | ✅       |
+| `lib/features/events/widgets/add_edit_event_bottom_sheet.dart` | Parameter pass-through      | ✅       |
+| `lib/features/home/widgets/quick_actions_row.dart`             | API simplification          | ✅       |
+| `lib/features/home/widgets/empty_home_state.dart`              | API simplification          | ✅       |
+| `lib/features/home/home_screen.dart`                           | Handler consolidation       | ✅       |
+| `lib/features/home/home_tab_content.dart`                      | Handler consolidation       | ✅       |
+| `lib/features/calendar/calendar_screen.dart`                   | Single button, edit routing | ✅       |
+| `lib/features/calendar/calendar_tab_content.dart`              | Single button, edit routing | ✅       |
+| `lib/components/overlays/tips_and_tricks_overlay.dart`         | Tip text update             | ✅       |
 
 No files created. No files deleted. No migrations. No config changes.
 
@@ -87,19 +87,19 @@ No files created. No files deleted. No migrations. No config changes.
 
 ### Systems Tested
 
-| System | Impact | Status |
-|---|---|---|
-| Event creation (gigs) | Direct — same drawer, toggle updated | ✅ No regression (form fields unchanged for gig type) |
+| System                      | Impact                               | Status                                                      |
+| --------------------------- | ------------------------------------ | ----------------------------------------------------------- |
+| Event creation (gigs)       | Direct — same drawer, toggle updated | ✅ No regression (form fields unchanged for gig type)       |
 | Event creation (rehearsals) | Direct — same drawer, toggle updated | ✅ No regression (form fields unchanged for rehearsal type) |
-| Block out creation | Direct — moved into event editor | ✅ Same repository, same data pattern |
-| Calendar display | Indirect — action buttons changed | ✅ Single button replaces two-button row |
-| Dashboard quick actions | Direct — buttons consolidated | ✅ Single "+ Add Event" button |
-| RBAC / permissions | Direct — toggle filtering extended | ✅ Contributors excluded from blockOut type |
-| Block out editing | Direct — routed through event editor | ✅ Delete-then-create pattern preserved |
-| Setlist creation | None — separate workflow | ✅ Unaffected |
-| Notifications | None — not modified | ✅ Unaffected |
-| Auth/session | None — not modified | ✅ Unaffected |
-| Routing/deep links | None — not modified | ✅ Unaffected |
+| Block out creation          | Direct — moved into event editor     | ✅ Same repository, same data pattern                       |
+| Calendar display            | Indirect — action buttons changed    | ✅ Single button replaces two-button row                    |
+| Dashboard quick actions     | Direct — buttons consolidated        | ✅ Single "+ Add Event" button                              |
+| RBAC / permissions          | Direct — toggle filtering extended   | ✅ Contributors excluded from blockOut type                 |
+| Block out editing           | Direct — routed through event editor | ✅ Delete-then-create pattern preserved                     |
+| Setlist creation            | None — separate workflow             | ✅ Unaffected                                               |
+| Notifications               | None — not modified                  | ✅ Unaffected                                               |
+| Auth/session                | None — not modified                  | ✅ Unaffected                                               |
+| Routing/deep links          | None — not modified                  | ✅ Unaffected                                               |
 
 ### Regression Risk Level: **LOW**
 
