@@ -17,7 +17,7 @@ import '../rehearsals/rehearsal_controller.dart';
 import '../shell/overlay_state.dart';
 import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
-import 'widgets/add_block_out_drawer.dart';
+
 import 'widgets/calendar_app_bar.dart';
 import 'widgets/calendar_event_card.dart';
 import 'widgets/calendar_grid.dart';
@@ -122,42 +122,6 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     ref.read(calendarProvider.notifier).loadEvents();
   }
 
-  void _handleBlockOut() {
-    // RBAC self-defense: block outs are for admins and members only
-    final blockOutPermsAsync = ref.read(currentUserPermissionsProvider);
-    final perms = blockOutPermsAsync.when(
-      data: (p) => p,
-      loading: () => null,
-      error: (_, __) => null,
-    );
-    if (perms?.isContributor == true) {
-      showAppSnackBar(
-        context,
-        message: '🎸 Block outs are for admins and members.',
-      );
-      return;
-    }
-
-    final bandState = ref.read(activeBandProvider);
-    final bandId = bandState.activeBand?.id;
-
-    if (bandId == null) {
-      showAppSnackBar(context, message: 'Please select a band first');
-      return;
-    }
-
-    BlockOutDrawer.show(
-      context,
-      ref: ref,
-      bandId: bandId,
-      mode: BlockOutDrawerMode.create,
-      onSaved: () {
-        // Refresh calendar to show new block out markers
-        _refreshCalendarData();
-      },
-    );
-  }
-
   void _handleDayTap(DateTime date) {
     final calendarState = ref.read(calendarProvider);
     final eventsForDay = calendarState.eventsForDate(date);
@@ -221,10 +185,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
   /// Open the Edit Event drawer for an existing calendar event
   void _openEditEventSheet(CalendarEvent event) {
-    final bandState = ref.read(activeBandProvider);
-    final bandId = bandState.activeBand?.id;
-
-    // Block outs: open the block out drawer with permission check
+    // Block outs: open the event editor with permission check
     // Only the creator can edit/delete their own block out dates
     if (event.isBlockOut && event.blockOutSpan != null) {
       final currentUserId = supabase.auth.currentUser?.id;
@@ -233,12 +194,13 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       );
       final canEdit = permissionHelper.canEditEvent(event);
 
-      BlockOutDrawer.show(
+      AddEditEventBottomSheet.show(
         context,
         ref: ref,
-        bandId: bandId ?? '',
-        mode: canEdit ? BlockOutDrawerMode.edit : BlockOutDrawerMode.viewOnly,
+        mode: canEdit ? EventFormMode.edit : EventFormMode.create,
+        initialType: EventType.blockOut,
         existingBlockOut: event.blockOutSpan,
+        viewOnly: !canEdit,
         onSaved: _refreshCalendarData,
       );
       return;
@@ -347,9 +309,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   }
 
   /// Build action buttons based on permissions.
-  /// Admin/Member: both "Add Event" and "Block Out" in a Row.
-  /// Contributor with canCreateGigs: only "Create Event" button.
-  /// Contributor without: no buttons.
+  /// Admin/Member/Contributor with permissions: single "Add Event" button.
+  /// Contributor without canCreateGigs: no buttons.
   /// While permissions are loading (perms == null): no buttons to prevent flicker.
   Widget _buildActionButtons(BandPermissions? perms) {
     if (perms == null) {
@@ -357,38 +318,16 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       return const SizedBox.shrink();
     }
 
-    if (perms.isContributor) {
-      // Contributor with gig permission: show only "Create Event"
-      if (perms.canCreateGigs) {
-        return BrandActionButton(
-          icon: Icons.add_rounded,
-          label: 'Create Event',
-          onPressed: _handleAddEvent,
-        );
-      }
+    if (perms.isContributor && !perms.canCreateGigs) {
       // Contributor without gig permission: no buttons
       return const SizedBox.shrink();
     }
 
-    // Admin/Member: both buttons
-    return Row(
-      children: [
-        Expanded(
-          child: BrandActionButton(
-            icon: Icons.add_rounded,
-            label: 'Add Event',
-            onPressed: _handleAddEvent,
-          ),
-        ),
-        const SizedBox(width: Spacing.space12),
-        Expanded(
-          child: BrandActionButton(
-            icon: Icons.block_rounded,
-            label: 'Block Out',
-            onPressed: _handleBlockOut,
-          ),
-        ),
-      ],
+    // Single "Add Event" button for all permitted roles
+    return BrandActionButton(
+      icon: Icons.add_rounded,
+      label: 'Add Event',
+      onPressed: _handleAddEvent,
     );
   }
 

@@ -22,7 +22,6 @@ import '../rehearsals/rehearsal_controller.dart';
 import '../settings/settings_screen.dart';
 import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
-import 'widgets/add_block_out_drawer.dart';
 import 'widgets/calendar_app_bar.dart';
 import 'widgets/calendar_subscription_dialog.dart';
 import 'widgets/calendar_bottom_nav_bar.dart';
@@ -181,26 +180,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     );
   }
 
-  void _handleBlockOut() {
-    // RBAC: Block outs are for admins and members only
-    final permsAsync = ref.read(currentUserPermissionsProvider);
-    final perms = permsAsync.when(
-      data: (p) => p,
-      loading: () => null,
-      error: (_, __) => null,
-    );
-    if (perms?.isContributor == true) return;
-
-    final bandId = ref.read(activeBandProvider).activeBand?.id ?? '';
-    BlockOutDrawer.show(
-      context,
-      ref: ref,
-      bandId: bandId,
-      mode: BlockOutDrawerMode.create,
-      onSaved: _refreshCalendarData,
-    );
-  }
-
   void _handleDayTap(DateTime date) {
     final calendarState = ref.read(calendarProvider);
     final eventsForDay = calendarState.eventsForDate(date);
@@ -225,10 +204,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
   /// Open the Edit Event drawer for an existing calendar event
   void _openEditEventSheet(CalendarEvent event) {
-    final bandState = ref.read(activeBandProvider);
-    final bandId = bandState.activeBand?.id;
-
-    // Block outs: open the block out drawer with permission check
+    // Block outs: open the event editor with permission check
     // Only the creator can edit/delete their own block out dates
     if (event.isBlockOut && event.blockOutSpan != null) {
       final currentUserId = supabase.auth.currentUser?.id;
@@ -237,12 +213,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       );
       final canEdit = permissionHelper.canEditEvent(event);
 
-      BlockOutDrawer.show(
+      AddEditEventBottomSheet.show(
         context,
         ref: ref,
-        bandId: bandId ?? '',
-        mode: canEdit ? BlockOutDrawerMode.edit : BlockOutDrawerMode.viewOnly,
+        mode: canEdit ? EventFormMode.edit : EventFormMode.create,
+        initialType: EventType.blockOut,
         existingBlockOut: event.blockOutSpan,
+        viewOnly: !canEdit,
         onSaved: _refreshCalendarData,
       );
       return;
@@ -452,33 +429,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
           const SizedBox(height: Spacing.space16),
 
           // Action buttons row
-          // Admin/Member: both "Add Event" and "Block Out"
-          // Contributor with canCreateGigs: only "Create Event"
-          // Contributor without: no buttons
-          if (!isContributor) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: _ActionButton(
-                    icon: Icons.add_rounded,
-                    label: 'Add Event',
-                    onTap: _handleAddEvent,
-                  ),
-                ),
-                const SizedBox(width: Spacing.space12),
-                Expanded(
-                  child: _ActionButton(
-                    icon: Icons.block_rounded,
-                    label: 'Block Out',
-                    onTap: _handleBlockOut,
-                  ),
-                ),
-              ],
-            ),
-          ] else if (canCreateGig) ...[
+          // Admin/Member/Contributor with permissions: single "Add Event" button
+          // Contributor without canCreateGigs: no buttons
+          if (!isContributor || canCreateGig) ...[
             _ActionButton(
               icon: Icons.add_rounded,
-              label: 'Create Event',
+              label: 'Add Event',
               onTap: _handleAddEvent,
             ),
           ],

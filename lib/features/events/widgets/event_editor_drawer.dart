@@ -16,6 +16,7 @@ import '../../../shared/utils/title_case_formatter.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
+import '../../calendar/models/calendar_event.dart';
 import '../../gigs/gig_controller.dart';
 import '../../gigs/gig_response_repository.dart';
 import '../../members/members_controller.dart';
@@ -78,6 +79,9 @@ class EventEditorDrawer extends ConsumerStatefulWidget {
   /// Used for contributors who can view but not edit events.
   final bool viewOnly;
 
+  /// Existing block out data for editing (block out events only)
+  final BlockOutSpan? existingBlockOut;
+
   const EventEditorDrawer({
     super.key,
     this.mode = EventEditorMode.create,
@@ -89,6 +93,7 @@ class EventEditorDrawer extends ConsumerStatefulWidget {
     this.onSaved,
     this.onCancelled,
     this.viewOnly = false,
+    this.existingBlockOut,
   });
 
   @override
@@ -123,6 +128,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Set<Weekday> _selectedDays = {};
   RecurrenceFrequency _frequency = RecurrenceFrequency.weekly;
   DateTime? _untilDate;
+
+  // Block out state (block out events only)
+  DateTime? _blockOutUntilDate;
 
   // Potential gig state (gigs only)
   // Selected members are persisted to gigs.required_member_ids column.
@@ -251,6 +259,16 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
       // Store initial form data for change detection in edit mode
       _initialFormData = data;
+    }
+
+    // Populate fields for block out edit mode
+    if (widget.existingBlockOut != null) {
+      _eventType = EventType.blockOut;
+      _selectedDate = widget.existingBlockOut!.startDate;
+      if (widget.existingBlockOut!.isMultiDay) {
+        _blockOutUntilDate = widget.existingBlockOut!.endDate;
+      }
+      _notesController.text = widget.existingBlockOut!.reason;
     }
 
     // Load members for potential gig section
@@ -820,6 +838,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   /// For gigs: name and location are required.
   /// For rehearsals: no required text fields.
   bool get _isFormValid {
+    if (_eventType == EventType.blockOut) {
+      return true; // Block outs have no required text fields
+    }
     if (_eventType == EventType.gig) {
       final hasName = _nameController.text.trim().isNotEmpty;
       final hasLocation = _locationController.text.trim().isNotEmpty;
@@ -950,7 +971,177 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
+  // ============================================================================
+  // BLOCK OUT SAVE / DELETE
+  // ============================================================================
+
+  /// Save a new block out
+  Future<void> _saveBlockOut() async {
+    if (widget.viewOnly) return;
+
+    // RBAC: Block outs are for admins and members only
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    if (perms?.isContributor == true) {
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          message: '🎸 Block outs are for admins and members.',
+        );
+      }
+      return;
+    }
+
+    // Validate end date
+    if (_blockOutUntilDate != null &&
+        _blockOutUntilDate!.isBefore(_selectedDate)) {
+      setState(() {
+        _errorMessage = 'End date cannot be before start date';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('Not logged in');
+      }
+
+      final repository = ref.read(blockOutRepositoryProvider);
+
+      if (_isEditMode && widget.existingBlockOut != null) {
+        // Update: delete span then create new
+        await repository.deleteBlockOutSpan(
+          userId: widget.existingBlockOut!.userId,
+          bandId: widget.bandId,
+          startDate: widget.existingBlockOut!.startDate,
+          endDate: widget.existingBlockOut!.endDate,
+        );
+        await repository.createBlockOut(
+          bandId: widget.bandId,
+          userId: userId,
+          startDate: _selectedDate,
+          untilDate: _blockOutUntilDate,
+          reason: _notesController.text.trim(),
+        );
+      } else {
+        await repository.createBlockOut(
+          bandId: widget.bandId,
+          userId: userId,
+          startDate: _selectedDate,
+          untilDate: _blockOutUntilDate,
+          reason: _notesController.text.trim(),
+        );
+      }
+
+      // Refresh calendar
+      ref
+          .read(calendarProvider.notifier)
+          .invalidateAndRefresh(bandId: widget.bandId);
+
+      HapticFeedback.mediumImpact();
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        widget.onSaved?.call();
+        showSuccessSnackBar(
+          context,
+          message: _isEditMode ? 'Block out updated' : 'Block out added',
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isSaving = false;
+        _errorMessage = mapBlockOutErrorToMessage(e, context: 'save');
+      });
+    }
+  }
+
+  /// Delete a block out span
+  Future<void> _deleteBlockOut() async {
+    if (widget.existingBlockOut == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBg,
+        title: Text('Delete Block Out?', style: AppTextStyles.title3),
+        content: Text(
+          'This will remove the block out dates. This action cannot be undone.',
+          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.callout.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Delete',
+              style: AppTextStyles.callout.copyWith(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isDeleting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final repository = ref.read(blockOutRepositoryProvider);
+
+      await repository.deleteBlockOutSpan(
+        userId: widget.existingBlockOut!.userId,
+        bandId: widget.bandId,
+        startDate: widget.existingBlockOut!.startDate,
+        endDate: widget.existingBlockOut!.endDate,
+      );
+
+      // Refresh calendar
+      ref
+          .read(calendarProvider.notifier)
+          .invalidateAndRefresh(bandId: widget.bandId);
+
+      HapticFeedback.mediumImpact();
+      if (mounted) {
+        Navigator.of(context).pop(true);
+        widget.onSaved?.call();
+        showSuccessSnackBar(context, message: 'Block out deleted');
+      }
+    } catch (e) {
+      setState(() {
+        _isDeleting = false;
+        _errorMessage = mapBlockOutErrorToMessage(e, context: 'delete');
+      });
+    }
+  }
+
   Future<void> _handleSave() async {
+    // Route block out saves to dedicated handler
+    if (_eventType == EventType.blockOut) {
+      await _saveBlockOut();
+      return;
+    }
+
     // RBAC self-defense: block save if viewOnly or insufficient permissions
     if (widget.viewOnly) return;
     final savePermsAsync = ref.read(currentUserPermissionsProvider);
@@ -1130,6 +1321,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   /// Show delete confirmation dialog and handle deletion
   Future<void> _showDeleteConfirmation() async {
+    // Route block out deletes to dedicated handler
+    if (_eventType == EventType.blockOut) {
+      await _deleteBlockOut();
+      return;
+    }
+
     // For recurring rehearsals, show special dialog with options
     if (_isPartOfRecurringSeries) {
       await _showRecurringDeleteDialog();
@@ -1461,87 +1658,98 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         const SizedBox(height: Spacing.space12),
                       ],
 
-                      // 2. Date Picker
-                      _buildDatePicker(),
+                      // Block out form fields
+                      if (_eventType == EventType.blockOut) ...[
+                        _buildBlockOutForm(),
 
-                      const SizedBox(height: Spacing.space16),
+                        // Delete Block Out button (edit mode only, hidden in viewOnly)
+                        if (_isEditMode && !widget.viewOnly) ...[
+                          const SizedBox(height: Spacing.space24),
+                          _buildDeleteButton(),
+                        ],
+                      ] else ...[
+                        // 2. Date Picker
+                        _buildDatePicker(),
 
-                      // 3. Start Time Selectors
-                      _buildTimeSelector(),
-
-                      const SizedBox(height: Spacing.space16),
-
-                      // 4. Duration Toggles (4x2 grid)
-                      _buildDurationSelector(),
-
-                      const SizedBox(height: Spacing.space16),
-
-                      // 5. Location/City Input (context-aware label)
-                      // Rehearsals get autocomplete from past locations
-                      // Gigs get autocomplete from past cities
-                      _eventType == EventType.rehearsal
-                          ? _buildLocationAutocomplete()
-                          : _buildGigCityAutocomplete(),
-
-                      // 5.5 Load-in Time (gigs only, optional)
-                      if (_eventType == EventType.gig) ...[
                         const SizedBox(height: Spacing.space16),
-                        _buildLoadInTimeSelector(),
-                      ],
 
-                      const SizedBox(height: Spacing.space16),
+                        // 3. Start Time Selectors
+                        _buildTimeSelector(),
 
-                      // 6. Setlist Selector (optional for both gigs and rehearsals)
-                      _buildSetlistSelector(),
-
-                      // 7. Gig Pay (gigs only, optional)
-                      if (_eventType == EventType.gig) ...[
                         const SizedBox(height: Spacing.space16),
-                        _buildGigPayField(),
-                      ],
 
-                      const SizedBox(height: Spacing.space16),
+                        // 4. Duration Toggles (4x2 grid)
+                        _buildDurationSelector(),
 
-                      // Notes (optional)
-                      _buildTextField(
-                        label: 'Notes (optional)',
-                        controller: _notesController,
-                        hint: 'Any additional details...',
-                        maxLines: 3,
-                      ),
-                      FieldHint(
-                        text: "Optional — visible only to band members.",
-                        controller: _notesHintController,
-                      ),
+                        const SizedBox(height: Spacing.space16),
 
-                      const SizedBox(height: Spacing.space20),
+                        // 5. Location/City Input (context-aware label)
+                        // Rehearsals get autocomplete from past locations
+                        // Gigs get autocomplete from past cities
+                        _eventType == EventType.rehearsal
+                            ? _buildLocationAutocomplete()
+                            : _buildGigCityAutocomplete(),
 
-                      // 6. Recurring Toggle (rehearsals only - gigs don't recur)
-                      if (_eventType == EventType.rehearsal) ...[
-                        _buildRecurringToggle(),
+                        // 5.5 Load-in Time (gigs only, optional)
+                        if (_eventType == EventType.gig) ...[
+                          const SizedBox(height: Spacing.space16),
+                          _buildLoadInTimeSelector(),
+                        ],
 
-                        // 7. Recurring Section (animated with slide + fade)
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                          alignment: Alignment.topCenter,
-                          child: _isRecurring
-                              ? SlideTransition(
-                                  position: _recurringSlideAnimation,
-                                  child: FadeTransition(
-                                    opacity: _recurringFadeAnimation,
-                                    child: _buildRecurringSection(),
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
+                        const SizedBox(height: Spacing.space16),
+
+                        // 6. Setlist Selector (optional for both gigs and rehearsals)
+                        _buildSetlistSelector(),
+
+                        // 7. Gig Pay (gigs only, optional)
+                        if (_eventType == EventType.gig) ...[
+                          const SizedBox(height: Spacing.space16),
+                          _buildGigPayField(),
+                        ],
+
+                        const SizedBox(height: Spacing.space16),
+
+                        // Notes (optional)
+                        _buildTextField(
+                          label: 'Notes (optional)',
+                          controller: _notesController,
+                          hint: 'Any additional details...',
+                          maxLines: 3,
                         ),
-                      ],
+                        FieldHint(
+                          text: "Optional — visible only to band members.",
+                          controller: _notesHintController,
+                        ),
 
-                      // Delete Event button (edit mode only, hidden in viewOnly)
-                      if (_isEditMode && !widget.viewOnly) ...[
-                        const SizedBox(height: Spacing.space24),
-                        _buildDeleteButton(),
-                      ],
+                        const SizedBox(height: Spacing.space20),
+
+                        // 6. Recurring Toggle (rehearsals only - gigs don't recur)
+                        if (_eventType == EventType.rehearsal) ...[
+                          _buildRecurringToggle(),
+
+                          // 7. Recurring Section (animated with slide + fade)
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                            alignment: Alignment.topCenter,
+                            child: _isRecurring
+                                ? SlideTransition(
+                                    position: _recurringSlideAnimation,
+                                    child: FadeTransition(
+                                      opacity: _recurringFadeAnimation,
+                                      child: _buildRecurringSection(),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+
+                        // Delete Event button (edit mode only, hidden in viewOnly)
+                        if (_isEditMode && !widget.viewOnly) ...[
+                          const SizedBox(height: Spacing.space24),
+                          _buildDeleteButton(),
+                        ],
+                      ], // end else (non-blockOut form)
                     ],
                   ),
                 ),
@@ -1616,16 +1824,191 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
+  // ============================================================================
+  // BLOCK OUT FORM
+  // ============================================================================
+
+  Widget _buildBlockOutForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Start Date
+        _buildBlockOutDateField(
+          label: 'Start Date',
+          date: _selectedDate,
+          onTap: _isSaving ? null : _selectBlockOutStartDate,
+        ),
+        const SizedBox(height: Spacing.space16),
+
+        // End Date (optional)
+        _buildBlockOutDateField(
+          label: 'End Date (optional)',
+          date: _blockOutUntilDate,
+          onTap: _isSaving ? null : _selectBlockOutUntilDate,
+          placeholder: 'Same as start date',
+          showClearButton: _blockOutUntilDate != null,
+          onClear: () {
+            setState(() => _blockOutUntilDate = null);
+            _markDirty();
+          },
+        ),
+        const SizedBox(height: Spacing.space16),
+
+        // Reason (optional)
+        _buildTextField(
+          label: 'Reason (optional)',
+          controller: _notesController,
+          hint: 'Vacation, personal, etc.',
+          maxLines: 2,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBlockOutDateField({
+    required String label,
+    DateTime? date,
+    VoidCallback? onTap,
+    String placeholder = '',
+    bool showClearButton = false,
+    VoidCallback? onClear,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.footnote.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.scaffoldBg,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              border: Border.all(color: AppColors.borderMuted),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    date != null ? _formatBlockOutDate(date) : placeholder,
+                    style: AppTextStyles.callout.copyWith(
+                      color: date != null
+                          ? AppColors.textPrimary
+                          : AppColors.textMuted,
+                    ),
+                  ),
+                ),
+                if (showClearButton)
+                  GestureDetector(
+                    onTap: onClear,
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectBlockOutStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (context, child) => _blockOutDatePickerTheme(child),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        if (_blockOutUntilDate != null &&
+            _blockOutUntilDate!.isBefore(_selectedDate)) {
+          _blockOutUntilDate = null;
+        }
+      });
+      _markDirty();
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  Future<void> _selectBlockOutUntilDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _blockOutUntilDate ?? _selectedDate,
+      firstDate: _selectedDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (context, child) => _blockOutDatePickerTheme(child),
+    );
+    if (picked != null) {
+      setState(() => _blockOutUntilDate = picked);
+      _markDirty();
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  Widget _blockOutDatePickerTheme(Widget? child) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: ColorScheme.dark(
+          primary: AppColors.accent,
+          surface: AppColors.cardBg,
+          onSurface: AppColors.textPrimary,
+        ),
+        dialogTheme: DialogThemeData(backgroundColor: AppColors.cardBg),
+      ),
+      child: child!,
+    );
+  }
+
+  String _formatBlockOutDate(DateTime date) {
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${weekdays[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
   Widget _buildEventTypeToggle() {
     // In edit mode, the toggle is disabled to prevent type changes
     final isDisabled = _isEditMode || _isSaving;
 
-    // RBAC: Contributors can only create gigs, not rehearsals
+    // RBAC: Contributors can only create gigs, not rehearsals or block outs
     final permsAsync = ref.read(currentUserPermissionsProvider);
     final isContributor =
         permsAsync.whenOrNull(data: (p) => p.isContributor) ?? false;
     final availableTypes = isContributor
-        ? EventType.values.where((t) => t != EventType.rehearsal).toList()
+        ? EventType.values
+            .where((t) => t != EventType.rehearsal && t != EventType.blockOut)
+            .toList()
         : EventType.values;
 
     return Column(

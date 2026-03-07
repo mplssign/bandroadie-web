@@ -12,7 +12,6 @@ import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
 import '../bands/edit_band_screen.dart';
 import '../calendar/calendar_controller.dart';
-import '../calendar/widgets/add_block_out_drawer.dart';
 import '../events/models/event_form_data.dart';
 import '../events/widgets/add_edit_event_bottom_sheet.dart';
 import '../feedback/bug_report_screen.dart';
@@ -197,30 +196,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  void _handleBlockOut() {
-    // RBAC: Block outs are for admins and members only
+  void _handleAddEvent() {
+    // Determine default event type based on RBAC
     final permsAsync = ref.read(currentUserPermissionsProvider);
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
       error: (_, __) => null,
     );
-    if (perms?.isContributor == true) return;
+    if (perms == null) return;
+    if (perms.isContributor && !perms.canCreateGigs) return;
 
-    final bandId = ref.read(activeBandIdProvider);
-    if (bandId == null) return;
-    BlockOutDrawer.show(
-      context,
-      ref: ref,
-      bandId: bandId,
-      mode: BlockOutDrawerMode.create,
-      onSaved: () {
-        // Refresh calendar data after creating block out
-        ref
-            .read(calendarProvider.notifier)
-            .invalidateAndRefresh(bandId: bandId);
-      },
-    );
+    final eventType = perms.isContributor ? EventType.gig : EventType.rehearsal;
+    _openAddEventSheet(eventType);
   }
 
   /// Open the Edit Event drawer for an existing gig
@@ -361,11 +349,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         localImageFile: draftLocalImage,
         onMenuTap: _openDrawer,
         onAvatarTap: _openBandSwitcher,
-        onScheduleRehearsal: isContributor
-            ? null
-            : () => _openAddEventSheet(EventType.rehearsal),
-        onCreateGig:
-            canCreateGig ? () => _openAddEventSheet(EventType.gig) : null,
+        onAddEvent: (isContributor && !canCreateGig) ? null : _handleAddEvent,
         onCreateSetlist: canCreateSetlist
             ? () {
                 // Use custom fade+slide transition for smooth navigation
@@ -374,7 +358,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ).push(fadeSlideRoute(page: const NewSetlistScreen()));
               }
             : null,
-        onBlockOut: isContributor ? null : _handleBlockOut,
       );
     } else {
       stateKey = 'content';
@@ -774,12 +757,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               // Quick actions - horizontal scroll
                               // Show section if at least one action button is visible
                               Builder(builder: (context) {
-                                final showRehearsal = !isContributor;
-                                final showBlockOut = !isContributor;
-                                final hasAnyButton = showRehearsal ||
-                                    canCreateSetlist ||
-                                    canCreateGig ||
-                                    showBlockOut;
+                                final showAddEvent =
+                                    !isContributor || canCreateGig;
+                                final hasAnyButton =
+                                    showAddEvent || canCreateSetlist;
                                 if (!hasAnyButton) {
                                   return const SizedBox.shrink();
                                 }
@@ -791,14 +772,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     _AnimatedCardEntrance(
                                       delay: const Duration(milliseconds: 240),
                                       child: QuickActionsRow(
-                                        onScheduleRehearsal: showRehearsal
-                                            ? () => _openAddEventSheet(
-                                                  EventType.rehearsal,
-                                                )
-                                            : null,
-                                        onCreateGig: canCreateGig
-                                            ? () => _openAddEventSheet(
-                                                EventType.gig)
+                                        onAddEvent: showAddEvent
+                                            ? _handleAddEvent
                                             : null,
                                         onCreateSetlist: canCreateSetlist
                                             ? () {
@@ -810,13 +785,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                                 );
                                               }
                                             : null,
-                                        onBlockOut: showBlockOut
-                                            ? _handleBlockOut
-                                            : null,
-                                        showCreateGig: canCreateGig,
+                                        showAddEvent: showAddEvent,
                                         showCreateSetlist: canCreateSetlist,
-                                        showScheduleRehearsal: showRehearsal,
-                                        showBlockOut: showBlockOut,
                                       ),
                                     ),
                                   ],
