@@ -8,11 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
-import '../../../components/ui/brand_action_button.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
-import '../../../shared/utils/title_case_formatter.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
@@ -20,15 +18,17 @@ import '../../calendar/models/calendar_event.dart';
 import '../../gigs/gig_controller.dart';
 import '../../gigs/gig_response_repository.dart';
 import '../../members/members_controller.dart';
-import '../../members/member_vm.dart';
 import '../../members/permissions/band_permissions_provider.dart';
 import '../../rehearsals/rehearsal_controller.dart';
-import '../../setlists/models/setlist.dart';
 import '../../setlists/new_setlist_screen.dart';
-import '../../setlists/setlists_screen.dart' show setlistsProvider;
 import '../models/event_form_data.dart';
 import '../events_repository.dart';
-import 'button_group_grid.dart';
+import 'event_editor_actions.dart';
+import 'event_editor_helpers.dart';
+import 'event_form_fields.dart';
+import 'event_type_selector.dart';
+import 'gig_form_fields.dart';
+import 'rehearsal_form_fields.dart';
 
 // ============================================================================
 // EVENT EDITOR DRAWER
@@ -750,17 +750,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _markDirty();
   }
 
-  void _toggleMultiDate(bool value) {
-    setState(() {
-      _isMultiDate = value;
-      // When toggling off, remove all additional dates
-      if (!value) {
-        _additionalDates = [];
-      }
-    });
-    _markDirty();
-  }
-
   void _addAdditionalDate() {
     setState(() {
       // Add a new date, default to one week after the last date
@@ -863,20 +852,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
     // If minutes exceeds all options, return the max
     return EventDuration.values.last;
-  }
-
-  /// Format duration in minutes for display.
-  /// Examples: 15m, 45m, 1h, 1h 15m, 2h 30m
-  String _formatDurationMinutes(int minutes) {
-    if (minutes < 60) {
-      return '${minutes}m';
-    }
-    final hours = minutes ~/ 60;
-    final mins = minutes % 60;
-    if (mins == 0) {
-      return '${hours}h';
-    }
-    return '${hours}h ${mins}m';
   }
 
   /// Whether this is edit mode
@@ -1547,10 +1522,183 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return widget.mode == EventEditorMode.edit ? 'Update' : 'Add $typeName';
   }
 
+  // --- Helpers for extracted widget construction ---
+
+  List<EventType> _computeAvailableTypes() {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final isContributor =
+        permsAsync.whenOrNull(data: (p) => p.isContributor) ?? false;
+    return isContributor
+        ? EventType.values
+            .where((t) => t != EventType.rehearsal && t != EventType.blockOut)
+            .toList()
+        : EventType.values;
+  }
+
+  void _handleTypeChanged(EventType type) {
+    setState(() {
+      _eventType = type;
+    });
+    if (type == EventType.gig && widget.mode == EventEditorMode.create) {
+      final permsAsync = ref.read(currentUserPermissionsProvider);
+      permsAsync.whenData((perms) {
+        if (perms.canCreatePotentialGigsOnly && mounted) {
+          setState(() {
+            _isPotentialGig = true;
+            _forcePotentialOnly = true;
+          });
+          _preSelectAllMembersForPotentialGig();
+        }
+      });
+    }
+    HapticFeedback.selectionClick();
+  }
+
+  GigFormFields _createGigFormFields() {
+    return GigFormFields(
+      isSaving: _isSaving,
+      isEditMode: _isEditMode,
+      existingEventId: widget.existingEventId,
+      nameController: _nameController,
+      venueHintController: _venueHintController,
+      gigNameFocusNode: _gigNameFocusNode,
+      gigNameSuggestions: _gigNameSuggestions,
+      onGigNameChanged: _fetchGigNameSuggestions,
+      fieldErrors: _fieldErrors,
+      locationController: _locationController,
+      cityHintController: _cityHintController,
+      gigCityFocusNode: _gigCityFocusNode,
+      gigCitySuggestions: _gigCitySuggestions,
+      onGigCityChanged: _fetchGigCitySuggestions,
+      isPotentialGig: _isPotentialGig,
+      forcePotentialOnly: _forcePotentialOnly,
+      onPotentialGigToggled: _togglePotentialGig,
+      memberAvailability: _memberAvailability,
+      isLoadingMemberAvailability: _isLoadingMemberAvailability,
+      perDateAvailability: _perDateAvailability,
+      isLoadingPerDateAvailability: _isLoadingPerDateAvailability,
+      currentUserResponse: _currentUserResponse,
+      isLoadingUserResponse: _isLoadingUserResponse,
+      onUserResponseChanged: (response) {
+        setState(() => _currentUserResponse = response);
+        _markDirty();
+        HapticFeedback.selectionClick();
+      },
+      isMultiDate: _isMultiDate,
+      additionalDates: _additionalDates,
+      selectedDate: _selectedDate,
+      existingGigDateIds: _existingGigDateIds,
+      onPerDateResponseChanged: _updatePerDateResponse,
+      loadInHour: _loadInHour,
+      loadInMinutes: _loadInMinutes,
+      loadInIsPM: _loadInIsPM,
+      onLoadInTimeSet: () {
+        setState(() {
+          _loadInHour = 6;
+          _loadInMinutes = 0;
+          _loadInIsPM = true;
+        });
+        _markDirty();
+      },
+      onLoadInTimeCleared: () {
+        setState(() {
+          _loadInHour = null;
+          _loadInMinutes = null;
+          _loadInIsPM = null;
+        });
+        _markDirty();
+      },
+      onLoadInHourChanged: (v) {
+        setState(() => _loadInHour = v);
+        _markDirty();
+      },
+      onLoadInMinutesChanged: (v) {
+        setState(() => _loadInMinutes = v);
+        _markDirty();
+      },
+      onLoadInAmPmChanged: (isPM) {
+        setState(() => _loadInIsPM = isPM);
+        _markDirty();
+        HapticFeedback.selectionClick();
+      },
+      gigPayController: _gigPayController,
+      onMarkDirty: _markDirty,
+      currentUserId: supabase.auth.currentUser?.id,
+    );
+  }
+
+  EventFormFields _createEventFormFields(BuildContext context) {
+    return EventFormFields(
+      eventType: _eventType,
+      isSaving: _isSaving,
+      errorMessage: null,
+      selectedDate: _selectedDate,
+      onDateTap: _showDatePicker,
+      isPotentialGig: _isPotentialGig,
+      isMultiDate: _isMultiDate,
+      additionalDates: _additionalDates,
+      onMultiDateToggled: (v) {
+        setState(() => _isMultiDate = v);
+        _markDirty();
+      },
+      onAdditionalDateTap: (i) => _showAdditionalDatePicker(i),
+      onAdditionalDateRemoved: _removeAdditionalDate,
+      onAdditionalDateAdded: _addAdditionalDate,
+      selectedHour: _selectedHour,
+      selectedMinutes: _selectedMinutes,
+      isPM: _isPM,
+      onHourChanged: (v) {
+        setState(() => _selectedHour = v);
+        _markDirty();
+      },
+      onMinutesChanged: (v) {
+        setState(() => _selectedMinutes = v);
+        _markDirty();
+      },
+      onAmPmChanged: (isPM) {
+        setState(() => _isPM = isPM);
+        _markDirty();
+        HapticFeedback.selectionClick();
+      },
+      durationMinutes: _durationMinutes,
+      onDurationDecremented: () {
+        setState(() {
+          _durationMinutes = (_durationMinutes - 15).clamp(15, 9999);
+        });
+        _markDirty();
+      },
+      onDurationIncremented: () {
+        setState(() {
+          _durationMinutes += 15;
+        });
+        _markDirty();
+      },
+      selectedSetlistId: _selectedSetlistId,
+      onSetlistSelected: (id, name) {
+        setState(() {
+          _selectedSetlistId = id;
+          _selectedSetlistName = name;
+        });
+        _markDirty();
+      },
+      onNavigateToCreateSetlist: () {
+        Navigator.of(context).push(
+          fadeSlideRoute(page: const NewSetlistScreen()),
+        );
+      },
+      notesController: _notesController,
+      notesHintController: _notesHintController,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final safeBottom = MediaQuery.of(context).padding.bottom;
+
+    final eventFormFields = _createEventFormFields(context);
+    final gigFormFields =
+        _eventType == EventType.gig ? _createGigFormFields() : null;
 
     return Container(
       constraints: BoxConstraints(
@@ -1564,7 +1712,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           // Drag handle
           Container(
@@ -1642,112 +1789,106 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         const SizedBox(height: Spacing.space16),
                       ],
 
-                      // 1. Event Type Toggle
-                      _buildEventTypeToggle(),
+                      // Event Type Toggle
+                      EventTypeSelector(
+                        selectedType: _eventType,
+                        availableTypes: _computeAvailableTypes(),
+                        isEditMode: _isEditMode,
+                        isSaving: _isSaving,
+                        onTypeChanged: _handleTypeChanged,
+                      ),
 
                       const SizedBox(height: Spacing.space20),
 
-                      // Gig name field (only for gigs) - with autocomplete
+                      // Gig name + potential gig (gig only)
                       if (_eventType == EventType.gig) ...[
-                        _buildGigNameAutocomplete(),
-                        const SizedBox(height: Spacing.space16),
-
-                        // Potential Gig Section - wrapped with optional rose border
-                        _buildPotentialGigContainer(),
-
+                        gigFormFields!,
                         const SizedBox(height: Spacing.space12),
                       ],
 
-                      // Block out form fields
+                      // Block out form
                       if (_eventType == EventType.blockOut) ...[
                         _buildBlockOutForm(),
-
-                        // Delete Block Out button (edit mode only, hidden in viewOnly)
                         if (_isEditMode && !widget.viewOnly) ...[
                           const SizedBox(height: Spacing.space24),
-                          _buildDeleteButton(),
+                          EventDeleteButton(
+                            isSaving: _isSaving,
+                            isDeleting: _isDeleting,
+                            onDelete: _showDeleteConfirmation,
+                          ),
                         ],
                       ] else ...[
-                        // 2. Date Picker
-                        _buildDatePicker(),
+                        // Shared: date, time, duration
+                        eventFormFields,
 
-                        const SizedBox(height: Spacing.space16),
-
-                        // 3. Start Time Selectors
-                        _buildTimeSelector(),
-
-                        const SizedBox(height: Spacing.space16),
-
-                        // 4. Duration Toggles (4x2 grid)
-                        _buildDurationSelector(),
-
-                        const SizedBox(height: Spacing.space16),
-
-                        // 5. Location/City Input (context-aware label)
-                        // Rehearsals get autocomplete from past locations
-                        // Gigs get autocomplete from past cities
-                        _eventType == EventType.rehearsal
-                            ? _buildLocationAutocomplete()
-                            : _buildGigCityAutocomplete(),
-
-                        // 5.5 Load-in Time (gigs only, optional)
-                        if (_eventType == EventType.gig) ...[
+                        // Location/City (type-specific)
+                        if (_eventType == EventType.rehearsal) ...[
+                          RehearsalFormFields(
+                            isSaving: _isSaving,
+                            locationController: _locationController,
+                            locationHintController: _locationHintController,
+                            locationSuggestions: _locationSuggestions,
+                            isRecurring: _isRecurring,
+                            onRecurringToggled: _toggleRecurring,
+                            recurringSlideAnimation: _recurringSlideAnimation,
+                            recurringFadeAnimation: _recurringFadeAnimation,
+                            selectedDays: _selectedDays,
+                            onDayToggled: (day) {
+                              setState(() {
+                                if (_selectedDays.contains(day)) {
+                                  _selectedDays.remove(day);
+                                } else {
+                                  _selectedDays.add(day);
+                                }
+                              });
+                              _markDirty();
+                            },
+                            frequency: _frequency,
+                            onFrequencyChanged: (freq) {
+                              setState(() => _frequency = freq);
+                              _markDirty();
+                            },
+                            untilDate: _untilDate,
+                            onUntilDateTap: _showUntilDatePicker,
+                            onUntilDateCleared: () {
+                              setState(() => _untilDate = null);
+                              _markDirty();
+                            },
+                            selectedDate: _selectedDate,
+                            onMarkDirty: _markDirty,
+                          ),
+                        ] else ...[
+                          gigFormFields!.buildCityAutocomplete(context),
                           const SizedBox(height: Spacing.space16),
-                          _buildLoadInTimeSelector(),
+                          gigFormFields.buildLoadInTimeSelector(),
                         ],
 
                         const SizedBox(height: Spacing.space16),
 
-                        // 6. Setlist Selector (optional for both gigs and rehearsals)
-                        _buildSetlistSelector(),
+                        // Setlist selector
+                        eventFormFields.buildSetlistSelector(ref),
 
-                        // 7. Gig Pay (gigs only, optional)
+                        // Gig Pay (gigs only)
                         if (_eventType == EventType.gig) ...[
                           const SizedBox(height: Spacing.space16),
-                          _buildGigPayField(),
+                          gigFormFields!.buildGigPayField(),
                         ],
 
                         const SizedBox(height: Spacing.space16),
 
-                        // Notes (optional)
-                        _buildTextField(
-                          label: 'Notes (optional)',
-                          controller: _notesController,
-                          hint: 'Any additional details...',
-                          maxLines: 3,
-                        ),
-                        FieldHint(
-                          text: "Optional — visible only to band members.",
-                          controller: _notesHintController,
-                        ),
+                        // Notes
+                        eventFormFields.buildNotesSection(),
 
                         const SizedBox(height: Spacing.space20),
 
-                        // 6. Recurring Toggle (rehearsals only - gigs don't recur)
-                        if (_eventType == EventType.rehearsal) ...[
-                          _buildRecurringToggle(),
-
-                          // 7. Recurring Section (animated with slide + fade)
-                          AnimatedSize(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOut,
-                            alignment: Alignment.topCenter,
-                            child: _isRecurring
-                                ? SlideTransition(
-                                    position: _recurringSlideAnimation,
-                                    child: FadeTransition(
-                                      opacity: _recurringFadeAnimation,
-                                      child: _buildRecurringSection(),
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        ],
-
-                        // Delete Event button (edit mode only, hidden in viewOnly)
+                        // Delete button (edit mode only)
                         if (_isEditMode && !widget.viewOnly) ...[
                           const SizedBox(height: Spacing.space24),
-                          _buildDeleteButton(),
+                          EventDeleteButton(
+                            isSaving: _isSaving,
+                            isDeleting: _isDeleting,
+                            onDelete: _showDeleteConfirmation,
+                          ),
                         ],
                       ], // end else (non-blockOut form)
                     ],
@@ -1757,12 +1898,29 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
           ),
 
-          // 8. Bottom Buttons (sticky) - Equal width
-          // In viewOnly mode, show a single "Close" button
+          // Bottom action buttons
           if (widget.viewOnly)
-            _buildViewOnlyCloseButton(safeBottom, bottomPadding)
+            EventEditorViewOnlyClose(
+              onClose: () {
+                Navigator.of(context).pop(false);
+                widget.onCancelled?.call();
+              },
+            )
           else
-            _buildBottomButtons(safeBottom, bottomPadding),
+            EventEditorBottomActions(
+              canSave: !_isSaving &&
+                  !_isDeleting &&
+                  _isFormValid &&
+                  (widget.mode == EventEditorMode.create || _isDirty),
+              isSaving: _isSaving,
+              isDeleting: _isDeleting,
+              primaryButtonLabel: _primaryButtonLabel,
+              onSave: _handleSave,
+              onCancel: () {
+                Navigator.pop(context);
+                widget.onCancelled?.call();
+              },
+            ),
         ],
       ),
     );
@@ -1800,30 +1958,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
-  /// Delete button (destructive text style) - only shown in edit mode
-  Widget _buildDeleteButton() {
-    return Center(
-      child: TextButton(
-        onPressed: (_isSaving || _isDeleting) ? null : _showDeleteConfirmation,
-        child: _isDeleting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.error,
-                ),
-              )
-            : Text(
-                'Delete Event',
-                style: AppTextStyles.calloutEmphasized.copyWith(
-                  color: AppColors.error,
-                ),
-              ),
-      ),
-    );
-  }
-
   // ============================================================================
   // BLOCK OUT FORM
   // ============================================================================
@@ -1855,11 +1989,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         const SizedBox(height: Spacing.space16),
 
         // Reason (optional)
-        _buildTextField(
+        EventTextField(
           label: 'Reason (optional)',
           controller: _notesController,
           hint: 'Vacation, personal, etc.',
           maxLines: 2,
+          isSaving: _isSaving,
         ),
       ],
     );
@@ -1997,291 +2132,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return '${weekdays[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  Widget _buildEventTypeToggle() {
-    // In edit mode, the toggle is disabled to prevent type changes
-    final isDisabled = _isEditMode || _isSaving;
-
-    // RBAC: Contributors can only create gigs, not rehearsals or block outs
-    final permsAsync = ref.read(currentUserPermissionsProvider);
-    final isContributor =
-        permsAsync.whenOrNull(data: (p) => p.isContributor) ?? false;
-    final availableTypes = isContributor
-        ? EventType.values
-            .where((t) => t != EventType.rehearsal && t != EventType.blockOut)
-            .toList()
-        : EventType.values;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: availableTypes.map((type) {
-              final isSelected = _eventType == type;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: isDisabled
-                      ? null
-                      : () {
-                          setState(() {
-                            _eventType = type;
-                          });
-                          // RBAC: Re-check potential-only when switching to gig
-                          if (type == EventType.gig &&
-                              widget.mode == EventEditorMode.create) {
-                            final permsAsync =
-                                ref.read(currentUserPermissionsProvider);
-                            permsAsync.whenData((perms) {
-                              if (perms.canCreatePotentialGigsOnly && mounted) {
-                                setState(() {
-                                  _isPotentialGig = true;
-                                  _forcePotentialOnly = true;
-                                });
-                                // Pre-select all members so validation passes
-                                _preSelectAllMembersForPotentialGig();
-                              }
-                            });
-                          }
-                          HapticFeedback.selectionClick();
-                        },
-                  child: AnimatedContainer(
-                    duration: AppDurations.fast,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? (isDisabled
-                              ? AppColors.accent.withValues(alpha: 0.5)
-                              : AppColors.accent)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(
-                        Spacing.buttonRadius - 2,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      type.displayName,
-                      style: AppTextStyles.calloutEmphasized.copyWith(
-                        color: isSelected
-                            ? (isDisabled
-                                ? AppColors.textPrimary.withValues(alpha: 0.7)
-                                : AppColors.textPrimary)
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        // Helper text in edit mode
-        if (_isEditMode) ...[
-          const SizedBox(height: 6),
-          Text(
-            'Event type cannot be changed after creation.',
-            style: AppTextStyles.footnote.copyWith(color: AppColors.textMuted),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildDatePicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Label row with optional "Multiple" toggle for potential gigs
-        Row(
-          children: [
-            Text(
-              'Date',
-              style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const Spacer(),
-            // Show "Multiple" toggle only for potential gigs
-            if (_eventType == EventType.gig && _isPotentialGig)
-              _buildMultipleDatesToggle(),
-          ],
-        ),
-        const SizedBox(height: 6),
-        // Primary date picker
-        _buildSingleDatePicker(
-          date: _selectedDate,
-          onTap: _isSaving ? null : _showDatePicker,
-          showRemoveButton: false,
-        ),
-        // Additional date pickers (when multi-date is enabled)
-        if (_isMultiDate) ...[
-          for (int i = 0; i < _additionalDates.length; i++) ...[
-            const SizedBox(height: 8),
-            _buildSingleDatePicker(
-              date: _additionalDates[i],
-              onTap: _isSaving ? null : () => _showAdditionalDatePicker(i),
-              showRemoveButton: true,
-              showAddButton: i == _additionalDates.length - 1,
-              onRemove: () => _removeAdditionalDate(i),
-              onAdd: _addAdditionalDate,
-            ),
-          ],
-          // Show add button if no additional dates yet
-          if (_additionalDates.isEmpty) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _isSaving ? null : _addAdditionalDate,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(
-                    color: AppColors.borderMuted,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_rounded, size: 18, color: AppColors.accent),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Add another date',
-                      style: AppTextStyles.callout.copyWith(
-                        color: AppColors.accent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ],
-    );
-  }
-
-  /// Builds the "Multiple" toggle button
-  Widget _buildMultipleDatesToggle() {
-    return GestureDetector(
-      onTap: _isSaving ? null : () => _toggleMultiDate(!_isMultiDate),
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: _isMultiDate ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _isMultiDate ? AppColors.accent : AppColors.borderMuted,
-          ),
-        ),
-        child: Text(
-          'Multiple',
-          style: AppTextStyles.footnote.copyWith(
-            color: _isMultiDate ? Colors.white : AppColors.textSecondary,
-            fontWeight: _isMultiDate ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Builds a single date picker row
-  Widget _buildSingleDatePicker({
-    required DateTime date,
-    required VoidCallback? onTap,
-    required bool showRemoveButton,
-    bool showAddButton = false,
-    VoidCallback? onRemove,
-    VoidCallback? onAdd,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: AppColors.borderMuted),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today_rounded,
-                    size: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _formatDateDisplay(date),
-                    style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Show +/- controls for additional dates (not the primary date)
-        if (showRemoveButton || showAddButton) ...[
-          const SizedBox(width: 8),
-          // Remove button
-          if (showRemoveButton)
-            GestureDetector(
-              onTap: _isSaving ? null : onRemove,
-              child: Container(
-                width: 36,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderMuted),
-                ),
-                child: const Icon(
-                  Icons.remove_rounded,
-                  size: 20,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          if (showRemoveButton && showAddButton) const SizedBox(width: 4),
-          // Add button (only on the last date picker)
-          if (showAddButton)
-            GestureDetector(
-              onTap: _isSaving ? null : onAdd,
-              child: Container(
-                width: 36,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderMuted),
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  size: 20,
-                  color: AppColors.accent,
-                ),
-              ),
-            ),
-        ],
-      ],
-    );
-  }
-
   Future<void> _showAdditionalDatePicker(int index) async {
     final picked = await showDatePicker(
       context: context,
@@ -2306,27 +2156,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _updateAdditionalDate(index, picked);
       HapticFeedback.selectionClick();
     }
-  }
-
-  String _formatDateDisplay(DateTime date) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final dayName = days[date.weekday % 7];
-    final monthName = months[date.month - 1];
-    return '$dayName, $monthName ${date.day}, ${date.year}';
   }
 
   Future<void> _showDatePicker() async {
@@ -2356,1140 +2185,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       });
       _markDirty();
     }
-  }
-
-  Widget _buildTimeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Start Time',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            // Hour dropdown
-            Expanded(
-              child: _buildDropdown(
-                value: _selectedHour,
-                items: List.generate(12, (i) => i + 1),
-                onChanged: (v) {
-                  setState(() => _selectedHour = v!);
-                  _markDirty();
-                },
-                labelBuilder: (v) => v.toString(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Minutes dropdown
-            Expanded(
-              child: _buildDropdown(
-                value: _selectedMinutes,
-                items: [0, 15, 30, 45],
-                onChanged: (v) {
-                  setState(() => _selectedMinutes = v!);
-                  _markDirty();
-                },
-                labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
-              ),
-            ),
-            const SizedBox(width: 8),
-            // AM/PM toggle
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildAmPmButton('AM', !_isPM),
-                  _buildAmPmButton('PM', _isPM),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Load-in time selector (optional, gigs only)
-  /// Uses the same UI pattern as Start Time
-  Widget _buildLoadInTimeSelector() {
-    // If no load-in time is set, show a "Set Load-in Time" button
-    if (_loadInHour == null || _loadInMinutes == null || _loadInIsPM == null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Load-in Time',
-            style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          GestureDetector(
-            onTap: _isSaving
-                ? null
-                : () {
-                    setState(() {
-                      _loadInHour = 6;
-                      _loadInMinutes = 0;
-                      _loadInIsPM = true;
-                    });
-                    _markDirty();
-                  },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: AppColors.borderMuted),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_circle_outline_rounded,
-                    color: AppColors.textSecondary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Set Load-in Time (Optional)',
-                    style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    // If load-in time is set, show the picker with a clear button
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Load-in Time',
-              style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            GestureDetector(
-              onTap: _isSaving
-                  ? null
-                  : () {
-                      setState(() {
-                        _loadInHour = null;
-                        _loadInMinutes = null;
-                        _loadInIsPM = null;
-                      });
-                      _markDirty();
-                    },
-              child: Text(
-                'Clear',
-                style: AppTextStyles.footnote.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            // Hour dropdown
-            Expanded(
-              child: _buildDropdown(
-                value: _loadInHour!,
-                items: List.generate(12, (i) => i + 1),
-                onChanged: (v) {
-                  setState(() => _loadInHour = v!);
-                  _markDirty();
-                },
-                labelBuilder: (v) => v.toString(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Minutes dropdown
-            Expanded(
-              child: _buildDropdown(
-                value: _loadInMinutes!,
-                items: [0, 15, 30, 45],
-                onChanged: (v) {
-                  setState(() => _loadInMinutes = v!);
-                  _markDirty();
-                },
-                labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
-              ),
-            ),
-            const SizedBox(width: 8),
-            // AM/PM toggle
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildLoadInAmPmButton('AM', !_loadInIsPM!),
-                  _buildLoadInAmPmButton('PM', _loadInIsPM!),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoadInAmPmButton(String label, bool isSelected) {
-    return GestureDetector(
-      onTap: _isSaving
-          ? null
-          : () {
-              setState(() {
-                _loadInIsPM = label == 'PM';
-              });
-              _markDirty();
-              HapticFeedback.selectionClick();
-            },
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius - 2),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.footnote.copyWith(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdown<T>({
-    required T value,
-    required List<T> items,
-    required ValueChanged<T?> onChanged,
-    required String Function(T) labelBuilder,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.scaffoldBg,
-        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: AppColors.borderMuted),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          dropdownColor: AppColors.cardBgElevated,
-          style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: AppColors.textSecondary,
-          ),
-          items: items.map((item) {
-            return DropdownMenuItem<T>(
-              value: item,
-              child: Text(labelBuilder(item)),
-            );
-          }).toList(),
-          onChanged: _isSaving ? null : onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmPmButton(String label, bool isSelected) {
-    return GestureDetector(
-      onTap: _isSaving
-          ? null
-          : () {
-              setState(() {
-                _isPM = label == 'PM';
-              });
-              _markDirty();
-              HapticFeedback.selectionClick();
-            },
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius - 2),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.footnote.copyWith(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Duration selector with step-based +15/-15 minute controls
-  Widget _buildDurationSelector() {
-    const minDuration = 15;
-    const rose700 = Color(0xFFBE123C);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Duration',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            // -15 button
-            GestureDetector(
-              onTap: _isSaving || _durationMinutes <= minDuration
-                  ? null
-                  : () {
-                      setState(() {
-                        _durationMinutes = (_durationMinutes - 15).clamp(
-                          minDuration,
-                          9999,
-                        );
-                      });
-                      _markDirty();
-                    },
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: _durationMinutes <= minDuration
-                        ? rose700.withValues(alpha: 0.4)
-                        : rose700,
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    '-15',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _durationMinutes <= minDuration
-                          ? rose700.withValues(alpha: 0.4)
-                          : rose700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Duration value
-            SizedBox(
-              width: 120,
-              child: Center(
-                child: Text(
-                  _formatDurationMinutes(_durationMinutes),
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // +15 button
-            GestureDetector(
-              onTap: _isSaving
-                  ? null
-                  : () {
-                      setState(() {
-                        _durationMinutes += 15;
-                      });
-                      _markDirty();
-                    },
-              child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: rose700, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    '+15',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: rose700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    String? hint,
-    String? error,
-    int maxLines = 1,
-  }) {
-    // For multiline fields, use newline action; for single line, use done
-    final isMultiline = maxLines > 1;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          enabled: !_isSaving,
-          maxLines:
-              isMultiline ? null : maxLines, // null allows unlimited lines
-          minLines: isMultiline ? maxLines : null, // minimum visible lines
-          keyboardType:
-              isMultiline ? TextInputType.multiline : TextInputType.text,
-          textInputAction:
-              isMultiline ? TextInputAction.newline : TextInputAction.done,
-          textCapitalization: isMultiline
-              ? TextCapitalization.sentences
-              : TextCapitalization.none,
-          style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
-          // Trigger rebuild on text change so _hasChanges is re-evaluated
-          // and the Update button enables/disables appropriately.
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: AppColors.textMuted,
-            ),
-            filled: true,
-            fillColor: AppColors.scaffoldBg,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.borderMuted,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.borderMuted,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.accent,
-              ),
-            ),
-          ),
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            error,
-            style: AppTextStyles.footnote.copyWith(color: AppColors.error),
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// Build location field with autocomplete for rehearsals
-  Widget _buildLocationAutocomplete() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Location',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Autocomplete<String>(
-          initialValue: TextEditingValue(text: _locationController.text),
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            // Only show suggestions when input length >= 1
-            if (textEditingValue.text.isEmpty) {
-              return const Iterable<String>.empty();
-            }
-            // Filter suggestions by case-insensitive contains, limit to 8
-            final query = textEditingValue.text.toLowerCase();
-            return _locationSuggestions
-                .where((location) => location.toLowerCase().contains(query))
-                .take(8);
-          },
-          onSelected: (String selection) {
-            _locationController.text = selection;
-            debugPrint('[RehearsalLocation] selected suggestion: $selection');
-            setState(() {});
-          },
-          fieldViewBuilder: (
-            BuildContext context,
-            TextEditingController fieldController,
-            FocusNode focusNode,
-            VoidCallback onFieldSubmitted,
-          ) {
-            // Sync the field controller with our location controller
-            fieldController.addListener(() {
-              _locationController.text = fieldController.text;
-            });
-            return TextField(
-              controller: fieldController,
-              focusNode: focusNode,
-              enabled: !_isSaving,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [TitleCaseTextFormatter()],
-              style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'e.g., Studio, Venue Address',
-                hintStyle: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
-                ),
-                filled: true,
-                fillColor: AppColors.scaffoldBg,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderMuted,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderMuted,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.accent),
-                ),
-              ),
-            );
-          },
-          optionsViewBuilder: (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBgElevated,
-                    borderRadius: BorderRadius.circular(
-                      Spacing.buttonRadius,
-                    ),
-                    border: Border.all(color: AppColors.borderMuted),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          option,
-                          style: AppTextStyles.callout.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        onTap: () => onSelected(option),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        FieldHint(
-          text: "We'll remember locations you've used before.",
-          controller: _locationHintController,
-        ),
-      ],
-    );
-  }
-
-  /// Build gig name field with autocomplete and title case
-  Widget _buildGigNameAutocomplete() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Gig Venue / Festival / Name',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        RawAutocomplete<String>(
-          textEditingController: _nameController,
-          focusNode: _gigNameFocusNode,
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            // Trigger async fetch (debounced)
-            _fetchGigNameSuggestions(textEditingValue.text);
-            // Return current suggestions
-            if (textEditingValue.text.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return _gigNameSuggestions;
-          },
-          onSelected: (String selection) {
-            _nameController.text = selection;
-            _nameController.selection = TextSelection.collapsed(
-              offset: selection.length,
-            );
-            setState(() => _gigNameSuggestions = []);
-          },
-          fieldViewBuilder: (
-            BuildContext context,
-            TextEditingController controller,
-            FocusNode focusNode,
-            VoidCallback onFieldSubmitted,
-          ) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              enabled: !_isSaving,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [TitleCaseTextFormatter()],
-              style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'e.g., The Blue Note, SummerFest 2026',
-                hintStyle: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
-                ),
-                filled: true,
-                fillColor: AppColors.scaffoldBg,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: _fieldErrors['name'] != null
-                        ? AppColors.error
-                        : AppColors.borderMuted,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: _fieldErrors['name'] != null
-                        ? AppColors.error
-                        : AppColors.borderMuted,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: _fieldErrors['name'] != null
-                        ? AppColors.error
-                        : AppColors.accent,
-                  ),
-                ),
-              ),
-            );
-          },
-          optionsViewBuilder: (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            if (options.isEmpty) return const SizedBox.shrink();
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  width: MediaQuery.of(context).size.width -
-                      (Spacing.pagePadding * 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBgElevated,
-                    borderRadius: BorderRadius.circular(
-                      Spacing.buttonRadius,
-                    ),
-                    border: Border.all(color: AppColors.borderMuted),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          option,
-                          style: AppTextStyles.callout.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        onTap: () => onSelected(option),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        if (_fieldErrors['name'] != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            _fieldErrors['name']!,
-            style: AppTextStyles.footnote.copyWith(color: AppColors.error),
-          ),
-        ],
-        FieldHint(
-          text: "Start typing to reuse past venues.",
-          controller: _venueHintController,
-        ),
-      ],
-    );
-  }
-
-  /// Build city field with autocomplete and title case (for gigs)
-  Widget _buildGigCityAutocomplete() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'City',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        RawAutocomplete<String>(
-          // Key forces rebuild when suggestions update from async fetch
-          key: ValueKey(
-            'gigCity_${_gigCitySuggestions.length}_${_gigCitySuggestions.hashCode}',
-          ),
-          textEditingController: _locationController,
-          focusNode: _gigCityFocusNode,
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            // Trigger async fetch (debounced)
-            _fetchGigCitySuggestions(textEditingValue.text);
-            // Return current suggestions
-            if (textEditingValue.text.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return _gigCitySuggestions;
-          },
-          onSelected: (String selection) {
-            _locationController.text = selection;
-            _locationController.selection = TextSelection.collapsed(
-              offset: selection.length,
-            );
-            setState(() => _gigCitySuggestions = []);
-          },
-          fieldViewBuilder: (
-            BuildContext context,
-            TextEditingController controller,
-            FocusNode focusNode,
-            VoidCallback onFieldSubmitted,
-          ) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              enabled: !_isSaving,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [TitleCaseTextFormatter()],
-              style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'e.g., Chicago, IL',
-                hintStyle: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
-                ),
-                filled: true,
-                fillColor: AppColors.scaffoldBg,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderMuted,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(
-                    color: AppColors.borderMuted,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.accent),
-                ),
-              ),
-            );
-          },
-          optionsViewBuilder: (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            if (options.isEmpty) return const SizedBox.shrink();
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  width: MediaQuery.of(context).size.width -
-                      (Spacing.pagePadding * 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBgElevated,
-                    borderRadius: BorderRadius.circular(
-                      Spacing.buttonRadius,
-                    ),
-                    border: Border.all(color: AppColors.borderMuted),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          option,
-                          style: AppTextStyles.callout.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        onTap: () => onSelected(option),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        FieldHint(
-          text: "Auto-fills based on past gigs.",
-          controller: _cityHintController,
-        ),
-      ],
-    );
-  }
-
-  // ============================================================================
-  // POTENTIAL GIG SECTION
-  // ============================================================================
-
-  /// Builds the entire Potential Gig container with optional rose border
-  Widget _buildPotentialGigContainer() {
-    final membersState = ref.watch(membersProvider);
-    final members = membersState.members;
-
-    // Check if this is a multi-date potential gig in edit mode
-    final isMultiDateEditMode = widget.mode == EventEditorMode.edit &&
-        widget.existingEventId != null &&
-        _isMultiDate &&
-        _additionalDates.isNotEmpty;
-
-    // Container with conditional rose border when toggle is ON
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      padding: const EdgeInsets.all(Spacing.space12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: _isPotentialGig
-            ? Border.all(color: AppColors.accent, width: 2)
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row: Title + Toggle
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Potential Gig',
-                      style: AppTextStyles.callout.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Requires member confirmation before gig is official.',
-                      style: AppTextStyles.footnote.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch.adaptive(
-                value: _isPotentialGig,
-                onChanged: (_isSaving || _forcePotentialOnly)
-                    ? null
-                    : _togglePotentialGig,
-                activeTrackColor: AppColors.accent,
-                thumbColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return AppColors.textPrimary;
-                  }
-                  return null;
-                }),
-              ),
-            ],
-          ),
-
-          // Member grid (only visible when toggle is ON)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: _isPotentialGig
-                ? isMultiDateEditMode
-                    // Multi-date layout: per-date sections
-                    ? _buildMultiDateAvailabilitySection(
-                        members,
-                        membersState.isLoading,
-                      )
-                    // Single-date layout: existing behavior
-                    : Column(
-                        children: [
-                          _buildMemberSelectionGrid(
-                            members,
-                            membersState.isLoading,
-                          ),
-                          // Your Availability section (edit mode only)
-                          if (widget.mode == EventEditorMode.edit &&
-                              widget.existingEventId != null)
-                            _buildUserAvailabilitySection(),
-                        ],
-                      )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds the multi-date availability section with per-date member grids
-  Widget _buildMultiDateAvailabilitySection(
-    List<MemberVM> members,
-    bool isLoading,
-  ) {
-    // Get all dates sorted
-    final allDates = [_selectedDate, ..._additionalDates];
-    allDates.sort();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: Spacing.space12),
-        // Per-date sections
-        for (int i = 0; i < allDates.length; i++) ...[
-          if (i > 0) const SizedBox(height: Spacing.space16),
-          _buildPerDateSection(
-            date: allDates[i],
-            dateIndex: i,
-            members: members,
-            isLoading: isLoading,
-            isPrimaryDate: allDates[i] == _selectedDate,
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// Builds a single date section with member availability grid
-  Widget _buildPerDateSection({
-    required DateTime date,
-    required int dateIndex,
-    required List<MemberVM> members,
-    required bool isLoading,
-    required bool isPrimaryDate,
-  }) {
-    // Determine the dateKey for this date
-    final dateKey = isPrimaryDate ? 'primary' : _existingGigDateIds[date];
-    final availability = dateKey != null
-        ? _perDateAvailability[dateKey] ?? {}
-        : <String, String?>{};
-
-    // Get current user's response for this date
-    final userId = supabase.auth.currentUser?.id;
-    final userResponse = userId != null ? availability[userId] : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Date header
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: Spacing.space8),
-          child: Text(
-            _formatDateDisplay(date),
-            style: AppTextStyles.calloutEmphasized.copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-
-        // Member availability grid (non-interactive, shows state)
-        if (isLoading || _isLoadingPerDateAvailability)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: Spacing.space16),
-            child: const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          )
-        else if (members.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
-            child: Text(
-              'No members to notify',
-              style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          )
-        else
-          ButtonGroupGrid<MemberVM>(
-            items: members,
-            labelBuilder: (member) => _getMemberLabel(member, members),
-            labelWidgetBuilder: (member) =>
-                _buildMemberLabelWidget(member, members),
-            isSelected: (member) => false,
-            availabilityMode: true,
-            availabilityState: (member) {
-              final response = availability[member.userId];
-              if (response == 'yes') return AvailabilityState.available;
-              if (response == 'no') return AvailabilityState.notAvailable;
-              return AvailabilityState.notResponded;
-            },
-            onTap: null,
-            columns: 4,
-            buttonHeight: 48,
-          ),
-
-        // Your Availability for this date
-        const SizedBox(height: Spacing.space8),
-        Text(
-          'Your Availability',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: Spacing.space8),
-        Row(
-          children: [
-            // NO button
-            Expanded(
-              child: _AvailabilityButton(
-                label: 'NO',
-                icon: Icons.close,
-                isSelected: userResponse == 'no',
-                isPositive: false,
-                isLoading: false,
-                onPressed: () =>
-                    _updatePerDateResponse(date, isPrimaryDate, 'no'),
-              ),
-            ),
-            const SizedBox(width: Spacing.space12),
-            // YES button
-            Expanded(
-              child: _AvailabilityButton(
-                label: 'YES',
-                icon: Icons.check,
-                isSelected: userResponse == 'yes',
-                isPositive: true,
-                isLoading: false,
-                onPressed: () =>
-                    _updatePerDateResponse(date, isPrimaryDate, 'yes'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
   }
 
   /// Update the user's response for a specific date (local state only, saved on form save)
@@ -3577,540 +2272,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
   }
 
-  /// Builds the "Your Availability" section with YES/NO buttons
-  Widget _buildUserAvailabilitySection() {
-    return Padding(
-      padding: const EdgeInsets.only(top: Spacing.space16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Divider
-          Container(
-            height: 1,
-            margin: const EdgeInsets.only(bottom: Spacing.space12),
-            color: AppColors.borderMuted,
-          ),
-
-          // Label
-          Text(
-            'Your Availability',
-            style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          const SizedBox(height: Spacing.space8),
-
-          // Loading state
-          if (_isLoadingUserResponse)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: Spacing.space8),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            // NO / YES buttons
-            Row(
-              children: [
-                // NO button
-                Expanded(
-                  child: _AvailabilityButton(
-                    label: 'NO',
-                    icon: Icons.close,
-                    isSelected: _currentUserResponse == 'no',
-                    isPositive: false,
-                    isLoading: false,
-                    onPressed: () {
-                      setState(() => _currentUserResponse = 'no');
-                      _markDirty();
-                      HapticFeedback.selectionClick();
-                    },
-                  ),
-                ),
-
-                const SizedBox(width: Spacing.space12),
-
-                // YES button
-                Expanded(
-                  child: _AvailabilityButton(
-                    label: 'YES',
-                    icon: Icons.check,
-                    isSelected: _currentUserResponse == 'yes',
-                    isPositive: true,
-                    isLoading: false,
-                    onPressed: () {
-                      setState(() => _currentUserResponse = 'yes');
-                      _markDirty();
-                      HapticFeedback.selectionClick();
-                    },
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  /// Builds the member availability grid for potential gig.
-  /// In potential gig mode, members are not selectable - they show availability state.
-  Widget _buildMemberSelectionGrid(List<MemberVM> members, bool isLoading) {
-    // Show loading indicator while loading members or availability
-    if (isLoading || _isLoadingMemberAvailability) {
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.space16),
-        child: const Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
-    }
-
-    if (members.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
-        child: Text(
-          'No members to notify',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-      );
-    }
-
-    // In potential gig mode, show availability state (non-interactive)
-    // Members are not selectable - they just show their response status
-    return Padding(
-      padding: const EdgeInsets.only(top: Spacing.space12),
-      child: ButtonGroupGrid<MemberVM>(
-        items: members,
-        labelBuilder: (member) => _getMemberLabel(member, members),
-        labelWidgetBuilder: (member) =>
-            _buildMemberLabelWidget(member, members),
-        isSelected: (member) => false, // Not used in availability mode
-        availabilityMode:
-            true, // Always use availability mode for potential gigs
-        availabilityState: (member) {
-          final response = _memberAvailability[member.userId];
-          if (response == 'yes') return AvailabilityState.available;
-          if (response == 'no') return AvailabilityState.notAvailable;
-          return AvailabilityState.notResponded;
-        },
-        onTap: null, // Non-interactive in potential gig mode
-        columns: 4,
-        buttonHeight: 48, // Slightly taller for two-line names
-      ),
-    );
-  }
-
-  /// Builds a widget for member label, supporting two-line display for disambiguation
-  Widget? _buildMemberLabelWidget(MemberVM member, List<MemberVM> allMembers) {
-    final disambiguation = _getMemberDisambiguation(member, allMembers);
-
-    // If no disambiguation needed or single-line is sufficient, return null
-    // (the grid will use labelBuilder instead)
-    if (disambiguation == null || !disambiguation.requiresTwoLines) {
-      return null;
-    }
-
-    // Two-line display for complex disambiguation (same first + last initial)
-    final response = _memberAvailability[member.userId];
-    final textColor = (response == 'yes' || response == 'no')
-        ? Colors.white
-        : AppColors.textSecondary;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          disambiguation.line1,
-          style: AppTextStyles.footnote.copyWith(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-        ),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            disambiguation.line2!,
-            style: AppTextStyles.navLabel.copyWith(
-              color: textColor.withValues(alpha: 0.85),
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Get display label for a member with disambiguation for duplicate first names
-  String _getMemberLabel(MemberVM member, List<MemberVM> allMembers) {
-    final disambiguation = _getMemberDisambiguation(member, allMembers);
-    if (disambiguation == null) {
-      // Fallback: use full name, truncated if needed
-      final name = member.name;
-      return name.length > 10 ? '${name.substring(0, 9)}…' : name;
-    }
-    if (disambiguation.requiresTwoLines) {
-      // For two-line display, just return first name (widget builder handles the rest)
-      return disambiguation.line1;
-    }
-    return disambiguation.line1;
-  }
-
-  /// Disambiguation result for member name display
-  _MemberDisambiguation? _getMemberDisambiguation(
-    MemberVM member,
-    List<MemberVM> allMembers,
-  ) {
-    final firstName = member.firstName;
-
-    if (firstName == null || firstName.isEmpty) {
-      return null; // Will use fallback in _getMemberLabel
-    }
-
-    // Check for duplicate first names
-    final sameFirstName =
-        allMembers.where((m) => m.firstName == firstName).toList();
-
-    if (sameFirstName.length <= 1) {
-      // Unique first name - just use it
-      final label =
-          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName;
-      return _MemberDisambiguation(line1: label);
-    }
-
-    // Multiple members with same first name - need disambiguation
-    if (member.lastName == null || member.lastName!.isEmpty) {
-      // No last name available, use first name only
-      final label =
-          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName;
-      return _MemberDisambiguation(line1: label);
-    }
-
-    final lastInitial = member.lastName![0].toUpperCase();
-
-    // Check if first name + last initial is unique
-    final sameFirstAndInitial = sameFirstName.where((m) {
-      final mLastName = m.lastName;
-      if (mLastName == null || mLastName.isEmpty) return false;
-      return mLastName[0].toUpperCase() == lastInitial;
-    }).toList();
-
-    if (sameFirstAndInitial.length <= 1) {
-      // First name + last initial is unique: "Alex M."
-      final label = '$firstName $lastInitial.';
-      return _MemberDisambiguation(
-        line1: label.length > 10 ? '${label.substring(0, 9)}…' : label,
-      );
-    }
-
-    // Same first name AND last initial - use two-line display
-    // Line 1: First name
-    // Line 2: Full last name (shrinks to fit)
-    return _MemberDisambiguation(
-      line1:
-          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName,
-      line2: member.lastName!,
-      requiresTwoLines: true,
-    );
-  }
-
-  Widget _buildRecurringToggle() {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Make this recurring',
-            style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
-          ),
-        ),
-        Switch.adaptive(
-          value: _isRecurring,
-          onChanged: _isSaving ? null : _toggleRecurring,
-          activeTrackColor: AppColors.accent,
-          thumbColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return AppColors.textPrimary;
-            }
-            return null;
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecurringSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: Spacing.space16),
-
-        // A) Days of the Week
-        Text(
-          'Repeat on',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: Weekday.values.map((day) {
-            final isSelected = _selectedDays.contains(day);
-            return GestureDetector(
-              onTap: _isSaving
-                  ? null
-                  : () {
-                      setState(() {
-                        if (isSelected) {
-                          _selectedDays.remove(day);
-                        } else {
-                          _selectedDays.add(day);
-                        }
-                      });
-                      _markDirty();
-                      HapticFeedback.selectionClick();
-                    },
-              child: AnimatedContainer(
-                duration: AppDurations.fast,
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color:
-                        isSelected ? AppColors.accent : AppColors.borderMuted,
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  day.shortLabel,
-                  style: AppTextStyles.footnote.copyWith(
-                    color: isSelected
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: Spacing.space16),
-
-        // B) Frequency toggles
-        Text(
-          'Frequency',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: RecurrenceFrequency.values.map((freq) {
-            final isSelected = _frequency == freq;
-            return Expanded(
-              child: GestureDetector(
-                onTap: _isSaving
-                    ? null
-                    : () {
-                        setState(() {
-                          _frequency = freq;
-                        });
-                        _markDirty();
-                        HapticFeedback.selectionClick();
-                      },
-                child: AnimatedContainer(
-                  duration: AppDurations.fast,
-                  margin: EdgeInsets.only(
-                    right: freq != RecurrenceFrequency.monthly ? 8 : 0,
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(
-                      color:
-                          isSelected ? AppColors.accent : AppColors.borderMuted,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    freq.displayName,
-                    style: AppTextStyles.footnote.copyWith(
-                      color: isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: Spacing.space16),
-
-        // C) Until date
-        Text(
-          'Until (optional)',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: _isSaving ? null : _showUntilDatePicker,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.scaffoldBg,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(color: AppColors.borderMuted),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.event_rounded,
-                  size: 18,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    _untilDate != null
-                        ? _formatDateDisplay(_untilDate!)
-                        : 'No end date',
-                    style: AppTextStyles.callout.copyWith(
-                      color: _untilDate != null
-                          ? AppColors.textPrimary
-                          : AppColors.textMuted,
-                    ),
-                  ),
-                ),
-                if (_untilDate != null)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _untilDate = null;
-                      });
-                      _markDirty();
-                    },
-                    child: const Icon(
-                      Icons.close_rounded,
-                      size: 18,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: Spacing.space16),
-
-        // D) Recurrence Summary with spelled-out day names
-        if (_selectedDays.isNotEmpty) ...[
-          Text(
-            'Summary',
-            style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(
-                color: AppColors.accent.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Text(
-              _buildRecurrenceSummary(),
-              style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// Build a human-readable recurrence summary with spelled-out day names.
-  /// Examples:
-  /// - "Weekly on Tuesdays and Thursdays until February 21, 2026"
-  /// - "Biweekly on Mondays, Wednesdays, and Fridays"
-  /// - "Monthly on Saturdays until March 15, 2026"
-  String _buildRecurrenceSummary() {
-    if (_selectedDays.isEmpty) return '';
-
-    // Sort days starting from Sunday
-    final sortedDays = _selectedDays.toList()
-      ..sort((a, b) => a.dayIndex.compareTo(b.dayIndex));
-
-    // Map to plural day names
-    final dayNames = sortedDays.map((d) => d.pluralName).toList();
-
-    // Natural joining: 2 days = "X and Y", 3+ days = "X, Y, and Z"
-    String daysText;
-    if (dayNames.length == 1) {
-      daysText = dayNames.first;
-    } else if (dayNames.length == 2) {
-      daysText = '${dayNames[0]} and ${dayNames[1]}';
-    } else {
-      final allButLast = dayNames.sublist(0, dayNames.length - 1).join(', ');
-      daysText = '$allButLast, and ${dayNames.last}';
-    }
-
-    final frequencyText = _frequency.displayName;
-
-    String? untilText;
-    if (_untilDate != null) {
-      untilText = ' until ${_formatFullDate(_untilDate!)}';
-    }
-
-    return '$frequencyText on $daysText${untilText ?? ''}';
-  }
-
-  /// Format date with full month name (e.g., "February 21, 2026")
-  String _formatFullDate(DateTime date) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-
   Future<void> _showUntilDatePicker() async {
     final picked = await showDatePicker(
       context: context,
@@ -4137,410 +2298,4 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _markDirty();
     }
   }
-
-  /// Bottom action buttons - both equal width (50% each)
-  Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
-    // In create mode, always allow save if form is valid
-    // In edit mode, enable button if user made any change (_isDirty)
-    final canSave = !_isSaving &&
-        !_isDeleting &&
-        _isFormValid &&
-        (widget.mode == EventEditorMode.create || _isDirty);
-
-    return Container(
-      padding: EdgeInsets.only(
-        left: Spacing.pagePadding,
-        right: Spacing.pagePadding,
-        top: Spacing.space12,
-        bottom: safeBottom + keyboardHeight + Spacing.space12,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        border: Border(
-          top: BorderSide(color: AppColors.borderMuted.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Cancel button - equal width
-          Expanded(
-            child: SizedBox(
-              height: 48,
-              child: OutlinedButton(
-                onPressed: (_isSaving || _isDeleting)
-                    ? null
-                    : () {
-                        Navigator.pop(context);
-                        widget.onCancelled?.call();
-                      },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: const BorderSide(color: AppColors.borderMuted),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  'Cancel',
-                  style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: Spacing.space12),
-          // Primary button - equal width
-          Expanded(
-            child: BrandActionButton(
-              label: _primaryButtonLabel,
-              isLoading: _isSaving,
-              onPressed: canSave ? _handleSave : null,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Close button for viewOnly mode — single centered button.
-  Widget _buildViewOnlyCloseButton(double safeBottom, double keyboardHeight) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: Spacing.pagePadding,
-        right: Spacing.pagePadding,
-        top: Spacing.space12,
-        bottom: safeBottom + keyboardHeight + Spacing.space12,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        border: Border(
-          top: BorderSide(color: AppColors.borderMuted.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: OutlinedButton(
-          onPressed: () {
-            Navigator.pop(context);
-            widget.onCancelled?.call();
-          },
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.textSecondary,
-            side: const BorderSide(color: AppColors.borderMuted),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            ),
-          ),
-          child: Text(
-            'Close',
-            style: AppTextStyles.calloutEmphasized.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ============================================================================
-  // SETLIST SELECTOR
-  // ============================================================================
-
-  /// Builds the setlist selector row with horizontal scrolling pills
-  Widget _buildSetlistSelector() {
-    final setlistsState = ref.watch(setlistsProvider);
-    final setlists = setlistsState.setlists;
-    final isLoading = setlistsState.isLoading;
-    final error = setlistsState.error;
-
-    // Filter to get only user-created setlists (excludes Catalog)
-    final userSetlists = _sortSetlists(setlists);
-    final hasNoSetlists = userSetlists.isEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Setlist',
-          style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 6),
-
-        // Loading state
-        if (isLoading)
-          Container(
-            height: 42,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Loading setlists...',
-                  style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          )
-        // Error state
-        else if (error != null && setlists.isEmpty)
-          Container(
-            height: 42,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "Couldn't load setlists",
-              style: AppTextStyles.footnote.copyWith(color: AppColors.error),
-            ),
-          )
-        // Normal state: horizontal scrollable pills
-        else
-          SizedBox(
-            height: 42,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  // "None" pill - always first
-                  _buildSetlistPill(
-                    id: null,
-                    name: 'None',
-                    isSelected: _selectedSetlistId == null,
-                  ),
-                  const SizedBox(width: 8),
-
-                  // If no setlists exist, show "+ Create Setlist" link
-                  if (hasNoSetlists)
-                    GestureDetector(
-                      onTap: _isSaving ? null : _navigateToCreateSetlist,
-                      child: Text(
-                        '+ Create Setlist',
-                        style: AppTextStyles.footnote.copyWith(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  // Setlist pills - alphabetical (Catalog already excluded by _sortSetlists)
-                  else
-                    ...userSetlists.map((setlist) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _buildSetlistPill(
-                          id: setlist.id,
-                          name: setlist.name,
-                          isSelected: _selectedSetlistId == setlist.id,
-                          isCatalog: setlist.isCatalog,
-                        ),
-                      );
-                    }),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  /// Navigate to create a new setlist
-  void _navigateToCreateSetlist() {
-    // Close the drawer first
-    Navigator.of(context).pop();
-    // Navigate to new setlist screen
-    Navigator.of(context).push(fadeSlideRoute(page: const NewSetlistScreen()));
-  }
-
-  /// Sort setlists: alphabetical by name (Catalog excluded)
-  List<Setlist> _sortSetlists(List<Setlist> setlists) {
-    // Filter out Catalog - it's not a valid option for events
-    final filtered = setlists.where((s) => !s.isCatalog).toList();
-    // Sort alphabetically
-    filtered.sort(
-      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-    );
-    return filtered;
-  }
-
-  /// Build an individual setlist pill/toggle button
-  Widget _buildSetlistPill({
-    required String? id,
-    required String name,
-    required bool isSelected,
-    bool isCatalog = false,
-  }) {
-    return GestureDetector(
-      onTap: _isSaving
-          ? null
-          : () {
-              setState(() {
-                if (id == null) {
-                  // "None" selected
-                  _selectedSetlistId = null;
-                  _selectedSetlistName = null;
-                } else {
-                  _selectedSetlistId = id;
-                  _selectedSetlistName = name;
-                }
-              });
-              _markDirty();
-              HapticFeedback.selectionClick();
-            },
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(
-            color: isSelected ? AppColors.accent : AppColors.borderMuted,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isCatalog) ...[
-              Icon(
-                Icons.library_music_rounded,
-                size: 14,
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              name,
-              style: AppTextStyles.footnote.copyWith(
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Builds the gig pay input field with POS-style currency entry
-  Widget _buildGigPayField() {
-    return CurrencyTextField(
-      controller: _gigPayController,
-      label: 'Gig Pay (optional)',
-      hint: '\$0.00',
-      enabled: !_isSaving,
-      onChanged: () => setState(() {}),
-    );
-  }
-}
-
-// ============================================================================
-// AVAILABILITY BUTTON
-// YES/NO button for user's potential gig availability response
-// ============================================================================
-
-/// Availability response button with animated state transitions.
-/// Smoothly animates between selected/unselected states.
-class _AvailabilityButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final bool isPositive;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  const _AvailabilityButton({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.isPositive,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final activeColor = isPositive
-        ? const Color(0xFF22C55E) // green-500
-        : const Color(0xFFEF4444); // red-500
-
-    final backgroundColor =
-        isSelected ? activeColor.withValues(alpha: 0.2) : AppColors.scaffoldBg;
-
-    final borderColor = isSelected ? activeColor : AppColors.borderMuted;
-
-    final contentColor = isSelected ? activeColor : AppColors.textSecondary;
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: isLoading ? null : onPressed,
-        borderRadius: BorderRadius.circular(10),
-        child: AnimatedContainer(
-          // Animate background and border color changes for smooth state transitions
-          duration: AppDurations.fast,
-          curve: AppCurves.ease,
-          height: 44,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
-          ),
-          child: Center(
-            child: isLoading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: activeColor,
-                    ),
-                  )
-                : AnimatedSwitcher(
-                    duration: AppDurations.fast,
-                    child: Row(
-                      key: ValueKey('$label-$isSelected'),
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(icon, size: 20, color: contentColor),
-                        const SizedBox(width: 6),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: contentColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Helper class for member name disambiguation
-class _MemberDisambiguation {
-  final String line1;
-  final String? line2;
-  final bool requiresTwoLines;
-
-  const _MemberDisambiguation({
-    required this.line1,
-    this.line2,
-    this.requiresTwoLines = false,
-  });
 }
