@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
+import '../../calendar/models/calendar_event.dart';
 import '../models/event_form_data.dart';
 import 'event_editor_drawer.dart';
 
@@ -44,6 +45,7 @@ class AddEditEventBottomSheet {
     EventFormData? initialData,
     VoidCallback? onSaved,
     bool viewOnly = false,
+    BlockOutSpan? existingBlockOut,
   }) {
     // Check band context before showing
     final bandId = ref.read(activeBandIdProvider);
@@ -70,6 +72,7 @@ class AddEditEventBottomSheet {
         bandId: bandId,
         onSaved: onSaved,
         viewOnly: viewOnly,
+        existingBlockOut: existingBlockOut,
       ),
     );
   }

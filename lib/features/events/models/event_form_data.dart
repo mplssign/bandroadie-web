@@ -11,7 +11,8 @@ import '../../../app/utils/time_formatter.dart';
 /// The type of event being created/edited
 enum EventType {
   rehearsal,
-  gig;
+  gig,
+  blockOut;
 
   String get displayName {
     switch (this) {
@@ -19,6 +20,8 @@ enum EventType {
         return 'Rehearsal';
       case EventType.gig:
         return 'Gig';
+      case EventType.blockOut:
+        return 'Block Out';
     }
   }
 }
@@ -161,9 +164,8 @@ class RecurrenceConfig {
     final dayNames = sortedDays.map((d) => d.fullName).join(', ');
 
     final frequencyText = frequency.displayName;
-    final untilText = untilDate != null
-        ? ' until ${_formatDate(untilDate!)}'
-        : '';
+    final untilText =
+        untilDate != null ? ' until ${_formatDate(untilDate!)}' : '';
 
     return '$frequencyText on $dayNames$untilText';
   }
@@ -518,7 +520,7 @@ class EventFormData {
           .toSet();
       final frequency =
           RecurrenceFrequency.fromString(rehearsal.recurrenceFrequency) ??
-          RecurrenceFrequency.weekly;
+              RecurrenceFrequency.weekly;
       recurrence = RecurrenceConfig(
         daysOfWeek: days,
         frequency: frequency,
