@@ -13,52 +13,36 @@ import '../../../components/ui/brand_action_button.dart';
 // ============================================================================
 
 class QuickActionsRow extends StatelessWidget {
-  final VoidCallback? onScheduleRehearsal;
+  final VoidCallback? onAddEvent;
   final VoidCallback? onCreateSetlist;
-  final VoidCallback? onCreateGig;
-  final VoidCallback? onBlockOut;
 
-  /// Whether the "Create Gig" button should be shown (permission-gated)
-  final bool showCreateGig;
+  /// Whether the "+ Add Event" button should be shown (permission-gated)
+  final bool showAddEvent;
 
   /// Whether the "Create Setlist" button should be shown (permission-gated)
   final bool showCreateSetlist;
 
-  /// Whether the "Schedule Rehearsal" button should be shown (permission-gated)
-  final bool showScheduleRehearsal;
-
-  /// Whether the "Block Out" button should be shown (permission-gated)
-  final bool showBlockOut;
-
   const QuickActionsRow({
     super.key,
-    this.onScheduleRehearsal,
+    this.onAddEvent,
     this.onCreateSetlist,
-    this.onCreateGig,
-    this.onBlockOut,
-    this.showCreateGig = true,
+    this.showAddEvent = true,
     this.showCreateSetlist = true,
-    this.showScheduleRehearsal = true,
-    this.showBlockOut = true,
   });
 
   /// Whether at least one button is visible.
   /// Use this to conditionally show the section header.
-  bool get hasVisibleButtons =>
-      showScheduleRehearsal ||
-      showCreateSetlist ||
-      showCreateGig ||
-      showBlockOut;
+  bool get hasVisibleButtons => showAddEvent || showCreateSetlist;
 
   @override
   Widget build(BuildContext context) {
     final buttons = <Widget>[];
 
-    if (showScheduleRehearsal) {
+    if (showAddEvent) {
       buttons.add(
         BrandActionButton(
-          label: '+ Schedule Rehearsal',
-          onPressed: onScheduleRehearsal,
+          label: '+ Add Event',
+          onPressed: onAddEvent,
         ),
       );
     }
@@ -70,20 +54,6 @@ class QuickActionsRow extends StatelessWidget {
           label: '+ Create Setlist',
           onPressed: onCreateSetlist,
         ),
-      );
-    }
-
-    if (showCreateGig) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
-      buttons.add(
-        BrandActionButton(label: '+ Create Gig', onPressed: onCreateGig),
-      );
-    }
-
-    if (showBlockOut) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
-      buttons.add(
-        BrandActionButton(label: '+ Block Out', onPressed: onBlockOut),
       );
     }
 

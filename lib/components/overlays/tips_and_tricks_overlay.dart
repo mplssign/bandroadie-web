@@ -43,7 +43,7 @@ const List<TipSection> kTipSections = [
     title: 'Dashboard',
     tips: [
       Tip(
-        'Tap + Schedule Rehearsal or + Create Gig to get things on the calendar fast.',
+        'Tap + Add Event to schedule a rehearsal, create a gig, or block out dates — all in one place.',
       ),
       Tip('Tap any upcoming event to edit it — no digging required.'),
       Tip('Swipe a setlist card left to delete, right to duplicate.'),
