@@ -276,7 +276,7 @@ class _WebAppCTA extends StatelessWidget {
       label: 'Web App',
       icon: Icons.web,
       isPrimary: false,
-      onPressed: () => Navigator.pushNamed(context, '/app'),
+      onPressed: () => _launchUrl('https://app.bandroadie.com/'),
     );
   }
 }

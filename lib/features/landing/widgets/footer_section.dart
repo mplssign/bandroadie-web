@@ -36,7 +36,7 @@ class FooterSection extends StatelessWidget {
               _SocialIconButton(
                 icon: Icons.facebook,
                 label: 'Facebook',
-                url: 'https://www.facebook.com/BandRaodie',
+                url: 'https://www.facebook.com/BandRoadieApp',
               ),
               const SizedBox(width: 16),
               _SocialIconButton(

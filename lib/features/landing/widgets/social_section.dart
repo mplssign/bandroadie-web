@@ -73,8 +73,8 @@ class SocialSection extends StatelessWidget {
                     child: _SocialTile(
                       icon: Icons.facebook,
                       platform: 'Facebook',
-                      handle: '@BandRaodie',
-                      url: 'https://www.facebook.com/BandRaodie',
+                      handle: '@Band Roadie App',
+                      url: 'https://www.facebook.com/BandRoadieApp',
                       gradientColors: const [
                         Color(0xFF1877F2),
                         Color(0xFF0C63D4),
