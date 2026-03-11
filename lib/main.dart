@@ -16,6 +16,7 @@ import 'app/theme/app_theme.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
 import 'features/auth/invite_screen.dart';
+import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
 
@@ -98,6 +99,15 @@ Future<void> main() async {
   );
 }
 
+/// Returns true if the web app is running on the marketing domain (bandroadie.com).
+/// On app.bandroadie.com or non-web platforms, returns false.
+bool _isMarketingHost() {
+  if (!kIsWeb) return false;
+  // ignore: avoid_web_libraries_in_flutter
+  final host = Uri.base.host;
+  return host == 'bandroadie.com' || host == 'www.bandroadie.com';
+}
+
 class BandRoadieApp extends StatelessWidget {
   const BandRoadieApp({super.key});
 
@@ -120,8 +130,12 @@ class BandRoadieApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
 
-        // App at root on all platforms (web app lives at app.bandroadie.com)
+        // On web, check hostname to decide landing vs app
         if (uri.path == '/' || uri.path == '/app') {
+          if (kIsWeb && _isMarketingHost()) {
+            return fadeSlideRoute(
+                page: const LandingPage(), settings: settings);
+          }
           return fadeSlideRoute(page: const AuthGate(), settings: settings);
         }
 
@@ -153,7 +167,11 @@ class BandRoadieApp extends StatelessWidget {
             settings: settings,
           );
         }
-        // Default: AuthGate on all platforms
+        // Default: landing page on marketing host, AuthGate otherwise
+        if (kIsWeb && _isMarketingHost()) {
+          return fadeSlideRoute(
+              page: const LandingPage(), settings: settings);
+        }
         return fadeSlideRoute(
           page: const AuthGate(),
           settings: settings,
@@ -161,7 +179,9 @@ class BandRoadieApp extends StatelessWidget {
       },
       // Fallback for unknown routes
       onUnknownRoute: (settings) => fadeSlideRoute(
-        page: const AuthGate(),
+        page: kIsWeb && _isMarketingHost()
+            ? const LandingPage()
+            : const AuthGate(),
         settings: settings,
       ),
     );
