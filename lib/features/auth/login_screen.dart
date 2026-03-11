@@ -169,13 +169,13 @@ class _LoginScreenState extends State<LoginScreen>
         curve: const Interval(0.15, 0.50, curve: Curves.easeOutCubic),
       ),
     );
-    _emailSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _animController,
-            curve: const Interval(0.15, 0.50, curve: Curves.easeOutCubic),
-          ),
-        );
+    _emailSlide =
+        Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.15, 0.50, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // Pills: 0.35–0.70 (fade + slide from right)
     _pillsOpacity = Tween<double>(begin: 0, end: 1).animate(
@@ -184,13 +184,13 @@ class _LoginScreenState extends State<LoginScreen>
         curve: const Interval(0.35, 0.70, curve: Curves.easeOutCubic),
       ),
     );
-    _pillsSlide = Tween<Offset>(begin: const Offset(0.2, 0), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _animController,
-            curve: const Interval(0.35, 0.70, curve: Curves.easeOutCubic),
-          ),
-        );
+    _pillsSlide =
+        Tween<Offset>(begin: const Offset(0.2, 0), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.35, 0.70, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // Button: 0.55–0.90 (fade + scale pop)
     _buttonOpacity = Tween<double>(begin: 0, end: 1).animate(
@@ -654,9 +654,8 @@ class _DomainChip extends StatelessWidget {
               : const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(100), // Pill shape
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFFF43F5E)
-                : const Color(0xFF334155),
+            color:
+                isSelected ? const Color(0xFFF43F5E) : const Color(0xFF334155),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -665,8 +664,8 @@ class _DomainChip extends StatelessWidget {
           style: TextStyle(
             color: isEnabled
                 ? (isSelected
-                      ? const Color(0xFFFB7185)
-                      : const Color(0xFF94A3B8))
+                    ? const Color(0xFFFB7185)
+                    : const Color(0xFF94A3B8))
                 : const Color(0xFF475569),
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

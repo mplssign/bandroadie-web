@@ -245,12 +245,11 @@ class _AppStoreCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StoreBadge(
-      icon: Icons.apple,
+      iconWidget: const Icon(Icons.apple, size: 28, color: Colors.white),
       topText: 'Download on the',
       mainText: 'App Store',
       onPressed: () =>
           _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
-      isAvailable: true,
     );
   }
 }
@@ -260,11 +259,13 @@ class _GooglePlayCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StoreBadge(
-      icon: Icons.play_arrow,
+      iconWidget: SvgPicture.asset('assets/images/google_play_logo.svg',
+          width: 28, height: 28),
       topText: 'GET IT ON',
       mainText: 'Google Play',
-      onPressed: () {},
-      isAvailable: false,
+      onPressed: () => _launchUrl(
+        'https://play.google.com/store/apps/details?id=com.bandroadie.app',
+      ),
     );
   }
 }
@@ -274,65 +275,53 @@ class _WebAppCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StoreBadge(
-      icon: Icons.web,
+      iconWidget: const Icon(Icons.web, size: 28, color: Colors.white),
       topText: 'BandRoadie.com',
       mainText: 'Web App',
       onPressed: () => _launchUrl('https://app.bandroadie.com/'),
-      isAvailable: true,
     );
   }
 }
 
-/// Reusable store badge matching official App Store / Google Play badge style
+/// Reusable store badge
 class _StoreBadge extends StatelessWidget {
-  final IconData icon;
+  final Widget iconWidget;
   final String topText;
   final String mainText;
   final VoidCallback onPressed;
-  final bool isAvailable;
 
   const _StoreBadge({
-    required this.icon,
+    required this.iconWidget,
     required this.topText,
     required this.mainText,
     required this.onPressed,
-    required this.isAvailable,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 56,
+      width: 200,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isAvailable
-              ? [Colors.black, const Color(0xFF1a1a1a)]
-              : [AppColors.cardBg, AppColors.surfaceDark],
-        ),
+        color: Colors.black,
         border: Border.all(
-          color: Colors.white.withValues(alpha: isAvailable ? 0.2 : 0.1),
+          color: Colors.white,
           width: 1,
         ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isAvailable ? onPressed : null,
+          onTap: onPressed,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: 28,
-                  color: isAvailable ? Colors.white : AppColors.textSecondary,
-                ),
-                const SizedBox(width: 12),
+                iconWidget,
+                const SizedBox(width: 10),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,48 +331,19 @@ class _StoreBadge extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
-                        color: isAvailable
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : AppColors.textSecondary,
+                        color: Colors.white.withValues(alpha: 0.9),
                         height: 1,
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          mainText,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: isAvailable
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            height: 1.2,
-                          ),
-                        ),
-                        if (!isAvailable) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'SOON',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      mainText,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
                     ),
                   ],
                 ),
