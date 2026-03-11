@@ -170,9 +170,8 @@ class _SocialTileState extends State<_SocialTile> {
                 child: Icon(
                   widget.icon,
                   size: 32,
-                  color: _isHovered
-                      ? Colors.white
-                      : widget.gradientColors.first,
+                  color:
+                      _isHovered ? Colors.white : widget.gradientColors.first,
                 ),
               ),
               const SizedBox(width: 20),
@@ -186,9 +185,8 @@ class _SocialTileState extends State<_SocialTile> {
                       widget.platform,
                       style: AppTextStyles.title3.copyWith(
                         fontSize: 20,
-                        color: _isHovered
-                            ? Colors.white
-                            : AppColors.textPrimary,
+                        color:
+                            _isHovered ? Colors.white : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),

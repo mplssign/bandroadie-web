@@ -123,8 +123,8 @@ class DeepLinkService {
           '[DeepLinkService] PKCE flow - exchanging code: ${code.substring(0, 10)}...',
         );
         try {
-          final response = await Supabase.instance.client.auth
-              .exchangeCodeForSession(code);
+          final response =
+              await Supabase.instance.client.auth.exchangeCodeForSession(code);
           debugPrint(
             '[DeepLinkService] PKCE exchange successful, user: ${response.session.user.email}',
           );

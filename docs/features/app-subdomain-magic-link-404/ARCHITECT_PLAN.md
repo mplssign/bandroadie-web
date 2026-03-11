@@ -58,26 +58,26 @@ The SPA catch-all rewrite sends all non-API, non-`.well-known` paths to `/index.
 
 Uses `onGenerateRoute` with `usePathUrlStrategy()`:
 
-| Route             | Handler                          | Platform |
-|-------------------|----------------------------------|----------|
-| `/`               | LandingPage (web), AuthGate (native) | Both |
-| `/app`            | AuthGate                         | Both     |
-| `/auth/confirm`   | AuthConfirmScreen                | Both     |
-| `/privacy`        | PrivacyPolicyScreen              | Both     |
-| `/invite`         | InviteScreen                     | Both     |
-| Unknown routes    | LandingPage (web), AuthGate (native) | Both |
+| Route           | Handler                              | Platform |
+| --------------- | ------------------------------------ | -------- |
+| `/`             | LandingPage (web), AuthGate (native) | Both     |
+| `/app`          | AuthGate                             | Both     |
+| `/auth/confirm` | AuthConfirmScreen                    | Both     |
+| `/privacy`      | PrivacyPolicyScreen                  | Both     |
+| `/invite`       | InviteScreen                         | Both     |
+| Unknown routes  | LandingPage (web), AuthGate (native) | Both     |
 
 **Key observation:** The `/` route on web shows the LandingPage (marketing). When the app moves to `app.bandroadie.com`, the root `/` must show AuthGate instead of LandingPage, since `app.bandroadie.com` IS the app.
 
 ### 2.5 Auth Redirect URLs (Hardcoded in Flutter)
 
-| Context         | File                        | Line | Redirect URL                                  |
-|-----------------|-----------------------------|------|------------------------------------------------|
-| Web login       | login_screen.dart           | 297  | `https://bandroadie.com/app`                  |
-| Android login   | login_screen.dart           | 299  | `https://bandroadie.com/auth/callback`        |
-| iOS/macOS login | login_screen.dart           | 301  | `bandroadie://login-callback/`                |
-| Invite flow     | invite_screen.dart          | 191  | `https://bandroadie.com/invite?token=$token`  |
-| Post-auth nav   | auth_confirm_screen.dart    | 52   | `Navigator.pushNamedAndRemoveUntil → '/app'`  |
+| Context         | File                     | Line | Redirect URL                                 |
+| --------------- | ------------------------ | ---- | -------------------------------------------- |
+| Web login       | login_screen.dart        | 297  | `https://bandroadie.com/app`                 |
+| Android login   | login_screen.dart        | 299  | `https://bandroadie.com/auth/callback`       |
+| iOS/macOS login | login_screen.dart        | 301  | `bandroadie://login-callback/`               |
+| Invite flow     | invite_screen.dart       | 191  | `https://bandroadie.com/invite?token=$token` |
+| Post-auth nav   | auth_confirm_screen.dart | 52   | `Navigator.pushNamedAndRemoveUntil → '/app'` |
 
 ### 2.6 Deep Link Service (lib/app/services/deep_link_service.dart)
 
@@ -89,28 +89,30 @@ Uses `onGenerateRoute` with `usePathUrlStrategy()`:
 
 ### 2.7 Other Hardcoded Domain References
 
-| File                                    | Usage                                        |
-|-----------------------------------------|----------------------------------------------|
-| `calendar_subscription_service.dart`    | `https://bandroadie.com/api/calendar-feed`   |
-| `screenshots_section.dart`              | `_launchUrl('https://bandroadie.com/app')`   |
-| `footer_section.dart`                   | `https://bandroadie.com/privacy`             |
-| `side_drawer.dart`                      | `https://bandroadie.com/privacy`             |
-| `deep_link_service.dart`               | `uri.host == 'bandroadie.com'`               |
-| `assetlinks.json`                       | Android App Links for `bandroadie.com`       |
+| File                                 | Usage                                      |
+| ------------------------------------ | ------------------------------------------ |
+| `calendar_subscription_service.dart` | `https://bandroadie.com/api/calendar-feed` |
+| `screenshots_section.dart`           | `_launchUrl('https://bandroadie.com/app')` |
+| `footer_section.dart`                | `https://bandroadie.com/privacy`           |
+| `side_drawer.dart`                   | `https://bandroadie.com/privacy`           |
+| `deep_link_service.dart`             | `uri.host == 'bandroadie.com'`             |
+| `assetlinks.json`                    | Android App Links for `bandroadie.com`     |
 
 ### 2.8 Authentication System Analysis
 
 **Email provider:** Magic link (OTP) via Supabase Auth  
 **Flow type:** Web = implicit (`AuthFlowType.implicit`, `detectSessionInUri: true`); Native = PKCE  
 **Supabase redirect URL allowlist (expected in dashboard):**
+
 - `https://bandroadie.com/auth/confirm`
 - `https://bandroadie.com/app`
 - `bandroadie://login-callback/`
 - `https://bandroadie.com/auth/callback`
 
 **Magic link web flow:**
+
 1. `login_screen.dart` calls `signInWithOtp(emailRedirectTo: 'https://bandroadie.com/app')`
-2. Supabase sends email with link targeting `https://bandroadie.com/auth/confirm?token_hash=...`  
+2. Supabase sends email with link targeting `https://bandroadie.com/auth/confirm?token_hash=...`
 3. User clicks link → browser loads `https://bandroadie.com/auth/confirm`
 4. If SPA rewrite is working, this serves `index.html` → Flutter routes to `AuthConfirmScreen`
 5. `AuthConfirmScreen` verifies token, navigates to `/app`
@@ -130,6 +132,7 @@ The root cause is a **multi-layer domain/routing misconfiguration** with three c
 ### Primary: Vercel Domain Mapping (LIKELY — Deployment Configuration)
 
 `app.bandroadie.com` is either:
+
 - Not configured as a domain in any Vercel project, OR
 - Assigned to the marketing site's Vercel project instead of the Flutter web app project
 
@@ -138,6 +141,7 @@ The root cause is a **multi-layer domain/routing misconfiguration** with three c
 ### Secondary: Hardcoded Redirect URLs (LIKELY — Flutter Code)
 
 All `emailRedirectTo` values and post-auth navigation use `bandroadie.com/app` or `bandroadie.com/auth/confirm`. When the Flutter web app moves to `app.bandroadie.com`, these URLs must change to:
+
 - `https://app.bandroadie.com/auth/confirm` (or just `https://app.bandroadie.com/` depending on flow)
 
 **Evidence:** `login_screen.dart:297` hardcodes `https://bandroadie.com/app`. `invite_screen.dart:191` hardcodes `https://bandroadie.com/invite?token=$token`.
@@ -150,16 +154,16 @@ The Supabase Auth dashboard settings (Site URL, Redirect URL allowlist) almost c
 
 ### Failure Surface Classification
 
-| Surface                      | Classification | Evidence                                              |
-|------------------------------|---------------|-------------------------------------------------------|
-| Deployment configuration     | **LIKELY**    | No `app.bandroadie.com` reference in codebase; project linked to staging |
-| Flutter auth redirect URLs   | **LIKELY**    | Hardcoded to `bandroadie.com/app` and `bandroadie.com/auth/confirm` |
-| Supabase auth config         | **LIKELY**    | Dashboard redirect allowlist expected to reference old paths |
-| SPA rewrite behavior         | **POSSIBLE**  | Rewrites in vercel.json are correct IF served by the right project |
-| Flutter UI routing           | **POSSIBLE**  | `/` route shows LandingPage on web; needs to show AuthGate at subdomain |
-| Domain DNS                   | **POSSIBLE**  | CNAME for `app.bandroadie.com` may be missing or misconfigured |
-| Database / RLS               | **UNLIKELY**  | No auth/URL data in database schema                   |
-| Database triggers            | **UNLIKELY**  | No triggers related to auth URLs                      |
+| Surface                    | Classification | Evidence                                                                 |
+| -------------------------- | -------------- | ------------------------------------------------------------------------ |
+| Deployment configuration   | **LIKELY**     | No `app.bandroadie.com` reference in codebase; project linked to staging |
+| Flutter auth redirect URLs | **LIKELY**     | Hardcoded to `bandroadie.com/app` and `bandroadie.com/auth/confirm`      |
+| Supabase auth config       | **LIKELY**     | Dashboard redirect allowlist expected to reference old paths             |
+| SPA rewrite behavior       | **POSSIBLE**   | Rewrites in vercel.json are correct IF served by the right project       |
+| Flutter UI routing         | **POSSIBLE**   | `/` route shows LandingPage on web; needs to show AuthGate at subdomain  |
+| Domain DNS                 | **POSSIBLE**   | CNAME for `app.bandroadie.com` may be missing or misconfigured           |
+| Database / RLS             | **UNLIKELY**   | No auth/URL data in database schema                                      |
+| Database triggers          | **UNLIKELY**   | No triggers related to auth URLs                                         |
 
 **Primary failure surface:** Deployment configuration (Vercel domain/project mapping).
 
@@ -197,10 +201,26 @@ Add redirects for legacy `/app` and `/auth/confirm` paths so existing bookmarks 
 ```json
 {
   "redirects": [
-    { "source": "/app", "destination": "https://app.bandroadie.com/", "permanent": false },
-    { "source": "/app/:path*", "destination": "https://app.bandroadie.com/:path*", "permanent": false },
-    { "source": "/auth/:path*", "destination": "https://app.bandroadie.com/auth/:path*", "permanent": false },
-    { "source": "/invite", "destination": "https://app.bandroadie.com/invite", "permanent": false }
+    {
+      "source": "/app",
+      "destination": "https://app.bandroadie.com/",
+      "permanent": false
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "https://app.bandroadie.com/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://app.bandroadie.com/auth/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/invite",
+      "destination": "https://app.bandroadie.com/invite",
+      "permanent": false
+    }
   ]
 }
 ```
@@ -257,6 +277,7 @@ Change `https://bandroadie.com/api/calendar-feed` to `https://app.bandroadie.com
 **H. Update Android App Link host (if Android should also use subdomain):**
 
 If Android deep links should target `app.bandroadie.com` (recommended for consistency), update:
+
 - `android/app/src/main/AndroidManifest.xml`: Add `app.bandroadie.com` host to intent filter
 - `web/.well-known/assetlinks.json`: Must also be served at `app.bandroadie.com/.well-known/assetlinks.json`
 - `deep_link_service.dart`: Already addressed in (E)
@@ -332,8 +353,8 @@ No changes to auth flow logic. Only the redirect URLs change:
 
 One new configuration file may be needed:
 
-| File | Purpose |
-|------|---------|
+| File                                              | Purpose                                                                    |
+| ------------------------------------------------- | -------------------------------------------------------------------------- |
 | Marketing site's `vercel.json` (NOT in this repo) | Redirect rules from old `/app` and `/auth/*` paths to `app.bandroadie.com` |
 
 If the marketing site is a separate repo, the redirects must be added there. If it shares this repo, the redirect rules apply to the marketing Vercel project's configuration.
@@ -342,17 +363,17 @@ If the marketing site is a separate repo, the redirects must be added there. If 
 
 ## 9. Exact Files to Modify
 
-| # | File | Change |
-|---|------|--------|
-| 1 | `lib/features/auth/login_screen.dart` | Update web `emailRedirectTo` from `https://bandroadie.com/app` to `https://app.bandroadie.com/auth/confirm` |
-| 2 | `lib/features/auth/invite_screen.dart` | Update `redirectUrl` from `https://bandroadie.com/invite?token=$token` to `https://app.bandroadie.com/invite?token=$token` |
-| 3 | `lib/features/auth/auth_confirm_screen.dart` | Update post-auth navigation from `/app` to `/` |
-| 4 | `lib/main.dart` | Update `/` web route from `LandingPage` to `AuthGate`; keep `/app` route as alias |
-| 5 | `lib/app/services/deep_link_service.dart` | Add `app.bandroadie.com` to recognized auth callback hosts |
-| 6 | `lib/features/landing/widgets/screenshots_section.dart` | Update link from `https://bandroadie.com/app` to `https://app.bandroadie.com/` |
-| 7 | `lib/features/calendar/calendar_subscription_service.dart` | Update feed URL from `https://bandroadie.com/api/calendar-feed` to `https://app.bandroadie.com/api/calendar-feed` |
-| 8 | `android/app/src/main/AndroidManifest.xml` | Add `app.bandroadie.com` host to App Link intent filter |
-| 9 | `lib/features/auth/login_screen.dart` | Update Android `emailRedirectTo` from `https://bandroadie.com/auth/callback` to `https://app.bandroadie.com/auth/callback` |
+| #   | File                                                       | Change                                                                                                                     |
+| --- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `lib/features/auth/login_screen.dart`                      | Update web `emailRedirectTo` from `https://bandroadie.com/app` to `https://app.bandroadie.com/auth/confirm`                |
+| 2   | `lib/features/auth/invite_screen.dart`                     | Update `redirectUrl` from `https://bandroadie.com/invite?token=$token` to `https://app.bandroadie.com/invite?token=$token` |
+| 3   | `lib/features/auth/auth_confirm_screen.dart`               | Update post-auth navigation from `/app` to `/`                                                                             |
+| 4   | `lib/main.dart`                                            | Update `/` web route from `LandingPage` to `AuthGate`; keep `/app` route as alias                                          |
+| 5   | `lib/app/services/deep_link_service.dart`                  | Add `app.bandroadie.com` to recognized auth callback hosts                                                                 |
+| 6   | `lib/features/landing/widgets/screenshots_section.dart`    | Update link from `https://bandroadie.com/app` to `https://app.bandroadie.com/`                                             |
+| 7   | `lib/features/calendar/calendar_subscription_service.dart` | Update feed URL from `https://bandroadie.com/api/calendar-feed` to `https://app.bandroadie.com/api/calendar-feed`          |
+| 8   | `android/app/src/main/AndroidManifest.xml`                 | Add `app.bandroadie.com` host to App Link intent filter                                                                    |
+| 9   | `lib/features/auth/login_screen.dart`                      | Update Android `emailRedirectTo` from `https://bandroadie.com/auth/callback` to `https://app.bandroadie.com/auth/callback` |
 
 ---
 
@@ -434,6 +455,7 @@ If the marketing site is a separate repo, the redirects must be added there. If 
 ## 12. Engineer Task Breakdown
 
 ### Task 0: Vercel Infrastructure Setup (Manual — Dashboard)
+
 - [ ] Identify or create the Vercel project for the Flutter web app
 - [ ] Add `app.bandroadie.com` as a production domain on that project
 - [ ] Verify DNS CNAME for `app.bandroadie.com` points to Vercel
@@ -442,6 +464,7 @@ If the marketing site is a separate repo, the redirects must be added there. If 
 - [ ] Add redirects on the marketing site Vercel project (see Section 4.2)
 
 ### Task 1: Update Supabase Auth Configuration (Manual — Dashboard)
+
 - [ ] Add `https://app.bandroadie.com/auth/confirm` to redirect allowlist
 - [ ] Add `https://app.bandroadie.com/` to redirect allowlist
 - [ ] Add `https://app.bandroadie.com/invite` to redirect allowlist
@@ -450,24 +473,29 @@ If the marketing site is a separate repo, the redirects must be added there. If 
 - [ ] Keep all existing `bandroadie.com` redirect URLs during transition
 
 ### Task 2: Update Flutter Auth Redirect URLs
+
 - [ ] `login_screen.dart:297` — web redirect → `https://app.bandroadie.com/auth/confirm`
 - [ ] `login_screen.dart:299` — Android redirect → `https://app.bandroadie.com/auth/callback`
 - [ ] `invite_screen.dart:191` — invite redirect → `https://app.bandroadie.com/invite?token=$token`
 
 ### Task 3: Update Flutter Routing
+
 - [ ] `main.dart` — change `/` web route from `LandingPage` to `AuthGate`
 - [ ] `main.dart` — keep `/app` route pointing to `AuthGate` (backward compat)
 - [ ] `auth_confirm_screen.dart:52` — change post-auth nav from `/app` to `/`
 
 ### Task 4: Update Deep Link & Host References
+
 - [ ] `deep_link_service.dart` — add `app.bandroadie.com` to host check
 - [ ] `screenshots_section.dart` — update link to `https://app.bandroadie.com/`
 - [ ] `calendar_subscription_service.dart` — update feed URL to `https://app.bandroadie.com/api/calendar-feed`
 
 ### Task 5: Update Android Deep Link Config
+
 - [ ] `AndroidManifest.xml` — add `app.bandroadie.com` intent filter host
 
 ### Task 6: Build, Deploy, and Verify
+
 - [ ] `flutter analyze` — clean
 - [ ] `flutter build web --release --base-href /`
 - [ ] Deploy to `app.bandroadie.com` Vercel project
@@ -478,25 +506,30 @@ If the marketing site is a separate repo, the redirects must be added there. If 
 ## 13. Rollout / Migration Strategy
 
 ### Phase A: Prepare (No User Impact)
+
 1. Add `app.bandroadie.com` to Supabase redirect allowlist (keep old URLs)
 2. Configure Vercel project and DNS for `app.bandroadie.com`
 3. Add 302 redirects on marketing site for `/app`, `/auth/*`, `/invite`
 4. Verify redirects work
 
 ### Phase B: Deploy (Brief Transition Window)
+
 5. Deploy updated Flutter web build to `app.bandroadie.com`
 6. Verify `app.bandroadie.com` loads Flutter app
 7. Verify magic link flow works end-to-end
 8. Verify marketing site still works at `bandroadie.com`
 
 ### Phase C: Harden (Post-Verification)
+
 9. Update Supabase Site URL to `https://app.bandroadie.com` (if not done in Phase A)
 10. Monitor for auth failures in logs
 11. After 2 weeks stable: upgrade marketing site redirects from 302 to 301
 12. After 4 weeks stable: remove old `bandroadie.com/app` and `bandroadie.com/auth/*` URLs from Supabase allowlist
 
 ### Rollback Procedure
+
 If issues arise after Phase B:
+
 1. Revert Flutter code (redirect URLs back to `bandroadie.com` paths)
 2. Re-deploy to the original project
 3. Remove `app.bandroadie.com` Vercel domain config
@@ -595,20 +628,24 @@ Unchanged. `Supabase.initialize()` with `detectSessionInUri: true` on web auto-r
 ## 17. Exact Change Locations
 
 ### lib/features/auth/login_screen.dart
+
 - **Line 297** — `redirectUrl = 'https://bandroadie.com/app'`
   - Change to: `redirectUrl = 'https://app.bandroadie.com/auth/confirm'`
 - **Line 299** — `redirectUrl = 'https://bandroadie.com/auth/callback'`
   - Change to: `redirectUrl = 'https://app.bandroadie.com/auth/callback'`
 
 ### lib/features/auth/invite_screen.dart
+
 - **Line 191** — `final redirectUrl = 'https://bandroadie.com/invite?token=$token'`
   - Change to: `final redirectUrl = 'https://app.bandroadie.com/invite?token=$token'`
 
 ### lib/features/auth/auth_confirm_screen.dart
+
 - **Line 52** — `Navigator.pushNamedAndRemoveUntil(context, '/app', (route) => false)`
   - Change to: `Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false)`
 
 ### lib/main.dart
+
 - **~Line 128** — `if (uri.path == '/' && kIsWeb)` → returns `LandingPage`
   - Change to: Return `AuthGate` at `/` on web (same as native behavior)
 - **~Line 133** — `if (uri.path == '/app' ...)` → returns `AuthGate`
@@ -617,27 +654,33 @@ Unchanged. `Supabase.initialize()` with `detectSessionInUri: true` on web auto-r
   - Change to: Return `AuthGate` on web (unknown routes should show app, not marketing)
 
 ### lib/app/services/deep_link_service.dart
+
 - **Line 236-238** — `_isAuthCallback` method, host check
   - `uri.host == 'bandroadie.com'`
   - Change to: `(uri.host == 'bandroadie.com' || uri.host == 'app.bandroadie.com')`
 
 ### lib/features/landing/widgets/screenshots_section.dart
+
 - **Line 124** — `onTap: () => _launchUrl('https://bandroadie.com/app')`
   - Change to: `onTap: () => _launchUrl('https://app.bandroadie.com/')`
 
 ### lib/features/calendar/calendar_subscription_service.dart
+
 - **Line 34** — `static const String _feedBaseUrl = 'https://bandroadie.com/api/calendar-feed'`
   - Change to: `static const String _feedBaseUrl = 'https://app.bandroadie.com/api/calendar-feed'`
 
 ### android/app/src/main/AndroidManifest.xml
+
 - **App Link intent filter** — existing `android:host="bandroadie.com"`
   - Add a second `<data>` element: `android:host="app.bandroadie.com"` with same `android:pathPrefix="/auth"`
 
 ### Vercel dashboard changes (not in code)
+
 - Marketing site project: Add redirect rules (Section 4.2)
 - Flutter web project: Add `app.bandroadie.com` domain
 - DNS: Verify CNAME for `app.bandroadie.com`
 
 ### Supabase dashboard changes (not in code)
+
 - Auth → URL Configuration → Site URL: `https://app.bandroadie.com`
 - Auth → URL Configuration → Redirect URLs: Add new subdomain URLs (Section 4.4)

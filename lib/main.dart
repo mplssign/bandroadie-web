@@ -169,8 +169,7 @@ class BandRoadieApp extends StatelessWidget {
         }
         // Default: landing page on marketing host, AuthGate otherwise
         if (kIsWeb && _isMarketingHost()) {
-          return fadeSlideRoute(
-              page: const LandingPage(), settings: settings);
+          return fadeSlideRoute(page: const LandingPage(), settings: settings);
         }
         return fadeSlideRoute(
           page: const AuthGate(),
