@@ -244,12 +244,13 @@ class _HeroDesktop extends StatelessWidget {
 class _AppStoreCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return _CTAButton(
-      label: 'App Store',
+    return _StoreBadge(
       icon: Icons.apple,
-      isPrimary: true,
+      topText: 'Download on the',
+      mainText: 'App Store',
       onPressed: () =>
           _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
+      isAvailable: true,
     );
   }
 }
@@ -258,12 +259,12 @@ class _AppStoreCTA extends StatelessWidget {
 class _GooglePlayCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return _CTAButton(
-      label: 'Google Play',
-      icon: Icons.android,
-      isPrimary: true,
-      isComingSoon: true,
+    return _StoreBadge(
+      icon: Icons.play_arrow,
+      topText: 'GET IT ON',
+      mainText: 'Google Play',
       onPressed: () {},
+      isAvailable: false,
     );
   }
 }
@@ -272,29 +273,30 @@ class _GooglePlayCTA extends StatelessWidget {
 class _WebAppCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return _CTAButton(
-      label: 'Web App',
+    return _StoreBadge(
       icon: Icons.web,
-      isPrimary: false,
+      topText: 'BandRoadie.com',
+      mainText: 'Web App',
       onPressed: () => _launchUrl('https://app.bandroadie.com/'),
+      isAvailable: true,
     );
   }
 }
 
-/// Reusable CTA button
-class _CTAButton extends StatelessWidget {
-  final String label;
+/// Reusable store badge matching official App Store / Google Play badge style
+class _StoreBadge extends StatelessWidget {
   final IconData icon;
-  final bool isPrimary;
-  final bool isComingSoon;
+  final String topText;
+  final String mainText;
   final VoidCallback onPressed;
+  final bool isAvailable;
 
-  const _CTAButton({
-    required this.label,
+  const _StoreBadge({
     required this.icon,
-    required this.isPrimary,
-    this.isComingSoon = false,
+    required this.topText,
+    required this.mainText,
     required this.onPressed,
+    required this.isAvailable,
   });
 
   @override
@@ -303,36 +305,22 @@ class _CTAButton extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        gradient: isPrimary
-            ? LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isComingSoon
-                    ? [AppColors.cardBg, AppColors.surfaceDark]
-                    : [Colors.black, const Color(0xFF1a1a1a)],
-              )
-            : null,
-        color: isPrimary ? null : AppColors.cardBg,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: isAvailable
+              ? [Colors.black, const Color(0xFF1a1a1a)]
+              : [AppColors.cardBg, AppColors.surfaceDark],
+        ),
         border: Border.all(
-          color: isPrimary
-              ? Colors.white.withValues(alpha: 0.2)
-              : AppColors.borderMuted,
+          color: Colors.white.withValues(alpha: isAvailable ? 0.2 : 0.1),
           width: 1,
         ),
-        boxShadow: isPrimary && !isComingSoon
-            ? [
-                BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  spreadRadius: 0,
-                ),
-              ]
-            : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isComingSoon ? null : onPressed,
+          onTap: isAvailable ? onPressed : null,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -342,31 +330,60 @@ class _CTAButton extends StatelessWidget {
                 Icon(
                   icon,
                   size: 28,
-                  color: isPrimary ? Colors.white : AppColors.textPrimary,
+                  color: isAvailable ? Colors.white : AppColors.textSecondary,
                 ),
                 const SizedBox(width: 12),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (isComingSoon)
-                      Text(
-                        'Coming Soon',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.textSecondary,
-                          height: 1,
-                        ),
-                      ),
                     Text(
-                      label,
+                      topText,
                       style: TextStyle(
-                        fontSize: isComingSoon ? 14 : 16,
-                        fontWeight: FontWeight.w600,
-                        color: isPrimary ? Colors.white : AppColors.textPrimary,
-                        height: 1.2,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: isAvailable
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : AppColors.textSecondary,
+                        height: 1,
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          mainText,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: isAvailable
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                            height: 1.2,
+                          ),
+                        ),
+                        if (!isAvailable) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'SOON',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),

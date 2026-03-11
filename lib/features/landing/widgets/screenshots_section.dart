@@ -82,7 +82,7 @@ class _GooglePlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _OfficialBadge(
-      icon: Icons.android,
+      icon: Icons.play_arrow,
       topText: 'GET IT ON',
       mainText: 'Google Play',
       onPressed: () => _launchUrl(
@@ -135,7 +135,7 @@ class _WebAppButton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Open in browser',
+                      'BandRoadie.com',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
