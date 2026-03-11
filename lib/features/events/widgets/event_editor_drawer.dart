@@ -1702,7 +1702,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: (MediaQuery.of(context).size.height - bottomPadding) * 0.9,
       ),
       decoration: const BoxDecoration(
         color: AppColors.cardBg,
@@ -1899,28 +1899,43 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ),
 
           // Bottom action buttons
-          if (widget.viewOnly)
-            EventEditorViewOnlyClose(
-              onClose: () {
-                Navigator.of(context).pop(false);
-                widget.onCancelled?.call();
-              },
-            )
-          else
-            EventEditorBottomActions(
-              canSave: !_isSaving &&
-                  !_isDeleting &&
-                  _isFormValid &&
-                  (widget.mode == EventEditorMode.create || _isDirty),
-              isSaving: _isSaving,
-              isDeleting: _isDeleting,
-              primaryButtonLabel: _primaryButtonLabel,
-              onSave: _handleSave,
-              onCancel: () {
-                Navigator.pop(context);
-                widget.onCancelled?.call();
-              },
+          Container(
+            padding: EdgeInsets.only(
+              left: Spacing.pagePadding,
+              right: Spacing.pagePadding,
+              top: Spacing.space12,
+              bottom: safeBottom + Spacing.space12,
             ),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg,
+              border: Border(
+                top: BorderSide(
+                  color: AppColors.borderMuted.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            child: widget.viewOnly
+                ? EventEditorViewOnlyClose(
+                    onClose: () {
+                      Navigator.of(context).pop(false);
+                      widget.onCancelled?.call();
+                    },
+                  )
+                : EventEditorBottomActions(
+                    canSave: !_isSaving &&
+                        !_isDeleting &&
+                        _isFormValid &&
+                        (widget.mode == EventEditorMode.create || _isDirty),
+                    isSaving: _isSaving,
+                    isDeleting: _isDeleting,
+                    primaryButtonLabel: _primaryButtonLabel,
+                    onSave: _handleSave,
+                    onCancel: () {
+                      Navigator.pop(context);
+                      widget.onCancelled?.call();
+                    },
+                  ),
+          ),
         ],
       ),
     );
