@@ -121,7 +121,7 @@ class _WebAppButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _launchUrl('https://bandroadie.com/app'),
+          onTap: () => _launchUrl('https://app.bandroadie.com/'),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

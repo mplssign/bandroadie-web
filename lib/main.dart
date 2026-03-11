@@ -16,7 +16,6 @@ import 'app/theme/app_theme.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
 import 'features/auth/invite_screen.dart';
-import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
 
@@ -121,13 +120,8 @@ class BandRoadieApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
 
-        // Landing page at root (only on web)
-        if (uri.path == '/' && kIsWeb) {
-          return fadeSlideRoute(page: const LandingPage(), settings: settings);
-        }
-
-        // Web app at /app (or default on mobile)
-        if (uri.path == '/app' || (uri.path == '/' && !kIsWeb)) {
+        // App at root on all platforms (web app lives at app.bandroadie.com)
+        if (uri.path == '/' || uri.path == '/app') {
           return fadeSlideRoute(page: const AuthGate(), settings: settings);
         }
 
@@ -159,15 +153,15 @@ class BandRoadieApp extends StatelessWidget {
             settings: settings,
           );
         }
-        // Default: Landing page on web, AuthGate on mobile
+        // Default: AuthGate on all platforms
         return fadeSlideRoute(
-          page: kIsWeb ? const LandingPage() : const AuthGate(),
+          page: const AuthGate(),
           settings: settings,
         );
       },
-      // Fallback for web deep links
+      // Fallback for unknown routes
       onUnknownRoute: (settings) => fadeSlideRoute(
-        page: kIsWeb ? const LandingPage() : const AuthGate(),
+        page: const AuthGate(),
         settings: settings,
       ),
     );

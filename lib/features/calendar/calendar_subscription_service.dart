@@ -31,7 +31,7 @@ class CalendarSubscriptionService {
   final SupabaseClient _client;
 
   // Base URL for the calendar feed — proxied through Vercel for trusted SSL
-  static const String _feedBaseUrl = 'https://bandroadie.com/api/calendar-feed';
+  static const String _feedBaseUrl = 'https://app.bandroadie.com/api/calendar-feed';
 
   CalendarSubscriptionService(this._client);
 

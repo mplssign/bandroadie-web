@@ -188,7 +188,7 @@ class _InviteScreenState extends State<InviteScreen> {
     try {
       // Build redirect URL that includes the invite token
       final token = widget.token;
-      final redirectUrl = 'https://bandroadie.com/invite?token=$token';
+      final redirectUrl = 'https://app.bandroadie.com/invite?token=$token';
 
       // Store the invite token in SharedPreferences so AuthGate can pick it up
       // This handles the case where the redirect doesn't work as expected
