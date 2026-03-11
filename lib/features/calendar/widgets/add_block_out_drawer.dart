@@ -412,7 +412,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         color: Colors.transparent,
         child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.9,
+            maxHeight:
+                (MediaQuery.of(context).size.height - keyboardHeight) * 0.9,
           ),
           decoration: const BoxDecoration(
             color: AppColors.cardBg,
@@ -753,8 +754,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
-    // Use the max of safe area and keyboard height for bottom padding
-    final bottomPadding = keyboardHeight > 0 ? keyboardHeight : safeBottom;
+    final bottomPadding = safeBottom;
 
     // Read-only mode: just show a Close button
     if (_isReadOnly) {
