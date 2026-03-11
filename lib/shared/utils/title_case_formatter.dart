@@ -12,17 +12,22 @@ import 'package:flutter/services.dart';
 /// - Split on spaces and hyphens
 /// - Uppercase first letter of each word
 /// - Keep the rest lowercase
+/// - Non-letter punctuation (parentheses, apostrophes, quotes, etc.) passes
+///   through without affecting capitalization state
 ///
 /// Examples:
 /// - "hello world" → "Hello World"
 /// - "new-york city" → "New-York City"
 /// - "TESTING case" → "Testing Case"
 /// - "the beatles" → "The Beatles"
+/// - "(what's" → "(What's"
+/// - "\"hello\" world" → "\"Hello\" World"
 String toTitleCase(String input) {
   if (input.isEmpty) return input;
 
   final result = StringBuffer();
   bool capitalizeNext = true;
+  final letterRegex = RegExp(r'[a-zA-Z]');
 
   for (int i = 0; i < input.length; i++) {
     final char = input[i];
@@ -30,11 +35,15 @@ String toTitleCase(String input) {
     if (char == ' ' || char == '-') {
       result.write(char);
       capitalizeNext = true;
-    } else if (capitalizeNext) {
-      result.write(char.toUpperCase());
-      capitalizeNext = false;
+    } else if (letterRegex.hasMatch(char)) {
+      if (capitalizeNext) {
+        result.write(char.toUpperCase());
+        capitalizeNext = false;
+      } else {
+        result.write(char.toLowerCase());
+      }
     } else {
-      result.write(char.toLowerCase());
+      result.write(char);
     }
   }
 
@@ -47,11 +56,14 @@ String toTitleCase(String input) {
 /// - Split on spaces and hyphens
 /// - Uppercase first letter of each word
 /// - Keep the rest lowercase
+/// - Non-letter punctuation (parentheses, apostrophes, quotes, etc.) passes
+///   through without affecting capitalization state
 ///
 /// Examples:
 /// - "hello world" → "Hello World"
 /// - "new-york city" → "New-York City"
 /// - "TESTING case" → "Testing Case"
+/// - "(what's" → "(What's"
 class TitleCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -62,6 +74,7 @@ class TitleCaseTextFormatter extends TextInputFormatter {
 
     final result = StringBuffer();
     bool capitalizeNext = true;
+    final letterRegex = RegExp(r'[a-zA-Z]');
 
     for (int i = 0; i < newValue.text.length; i++) {
       final char = newValue.text[i];
@@ -69,11 +82,15 @@ class TitleCaseTextFormatter extends TextInputFormatter {
       if (char == ' ' || char == '-') {
         result.write(char);
         capitalizeNext = true;
-      } else if (capitalizeNext) {
-        result.write(char.toUpperCase());
-        capitalizeNext = false;
+      } else if (letterRegex.hasMatch(char)) {
+        if (capitalizeNext) {
+          result.write(char.toUpperCase());
+          capitalizeNext = false;
+        } else {
+          result.write(char.toLowerCase());
+        }
       } else {
-        result.write(char.toLowerCase());
+        result.write(char);
       }
     }
 
