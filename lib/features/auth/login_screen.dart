@@ -289,14 +289,14 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      // Web: Redirect to /app and let Supabase auto-detect session from URL
-      // Android: Use verified App Link (https://bandroadie.com/auth/callback)
+      // Web: Redirect to /auth/confirm on the app subdomain
+      // Android: Use verified App Link (https://app.bandroadie.com/auth/callback)
       // iOS/macOS: Use custom scheme (bandroadie://login-callback/)
       final String redirectUrl;
       if (kIsWeb) {
-        redirectUrl = 'https://bandroadie.com/app';
+        redirectUrl = 'https://app.bandroadie.com/auth/confirm';
       } else if (!kIsWeb && Platform.isAndroid) {
-        redirectUrl = 'https://bandroadie.com/auth/callback';
+        redirectUrl = 'https://app.bandroadie.com/auth/callback';
       } else {
         redirectUrl = 'bandroadie://login-callback/';
       }

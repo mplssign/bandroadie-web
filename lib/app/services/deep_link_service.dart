@@ -233,9 +233,9 @@ class DeepLinkService {
       return true;
     }
 
-    // Match verified Android App Link: https://bandroadie.com/auth/callback
+    // Match verified Android App Link: https://app.bandroadie.com/auth/callback
     if (uri.scheme == 'https' &&
-        uri.host == 'bandroadie.com' &&
+        (uri.host == 'bandroadie.com' || uri.host == 'app.bandroadie.com') &&
         uri.path.startsWith('/auth/')) {
       return true;
     }
