@@ -1,146 +1,163 @@
-# QA_REPORT — bug/mobile-keyboard-covers-event-actions
+# QA REPORT
 
-## Feature Slug
+Feature Slug
+mobile-keyboard-covers-event-actions
 
-bug/mobile-keyboard-covers-event-actions
+Feature Title
+Fix mobile keyboard covering event editor actions
 
-## Feature Title
-
-Mobile Keyboard Covers Event Action Buttons
+---
 
 ## Validation Summary
 
-All 4 Architect tasks were implemented exactly as specified across 2 files. No files were created. No unrelated files were modified. No database, auth, routing, or state management changes were introduced. The implementation is layout-only, modifying `maxHeight` constraints and padding in two drawer widgets. Static analysis passes with zero issues.
+The implementation correctly addresses the bug where the on-screen keyboard covers event editor action buttons on mobile devices. The fix applies `MediaQuery.viewInsets.bottom` as bottom padding to the action row, keeping it visible above the keyboard. The change is minimal, scoped, and introduces no regressions.
+
+---
 
 ## Architect Scope Review
 
-The Architect plan defines 4 tasks:
+The Architect plan required:
 
-1. Event editor drawer `maxHeight` fix — subtract `viewInsets.bottom` before applying 0.9 multiplier.
-2. Event editor drawer bottom actions wrapper — wrap `EventEditorBottomActions` and `EventEditorViewOnlyClose` in a `Container` with horizontal page padding, top border separator, and safe area bottom padding.
-3. Block out drawer `maxHeight` fix — subtract `keyboardHeight` before applying 0.9 multiplier.
-4. Block out drawer bottom padding simplification — replace `keyboardHeight > 0 ? keyboardHeight : safeBottom` with `safeBottom`.
+1. Apply bottom padding using `MediaQuery.viewInsets.bottom` — **Implemented**
+2. Ensure the event editor body scrolls when the keyboard opens — **Preserved** (Expanded + SingleChildScrollView structure unchanged)
+3. Keep the action row pinned above the keyboard — **Implemented** (action row is outside scroll area, wrapped in Padding)
+4. Preserve the existing 90% drawer height constraint — **Preserved** (maxHeight: 0.9 \* screen height unchanged)
 
-**Scope boundaries respected**: No new widgets, no state changes, no architecture changes, no database impact, no RLS/RPC changes. Out-of-scope items (file refactoring, widget internal changes, desktop/web layout, keyboard-dismiss gestures) were correctly avoided.
+All requirements addressed. No scope expansion.
+
+---
 
 ## Implementation Review
 
-### Task 1 — Event editor drawer maxHeight fix
-- **File**: `lib/features/events/widgets/event_editor_drawer.dart` (line 1704)
-- **Change**: `maxHeight: MediaQuery.of(context).size.height * 0.9` → `maxHeight: (MediaQuery.of(context).size.height - bottomPadding) * 0.9`
-- **Variable source**: `bottomPadding` = `MediaQuery.of(context).viewInsets.bottom` (line 1696)
-- **Matches Architect plan**: Yes ✓
+The implementation wraps the existing bottom action buttons (both viewOnly and edit-mode paths) in a single `Padding` widget with `EdgeInsets.only(bottom: bottomPadding)`, where `bottomPadding = MediaQuery.of(context).viewInsets.bottom` (already defined in the build method at line 1696).
 
-### Task 2 — Event editor drawer bottom actions wrapper
-- **File**: `lib/features/events/widgets/event_editor_drawer.dart` (lines 1901–1941)
-- **Change**: Wrapped both `EventEditorBottomActions` and `EventEditorViewOnlyClose` in a single `Container` using a ternary for the `child` property.
-- **Container properties**:
-  - `padding: EdgeInsets.only(left: Spacing.pagePadding, right: Spacing.pagePadding, top: Spacing.space12, bottom: safeBottom + Spacing.space12)` ✓
-  - `decoration: BoxDecoration(color: AppColors.cardBg, border: Border(top: BorderSide(color: AppColors.borderMuted.withValues(alpha: 0.5))))` ✓
-- **Matches Architect plan**: Yes ✓
+- No new state introduced
+- No new dependencies added
+- No logic changes to save, cancel, or delete flows
+- No changes to initialization order or configuration
+- Only 4 net lines added to the file
 
-### Task 3 — Block out drawer maxHeight fix
-- **File**: `lib/features/calendar/widgets/add_block_out_drawer.dart` (lines 417–418)
-- **Change**: `maxHeight: MediaQuery.of(context).size.height * 0.9` → `maxHeight: (MediaQuery.of(context).size.height - keyboardHeight) * 0.9`
-- **Variable source**: `keyboardHeight` = `MediaQuery.of(context).viewInsets.bottom` (line 405)
-- **Matches Architect plan**: Yes ✓
-
-### Task 4 — Block out drawer bottom padding simplification
-- **File**: `lib/features/calendar/widgets/add_block_out_drawer.dart` (line 756)
-- **Change**: `final bottomPadding = keyboardHeight > 0 ? keyboardHeight : safeBottom;` → `final bottomPadding = safeBottom;`
-- **Removed comment**: `// Use the max of safe area and keyboard height for bottom padding` (no longer accurate)
-- **Matches Architect plan**: Yes ✓
+---
 
 ## Files Verified
 
-| File | Status |
-|---|---|
-| `lib/features/events/widgets/event_editor_drawer.dart` | Modified — 2 changes as expected |
-| `lib/features/calendar/widgets/add_block_out_drawer.dart` | Modified — 2 changes as expected |
-| `docs/features/mobile-keyboard-covers-event-actions/ARCHITECT_PLAN.md` | New — expected |
-| `docs/features/mobile-keyboard-covers-event-actions/ENGINEER_REPORT.md` | New — expected |
+| File                                                                  | Status                                                       |
+| --------------------------------------------------------------------- | ------------------------------------------------------------ |
+| lib/features/events/widgets/event_editor_drawer.dart                  | Modified — keyboard-aware padding added to action row        |
+| web/version.json                                                      | Modified — build_number bump 65→66 (outside Architect scope) |
+| tools/deploy_web.sh                                                   | New untracked file (outside Architect scope)                 |
+| docs/features/mobile-keyboard-covers-event-actions/ARCHITECT_PLAN.md  | Reviewed                                                     |
+| docs/features/mobile-keyboard-covers-event-actions/ENGINEER_REPORT.md | Reviewed                                                     |
 
-No unexpected files created, modified, or deleted.
+---
 
-## Bug Reproduction Result
+## Bug Validation Result
 
-**Code-path verification only** (no device/simulator runtime validation performed):
+Validation type: **Code-path validation only** (no runtime/simulator testing performed).
 
-- **Pre-fix path**: `maxHeight = screenHeight * 0.9`. With keyboard open (e.g., ~346px on iPhone 14), the 760px container exceeds the ~498px visible viewport. Bottom action buttons render behind the keyboard. Bug confirmed via code analysis.
-- **Post-fix path**: `maxHeight = (screenHeight - keyboardHeight) * 0.9`. With same keyboard, container is ~448px — fits within visible viewport. Bottom actions are within the constrained container and visible above the keyboard.
-- **No-keyboard path**: `keyboardHeight = 0` → formula reduces to `screenHeight * 0.9`. Identical to pre-fix behavior. No regression.
-- **Desktop/web path**: `viewInsets.bottom` is typically 0. No behavioral change.
+- Original bug: keyboard covers Save/Cancel/Delete buttons in event editor drawer on mobile
+- Fix: `Padding(bottom: MediaQuery.viewInsets.bottom)` wraps action row, pushing it above the keyboard
+- Both `viewOnly` (Close button) and edit-mode (Save/Cancel) paths receive the padding
+- When keyboard is closed, `viewInsets.bottom` is 0 — no visual change from baseline behavior
 
-**Limitation**: Full visual and interactive validation requires running on a mobile device or simulator. This QA validates the correctness of the code logic, not the rendered UI.
+The fix uses the standard Flutter pattern for keyboard-aware layouts.
+
+---
 
 ## Completeness Check
 
-| Architect Task | Implemented | Verified |
-|---|---|---|
-| 1. Event editor maxHeight fix | ✓ | ✓ |
-| 2. Event editor bottom actions wrapper | ✓ | ✓ |
-| 3. Block out drawer maxHeight fix | ✓ | ✓ |
-| 4. Block out drawer bottom padding simplification | ✓ | ✓ |
+| Architect Requirement                           | Implemented                       |
+| ----------------------------------------------- | --------------------------------- |
+| Bottom padding via MediaQuery.viewInsets.bottom | Yes                               |
+| Scrollable body adjusts when keyboard opens     | Yes (existing Expanded structure) |
+| Action row pinned above keyboard                | Yes                               |
+| 90% drawer height constraint preserved          | Yes                               |
 
-All tasks complete. No skipped requirements. No partial implementation.
+All acceptance criteria covered. No skipped requirements.
+
+---
 
 ## Regression Check
 
-| System | Impact | Risk |
-|---|---|---|
-| Gig creation/editing drawers | Layout change only. No-keyboard path unchanged. | None |
-| Rehearsal creation/editing drawers | Same drawer widget. Same analysis. | None |
-| Block out creation (standalone) | maxHeight fix + simplified padding. No-keyboard path unchanged. | None |
-| Block out creation (via event editor) | Uses EventEditorDrawer path. | None |
-| Setlists / Song catalog | Not touched | None |
-| Notifications | Not touched | None |
-| Auth / Session | Not touched | None |
-| Routing / Deep links | Not touched | None |
-| Database reads/writes | Not touched | None |
-| Desktop / Web layout | viewInsets.bottom = 0 → formula unchanged | None |
-| Init order | Not touched | None |
-| Config paths | Not touched | None |
+| System                 | Impact                                                   |
+| ---------------------- | -------------------------------------------------------- |
+| Events (editor drawer) | Direct — layout change only                              |
+| Gigs / Rehearsals      | None — shared editor uses same drawer, benefits from fix |
+| Auth / Session         | None                                                     |
+| Routing                | None                                                     |
+| Setlists / Catalog     | None                                                     |
+| Notifications          | None                                                     |
+| Init order             | Unchanged                                                |
+| Config paths           | Unchanged                                                |
+
+---
 
 ## Regression Risk Level
 
 **LOW**
 
-Changes are pure layout constraints and padding in 2 files. When no keyboard is present, both formulas are mathematically identical to pre-fix behavior. No state, data, routing, auth, or business logic is affected.
+Justification: Single `Padding` wrapper addition. No logic changes. No state changes. No new dependencies. The `bottomPadding` variable already existed and was used elsewhere in the same build method. Change is purely layout/cosmetic.
+
+---
 
 ## Database Safety Review
 
-Not Applicable. No database changes in this bug fix.
+Not Applicable — no database changes.
+
+---
 
 ## Analyzer Results
 
-- Command: `flutter analyze`
-- Result: **No issues found** (0 errors, 0 warnings)
+```
+flutter analyze
+No issues found! (ran in 3.8s)
+```
+
+0 errors. 0 warnings.
+
+---
 
 ## Test Results
 
-Not Run. The Architect plan does not require tests. No existing tests cover these layout-only changes. This is consistent with Architect scope.
+Not Run.
+
+The Architect plan did not require tests. No existing tests cover this layout behavior. Engineer report confirms no tests were executed.
+
+---
 
 ## Diff Safety Review
 
-| Check | Result |
-|---|---|
-| Secrets / credentials | None ✓ |
-| Config drift | None ✓ |
-| Unrelated refactors | None ✓ |
-| Formatting-only churn | None ✓ |
-| Accidental file deletions | None ✓ |
-| Debug artifacts / console spam | None ✓ |
-| Temporary flags / test scaffolding | None ✓ |
-| Init order changes | None ✓ |
-| Platform behavior regressions | None (desktop/web unaffected) ✓ |
-| Security violations | None ✓ |
+| Check                   | Result               |
+| ----------------------- | -------------------- |
+| Secrets                 | None exposed         |
+| Config drift            | None in feature code |
+| Debug artifacts         | None                 |
+| Unrelated refactors     | None in feature code |
+| Accidental deletions    | None                 |
+| Console/debug leftovers | None                 |
+
+Warnings:
+
+- `web/version.json` build_number bump (65→66) is outside Architect scope. Should be committed separately or excluded from this commit.
+- `tools/deploy_web.sh` is a new 135-line deploy script unrelated to this bug fix. Must not be included in this feature commit.
+
+---
 
 ## Issues Found
 
+### Warnings
+
+1. **Unscoped file: web/version.json** — Build number bump from 65 to 66 is not part of the Architect plan. Recommend excluding from this commit or committing separately.
+2. **Unscoped file: tools/deploy_web.sh** — New deploy script is entirely unrelated to this bug fix. Must not be included in this commit.
+
+### Critical Issues
+
 None.
+
+---
 
 ## Final Verdict
 
 **APPROVED**
 
-Implementation matches the Architect plan exactly across all 4 tasks. Only the 2 expected files were modified with minimal, focused changes. No scope creep, no architecture violations, no security concerns, no database impact, no regressions identified. Static analysis passes clean. The code logic is correct and the fix properly addresses the root cause of keyboard-obscured action buttons on mobile.
+The feature implementation is correct, minimal, and matches the Architect plan. The commit should include only `lib/features/events/widgets/event_editor_drawer.dart` and the documentation folder. The unrelated files (`web/version.json`, `tools/deploy_web.sh`) should be excluded from this commit.

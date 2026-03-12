@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
@@ -68,12 +69,11 @@ class _AppStoreButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _OfficialBadge(
-      icon: Icons.apple,
+      iconWidget: const Icon(Icons.apple, size: 36, color: Colors.white),
       topText: 'Download on the',
       mainText: 'App Store',
       onPressed: () =>
           _launchUrl('https://apps.apple.com/us/app/band-roadie/id6757283775'),
-      isAvailable: true,
     );
   }
 }
@@ -82,13 +82,13 @@ class _GooglePlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _OfficialBadge(
-      icon: Icons.android,
+      iconWidget: SvgPicture.asset('assets/images/google_play_logo.svg',
+          width: 36, height: 36),
       topText: 'GET IT ON',
       mainText: 'Google Play',
       onPressed: () => _launchUrl(
         'https://play.google.com/store/apps/details?id=com.bandroadie.app',
       ),
-      isAvailable: false,
     );
   }
 }
@@ -98,30 +98,23 @@ class _WebAppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 60,
-      constraints: const BoxConstraints(minWidth: 180),
+      width: 220,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black, const Color(0xFF1a1a1a)],
+          colors: [Colors.black, Color(0xFF1a1a1a)],
         ),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: Colors.white,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.4),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _launchUrl('https://bandroadie.com/app'),
+          onTap: () => _launchUrl('https://app.bandroadie.com/'),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -135,7 +128,7 @@ class _WebAppButton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Open in browser',
+                      'BandRoadie.com',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
@@ -165,63 +158,42 @@ class _WebAppButton extends StatelessWidget {
 }
 
 class _OfficialBadge extends StatelessWidget {
-  final IconData icon;
+  final Widget iconWidget;
   final String topText;
   final String mainText;
-  final VoidCallback? onPressed;
-  final bool isAvailable;
+  final VoidCallback onPressed;
 
   const _OfficialBadge({
-    required this.icon,
+    required this.iconWidget,
     required this.topText,
     required this.mainText,
     required this.onPressed,
-    required this.isAvailable,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 60,
-      constraints: const BoxConstraints(minWidth: 180),
+      width: 220,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isAvailable
-              ? [Colors.black, const Color(0xFF1a1a1a)]
-              : [AppColors.cardBg, AppColors.surfaceDark],
-        ),
+        color: Colors.black,
         border: Border.all(
-          color: Colors.white.withValues(alpha: isAvailable ? 0.2 : 0.1),
+          color: Colors.white,
           width: 1,
         ),
-        boxShadow: isAvailable
-            ? [
-                BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.4),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                ),
-              ]
-            : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isAvailable ? onPressed : null,
+          onTap: onPressed,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: 36,
-                  color: isAvailable ? Colors.white : AppColors.textSecondary,
-                ),
+                iconWidget,
                 const SizedBox(width: 12),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -232,48 +204,19 @@ class _OfficialBadge extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
-                        color: isAvailable
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : AppColors.textSecondary,
+                        color: Colors.white.withValues(alpha: 0.9),
                         height: 1,
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          mainText,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: isAvailable
-                                ? Colors.white
-                                : AppColors.textSecondary,
-                            height: 1,
-                          ),
-                        ),
-                        if (!isAvailable) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'SOON',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.accent,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      mainText,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        height: 1,
+                      ),
                     ),
                   ],
                 ),

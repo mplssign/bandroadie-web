@@ -109,3 +109,4 @@ web/manifest.json
 # ========================
 test/.dart_tool/
 .vercel
+tools/deploy_web.sh
