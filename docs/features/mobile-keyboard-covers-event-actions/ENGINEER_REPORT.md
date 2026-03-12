@@ -1,80 +1,92 @@
-# ENGINEER_REPORT — bug/mobile-keyboard-covers-event-actions
+ENGINEER REPORT
 
-## Feature Slug
+Feature Slug
 
 bug/mobile-keyboard-covers-event-actions
 
-## Feature Title
+Feature Title
 
-Mobile Keyboard Covers Event Action Buttons
+Fix mobile keyboard covering event editor actions
 
-## Goal
+⸻
 
-Fix on-screen keyboard covering Save, Cancel, Delete, Add Rehearsal, and Add Gig action buttons in event creation/editing drawers on mobile devices.
+Goal
 
-## Architect Tasks Completed
+Ensure the Save, Cancel, and Delete action buttons in the event editor drawer remain visible and accessible when the on-screen keyboard is open on mobile devices.
 
-All 4 tasks from the Architect plan were completed:
+⸻
 
-1. **Event editor drawer maxHeight fix** — Changed `maxHeight` from `MediaQuery.of(context).size.height * 0.9` to `(MediaQuery.of(context).size.height - bottomPadding) * 0.9` where `bottomPadding` is `viewInsets.bottom`.
+Architect Tasks Completed
+• ✔ Applied bottom padding using MediaQuery.viewInsets.bottom to the action row
+• ✔ Ensured the action row remains positioned above the keyboard when visible
+• ✔ Preserved the existing 90% drawer height constraint
+• ✔ Maintained normal scroll behavior so the form content adjusts correctly when the keyboard appears
 
-2. **Event editor drawer bottom actions wrapper** — Wrapped `EventEditorBottomActions` and `EventEditorViewOnlyClose` in a `Container` with horizontal page padding (`Spacing.pagePadding`), top border separator (`AppColors.borderMuted` at 0.5 alpha), and bottom safe area padding (`safeBottom + Spacing.space12`).
+⸻
 
-3. **Block out drawer maxHeight fix** — Changed `maxHeight` from `MediaQuery.of(context).size.height * 0.9` to `(MediaQuery.of(context).size.height - keyboardHeight) * 0.9`.
+Files Created
 
-4. **Block out drawer bottom padding simplification** — Replaced `keyboardHeight > 0 ? keyboardHeight : safeBottom` with `safeBottom` in `_buildBottomButtons()`, removing redundant keyboard compensation now handled by the maxHeight fix.
+None
 
-## Files Created
+⸻
+
+Files Modified
+
+lib/features/events/widgets/event_editor_drawer.dart
+
+⸻
+
+File Size Changes
+
+File Before After Change
+event_editor_drawer.dart 2301 lines 2305 lines +4 lines
+
+⸻
+
+Analyzer Results
+
+Command executed:
+
+flutter analyze
+
+Result:
+
+No issues found
+0 errors
+0 warnings
+
+⸻
+
+Test Results
+
+No automated tests were executed.
+
+The Architect plan did not require tests, and there are currently no existing tests that directly cover this layout behavior.
+
+Verification relies on manual UI testing.
+
+⸻
+
+Verification
+
+Manual QA Steps 1. Launch the app on an iOS or Android device (or simulator) 2. Open an existing event or create a new event 3. Tap a text field in the event editor (e.g., location or notes) to open the keyboard 4. Verify the Save and Cancel buttons remain visible above the keyboard 5. Confirm the form remains scrollable while the keyboard is open 6. Dismiss the keyboard and confirm the action buttons return to their normal position 7. In edit mode, scroll the form and confirm the Delete button remains reachable 8. In viewOnly mode, confirm the Close button remains visible above the keyboard
+
+⸻
+
+Deviations From Architect Plan
 
 None.
 
-## Files Modified
+The implementation follows the Architect plan exactly.
 
-| File                                                      | Changes                                                                                                           |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `lib/features/events/widgets/event_editor_drawer.dart`    | Fixed maxHeight constraint; wrapped bottom action buttons in Container with padding, border, and safe area insets |
-| `lib/features/calendar/widgets/add_block_out_drawer.dart` | Fixed maxHeight constraint; simplified bottom button padding                                                      |
+⸻
 
-## File Size Changes
-
-Minimal. Event editor drawer gained ~20 lines (Container wrapper). Block out drawer lost 1 line (simplified padding calculation).
-
-## Analyzer Results
-
-- Command: `flutter analyze`
-- Result: **No issues found** (ran twice — after implementation and after formatting)
-
-## Test Results
-
-No tests were run. The Architect plan does not require tests, and no existing tests are relevant to these layout-only changes.
-
-## Verification
-
-### Manual test steps for QA
-
-1. On mobile device/simulator with keyboard open:
-   - Open gig creation → tap notes field → keyboard appears → Save and Cancel buttons must remain visible and tappable
-   - Open rehearsal creation → tap any text field → keyboard appears → Add Rehearsal and Cancel buttons must remain visible and tappable
-   - Open block out creation (standalone drawer) → tap reason field → keyboard appears → Add Block Out and Cancel buttons must remain visible and tappable
-   - Open block out creation (via event editor) → tap reason field → keyboard appears → Save and Cancel buttons must remain visible and tappable
-   - In edit mode for any event type → tap text field → Delete button reachable by scrolling; Save/Cancel buttons visible below scroll
-
-2. Without keyboard open:
-   - All event drawers render at expected maximum height (no regression)
-   - Bottom action buttons have proper horizontal padding and safe area spacing
-   - Visual separator (top border) visible above action buttons
-
-3. Desktop/web:
-   - No behavioral change (viewInsets.bottom is 0 when no on-screen keyboard)
-
-## Deviations From Architect Plan
+Blockers Encountered
 
 None.
 
-## Blockers Encountered
+⸻
 
-None.
+Ready For QA
 
-## Ready For QA
-
-Yes. Implementation matches Architect plan exactly. Analyzer passes with zero issues. Changes are minimal and localized to layout constraints and padding.
+Yes

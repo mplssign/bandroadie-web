@@ -73,8 +73,8 @@ class SocialSection extends StatelessWidget {
                     child: _SocialTile(
                       icon: Icons.facebook,
                       platform: 'Facebook',
-                      handle: '@BandRaodie',
-                      url: 'https://www.facebook.com/BandRaodie',
+                      handle: '@Band Roadie App',
+                      url: 'https://www.facebook.com/BandRoadieApp',
                       gradientColors: const [
                         Color(0xFF1877F2),
                         Color(0xFF0C63D4),
@@ -170,9 +170,8 @@ class _SocialTileState extends State<_SocialTile> {
                 child: Icon(
                   widget.icon,
                   size: 32,
-                  color: _isHovered
-                      ? Colors.white
-                      : widget.gradientColors.first,
+                  color:
+                      _isHovered ? Colors.white : widget.gradientColors.first,
                 ),
               ),
               const SizedBox(width: 20),
@@ -186,9 +185,8 @@ class _SocialTileState extends State<_SocialTile> {
                       widget.platform,
                       style: AppTextStyles.title3.copyWith(
                         fontSize: 20,
-                        color: _isHovered
-                            ? Colors.white
-                            : AppColors.textPrimary,
+                        color:
+                            _isHovered ? Colors.white : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),

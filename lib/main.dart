@@ -99,6 +99,15 @@ Future<void> main() async {
   );
 }
 
+/// Returns true if the web app is running on the marketing domain (bandroadie.com).
+/// On app.bandroadie.com or non-web platforms, returns false.
+bool _isMarketingHost() {
+  if (!kIsWeb) return false;
+  // ignore: avoid_web_libraries_in_flutter
+  final host = Uri.base.host;
+  return host == 'bandroadie.com' || host == 'www.bandroadie.com';
+}
+
 class BandRoadieApp extends StatelessWidget {
   const BandRoadieApp({super.key});
 
@@ -121,13 +130,12 @@ class BandRoadieApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
 
-        // Landing page at root (only on web)
-        if (uri.path == '/' && kIsWeb) {
-          return fadeSlideRoute(page: const LandingPage(), settings: settings);
-        }
-
-        // Web app at /app (or default on mobile)
-        if (uri.path == '/app' || (uri.path == '/' && !kIsWeb)) {
+        // On web, check hostname to decide landing vs app
+        if (uri.path == '/' || uri.path == '/app') {
+          if (kIsWeb && _isMarketingHost()) {
+            return fadeSlideRoute(
+                page: const LandingPage(), settings: settings);
+          }
           return fadeSlideRoute(page: const AuthGate(), settings: settings);
         }
 
@@ -159,15 +167,20 @@ class BandRoadieApp extends StatelessWidget {
             settings: settings,
           );
         }
-        // Default: Landing page on web, AuthGate on mobile
+        // Default: landing page on marketing host, AuthGate otherwise
+        if (kIsWeb && _isMarketingHost()) {
+          return fadeSlideRoute(page: const LandingPage(), settings: settings);
+        }
         return fadeSlideRoute(
-          page: kIsWeb ? const LandingPage() : const AuthGate(),
+          page: const AuthGate(),
           settings: settings,
         );
       },
-      // Fallback for web deep links
+      // Fallback for unknown routes
       onUnknownRoute: (settings) => fadeSlideRoute(
-        page: kIsWeb ? const LandingPage() : const AuthGate(),
+        page: kIsWeb && _isMarketingHost()
+            ? const LandingPage()
+            : const AuthGate(),
         settings: settings,
       ),
     );

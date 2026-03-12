@@ -40,8 +40,8 @@
                     android:scheme="bandroadie"
                     android:host="login-callback"/>
             </intent-filter>
-            <!-- Verified Android App Links for https://bandroadie.com/auth/* -->
-            <!-- Requires /.well-known/assetlinks.json on bandroadie.com -->
+            <!-- Verified Android App Links for auth callbacks -->
+            <!-- Requires /.well-known/assetlinks.json on both domains -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -49,6 +49,10 @@
                 <data
                     android:scheme="https"
                     android:host="bandroadie.com"
+                    android:pathPrefix="/auth"/>
+                <data
+                    android:scheme="https"
+                    android:host="app.bandroadie.com"
                     android:pathPrefix="/auth"/>
             </intent-filter>
         </activity>

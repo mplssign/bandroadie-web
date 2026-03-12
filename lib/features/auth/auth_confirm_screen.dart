@@ -49,7 +49,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   void _navigateToHome() {
     debugPrint('🚀 Navigating to app from fragment auth');
     if (kIsWeb) {
-      Navigator.pushNamedAndRemoveUntil(context, '/app', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } else {
       Navigator.pushAndRemoveUntil(
         context,

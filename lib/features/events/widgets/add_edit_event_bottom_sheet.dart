@@ -72,6 +72,7 @@ class AddEditEventBottomSheet {
         bandId: bandId,
         onSaved: onSaved,
         viewOnly: viewOnly,
+        existingBlockOut: existingBlockOut,
       ),
     );
   }
