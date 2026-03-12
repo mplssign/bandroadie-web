@@ -1898,29 +1898,31 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
           ),
 
-          // Bottom action buttons
-          if (widget.viewOnly)
-            EventEditorViewOnlyClose(
-              onClose: () {
-                Navigator.of(context).pop(false);
-                widget.onCancelled?.call();
-              },
-            )
-          else
-            EventEditorBottomActions(
-              canSave: !_isSaving &&
-                  !_isDeleting &&
-                  _isFormValid &&
-                  (widget.mode == EventEditorMode.create || _isDirty),
-              isSaving: _isSaving,
-              isDeleting: _isDeleting,
-              primaryButtonLabel: _primaryButtonLabel,
-              onSave: _handleSave,
-              onCancel: () {
-                Navigator.pop(context);
-                widget.onCancelled?.call();
-              },
-            ),
+          // Bottom action buttons — padded above keyboard when visible
+          Padding(
+            padding: EdgeInsets.only(bottom: bottomPadding),
+            child: widget.viewOnly
+                ? EventEditorViewOnlyClose(
+                    onClose: () {
+                      Navigator.of(context).pop(false);
+                      widget.onCancelled?.call();
+                    },
+                  )
+                : EventEditorBottomActions(
+                    canSave: !_isSaving &&
+                        !_isDeleting &&
+                        _isFormValid &&
+                        (widget.mode == EventEditorMode.create || _isDirty),
+                    isSaving: _isSaving,
+                    isDeleting: _isDeleting,
+                    primaryButtonLabel: _primaryButtonLabel,
+                    onSave: _handleSave,
+                    onCancel: () {
+                      Navigator.pop(context);
+                      widget.onCancelled?.call();
+                    },
+                  ),
+          ),
         ],
       ),
     );
