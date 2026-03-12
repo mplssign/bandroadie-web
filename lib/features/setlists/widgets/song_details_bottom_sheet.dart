@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import '../../../shared/utils/title_case_formatter.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
@@ -269,9 +268,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   }
 
   void _checkForChanges() {
-    // Apply same transformations as _handleSave for accurate comparison
-    final newTitle = toTitleCase(_titleController.text.trim());
-    final newArtist = toTitleCase(_artistController.text.trim());
+    final newTitle = _titleController.text.trim();
+    final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
     final originalTuning = widget.song.tuning ?? 'standard_e';
     final newBpm = _parseBpm();
@@ -385,8 +383,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     HapticFeedback.lightImpact();
     debugPrint('[SongDetails] _handleSave called');
 
-    final newTitle = toTitleCase(_titleController.text.trim());
-    final newArtist = toTitleCase(_artistController.text.trim());
+    final newTitle = _titleController.text.trim();
+    final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
     final originalTuning = widget.song.tuning ?? 'standard_e';
     final newBpm = _parseBpm();
