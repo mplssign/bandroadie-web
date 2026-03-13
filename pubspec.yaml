@@ -14,7 +14,6 @@ dependencies:
     sdk: flutter
 
   # UI / Visual
-  cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.3
   google_fonts: ^8.0.0
   confetti: ^0.7.0
@@ -55,6 +54,7 @@ dependencies:
 
   # Deep Linking
   app_links: ^6.4.1
+  lucide_flutter: ^0.575.0
 
 dev_dependencies:
   flutter_test:
