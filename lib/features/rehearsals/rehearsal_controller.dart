@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/models/rehearsal.dart';
 import '../bands/active_band_controller.dart';
+import '../bands/band_full_state.dart';
 import '../gigs/gig_repository.dart';
 import 'rehearsal_repository.dart';
 
@@ -53,9 +54,8 @@ class RehearsalState {
     return RehearsalState(
       allRehearsals: allRehearsals ?? this.allRehearsals,
       upcomingRehearsals: upcomingRehearsals ?? this.upcomingRehearsals,
-      nextRehearsal: clearNextRehearsal
-          ? null
-          : (nextRehearsal ?? this.nextRehearsal),
+      nextRehearsal:
+          clearNextRehearsal ? null : (nextRehearsal ?? this.nextRehearsal),
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
       loadedBandId: loadedBandId ?? this.loadedBandId,
@@ -75,44 +75,96 @@ class RehearsalState {
 
   @override
   int get hashCode => Object.hash(
-    isLoading,
-    error,
-    loadedBandId,
-    allRehearsals.length,
-    nextRehearsal?.id,
-  );
+        isLoading,
+        error,
+        loadedBandId,
+        allRehearsals.length,
+        nextRehearsal?.id,
+      );
 }
 
 /// Notifier that manages rehearsal state
 class RehearsalNotifier extends Notifier<RehearsalState> {
-  /// Track the last band ID we loaded for to prevent duplicate loads
-  String? _lastLoadedBandId;
-
   @override
   RehearsalState build() {
-    // Watch the active band — when it changes, reset and refetch
-    final bandId = ref.watch(activeBandIdProvider);
+    // Watch full band state — provides all data from a single RPC call
+    final fullStateAsync = ref.watch(bandFullStateProvider);
 
-    // If no band selected, return empty state
-    if (bandId == null) {
-      _lastLoadedBandId = null;
-      return const RehearsalState();
-    }
-
-    // Only trigger load if band actually changed
-    if (bandId != _lastLoadedBandId) {
-      _lastLoadedBandId = bandId;
-      // Trigger async load (can't await in build, so use Future.microtask)
-      Future.microtask(() => loadRehearsals());
-    }
-
-    return const RehearsalState(isLoading: true);
+    return fullStateAsync.when(
+      data: (fullState) {
+        if (fullState == null) return const RehearsalState();
+        final bandId = fullState.band.id;
+        debugPrint(
+          '[RehearsalController] RPC data received for band $bandId -> ${fullState.rehearsals.length} rehearsals',
+        );
+        return _categorizeRehearsals(fullState.rehearsals, bandId);
+      },
+      loading: () => const RehearsalState(isLoading: true),
+      error: (e, stackTrace) {
+        debugPrint(
+            '═══════════════════════════════════════════════════════════');
+        debugPrint('[RehearsalController] Error from RPC:');
+        debugPrint('  Error: $e');
+        debugPrint('  Type: ${e.runtimeType}');
+        debugPrint('  Stack: $stackTrace');
+        debugPrint(
+            '═══════════════════════════════════════════════════════════');
+        return RehearsalState(error: e.toString());
+      },
+    );
   }
 
   RehearsalRepository get _repository => ref.read(rehearsalRepositoryProvider);
   String? get _bandId => ref.read(activeBandIdProvider);
 
-  /// Load all rehearsal data for the active band
+  /// Categorize a flat list of rehearsals into upcoming / next
+  /// using the same client-side time filtering as the repository methods.
+  RehearsalState _categorizeRehearsals(
+    List<Rehearsal> allRehearsals,
+    String bandId,
+  ) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final nowUtc = now.toUtc();
+
+    // Upcoming: date >= today AND end time in the future
+    final upcomingRehearsals = allRehearsals.where((rehearsal) {
+      if (rehearsal.date.isBefore(today)) return false;
+      return _isEndTimeInFuture(rehearsal, nowUtc);
+    }).toList();
+
+    // Next rehearsal: first upcoming
+    final nextRehearsal =
+        upcomingRehearsals.isNotEmpty ? upcomingRehearsals.first : null;
+
+    return RehearsalState(
+      allRehearsals: allRehearsals,
+      upcomingRehearsals: upcomingRehearsals,
+      nextRehearsal: nextRehearsal,
+      isLoading: false,
+      loadedBandId: bandId,
+    );
+  }
+
+  /// Check if a rehearsal's end time is still in the future
+  bool _isEndTimeInFuture(Rehearsal rehearsal, DateTime nowUtc) {
+    try {
+      final endDateTime = DateTime(
+        rehearsal.date.year,
+        rehearsal.date.month,
+        rehearsal.date.day,
+        int.parse(rehearsal.endTime.split(':')[0]),
+        int.parse(rehearsal.endTime.split(':')[1]),
+      ).toUtc();
+      return endDateTime.isAfter(nowUtc);
+    } catch (e) {
+      // If parsing fails, include the rehearsal to be safe
+      return true;
+    }
+  }
+
+  /// Targeted refresh: fetches rehearsals individually (for after mutations).
+  /// Does NOT use the RPC — only fetches rehearsals for speed.
   Future<void> loadRehearsals() async {
     final bandId = _bandId;
     if (bandId == null) {
@@ -127,25 +179,11 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
     );
 
     try {
-      // Fetch rehearsals in parallel
-      final results = await Future.wait([
-        _repository.fetchRehearsalsForBand(bandId),
-        _repository.fetchUpcomingRehearsals(bandId),
-        _repository.fetchNextRehearsal(bandId),
-      ]);
-
-      state = state.copyWith(
-        allRehearsals: results[0] as List<Rehearsal>,
-        upcomingRehearsals: results[1] as List<Rehearsal>,
-        nextRehearsal: results[2] as Rehearsal?,
-        clearNextRehearsal: results[2] == null, // Clear if no next rehearsal
-        isLoading: false,
-        clearError: true,
-        loadedBandId: bandId,
-      );
+      final allRehearsals = await _repository.fetchRehearsalsForBand(bandId);
+      state = _categorizeRehearsals(allRehearsals, bandId);
 
       debugPrint(
-        '[RehearsalController] load for band $bandId -> ${(results[0] as List).length} rehearsals, error=null',
+        '[RehearsalController] refresh for band $bandId -> ${allRehearsals.length} rehearsals, error=null',
       );
     } on NoBandSelectedError {
       // This is expected when no band is selected - not an error state
@@ -164,7 +202,7 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
 
       state = state.copyWith(isLoading: false, error: e.toString());
       debugPrint(
-        '[RehearsalController] load for band $bandId -> 0 rehearsals, error=${e.toString()}',
+        '[RehearsalController] refresh for band $bandId -> 0 rehearsals, error=${e.toString()}',
       );
     }
   }

@@ -1,5 +1,6 @@
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
+import 'package:flutter/foundation.dart';
 
 // ============================================================================
 // BAND REPOSITORY
@@ -26,36 +27,26 @@ class BandRepository {
     }
 
     try {
-      // First, get band_ids from band_members
-      final memberResponse = await supabase
+      // Single query: join band_members → bands via foreign key
+      final response = await supabase
           .from('band_members')
-          .select('band_id')
+          .select('bands(*)')
           .eq('user_id', userId);
 
-      final bandIds = <String>[];
-      for (final row in memberResponse) {
-        final bandId = row['band_id'] as String?;
-        if (bandId != null) {
-          bandIds.add(bandId);
+      final List<Band> bands = [];
+
+      for (final row in response) {
+        final bandData = row['bands'] as Map<String, dynamic>?;
+        if (bandData != null) {
+          bands.add(Band.fromJson(bandData));
         }
       }
 
-      if (bandIds.isEmpty) {
-        return [];
-      }
-
-      // Then, fetch the bands separately
-      final bandsResponse = await supabase
-          .from('bands')
-          .select('*')
-          .inFilter('id', bandIds);
-
-      final List<Band> bands = [];
-      for (final row in bandsResponse) {
-        bands.add(Band.fromJson(row));
-      }
-
       return bands;
+    } catch (e, stackTrace) {
+      debugPrint('BandRepository.fetchUserBands error: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      return [];
     }
   }
 
@@ -69,30 +60,33 @@ class BandRepository {
       return null;
     }
 
-    // First verify user is a member of this band
-    final memberCheck = await supabase
-        .from('band_members')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('band_id', bandId)
-        .maybeSingle();
+    try {
+      // First verify user is a member of this band
+      final memberCheck = await supabase
+          .from('band_members')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('band_id', bandId)
+          .maybeSingle();
 
-    if (memberCheck == null) {
-      // User is not a member of this band — deny access
+      if (memberCheck == null) {
+        // User is not a member of this band — deny access
+        return null;
+      }
+
+      // User is a member, fetch the band
+      final response =
+          await supabase.from('bands').select().eq('id', bandId).maybeSingle();
+
+      if (response == null) {
+        return null;
+      }
+
+      return Band.fromJson(response);
+    } catch (e, stackTrace) {
+      debugPrint('BandRepository.fetchBandById error: $e');
+      debugPrintStack(stackTrace: stackTrace);
       return null;
     }
-
-    // User is a member, fetch the band
-    final response = await supabase
-        .from('bands')
-        .select()
-        .eq('id', bandId)
-        .maybeSingle();
-
-    if (response == null) {
-      return null;
-    }
-
-    return Band.fromJson(response);
   }
 }

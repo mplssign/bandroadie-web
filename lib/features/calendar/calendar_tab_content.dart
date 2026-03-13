@@ -8,6 +8,7 @@ import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../../shared/utils/event_permission_helper.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
+import '../bands/band_full_state.dart';
 import '../events/models/event_form_data.dart';
 import '../events/widgets/add_edit_event_bottom_sheet.dart';
 import '../gigs/gig_controller.dart';
@@ -365,8 +366,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       color: AppColors.accent,
       backgroundColor: AppColors.cardBg,
       onRefresh: () async {
-        await ref.read(rehearsalProvider.notifier).refresh();
-        await ref.read(gigProvider.notifier).refresh();
+        ref.invalidate(bandFullStateProvider);
+        await ref.read(bandFullStateProvider.future);
         ref.read(calendarProvider.notifier).loadEvents();
       },
       child: SingleChildScrollView(

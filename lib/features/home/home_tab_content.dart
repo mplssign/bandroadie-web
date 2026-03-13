@@ -9,6 +9,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../bands/active_band_controller.dart';
+import '../bands/band_full_state.dart';
 import '../calendar/calendar_controller.dart';
 
 import '../events/models/event_form_data.dart';
@@ -588,8 +589,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               color: AppColors.accent,
               backgroundColor: AppColors.cardBg,
               onRefresh: () async {
-                await ref.read(gigProvider.notifier).refresh();
-                await ref.read(rehearsalProvider.notifier).refresh();
+                ref.invalidate(bandFullStateProvider);
+                await ref.read(bandFullStateProvider.future);
               },
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {

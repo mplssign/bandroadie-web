@@ -276,10 +276,14 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final bands = await _bandRepository.fetchUserBands();
+      // Fetch bands and persisted ID in parallel (independent calls)
+      final results = await Future.wait([
+        _bandRepository.fetchUserBands(),
+        _loadPersistedBandId(),
+      ]);
 
-      // Try to restore persisted band ID
-      final persistedId = await _loadPersistedBandId();
+      final bands = results[0] as List<Band>;
+      final persistedId = results[1] as String?;
       Band? selected;
 
       if (persistedId != null) {
