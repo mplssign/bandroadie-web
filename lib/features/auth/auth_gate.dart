@@ -142,8 +142,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
                 false; // Allow invite check for new session
           });
           _checkProfileComplete();
-          // Register FCM token for push notifications (iOS/Android only)
-          if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
+          // Register FCM token for push notifications (iOS, Android, and Web)
+          if (kIsWeb || Platform.isIOS || Platform.isAndroid) {
             _registerPushToken();
           }
         } else {
@@ -160,8 +160,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // If we have a session, check profile completeness
     if (authState.isAuthenticated) {
       _checkProfileComplete();
-      // Also register push token for existing sessions (iOS/Android only)
-      if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
+      // Also register push token for existing sessions (iOS, Android, and Web)
+      if (kIsWeb || Platform.isIOS || Platform.isAndroid) {
         _registerPushToken();
       }
     }

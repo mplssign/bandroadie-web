@@ -65,17 +65,28 @@ Future<void> main() async {
     ),
   );
 
-  // Initialize Firebase for push notifications (iOS and Android only)
-  // macOS and Web don't need Firebase for this app's notification flow
-  if (!kIsWeb) {
-    try {
-      if (Platform.isIOS || Platform.isAndroid) {
-        await Firebase.initializeApp();
-      }
-    } catch (e) {
-      // Silently ignore Firebase init errors on unsupported platforms
-      debugPrint('[Main] Firebase init skipped: $e');
+  // Initialize Firebase for push notifications
+  // Web uses explicit FirebaseOptions (no google-services.json on web)
+  // iOS/Android use native config files via Firebase.initializeApp()
+  try {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: '***REMOVED***',
+          authDomain: 'bandroadie-65b18.firebaseapp.com',
+          projectId: 'bandroadie-65b18',
+          storageBucket: 'bandroadie-65b18.firebasestorage.app',
+          messagingSenderId: '***REMOVED***',
+          appId: '***REMOVED***',
+          measurementId: '***REMOVED***',
+        ),
+      );
+    } else if (Platform.isIOS || Platform.isAndroid) {
+      await Firebase.initializeApp();
     }
+  } catch (e) {
+    // Silently ignore Firebase init errors on unsupported platforms
+    debugPrint('[Main] Firebase init skipped: $e');
   }
 
   // Initialize deep link service for magic link handling in all app states
