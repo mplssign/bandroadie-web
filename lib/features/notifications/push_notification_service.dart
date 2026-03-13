@@ -154,7 +154,14 @@ class PushNotificationService {
   /// Register device token with Supabase
   Future<void> registerToken() async {
     try {
-      final token = await _messaging.getToken();
+      // Web requires a VAPID key to obtain an FCM token
+      // iOS/Android derive the token from the native config files
+      final token = kIsWeb
+          ? await _messaging.getToken(
+              vapidKey:
+                  'BH-GpUNMkRmpMZ1IFpshMbGWnUDt0Gi0_s4M_4o2q6AWbVHFQK8oX3J2c8DEJbTWTvtbqCq8fS-UzHIV1qcg3Ks',
+            )
+          : await _messaging.getToken();
       if (token == null) {
         debugPrint('[PushNotificationService] No FCM token available');
         return;

@@ -4,15 +4,14 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
-// TODO: Replace with your Firebase config from Firebase Console
-// These values should match your firebase_options.dart
 firebase.initializeApp({
-    apiKey: 'YOUR_API_KEY',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    appId: 'YOUR_APP_ID',
+    apiKey: 'AIzaSyD3nIWOdtwNuSkggGs_4Du_rsfvsd7qHxo',
+    authDomain: 'bandroadie-65b18.firebaseapp.com',
+    projectId: 'bandroadie-65b18',
+    storageBucket: 'bandroadie-65b18.firebasestorage.app',
+    messagingSenderId: '119100589120',
+    appId: '1:119100589120:web:efcfb0cdf1501488c3cba5',
+    measurementId: 'G-QFC8JXHKDC',
 });
 
 const messaging = firebase.messaging();
