@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/services/app_version_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SIDE DRAWER - FIGMA NODE 27-69 "Menu"
@@ -262,14 +263,14 @@ class _SideDrawerState extends State<SideDrawer>
           // Navigation items
           const DrawerSectionDivider(),
           DrawerNavItem(
-            icon: Icons.person_outline_rounded,
+            icon: AppIcons.user,
             iconColor: _DrawerTokens.iconDefault,
             label: 'My Profile',
             onTap: widget.onProfileTap,
           ),
           const DrawerSectionDivider(),
           DrawerNavItem(
-            icon: Icons.settings_outlined,
+            icon: AppIcons.settings,
             iconColor: _DrawerTokens.iconDefault,
             label: 'Settings',
             onTap: widget.onSettingsTap,
@@ -283,7 +284,7 @@ class _SideDrawerState extends State<SideDrawer>
           ),
           const DrawerSectionDivider(),
           DrawerNavItem(
-            icon: Icons.bug_report_outlined,
+            icon: AppIcons.bug,
             iconColor: _DrawerTokens.iconDefault,
             label: 'Report Bugs',
             onTap: widget.onReportBugsTap,
@@ -296,7 +297,7 @@ class _SideDrawerState extends State<SideDrawer>
           // Log Out section
           const DrawerSectionDivider(),
           DrawerNavItem(
-            icon: Icons.logout_rounded,
+            icon: AppIcons.logout,
             iconColor: _DrawerTokens.iconAccent,
             label: 'Log Out',
             labelStyle: _DrawerTokens.navItemLogoutStyle,
@@ -497,7 +498,7 @@ class _CloseButtonState extends State<_CloseButton>
                         : Colors.transparent,
                   ),
                   child: const Icon(
-                    Icons.close_rounded,
+                    AppIcons.close,
                     color: _DrawerTokens.iconDefault,
                     size: _DrawerTokens.closeIconSize,
                   ),

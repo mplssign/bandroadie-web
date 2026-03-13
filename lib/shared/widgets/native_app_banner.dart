@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../utils/platform_detection.dart';
 import '../utils/web_storage.dart';
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// A dismissible banner that prompts mobile web users to download the native app.
 ///
@@ -214,7 +215,7 @@ class _BannerContent extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(AppIcons.close, size: 20),
                     color: Colors.black,
                     onPressed: onDismiss,
                     tooltip: 'Don\'t show again',

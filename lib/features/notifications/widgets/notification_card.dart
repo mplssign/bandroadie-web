@@ -6,6 +6,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../models/app_notification.dart';
 import '../models/notification_type.dart';
 import '../notification_controller.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NOTIFICATION CARD
@@ -119,24 +120,24 @@ class NotificationCard extends ConsumerWidget {
       case NotificationType.gigCancelled:
       case NotificationType.gigConfirmed:
       case NotificationType.potentialGigCreated:
-        return Icons.music_note_rounded;
+        return AppIcons.music;
       case NotificationType.rehearsalCreated:
       case NotificationType.rehearsalUpdated:
       case NotificationType.rehearsalCancelled:
-        return Icons.schedule_rounded;
+        return AppIcons.clock;
       case NotificationType.blockoutCreated:
-        return Icons.event_busy_rounded;
+        return AppIcons.calendarX;
       case NotificationType.setlistUpdated:
-        return Icons.queue_music_rounded;
+        return AppIcons.setlists;
       case NotificationType.availabilityRequest:
       case NotificationType.availabilityResponse:
-        return Icons.how_to_reg_rounded;
+        return AppIcons.userCheck;
       case NotificationType.memberJoined:
       case NotificationType.memberLeft:
       case NotificationType.roleChanged:
-        return Icons.group_rounded;
+        return AppIcons.users;
       case NotificationType.bandInvitation:
-        return Icons.mail_rounded;
+        return AppIcons.email;
     }
   }
 

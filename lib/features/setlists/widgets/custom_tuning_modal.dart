@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../services/custom_tuning_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CUSTOM TUNING MODAL
@@ -311,7 +312,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
             child: Container(
               padding: const EdgeInsets.all(Spacing.space4),
               child: const Icon(
-                Icons.close_rounded,
+                AppIcons.close,
                 color: AppColors.textSecondary,
                 size: 24,
               ),
@@ -336,7 +337,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 20),
+          Icon(AppIcons.info, color: AppColors.accent, size: 20),
           const SizedBox(width: Spacing.space12),
           Expanded(
             child: Text(

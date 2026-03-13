@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // TIPS & TRICKS SCREEN
@@ -75,7 +76,7 @@ class TipsAndTricksScreen extends StatelessWidget {
         backgroundColor: AppColors.appBarBg,
         title: Text('Tips & Tricks', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),

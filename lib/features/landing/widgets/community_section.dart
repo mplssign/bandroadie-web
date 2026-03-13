@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Community section promoting r/bandroadie subreddit
 class CommunitySection extends StatelessWidget {
@@ -64,13 +65,13 @@ class CommunitySection extends StatelessWidget {
                         child: Column(
                           children: [
                             _CommunityPoint(
-                              icon: Icons.forum_rounded,
+                              icon: AppIcons.message,
                               text: 'General discussion around the app',
                               isMobile: isMobile,
                             ),
                             const SizedBox(height: 24),
                             _CommunityPoint(
-                              icon: Icons.tips_and_updates_rounded,
+                              icon: AppIcons.sparkles,
                               text:
                                   'Tips & tricks for getting the most out of BandRoadie',
                               isMobile: isMobile,
@@ -90,7 +91,7 @@ class CommunitySection extends StatelessWidget {
                             ),
                             const SizedBox(height: 24),
                             _CommunityPoint(
-                              icon: Icons.support_agent_rounded,
+                              icon: AppIcons.headphones,
                               text: 'App support and troubleshooting',
                               isMobile: isMobile,
                             ),
@@ -102,7 +103,7 @@ class CommunitySection extends StatelessWidget {
                 : Column(
                     children: [
                       _CommunityPoint(
-                        icon: Icons.forum_rounded,
+                        icon: AppIcons.message,
                         text: 'General discussion around the app',
                         isMobile: isMobile,
                       ),
@@ -114,14 +115,14 @@ class CommunitySection extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
                       _CommunityPoint(
-                        icon: Icons.tips_and_updates_rounded,
+                        icon: AppIcons.sparkles,
                         text:
                             'Tips & tricks for getting the most out of BandRoadie',
                         isMobile: isMobile,
                       ),
                       const SizedBox(height: 20),
                       _CommunityPoint(
-                        icon: Icons.support_agent_rounded,
+                        icon: AppIcons.headphones,
                         text: 'App support and troubleshooting',
                         isMobile: isMobile,
                       ),

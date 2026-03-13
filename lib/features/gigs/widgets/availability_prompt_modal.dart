@@ -5,6 +5,7 @@ import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../gig_response_repository.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // AVAILABILITY PROMPT MODAL
@@ -156,7 +157,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.event_available,
+                        AppIcons.calendarCheck,
                         color: Colors.white,
                         size: 28,
                       ),
@@ -203,7 +204,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
 
                     // Date
                     _DetailRow(
-                      icon: Icons.calendar_today,
+                      icon: AppIcons.calendar,
                       label: _formatDate(widget.gig.date),
                     ),
 
@@ -211,7 +212,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
 
                     // Time
                     _DetailRow(
-                      icon: Icons.access_time,
+                      icon: AppIcons.clock,
                       label: TimeFormatter.formatRange(
                         widget.gig.startTime,
                         widget.gig.endTime,
@@ -221,7 +222,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     if (widget.gig.location.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       _DetailRow(
-                        icon: Icons.location_on,
+                        icon: AppIcons.location,
                         label: widget.gig.location,
                       ),
                     ],
@@ -235,7 +236,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                         Expanded(
                           child: _ResponseButton(
                             label: 'NO',
-                            icon: Icons.close,
+                            icon: AppIcons.close,
                             isPositive: false,
                             isLoading: _isSubmitting,
                             onPressed: () =>
@@ -249,7 +250,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                         Expanded(
                           child: _ResponseButton(
                             label: 'YES',
-                            icon: Icons.check,
+                            icon: AppIcons.check,
                             isPositive: true,
                             isLoading: _isSubmitting,
                             onPressed: () =>

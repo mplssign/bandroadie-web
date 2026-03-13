@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // TIPS & TRICKS OVERLAY
@@ -124,7 +125,7 @@ class TipsAndTricksOverlay extends StatelessWidget {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(
-                        Icons.close_rounded,
+                        AppIcons.close,
                         color: AppColors.textMuted,
                         size: 24,
                       ),

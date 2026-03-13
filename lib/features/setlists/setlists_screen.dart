@@ -32,6 +32,7 @@ import 'widgets/empty_setlists_state.dart';
 import 'widgets/setlists_app_bar.dart';
 import 'widgets/setlists_bottom_nav_bar.dart';
 import 'widgets/swipeable_setlist_card.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SETLISTS SCREEN
@@ -825,7 +826,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
-                    Icons.error_outline_rounded,
+                    AppIcons.error,
                     size: 48,
                     color: AppColors.error,
                   ),
@@ -910,7 +911,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       if (canEdit)
                         TextButton.icon(
                           onPressed: _navigateToCreateSetlist,
-                          icon: const Icon(Icons.add_rounded, size: 18),
+                          icon: const Icon(AppIcons.add, size: 18),
                           label: const Text('New'),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.accent,

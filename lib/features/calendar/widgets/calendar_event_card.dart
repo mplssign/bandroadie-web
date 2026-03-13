@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../models/calendar_event.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CALENDAR EVENT CARD
@@ -190,7 +191,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                   Padding(
                     padding: const EdgeInsets.only(right: Spacing.space12),
                     child: Icon(
-                      Icons.chevron_right_rounded,
+                      AppIcons.forward,
                       color: AppColors.textMuted,
                       size: 24,
                     ),

@@ -17,6 +17,7 @@ interface SpotifyTrack {
     spotify_id: string;
     duration_seconds?: number;
     album_artwork?: string;
+    popularity?: number;
 }
 
 // Global token cache to avoid repeated auth requests
@@ -136,6 +137,7 @@ serve(async (req) => {
             spotify_id: track.id,
             duration_seconds: track.duration_ms ? Math.round(track.duration_ms / 1000) : undefined,
             album_artwork: track.album?.images?.[0]?.url,
+            popularity: track.popularity as number | undefined,
         }));
 
         return new Response(

@@ -6,6 +6,7 @@ import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
 import 'animated_value_text.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SONG CARD
@@ -123,7 +124,7 @@ class _SongCardState extends State<SongCard>
                   left: SongCardLayout.dragHandleLeft,
                   top: 13,
                   child: Icon(
-                    Icons.drag_indicator_rounded,
+                    AppIcons.drag,
                     size: 24,
                     color: AppColors.textSecondary.withValues(alpha: 0.6),
                   ),
@@ -174,7 +175,7 @@ class _SongCardState extends State<SongCard>
                             child: const Padding(
                               padding: EdgeInsets.only(left: 8),
                               child: Icon(
-                                Icons.lyrics_outlined,
+                                AppIcons.lyrics,
                                 color: AppColors.accent,
                                 size: 28,
                               ),

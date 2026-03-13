@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // PAUSE CREATOR
@@ -211,7 +212,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                       GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
                         child: Icon(
-                          Icons.close_rounded,
+                          AppIcons.close,
                           color: AppColors.textMuted,
                           size: 24,
                         ),
@@ -327,7 +328,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                             ),
                           ),
                           child: Icon(
-                            Icons.add_rounded,
+                            AppIcons.add,
                             color: _accent,
                             size: 22,
                           ),
@@ -488,7 +489,7 @@ class _PurposeChip extends StatelessWidget {
             ),
             if (isCustom && isSelected) ...[
               const SizedBox(width: 4),
-              Icon(Icons.close_rounded, size: 14, color: accent),
+              Icon(AppIcons.close, size: 14, color: accent),
             ],
           ],
         ),

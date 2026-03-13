@@ -18,6 +18,7 @@ import '../../shared/utils/snackbar_helper.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import 'active_band_controller.dart';
 import 'widgets/band_avatar.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BAND FORM SCREEN - Shared screen for Create and Edit Band flows
@@ -1310,7 +1311,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
-                    Icons.camera_alt_rounded,
+                    AppIcons.camera,
                     color: AppColors.accent,
                   ),
                 ),
@@ -1338,7 +1339,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
-                    Icons.photo_library_rounded,
+                    AppIcons.image,
                     color: AppColors.accent,
                   ),
                 ),
@@ -1682,7 +1683,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.chevron_left_rounded,
+                  AppIcons.back,
                   color: AppColors.textPrimary,
                   size: 24,
                 ),
@@ -1822,7 +1823,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     border: Border.all(color: AppColors.scaffoldBg, width: 2),
                   ),
                   child: const Icon(
-                    Icons.check_rounded,
+                    AppIcons.check,
                     size: 14,
                     color: Colors.white,
                   ),
@@ -2107,7 +2108,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             ),
             child: const Center(
-              child: Icon(Icons.add_rounded, color: Colors.white, size: 24),
+              child: Icon(AppIcons.add, color: Colors.white, size: 24),
             ),
           ),
         ),
@@ -2414,7 +2415,7 @@ class _EmailPill extends StatelessWidget {
           GestureDetector(
             onTap: onRemove,
             child: const Icon(
-              Icons.close_rounded,
+              AppIcons.close,
               size: 16,
               color: Color(0xFFF5F5F5),
             ),
@@ -2458,7 +2459,7 @@ class _InvitePill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.schedule_rounded,
+              AppIcons.clock,
               size: 14,
               color: AppColors.warning,
             ),
@@ -2480,7 +2481,7 @@ class _InvitePill extends StatelessWidget {
             GestureDetector(
               onTap: onCancel,
               child: const Icon(
-                Icons.close_rounded,
+                AppIcons.close,
                 size: 16,
                 color: Color(0xFFF5F5F5),
               ),
@@ -2560,7 +2561,7 @@ class _MemberChip extends StatelessWidget {
               GestureDetector(
                 onTap: onRemove,
                 child: const Icon(
-                  Icons.close_rounded,
+                  AppIcons.close,
                   size: 16,
                   color: Color(0xFFF5F5F5),
                 ),

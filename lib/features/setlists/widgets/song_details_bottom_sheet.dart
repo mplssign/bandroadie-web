@@ -11,6 +11,7 @@ import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'masked_duration_input.dart';
 import 'tuning_picker_bottom_sheet.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // YOUTUBE LINK MODEL
@@ -730,7 +731,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   child: const Icon(
-                    Icons.close_rounded,
+                    AppIcons.close,
                     size: 24,
                     color: AppColors.textSecondary,
                   ),
@@ -819,7 +820,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                       ),
                       if (!widget.isReadOnly)
                         const Icon(
-                          Icons.edit_outlined,
+                          AppIcons.edit,
                           size: 18,
                           color: AppColors.textMuted,
                         ),
@@ -894,7 +895,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                       ),
                       if (!widget.isReadOnly)
                         const Icon(
-                          Icons.edit_outlined,
+                          AppIcons.edit,
                           size: 18,
                           color: AppColors.textMuted,
                         ),
@@ -1034,7 +1035,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                       ),
                       if (!widget.isReadOnly)
                         const Icon(
-                          Icons.chevron_right_rounded,
+                          AppIcons.forward,
                           color: AppColors.textMuted,
                           size: 18,
                         ),
@@ -1113,7 +1114,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                hasLyrics ? Icons.edit_note : Icons.add,
+                hasLyrics ? AppIcons.edit : AppIcons.add,
                 color: AppColors.accent,
                 size: 18,
               ),
@@ -1135,7 +1136,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, color: AppColors.accent, size: 18),
+              Icon(AppIcons.add, color: AppColors.accent, size: 18),
               const SizedBox(width: 4),
               Text(
                 'Add YouTube',
@@ -1243,7 +1244,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               onTap: () => _removeYouTubeLink(index),
               child: Padding(
                 padding: const EdgeInsets.all(4),
-                child: Icon(Icons.close, color: AppColors.textMuted, size: 16),
+                child: Icon(AppIcons.close, color: AppColors.textMuted, size: 16),
               ),
             ),
         ],

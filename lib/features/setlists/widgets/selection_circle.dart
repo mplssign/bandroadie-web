@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SELECTION CIRCLE
@@ -150,7 +151,7 @@ class _SelectionCircleState extends State<SelectionCircle>
                       ? Opacity(
                           opacity: _fadeAnimation.value,
                           child: Icon(
-                            Icons.check_rounded,
+                            AppIcons.check,
                             size: widget.size * 0.65,
                             color: Colors.white,
                           ),

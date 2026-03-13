@@ -15,6 +15,7 @@ interface MusicBrainzRecording {
     artist: string;
     musicbrainz_id: string;
     duration_seconds?: number;
+    release_count?: number;
 }
 
 serve(async (req) => {
@@ -60,6 +61,9 @@ serve(async (req) => {
             artist: recording['artist-credit']?.[0]?.name || 'Unknown Artist',
             musicbrainz_id: recording.id,
             duration_seconds: recording.length ? Math.round(recording.length / 1000) : undefined,
+            // release_count = how many albums/compilations this recording appears on.
+            // Originals appear on many more releases than covers (reissues, box sets, etc.)
+            release_count: recording['release-count'] as number | undefined,
         }));
 
         return new Response(

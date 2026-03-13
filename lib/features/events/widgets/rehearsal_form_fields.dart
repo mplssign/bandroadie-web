@@ -5,6 +5,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/title_case_formatter.dart';
 import '../models/event_form_data.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Rehearsal-specific form fields: location autocomplete, recurring toggle,
 /// and the animated recurring section (day selector, frequency, until date).
@@ -368,7 +369,7 @@ class RehearsalFormFields extends StatelessWidget {
             child: Row(
               children: [
                 const Icon(
-                  Icons.event_rounded,
+                  AppIcons.calendarDays,
                   size: 18,
                   color: AppColors.textSecondary,
                 ),
@@ -389,7 +390,7 @@ class RehearsalFormFields extends StatelessWidget {
                   GestureDetector(
                     onTap: onUntilDateCleared,
                     child: const Icon(
-                      Icons.close_rounded,
+                      AppIcons.close,
                       size: 18,
                       color: AppColors.textSecondary,
                     ),

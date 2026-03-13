@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // EMPTY SETLISTS STATE
@@ -89,7 +90,7 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(
-                    Icons.queue_music_rounded,
+                    AppIcons.setlists,
                     color: AppColors.textMuted,
                     size: 40,
                   ),
@@ -124,7 +125,7 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                 BrandActionButton(
                   label: '+ Create Setlist',
                   onPressed: widget.onCreateSetlist,
-                  icon: Icons.add_rounded,
+                  icon: AppIcons.add,
                 ),
               ],
             ),

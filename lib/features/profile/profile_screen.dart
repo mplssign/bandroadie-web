@@ -5,6 +5,7 @@ import 'package:bandroadie/app/models/user_profile.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // PROFILE SCREEN
@@ -108,13 +109,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         backgroundColor: AppColors.appBarBg,
         title: Text('My Profile', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: const Icon(Icons.edit_rounded, color: Colors.white),
+              icon: const Icon(AppIcons.edit, color: Colors.white),
               onPressed: () {
                 final profile = profileAsync.value;
                 if (profile != null) {
@@ -156,7 +157,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(
-                  Icons.error_outline,
+                  AppIcons.error,
                   size: 48,
                   color: AppColors.error,
                 ),

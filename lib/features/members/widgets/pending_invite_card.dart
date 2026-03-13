@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../pending_invite_vm.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // PENDING INVITE CARD
@@ -97,7 +98,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Icon(
-                    Icons.mail_outline_rounded,
+                    AppIcons.email,
                     color: Color(0xFF9CA3AF), // gray-400
                     size: 24,
                   ),
@@ -175,7 +176,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                         value: 'resend',
                         child: Row(
                           children: [
-                            Icon(Icons.refresh, color: AppColors.accent),
+                            Icon(AppIcons.refresh, color: AppColors.accent),
                             SizedBox(width: 12),
                             Text('Resend invite'),
                           ],
@@ -185,7 +186,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                         value: 'cancel',
                         child: Row(
                           children: [
-                            Icon(Icons.close, color: AppColors.error),
+                            Icon(AppIcons.close, color: AppColors.error),
                             SizedBox(width: 12),
                             Text(
                               'Cancel invite',

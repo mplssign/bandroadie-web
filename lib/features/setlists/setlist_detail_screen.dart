@@ -34,6 +34,7 @@ import 'widgets/song_lookup_overlay.dart';
 import 'widgets/special_item_card.dart';
 import 'special_item_repository.dart';
 import 'models/special_item.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SETLIST DETAIL SCREEN
@@ -1339,7 +1340,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           // + Add to Setlist button (hidden for read-only)
           if (canEdit) ...[
             _ActionButton(
-              icon: Icons.add_rounded,
+              icon: AppIcons.add,
               label: 'Add to Setlist',
               onTap: _handleOpenAddOverlay,
             ),
@@ -1372,7 +1373,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   color: AppColors.textMuted,
                 ),
                 prefixIcon: Icon(
-                  Icons.search_rounded,
+                  AppIcons.search,
                   size: 20,
                   color: AppColors.textMuted,
                 ),
@@ -1383,7 +1384,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                           _onSearchChanged('');
                         },
                         child: Icon(
-                          Icons.close_rounded,
+                          AppIcons.close,
                           size: 18,
                           color: AppColors.textMuted,
                         ),
@@ -1547,7 +1548,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               child: Row(
                 children: [
                   if (state.isCatalog) ...[
-                    const Icon(Icons.star, color: AppColors.accent, size: 18),
+                    const Icon(AppIcons.star, color: AppColors.accent, size: 18),
                     const SizedBox(width: 8),
                   ],
                   Flexible(
@@ -1562,7 +1563,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     GestureDetector(
                       onTap: _showRenameDialog,
                       child: const Icon(
-                        Icons.edit_outlined,
+                        AppIcons.edit,
                         color: AppColors.textMuted,
                         size: 16,
                       ),
@@ -1612,7 +1613,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             IconButton(
               onPressed: _handleShare,
               icon: const Icon(
-                Icons.ios_share_rounded,
+                AppIcons.share,
                 size: 20,
                 color: AppColors.accent,
               ),
@@ -1652,7 +1653,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
-              Icons.music_note_rounded,
+              AppIcons.music,
               color: AppColors.textMuted,
               size: 40,
             ),
@@ -1795,7 +1796,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                                 ),
                               ),
                               SizedBox(width: Spacing.space8),
-                              Icon(Icons.delete_outline_rounded,
+                              Icon(AppIcons.delete,
                                   color: Colors.white, size: 22),
                             ],
                           ),
@@ -1878,7 +1879,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     ),
                   ),
                   SizedBox(width: Spacing.space8),
-                  Icon(Icons.delete_outline_rounded,
+                  Icon(AppIcons.delete,
                       color: Colors.white, size: 22),
                 ],
               ),
@@ -1943,7 +1944,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     ),
                   ),
                   SizedBox(width: Spacing.space8),
-                  Icon(Icons.delete_outline_rounded,
+                  Icon(AppIcons.delete,
                       color: Colors.white, size: 22),
                 ],
               ),
@@ -2009,7 +2010,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   ),
                 ),
                 SizedBox(width: Spacing.space8),
-                Icon(Icons.delete_outline_rounded,
+                Icon(AppIcons.delete,
                     color: Colors.white, size: 22),
               ],
             ),
@@ -2529,7 +2530,7 @@ class _SortOption extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_rounded, color: AppColors.accent, size: 20),
+              Icon(AppIcons.check, color: AppColors.accent, size: 20),
           ],
         ),
       ),
@@ -2677,7 +2678,7 @@ class _DeleteSongDialog extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.warning_rounded,
+                    AppIcons.warning,
                     color: AppColors.error,
                     size: 20,
                   ),

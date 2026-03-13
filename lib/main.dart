@@ -19,6 +19,7 @@ import 'features/auth/invite_screen.dart';
 import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -222,7 +223,7 @@ class ConfigErrorApp extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.settings_outlined,
+                      AppIcons.settings,
                       size: 40,
                       color: Color(0xFFF43F5E),
                     ),

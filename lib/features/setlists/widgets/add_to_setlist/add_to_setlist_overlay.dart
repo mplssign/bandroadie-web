@@ -9,6 +9,7 @@ import 'category_screen.dart';
 import 'original_song_screen.dart';
 import 'pause_screen.dart';
 import 'set_break_screen.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // ADD TO SETLIST OVERLAY
@@ -254,7 +255,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.chevron_left_rounded,
+                    AppIcons.back,
                     color: AppColors.accent,
                     size: 22,
                   ),
@@ -293,7 +294,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
             child: Container(
               padding: const EdgeInsets.all(8),
               child: const Icon(
-                Icons.close_rounded,
+                AppIcons.close,
                 size: 24,
                 color: AppColors.textSecondary,
               ),
@@ -452,7 +453,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.chevron_left_rounded,
+                                AppIcons.back,
                                 color: AppColors.accent,
                                 size: 22,
                               ),
@@ -483,7 +484,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           child: const Icon(
-                            Icons.close_rounded,
+                            AppIcons.close,
                             size: 24,
                             color: AppColors.textSecondary,
                           ),

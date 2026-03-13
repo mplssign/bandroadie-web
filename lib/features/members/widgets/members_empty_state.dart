@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // MEMBERS EMPTY STATE
@@ -31,7 +32,7 @@ class MembersEmptyState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.people_outline_rounded,
+                AppIcons.users,
                 size: 40,
                 color: AppColors.accent,
               ),
@@ -71,7 +72,7 @@ class MembersEmptyState extends StatelessWidget {
               BrandActionButton(
                 label: '+ Invite Member',
                 onPressed: onInviteTap,
-                icon: Icons.person_add_outlined,
+                icon: AppIcons.userAdd,
               ),
           ],
         ),

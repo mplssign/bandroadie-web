@@ -8,6 +8,7 @@ import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/animated_logo.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../bands/widgets/band_avatar.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SETLISTS APP BAR
@@ -86,7 +87,7 @@ class SetlistsAppBar extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.arrow_back_ios_rounded,
+                    AppIcons.back,
                     size: 18,
                     color: AppColors.textPrimary,
                   ),
@@ -134,7 +135,7 @@ class SetlistsAppBar extends ConsumerWidget {
               height: 44,
               child: Center(
                 child: Icon(
-                  Icons.menu_rounded,
+                  AppIcons.menu,
                   color: AppColors.textPrimary,
                   size: 26,
                 ),

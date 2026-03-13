@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../models/setlist.dart';
 import 'setlist_card.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SWIPEABLE SETLIST CARD
@@ -160,7 +161,7 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
             ),
           ),
           SizedBox(width: Spacing.space8),
-          Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+          Icon(AppIcons.delete, color: Colors.white, size: 28),
         ],
       ),
     );
@@ -178,7 +179,7 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.copy_rounded, color: Colors.white, size: 28),
+          Icon(AppIcons.copy, color: Colors.white, size: 28),
           SizedBox(width: Spacing.space8),
           Text(
             'Duplicate',

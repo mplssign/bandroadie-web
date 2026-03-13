@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_gate.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -262,7 +263,7 @@ class _InviteScreenState extends State<InviteScreen> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 64),
+          const Icon(AppIcons.error, color: Colors.red, size: 64),
           const SizedBox(height: 16),
           Text(
             _error!,
@@ -290,7 +291,7 @@ class _InviteScreenState extends State<InviteScreen> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 64),
+          const Icon(AppIcons.success, color: Colors.green, size: 64),
           const SizedBox(height: 16),
           Text(
             _bandName != null
@@ -324,7 +325,7 @@ class _InviteScreenState extends State<InviteScreen> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.email_outlined, color: Color(0xFF3B82F6), size: 64),
+          const Icon(AppIcons.email, color: Color(0xFF3B82F6), size: 64),
           const SizedBox(height: 24),
           const Text(
             'Check your email!',
@@ -365,7 +366,7 @@ class _InviteScreenState extends State<InviteScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(Icons.group_add, color: Color(0xFF3B82F6), size: 64),
+        const Icon(AppIcons.userAdd, color: Color(0xFF3B82F6), size: 64),
         const SizedBox(height: 24),
         const Text(
           'You\'ve been invited to join a band!',

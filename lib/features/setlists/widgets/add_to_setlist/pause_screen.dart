@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../app/theme/design_tokens.dart';
 import '../../models/special_item.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // PAUSE SCREEN
@@ -457,7 +458,7 @@ class _PauseScreenState extends State<PauseScreen> {
                                 ),
                               ),
                               child: const Icon(
-                                Icons.close_rounded,
+                                AppIcons.close,
                                 color: AppColors.textMuted,
                                 size: 20,
                               ),
@@ -487,7 +488,7 @@ class _PauseScreenState extends State<PauseScreen> {
                           ),
                         ),
                         child:
-                            Icon(Icons.add_rounded, color: _accent, size: 18),
+                            Icon(AppIcons.add, color: _accent, size: 18),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -661,7 +662,7 @@ class _PauseScreenState extends State<PauseScreen> {
                                 ),
                               ),
                               SizedBox(width: Spacing.space8),
-                              Icon(Icons.delete_outline_rounded,
+                              Icon(AppIcons.delete,
                                   color: Colors.white, size: 22),
                             ],
                           ),
@@ -831,7 +832,7 @@ class _CheckBox extends StatelessWidget {
         ),
       ),
       child:
-          isChecked ? Icon(Icons.check_rounded, size: 16, color: accent) : null,
+          isChecked ? Icon(AppIcons.check, size: 16, color: accent) : null,
     );
   }
 }
@@ -923,7 +924,7 @@ class _SavedPauseCard extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: Icon(Icons.add_rounded, color: accent, size: 18),
+              child: Icon(AppIcons.add, color: accent, size: 18),
             ),
           ),
         ],

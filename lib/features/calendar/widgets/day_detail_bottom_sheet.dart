@@ -4,6 +4,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
 import '../models/calendar_event.dart';
 import 'calendar_event_card.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // DAY DETAIL BOTTOM SHEET
@@ -124,7 +125,7 @@ class DayDetailBottomSheet extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.close_rounded,
+                      AppIcons.close,
                       color: AppColors.textSecondary,
                       size: 18,
                     ),
@@ -199,7 +200,7 @@ class DayDetailBottomSheet extends StatelessWidget {
               child: BrandActionButton(
                 label: 'Add Event',
                 onPressed: onAddEvent,
-                icon: Icons.add_rounded,
+                icon: AppIcons.add,
                 fullWidth: true,
               ),
             ),

@@ -14,6 +14,7 @@ import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
 import '../members/members_repository.dart';
 import 'user_band_roles_repository.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // MY PROFILE SCREEN
@@ -934,7 +935,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         leading: widget.isGated
             ? null
             : IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
       ),
@@ -956,7 +957,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const Icon(AppIcons.error, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
               const Text(
                 'Error loading profile',
@@ -1723,7 +1724,7 @@ class _RolePillState extends State<_RolePill>
               children: [
                 // Show X icon for roles in delete mode
                 if (widget.showDeleteIcon) ...[
-                  Icon(Icons.close, size: 14, color: const Color(0xFFEF4444)),
+                  Icon(AppIcons.close, size: 14, color: const Color(0xFFEF4444)),
                   const SizedBox(width: 4),
                 ],
                 Text(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // ANIMATED BOTTOM NAV BAR
@@ -27,10 +28,10 @@ class NavItem {
 
 /// Default navigation items
 const List<NavItem> kDefaultNavItems = [
-  NavItem(icon: Icons.home_rounded, label: 'Dashboard'),
-  NavItem(icon: Icons.queue_music_rounded, label: 'Setlists'),
-  NavItem(icon: Icons.calendar_today_rounded, label: 'Calendar'),
-  NavItem(icon: Icons.people_rounded, label: 'Members'),
+  NavItem(icon: AppIcons.home, label: 'Dashboard'),
+  NavItem(icon: AppIcons.setlists, label: 'Setlists'),
+  NavItem(icon: AppIcons.calendar, label: 'Calendar'),
+  NavItem(icon: AppIcons.users, label: 'Members'),
 ];
 
 /// Navigation tab indices

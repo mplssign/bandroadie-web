@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CURRENCY INPUT FIELD
@@ -228,7 +229,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
                         widget.onChanged?.call();
                       },
                       child: Icon(
-                        Icons.clear,
+                        AppIcons.close,
                         size: 18,
                         color: AppColors.textMuted,
                       ),
@@ -368,7 +369,7 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
             ),
             suffixIcon: widget.controller.isNotEmpty && widget.enabled
                 ? IconButton(
-                    icon: const Icon(Icons.clear, size: 18),
+                    icon: const Icon(AppIcons.close, size: 18),
                     color: AppColors.textMuted,
                     onPressed: () {
                       widget.controller.clear();

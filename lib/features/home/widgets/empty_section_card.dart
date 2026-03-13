@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // EMPTY SECTION CARD
@@ -126,7 +127,7 @@ class _EmptySectionCardState extends State<EmptySectionCard>
             child: BrandActionButton(
               label: widget.buttonLabel,
               onPressed: widget.onButtonPressed,
-              icon: Icons.add_rounded,
+              icon: AppIcons.add,
             ),
           ),
         ],

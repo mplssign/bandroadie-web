@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../models/setlist_item.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SPECIAL ITEM CARD
@@ -36,7 +37,7 @@ class SpecialItemCard extends StatelessWidget {
 
   IconData get _icon {
     return item.isSetBreak
-        ? Icons.timer_outlined
+        ? AppIcons.timer
         : Icons.pause_circle_outline_rounded;
   }
 
@@ -100,7 +101,7 @@ class SpecialItemCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
-                    Icons.drag_indicator_rounded,
+                    AppIcons.drag,
                     color: Colors.white.withValues(alpha: 0.5),
                     size: 20,
                   ),
@@ -169,7 +170,7 @@ class SpecialItemCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
-                    Icons.drag_indicator_rounded,
+                    AppIcons.drag,
                     color: AppColors.textMuted.withValues(alpha: 0.5),
                     size: 20,
                   ),

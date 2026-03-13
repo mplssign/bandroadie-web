@@ -5,6 +5,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
 import 'custom_tuning_modal.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // TUNING PICKER BOTTOM SHEET
@@ -616,7 +617,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
             child: Container(
               padding: const EdgeInsets.all(Spacing.space4),
               child: const Icon(
-                Icons.close_rounded,
+                AppIcons.close,
                 color: AppColors.textSecondary,
                 size: 24,
               ),
@@ -673,7 +674,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_rounded, color: AppColors.accent, size: 22),
+              Icon(AppIcons.add, color: AppColors.accent, size: 22),
               const SizedBox(width: Spacing.space8),
               Text(
                 'Add Custom Tuning',
@@ -1026,7 +1027,7 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                 const Padding(
                   padding: EdgeInsets.only(left: Spacing.space12),
                   child: Icon(
-                    Icons.check_rounded,
+                    AppIcons.check,
                     color: AppColors.accent,
                     size: 20,
                   ),
@@ -1046,7 +1047,7 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
-                        Icons.delete_outline_rounded,
+                        AppIcons.delete,
                         color: Colors.red.shade400,
                         size: 18,
                       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Features grid section showcasing the 4 main features
 class FeaturesSection extends StatelessWidget {
@@ -76,7 +77,7 @@ class FeaturesSection extends StatelessWidget {
                   SizedBox(
                     width: cardWidth,
                     child: _FeatureCard(
-                      icon: Icons.headset_rounded,
+                      icon: AppIcons.headphones,
                       title: 'Rehearsals',
                       description:
                           'Schedule rehearsals, add notes, and keep everyone aligned.',
@@ -85,7 +86,7 @@ class FeaturesSection extends StatelessWidget {
                   SizedBox(
                     width: cardWidth,
                     child: _FeatureCard(
-                      icon: Icons.mic_rounded,
+                      icon: AppIcons.mic,
                       title: 'Gigs & Potential Gigs',
                       description:
                           'Track all the details of confirmed & potential shows',
@@ -94,7 +95,7 @@ class FeaturesSection extends StatelessWidget {
                   SizedBox(
                     width: cardWidth,
                     child: _FeatureCard(
-                      icon: Icons.calendar_month_rounded,
+                      icon: AppIcons.calendar,
                       title: 'Band Calendar',
                       description:
                           'A shared calendar for rehearsals, gigs, setlists, and blackout dates.',
@@ -103,7 +104,7 @@ class FeaturesSection extends StatelessWidget {
                   SizedBox(
                     width: cardWidth,
                     child: _FeatureCard(
-                      icon: Icons.queue_music_rounded,
+                      icon: AppIcons.setlists,
                       title: 'Setlists',
                       description:
                           'Build setlists with song order, tempo, key, and performance notes.',

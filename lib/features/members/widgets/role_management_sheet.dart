@@ -10,6 +10,7 @@ import '../member_vm.dart';
 import '../members_controller.dart';
 import '../members_repository.dart';
 import '../permissions/contributor_permissions.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // ROLE MANAGEMENT SHEET
@@ -233,7 +234,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.textPrimary),
+          icon: const Icon(AppIcons.close, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
@@ -374,7 +375,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
+                      Icon(AppIcons.warning,
                           color: AppColors.warning, size: 20),
                       SizedBox(width: 8),
                       Expanded(
@@ -462,7 +463,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                                   AppColors.error),
                             ),
                           )
-                        : const Icon(Icons.person_remove_outlined,
+                        : const Icon(AppIcons.userRemove,
                             color: AppColors.error, size: 20),
                     label: Text(
                       _isRemoving ? 'Removing...' : 'Remove from band',
@@ -530,7 +531,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                 color: isSelected ? AppColors.accent : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? const Icon(AppIcons.check, size: 14, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 12),

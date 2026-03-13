@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // ACTION BUTTONS ROW
@@ -28,7 +29,7 @@ class ActionButtonsRow extends StatelessWidget {
       children: [
         // + Add to Setlist button
         _ActionButton(
-          icon: Icons.add_rounded,
+          icon: AppIcons.add,
           label: 'Add to Setlist',
           onTap: onAddToSetlist,
         ),
@@ -38,7 +39,7 @@ class ActionButtonsRow extends StatelessWidget {
         // Share button (icon only)
         // Wrap share callback to provide context
         _ActionButton(
-          icon: Icons.ios_share_rounded,
+          icon: AppIcons.share,
           onTap: onShare != null ? () => onShare!(context) : null,
         ),
       ],

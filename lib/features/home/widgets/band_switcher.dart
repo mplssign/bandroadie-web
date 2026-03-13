@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../app/models/band.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../bands/widgets/band_avatar.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BAND SWITCHER DRAWER - FIGMA NODE 28-3120
@@ -349,7 +350,7 @@ class _CloseButtonState extends State<_CloseButton>
                         : Colors.transparent,
                   ),
                   child: const Icon(
-                    Icons.close_rounded,
+                    AppIcons.close,
                     color: _BandSwitcherTokens.iconDefault,
                     size: _BandSwitcherTokens.closeIconSize,
                   ),

@@ -5,6 +5,7 @@ import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'tuning_picker_bottom_sheet.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // REORDERABLE SONG CARD
@@ -184,7 +185,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                           left: SongCardLayout.dragHandleLeft,
                         ),
                         child: Icon(
-                          Icons.drag_indicator_rounded,
+                          AppIcons.drag,
                           size: 24,
                           color: AppColors.textSecondary.withValues(alpha: 0.6),
                         ),
@@ -267,7 +268,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                                 child: const Padding(
                                   padding: EdgeInsets.only(left: 8),
                                   child: Icon(
-                                    Icons.lyrics_outlined,
+                                    AppIcons.lyrics,
                                     color: AppColors.accent,
                                     size: 28,
                                   ),
@@ -353,7 +354,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                 iconSize: 20,
                 onPressed: widget.onEdit,
                 icon: Icon(
-                  Icons.edit_outlined,
+                  AppIcons.edit,
                   color: AppColors.textSecondary.withValues(alpha: 0.7),
                 ),
               ),

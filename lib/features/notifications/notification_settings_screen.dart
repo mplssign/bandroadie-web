@@ -6,6 +6,7 @@ import '../../shared/utils/snackbar_helper.dart';
 import 'notification_permission_service.dart';
 import 'notification_preferences_controller.dart';
 import 'widgets/notification_settings_modal.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NOTIFICATION SETTINGS SCREEN
@@ -27,7 +28,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         backgroundColor: AppColors.scaffoldBg,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(AppIcons.arrowLeft, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
@@ -235,7 +236,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: AppColors.accent, size: 24),
+          const Icon(AppIcons.info, color: AppColors.accent, size: 24),
           const SizedBox(width: Spacing.space12),
           Expanded(
             child: Column(
@@ -286,7 +287,7 @@ class _MasterToggleCard extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            Icons.notifications_outlined,
+            AppIcons.bell,
             color: enabled ? AppColors.accent : AppColors.textMuted,
             size: 28,
           ),
