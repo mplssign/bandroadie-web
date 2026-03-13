@@ -56,8 +56,6 @@ class BandRepository {
       }
 
       return bands;
-    } catch (e) {
-      return [];
     }
   }
 
