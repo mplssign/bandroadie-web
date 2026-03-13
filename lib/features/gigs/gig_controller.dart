@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../bands/active_band_controller.dart';
+import '../bands/band_full_state.dart';
 import 'gig_repository.dart';
 
 // ============================================================================
@@ -91,45 +92,98 @@ class GigState {
 
   @override
   int get hashCode => Object.hash(
-    isLoading,
-    error,
-    loadedBandId,
-    allGigs.length,
-    potentialGigs.length,
-    confirmedGigs.length,
-  );
+        isLoading,
+        error,
+        loadedBandId,
+        allGigs.length,
+        potentialGigs.length,
+        confirmedGigs.length,
+      );
 }
 
 /// Notifier that manages gig state
 class GigNotifier extends Notifier<GigState> {
-  /// Track the last band ID we loaded for to prevent duplicate loads
-  String? _lastLoadedBandId;
-
   @override
   GigState build() {
-    // Watch the active band — when it changes, reset and refetch
-    final bandId = ref.watch(activeBandIdProvider);
+    // Watch full band state — provides all data from a single RPC call
+    final fullStateAsync = ref.watch(bandFullStateProvider);
 
-    // If no band selected, return empty state
-    if (bandId == null) {
-      _lastLoadedBandId = null;
-      return const GigState();
-    }
-
-    // Only trigger load if band actually changed
-    if (bandId != _lastLoadedBandId) {
-      _lastLoadedBandId = bandId;
-      // Trigger async load (can't await in build, so use Future.microtask)
-      Future.microtask(() => loadGigs());
-    }
-
-    return const GigState(isLoading: true);
+    return fullStateAsync.when(
+      data: (fullState) {
+        if (fullState == null) return const GigState();
+        final bandId = fullState.band.id;
+        debugPrint(
+          '[GigController] RPC data received for band $bandId -> ${fullState.gigs.length} gigs',
+        );
+        return _categorizeGigs(fullState.gigs, bandId);
+      },
+      loading: () => const GigState(isLoading: true),
+      error: (e, stackTrace) {
+        debugPrint(
+            '═══════════════════════════════════════════════════════════');
+        debugPrint('[GigController] Error from RPC:');
+        debugPrint('  Error: $e');
+        debugPrint('  Type: ${e.runtimeType}');
+        debugPrint('  Stack: $stackTrace');
+        debugPrint(
+            '═══════════════════════════════════════════════════════════');
+        return GigState(error: e.toString());
+      },
+    );
   }
 
   GigRepository get _repository => ref.read(gigRepositoryProvider);
   String? get _bandId => ref.read(activeBandIdProvider);
 
-  /// Load all gig data for the active band
+  /// Categorize a flat list of gigs into upcoming, potential, confirmed
+  /// using the same client-side time filtering as the repository methods.
+  GigState _categorizeGigs(List<Gig> allGigs, String bandId) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final nowUtc = now.toUtc();
+
+    // Upcoming: date >= today AND end time in the future
+    final upcomingGigs = allGigs.where((gig) {
+      if (gig.date.isBefore(today)) return false;
+      return _isEndTimeInFuture(gig, nowUtc);
+    }).toList();
+
+    // Potential: upcoming AND is_potential
+    final potentialGigs = upcomingGigs.where((gig) => gig.isPotential).toList();
+
+    // Confirmed: upcoming AND NOT is_potential
+    final confirmedGigs =
+        upcomingGigs.where((gig) => !gig.isPotential).toList();
+
+    return GigState(
+      allGigs: allGigs,
+      upcomingGigs: upcomingGigs,
+      potentialGigs: potentialGigs,
+      confirmedGigs: confirmedGigs,
+      isLoading: false,
+      loadedBandId: bandId,
+    );
+  }
+
+  /// Check if a gig's end time is still in the future
+  bool _isEndTimeInFuture(Gig gig, DateTime nowUtc) {
+    try {
+      final endDateTime = DateTime(
+        gig.date.year,
+        gig.date.month,
+        gig.date.day,
+        int.parse(gig.endTime.split(':')[0]),
+        int.parse(gig.endTime.split(':')[1]),
+      ).toUtc();
+      return endDateTime.isAfter(nowUtc);
+    } catch (e) {
+      // If parsing fails, include the gig to be safe
+      return true;
+    }
+  }
+
+  /// Targeted refresh: fetches gigs individually (for after mutations).
+  /// Does NOT use the RPC — only fetches gigs for speed.
   Future<void> loadGigs() async {
     final bandId = _bandId;
     if (bandId == null) {
@@ -144,26 +198,11 @@ class GigNotifier extends Notifier<GigState> {
     );
 
     try {
-      // Fetch all gigs in parallel
-      final results = await Future.wait([
-        _repository.fetchGigsForBand(bandId),
-        _repository.fetchUpcomingGigs(bandId),
-        _repository.fetchPotentialGigs(bandId),
-        _repository.fetchConfirmedGigs(bandId),
-      ]);
-
-      state = state.copyWith(
-        allGigs: results[0],
-        upcomingGigs: results[1],
-        potentialGigs: results[2],
-        confirmedGigs: results[3],
-        isLoading: false,
-        clearError: true,
-        loadedBandId: bandId,
-      );
+      final allGigs = await _repository.fetchGigsForBand(bandId);
+      state = _categorizeGigs(allGigs, bandId);
 
       debugPrint(
-        '[GigController] load for band $bandId -> ${results[0].length} gigs, error=null',
+        '[GigController] refresh for band $bandId -> ${allGigs.length} gigs, error=null',
       );
     } on NoBandSelectedError {
       // This is expected when no band is selected - not an error state
@@ -180,7 +219,7 @@ class GigNotifier extends Notifier<GigState> {
 
       state = state.copyWith(isLoading: false, error: e.toString());
       debugPrint(
-        '[GigController] load for band $bandId -> 0 gigs, error=${e.toString()}',
+        '[GigController] refresh for band $bandId -> 0 gigs, error=${e.toString()}',
       );
     }
   }

@@ -9,6 +9,7 @@ import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import '../bands/active_band_controller.dart';
+import '../bands/band_full_state.dart';
 import '../bands/create_band_screen.dart';
 import '../bands/edit_band_screen.dart';
 import '../calendar/calendar_controller.dart';
@@ -651,8 +652,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               color: AppColors.accent,
               backgroundColor: AppColors.cardBg,
               onRefresh: () async {
-                await ref.read(gigProvider.notifier).refresh();
-                await ref.read(rehearsalProvider.notifier).refresh();
+                ref.invalidate(bandFullStateProvider);
+                await ref.read(bandFullStateProvider.future);
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
