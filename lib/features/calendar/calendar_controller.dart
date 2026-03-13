@@ -170,25 +170,23 @@ class CalendarState {
 
 class CalendarNotifier extends Notifier<CalendarState> {
   static final Map<String, MonthData> _cache = {};
-  String? _lastLoadedBandId;
 
   @override
   CalendarState build() {
     final bandId = ref.watch(activeBandIdProvider);
 
     if (bandId == null || bandId.isEmpty) {
-      _lastLoadedBandId = null;
-
       return CalendarState(
         selectedMonth: DateTime.now(),
         error: 'No band selected',
       );
     }
 
-    if (bandId != _lastLoadedBandId) {
-      _lastLoadedBandId = bandId;
-      Future.microtask(loadEvents);
-    }
+    // Start async load directly — replaces the old _lastLoadedBandId +
+    // Future.microtask() pattern that caused race conditions under rapid
+    // band switching. The band-id guard inside _loadEventsForBand
+    // discards stale results if the active band changes mid-flight.
+    _loadEventsForBand(bandId);
 
     return CalendarState(
       selectedMonth: DateTime.now(),
@@ -205,19 +203,10 @@ class CalendarNotifier extends Notifier<CalendarState> {
   String _cacheKey(String bandId, int year, int month) =>
       '$bandId-$year-$month';
 
-  Future<void> loadEvents({bool forceRefresh = false}) async {
-    final bandId = _bandId;
-
-    if (bandId == null || bandId.isEmpty) {
-      debugPrint('[CalendarController] loadEvents skipped - no bandId');
-      return;
-    }
-
-    state = state.copyWith(
-      isLoading: true,
-      clearError: true,
-    );
-
+  /// Core async loader with band-id race guard.
+  /// Fetches gigs, rehearsals, and block_outs, then builds calendar state.
+  /// If the active band changes during any await, results are discarded.
+  Future<void> _loadEventsForBand(String bandId) async {
     try {
       final results = await Future.wait([
         _gigRepository.fetchGigsForBand(bandId),
@@ -225,11 +214,17 @@ class CalendarNotifier extends Notifier<CalendarState> {
         _blockOutRepository.fetchBlockOutsForBand(bandId),
       ]);
 
+      // Race guard: discard if the active band changed while loading
+      if (ref.read(activeBandIdProvider) != bandId) return;
+
       final gigs = results[0] as List<Gig>;
       final rehearsals = results[1] as List<Rehearsal>;
       final blockOuts = results[2] as List<BlockOut>;
 
       final userNames = await _fetchUserNames(blockOuts);
+
+      // Race guard after second async boundary
+      if (ref.read(activeBandIdProvider) != bandId) return;
 
       final blockOutSpans = _groupBlockOutsIntoSpans(
         blockOuts,
@@ -273,6 +268,9 @@ class CalendarNotifier extends Notifier<CalendarState> {
         );
       }
     } catch (e) {
+      // Race guard: don't update state for a stale band
+      if (ref.read(activeBandIdProvider) != bandId) return;
+
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load events: $e',
@@ -282,6 +280,23 @@ class CalendarNotifier extends Notifier<CalendarState> {
         debugPrint('[CalendarController] Error loading events: $e');
       }
     }
+  }
+
+  /// Public API for pull-to-refresh and retry.
+  Future<void> loadEvents({bool forceRefresh = false}) async {
+    final bandId = _bandId;
+
+    if (bandId == null || bandId.isEmpty) {
+      debugPrint('[CalendarController] loadEvents skipped - no bandId');
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+    );
+
+    await _loadEventsForBand(bandId);
   }
 
   Future<Map<String, String>> _fetchUserNames(List<BlockOut> blockOuts) async {
