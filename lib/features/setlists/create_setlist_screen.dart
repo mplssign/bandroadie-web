@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CREATE SETLIST SCREEN
@@ -19,7 +20,7 @@ class CreateSetlistScreen extends StatelessWidget {
         backgroundColor: AppColors.appBarBg,
         title: Text('New Setlist', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
+          icon: const Icon(AppIcons.close, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -30,7 +31,7 @@ class CreateSetlistScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.queue_music_rounded,
+                AppIcons.setlists,
                 color: AppColors.textMuted,
                 size: 64,
               ),

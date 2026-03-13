@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BACK ONLY APP BAR
@@ -60,7 +61,7 @@ class BackOnlyAppBar extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.arrow_back_ios_rounded,
+                  AppIcons.back,
                   size: 18,
                   color: AppColors.textPrimary,
                 ),

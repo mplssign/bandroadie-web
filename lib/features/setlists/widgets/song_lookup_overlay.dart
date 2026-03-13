@@ -9,6 +9,7 @@ import '../../../shared/utils/snackbar_helper.dart';
 import '../../songs/external_song_lookup_service.dart';
 import '../models/song.dart';
 import '../setlist_repository.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SONG LOOKUP OVERLAY
@@ -360,7 +361,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.chevron_left_rounded,
+                    AppIcons.back,
                     color: AppColors.accent,
                     size: 22,
                   ),
@@ -395,7 +396,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             child: Container(
               padding: const EdgeInsets.all(8),
               child: const Icon(
-                Icons.close_rounded,
+                AppIcons.close,
                 size: 24,
                 color: AppColors.textSecondary,
               ),
@@ -437,7 +438,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
               color: AppColors.textMuted,
             ),
             prefixIcon: const Icon(
-              Icons.search_rounded,
+              AppIcons.search,
               size: 22,
               color: AppColors.textMuted,
             ),
@@ -449,7 +450,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                       setState(() {});
                     },
                     child: const Icon(
-                      Icons.close_rounded,
+                      AppIcons.close,
                       size: 20,
                       color: AppColors.textMuted,
                     ),
@@ -553,7 +554,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(
-            Icons.error_outline_rounded,
+            AppIcons.error,
             size: 48,
             color: AppColors.textMuted,
           ),
@@ -593,7 +594,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.search_rounded,
+              AppIcons.search,
               size: 56,
               color: AppColors.textMuted.withValues(alpha: 0.5),
             ),
@@ -617,7 +618,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.music_off_rounded,
+              AppIcons.musicOff,
               size: 56,
               color: AppColors.textMuted.withValues(alpha: 0.5),
             ),
@@ -643,7 +644,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       children: [
         // Catalog section
         if (hasCatalogResults) ...[
-          _buildSectionHeader('In Catalog', Icons.library_music_rounded),
+          _buildSectionHeader('In Catalog', AppIcons.library),
           ...(_filteredSongs.map(
             (song) => _SongResultRow(
               song: song,
@@ -693,7 +694,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, color: AppColors.error, size: 16),
+                Icon(AppIcons.error, color: AppColors.error, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   'External search failed',
@@ -917,7 +918,7 @@ class _SongResultRowState extends State<_SongResultRow>
         borderRadius: BorderRadius.circular(6),
       ),
       child: const Icon(
-        Icons.music_note_rounded,
+        AppIcons.music,
         size: 24,
         color: AppColors.accent,
       ),
@@ -1107,7 +1108,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
         borderRadius: BorderRadius.circular(6),
       ),
       child: const Icon(
-        Icons.music_note_rounded,
+        AppIcons.music,
         size: 24,
         color: AppColors.textMuted,
       ),

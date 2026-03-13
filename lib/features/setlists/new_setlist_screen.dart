@@ -25,6 +25,7 @@ import 'widgets/add_to_setlist/bulk_entry_screen.dart';
 import 'widgets/back_only_app_bar.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/song_lookup_overlay.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NEW SETLIST SCREEN
@@ -713,7 +714,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         appBar: AppBar(
           backgroundColor: AppColors.appBarBg,
           leading: IconButton(
-            icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
+            icon: const Icon(AppIcons.close, color: AppColors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -724,7 +725,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(
-                  Icons.error_outline_rounded,
+                  AppIcons.error,
                   color: AppColors.error,
                   size: 64,
                 ),
@@ -884,7 +885,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                           ),
                         ),
                         SizedBox(width: Spacing.space8),
-                        Icon(Icons.delete_outline_rounded,
+                        Icon(AppIcons.delete,
                             color: Colors.white, size: 22),
                       ],
                     ),
@@ -974,7 +975,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
-              Icons.edit_rounded,
+              AppIcons.edit,
               size: 18,
               color: AppColors.textSecondary,
             ),
@@ -1030,7 +1031,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     ),
                   )
                 : const Icon(
-                    Icons.check_rounded,
+                    AppIcons.check,
                     size: 18,
                     color: AppColors.textPrimary,
                   ),
@@ -1097,7 +1098,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(
-                    Icons.music_note_rounded,
+                    AppIcons.music,
                     color: AppColors.textMuted,
                     size: 40,
                   ),
@@ -1135,7 +1136,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.add_rounded,
+                          AppIcons.add,
                           color: AppColors.accent,
                           size: 20,
                         ),
@@ -1209,7 +1210,7 @@ class _DeleteSongDialog extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.warning_rounded,
+                    AppIcons.warning,
                     color: AppColors.error,
                     size: 20,
                   ),

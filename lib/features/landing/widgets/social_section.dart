@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Social media section with Instagram and Facebook tiles
 class SocialSection extends StatelessWidget {
@@ -204,7 +205,7 @@ class _SocialTileState extends State<_SocialTile> {
 
               // Arrow
               Icon(
-                Icons.arrow_forward,
+                AppIcons.arrowRight,
                 color: _isHovered ? Colors.white : AppColors.textSecondary,
                 size: 24,
               ),

@@ -9,6 +9,7 @@ import '../models/bulk_song_row.dart';
 import '../services/bulk_song_parser.dart';
 import '../setlist_repository.dart';
 import '../tuning/tuning_helpers.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BULK ADD SONGS OVERLAY
@@ -287,7 +288,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             child: Container(
               padding: const EdgeInsets.all(8),
               child: const Icon(
-                Icons.arrow_back_ios_rounded,
+                AppIcons.back,
                 size: 20,
                 color: AppColors.textPrimary,
               ),
@@ -310,7 +311,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             child: Container(
               padding: const EdgeInsets.all(8),
               child: const Icon(
-                Icons.close_rounded,
+                AppIcons.close,
                 size: 24,
                 color: AppColors.textSecondary,
               ),
@@ -437,7 +438,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                 child: Row(
                   children: [
                     const Icon(
-                      Icons.error_outline,
+                      AppIcons.error,
                       color: AppColors.error,
                       size: 20,
                     ),
@@ -555,7 +556,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
       children: [
         // Status icon
         Icon(
-          hasErrors ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+          hasErrors ? AppIcons.warning : Icons.check_circle_outline,
           size: 18,
           color: hasErrors ? AppColors.warning : AppColors.success,
         ),

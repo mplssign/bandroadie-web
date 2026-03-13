@@ -5,6 +5,7 @@ import '../../../app/models/rehearsal.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/utils/time_formatter.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // REHEARSAL CARD
@@ -188,7 +189,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                     child: Row(
                       children: [
                         Icon(
-                          Icons.location_on,
+                          AppIcons.location,
                           size: 14,
                           color: Colors.white.withValues(alpha: 0.8),
                         ),

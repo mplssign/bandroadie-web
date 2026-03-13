@@ -58,12 +58,24 @@ class CalendarState {
     this.error,
   });
 
-  /// Events for the selected month only, sorted by date then start time
+  /// Events for the selected month only, sorted by date then start time.
+  /// Multi-day block outs that span across months appear in each month they touch.
   List<CalendarEvent> get eventsForMonth {
+    final year = selectedMonth.year;
+    final month = selectedMonth.month;
     return allEvents.where((event) {
-      return event.date.year == selectedMonth.year &&
-          event.date.month == selectedMonth.month;
-    }).toList()..sort(_compareByDateAndTime);
+      // Standard check: event starts in this month
+      if (event.date.year == year && event.date.month == month) return true;
+      // Multi-day block out: include if span overlaps this month
+      final endDate = event.endDate;
+      if (endDate != null) {
+        final monthStart = DateTime(year, month, 1);
+        final monthEnd = DateTime(year, month + 1, 0); // last day of month
+        return !event.date.isAfter(monthEnd) && !endDate.isBefore(monthStart);
+      }
+      return false;
+    }).toList()
+      ..sort(_compareByDateAndTime);
   }
 
   /// Compare two events by date, then by start time
@@ -98,10 +110,26 @@ class CalendarState {
     return map;
   }
 
-  /// Get events for a specific date
+  /// Get events for a specific date, sorted by start time (earliest first).
+  /// Includes multi-day block outs whose span covers this date.
   List<CalendarEvent> eventsForDate(DateTime date) {
     final dateKey = DateTime(date.year, date.month, date.day);
-    return eventsByDate[dateKey] ?? [];
+    final exact = eventsByDate[dateKey] ?? [];
+
+    // Also include multi-day block outs that span across this date
+    // but whose start date is a different day
+    final spanning = allEvents.where((event) {
+      final endDate = event.endDate;
+      if (endDate == null) return false; // not a multi-day block out
+      if (event.date.year == dateKey.year &&
+          event.date.month == dateKey.month &&
+          event.date.day == dateKey.day) return false; // already in exact
+      return !event.date.isAfter(dateKey) && !endDate.isBefore(dateKey);
+    });
+
+    final result = spanning.isEmpty ? List.of(exact) : [...exact, ...spanning];
+    result.sort(_compareByDateAndTime);
+    return result;
   }
 
   /// Check if a date has events
@@ -422,9 +450,8 @@ class CalendarNotifier extends Notifier<CalendarState> {
   /// Returns a Future so callers can await the refresh completion.
   Future<void> invalidateAndRefresh({required String bandId}) async {
     // Clear cache entries for this band only
-    final keysToRemove = _cache.keys
-        .where((key) => key.startsWith('$bandId-'))
-        .toList();
+    final keysToRemove =
+        _cache.keys.where((key) => key.startsWith('$bandId-')).toList();
     for (final key in keysToRemove) {
       _cache.remove(key);
     }

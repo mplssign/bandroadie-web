@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/design_tokens.dart';
 import '../../shared/widgets/animated_logo.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Privacy Policy screen - accessible without authentication at /privacy
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -17,7 +18,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         leading: Navigator.canPop(context)
             ? IconButton(
                 icon: const Icon(
-                  Icons.arrow_back,
+                  AppIcons.arrowLeft,
                   color: AppColors.textPrimary,
                 ),
                 onPressed: () => Navigator.pop(context),

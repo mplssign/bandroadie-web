@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Value proposition section - Why BandRoadie
 class ValueSection extends StatelessWidget {
@@ -64,13 +65,13 @@ class ValueSection extends StatelessWidget {
                 isMobile: isMobile,
               ),
               _ValuePoint(
-                icon: Icons.music_note_rounded,
+                icon: AppIcons.music,
                 title: 'Built for Real Bands',
                 description: 'Designed by musicians who know what bands need.',
                 isMobile: isMobile,
               ),
               _ValuePoint(
-                icon: Icons.phone_iphone_rounded,
+                icon: AppIcons.smartphone,
                 title: 'Mobile-First',
                 description:
                     'Access everything from your phone, tablet, or computer.',

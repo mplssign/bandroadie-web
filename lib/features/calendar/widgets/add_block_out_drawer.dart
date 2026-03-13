@@ -10,6 +10,7 @@ import '../../../shared/utils/snackbar_helper.dart';
 import '../../members/permissions/band_permissions_provider.dart';
 import '../block_out_repository.dart';
 import '../models/calendar_event.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BLOCK OUT DRAWER
@@ -458,7 +459,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
-                          Icons.close_rounded,
+                          AppIcons.close,
                           size: 18,
                           color: AppColors.textSecondary,
                         ),
@@ -488,7 +489,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.info_outline_rounded,
+                          AppIcons.info,
                           color: AppColors.accent,
                           size: 18,
                         ),
@@ -610,7 +611,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
       child: Row(
         children: [
           const Icon(
-            Icons.error_outline_rounded,
+            AppIcons.error,
             color: AppColors.error,
             size: 20,
           ),
@@ -682,7 +683,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                 ),
                 if (!_isReadOnly)
                   Icon(
-                    Icons.calendar_today_rounded,
+                    AppIcons.calendar,
                     size: 18,
                     color: AppColors.textSecondary.withValues(alpha: 0.7),
                   ),

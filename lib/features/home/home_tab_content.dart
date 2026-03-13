@@ -31,6 +31,7 @@ import 'widgets/potential_gig_card.dart';
 import 'widgets/quick_actions_row.dart';
 import 'widgets/rehearsal_card.dart';
 import 'widgets/section_header.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // HOME TAB CONTENT
@@ -530,7 +531,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                   ],
                 ),
                 child: const Icon(
-                  Icons.music_off_rounded,
+                  AppIcons.musicOff,
                   size: 40,
                   color: AppColors.accent,
                 ),
@@ -550,7 +551,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               const SizedBox(height: Spacing.space40),
               BrandActionButton(
                 label: 'Try Again',
-                icon: Icons.refresh_rounded,
+                icon: AppIcons.refresh,
                 onPressed: _retry,
               ),
             ],

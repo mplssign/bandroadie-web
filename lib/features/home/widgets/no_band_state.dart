@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NO BAND STATE
@@ -144,7 +145,7 @@ class _NoBandStateState extends State<NoBandState>
                         ],
                       ),
                       child: const Icon(
-                        Icons.music_note_rounded,
+                        AppIcons.music,
                         size: 56,
                         color: AppColors.accent,
                       ),
@@ -209,7 +210,7 @@ class _NoBandStateState extends State<NoBandState>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.add_rounded, size: 20),
+                          const Icon(AppIcons.add, size: 20),
                           const SizedBox(width: Spacing.space8),
                           Text(
                             'Create a Band',

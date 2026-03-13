@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NOTIFICATION SETTINGS DEEP LINK MODAL
@@ -48,7 +49,7 @@ class NotificationSettingsModal extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.notifications_off_rounded,
+                AppIcons.bellOff,
                 color: AppColors.textMuted,
                 size: 32,
               ),

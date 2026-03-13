@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../push_notification_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NOTIFICATION PERMISSION PROMPT
@@ -49,7 +50,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
           Row(
             children: [
               Icon(
-                Icons.notifications_active_outlined,
+                AppIcons.bellRing,
                 color: AppColors.accent,
                 size: 24,
               ),
@@ -63,7 +64,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 20),
+                icon: const Icon(AppIcons.close, size: 20),
                 color: AppColors.textSecondary,
                 onPressed: () {
                   ref
@@ -207,11 +208,11 @@ class _EnableNotificationsButtonState
 
     if (_hasPermission) {
       return ListTile(
-        leading: Icon(Icons.check_circle, color: AppColors.accent),
+        leading: Icon(AppIcons.success, color: AppColors.accent),
         title: const Text('Push Notifications'),
         subtitle: const Text('Enabled'),
         trailing: Icon(
-          Icons.arrow_forward_ios,
+          AppIcons.forward,
           size: 16,
           color: AppColors.textSecondary,
         ),
@@ -223,7 +224,7 @@ class _EnableNotificationsButtonState
 
     return ListTile(
       leading: Icon(
-        Icons.notifications_off_outlined,
+        AppIcons.bellOff,
         color: AppColors.textSecondary,
       ),
       title: const Text('Enable Push Notifications'),

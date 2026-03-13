@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../models/lyrics_data.dart';
 import '../services/lyrics_view_settings_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // LYRICS VIEW SCREEN
@@ -271,7 +272,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
           children: [
             IconButton(
               icon: const Icon(
-                Icons.arrow_back_ios_new,
+                AppIcons.back,
                 color: AppColors.textPrimary,
                 size: 20,
               ),
@@ -326,12 +327,12 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _miniSpeedButton(
-                icon: Icons.add,
+                icon: AppIcons.add,
                 onTap: () => _changeScrollSpeed(10),
               ),
               const SizedBox(height: 8),
               _miniSpeedButton(
-                icon: Icons.remove,
+                icon: AppIcons.remove,
                 onTap: () => _changeScrollSpeed(-10),
               ),
               const SizedBox(height: 12),
@@ -366,7 +367,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
                 ],
               ),
               child: Icon(
-                _isAutoScrolling ? Icons.pause : Icons.play_arrow,
+                _isAutoScrolling ? AppIcons.pause : AppIcons.play,
                 color: Colors.white,
                 size: 28,
               ),

@@ -9,6 +9,7 @@ import 'widgets/value_section.dart';
 import 'widgets/screenshots_section.dart';
 import 'widgets/social_section.dart';
 import 'widgets/footer_section.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Landing page for BandRoadie - Zenity-inspired design
 ///
@@ -119,7 +120,7 @@ class _LandingPageState extends State<LandingPage> {
                       onPressed: _scrollToTop,
                       backgroundColor: AppColors.accent,
                       child: const Icon(
-                        Icons.arrow_upward,
+                        AppIcons.arrowUp,
                         color: Colors.black,
                       ),
                     ),

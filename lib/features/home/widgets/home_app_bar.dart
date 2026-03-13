@@ -8,6 +8,7 @@ import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/animated_logo.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../bands/widgets/band_avatar.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // HOME APP BAR
@@ -76,7 +77,7 @@ class HomeAppBar extends ConsumerWidget {
               height: 44,
               child: Center(
                 child: Icon(
-                  Icons.menu_rounded,
+                  AppIcons.menu,
                   color: AppColors.textPrimary,
                   size: 26,
                 ),

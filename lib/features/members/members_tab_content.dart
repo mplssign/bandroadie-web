@@ -15,6 +15,7 @@ import 'widgets/member_card.dart';
 import 'widgets/member_card_skeleton.dart';
 import 'widgets/members_empty_state.dart';
 import 'widgets/role_management_sheet.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // MEMBERS TAB CONTENT
@@ -343,7 +344,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(
-              Icons.error_outline_rounded,
+              AppIcons.error,
               size: 48,
               color: AppColors.error,
             ),
@@ -371,7 +372,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
                 final bandId = ref.read(activeBandProvider).activeBandId;
                 ref.read(membersProvider.notifier).loadMembers(bandId);
               },
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(AppIcons.refresh),
               label: const Text('Retry'),
               style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             ),

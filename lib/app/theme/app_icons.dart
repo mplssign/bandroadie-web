@@ -33,6 +33,8 @@ class AppIcons {
   static const IconData remove = LucideIcons.minus;
   static const IconData close = LucideIcons.x;
 
+  static const IconData check = LucideIcons.check;
+
   static const IconData edit = LucideIcons.pencil;
   static const IconData delete = LucideIcons.trash2;
 
@@ -64,7 +66,7 @@ class AppIcons {
   // Lucide doesn't have musicOff
   static const IconData musicOff = LucideIcons.volumeOff;
 
-  static const IconData lyrics = LucideIcons.scrollText;
+  static const IconData lyrics = LucideIcons.micVocal;
 
   static const IconData play = LucideIcons.play;
   static const IconData pause = LucideIcons.pause;

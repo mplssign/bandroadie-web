@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/design_tokens.dart';
 import 'add_to_setlist_overlay.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CATEGORY SCREEN
@@ -86,7 +87,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: Spacing.space16),
                     child: _CategoryButton(
-                      icon: Icons.search_rounded,
+                      icon: AppIcons.search,
                       label: 'Cover Song',
                       subtitle: 'Search by song or artist',
                       onTap: () =>
@@ -101,7 +102,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: Spacing.space16),
                     child: _CategoryButton(
-                      icon: Icons.edit_rounded,
+                      icon: AppIcons.edit,
                       label: 'Original Song',
                       subtitle: 'Add originals or hard to find covers',
                       onTap: () => widget.onCategorySelected(
@@ -169,7 +170,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: Spacing.space16),
                       child: _CategoryButton(
-                        icon: Icons.timer_outlined,
+                        icon: AppIcons.timer,
                         label: 'Set Break',
                         subtitle: 'Break between sets',
                         accentColor: const Color(0xFFBE123C),
@@ -350,7 +351,7 @@ class _CategoryButtonState extends State<_CategoryButton>
 
               // Chevron
               const Icon(
-                Icons.chevron_right_rounded,
+                AppIcons.forward,
                 size: 24,
                 color: AppColors.textMuted,
               ),

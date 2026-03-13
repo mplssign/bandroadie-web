@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Community/Support section with Reddit link
 class SupportSection extends StatefulWidget {
@@ -101,7 +102,7 @@ class _SupportSectionState extends State<SupportSection> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
-                      Icons.forum_rounded,
+                      AppIcons.message,
                       color: Colors.white,
                       size: 20,
                     ),

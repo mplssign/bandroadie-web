@@ -6,6 +6,7 @@ import '../../../app/utils/time_formatter.dart';
 import '../calendar_controller.dart';
 import '../calendar_markers.dart';
 import '../models/calendar_event.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CALENDAR GRID
@@ -275,7 +276,7 @@ class _MonthHeader extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: Icon(
-              Icons.chevron_left_rounded,
+              AppIcons.back,
               color: AppColors.textPrimary,
               size: 24,
             ),
@@ -295,7 +296,7 @@ class _MonthHeader extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: Icon(
-              Icons.chevron_right_rounded,
+              AppIcons.forward,
               color: AppColors.textPrimary,
               size: 24,
             ),

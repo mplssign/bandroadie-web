@@ -16,6 +16,7 @@ import '../profile/profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import 'overlay_state.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NO BAND SHELL
@@ -219,7 +220,7 @@ class _NoBandContentState extends State<_NoBandContent>
                   // Menu button
                   IconButton(
                     icon: const Icon(
-                      Icons.menu_rounded,
+                      AppIcons.menu,
                       color: Colors.white,
                       size: 28,
                     ),
@@ -229,7 +230,7 @@ class _NoBandContentState extends State<_NoBandContent>
                   if (widget.onOpenBandSwitcher != null)
                     IconButton(
                       icon: const Icon(
-                        Icons.groups_rounded,
+                        AppIcons.users,
                         color: Colors.white,
                         size: 28,
                       ),

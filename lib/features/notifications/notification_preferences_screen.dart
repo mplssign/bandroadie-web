@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/design_tokens.dart';
 import 'notification_controller.dart';
 import 'push_notification_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NOTIFICATION PREFERENCES SCREEN
@@ -61,7 +62,7 @@ class _NotificationPreferencesScreenState
           style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+          icon: const Icon(AppIcons.back, color: AppColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -194,7 +195,7 @@ class _NotificationPreferencesScreenState
           Row(
             children: [
               const Icon(
-                Icons.notifications_off_rounded,
+                AppIcons.bellOff,
                 color: AppColors.accent,
                 size: 24,
               ),

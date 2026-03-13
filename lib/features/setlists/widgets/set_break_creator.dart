@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SET BREAK CREATOR
@@ -133,7 +134,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.timer_outlined, color: _accent, size: 22),
+                    Icon(AppIcons.timer, color: _accent, size: 22),
                     const SizedBox(width: 10),
                     Text(
                       'Set Break',
@@ -144,7 +145,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: Icon(
-                        Icons.close_rounded,
+                        AppIcons.close,
                         color: AppColors.textMuted,
                         size: 24,
                       ),
@@ -175,7 +176,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                 children: [
                   // Minus button
                   _StepperButton(
-                    icon: Icons.remove_rounded,
+                    icon: AppIcons.remove,
                     enabled: _minutes > _minMinutes,
                     accent: _accent,
                     onTap: _decrement,
@@ -211,7 +212,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
 
                   // Plus button
                   _StepperButton(
-                    icon: Icons.add_rounded,
+                    icon: AppIcons.add,
                     enabled: _minutes < _maxMinutes,
                     accent: _accent,
                     onTap: _increment,

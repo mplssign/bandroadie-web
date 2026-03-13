@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../shell/app_shell.dart';
 import '../shell/no_band_shell.dart';
 import 'auth_state_provider.dart';
 import 'login_screen.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // Re-export supabase client for backward compatibility
 export '../../app/services/supabase_client.dart';
@@ -103,8 +105,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ref.read(authStateProvider.notifier).refreshSession();
-          // Clear app icon badge when app opens (native only)
-          if (!kIsWeb) {
+          // Clear app icon badge when app opens (iOS/Android only)
+          if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
             ref.read(pushNotificationServiceProvider).clearBadge();
           }
         }
@@ -140,8 +142,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
                 false; // Allow invite check for new session
           });
           _checkProfileComplete();
-          // Register FCM token for push notifications (native only)
-          if (!kIsWeb) {
+          // Register FCM token for push notifications (iOS/Android only)
+          if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
             _registerPushToken();
           }
         } else {
@@ -158,8 +160,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // If we have a session, check profile completeness
     if (authState.isAuthenticated) {
       _checkProfileComplete();
-      // Also register push token for existing sessions (native only)
-      if (!kIsWeb) {
+      // Also register push token for existing sessions (iOS/Android only)
+      if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
         _registerPushToken();
       }
     }
@@ -227,8 +229,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
       final firstName = response?['first_name'] as String?;
       final lastName = response?['last_name'] as String?;
 
-      final isComplete =
-          firstName != null &&
+      final isComplete = firstName != null &&
           firstName.trim().isNotEmpty &&
           lastName != null &&
           lastName.trim().isNotEmpty;
@@ -501,7 +502,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white),
+                    const Icon(AppIcons.success, color: Colors.white),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -514,7 +515,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: const Icon(AppIcons.close, color: Colors.white),
                       onPressed: () {
                         setState(() {
                           _pendingInviteMessage = null;

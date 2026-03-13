@@ -19,6 +19,7 @@ import 'setlist_detail_screen.dart';
 import 'setlists_screen.dart' show setlistsProvider;
 import 'widgets/setlists_app_bar.dart';
 import 'widgets/swipeable_setlist_card.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SETLISTS TAB CONTENT
@@ -368,7 +369,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                     ],
                   ),
                   child: const Icon(
-                    Icons.music_off_rounded,
+                    AppIcons.musicOff,
                     size: 40,
                     color: AppColors.accent,
                   ),
@@ -390,7 +391,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                 const SizedBox(height: Spacing.space40),
                 BrandActionButton(
                   label: 'Try Again',
-                  icon: Icons.refresh_rounded,
+                  icon: AppIcons.refresh,
                   onPressed: () =>
                       ref.read(setlistsProvider.notifier).refresh(),
                 ),
@@ -451,7 +452,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                             if (canEdit)
                               TextButton.icon(
                                 onPressed: _navigateToCreateSetlist,
-                                icon: const Icon(Icons.add_rounded, size: 18),
+                                icon: const Icon(AppIcons.add, size: 18),
                                 label: const Text('New'),
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.accent,

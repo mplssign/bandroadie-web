@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import 'bug_report_email_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BUG REPORT SCREEN
@@ -116,7 +117,7 @@ $_fallbackReportText
         backgroundColor: AppColors.appBarBg,
         title: Text('Report Bugs', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -150,7 +151,7 @@ $_fallbackReportText
                   Expanded(
                     child: _TypeChip(
                       label: 'Bug Report',
-                      icon: Icons.bug_report_outlined,
+                      icon: AppIcons.bug,
                       isSelected: _selectedType == _FeedbackType.bug,
                       onTap: () =>
                           setState(() => _selectedType = _FeedbackType.bug),
@@ -317,7 +318,7 @@ class _FallbackCard extends StatelessWidget {
           Row(
             children: [
               const Icon(
-                Icons.warning_amber_rounded,
+                AppIcons.warning,
                 color: AppColors.warning,
                 size: 20,
               ),
@@ -334,7 +335,7 @@ class _FallbackCard extends StatelessWidget {
               GestureDetector(
                 onTap: onDismiss,
                 child: const Icon(
-                  Icons.close_rounded,
+                  AppIcons.close,
                   color: AppColors.textSecondary,
                   size: 18,
                 ),
@@ -353,7 +354,7 @@ class _FallbackCard extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: onCopy,
-              icon: const Icon(Icons.copy_rounded, size: 18),
+              icon: const Icon(AppIcons.copy, size: 18),
               label: const Text('Copy Report'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.accent,

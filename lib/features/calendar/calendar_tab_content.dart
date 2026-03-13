@@ -23,6 +23,7 @@ import 'widgets/calendar_event_card.dart';
 import 'widgets/calendar_grid.dart';
 import 'widgets/calendar_subscription_dialog.dart';
 import 'widgets/day_detail_bottom_sheet.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CALENDAR TAB CONTENT
@@ -325,7 +326,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
     // Single "Add Event" button for all permitted roles
     return BrandActionButton(
-      icon: Icons.add_rounded,
+      icon: AppIcons.add,
       label: 'Add Event',
       onPressed: _handleAddEvent,
     );
@@ -343,7 +344,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+            Icon(AppIcons.error, color: AppColors.error, size: 48),
             const SizedBox(height: Spacing.space16),
             Text(
               calendarState.error!,
@@ -485,7 +486,7 @@ class _EventsSection extends StatelessWidget {
               child: Column(
                 children: [
                   Icon(
-                    Icons.event_available_rounded,
+                    AppIcons.calendarCheck,
                     color: AppColors.textMuted,
                     size: 48,
                   ),

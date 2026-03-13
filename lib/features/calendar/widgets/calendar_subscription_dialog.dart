@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../calendar_subscription_service.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CALENDAR SUBSCRIPTION DIALOG
@@ -89,7 +90,7 @@ class _CalendarSubscriptionDialogState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+        const Icon(AppIcons.error, color: AppColors.error, size: 48),
         const SizedBox(height: Spacing.space16),
         const Text(
           'Unable to generate calendar link',
@@ -128,7 +129,7 @@ class _CalendarSubscriptionDialogState
         // Header
         Row(
           children: [
-            Icon(Icons.calendar_month, color: AppColors.accent, size: 28),
+            Icon(AppIcons.calendar, color: AppColors.accent, size: 28),
             const SizedBox(width: Spacing.space12),
             Expanded(
               child: Text(
@@ -142,7 +143,7 @@ class _CalendarSubscriptionDialogState
             ),
             IconButton(
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close, color: AppColors.textSecondary),
+              icon: const Icon(AppIcons.close, color: AppColors.textSecondary),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -228,7 +229,7 @@ class _CalendarSubscriptionDialogState
         const SizedBox(height: Spacing.space8),
 
         const _InstructionTile(
-          icon: Icons.event,
+          icon: AppIcons.calendarDays,
           title: 'Google Calendar',
           instruction: 'Other calendars → From URL → Paste link',
         ),
@@ -236,7 +237,7 @@ class _CalendarSubscriptionDialogState
         const SizedBox(height: Spacing.space8),
 
         const _InstructionTile(
-          icon: Icons.mail_outline,
+          icon: AppIcons.email,
           title: 'Outlook',
           instruction: 'Add calendar → Subscribe from web → Paste link',
         ),
@@ -303,7 +304,7 @@ class _CopyButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                copied ? Icons.check : Icons.copy,
+                copied ? AppIcons.check : AppIcons.copy,
                 size: 16,
                 color: Colors.white,
               ),

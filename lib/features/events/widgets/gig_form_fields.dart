@@ -9,6 +9,7 @@ import '../../members/member_vm.dart';
 import '../../members/members_controller.dart';
 import 'button_group_grid.dart';
 import 'event_editor_helpers.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Gig-specific form fields: venue name autocomplete, city autocomplete,
 /// potential-gig toggle with member availability, load-in time, and gig pay.
@@ -635,7 +636,7 @@ class GigFormFields extends ConsumerWidget {
             Expanded(
               child: AvailabilityButton(
                 label: 'NO',
-                icon: Icons.close,
+                icon: AppIcons.close,
                 isSelected: userResponse == 'no',
                 isPositive: false,
                 isLoading: false,
@@ -647,7 +648,7 @@ class GigFormFields extends ConsumerWidget {
             Expanded(
               child: AvailabilityButton(
                 label: 'YES',
-                icon: Icons.check,
+                icon: AppIcons.check,
                 isSelected: userResponse == 'yes',
                 isPositive: true,
                 isLoading: false,
@@ -701,7 +702,7 @@ class GigFormFields extends ConsumerWidget {
                 Expanded(
                   child: AvailabilityButton(
                     label: 'NO',
-                    icon: Icons.close,
+                    icon: AppIcons.close,
                     isSelected: currentUserResponse == 'no',
                     isPositive: false,
                     isLoading: false,
@@ -712,7 +713,7 @@ class GigFormFields extends ConsumerWidget {
                 Expanded(
                   child: AvailabilityButton(
                     label: 'YES',
-                    icon: Icons.check,
+                    icon: AppIcons.check,
                     isSelected: currentUserResponse == 'yes',
                     isPositive: true,
                     isLoading: false,
@@ -807,7 +808,7 @@ class GigFormFields extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.add_circle_outline_rounded,
+                    AppIcons.add,
                     color: AppColors.textSecondary,
                     size: 18,
                   ),

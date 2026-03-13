@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/utils/web_storage.dart';
 import 'auth_gate.dart';
 import 'auth_state_provider.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// AuthConfirmScreen handles /auth/confirm?token_hash=...&type=email
 /// Also handles PKCE flow: /auth/confirm?code=...
@@ -398,7 +399,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             label: const Text('Request New Magic Link'),
           ),
         ],
@@ -440,7 +441,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             "We couldn't verify your identity. Please try logging in again.";
         break;
       default:
-        icon = Icons.error_outline;
+        icon = AppIcons.error;
         iconColor = Colors.red;
         title = 'Authentication Error';
         message =
@@ -472,7 +473,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
-            icon: const Icon(Icons.email),
+            icon: const Icon(AppIcons.email),
             label: const Text('Request New Magic Link'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFF43F5E),

@@ -4,6 +4,7 @@ import '../utils/platform_detection.dart';
 import '../utils/web_storage.dart';
 import '../utils/banner_debug.dart';
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// A debug screen to test native app banner detection.
 /// Remove this file before production or add route protection.
@@ -166,7 +167,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             );
             _loadDebugInfo();
           },
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(AppIcons.refresh),
           label: const Text('Reset Banner Dismissal'),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green,
@@ -184,7 +185,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             );
             _loadDebugInfo();
           },
-          icon: const Icon(Icons.block),
+          icon: const Icon(AppIcons.ban),
           label: const Text('Force Dismiss Banner'),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange,
@@ -200,7 +201,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             );
             _loadDebugInfo();
           },
-          icon: const Icon(Icons.terminal),
+          icon: const Icon(AppIcons.terminal),
           label: const Text('Print to Console'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.blueAccent,
@@ -253,7 +254,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
           children: [
             Icon(
               title.startsWith('✅')
-                  ? Icons.check_circle
+                  ? AppIcons.success
                   : Icons.cancel_outlined,
               color: color,
               size: 32,
@@ -294,7 +295,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
       color: AppColors.cardBg,
       child: ListTile(
         leading: Icon(
-          passed ? Icons.check_circle : Icons.cancel,
+          passed ? AppIcons.success : Icons.cancel,
           color: passed ? Colors.green : Colors.red,
         ),
         title: Text(

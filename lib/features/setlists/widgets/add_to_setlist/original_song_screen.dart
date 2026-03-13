@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // ORIGINAL SONG SCREEN
@@ -244,7 +245,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.add_rounded,
+                                AppIcons.add,
                                 size: 20,
                                 color: _isSubmitting
                                     ? AppColors.textMuted
@@ -544,7 +545,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                     child: Padding(
                       padding: const EdgeInsets.all(4),
                       child: Icon(
-                        Icons.delete_outline_rounded,
+                        AppIcons.delete,
                         size: 18,
                         color: AppColors.textMuted.withValues(alpha: 0.7),
                       ),

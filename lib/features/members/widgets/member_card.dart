@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/utils/phone_formatter.dart';
 import '../member_vm.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // MEMBER CARD
@@ -205,7 +206,7 @@ class _MemberCardState extends State<MemberCard> {
         // Phone - only show if present, tappable to call
         if (member.phone != null && member.phone!.isNotEmpty)
           _buildContactRow(
-            icon: Icons.phone_outlined,
+            icon: AppIcons.phone,
             value: formatPhoneNumber(member.phone!),
             onTap: () => _launchPhone(member.phone!),
           ),
@@ -213,7 +214,7 @@ class _MemberCardState extends State<MemberCard> {
         // Email - only show if present, tappable to email
         if (member.email.isNotEmpty)
           _buildContactRow(
-            icon: Icons.mail_outline_rounded,
+            icon: AppIcons.email,
             value: member.email,
             onTap: () => _launchEmail(member.email),
           ),
@@ -221,7 +222,7 @@ class _MemberCardState extends State<MemberCard> {
         // Address - only show if present (combine address, city, zip)
         if (_hasAddress(member))
           _buildContactRow(
-            icon: Icons.location_on_outlined,
+            icon: AppIcons.location,
             value: _formatAddress(member),
           ),
 

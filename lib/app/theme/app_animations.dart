@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BANDROADIE ANIMATION UTILITIES
@@ -339,7 +340,7 @@ class _AnimatedSuccessCheckState extends State<AnimatedSuccessCheck>
       opacity: _opacity,
       child: ScaleTransition(
         scale: _scale,
-        child: Icon(Icons.check_circle, size: widget.size, color: widget.color),
+        child: Icon(AppIcons.success, size: widget.size, color: widget.color),
       ),
     );
   }

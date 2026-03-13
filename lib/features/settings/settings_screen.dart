@@ -6,6 +6,7 @@ import '../../app/services/supabase_client.dart';
 import '../../app/theme/design_tokens.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../notifications/notification_settings_screen.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SETTINGS SCREEN
@@ -58,7 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Regular settings items (add more here as needed)
     final regularItems = <SettingsItem>[
       SettingsItem(
-        icon: Icons.notifications_outlined,
+        icon: AppIcons.bell,
         label: 'Notifications',
         subtitle: 'Manage push notifications',
         onTap: _openNotifications,
@@ -67,7 +68,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     // Delete Account - always last (enforced here)
     final deleteAccountItem = SettingsItem(
-      icon: Icons.delete_forever_outlined,
+      icon: AppIcons.delete,
       label: 'Delete Account',
       subtitle: 'Permanently delete your account and all data',
       onTap: _showDeleteConfirmation,
@@ -97,7 +98,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Row(
           children: [
             Icon(
-              Icons.warning_amber_rounded,
+              AppIcons.warning,
               color: _SettingsTokens.destructive,
               size: 28,
             ),
@@ -281,7 +282,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -403,7 +404,7 @@ class _SettingsListItem extends StatelessWidget {
               ),
             ),
             Icon(
-              Icons.chevron_right_rounded,
+              AppIcons.forward,
               color: item.isDestructive
                   ? _SettingsTokens.destructive.withValues(alpha: 0.5)
                   : _SettingsTokens.textSecondary.withValues(alpha: 0.5),

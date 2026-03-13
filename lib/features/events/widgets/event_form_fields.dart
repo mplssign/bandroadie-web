@@ -8,6 +8,7 @@ import '../../setlists/models/setlist.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
 import '../models/event_form_data.dart';
 import 'event_editor_helpers.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Shared form fields used by all event types: error banner, date picker,
 /// time selector, duration selector, setlist selector, and notes field.
@@ -132,7 +133,7 @@ class EventFormFields extends ConsumerWidget {
       child: Row(
         children: [
           const Icon(
-            Icons.error_outline_rounded,
+            AppIcons.error,
             color: AppColors.error,
             size: 20,
           ),
@@ -211,7 +212,7 @@ class EventFormFields extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add_rounded, size: 18, color: AppColors.accent),
+                    Icon(AppIcons.add, size: 18, color: AppColors.accent),
                     const SizedBox(width: 8),
                     Text(
                       'Add another date',
@@ -276,7 +277,7 @@ class EventFormFields extends ConsumerWidget {
               child: Row(
                 children: [
                   const Icon(
-                    Icons.calendar_today_rounded,
+                    AppIcons.calendar,
                     size: 18,
                     color: AppColors.textSecondary,
                   ),
@@ -306,7 +307,7 @@ class EventFormFields extends ConsumerWidget {
                   border: Border.all(color: AppColors.borderMuted),
                 ),
                 child: const Icon(
-                  Icons.remove_rounded,
+                  AppIcons.remove,
                   size: 20,
                   color: AppColors.textSecondary,
                 ),
@@ -325,7 +326,7 @@ class EventFormFields extends ConsumerWidget {
                   border: Border.all(color: AppColors.borderMuted),
                 ),
                 child: const Icon(
-                  Icons.add_rounded,
+                  AppIcons.add,
                   size: 20,
                   color: AppColors.accent,
                 ),
@@ -625,7 +626,7 @@ class EventFormFields extends ConsumerWidget {
           children: [
             if (isCatalog) ...[
               Icon(
-                Icons.library_music_rounded,
+                AppIcons.library,
                 size: 14,
                 color: isSelected
                     ? AppColors.textPrimary

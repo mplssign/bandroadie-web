@@ -29,6 +29,7 @@ import 'event_form_fields.dart';
 import 'event_type_selector.dart';
 import 'gig_form_fields.dart';
 import 'rehearsal_form_fields.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // EVENT EDITOR DRAWER
@@ -1756,7 +1757,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.close_rounded,
+                      AppIcons.close,
                       size: 18,
                       color: AppColors.textSecondary,
                     ),
@@ -1944,7 +1945,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       child: Row(
         children: [
           const Icon(
-            Icons.error_outline_rounded,
+            AppIcons.error,
             color: AppColors.error,
             size: 20,
           ),
@@ -2033,7 +2034,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             child: Row(
               children: [
                 Icon(
-                  Icons.calendar_today_rounded,
+                  AppIcons.calendar,
                   size: 18,
                   color: AppColors.textSecondary,
                 ),
@@ -2052,7 +2053,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   GestureDetector(
                     onTap: onClear,
                     child: const Icon(
-                      Icons.close_rounded,
+                      AppIcons.close,
                       size: 18,
                       color: AppColors.textMuted,
                     ),

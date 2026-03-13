@@ -28,6 +28,7 @@ import 'widgets/calendar_bottom_nav_bar.dart';
 import 'widgets/calendar_event_card.dart';
 import 'widgets/calendar_grid.dart';
 import 'widgets/day_detail_bottom_sheet.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CALENDAR SCREEN
@@ -392,7 +393,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+            Icon(AppIcons.error, color: AppColors.error, size: 48),
             const SizedBox(height: Spacing.space16),
             Text(
               calendarState.error!,
@@ -433,7 +434,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
           // Contributor without canCreateGigs: no buttons
           if (!isContributor || canCreateGig) ...[
             _ActionButton(
-              icon: Icons.add_rounded,
+              icon: AppIcons.add,
               label: 'Add Event',
               onTap: _handleAddEvent,
             ),
@@ -563,7 +564,7 @@ class _EventsSection extends StatelessWidget {
               child: Column(
                 children: [
                   Icon(
-                    Icons.event_available_rounded,
+                    AppIcons.calendarCheck,
                     color: AppColors.textMuted,
                     size: 48,
                   ),

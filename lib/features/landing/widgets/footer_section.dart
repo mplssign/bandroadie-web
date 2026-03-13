@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Footer section with legal links
 class FooterSection extends StatelessWidget {
@@ -40,7 +41,7 @@ class FooterSection extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               _SocialIconButton(
-                icon: Icons.email_rounded,
+                icon: AppIcons.email,
                 label: 'Email',
                 url: 'mailto:hello@bandroadie.com',
               ),

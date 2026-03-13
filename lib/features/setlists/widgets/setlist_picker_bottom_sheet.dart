@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../models/setlist.dart';
 import '../setlists_screen.dart' show setlistsProvider;
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // SETLIST PICKER BOTTOM SHEET
@@ -282,7 +283,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(
-              Icons.close_rounded,
+              AppIcons.close,
               color: AppColors.textSecondary,
             ),
           ),
@@ -297,7 +298,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
       children: [
         // Create New option (always first)
         _SetlistOptionTile(
-          icon: Icons.add_rounded,
+          icon: AppIcons.add,
           title: 'Create New Setlist',
           subtitle: 'Start a fresh setlist with selected songs',
           isCreateNew: true,
@@ -318,7 +319,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             child: Column(
               children: [
                 Icon(
-                  Icons.queue_music_rounded,
+                  AppIcons.setlists,
                   size: 48,
                   color: AppColors.textMuted,
                 ),
@@ -349,7 +350,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
               itemBuilder: (context, index) {
                 final setlist = setlists[index];
                 return _SetlistOptionTile(
-                  icon: Icons.queue_music_rounded,
+                  icon: AppIcons.setlists,
                   title: setlist.name,
                   subtitle: '${setlist.songCount} songs',
                   onTap: () => _handleSelectSetlist(setlist),
@@ -554,7 +555,7 @@ class _SetlistOptionTile extends StatelessWidget {
 
               // Arrow
               Icon(
-                Icons.chevron_right_rounded,
+                AppIcons.forward,
                 size: 20,
                 color: AppColors.textSecondary.withValues(alpha: 0.6),
               ),

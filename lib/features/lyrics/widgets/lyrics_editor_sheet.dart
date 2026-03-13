@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/features/lyrics/models/lyrics_data.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // LYRICS EDITOR BOTTOM SHEET
@@ -450,7 +451,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
       children: [
         // Minus button
         _circleButton(
-          icon: Icons.remove,
+          icon: AppIcons.remove,
           onTap: _fontSize > _minFont
               ? () => setState(
                     () => _fontSize = (_fontSize - _fontStep).clamp(
@@ -474,7 +475,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
         ),
         // Plus button
         _circleButton(
-          icon: Icons.add,
+          icon: AppIcons.add,
           onTap: _fontSize < _maxFont
               ? () => setState(
                     () => _fontSize = (_fontSize + _fontStep).clamp(

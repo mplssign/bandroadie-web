@@ -34,6 +34,7 @@ import 'widgets/rehearsal_card.dart';
 import 'widgets/section_header.dart';
 import 'widgets/side_drawer.dart';
 import 'widgets/band_switcher.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // HOME SCREEN
@@ -532,7 +533,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ],
                 ),
                 child: const Icon(
-                  Icons.music_off_rounded,
+                  AppIcons.musicOff,
                   size: 40,
                   color: AppColors.accent,
                 ),
@@ -554,7 +555,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 width: 180,
                 child: FilledButton.icon(
                   onPressed: _retry,
-                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  icon: const Icon(AppIcons.refresh, size: 20),
                   label: const Text('Try Again'),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.accent,

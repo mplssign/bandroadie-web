@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../app/theme/design_tokens.dart';
 import '../../models/bulk_song_row.dart';
 import '../../services/bulk_song_parser.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // BULK ENTRY SCREEN
@@ -575,7 +576,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                     behavior: HitTestBehavior.opaque,
                     child: const Center(
                       child: Icon(
-                        Icons.close_rounded,
+                        AppIcons.close,
                         size: 16,
                         color: AppColors.textMuted,
                       ),
@@ -636,7 +637,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(
-              Icons.add_rounded,
+              AppIcons.add,
               size: 18,
               color: AppColors.textSecondary,
             ),
