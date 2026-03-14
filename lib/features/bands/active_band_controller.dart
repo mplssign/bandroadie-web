@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bandroadie/app/models/band.dart';
 import '../home/widgets/animated_bottom_nav_bar.dart' show NavTabIndex;
 import '../members/permissions/band_permissions_provider.dart';
+import '../setlists/setlist_detail_controller.dart'
+    show selectedSetlistProvider;
 import '../shell/tab_provider.dart';
 import 'band_repository.dart';
 
@@ -325,6 +327,10 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
     // Force permissions to re-fetch for the new band context
     ref.invalidate(currentUserPermissionsProvider);
+
+    // Clear stale setlist selection so SetlistDetailNotifier doesn't attempt
+    // to load a previous band's setlist under the new band context
+    ref.read(selectedSetlistProvider.notifier).clear();
 
     // Navigate to Dashboard when switching bands
     ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
