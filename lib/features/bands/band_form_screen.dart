@@ -625,7 +625,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       if (mounted) showSuccessSnackBar(context, message: 'Backup created successfully');
     } on DataBackupException catch (e) {
       if (mounted) _showErrorSnackBar(e.message);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[Backup] Export error: $e');
       if (mounted) _showErrorSnackBar('Backup failed. Please try again.');
     } finally {
       if (mounted) setState(() => _isExporting = false);
