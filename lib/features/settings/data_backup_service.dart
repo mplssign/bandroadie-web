@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -80,9 +80,22 @@ class DataBackupService {
         '${now.year}${_pad(now.month)}${_pad(now.day)}';
     final fileName = 'bandroadie_${safeName}_$dateStamp.json';
 
+    final bytes = Uint8List.fromList(utf8.encode(jsonString));
+
     if (kIsWeb) {
-      triggerWebDownload(utf8.encode(jsonString), fileName);
+      // Web: trigger browser download
+      triggerWebDownload(bytes, fileName);
+    } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      // Desktop: native save-to-file dialog
+      await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Band Backup',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: bytes,
+      );
     } else {
+      // iOS / Android: share sheet
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$fileName');
       await file.parent.create(recursive: true);
