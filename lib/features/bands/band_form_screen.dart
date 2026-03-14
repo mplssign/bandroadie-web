@@ -25,7 +25,7 @@ import '../settings/data_backup_service.dart';
 import '../gigs/gig_controller.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../setlists/setlists_screen.dart';
-import '../calendar/calendar_controller.dart';
+
 import 'band_full_state.dart';
 
 // ============================================================================
@@ -554,7 +554,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
-                    color: AppColors.textMuted.withOpacity(0.4),
+                    color: AppColors.textMuted.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -586,7 +586,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                       VerticalDivider(
                         width: 28,
                         thickness: 1,
-                        color: AppColors.textMuted.withOpacity(0.2),
+                        color: AppColors.textMuted.withValues(alpha: 0.2),
                       ),
                       // ── Restore side ─────────────────────────────────
                       Expanded(
@@ -626,113 +626,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     await _performExport(band.id, band.name);
   }
 
-  Future<void> _showExportDialog() async {
-    final band = widget.initialBand;
-    if (band == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(AppIcons.download, color: AppColors.primary, size: 24),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Backup Band Data',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'A backup file will be created for ${band.name}. The backup includes:',
-              style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-            const SizedBox(height: 12),
-            ...[
-              'Band details and settings',
-              'Members and roles',
-              'Songs and setlists',
-              'Gigs and rehearsals',
-              'Block-out dates',
-            ].map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• ',
-                        style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 14)),
-                    Expanded(
-                        child: Text(item,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 14))),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                '⚠ Backup files may contain sensitive information such as lyrics, notes, and member details. Store the file securely.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Backup',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await _performExport(band.id, band.name);
-    }
-  }
-
   Future<void> _performExport(String bandId, String bandName) async {
     setState(() => _isExporting = true);
     try {
       await DataBackupService.exportBandData(bandId, bandName);
-      if (mounted)
+      if (mounted) {
         showSuccessSnackBar(context, message: 'Backup created successfully');
+      }
     } on DataBackupCancelledException {
       // User dismissed the dialog — no message needed
     } on DataBackupException catch (e) {
@@ -778,8 +678,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       if (mounted) _showErrorSnackBar(e.message);
       return;
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         _showErrorSnackBar('This file does not appear to be a valid backup.');
+      }
       return;
     }
 
@@ -923,8 +824,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       ]);
       // Invalidate the RPC cache afterwards so the next full load is fresh.
       ref.invalidate(bandFullStateProvider);
-      if (mounted)
+      if (mounted) {
         showSuccessSnackBar(context, message: 'Data restored successfully');
+      }
     } on DataBackupException catch (e) {
       if (mounted) _showErrorSnackBar(e.message);
     } catch (e) {
@@ -2770,7 +2672,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: BorderSide(
-                        color: AppColors.primary.withOpacity(0.6), width: 1),
+                        color: AppColors.primary.withValues(alpha: 0.6), width: 1),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(
@@ -3057,7 +2959,7 @@ class _BackupSheetPanel extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
             side: BorderSide(
-                color: AppColors.primary.withOpacity(0.6), width: 1),
+                color: AppColors.primary.withValues(alpha: 0.6), width: 1),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10)),
             padding:
