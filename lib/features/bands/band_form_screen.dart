@@ -19,6 +19,9 @@ import '../members/permissions/band_permissions_provider.dart';
 import 'active_band_controller.dart';
 import 'widgets/band_avatar.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:convert';
+import '../settings/data_backup_service.dart';
 
 // ============================================================================
 // BAND FORM SCREEN - Shared screen for Create and Edit Band flows
@@ -107,6 +110,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   final List<String> _inviteEmails = [];
   bool _isSubmitting = false;
   bool _isDeleting = false;
+  bool _isExporting = false;
+  bool _isImporting = false;
   bool _isUploadingImage = false;
   File? _selectedImage;
   String? _uploadedImageUrl;
@@ -516,6 +521,256 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       if (mounted) {
         _showErrorSnackBar('Failed to update band');
       }
+    }
+  }
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BACKUP / RESTORE
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<void> _showExportDialog() async {
+    final band = widget.initialBand;
+    if (band == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(AppIcons.download, color: AppColors.primary, size: 24),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Backup Band Data',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'A backup file will be created for ${band.name}. The backup includes:',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            ...[
+              'Band details and settings',
+              'Members and roles',
+              'Songs and setlists',
+              'Gigs and rehearsals',
+              'Block-out dates',
+            ].map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('• ', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                    Expanded(child: Text(item, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14))),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '⚠ Backup files may contain sensitive information such as lyrics, notes, and member details. Store the file securely.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Backup', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _performExport(band.id, band.name);
+    }
+  }
+
+  Future<void> _performExport(String bandId, String bandName) async {
+    setState(() => _isExporting = true);
+    try {
+      await DataBackupService.exportBandData(bandId, bandName);
+      if (mounted) showSuccessSnackBar(context, message: 'Backup created successfully');
+    } on DataBackupException catch (e) {
+      if (mounted) _showErrorSnackBar(e.message);
+    } catch (_) {
+      if (mounted) _showErrorSnackBar('Backup failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _showImportDialog() async {
+    final band = widget.initialBand;
+    if (band == null) return;
+
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+    } catch (_) {
+      if (mounted) _showErrorSnackBar('Could not open file picker.');
+      return;
+    }
+
+    if (result == null || result.files.single.bytes == null) return;
+
+    final String jsonContent;
+    try {
+      jsonContent = utf8.decode(result.files.single.bytes!);
+    } catch (_) {
+      if (mounted) _showErrorSnackBar('Could not read the selected file.');
+      return;
+    }
+
+    final BandBackupStats stats;
+    try {
+      stats = DataBackupService.previewBackup(jsonContent);
+    } on DataBackupException catch (e) {
+      if (mounted) _showErrorSnackBar(e.message);
+      return;
+    } catch (_) {
+      if (mounted) _showErrorSnackBar('This file does not appear to be a valid backup.');
+      return;
+    }
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(AppIcons.warning, color: AppColors.warning, size: 24),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Restore Band Data?',
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                children: [
+                  const TextSpan(text: 'Your current data will be replaced with the backup from '),
+                  TextSpan(text: stats.bandName, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                  const TextSpan(text: '. The following will be replaced:'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildRestoreRow('Members', stats.memberCount),
+            _buildRestoreRow('Songs', stats.songCount),
+            _buildRestoreRow('Setlists', stats.setlistCount),
+            _buildRestoreRow('Gigs', stats.gigCount),
+            _buildRestoreRow('Rehearsals', stats.rehearsalCount),
+            _buildRestoreRow('Block-out dates', stats.blockOutCount),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'This cannot be undone. Make sure you have a current backup before restoring.',
+                style: TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              backgroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Replace Data', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await _performImport(jsonContent, band.id);
+    }
+  }
+
+  Widget _buildRestoreRow(String label, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          const Text('• ', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+          Expanded(child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14))),
+          Text('$count', style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performImport(String jsonContent, String bandId) async {
+    setState(() => _isImporting = true);
+    try {
+      await DataBackupService.importBandData(jsonContent, bandId);
+      if (mounted) showSuccessSnackBar(context, message: 'Data restored successfully');
+    } on DataBackupException catch (e) {
+      if (mounted) _showErrorSnackBar(e.message);
+    } catch (_) {
+      if (mounted) _showErrorSnackBar('Restore failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isImporting = false);
     }
   }
 
@@ -2342,8 +2597,54 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               error: (_, __) => false,
             );
             if (!canDelete) return const SizedBox.shrink();
+            final isBusy = _isSubmitting || _isDeleting || _isExporting || _isImporting;
             return Column(
               children: [
+                const SizedBox(height: Spacing.space24),
+                // Backup Data
+                TextButton(
+                  onPressed: isBusy ? null : _showExportDialog,
+                  child: _isExporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          ),
+                        )
+                      : const Text(
+                          'Backup Data',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.primary,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                ),
+                // Restore Data
+                TextButton(
+                  onPressed: isBusy ? null : _showImportDialog,
+                  child: _isImporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                          ),
+                        )
+                      : const Text(
+                          'Restore Data',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.primary,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                ),
                 const SizedBox(height: Spacing.space8),
                 TextButton(
                   onPressed:

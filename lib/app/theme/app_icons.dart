@@ -117,6 +117,10 @@ class AppIcons {
   static const IconData settings = LucideIcons.settings;
   static const IconData logout = LucideIcons.logOut;
 
+  static const IconData download = LucideIcons.download;
+  static const IconData upload = LucideIcons.upload;
+  static const IconData database = LucideIcons.database;
+
   static const IconData bug = LucideIcons.bug;
   static const IconData terminal = LucideIcons.terminal;
 
