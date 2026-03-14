@@ -7,6 +7,7 @@ import '../../app/utils/web_storage.dart';
 import 'auth_gate.dart';
 import 'auth_state_provider.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 /// AuthConfirmScreen handles /auth/confirm?token_hash=...&type=email
 /// Also handles PKCE flow: /auth/confirm?code=...
@@ -476,7 +477,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             icon: const Icon(AppIcons.email),
             label: const Text('Request New Magic Link'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF43F5E),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
@@ -489,13 +490,13 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppColors.background,
       body: Center(
         child: _loading
             ? const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                  CircularProgressIndicator(color: AppColors.primary),
                   SizedBox(height: 24),
                   Text(
                     'Verifying your login...',

@@ -46,7 +46,7 @@ class AnimatedValueText extends StatelessWidget {
     this.isPlaceholder = false,
     this.onTap,
     this.textStyle,
-    this.backgroundColor = const Color(0xFF2C2C2C),
+    this.backgroundColor = AppColors.surfaceElevated,
     this.borderColor,
     this.isFocused = false,
   });
@@ -85,7 +85,7 @@ class AnimatedValueText extends StatelessWidget {
         TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: isPlaceholder ? AppColors.textMuted : const Color(0xFFF5F5F5),
+          color: isPlaceholder ? AppColors.textMuted : AppColors.textPrimary,
           height: 1,
         );
 

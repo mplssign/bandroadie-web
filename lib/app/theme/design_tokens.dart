@@ -132,65 +132,144 @@ String formatBpm(int? bpm) {
   return '$bpm BPM';
 }
 
-/// Color palette from Figma
+/// BandRoadie design tokens — Tailwind Zinc scale + Rose accent.
+///
+/// Single source of truth for all colors in the app.
+/// Every color must trace back to one of these constants.
+/// Never use Color(0xFF...) outside this file.
+///
+/// Palette: Tailwind Zinc (neutral, no blue tint) for surfaces/text,
+/// Rose-500 for brand, M3 tonal system for component theming.
 class AppColors {
   AppColors._();
 
-  // Primary accent - Tailwind rose-700 #be123c
-  static const Color accent = Color(0xFFBE123C);
-  static const Color accentMuted = Color(0x33F43F5E);
+  // ── Backgrounds (4-stop surface ramp) ──────────────────────────────────────
 
-  // Blue accent - Figma: #2563eb for borders
-  static const Color blueAccent = Color(0xFF2563EB);
+  /// Page / scaffold background. The darkest level.
+  static const Color background      = Color(0xFF09090B); // zinc-950
 
-  // Backgrounds - Figma specs
-  static const Color scaffoldBg = Color(0xFF0A0A0A); // App background
-  static const Color appBarBg = Color(0xFF1E293B); // Figma: gray-800
-  static const Color surfaceDark = Color(0xFF1E293B); // gray-800
-  static const Color cardBg = Color(0xFF141414);
-  static const Color cardBgElevated = Color(0xFF1E1E1E);
-  static const Color navBg = Color(0xFF020617); // Figma: gray-950
+  /// Default card, bottom sheet, drawer background.
+  static const Color surface         = Color(0xFF18181B); // zinc-900
 
-  // Borders - Figma specs
-  static const Color borderSubtle = Color(0xFF94A3B8); // gray-400
-  static const Color borderMuted = Color(0xFF334155); // gray-700
-  static const Color borderBlue = Color(0xFF2563EB); // blue-600
+  /// Elevated card, modal, popover background.
+  static const Color surfaceElevated = Color(0xFF27272A); // zinc-800
 
-  // Text hierarchy - Figma specs
-  static const Color textPrimary = Color(0xFFFFFFFF); // white
-  static const Color textSecondary = Color(0xFF94A3B8); // gray-400
-  static const Color textMuted = Color(0xFF64748B); // gray-500
-  static const Color textDisabled = Color(0xFF475569); // gray-600
-  static const Color textNav = Color(0xFFF8FAFC); // gray-50
+  /// Hover state, selected row, pressed surface overlay.
+  static const Color surfaceOverlay  = Color(0xFF3F3F46); // zinc-700
 
-  // Semantic
-  static const Color success = Color(0xFF22C55E);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color error = Color(0xFFEF4444);
+  // ── Borders (2 levels) ─────────────────────────────────────────────────────
 
-  // Gradients - Figma: rehearsal card gradient
+  /// Default dividers, card outlines, input borders.
+  static const Color border          = Color(0xFF27272A); // zinc-800
+
+  /// Focused, emphasized, or interactive borders.
+  static const Color borderStrong    = Color(0xFF52525B); // zinc-600
+
+  // ── Text (4-level hierarchy) ───────────────────────────────────────────────
+
+  /// Headings, card titles, primary labels.
+  static const Color textPrimary     = Color(0xFFFAFAFA); // zinc-50
+
+  /// Body copy, supporting text, subtitles.
+  static const Color textSecondary   = Color(0xFFA1A1AA); // zinc-400
+
+  /// Hints, placeholders, timestamps, captions.
+  static const Color textMuted       = Color(0xFF71717A); // zinc-500
+
+  /// Inactive labels, disabled states.
+  static const Color textDisabled    = Color(0xFF52525B); // zinc-600
+
+  // ── Brand — Rose ───────────────────────────────────────────────────────────
+
+  /// Primary CTA, active nav, links, focus rings.
+  /// Rose-500: brighter and more stage-ready than previous rose-700.
+  static const Color primary         = Color(0xFFF43F5E); // rose-500
+
+  /// Secondary brand moments — icons, badges, secondary actions.
+  static const Color primaryDim      = Color(0xFFBE123C); // rose-700
+
+  /// Subtle tinted background behind brand elements.
+  static const Color primaryContainer = Color(0xFF1C0A12); // rose-950 dark
+
+  /// Lighter rose for active/hover text states (selected tabs, focused labels).
+  static const Color primaryLight    = Color(0xFFFB7185); // rose-400
+
+  /// Primary at 30% opacity for subtle backgrounds.
+  static const Color primarySubtle   = Color(0x4DF43F5E); // rose-500 @ 30%
+
+  // ── Semantic ───────────────────────────────────────────────────────────────
+
+  static const Color success         = Color(0xFF22C55E); // green-500
+  static const Color warning         = Color(0xFFF59E0B); // amber-500
+  static const Color error           = Color(0xFFEF4444); // red-500
+
+  // ── Gradients ──────────────────────────────────────────────────────────────
+
+  /// Rehearsal card gradient — blue-600 → purple-600
   static const LinearGradient rehearsalGradient = LinearGradient(
     begin: Alignment(-0.8, -0.6),
     end: Alignment(0.8, 0.6),
     colors: [Color(0xFF2563EB), Color(0xFF9333EA)],
   );
 
+  /// Page background gradient — surface → background
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF1E1E1E), Color(0xFF0A0A0A)],
+    colors: [surface, background],
   );
 
-  /// Setlist card animated gradient border colors (Figma-style)
+  /// Setlist card animated gradient border colors
   /// Rose → Blue → Cyan → Purple → Orange → Rose (loops)
   static const List<Color> setlistGradientColors = [
-    Color(0xFFF43F5E), // Rose-500 (primary accent)
-    Color(0xFF2563EB), // Blue-600
-    Color(0xFF06B6D4), // Cyan-500
-    Color(0xFFC026D3), // Fuchsia-600
-    Color(0xFFEA580C), // Orange-600
-    Color(0xFFF43F5E), // Rose-500 (loop back)
+    Color(0xFFF43F5E), // rose-500
+    Color(0xFF2563EB), // blue-600
+    Color(0xFF06B6D4), // cyan-500
+    Color(0xFFC026D3), // fuchsia-600
+    Color(0xFFEA580C), // orange-600
+    Color(0xFFF43F5E), // rose-500 (loop)
   ];
+
+  // ── Deprecated aliases (migrate to new names above) ────────────────────────
+
+  @Deprecated('Use AppColors.primary')
+  static const Color accent          = primary;
+
+  @Deprecated('Use AppColors.primarySubtle')
+  static const Color accentMuted     = primarySubtle;
+
+  @Deprecated('Use AppColors.background')
+  static const Color scaffoldBg      = background;
+
+  @Deprecated('Use AppColors.background')
+  static const Color appBarBg        = background;
+
+  @Deprecated('Use AppColors.surface')
+  static const Color surfaceDark     = surface;
+
+  @Deprecated('Use AppColors.surface')
+  static const Color cardBg          = surface;
+
+  @Deprecated('Use AppColors.surfaceElevated')
+  static const Color cardBgElevated  = surfaceElevated;
+
+  @Deprecated('Use AppColors.background')
+  static const Color navBg           = background;
+
+  @Deprecated('Use AppColors.borderStrong')
+  static const Color borderSubtle    = borderStrong;
+
+  @Deprecated('Use AppColors.border')
+  static const Color borderMuted     = border;
+
+  /// Blue accent — kept for gradient and instrument UI use.
+  static const Color blueAccent      = Color(0xFF2563EB);
+
+  @Deprecated('Use AppColors.blueAccent')
+  static const Color borderBlue      = blueAccent;
+
+  @Deprecated('Use AppColors.textPrimary')
+  static const Color textNav         = textPrimary;
 }
 
 /// Setlist card border constants

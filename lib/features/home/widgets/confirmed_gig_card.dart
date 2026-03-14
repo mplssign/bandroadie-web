@@ -108,7 +108,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF94A3B8), // gray-400
+                    color: AppColors.textSecondary, // gray-400
                     height: 1.2,
                   ),
                   maxLines: 1,
@@ -139,7 +139,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: Color(0xFF94A3B8), // gray-400
+                    color: AppColors.textSecondary, // gray-400
                     height: 1.2,
                   ),
                 ),
@@ -205,7 +205,7 @@ class _GradientBorderPainter extends CustomPainter {
       colors: const [
         Color(0xFF2563EB), // blue-600
         Color(0xFF7C3AED), // violet (midpoint blend)
-        Color(0xFFF43F5E), // rose-500
+        AppColors.primary, // rose-500
         Color(0xFF7C3AED), // violet (midpoint blend)
         Color(0xFF2563EB), // blue-600 (seamless)
       ],

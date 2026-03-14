@@ -29,13 +29,13 @@ class _ProfileTokens {
   _ProfileTokens._();
 
   // Colors
-  static const Color accent = Color(0xFFBE123C); // rose-700
-  static const Color background = Color(0xFF1E1E1E);
-  static const Color surfaceDark = Color(0xFF1E293B);
-  static const Color borderMuted = Color(0xFF334155);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF9CA3AF);
-  static const Color textMuted = Color(0xFF64748B);
+  static const Color accent = AppColors.primaryDim; // rose-700
+  static const Color background = AppColors.background;
+  static const Color surfaceDark = AppColors.surface;
+  static const Color borderMuted = AppColors.surfaceOverlay;
+  static const Color textPrimary = AppColors.textPrimary;
+  static const Color textSecondary = AppColors.textSecondary;
+  static const Color textMuted = AppColors.textMuted;
 
   // Pill styling
   static const double pillHeight = 36.0;
@@ -1666,7 +1666,7 @@ class _RolePillState extends State<_RolePill>
     final isCustomRole = widget.isCustomRole;
 
     // Rose 600 from Tailwind for action buttons
-    const rose600 = Color(0xFFE11D48);
+    const rose600 = AppColors.primary;
 
     // Determine border color
     Color borderColor;
@@ -1724,7 +1724,7 @@ class _RolePillState extends State<_RolePill>
               children: [
                 // Show X icon for roles in delete mode
                 if (widget.showDeleteIcon) ...[
-                  Icon(AppIcons.close, size: 14, color: const Color(0xFFEF4444)),
+                  Icon(AppIcons.close, size: 14, color: AppColors.error),
                   const SizedBox(width: 4),
                 ],
                 Text(
@@ -1788,7 +1788,7 @@ class _BandPillState extends State<_BandPill>
   @override
   Widget build(BuildContext context) {
     // Rose 600 from Tailwind
-    const rose600 = Color(0xFFE11D48);
+    const rose600 = AppColors.primary;
 
     return GestureDetector(
       onTapDown: (_) => _scaleController.forward(),

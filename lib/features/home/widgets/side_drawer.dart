@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/services/app_version_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 // ============================================================================
 // SIDE DRAWER - FIGMA NODE 27-69 "Menu"
@@ -23,14 +24,12 @@ class _DrawerTokens {
   static const double drawerMaxWidth = 400.0;
 
   // Colors - Figma exact hex values
-  static const Color background = Color(0xFF020617); // gray-950
-  static const Color divider = Color(0xFF1E293B); // gray-800
-  static const Color iconDefault = Color(0xFF9CA3AF); // lighter gray for icons
-  static const Color iconAccent = Color(0xFFF43F5E); // rose-500
-  static const Color textPrimary = Color(0xFFFFFFFF); // white
-  static const Color textSecondary = Color(
-    0xFF9CA3AF,
-  ); // lighter gray for secondary text
+  static const Color background = AppColors.background;
+  static const Color divider = AppColors.surface; // gray-800
+  static const Color iconDefault = AppColors.textSecondary;
+  static const Color iconAccent = AppColors.primary; // rose-500
+  static const Color textPrimary = AppColors.textPrimary; // white
+  static const Color textSecondary = AppColors.textSecondary;
   static const Color pressedBg = Color(0x14FFFFFF); // ~8% white
 
   // Header padding - Figma: pt 12, pr 12, pb 16, pl 24

@@ -123,7 +123,7 @@ class _PauseScreenState extends State<PauseScreen> {
   bool _saveForReuse = false;
   bool _isSubmitting = false;
 
-  static const Color _accent = Color(0xFFF59E0B); // amber
+  static const Color _accent = AppColors.warning; // amber
 
   bool get _isEditing => widget.editingItem != null;
 

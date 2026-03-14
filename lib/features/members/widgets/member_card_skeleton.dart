@@ -41,7 +41,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
       builder: (context, child) {
         return Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0B0F14),
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: AppColors.borderMuted.withValues(alpha: 0.5),
@@ -91,7 +91,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: const [Color(0xFF1E293B), Color(0xFF334155), Color(0xFF1E293B)],
+      colors: const [AppColors.surface, AppColors.surfaceOverlay, AppColors.surface],
       stops: const [0.0, 0.5, 1.0],
     );
 
@@ -109,7 +109,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: const [Color(0xFF1E293B), Color(0xFF334155), Color(0xFF1E293B)],
+      colors: const [AppColors.surface, AppColors.surfaceOverlay, AppColors.surface],
       stops: const [0.0, 0.5, 1.0],
     );
 
@@ -127,7 +127,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: const [Color(0xFF1E293B), Color(0xFF334155), Color(0xFF1E293B)],
+      colors: const [AppColors.surface, AppColors.surfaceOverlay, AppColors.surface],
       stops: const [0.0, 0.5, 1.0],
     );
 

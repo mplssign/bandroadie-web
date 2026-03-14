@@ -528,7 +528,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         color:
             isEven ? Colors.transparent : Colors.white.withValues(alpha: 0.02),
         border: const Border(
-          bottom: BorderSide(color: Color(0xFF2A2A2A), width: 1),
+          bottom: BorderSide(color: AppColors.surfaceElevated, width: 1),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
@@ -667,7 +667,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         vertical: Spacing.space8,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFF2A2A2A),
+        color: AppColors.surfaceElevated,
         border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
       ),
       child: Row(

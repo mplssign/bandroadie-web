@@ -32,10 +32,10 @@ class CalendarColors {
   static const Color blockOutIndicator = Color(MarkerColors.blockOutColor);
 
   /// Date cell background
-  static const Color dateCellBg = Color(0xFF2C2C2C);
+  static const Color dateCellBg = AppColors.surfaceElevated;
 
   /// Calendar container border
-  static const Color containerBorder = Color(0xFF444444);
+  static const Color containerBorder = AppColors.surfaceOverlay;
 }
 
 class CalendarGrid extends StatefulWidget {
@@ -530,7 +530,7 @@ class _DayCell extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
-                    color: const Color(0xFFF5F5F5),
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),

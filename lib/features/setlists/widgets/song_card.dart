@@ -245,7 +245,7 @@ class _SongCardState extends State<SongCard>
       displayText: widget.song.formattedBpm,
       isPlaceholder: widget.song.isBpmPlaceholder,
       onTap: null, // Read-only card
-      backgroundColor: const Color(0xFF2C2C2C),
+      backgroundColor: AppColors.surfaceElevated,
     );
   }
 
@@ -255,7 +255,7 @@ class _SongCardState extends State<SongCard>
       displayText: widget.song.formattedDuration,
       isPlaceholder: false,
       onTap: null, // Read-only card
-      backgroundColor: const Color(0xFF2C2C2C),
+      backgroundColor: AppColors.surfaceElevated,
     );
   }
 

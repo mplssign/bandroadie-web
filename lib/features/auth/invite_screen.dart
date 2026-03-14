@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_gate.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -232,7 +233,7 @@ class _InviteScreenState extends State<InviteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -249,7 +250,7 @@ class _InviteScreenState extends State<InviteScreen> {
       return const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: Color(0xFF3B82F6)),
+          CircularProgressIndicator(color: AppColors.primary),
           SizedBox(height: 16),
           Text(
             'Accepting your invite...',
@@ -279,7 +280,7 @@ class _InviteScreenState extends State<InviteScreen> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: AppColors.primary,
             ),
             child: const Text('Go to App'),
           ),
@@ -325,7 +326,7 @@ class _InviteScreenState extends State<InviteScreen> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(AppIcons.email, color: Color(0xFF3B82F6), size: 64),
+          const Icon(AppIcons.email, color: AppColors.primary, size: 64),
           const SizedBox(height: 24),
           const Text(
             'Check your email!',
@@ -356,7 +357,7 @@ class _InviteScreenState extends State<InviteScreen> {
             },
             child: const Text(
               'Use a different email',
-              style: TextStyle(color: Color(0xFF3B82F6)),
+              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],
@@ -366,7 +367,7 @@ class _InviteScreenState extends State<InviteScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(AppIcons.userAdd, color: Color(0xFF3B82F6), size: 64),
+        const Icon(AppIcons.userAdd, color: AppColors.primary, size: 64),
         const SizedBox(height: 24),
         const Text(
           'You\'ve been invited to join a band!',
@@ -395,18 +396,18 @@ class _InviteScreenState extends State<InviteScreen> {
               labelStyle: const TextStyle(color: Colors.white54),
               errorText: _emailError,
               filled: true,
-              fillColor: const Color(0xFF2A2A2A),
+              fillColor: AppColors.surfaceElevated,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF3A3A3A)),
+                borderSide: const BorderSide(color: AppColors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                borderSide: const BorderSide(color: AppColors.primary),
               ),
             ),
             onSubmitted: (_) => _sendMagicLink(),
@@ -419,7 +420,7 @@ class _InviteScreenState extends State<InviteScreen> {
           child: ElevatedButton(
             onPressed: _signingIn ? null : _sendMagicLink,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

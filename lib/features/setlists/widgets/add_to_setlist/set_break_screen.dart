@@ -84,7 +84,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
   static const int _maxMinutes = 60;
   static const int _step = 5;
 
-  static const Color _accent = Color(0xFFBE123C); // rose
+  static const Color _accent = AppColors.primaryDim; // rose
 
   bool get _isEditing => widget.editingItem != null;
 

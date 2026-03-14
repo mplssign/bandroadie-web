@@ -249,8 +249,8 @@ class _AvailabilityGridItem extends StatelessWidget {
     switch (state) {
       case AvailabilityState.available:
         // Green for available
-        backgroundColor = const Color(0xFF22C55E); // Green-500
-        borderColor = const Color(0xFF22C55E);
+        backgroundColor = AppColors.success; // Green-500
+        borderColor = AppColors.success;
         textColor = Colors.white;
         break;
       case AvailabilityState.notAvailable:

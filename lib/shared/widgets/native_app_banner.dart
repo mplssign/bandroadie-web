@@ -182,7 +182,7 @@ class _BannerContent extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(Spacing.space12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF43F5E), // Rose background
+        color: AppColors.primary, // Rose background
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
         boxShadow: [
           BoxShadow(

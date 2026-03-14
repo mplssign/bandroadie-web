@@ -378,7 +378,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Color(0xFFF5F5F5),
+        color: AppColors.textPrimary,
         height: 1,
       ),
     );
@@ -392,7 +392,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Color(0xFFF5F5F5),
+        color: AppColors.textPrimary,
         height: 1,
       ),
     );

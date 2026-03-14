@@ -66,7 +66,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
   final TextEditingController _secondsController = TextEditingController();
   final FocusNode _customPurposeFocus = FocusNode();
 
-  static const Color _accent = Color(0xFFF59E0B); // amber
+  static const Color _accent = AppColors.warning; // amber
 
   @override
   void initState() {

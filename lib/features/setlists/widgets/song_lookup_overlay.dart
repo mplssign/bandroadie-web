@@ -416,7 +416,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       child: Container(
         height: 44,
         decoration: BoxDecoration(
-          color: const Color(0xFF2C2C2C),
+          color: AppColors.surfaceElevated,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(color: AppColors.borderMuted, width: 1),
         ),
@@ -503,7 +503,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       margin: const EdgeInsets.only(bottom: Spacing.space12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       ),
       child: Row(
@@ -513,7 +513,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: const Color(0xFF3A3A3A),
+              color: AppColors.border,
               borderRadius: BorderRadius.circular(6),
             ),
           ),
@@ -527,7 +527,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   width: 160,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3A3A3A),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -536,7 +536,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   width: 100,
                   height: 14,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3A3A3A),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -804,7 +804,7 @@ class _SongResultRowState extends State<_SongResultRow>
           margin: const EdgeInsets.only(bottom: Spacing.space12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.surfaceElevated,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(
               color: AppColors.borderMuted.withValues(alpha: 0.5),
@@ -990,7 +990,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
           margin: const EdgeInsets.only(bottom: Spacing.space12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2A2A),
+            color: AppColors.surfaceElevated,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(color: AppColors.borderMuted, width: 1),
           ),

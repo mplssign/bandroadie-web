@@ -264,10 +264,10 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
         const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Color(0xFFF5F5F5),
+          color: AppColors.textPrimary,
         );
 
-    final effectiveBgColor = widget.backgroundColor ?? const Color(0xFF2C2C2C);
+    final effectiveBgColor = widget.backgroundColor ?? AppColors.surfaceElevated;
     final effectiveBorderColor = widget.borderColor ?? Colors.white;
 
     return Container(

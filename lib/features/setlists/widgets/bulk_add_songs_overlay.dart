@@ -330,7 +330,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         vertical: Spacing.space8,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFF2A2A2A),
+        color: AppColors.surfaceElevated,
         border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
       ),
       child: Row(
@@ -477,7 +477,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
     return Container(
       constraints: const BoxConstraints(minHeight: 220),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2C),
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(color: AppColors.borderMuted, width: 1),
       ),
@@ -618,13 +618,13 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
     final isValid = row.isValid;
     final borderColor = isValid ? AppColors.borderMuted : AppColors.error;
     final bgColor = isValid
-        ? const Color(0xFF2A2A2A)
+        ? AppColors.surfaceElevated
         : AppColors.error.withValues(alpha: 0.1);
 
     // Get tuning badge color
     final tuningColor = row.tuning != null
         ? tuningBadgeColor(row.tuning)
-        : const Color(0xFF2563EB);
+        : AppColors.primary;
     final tuningTextColor = tuningBadgeTextColor(tuningColor);
 
     return Container(
@@ -656,7 +656,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3A3A3A),
+                  color: AppColors.border,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
