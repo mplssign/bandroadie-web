@@ -623,6 +623,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     try {
       await DataBackupService.exportBandData(bandId, bandName);
       if (mounted) showSuccessSnackBar(context, message: 'Backup created successfully');
+    } on DataBackupCancelledException {
+      // User dismissed the dialog — no message needed
     } on DataBackupException catch (e) {
       if (mounted) _showErrorSnackBar(e.message);
     } catch (e) {

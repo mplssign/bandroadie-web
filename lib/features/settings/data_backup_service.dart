@@ -32,6 +32,11 @@ class DataBackupException implements Exception {
   String toString() => message;
 }
 
+/// Thrown when the user dismisses a save/open dialog without selecting a file.
+class DataBackupCancelledException implements Exception {
+  const DataBackupCancelledException();
+}
+
 /// Read-only stats parsed from a backup file — used to populate dialogs.
 class BandBackupStats {
   final String bandName;
@@ -86,14 +91,31 @@ class DataBackupService {
       // Web: trigger browser download
       triggerWebDownload(bytes, fileName);
     } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      // Desktop: native save-to-file dialog
-      await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Band Backup',
-        fileName: fileName,
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        bytes: bytes,
-      );
+      // Desktop: native save-to-file dialog.
+      // file_picker only supports `bytes` on Windows; on macOS/Linux we get
+      // a path back and write the file ourselves.
+      String? savePath;
+      if (Platform.isWindows) {
+        await FilePicker.platform.saveFile(
+          dialogTitle: 'Save Band Backup',
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+          bytes: bytes,
+        );
+        return; // Windows: file_picker writes the bytes directly
+      } else {
+        savePath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save Band Backup',
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+      }
+      if (savePath == null) throw const DataBackupCancelledException();
+      final saveFile = File(savePath);
+      await saveFile.parent.create(recursive: true);
+      await saveFile.writeAsBytes(bytes);
     } else {
       // iOS / Android: share sheet
       final dir = await getTemporaryDirectory();
