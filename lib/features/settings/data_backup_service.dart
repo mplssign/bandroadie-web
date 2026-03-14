@@ -111,7 +111,7 @@ class DataBackupService {
       setlistCount: (bandEntry['setlists'] as List? ?? []).length,
       gigCount: (bandEntry['gigs'] as List? ?? []).length,
       rehearsalCount: (bandEntry['rehearsals'] as List? ?? []).length,
-      blockOutCount: (bandEntry['block_out_dates'] as List? ?? []).length,
+      blockOutCount: (bandEntry['block_dates'] as List? ?? []).length,
     );
   }
 
@@ -203,7 +203,7 @@ class DataBackupService {
         await supabase.from('rehearsals').select().eq('band_id', bandId);
 
     final blockOuts =
-        await supabase.from('block_out_dates').select().eq('band_id', bandId);
+        await supabase.from('block_dates').select().eq('band_id', bandId);
 
     return {
       'metadata': {
@@ -226,7 +226,7 @@ class DataBackupService {
         'gig_dates': gigDates,
         'gig_responses': gigResponses,
         'rehearsals': rehearsals,
-        'block_out_dates': blockOuts,
+        'block_dates': blockOuts,
       },
     };
   }
@@ -314,8 +314,8 @@ class DataBackupService {
 
     // 12. Block-out dates
     await _upsertRows(
-      'block_out_dates',
-      entry['block_out_dates'] as List? ?? [],
+      'block_dates',
+      entry['block_dates'] as List? ?? [],
     );
   }
 
