@@ -85,6 +85,7 @@ class DataBackupService {
     } else {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/$fileName');
+      await file.parent.create(recursive: true);
       await file.writeAsString(jsonString);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json')],
