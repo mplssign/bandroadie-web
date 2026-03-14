@@ -537,7 +537,7 @@ class EventFormFields extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Loading setlists...',
+                  'Setting up the stage...',
                   style: AppTextStyles.footnote.copyWith(
                     color: AppColors.textMuted,
                   ),

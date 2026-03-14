@@ -385,7 +385,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
     if (bandState.isLoading) {
       stateKey = 'loading-bands';
-      stateWidget = _buildLoadingState('Tuning up...');
+      stateWidget = _buildLoadingState('Setting up the stage...');
     } else if (bandState.error != null) {
       stateKey = 'error-bands';
       stateWidget = _buildErrorState(
@@ -398,7 +398,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     } else if (gigState.isLoading || rehearsalState.isLoading || dataIsStale) {
       // Show loading if either is loading OR data is from a different band
       stateKey = 'loading-gigs';
-      stateWidget = _buildLoadingState('Loading the setlist...');
+      stateWidget = _buildLoadingState('Setting up the stage...');
     } else if (!gigState.hasGigs && !hasRehearsal) {
       // Check empty BEFORE error — empty is not an error condition
       stateKey = 'empty';
