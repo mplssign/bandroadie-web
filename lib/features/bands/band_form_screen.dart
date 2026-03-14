@@ -2142,7 +2142,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 ),
                 decoration: BoxDecoration(
                   color:
-                      isSelected ? Colors.transparent : const Color(0xFF444444),
+                      isSelected ? Colors.transparent : AppColors.surfaceOverlay,
                   borderRadius: BorderRadius.circular(50),
                   border: isSelected
                       ? Border.all(color: AppColors.accent, width: 1)
@@ -2155,7 +2155,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     fontWeight: FontWeight.w400,
                     height: 1.33,
                     color:
-                        isSelected ? AppColors.accent : const Color(0xFFF5F5F5),
+                        isSelected ? AppColors.accent : AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -2396,7 +2396,7 @@ class _EmailPill extends StatelessWidget {
         vertical: Spacing.space8,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF444444),
+        color: AppColors.surfaceOverlay,
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
@@ -2408,7 +2408,7 @@ class _EmailPill extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w400,
               height: 1.33,
-              color: Color(0xFFF5F5F5),
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(width: 8),
@@ -2417,7 +2417,7 @@ class _EmailPill extends StatelessWidget {
             child: const Icon(
               AppIcons.close,
               size: 16,
-              color: Color(0xFFF5F5F5),
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -2448,7 +2448,7 @@ class _InvitePill extends StatelessWidget {
           vertical: Spacing.space8,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFF444444),
+          color: AppColors.surfaceOverlay,
           borderRadius: BorderRadius.circular(50),
           border: Border.all(
             color: AppColors.warning.withValues(alpha: 0.3),
@@ -2473,7 +2473,7 @@ class _InvitePill extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   height: 1.33,
-                  color: Color(0xFFF5F5F5),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -2483,7 +2483,7 @@ class _InvitePill extends StatelessWidget {
               child: const Icon(
                 AppIcons.close,
                 size: 16,
-                color: Color(0xFFF5F5F5),
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -2520,7 +2520,7 @@ class _MemberChip extends StatelessWidget {
           vertical: Spacing.space8,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFF444444),
+          color: AppColors.surfaceOverlay,
           borderRadius: BorderRadius.circular(50),
           border: isCurrentUser
               ? Border.all(
@@ -2541,7 +2541,7 @@ class _MemberChip extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   height: 1.33,
-                  color: Color(0xFFF5F5F5),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -2563,7 +2563,7 @@ class _MemberChip extends StatelessWidget {
                 child: const Icon(
                   AppIcons.close,
                   size: 16,
-                  color: Color(0xFFF5F5F5),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],

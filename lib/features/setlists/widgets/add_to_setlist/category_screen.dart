@@ -173,7 +173,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                         icon: AppIcons.timer,
                         label: 'Set Break',
                         subtitle: 'Break between sets',
-                        accentColor: const Color(0xFFBE123C),
+                        accentColor: AppColors.primaryDim,
                         onTap: () => widget.onCategorySelected(
                           AddToSetlistCategory.setBreak,
                         ),
@@ -188,7 +188,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                       icon: Icons.pause_circle_outline_rounded,
                       label: 'Pause',
                       subtitle: 'Guitar change, tuning break, band intro, etc.',
-                      accentColor: const Color(0xFFF59E0B),
+                      accentColor: AppColors.warning,
                       onTap: () =>
                           widget.onCategorySelected(AddToSetlistCategory.pause),
                     ),

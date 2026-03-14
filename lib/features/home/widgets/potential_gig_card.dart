@@ -123,7 +123,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius), // 16px
                 border: Border.all(
-                  color: const Color(0xFF94A3B8), // gray-400
+                  color: AppColors.textSecondary, // gray-400
                   width: 1,
                 ),
               ),

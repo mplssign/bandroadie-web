@@ -414,7 +414,7 @@ class EventFormFields extends ConsumerWidget {
 
   Widget _buildDurationSelector() {
     const minDuration = 15;
-    const rose700 = Color(0xFFBE123C);
+    const rose700 = AppColors.primaryDim;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

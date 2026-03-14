@@ -11,7 +11,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // ============================================================================
 
 /// Figma-spec border color (strict)
-const _kCardBorderColor = Color(0xFF334155);
+const _kCardBorderColor = AppColors.surfaceOverlay;
 
 class CalendarEventCard extends StatefulWidget {
   final CalendarEvent event;
@@ -63,7 +63,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
   /// rehearsals use blue, block outs use rose
   Color get _dotColor {
     if (widget.event.isBlockOut) {
-      return const Color(0xFFF43F5E); // Rose for block outs
+      return AppColors.primary; // Rose for block outs
     }
     if (widget.event.isGig) {
       // Potential gigs use orange, confirmed gigs use green

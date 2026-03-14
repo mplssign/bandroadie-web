@@ -334,9 +334,9 @@ class _LoginScreenState extends State<LoginScreen>
     // instead of login UI. AuthGate will handle the redirect.
     if (_sessionDetected) {
       return const Scaffold(
-        backgroundColor: Color(0xFF000000),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -349,7 +349,7 @@ class _LoginScreenState extends State<LoginScreen>
     final hasValidEmail = emailText.contains('@') && emailText.length > 3;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: AppColors.background,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: LayoutBuilder(
@@ -445,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen>
             const Text(
               'Email address',
               style: TextStyle(
-                color: Color(0xFFE2E8F0),
+                color: AppColors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -468,9 +468,9 @@ class _LoginScreenState extends State<LoginScreen>
                 onSubmitted: (_) => _handleSubmit(),
                 decoration: InputDecoration(
                   hintText: 'you@email.com',
-                  hintStyle: const TextStyle(color: Color(0xFF64748B)),
+                  hintStyle: const TextStyle(color: AppColors.textMuted),
                   filled: true,
-                  fillColor: const Color(0xFF1E293B),
+                  fillColor: AppColors.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -478,15 +478,15 @@ class _LoginScreenState extends State<LoginScreen>
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: _validationError != null
-                        ? const BorderSide(color: Color(0xFFEF4444), width: 1.5)
+                        ? const BorderSide(color: AppColors.error, width: 1.5)
                         : BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
                       color: _validationError != null
-                          ? const Color(0xFFEF4444)
-                          : const Color(0xFFF43F5E),
+                          ? AppColors.error
+                          : AppColors.primary,
                       width: 1.5,
                     ),
                   ),
@@ -511,7 +511,7 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Text(
                   _validationError!,
                   style: const TextStyle(
-                    color: Color(0xFFEF4444),
+                    color: AppColors.error,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -606,7 +606,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -614,8 +614,8 @@ class _LoginScreenState extends State<LoginScreen>
         textAlign: TextAlign.center,
         style: TextStyle(
           color: _message!.contains('Check your email')
-              ? const Color(0xFF22C55E)
-              : const Color(0xFFF59E0B),
+              ? AppColors.success
+              : AppColors.warning,
           fontSize: 14,
         ),
       ),
@@ -650,12 +650,12 @@ class _DomainChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFFF43F5E).withValues(alpha: 0.15)
-              : const Color(0xFF1E293B),
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(100), // Pill shape
           border: Border.all(
             color:
-                isSelected ? const Color(0xFFF43F5E) : const Color(0xFF334155),
+                isSelected ? AppColors.primary : AppColors.surfaceOverlay,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -664,9 +664,9 @@ class _DomainChip extends StatelessWidget {
           style: TextStyle(
             color: isEnabled
                 ? (isSelected
-                    ? const Color(0xFFFB7185)
-                    : const Color(0xFF94A3B8))
-                : const Color(0xFF475569),
+                    ? AppColors.primaryLight
+                    : AppColors.textSecondary)
+                : AppColors.textMuted,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),

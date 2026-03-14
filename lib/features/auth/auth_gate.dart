@@ -15,6 +15,7 @@ import '../shell/no_band_shell.dart';
 import 'auth_state_provider.dart';
 import 'login_screen.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 // Re-export supabase client for backward compatibility
 export '../../app/services/supabase_client.dart';
@@ -355,9 +356,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // Show loading while initializing
     if (!_initialized) {
       return const Scaffold(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -385,9 +386,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
         });
         // Show loading while we sync instead of login screen
         return const Scaffold(
-          backgroundColor: Color(0xFF1E1E1E),
+          backgroundColor: AppColors.background,
           body: Center(
-            child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
         );
       }
@@ -415,12 +416,12 @@ class _AuthGateState extends ConsumerState<AuthGate>
         _checkingProfile ||
         _processingPendingInvite) {
       return Scaffold(
-        backgroundColor: const Color(0xFF1E1E1E),
+        backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: Color(0xFF3B82F6)),
+              const CircularProgressIndicator(color: AppColors.primary),
               if (_processingPendingInvite) ...[
                 const SizedBox(height: 16),
                 const Text(
@@ -454,9 +455,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // Still loading bands
     if (bandState.isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
       );
     }
@@ -494,7 +495,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
             child: Material(
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
-              color: const Color(0xFF22C55E),
+              color: AppColors.success,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,

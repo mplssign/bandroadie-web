@@ -363,8 +363,8 @@ class _ResponseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isPositive
-        ? const Color(0xFF22C55E) // green-500
-        : const Color(0xFFEF4444); // red-500
+        ? AppColors.success // green-500
+        : AppColors.error; // red-500
 
     // Wrap with AnimatedPressable for subtle press feedback
     return AnimatedPressable(

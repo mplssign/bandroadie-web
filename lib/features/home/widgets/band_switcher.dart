@@ -23,14 +23,14 @@ class _BandSwitcherTokens {
   static const double drawerMaxWidth = 400.0;
 
   // Colors - Figma exact
-  static const Color background = Color(0xFF020617); // gray-950
-  static const Color divider = Color(0xFF1E293B); // gray-800
-  static const Color iconDefault = Color(0xFFFFFFFF); // white
+  static const Color background = AppColors.background;
+  static const Color divider = AppColors.surface; // gray-800
+  static const Color iconDefault = AppColors.textPrimary; // white
   static const Color pressedBg = Color(0x14FFFFFF); // ~8% white
 
   // Selected band row - solid background with visible top/bottom borders
-  static const Color selectedBackground = Color(0xFF1E293B); // gray-800
-  static const Color selectedBorderColor = Color(0xFF334155); // gray-700
+  static const Color selectedBackground = AppColors.surface; // gray-800
+  static const Color selectedBorderColor = AppColors.surfaceOverlay; // gray-700
 
   // Header padding - Figma: pt 12, pr 12, pb 16, pl 24
   static const EdgeInsets headerPadding = EdgeInsets.only(

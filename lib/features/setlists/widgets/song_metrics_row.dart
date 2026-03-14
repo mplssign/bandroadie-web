@@ -115,7 +115,7 @@ class SongMetricsRow extends StatelessWidget {
       displayText: formattedBpm,
       isPlaceholder: isBpmPlaceholder,
       onTap: isBpmPlaceholder ? null : onBpmTap,
-      backgroundColor: const Color(0xFF2C2C2C),
+      backgroundColor: AppColors.surfaceElevated,
     );
   }
 
@@ -127,7 +127,7 @@ class SongMetricsRow extends StatelessWidget {
       displayText: displayText,
       isPlaceholder: isPlaceholder,
       onTap: isPlaceholder ? null : onDurationTap,
-      backgroundColor: const Color(0xFF2C2C2C),
+      backgroundColor: AppColors.surfaceElevated,
     );
   }
 

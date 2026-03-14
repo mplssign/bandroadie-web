@@ -123,7 +123,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius), // 16px
                 border: Border.all(
-                  color: const Color(0xFF9CA3AF), // gray-400
+                  color: AppColors.textSecondary,
                   width: 1,
                 ),
               ),

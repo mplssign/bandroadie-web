@@ -20,6 +20,7 @@ import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -217,7 +218,7 @@ class ConfigErrorApp extends StatelessWidget {
       themeMode: ThemeMode.dark,
       darkTheme: AppTheme.darkTheme,
       home: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0A),
+        backgroundColor: AppColors.background,
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -230,13 +231,13 @@ class ConfigErrorApp extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF43F5E).withValues(alpha: 0.15),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       AppIcons.settings,
                       size: 40,
-                      color: Color(0xFFF43F5E),
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -252,22 +253,22 @@ class ConfigErrorApp extends StatelessWidget {
                   const Text(
                     'The roadie can\'t find the venue address.\nCheck your .env file or launch config.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
                   // Technical details
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF334155)),
+                      border: Border.all(color: AppColors.surfaceOverlay),
                     ),
                     child: SingleChildScrollView(
                       child: Text(
                         errorMessage,
                         style: const TextStyle(
-                          color: Color(0xFF94A3B8),
+                          color: AppColors.textSecondary,
                           fontSize: 11,
                           fontFamily: 'monospace',
                         ),

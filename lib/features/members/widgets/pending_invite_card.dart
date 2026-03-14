@@ -78,10 +78,10 @@ class _PendingInviteCardState extends State<PendingInviteCard>
         },
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0B0F14),
+            color: AppColors.background,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF374151), // gray-700
+              color: AppColors.border, // gray-700
               width: 1.5,
             ),
           ),
@@ -94,12 +94,12 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1F2937), // gray-800
+                    color: AppColors.surface, // gray-800
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Icon(
                     AppIcons.email,
-                    color: Color(0xFF9CA3AF), // gray-400
+                    color: AppColors.textSecondary, // gray-400
                     size: 24,
                   ),
                 ),
@@ -118,7 +118,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFF1F5F9),
+                          color: AppColors.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -143,7 +143,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: widget.invite.isExpired
-                                ? const Color(0xFFEF4444) // red-500
+                                ? AppColors.error // red-500
                                 : const Color(0xFFFBBF24), // amber-400
                           ),
                         ),

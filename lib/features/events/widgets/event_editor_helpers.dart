@@ -206,8 +206,8 @@ class AvailabilityButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = isPositive
-        ? const Color(0xFF22C55E) // green-500
-        : const Color(0xFFEF4444); // red-500
+        ? AppColors.success // green-500
+        : AppColors.error; // red-500
 
     final backgroundColor =
         isSelected ? activeColor.withValues(alpha: 0.2) : AppColors.scaffoldBg;

@@ -31,8 +31,8 @@ class SpecialItemCard extends StatelessWidget {
 
   Color get _accentColor {
     return item.isSetBreak
-        ? const Color(0xFFBE123C) // rose
-        : const Color(0xFFF59E0B); // amber
+        ? AppColors.primaryDim // rose
+        : AppColors.warning; // amber
   }
 
   IconData get _icon {

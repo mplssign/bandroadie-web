@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/utils/phone_formatter.dart';
 import '../member_vm.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 // ============================================================================
 // MEMBER CARD
@@ -16,11 +17,11 @@ class _MemberCardTokens {
   _MemberCardTokens._();
 
   // Colors
-  static const Color cardBackground = Color(0xFF0B0F14);
-  static const Color borderRose = Color(0xFFF43F5E); // rose-500
-  static const Color textPrimary = Color(0xFFF1F5F9); // off-white
-  static const Color textSecondary = Color(0xFF9CA3AF); // gray-400
-  static const Color iconRose = Color(0xFFF43F5E);
+  static const Color cardBackground = AppColors.background;
+  static const Color borderRose = AppColors.primary; // rose-500
+  static const Color textPrimary = AppColors.textPrimary;
+  static const Color textSecondary = AppColors.textSecondary;
+  static const Color iconRose = AppColors.primary;
 
   // Sizing
   static const double cardRadius = 24.0;

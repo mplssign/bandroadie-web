@@ -18,12 +18,12 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 class _SettingsTokens {
   _SettingsTokens._();
 
-  static const Color background = Color(0xFF0F172A); // slate-900
-  static const Color cardBackground = Color(0xFF1E293B); // slate-800
-  static const Color divider = Color(0xFF334155); // slate-700
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF94A3B8); // slate-400
-  static const Color destructive = Color(0xFFEF4444); // red-500
+  static const Color background = AppColors.background;
+  static const Color cardBackground = AppColors.surface; // slate-800
+  static const Color divider = AppColors.surfaceOverlay; // slate-700
+  static const Color textPrimary = AppColors.textPrimary;
+  static const Color textSecondary = AppColors.textSecondary; // slate-400
+  static const Color destructive = AppColors.error; // red-500
 }
 
 /// Settings item model for extensibility
