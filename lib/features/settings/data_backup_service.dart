@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../app/services/app_version_service.dart';
 import '../../app/services/supabase_client.dart';
@@ -65,7 +63,7 @@ class DataBackupService {
   // EXPORT
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Export one band's data and trigger a download / share sheet.
+  /// Export one band's data and save it via the native file picker.
   static Future<void> exportBandData(
     String bandId,
     String bandName,
@@ -81,52 +79,35 @@ class DataBackupService {
         .replaceAll(RegExp(r'[^a-z0-9]'), '_')
         .replaceAll(RegExp(r'_+'), '_');
     final now = DateTime.now();
-    final dateStamp =
-        '${now.year}${_pad(now.month)}${_pad(now.day)}';
+    final dateStamp = '${now.year}${_pad(now.month)}${_pad(now.day)}';
     final fileName = 'bandroadie_${safeName}_$dateStamp.json';
 
     final bytes = Uint8List.fromList(utf8.encode(jsonString));
 
     if (kIsWeb) {
-      // Web: trigger browser download
+      // Web: JS blob download
       triggerWebDownload(bytes, fileName);
-    } else if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
-      // Desktop: native save-to-file dialog.
-      // file_picker only supports `bytes` on Windows; on macOS/Linux we get
-      // a path back and write the file ourselves.
-      String? savePath;
-      if (Platform.isWindows) {
-        await FilePicker.platform.saveFile(
-          dialogTitle: 'Save Band Backup',
-          fileName: fileName,
-          type: FileType.custom,
-          allowedExtensions: ['json'],
-          bytes: bytes,
-        );
-        return; // Windows: file_picker writes the bytes directly
-      } else {
-        savePath = await FilePicker.platform.saveFile(
-          dialogTitle: 'Save Band Backup',
-          fileName: fileName,
-          type: FileType.custom,
-          allowedExtensions: ['json'],
-        );
-      }
+    } else if (Platform.isWindows || Platform.isIOS || Platform.isAndroid) {
+      // Windows / iOS / Android: file_picker requires bytes; it handles writing
+      await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Band Backup',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: bytes,
+      );
+    } else {
+      // macOS / Linux: bytes param is unsupported — get path, write ourselves
+      final savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Band Backup',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
       if (savePath == null) throw const DataBackupCancelledException();
       final saveFile = File(savePath);
       await saveFile.parent.create(recursive: true);
       await saveFile.writeAsBytes(bytes);
-    } else {
-      // iOS / Android: share sheet
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$fileName');
-      await file.parent.create(recursive: true);
-      await file.writeAsString(jsonString);
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/json')],
-        subject: 'BandRoadie — $bandName Backup',
-        text: fileName,
-      );
     }
   }
 

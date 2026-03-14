@@ -338,11 +338,44 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     }
   }
 
-  /// Load bands and then select a specific band by ID
-  /// Used after creating a new band to ensure it becomes active
+  /// Load bands and then select a specific band by ID.
+  /// Used after creating a new band to ensure it becomes active.
+  ///
+  /// Performs a single atomic state update to avoid triggering
+  /// cascading provider rebuilds twice (which can cause
+  /// CircularDependencyError in Riverpod 3).
   Future<void> loadAndSelectBand(String bandId) async {
-    await loadUserBands();
-    await selectBandById(bandId);
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      final bands = await _bandRepository.fetchUserBands();
+
+      // Select the requested band, falling back to first
+      Band? selected = bands.where((b) => b.id == bandId).firstOrNull;
+      selected ??= bands.firstOrNull;
+
+      if (selected != null) {
+        await _persistBandId(selected.id);
+      }
+
+      // Single state update — triggers one notification cascade
+      state = state.copyWith(
+        userBands: bands,
+        activeBand: selected,
+        isLoading: false,
+      );
+
+      // Defer side-effects so they run after the cascade completes
+      Future.microtask(() {
+        ref.invalidate(currentUserPermissionsProvider);
+        ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
+      });
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to load bands: $e',
+      );
+    }
   }
 
   /// Refresh band list and update active band if it changed

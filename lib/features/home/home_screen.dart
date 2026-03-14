@@ -321,7 +321,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     if (bandState.isLoading) {
       stateKey = 'loading-bands';
-      stateWidget = _buildLoadingScreen('Tuning up...');
+      stateWidget = _buildLoadingScreen('Setting up the stage...');
     } else if (bandState.error != null) {
       stateKey = 'error-bands';
       stateWidget = _buildErrorScreen(
@@ -333,7 +333,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       stateWidget = const NoBandState();
     } else if (gigState.isLoading) {
       stateKey = 'loading-gigs';
-      stateWidget = _buildLoadingScreen('Loading the setlist...');
+      stateWidget = _buildLoadingScreen('Setting up the stage...');
     } else if (gigState.error != null) {
       stateKey = 'error-gigs';
       stateWidget = _buildErrorScreen(
@@ -653,7 +653,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               backgroundColor: AppColors.cardBg,
               onRefresh: () async {
                 ref.invalidate(bandFullStateProvider);
-                await ref.read(bandFullStateProvider.future);
+                final bandId = ref.read(activeBandIdProvider);
+                await Future.wait([
+                  ref.read(bandFullStateProvider.future),
+                  ref.read(gigProvider.notifier).refresh(),
+                  ref.read(rehearsalProvider.notifier).refresh(),
+                  if (bandId != null)
+                    ref.read(calendarProvider.notifier).invalidateAndRefresh(bandId: bandId),
+                ]);
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(

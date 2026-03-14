@@ -328,7 +328,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
               ),
               const SizedBox(height: Spacing.space24),
               Text(
-                'Loading setlists...',
+                'Setting up the stage...',
                 style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
               ),
             ],

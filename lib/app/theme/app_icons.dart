@@ -120,6 +120,7 @@ class AppIcons {
   static const IconData download = LucideIcons.download;
   static const IconData upload = LucideIcons.upload;
   static const IconData database = LucideIcons.database;
+  static const IconData rotateCcw = LucideIcons.rotateCcw;
 
   static const IconData bug = LucideIcons.bug;
   static const IconData terminal = LucideIcons.terminal;
