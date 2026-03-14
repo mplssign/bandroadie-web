@@ -25,7 +25,6 @@ import '../settings/data_backup_service.dart';
 import '../gigs/gig_controller.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../setlists/setlists_screen.dart';
-import '../calendar/calendar_controller.dart';
 import 'band_full_state.dart';
 
 // ============================================================================
@@ -554,7 +553,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
-                    color: AppColors.textMuted.withOpacity(0.4),
+                    color: AppColors.textMuted.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -586,7 +585,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                       VerticalDivider(
                         width: 28,
                         thickness: 1,
-                        color: AppColors.textMuted.withOpacity(0.2),
+                        color: AppColors.textMuted.withValues(alpha: 0.2),
                       ),
                       // ── Restore side ─────────────────────────────────
                       Expanded(
@@ -626,7 +625,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     await _performExport(band.id, band.name);
   }
 
-  Future<void> _showExportDialog() async {
+  // ignore: unused_element
+Future<void> _showExportDialog() async {
     final band = widget.initialBand;
     if (band == null) return;
 
@@ -2770,7 +2770,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: BorderSide(
-                        color: AppColors.primary.withOpacity(0.6), width: 1),
+                        color: AppColors.primary.withValues(alpha: 0.6), width: 1),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(
@@ -3057,7 +3057,7 @@ class _BackupSheetPanel extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
             side:
-                BorderSide(color: AppColors.primary.withOpacity(0.6), width: 1),
+                BorderSide(color: AppColors.primary.withValues(alpha: 0.6), width: 1),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
