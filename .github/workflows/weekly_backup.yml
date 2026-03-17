@@ -21,9 +21,9 @@ jobs:
           DUMP_FILE="$(date +'%m_%d_%Y').dump"
 
           pg_dump \
-            --host=db.nekwjxvgbveheooyorjo.supabase.co \
+            --host=aws-0-us-east-2.pooler.supabase.com \
             --port=5432 \
-            --username=postgres \
+            --username=postgres.nekwjxvgbveheooyorjo \
             --dbname=postgres \
             --format=custom \
             --no-owner \
