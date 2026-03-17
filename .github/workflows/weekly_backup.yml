@@ -1,0 +1,73 @@
+name: Weekly Database Backup
+
+on:
+  schedule:
+    - cron: '0 10 * * 0'   # Every Sunday at 10:00 AM UTC
+  workflow_dispatch:        # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          DUMP_FILE="$(date +'%m_%d_%Y').dump"
+
+          pg_dump \
+            --host=db.nekwjxvgbveheooyorjo.supabase.co \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            --format=custom \
+            --no-owner \
+            --no-privileges \
+            --file="$DUMP_FILE"
+
+          echo "DUMP_FILE=$DUMP_FILE" >> $GITHUB_ENV
+          echo "Backup complete: $DUMP_FILE ($(du -sh $DUMP_FILE | cut -f1))"
+
+      - name: Upload to Google Drive
+        env:
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          pip install --quiet google-api-python-client google-auth
+
+          python3 - <<EOF
+          import os, json
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
+          from google.oauth2 import service_account
+
+          creds_json = json.loads(os.environ["GDRIVE_SERVICE_ACCOUNT_JSON"])
+          creds = service_account.Credentials.from_service_account_info(
+              creds_json,
+              scopes=["https://www.googleapis.com/auth/drive"]
+          )
+
+          service = build("drive", "v3", credentials=creds)
+          dump_file = os.environ["DUMP_FILE"]
+          folder_id = "1pPVABUr3LBU3FjshMhDCuql6kXyBQl2N"
+
+          # Delete existing file with same name (avoid duplicates)
+          existing = service.files().list(
+              q=f"name='{dump_file}' and '{folder_id}' in parents and trashed=false",
+              fields="files(id, name)"
+          ).execute().get("files", [])
+          for f in existing:
+              service.files().delete(fileId=f["id"]).execute()
+              print(f"Deleted existing: {f['name']}")
+
+          # Upload new dump
+          metadata = {"name": dump_file, "parents": [folder_id]}
+          media = MediaFileUpload(dump_file, mimetype="application/octet-stream", resumable=True)
+          uploaded = service.files().create(body=metadata, media_body=media, fields="id,name,size").execute()
+
+          print(f"Uploaded: {uploaded['name']} ({int(uploaded.get('size', 0)) // 1024} KB)")
+          EOF
