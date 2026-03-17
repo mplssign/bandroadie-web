@@ -12,7 +12,7 @@ jobs:
     steps:
 
       - name: Install PostgreSQL client
-        run: sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client-17
 
       - name: Run pg_dump
         env:
