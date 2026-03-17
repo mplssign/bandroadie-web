@@ -21,14 +21,13 @@ jobs:
           DUMP_FILE="$(date +'%m_%d_%Y').dump"
 
           pg_dump \
-            --host=aws-0-us-east-2.pooler.supabase.com \
-            --port=6543 \
+            --host=aws-1-us-east-2.pooler.supabase.com \
+            --port=5432 \
             --username=postgres.nekwjxvgbveheooyorjo \
             --dbname=postgres \
             --format=custom \
             --no-owner \
             --no-privileges \
-            --no-blobs \
             --file="$DUMP_FILE"
 
           echo "DUMP_FILE=$DUMP_FILE" >> $GITHUB_ENV
