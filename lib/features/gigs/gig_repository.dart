@@ -1,5 +1,6 @@
 import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
+import 'package:bandroadie/app/utils/timezone_helper.dart';
 
 // ============================================================================
 // GIG REPOSITORY
@@ -63,7 +64,8 @@ class GigRepository {
 
   /// Fetches only potential (unconfirmed) gigs for the specified band.
   /// For dashboard display, filters to only show gigs with end time in the future.
-  Future<List<Gig>> fetchPotentialGigs(String? bandId) async {
+  Future<List<Gig>> fetchPotentialGigs(String? bandId,
+      {String? bandTimezone}) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError();
     }
@@ -80,16 +82,10 @@ class GigRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
+    final tz = bandTimezone ?? 'America/Chicago';
     final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
       try {
-        // Combine date and end time to get the actual end DateTime
-        final endDateTime = DateTime(
-          gig.date.year,
-          gig.date.month,
-          gig.date.day,
-          int.parse(gig.endTime.split(':')[0]),
-          int.parse(gig.endTime.split(':')[1]),
-        ).toUtc();
+        final endDateTime = TimezoneHelper.toUtc(gig.date, gig.endTime, tz);
         return endDateTime.isAfter(now);
       } catch (e) {
         // If parsing fails, include the gig to be safe
@@ -102,7 +98,8 @@ class GigRepository {
 
   /// Fetches only confirmed gigs for the specified band.
   /// For dashboard display, filters to only show gigs with end time in the future.
-  Future<List<Gig>> fetchConfirmedGigs(String? bandId) async {
+  Future<List<Gig>> fetchConfirmedGigs(String? bandId,
+      {String? bandTimezone}) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError();
     }
@@ -119,16 +116,10 @@ class GigRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
+    final tz = bandTimezone ?? 'America/Chicago';
     final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
       try {
-        // Combine date and end time to get the actual end DateTime
-        final endDateTime = DateTime(
-          gig.date.year,
-          gig.date.month,
-          gig.date.day,
-          int.parse(gig.endTime.split(':')[0]),
-          int.parse(gig.endTime.split(':')[1]),
-        ).toUtc();
+        final endDateTime = TimezoneHelper.toUtc(gig.date, gig.endTime, tz);
         return endDateTime.isAfter(now);
       } catch (e) {
         // If parsing fails, include the gig to be safe
@@ -141,7 +132,8 @@ class GigRepository {
 
   /// Fetches upcoming gigs (end time in the future) for the specified band.
   /// Filters based on end time to ensure past gigs don't appear.
-  Future<List<Gig>> fetchUpcomingGigs(String? bandId) async {
+  Future<List<Gig>> fetchUpcomingGigs(String? bandId,
+      {String? bandTimezone}) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError();
     }
@@ -157,16 +149,10 @@ class GigRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
+    final tz = bandTimezone ?? 'America/Chicago';
     final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
       try {
-        // Combine date and end time to get the actual end DateTime
-        final endDateTime = DateTime(
-          gig.date.year,
-          gig.date.month,
-          gig.date.day,
-          int.parse(gig.endTime.split(':')[0]),
-          int.parse(gig.endTime.split(':')[1]),
-        ).toUtc();
+        final endDateTime = TimezoneHelper.toUtc(gig.date, gig.endTime, tz);
         return endDateTime.isAfter(now);
       } catch (e) {
         // If parsing fails, include the gig to be safe

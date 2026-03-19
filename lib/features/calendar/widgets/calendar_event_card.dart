@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/utils/time_formatter.dart';
 import '../models/calendar_event.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -15,9 +16,15 @@ const _kCardBorderColor = AppColors.surfaceOverlay;
 
 class CalendarEventCard extends StatefulWidget {
   final CalendarEvent event;
+  final String bandTimezone;
   final VoidCallback? onTap;
 
-  const CalendarEventCard({super.key, required this.event, this.onTap});
+  const CalendarEventCard({
+    super.key,
+    required this.event,
+    required this.bandTimezone,
+    this.onTap,
+  });
 
   @override
   State<CalendarEventCard> createState() => _CalendarEventCardState();
@@ -162,9 +169,14 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                               overflow: TextOverflow.ellipsis,
                             ),
                         ] else ...[
-                          // Time - 12-hour format (stored as "7:30 PM - 10:00 PM" in DB)
+                          // Time - 12-hour format, converted to viewer's local timezone
                           Text(
-                            widget.event.timeRange,
+                            TimeFormatter.formatRangeLocal(
+                              widget.event.startTime,
+                              widget.event.endTime,
+                              widget.event.date,
+                              widget.bandTimezone,
+                            ),
                             style: AppTextStyles.callout.copyWith(
                               color: AppColors.textSecondary,
                               fontSize: 14,

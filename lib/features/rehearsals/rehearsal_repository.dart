@@ -1,5 +1,6 @@
 import 'package:bandroadie/app/models/rehearsal.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
+import 'package:bandroadie/app/utils/timezone_helper.dart';
 import '../gigs/gig_repository.dart';
 
 // ============================================================================
@@ -37,7 +38,8 @@ class RehearsalRepository {
 
   /// Fetches upcoming rehearsals (end time in the future) for the specified band.
   /// Filters based on end time to ensure past rehearsals don't appear.
-  Future<List<Rehearsal>> fetchUpcomingRehearsals(String? bandId) async {
+  Future<List<Rehearsal>> fetchUpcomingRehearsals(String? bandId,
+      {String? bandTimezone}) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError(
         'Cannot fetch rehearsals without a band context.',
@@ -55,32 +57,30 @@ class RehearsalRepository {
 
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
+    final tz = bandTimezone ?? 'America/Chicago';
     final rehearsals = response
         .map<Rehearsal>((json) => Rehearsal.fromJson(json))
         .where((rehearsal) {
-          try {
-            // Combine date and end time to get the actual end DateTime
-            final endDateTime = DateTime(
-              rehearsal.date.year,
-              rehearsal.date.month,
-              rehearsal.date.day,
-              int.parse(rehearsal.endTime.split(':')[0]),
-              int.parse(rehearsal.endTime.split(':')[1]),
-            ).toUtc();
-            return endDateTime.isAfter(now);
-          } catch (e) {
-            // If parsing fails, include the rehearsal to be safe
-            return true;
-          }
-        })
-        .toList();
+      try {
+        final endDateTime = TimezoneHelper.toUtc(
+          rehearsal.date,
+          rehearsal.endTime,
+          tz,
+        );
+        return endDateTime.isAfter(now);
+      } catch (e) {
+        // If parsing fails, include the rehearsal to be safe
+        return true;
+      }
+    }).toList();
 
     return rehearsals;
   }
 
   /// Fetches the next upcoming rehearsal for the specified band.
   /// Returns the first rehearsal with an end time in the future.
-  Future<Rehearsal?> fetchNextRehearsal(String? bandId) async {
+  Future<Rehearsal?> fetchNextRehearsal(String? bandId,
+      {String? bandTimezone}) async {
     if (bandId == null || bandId.isEmpty) {
       throw NoBandSelectedError(
         'Cannot fetch rehearsals without a band context.',
@@ -98,20 +98,17 @@ class RehearsalRepository {
         .order('date', ascending: true);
 
     // Filter to find the first rehearsal with end time in the future
-    final rehearsals = response
-        .map<Rehearsal>((json) => Rehearsal.fromJson(json))
-        .toList();
+    final tz = bandTimezone ?? 'America/Chicago';
+    final rehearsals =
+        response.map<Rehearsal>((json) => Rehearsal.fromJson(json)).toList();
 
     for (final rehearsal in rehearsals) {
       try {
-        // Combine date and end time to get the actual end DateTime
-        final endDateTime = DateTime(
-          rehearsal.date.year,
-          rehearsal.date.month,
-          rehearsal.date.day,
-          int.parse(rehearsal.endTime.split(':')[0]),
-          int.parse(rehearsal.endTime.split(':')[1]),
-        ).toUtc();
+        final endDateTime = TimezoneHelper.toUtc(
+          rehearsal.date,
+          rehearsal.endTime,
+          tz,
+        );
 
         if (endDateTime.isAfter(now)) {
           return rehearsal;

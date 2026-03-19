@@ -21,9 +21,13 @@ import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/utils/timezone_helper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize timezone database for local time display conversion
+  TimezoneHelper.initialize();
 
   // Use path-based URLs instead of hash-based URLs on web
   // This allows /app to work instead of requiring /#/app
@@ -253,7 +257,8 @@ class ConfigErrorApp extends StatelessWidget {
                   const Text(
                     'The roadie can\'t find the venue address.\nCheck your .env file or launch config.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
                   // Technical details

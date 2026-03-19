@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/models/rehearsal.dart';
+import 'package:bandroadie/app/utils/timezone_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/band_full_state.dart';
 import '../gigs/gig_repository.dart';
@@ -97,7 +98,8 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
         debugPrint(
           '[RehearsalController] RPC data received for band $bandId -> ${fullState.rehearsals.length} rehearsals',
         );
-        return _categorizeRehearsals(fullState.rehearsals, bandId);
+        return _categorizeRehearsals(
+            fullState.rehearsals, bandId, fullState.band.timezone);
       },
       loading: () => const RehearsalState(isLoading: true),
       error: (e, stackTrace) {
@@ -122,6 +124,7 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
   RehearsalState _categorizeRehearsals(
     List<Rehearsal> allRehearsals,
     String bandId,
+    String bandTimezone,
   ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -130,7 +133,7 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
     // Upcoming: date >= today AND end time in the future
     final upcomingRehearsals = allRehearsals.where((rehearsal) {
       if (rehearsal.date.isBefore(today)) return false;
-      return _isEndTimeInFuture(rehearsal, nowUtc);
+      return _isEndTimeInFuture(rehearsal, nowUtc, bandTimezone);
     }).toList();
 
     // Next rehearsal: first upcoming
@@ -147,15 +150,14 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
   }
 
   /// Check if a rehearsal's end time is still in the future
-  bool _isEndTimeInFuture(Rehearsal rehearsal, DateTime nowUtc) {
+  bool _isEndTimeInFuture(
+      Rehearsal rehearsal, DateTime nowUtc, String bandTimezone) {
     try {
-      final endDateTime = DateTime(
-        rehearsal.date.year,
-        rehearsal.date.month,
-        rehearsal.date.day,
-        int.parse(rehearsal.endTime.split(':')[0]),
-        int.parse(rehearsal.endTime.split(':')[1]),
-      ).toUtc();
+      final endDateTime = TimezoneHelper.toUtc(
+        rehearsal.date,
+        rehearsal.endTime,
+        bandTimezone,
+      );
       return endDateTime.isAfter(nowUtc);
     } catch (e) {
       // If parsing fails, include the rehearsal to be safe
@@ -180,7 +182,9 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
 
     try {
       final allRehearsals = await _repository.fetchRehearsalsForBand(bandId);
-      state = _categorizeRehearsals(allRehearsals, bandId);
+      final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago';
+      state = _categorizeRehearsals(allRehearsals, bandId, bandTimezone);
 
       debugPrint(
         '[RehearsalController] refresh for band $bandId -> ${allRehearsals.length} rehearsals, error=null',

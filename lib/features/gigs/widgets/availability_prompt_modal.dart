@@ -22,11 +22,13 @@ enum AvailabilityResponse { yes, no }
 
 class AvailabilityPromptModal extends StatefulWidget {
   final PendingPotentialGig gig;
+  final String bandTimezone;
   final Future<void> Function(AvailabilityResponse response) onRespond;
 
   const AvailabilityPromptModal({
     super.key,
     required this.gig,
+    required this.bandTimezone,
     required this.onRespond,
   });
 
@@ -35,14 +37,18 @@ class AvailabilityPromptModal extends StatefulWidget {
   static Future<AvailabilityResponse?> show(
     BuildContext context, {
     required PendingPotentialGig gig,
+    required String bandTimezone,
     required Future<void> Function(AvailabilityResponse response) onRespond,
   }) {
     return showDialog<AvailabilityResponse>(
       context: context,
       barrierDismissible: false, // Cannot tap outside to dismiss
       barrierColor: Colors.black.withValues(alpha: 0.85),
-      builder: (context) =>
-          AvailabilityPromptModal(gig: gig, onRespond: onRespond),
+      builder: (context) => AvailabilityPromptModal(
+        gig: gig,
+        bandTimezone: bandTimezone,
+        onRespond: onRespond,
+      ),
     );
   }
 
@@ -213,9 +219,11 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     // Time
                     _DetailRow(
                       icon: AppIcons.clock,
-                      label: TimeFormatter.formatRange(
+                      label: TimeFormatter.formatRangeLocal(
                         widget.gig.startTime,
                         widget.gig.endTime,
+                        widget.gig.date,
+                        widget.bandTimezone,
                       ),
                     ),
 

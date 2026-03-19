@@ -18,6 +18,7 @@ import '../../../app/utils/time_formatter.dart';
 
 class PotentialGigCard extends StatefulWidget {
   final Gig gig;
+  final String bandTimezone;
   final VoidCallback? onTap;
 
   /// Optional fixed width for horizontal scroll mode
@@ -26,6 +27,7 @@ class PotentialGigCard extends StatefulWidget {
   const PotentialGigCard({
     super.key,
     required this.gig,
+    required this.bandTimezone,
     this.onTap,
     this.width,
   });
@@ -49,39 +51,37 @@ class _PotentialGigCardState extends State<PotentialGigCard>
       vsync: this,
     )..repeat(reverse: true);
 
-    _beginAlignment =
-        TweenSequence<Alignment>([
-          TweenSequenceItem(
-            tween: Tween(begin: Alignment.centerLeft, end: Alignment.topLeft),
-            weight: 1,
-          ),
-          TweenSequenceItem(
-            tween: Tween(begin: Alignment.topLeft, end: Alignment.topCenter),
-            weight: 1,
-          ),
-        ]).animate(
-          CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
-        );
+    _beginAlignment = TweenSequence<Alignment>([
+      TweenSequenceItem(
+        tween: Tween(begin: Alignment.centerLeft, end: Alignment.topLeft),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: Alignment.topLeft, end: Alignment.topCenter),
+        weight: 1,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
+    );
 
-    _endAlignment =
-        TweenSequence<Alignment>([
-          TweenSequenceItem(
-            tween: Tween(
-              begin: Alignment.centerRight,
-              end: Alignment.bottomRight,
-            ),
-            weight: 1,
-          ),
-          TweenSequenceItem(
-            tween: Tween(
-              begin: Alignment.bottomRight,
-              end: Alignment.bottomCenter,
-            ),
-            weight: 1,
-          ),
-        ]).animate(
-          CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
-        );
+    _endAlignment = TweenSequence<Alignment>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: Alignment.centerRight,
+          end: Alignment.bottomRight,
+        ),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: Alignment.bottomRight,
+          end: Alignment.bottomCenter,
+        ),
+        weight: 1,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -176,9 +176,11 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                               Text(
                                 widget.gig.isMultiDate
                                     ? _formatMultiDateRange(widget.gig.allDates)
-                                    : TimeFormatter.formatRange(
+                                    : TimeFormatter.formatRangeLocal(
                                         widget.gig.startTime,
                                         widget.gig.endTime,
+                                        widget.gig.date,
+                                        widget.bandTimezone,
                                       ),
                                 style: const TextStyle(
                                   fontSize: 15,

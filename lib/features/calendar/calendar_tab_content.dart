@@ -162,6 +162,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       context,
       date: date,
       events: eventsForDay,
+      bandTimezone: ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago',
       onEventTap: (event) {
         Navigator.of(context).pop(); // Close bottom sheet
         _openEditEventSheet(event);
@@ -435,6 +437,9 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
             // This Month's Events section
             _EventsSection(
               events: calendarState.eventsForMonth,
+              bandTimezone:
+                  ref.watch(activeBandProvider).activeBand?.timezone ??
+                      'America/Chicago',
               onEventTap: _openEditEventSheet,
             ),
 
@@ -462,9 +467,11 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
 class _EventsSection extends StatelessWidget {
   final List<CalendarEvent> events;
+  final String bandTimezone;
   final void Function(CalendarEvent event)? onEventTap;
 
-  const _EventsSection({required this.events, this.onEventTap});
+  const _EventsSection(
+      {required this.events, required this.bandTimezone, this.onEventTap});
 
   @override
   Widget build(BuildContext context) {
@@ -508,6 +515,7 @@ class _EventsSection extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: Spacing.space12),
               child: CalendarEventCard(
                 event: event,
+                bandTimezone: bandTimezone,
                 onTap: () => onEventTap?.call(event),
               ),
             ),

@@ -9,6 +9,8 @@
 
 import 'package:flutter/foundation.dart';
 
+import 'timezone_helper.dart';
+
 /// Parsed time components in 12-hour format.
 class ParsedTime {
   final int hour; // 1-12
@@ -113,6 +115,38 @@ class TimeFormatter {
     final start = parse(startTime);
     final end = parse(endTime);
     return '${start.format()} - ${end.format()}';
+  }
+
+  /// Format a time range converting from band timezone to device local timezone.
+  ///
+  /// Falls back to [formatRange] if conversion fails.
+  static String formatRangeLocal(
+    String? startTime,
+    String? endTime,
+    DateTime date,
+    String bandTimezone,
+  ) {
+    try {
+      if (startTime == null || endTime == null) {
+        return formatRange(startTime, endTime);
+      }
+
+      final localStart = TimezoneHelper.toLocal(date, startTime, bandTimezone);
+      final localEnd = TimezoneHelper.toLocal(date, endTime, bandTimezone);
+
+      String formatLocal(DateTime dt) {
+        int hour = dt.hour % 12;
+        if (hour == 0) hour = 12;
+        final minStr = dt.minute.toString().padLeft(2, '0');
+        final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+        return '$hour:$minStr $amPm';
+      }
+
+      return '${formatLocal(localStart)} - ${formatLocal(localEnd)}';
+    } catch (e) {
+      debugPrint('[TimeFormatter] formatRangeLocal failed: $e, using fallback');
+      return formatRange(startTime, endTime);
+    }
   }
 
   /// Calculate duration in minutes between two time strings.

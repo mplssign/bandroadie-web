@@ -14,6 +14,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 class DayDetailBottomSheet extends StatelessWidget {
   final DateTime date;
   final List<CalendarEvent> events;
+  final String bandTimezone;
   final void Function(CalendarEvent event)? onEventTap;
   final VoidCallback? onAddEvent;
 
@@ -21,6 +22,7 @@ class DayDetailBottomSheet extends StatelessWidget {
     super.key,
     required this.date,
     required this.events,
+    required this.bandTimezone,
     this.onEventTap,
     this.onAddEvent,
   });
@@ -30,6 +32,7 @@ class DayDetailBottomSheet extends StatelessWidget {
     BuildContext context, {
     required DateTime date,
     required List<CalendarEvent> events,
+    required String bandTimezone,
     void Function(CalendarEvent event)? onEventTap,
     VoidCallback? onAddEvent,
   }) {
@@ -40,6 +43,7 @@ class DayDetailBottomSheet extends StatelessWidget {
       builder: (context) => DayDetailBottomSheet(
         date: date,
         events: events,
+        bandTimezone: bandTimezone,
         onEventTap: onEventTap,
         onAddEvent: onAddEvent,
       ),
@@ -184,6 +188,7 @@ class DayDetailBottomSheet extends StatelessWidget {
                       final event = events[index];
                       return CalendarEventCard(
                         event: event,
+                        bandTimezone: bandTimezone,
                         onTap: () => onEventTap?.call(event),
                       );
                     },

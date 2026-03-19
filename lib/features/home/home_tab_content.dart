@@ -669,6 +669,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                             return RehearsalCard(
                                               rehearsal: nextRehearsal,
                                               setlistName: setlistName,
+                                              bandTimezone: ref
+                                                      .watch(activeBandProvider)
+                                                      .activeBand
+                                                      ?.timezone ??
+                                                  'America/Chicago',
                                               onTap: () =>
                                                   _openEditRehearsalSheet(
                                                 nextRehearsal,
@@ -817,6 +822,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
           return PotentialGigCard(
             gig: gig,
             width: Spacing.potentialGigCardWidth,
+            bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
+                'America/Chicago',
             onTap: () => _openEditGigSheet(gig),
           );
         },
@@ -842,6 +849,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
           return ConfirmedGigCard(
             gig: gig,
             index: index,
+            bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
+                'America/Chicago',
             onTap: () => _openEditGigSheet(gig),
           );
         },
