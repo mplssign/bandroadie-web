@@ -635,6 +635,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required bool isContributor,
   }) {
     final activeBand = bandState.activeBand;
+    final bandTimezone = activeBand?.timezone ?? 'America/Chicago';
     final potentialGig = gigState.nextPotentialGig;
     final upcomingGig = gigState.nextConfirmedGig;
     final nextRehearsal = rehearsalState.nextRehearsal;
@@ -659,7 +660,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ref.read(gigProvider.notifier).refresh(),
                   ref.read(rehearsalProvider.notifier).refresh(),
                   if (bandId != null)
-                    ref.read(calendarProvider.notifier).invalidateAndRefresh(bandId: bandId),
+                    ref
+                        .read(calendarProvider.notifier)
+                        .invalidateAndRefresh(bandId: bandId),
                 ]);
               },
               child: CustomScrollView(
@@ -695,6 +698,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   delay: const Duration(milliseconds: 0),
                                   child: PotentialGigCard(
                                     gig: potentialGig,
+                                    bandTimezone: bandTimezone,
                                     onTap: () =>
                                         _openEditGigSheet(potentialGig),
                                   ),
@@ -723,6 +727,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           }
                                           return RehearsalCard(
                                             rehearsal: nextRehearsal,
+                                            bandTimezone: bandTimezone,
                                             setlistName: setlistName,
                                             onTap: () =>
                                                 _openEditRehearsalSheet(
@@ -750,7 +755,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               _AnimatedCardEntrance(
                                 delay: const Duration(milliseconds: 160),
                                 child: upcomingGig != null
-                                    ? _buildHorizontalGigsList(gigState)
+                                    ? _buildHorizontalGigsList(
+                                        gigState, bandTimezone)
                                     : EmptySectionCard(
                                         title: 'No Gigs Booked',
                                         subtitle:
@@ -841,7 +847,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// Horizontally scrollable list of gig cards
-  Widget _buildHorizontalGigsList(GigState gigState) {
+  Widget _buildHorizontalGigsList(GigState gigState, String bandTimezone) {
     final confirmedGigs = gigState.confirmedGigs;
     if (confirmedGigs.isEmpty) {
       return const SizedBox.shrink();
@@ -858,6 +864,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           final gig = confirmedGigs[index];
           return ConfirmedGigCard(
             gig: gig,
+            bandTimezone: bandTimezone,
             index: index,
             onTap: () => _openEditGigSheet(gig),
           );

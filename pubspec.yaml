@@ -58,6 +58,9 @@ dependencies:
   app_links: ^6.4.1
   lucide_flutter: ^0.575.0
 
+  # Timezone
+  timezone: ^0.10.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

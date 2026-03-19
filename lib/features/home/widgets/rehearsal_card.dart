@@ -20,12 +20,14 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 
 class RehearsalCard extends StatefulWidget {
   final Rehearsal rehearsal;
+  final String bandTimezone;
   final VoidCallback? onTap;
   final String? setlistName;
 
   const RehearsalCard({
     super.key,
     required this.rehearsal,
+    required this.bandTimezone,
     this.onTap,
     this.setlistName,
   });
@@ -49,39 +51,37 @@ class _RehearsalCardState extends State<RehearsalCard>
       vsync: this,
     )..repeat(reverse: true);
 
-    _beginAlignment =
-        TweenSequence<Alignment>([
-          TweenSequenceItem(
-            tween: Tween(begin: Alignment.centerLeft, end: Alignment.topLeft),
-            weight: 1,
-          ),
-          TweenSequenceItem(
-            tween: Tween(begin: Alignment.topLeft, end: Alignment.topCenter),
-            weight: 1,
-          ),
-        ]).animate(
-          CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
-        );
+    _beginAlignment = TweenSequence<Alignment>([
+      TweenSequenceItem(
+        tween: Tween(begin: Alignment.centerLeft, end: Alignment.topLeft),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: Alignment.topLeft, end: Alignment.topCenter),
+        weight: 1,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
+    );
 
-    _endAlignment =
-        TweenSequence<Alignment>([
-          TweenSequenceItem(
-            tween: Tween(
-              begin: Alignment.centerRight,
-              end: Alignment.bottomRight,
-            ),
-            weight: 1,
-          ),
-          TweenSequenceItem(
-            tween: Tween(
-              begin: Alignment.bottomRight,
-              end: Alignment.bottomCenter,
-            ),
-            weight: 1,
-          ),
-        ]).animate(
-          CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
-        );
+    _endAlignment = TweenSequence<Alignment>([
+      TweenSequenceItem(
+        tween: Tween(
+          begin: Alignment.centerRight,
+          end: Alignment.bottomRight,
+        ),
+        weight: 1,
+      ),
+      TweenSequenceItem(
+        tween: Tween(
+          begin: Alignment.bottomRight,
+          end: Alignment.bottomCenter,
+        ),
+        weight: 1,
+      ),
+    ]).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -263,6 +263,11 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   /// Format the time line using TimeFormatter for start-end range
   String _formatTimeLine(Rehearsal rehearsal) {
-    return TimeFormatter.formatRange(rehearsal.startTime, rehearsal.endTime);
+    return TimeFormatter.formatRangeLocal(
+      rehearsal.startTime,
+      rehearsal.endTime,
+      rehearsal.date,
+      widget.bandTimezone,
+    );
   }
 }

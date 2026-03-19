@@ -16,12 +16,14 @@ import '../../../app/utils/time_formatter.dart';
 
 class ConfirmedGigCard extends StatefulWidget {
   final Gig gig;
+  final String bandTimezone;
   final VoidCallback? onTap;
   final int index; // Used to create unique random speed per card
 
   const ConfirmedGigCard({
     super.key,
     required this.gig,
+    required this.bandTimezone,
     this.onTap,
     this.index = 0,
   });
@@ -132,9 +134,11 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
 
                 // Time - 16px Callout/Regular, gray-400
                 Text(
-                  TimeFormatter.formatRange(
+                  TimeFormatter.formatRangeLocal(
                     widget.gig.startTime,
                     widget.gig.endTime,
+                    widget.gig.date,
+                    widget.bandTimezone,
                   ),
                   style: const TextStyle(
                     fontSize: 16,

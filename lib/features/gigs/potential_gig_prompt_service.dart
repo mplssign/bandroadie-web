@@ -148,14 +148,17 @@ class PotentialGigPromptNotifier extends Notifier<PotentialGigPromptState> {
       _isShowingModal = true;
       state = state.copyWith(isShowingPrompt: true);
 
+      final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago';
+
       try {
         final response = await AvailabilityPromptModal.show(
           context,
           gig: gig,
+          bandTimezone: bandTimezone,
           onRespond: (response) async {
-            final responseStr = response == AvailabilityResponse.yes
-                ? 'yes'
-                : 'no';
+            final responseStr =
+                response == AvailabilityResponse.yes ? 'yes' : 'no';
             await _repository.upsertResponse(
               gigId: gig.gigId,
               bandId: bandId,
@@ -203,5 +206,5 @@ class PotentialGigPromptNotifier extends Notifier<PotentialGigPromptState> {
 /// Provider for the prompt service
 final potentialGigPromptProvider =
     NotifierProvider<PotentialGigPromptNotifier, PotentialGigPromptState>(
-      PotentialGigPromptNotifier.new,
-    );
+  PotentialGigPromptNotifier.new,
+);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
+import 'package:bandroadie/app/utils/timezone_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/band_full_state.dart';
 import 'gig_repository.dart';
@@ -115,7 +116,7 @@ class GigNotifier extends Notifier<GigState> {
         debugPrint(
           '[GigController] RPC data received for band $bandId -> ${fullState.gigs.length} gigs',
         );
-        return _categorizeGigs(fullState.gigs, bandId);
+        return _categorizeGigs(fullState.gigs, bandId, fullState.band.timezone);
       },
       loading: () => const GigState(isLoading: true),
       error: (e, stackTrace) {
@@ -137,7 +138,8 @@ class GigNotifier extends Notifier<GigState> {
 
   /// Categorize a flat list of gigs into upcoming, potential, confirmed
   /// using the same client-side time filtering as the repository methods.
-  GigState _categorizeGigs(List<Gig> allGigs, String bandId) {
+  GigState _categorizeGigs(
+      List<Gig> allGigs, String bandId, String bandTimezone) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final nowUtc = now.toUtc();
@@ -145,7 +147,7 @@ class GigNotifier extends Notifier<GigState> {
     // Upcoming: date >= today AND end time in the future
     final upcomingGigs = allGigs.where((gig) {
       if (gig.date.isBefore(today)) return false;
-      return _isEndTimeInFuture(gig, nowUtc);
+      return _isEndTimeInFuture(gig, nowUtc, bandTimezone);
     }).toList();
 
     // Potential: upcoming AND is_potential
@@ -166,15 +168,13 @@ class GigNotifier extends Notifier<GigState> {
   }
 
   /// Check if a gig's end time is still in the future
-  bool _isEndTimeInFuture(Gig gig, DateTime nowUtc) {
+  bool _isEndTimeInFuture(Gig gig, DateTime nowUtc, String bandTimezone) {
     try {
-      final endDateTime = DateTime(
-        gig.date.year,
-        gig.date.month,
-        gig.date.day,
-        int.parse(gig.endTime.split(':')[0]),
-        int.parse(gig.endTime.split(':')[1]),
-      ).toUtc();
+      final endDateTime = TimezoneHelper.toUtc(
+        gig.date,
+        gig.endTime,
+        bandTimezone,
+      );
       return endDateTime.isAfter(nowUtc);
     } catch (e) {
       // If parsing fails, include the gig to be safe
@@ -199,7 +199,9 @@ class GigNotifier extends Notifier<GigState> {
 
     try {
       final allGigs = await _repository.fetchGigsForBand(bandId);
-      state = _categorizeGigs(allGigs, bandId);
+      final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago';
+      state = _categorizeGigs(allGigs, bandId, bandTimezone);
 
       debugPrint(
         '[GigController] refresh for band $bandId -> ${allGigs.length} gigs, error=null',
