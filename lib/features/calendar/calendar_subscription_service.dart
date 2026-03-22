@@ -4,8 +4,46 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ============================================================================
 // CALENDAR SUBSCRIPTION SERVICE
-// Manages calendar subscription tokens and URLs for ICS feed access
+// Manages calendar subscription tokens, URLs, and feed preferences.
 // ============================================================================
+
+// ----------------------------------------------------------------------------
+// Feed preferences model
+// ----------------------------------------------------------------------------
+
+class CalendarFeedPreferences {
+  final bool includeGigs;
+  final bool includeRehearsal;
+  final bool includeBlockouts;
+
+  const CalendarFeedPreferences({
+    this.includeGigs = true,
+    this.includeRehearsal = true,
+    this.includeBlockouts = false,
+  });
+
+  CalendarFeedPreferences copyWith({
+    bool? includeGigs,
+    bool? includeRehearsal,
+    bool? includeBlockouts,
+  }) =>
+      CalendarFeedPreferences(
+        includeGigs: includeGigs ?? this.includeGigs,
+        includeRehearsal: includeRehearsal ?? this.includeRehearsal,
+        includeBlockouts: includeBlockouts ?? this.includeBlockouts,
+      );
+
+  factory CalendarFeedPreferences.fromJson(Map<String, dynamic> json) =>
+      CalendarFeedPreferences(
+        includeGigs: json['include_gigs'] as bool? ?? true,
+        includeRehearsal: json['include_rehearsals'] as bool? ?? true,
+        includeBlockouts: json['include_blockouts'] as bool? ?? false,
+      );
+}
+
+// ----------------------------------------------------------------------------
+// Providers
+// ----------------------------------------------------------------------------
 
 /// Provider for CalendarSubscriptionService
 final calendarSubscriptionServiceProvider =
@@ -27,6 +65,17 @@ final calendarBandSubscriptionUrlProvider =
   return service.getBandSubscriptionUrl(bandId);
 });
 
+/// Band-scoped feed preferences provider (family by bandId)
+final calendarBandPreferencesProvider =
+    FutureProvider.family<CalendarFeedPreferences, String>((ref, bandId) async {
+  final service = ref.watch(calendarSubscriptionServiceProvider);
+  return service.getBandSubscriptionPreferences(bandId);
+});
+
+// ----------------------------------------------------------------------------
+// Service
+// ----------------------------------------------------------------------------
+
 class CalendarSubscriptionService {
   final SupabaseClient _client;
 
@@ -36,13 +85,15 @@ class CalendarSubscriptionService {
 
   CalendarSubscriptionService(this._client);
 
+  // --------------------------------------------------------------------------
+  // URL methods
+  // --------------------------------------------------------------------------
+
   /// [DEPRECATED] Get the user's legacy calendar subscription URL
-  /// Returns null if user is not authenticated
   Future<String?> getSubscriptionUrl() async {
     try {
       final token = await _getOrCreateToken();
       if (token == null) return null;
-
       return '$_feedBaseUrl?token=$token';
     } catch (e) {
       debugPrint(
@@ -65,7 +116,6 @@ class CalendarSubscriptionService {
   }
 
   /// Regenerate the band-scoped calendar token (invalidates old URL)
-  /// Returns the new subscription URL
   Future<String?> regenerateBandToken(String bandId) async {
     try {
       final newToken = await _client.rpc(
@@ -81,7 +131,62 @@ class CalendarSubscriptionService {
     }
   }
 
-  /// Get or create the user's legacy calendar token
+  // --------------------------------------------------------------------------
+  // Feed preference methods
+  // --------------------------------------------------------------------------
+
+  /// Fetch the current feed preferences for a band subscription.
+  /// The subscription row is auto-created on first URL fetch, so this should
+  /// always find a row after [getBandSubscriptionUrl] has been called.
+  Future<CalendarFeedPreferences> getBandSubscriptionPreferences(
+      String bandId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) return const CalendarFeedPreferences();
+
+    try {
+      final data = await _client
+          .from('band_calendar_subscriptions')
+          .select('include_gigs, include_rehearsals, include_blockouts')
+          .eq('user_id', user.id)
+          .eq('band_id', bandId)
+          .maybeSingle();
+
+      if (data == null) return const CalendarFeedPreferences();
+      return CalendarFeedPreferences.fromJson(data);
+    } catch (e) {
+      debugPrint(
+          '[CalendarSubscriptionService] Error getting preferences: $e');
+      return const CalendarFeedPreferences();
+    }
+  }
+
+  /// Persist feed preferences for a band subscription.
+  /// Uses an RPC that auto-creates the row if it doesn't exist yet.
+  Future<void> updateBandSubscriptionPreferences(
+    String bandId,
+    CalendarFeedPreferences prefs,
+  ) async {
+    try {
+      await _client.rpc(
+        'update_band_calendar_preferences',
+        params: {
+          'p_band_id': bandId,
+          'p_include_gigs': prefs.includeGigs,
+          'p_include_rehearsals': prefs.includeRehearsal,
+          'p_include_blockouts': prefs.includeBlockouts,
+        },
+      );
+    } catch (e) {
+      debugPrint(
+          '[CalendarSubscriptionService] Error updating preferences: $e');
+      rethrow;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Legacy / private
+  // --------------------------------------------------------------------------
+
   Future<String?> _getOrCreateToken() async {
     try {
       final response = await _client.rpc('get_my_calendar_token');
@@ -94,7 +199,6 @@ class CalendarSubscriptionService {
   }
 
   /// [DEPRECATED] Regenerate the legacy calendar token
-  /// Returns the new subscription URL
   Future<String?> regenerateToken() async {
     try {
       final userId = _client.auth.currentUser?.id;
