@@ -4,7 +4,9 @@
 // URL format: /calendar-feed?token={user_calendar_token}
 // Returns: text/calendar (.ics) content
 //
-// Includes: Gigs, Potential Gigs, Rehearsals, Block-out dates for all user's bands
+// Includes: Confirmed Gigs, Rehearsals, and (optionally) Block-out dates.
+// Potential gigs are never included. Feed content is controlled per-subscriber
+// via include_gigs / include_rehearsals / include_blockouts on band_calendar_subscriptions.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -358,7 +360,6 @@ interface GigEvent {
     load_in_time: string | null;
     start_time: string | null;
     end_time: string | null;
-    is_potential: boolean;
     band_name: string;
     notes: string | null;
 }
@@ -420,16 +421,26 @@ Deno.serve(async (req) => {
         let bandTimezone = 'America/Chicago';
         let calendarName: string;
 
+        // Feed preferences — defaults match the DB column defaults
+        let includeGigs = true;
+        let includeRehearsal = true;
+        let includeBlockouts = false;
+
         // 1. Try band_calendar_subscriptions token
         const { data: bandSub, error: bandSubError } = await supabase
             .from('band_calendar_subscriptions')
-            .select('user_id, band_id')
+            .select('user_id, band_id, include_gigs, include_rehearsals, include_blockouts')
             .eq('token', token)
             .single();
 
         if (bandSub && !bandSubError) {
             userId = bandSub.user_id;
             bandScopedBandId = bandSub.band_id;
+
+            // Read per-subscriber preferences (nullish fallback to defaults)
+            includeGigs      = bandSub.include_gigs      ?? true;
+            includeRehearsal = bandSub.include_rehearsals ?? true;
+            includeBlockouts = bandSub.include_blockouts  ?? false;
 
             // Verify user is still a member of the band
             const { data: membership } = await supabase
@@ -519,16 +530,20 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Fetch all gigs for user's bands
+        // Past-year cutoff shared across all queries
+        const pastYearDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        // Fetch confirmed gigs only — potential gigs are never included in the feed
         const { data: gigs, error: gigsError } = await supabase
             .from('gigs')
             .select(`
-                id, name, location, date, load_in_time, start_time, end_time, 
-                is_potential, notes, band_id,
+                id, name, location, date, load_in_time, start_time, end_time,
+                notes, band_id,
                 bands(name)
             `)
             .in('band_id', bandIds)
-            .gte('date', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Past year
+            .eq('is_potential', false)
+            .gte('date', pastYearDate)
             .order('date', { ascending: true });
 
         if (gigsError) throw gigsError;
@@ -541,7 +556,7 @@ Deno.serve(async (req) => {
                 bands(name)
             `)
             .in('band_id', bandIds)
-            .gte('date', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) // Past year
+            .gte('date', pastYearDate)
             .order('date', { ascending: true });
 
         if (rehearsalsError) throw rehearsalsError;
@@ -551,7 +566,7 @@ Deno.serve(async (req) => {
             .from('block_dates')
             .select('id, date, reason, user_id')
             .in('band_id', bandIds)
-            .gte('date', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+            .gte('date', pastYearDate);
 
         if (blockOutsError) throw blockOutsError;
 
@@ -581,7 +596,6 @@ Deno.serve(async (req) => {
             load_in_time: g.load_in_time,
             start_time: g.start_time,
             end_time: g.end_time,
-            is_potential: g.is_potential || false,
             band_name: (g.bands as any)?.name || 'Band',
             notes: g.notes,
         }));
@@ -603,14 +617,19 @@ Deno.serve(async (req) => {
             reason: b.reason || '',
         }));
 
-        const etag = await computeEtag(gigEvents, rehearsalEvents, blockOutEvents, calendarName, bandTimezone);
+        // Apply feed preferences — filter event arrays before generating the calendar
+        const filteredGigs       = includeGigs      ? gigEvents      : [];
+        const filteredRehearsal  = includeRehearsal ? rehearsalEvents : [];
+        const filteredBlockOuts  = includeBlockouts ? blockOutEvents  : [];
+
+        const etag = await computeEtag(filteredGigs, filteredRehearsal, filteredBlockOuts, calendarName, bandTimezone);
         const ifNoneMatch = req.headers.get("if-none-match");
 
         if (ifNoneMatch === etag) {
             return new Response(null, { status: 304, headers: corsHeaders });
         }
 
-        const calendar = generateCalendar(gigEvents, rehearsalEvents, blockOutEvents, calendarName, bandTimezone);
+        const calendar = generateCalendar(filteredGigs, filteredRehearsal, filteredBlockOuts, calendarName, bandTimezone);
 
         return new Response(calendar, {
             headers: {
@@ -664,12 +683,9 @@ function generateCalendar(
         lines.push(vtimezone);
     }
 
-    // Add gigs
+    // Add confirmed gigs (potential gigs are excluded at query time)
     for (const gig of gigs) {
         const uid = generateUid('gig', gig.id, domain);
-        const summary = gig.is_potential
-            ? `[POTENTIAL] ${gig.name}`
-            : gig.name;
 
         // Build description
         let description = `Band: ${gig.band_name}`;
@@ -678,7 +694,6 @@ function generateCalendar(
         if (gig.start_time) description += `\\nStart: ${gig.start_time}`;
         if (gig.end_time) description += `\\nEnd: ${gig.end_time}`;
         if (gig.notes) description += `\\n\\nNotes: ${gig.notes}`;
-        if (gig.is_potential) description += `\\n\\n⚠️ This is a potential gig (not yet confirmed)`;
 
         lines.push('BEGIN:VEVENT');
         lines.push(foldLine(`UID:${uid}`));
@@ -704,12 +719,12 @@ function generateCalendar(
             lines.push(foldLine(`DTEND;VALUE=DATE:${endDate}`));
         }
 
-        lines.push(foldLine(`SUMMARY:${escapeIcsText(summary)}`));
+        lines.push(foldLine(`SUMMARY:${escapeIcsText(gig.name)}`));
         if (gig.location) {
             lines.push(foldLine(`LOCATION:${escapeIcsText(gig.location)}`));
         }
         lines.push(foldLine(`DESCRIPTION:${escapeIcsText(description)}`));
-        lines.push(`CATEGORIES:${gig.is_potential ? 'POTENTIAL GIG' : 'GIG'}`);
+        lines.push('CATEGORIES:GIG');
         lines.push('STATUS:CONFIRMED');
         lines.push('END:VEVENT');
     }
