@@ -28,6 +28,8 @@ class AppToggleTile extends StatelessWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
   final bool enabled;
+  /// Reduces vertical padding for use in grouped/compact lists (no subtitle).
+  final bool compact;
 
   const AppToggleTile({
     super.key,
@@ -36,12 +38,18 @@ class AppToggleTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.enabled = true,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(Spacing.space16),
+      padding: compact
+          ? const EdgeInsets.symmetric(
+              horizontal: Spacing.space16,
+              vertical: Spacing.space8,
+            )
+          : const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
         color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(Spacing.cardRadius),

@@ -262,19 +262,22 @@ class _CalendarSubscriptionDialogState
             title: 'Gigs',
             value: _prefs.includeGigs,
             onChanged: (v) => _updatePref(_prefs.copyWith(includeGigs: v)),
+            compact: true,
           ),
-          const SizedBox(height: Spacing.space8),
+          const SizedBox(height: Spacing.space4),
           AppToggleTile(
             title: 'Rehearsals',
             value: _prefs.includeRehearsal,
             onChanged: (v) => _updatePref(_prefs.copyWith(includeRehearsal: v)),
+            compact: true,
           ),
-          const SizedBox(height: Spacing.space8),
+          const SizedBox(height: Spacing.space4),
           AppToggleTile(
             title: 'Member block-out days',
             value: _prefs.includeBlockouts,
             onChanged: (v) =>
                 _updatePref(_prefs.copyWith(includeBlockouts: v)),
+            compact: true,
           ),
         ] else
           const Padding(
