@@ -307,7 +307,7 @@ class _MasterToggleCard extends StatelessWidget {
               ],
             ),
           ),
-          Switch(
+          Switch.adaptive(
             value: enabled,
             onChanged: onChanged,
             activeTrackColor: AppColors.accent,

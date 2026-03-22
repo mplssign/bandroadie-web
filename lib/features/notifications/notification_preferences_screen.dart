@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/design_tokens.dart';
+import '../../shared/widgets/toggle_tile.dart';
 import 'notification_controller.dart';
 import 'push_notification_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -88,7 +89,7 @@ class _NotificationPreferencesScreenState
             // Push notifications master toggle
             _buildSectionHeader('Push Notifications'),
             const SizedBox(height: Spacing.space12),
-            _buildToggleTile(
+            AppToggleTile(
               title: 'Enable Push Notifications',
               subtitle: 'Receive notifications when the app is closed',
               value: prefs.pushEnabled && _hasSystemPermission,
@@ -106,7 +107,7 @@ class _NotificationPreferencesScreenState
             _buildSectionHeader('Notification Types'),
             const SizedBox(height: Spacing.space12),
 
-            _buildToggleTile(
+            AppToggleTile(
               title: 'Gig Updates',
               subtitle: 'New gigs, changes, and confirmations',
               value: prefs.gigsEnabled,
@@ -118,7 +119,7 @@ class _NotificationPreferencesScreenState
             ),
             const SizedBox(height: Spacing.space8),
 
-            _buildToggleTile(
+            AppToggleTile(
               title: 'Rehearsal Updates',
               subtitle: 'Rehearsal schedules and changes',
               value: prefs.rehearsalsEnabled,
@@ -130,7 +131,7 @@ class _NotificationPreferencesScreenState
             ),
             const SizedBox(height: Spacing.space8),
 
-            _buildToggleTile(
+            AppToggleTile(
               title: 'Setlist Updates',
               subtitle: 'Changes to setlists and song order',
               value: prefs.setlistUpdates,
@@ -142,7 +143,7 @@ class _NotificationPreferencesScreenState
             ),
             const SizedBox(height: Spacing.space8),
 
-            _buildToggleTile(
+            AppToggleTile(
               title: 'Availability Requests',
               subtitle: 'When someone asks for your availability',
               value: prefs.availabilityRequests,
@@ -154,7 +155,7 @@ class _NotificationPreferencesScreenState
             ),
             const SizedBox(height: Spacing.space8),
 
-            _buildToggleTile(
+            AppToggleTile(
               title: 'Member Updates',
               subtitle: 'When members join, leave, or change roles',
               value: prefs.memberUpdates,
@@ -246,51 +247,4 @@ class _NotificationPreferencesScreenState
     );
   }
 
-  Widget _buildToggleTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    bool enabled = true,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(Spacing.space16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(Spacing.cardRadius),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.body.copyWith(
-                    color: enabled
-                        ? AppColors.textPrimary
-                        : AppColors.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: Spacing.space4),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: enabled ? onChanged : null,
-            activeTrackColor: AppColors.accent,
-          ),
-        ],
-      ),
-    );
-  }
 }

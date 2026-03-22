@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../../shared/widgets/toggle_tile.dart';
 import '../calendar_subscription_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // CALENDAR SUBSCRIPTION DIALOG
-// Modal that shows the user's calendar subscription URL and instructions
+// Modal that shows the user's calendar subscription URL, feed content toggles,
+// and platform setup instructions.
 // ============================================================================
 
 /// Show the calendar subscription dialog
@@ -46,6 +48,41 @@ class CalendarSubscriptionDialog extends ConsumerStatefulWidget {
 class _CalendarSubscriptionDialogState
     extends ConsumerState<CalendarSubscriptionDialog> {
   bool _copied = false;
+
+  // Feed preferences — held in local state for instant toggle response.
+  // Loaded from DB once the URL provider resolves (which auto-creates the row).
+  CalendarFeedPreferences _prefs = const CalendarFeedPreferences();
+  bool _prefsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final service = ref.read(calendarSubscriptionServiceProvider);
+    final prefs =
+        await service.getBandSubscriptionPreferences(widget.bandId);
+    if (mounted) {
+      setState(() {
+        _prefs = prefs;
+        _prefsLoaded = true;
+      });
+    }
+  }
+
+  Future<void> _updatePref(CalendarFeedPreferences updated) async {
+    // Optimistic update — reflect change immediately, persist in background
+    setState(() => _prefs = updated);
+    final service = ref.read(calendarSubscriptionServiceProvider);
+    try {
+      await service.updateBandSubscriptionPreferences(widget.bandId, updated);
+    } catch (_) {
+      // Roll back if the save fails
+      if (mounted) setState(() => _prefs = _prefs);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +163,7 @@ class _CalendarSubscriptionDialogState
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header
+        // ── Header ──────────────────────────────────────────────────────────
         Row(
           children: [
             Icon(AppIcons.calendar, color: AppColors.accent, size: 28),
@@ -152,7 +189,7 @@ class _CalendarSubscriptionDialogState
 
         const SizedBox(height: Spacing.space16),
 
-        // Description
+        // ── Description ─────────────────────────────────────────────────────
         const Text(
           'Add your BandRoadie events to your favorite calendar app. '
           'Events will stay in sync automatically.',
@@ -165,7 +202,7 @@ class _CalendarSubscriptionDialogState
 
         const SizedBox(height: Spacing.space20),
 
-        // Subscription URL with copy button
+        // ── Subscription URL ─────────────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(Spacing.space12),
           decoration: BoxDecoration(
@@ -206,9 +243,54 @@ class _CalendarSubscriptionDialogState
           ),
         ),
 
-        const SizedBox(height: Spacing.space24),
+        const SizedBox(height: Spacing.space20),
 
-        // Platform instructions
+        // ── Feed content toggles ─────────────────────────────────────────────
+        const Text(
+          'Include in feed:',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+
+        const SizedBox(height: Spacing.space8),
+
+        if (_prefsLoaded) ...[
+          AppToggleTile(
+            title: 'Gigs',
+            value: _prefs.includeGigs,
+            onChanged: (v) => _updatePref(_prefs.copyWith(includeGigs: v)),
+          ),
+          const SizedBox(height: Spacing.space8),
+          AppToggleTile(
+            title: 'Rehearsals',
+            value: _prefs.includeRehearsal,
+            onChanged: (v) => _updatePref(_prefs.copyWith(includeRehearsal: v)),
+          ),
+          const SizedBox(height: Spacing.space8),
+          AppToggleTile(
+            title: 'Member block-out days',
+            value: _prefs.includeBlockouts,
+            onChanged: (v) =>
+                _updatePref(_prefs.copyWith(includeBlockouts: v)),
+          ),
+        ] else
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: Spacing.space12),
+            child: Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+
+        const SizedBox(height: Spacing.space20),
+
+        // ── Platform instructions ────────────────────────────────────────────
         const Text(
           'How to subscribe:',
           style: TextStyle(
@@ -244,7 +326,7 @@ class _CalendarSubscriptionDialogState
 
         const SizedBox(height: Spacing.space20),
 
-        // Notes
+        // ── Notes ────────────────────────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(Spacing.space12),
           decoration: BoxDecoration(
