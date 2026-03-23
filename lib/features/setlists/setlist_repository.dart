@@ -249,7 +249,7 @@ class SetlistRepository {
               position,
               created_at,
               updated_at,
-              setlist_songs(count)
+              setlist_songs(item_type)
             ''').eq('band_id', bandId).order('position', ascending: true);
       } on PostgrestException catch (e) {
         // Handle missing columns gracefully
@@ -271,7 +271,7 @@ class SetlistRepository {
                     is_catalog,
                     created_at,
                     updated_at,
-                    setlist_songs(count)
+                    setlist_songs(item_type)
                   ''').eq('band_id', bandId).order('name', ascending: true);
             } on PostgrestException catch (e2) {
               if (e2.code == '42703' && e2.message.contains('is_catalog')) {
@@ -283,7 +283,7 @@ class SetlistRepository {
                       total_duration,
                       created_at,
                       updated_at,
-                      setlist_songs(count)
+                      setlist_songs(item_type)
                     ''').eq('band_id', bandId).order('name', ascending: true);
               } else {
                 rethrow;
@@ -304,7 +304,7 @@ class SetlistRepository {
                   position,
                   created_at,
                   updated_at,
-                  setlist_songs(count)
+                  setlist_songs(item_type)
                 ''').eq('band_id', bandId).order('position', ascending: true);
           } else {
             rethrow;
@@ -328,22 +328,35 @@ class SetlistRepository {
       for (int i = 0; i < response.length; i++) {
         final json = response[i];
         try {
-          // Extract song count from nested aggregate
+          // Extract item type counts from nested items
           int songCount = 0;
+          int pauseCount = 0;
+          int setBreakCount = 0;
           if (json['setlist_songs'] != null) {
-            final countData = json['setlist_songs'];
-            if (countData is List &&
-                countData.isNotEmpty &&
-                countData[0] is Map) {
-              final count = (countData[0] as Map)['count'];
-              songCount =
-                  (count is int) ? count : (count is num ? count.toInt() : 0);
+            final items = json['setlist_songs'];
+            if (items is List) {
+              for (final item in items) {
+                final itemType = (item is Map) ? item['item_type'] : null;
+                switch (itemType) {
+                  case 'pause':
+                    pauseCount++;
+                    break;
+                  case 'set_break':
+                    setBreakCount++;
+                    break;
+                  default:
+                    songCount++;
+                    break;
+                }
+              }
             }
           }
 
-          // Create modified json with flattened song_count
+          // Create modified json with flattened counts
           final flatJson = Map<String, dynamic>.from(json as Map);
           flatJson['song_count'] = songCount;
+          flatJson['pause_count'] = pauseCount;
+          flatJson['set_break_count'] = setBreakCount;
 
           setlists.add(Setlist.fromSupabase(flatJson));
         } catch (parseError, stackTrace) {
@@ -2977,7 +2990,7 @@ class SetlistRepository {
               setlist_type,
               created_at,
               updated_at,
-              setlist_songs(count)
+              setlist_songs(item_type)
             ''')
             .eq('band_id', bandId)
             .eq('setlist_type', 'catalog')
@@ -2992,7 +3005,7 @@ class SetlistRepository {
               is_catalog,
               created_at,
               updated_at,
-              setlist_songs(count)
+              setlist_songs(item_type)
             ''').eq('band_id', bandId).eq('is_catalog', true).maybeSingle();
       }
 
@@ -3005,7 +3018,7 @@ class SetlistRepository {
               total_duration,
               created_at,
               updated_at,
-              setlist_songs(count)
+              setlist_songs(item_type)
             ''')
           .eq('band_id', bandId)
           .or('name.ilike.Catalog,name.ilike.All Songs')
@@ -3017,17 +3030,32 @@ class SetlistRepository {
         return null;
       }
 
-      // Extract song count
+      // Extract item type counts
       int songCount = 0;
+      int pauseCount = 0;
+      int setBreakCount = 0;
       if (response['setlist_songs'] != null) {
-        final countData = response['setlist_songs'] as List;
-        if (countData.isNotEmpty && countData[0] is Map) {
-          songCount = (countData[0] as Map)['count'] as int? ?? 0;
+        final items = response['setlist_songs'] as List;
+        for (final item in items) {
+          final itemType = (item is Map) ? item['item_type'] : null;
+          switch (itemType) {
+            case 'pause':
+              pauseCount++;
+              break;
+            case 'set_break':
+              setBreakCount++;
+              break;
+            default:
+              songCount++;
+              break;
+          }
         }
       }
 
       final flatJson = Map<String, dynamic>.from(response);
       flatJson['song_count'] = songCount;
+      flatJson['pause_count'] = pauseCount;
+      flatJson['set_break_count'] = setBreakCount;
 
       return Setlist.fromSupabase(flatJson);
     } on PostgrestException catch (e) {

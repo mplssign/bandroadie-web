@@ -885,8 +885,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                           ),
                         ),
                         SizedBox(width: Spacing.space8),
-                        Icon(AppIcons.delete,
-                            color: Colors.white, size: 22),
+                        Icon(AppIcons.delete, color: Colors.white, size: 22),
                       ],
                     ),
                   ),
@@ -951,7 +950,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         const SizedBox(height: 6),
         // Metadata
         Text(
-          '${state.formattedSongCount} • ${state.formattedDuration}',
+          '${state.formattedMetadata} • ${state.formattedDuration}',
           style: AppTextStyles.headline.copyWith(
             color: AppColors.textSecondary,
           ),

@@ -116,7 +116,7 @@ class _SetlistCardState extends State<SetlistCard>
           TextSpan(
             children: [
               TextSpan(
-                text: '${widget.setlist.formattedSongCount} ',
+                text: '${widget.setlist.formattedMetadata} ',
                 style: AppTextStyles.callout,
               ),
               TextSpan(

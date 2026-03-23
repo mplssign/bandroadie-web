@@ -195,6 +195,38 @@ class SetlistDetailState {
     return '$songCount ${songCount == 1 ? 'song' : 'songs'}';
   }
 
+  /// Pause count
+  int get pauseCount {
+    if (items.isNotEmpty) {
+      return items.where((i) => i.isPause).length;
+    }
+    return 0;
+  }
+
+  /// Set break count
+  int get setBreakCount {
+    if (items.isNotEmpty) {
+      return items.where((i) => i.isSetBreak).length;
+    }
+    return 0;
+  }
+
+  /// Format metadata with counts: "24 songs, 6 pauses, 1 set break"
+  /// Omits pauses/set breaks when zero.
+  String get formattedMetadata {
+    final parts = <String>[
+      '$songCount ${songCount == 1 ? 'song' : 'songs'}',
+    ];
+    if (pauseCount > 0) {
+      parts.add('$pauseCount ${pauseCount == 1 ? 'pause' : 'pauses'}');
+    }
+    if (setBreakCount > 0) {
+      parts.add(
+          '$setBreakCount ${setBreakCount == 1 ? 'set break' : 'set breaks'}');
+    }
+    return parts.join(', ');
+  }
+
   /// Total item count (songs + breaks + pauses)
   int get itemCount => items.isNotEmpty ? items.length : songs.length;
 
@@ -1570,6 +1602,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     required String specialItemId,
     int? durationMinutes,
     int? durationSeconds,
+    bool clearDurationSeconds = false,
     List<String>? purposes,
     List<String>? customPurposes,
   }) async {
@@ -1578,6 +1611,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         templateId: specialItemId,
         durationMinutes: durationMinutes,
         durationSeconds: durationSeconds,
+        clearDurationSeconds: clearDurationSeconds,
         purposes: purposes,
         customPurposes: customPurposes,
       );

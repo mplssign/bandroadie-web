@@ -590,6 +590,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         final success = await notifier.updateSpecialItem(
           specialItemId: specialItemId,
           durationSeconds: config.durationSeconds,
+          clearDurationSeconds: config.durationSeconds == null,
           purposes: config.purposes,
           customPurposes: config.customPurposes,
         );
@@ -1652,7 +1653,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         const SizedBox(height: 6),
         // Metadata
         Text(
-          '${state.formattedSongCount} • ${state.formattedDuration}',
+          '${state.formattedMetadata} • ${state.formattedDuration}',
           style: AppTextStyles.headline.copyWith(
             color: AppColors.textSecondary,
           ),
