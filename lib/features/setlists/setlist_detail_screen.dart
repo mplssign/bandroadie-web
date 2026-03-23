@@ -17,7 +17,7 @@ import 'models/bulk_song_row.dart';
 import 'models/setlist_item.dart';
 import 'models/setlist_item_type.dart';
 import 'models/setlist_song.dart';
-import 'services/setlist_print_handler.dart';
+import 'widgets/print_options_bottom_sheet.dart';
 import 'services/tuning_sort_service.dart';
 import 'setlist_detail_controller.dart';
 import 'setlist_repository.dart';
@@ -1111,11 +1111,37 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   }
 
   /// Handle print setlist action.
-  /// Uses stage-optimized formatting: large bold text, BPM only, tuning dividers.
+  /// Shows print options bottom sheet, then prints with selected template.
   /// Works on all platforms (Web uses HTML, native uses PDF).
-  void _handlePrint() {
+  Future<void> _handlePrint() async {
+    final band = ref.read(activeBandProvider).activeBand;
+    if (band == null) return;
+
     final state = ref.read(setlistDetailProvider);
-    SetlistPrintHandler.print(setlistName: _currentName, songs: state.songs);
+
+    // Catalog has no items list — convert songs to SetlistItem wrappers.
+    final items = state.isCatalog
+        ? state.songs
+            .asMap()
+            .entries
+            .map((e) => SetlistItem(
+                  id: e.value.id,
+                  type: SetlistItemType.song,
+                  position: e.key,
+                  song: e.value,
+                ))
+            .toList()
+        : state.items;
+
+    if (!mounted) return;
+
+    await PrintOptionsBottomSheet.show(
+      context,
+      bandId: band.id,
+      setlistName: _currentName,
+      items: items,
+      bandName: band.name,
+    );
   }
 
   /// Handle delete setlist with confirmation dialog
@@ -1548,7 +1574,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               child: Row(
                 children: [
                   if (state.isCatalog) ...[
-                    const Icon(AppIcons.star, color: AppColors.accent, size: 18),
+                    const Icon(AppIcons.star,
+                        color: AppColors.accent, size: 18),
                     const SizedBox(width: 8),
                   ],
                   Flexible(
@@ -1879,8 +1906,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     ),
                   ),
                   SizedBox(width: Spacing.space8),
-                  Icon(AppIcons.delete,
-                      color: Colors.white, size: 22),
+                  Icon(AppIcons.delete, color: Colors.white, size: 22),
                 ],
               ),
             ),
@@ -1944,8 +1970,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     ),
                   ),
                   SizedBox(width: Spacing.space8),
-                  Icon(AppIcons.delete,
-                      color: Colors.white, size: 22),
+                  Icon(AppIcons.delete, color: Colors.white, size: 22),
                 ],
               ),
             ),
@@ -2010,8 +2035,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   ),
                 ),
                 SizedBox(width: Spacing.space8),
-                Icon(AppIcons.delete,
-                    color: Colors.white, size: 22),
+                Icon(AppIcons.delete, color: Colors.white, size: 22),
               ],
             ),
           ),

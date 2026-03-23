@@ -1,4 +1,5 @@
-import '../models/setlist_song.dart';
+import '../models/print_template.dart';
+import '../models/setlist_item.dart';
 
 // ============================================================================
 // SETLIST PRINT SERVICE - NATIVE STUB
@@ -13,12 +14,14 @@ class SetlistPrintWeb {
   SetlistPrintWeb._();
 
   /// Stub - not used on native platforms.
-  /// Native platforms use SetlistPrintService.printSetlist() directly.
   static void printSetlist({
     required String setlistName,
-    required List<SetlistSong> songs,
+    required List<SetlistItem> items,
+    required PrintTemplate template,
+    String? bandName,
+    String? gigDate,
+    String? venue,
   }) {
-    // This should never be called on native platforms
     throw UnsupportedError('SetlistPrintWeb is only available on web platform');
   }
 }
