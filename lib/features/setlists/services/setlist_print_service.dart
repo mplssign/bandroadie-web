@@ -2,100 +2,55 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../models/print_template.dart';
+import '../models/setlist_item.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 
 // ============================================================================
 // SETLIST PRINT SERVICE
-// Centralized print formatting logic for stage-readable setlist output.
+// Template-driven print formatting for setlist output.
 //
-// DESIGN PRINCIPLES (shared across Web, iOS, Android):
-// - Large, bold text optimized for low-light stage conditions
-// - High contrast (black text on white background)
-// - Song title + BPM only (no artist, duration, notes, icons)
-// - Tuning section breaks with bold tuning labels when tuning changes
-// - Maximum 2 pages with automatic font scaling if needed
-// - Never split a tuning block across pages
-//
-// PLATFORM IMPLEMENTATIONS:
-// - Native (iOS/Android/macOS): PDF generation via printing package
-// - Web: HTML generation for window.print() (see setlist_print_web.dart)
-//
-// USAGE:
-//   await SetlistPrintService.printSetlist(
-//     setlistName: 'Friday Night Set',
-//     songs: songsList,
-//   );
+// Supports:
+// - Set grouping by Set Break markers
+// - Inline pause rendering
+// - Configurable tuning display (grouped / inline)
+// - Metadata toggles (BPM, capo, notes, song numbers)
+// - Font size, paper size, column count
+// - Header and page numbers
 // ============================================================================
 
-/// Represents a group of songs in the same tuning.
-/// Used to prevent splitting tuning blocks across pages.
-class TuningBlock {
-  final String tuning;
-  final List<SetlistSong> songs;
-  final int startIndex; // Original position in setlist (1-based for display)
+/// Represents a group of items between Set Break markers.
+class SetGroup {
+  final int setNumber; // 1-based
+  final List<SetlistItem> items; // Songs + pauses only (breaks are delimiters)
 
-  TuningBlock({
-    required this.tuning,
-    required this.songs,
-    required this.startIndex,
-  });
+  const SetGroup({required this.setNumber, required this.items});
 }
 
 class SetlistPrintService {
-  SetlistPrintService._(); // Prevent instantiation
-
-  // ===========================================================================
-  // PRINT CONFIGURATION
-  // Centralized constants for stage-readable formatting.
-  // These values are calibrated for legibility from 3-6 feet under stage lights.
-  // ===========================================================================
-
-  /// Font size for the setlist title header (largest element)
-  static const double _titleFontSize = 28.0;
-
-  /// Font size for each song entry (primary visual element)
-  /// Large and bold for quick scanning during performance
-  static const double _songFontSize = 18.0;
-
-  /// Font size for BPM (slightly smaller, inline with title)
-  static const double _bpmFontSize = 16.0;
-
-  /// Font size for tuning section labels (smaller than songs, but bold)
-  static const double _tuningLabelFontSize = 14.0;
-
-  /// Vertical spacing between song entries
-  static const double _songSpacing = 10.0;
-
-  /// Height of tuning section divider line
-  static const double _dividerHeight = 2.5;
-
-  /// Spacing above/below tuning dividers
-  static const double _dividerSpacingTop = 18.0;
-  static const double _dividerSpacingBottom = 10.0;
-
-  /// Page margins (ensures content doesn't clip on printers)
-  static const double _pageMargin = 36.0;
-
-  /// Minimum font scale factor to maintain legibility
-  /// If content exceeds 2 pages, we scale down but never below this
-  static const double _minFontScale = 0.75;
+  SetlistPrintService._();
 
   // ===========================================================================
   // PUBLIC API
   // ===========================================================================
 
-  /// Print the setlist with stage-optimized formatting.
-  ///
-  /// [setlistName] - Display name for the header
-  /// [songs] - Ordered list of songs to print (maintains exact order)
+  /// Print the setlist with template-driven formatting.
   static Future<void> printSetlist({
     required String setlistName,
-    required List<SetlistSong> songs,
+    required List<SetlistItem> items,
+    required PrintTemplate template,
+    String? bandName,
+    String? gigDate,
+    String? venue,
   }) async {
     final pdf = _buildPdfDocument(
       setlistName: setlistName,
-      songs: songs,
+      items: items,
+      template: template,
+      bandName: bandName,
+      gigDate: gigDate,
+      venue: venue,
     );
 
     await Printing.layoutPdf(
@@ -107,67 +62,160 @@ class SetlistPrintService {
   /// Generate PDF bytes without printing (for testing or export).
   static Future<List<int>> generatePdfBytes({
     required String setlistName,
-    required List<SetlistSong> songs,
+    required List<SetlistItem> items,
+    required PrintTemplate template,
+    String? bandName,
+    String? gigDate,
+    String? venue,
   }) async {
     final pdf = _buildPdfDocument(
       setlistName: setlistName,
-      songs: songs,
+      items: items,
+      template: template,
+      bandName: bandName,
+      gigDate: gigDate,
+      venue: venue,
     );
     return pdf.save();
   }
 
   /// Generate print-ready HTML for web platform.
-  /// Returns complete HTML document with embedded print styles.
   static String generatePrintHtml({
     required String setlistName,
-    required List<SetlistSong> songs,
+    required List<SetlistItem> items,
+    required PrintTemplate template,
+    String? bandName,
+    String? gigDate,
+    String? venue,
   }) {
-    final tuningBlocks = groupSongsByTuning(songs);
+    final setGroups = groupItemsBySets(items);
+    final hasMultipleSets = setGroups.length > 1;
     final buffer = StringBuffer();
 
-    // HTML document with embedded print-optimized CSS
     buffer.writeln('<!DOCTYPE html>');
     buffer.writeln('<html lang="en">');
     buffer.writeln('<head>');
     buffer.writeln('<meta charset="UTF-8">');
-    buffer.writeln('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
-    buffer.writeln('<title>$setlistName - Setlist</title>');
+    buffer.writeln(
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+    buffer.writeln('<title>${_escapeHtml(setlistName)} - Setlist</title>');
     buffer.writeln('<style>');
-    buffer.writeln(_generatePrintCss());
+    buffer.writeln(_generatePrintCss(template));
     buffer.writeln('</style>');
     buffer.writeln('</head>');
     buffer.writeln('<body>');
 
-    // Setlist title header
-    buffer.writeln('<h1 class="setlist-title">${_escapeHtml(setlistName)}</h1>');
-    buffer.writeln('<hr class="title-divider">');
-
-    // Song list with tuning sections
-    buffer.writeln('<div class="song-list">');
-    
-    for (final block in tuningBlocks) {
-      // Tuning section header (only show if not first block or if tuning differs)
-      buffer.writeln('<div class="tuning-block">');
-      buffer.writeln('<div class="tuning-divider">');
-      buffer.writeln('<span class="tuning-label">${_escapeHtml(block.tuning)}</span>');
+    // Header
+    if (template.showHeader || template.showBandName) {
+      buffer.writeln('<div class="header">');
+      if (template.showHeader) {
+        buffer.writeln(
+            '<h1 class="setlist-title">${_escapeHtml(setlistName)}</h1>');
+      }
+      if (template.showBandName && bandName != null && bandName.isNotEmpty) {
+        buffer.writeln('<div class="band-name">${_escapeHtml(bandName)}</div>');
+      }
+      if (gigDate != null && gigDate.isNotEmpty) {
+        buffer.writeln('<div class="gig-date">${_escapeHtml(gigDate)}</div>');
+      }
+      if (venue != null && venue.isNotEmpty) {
+        buffer.writeln('<div class="venue">${_escapeHtml(venue)}</div>');
+      }
       buffer.writeln('</div>');
+      buffer.writeln('<hr class="title-divider">');
+    }
 
-      // Songs in this tuning block
-      for (int i = 0; i < block.songs.length; i++) {
-        final song = block.songs[i];
-        final songNumber = block.startIndex + i;
-        final bpmText = song.bpm != null && song.bpm! > 0 
-            ? '(${song.bpm} BPM)' 
-            : '';
+    // Song list
+    buffer.writeln('<div class="song-list">');
 
-        buffer.writeln('<div class="song-row">');
-        buffer.writeln('<span class="song-number">$songNumber.</span>');
-        buffer.writeln('<span class="song-title">${_escapeHtml(song.title)}</span>');
-        buffer.writeln('<span class="song-bpm">$bpmText</span>');
-        buffer.writeln('</div>');
+    for (final group in setGroups) {
+      // Per-set song numbering — resets at each set boundary
+      int songNumber = 0;
+      String? lastTuning;
+
+      // Set label
+      if (hasMultipleSets) {
+        buffer.writeln('<div class="set-label">Set ${group.setNumber}</div>');
       }
 
-      buffer.writeln('</div>'); // Close tuning-block
+      for (final item in group.items) {
+        if (item.isPause) {
+          if (template.showPauses) {
+            final label = item.specialItem?.displayLabel ?? 'Pause';
+            buffer
+                .writeln('<div class="pause-row">${_escapeHtml(label)}</div>');
+          }
+          continue;
+        }
+
+        if (!item.isSong || item.song == null) continue;
+
+        final song = item.song!;
+        songNumber++;
+
+        // Grouped tuning: show divider when tuning changes
+        if (template.showTuning && template.tuningDisplay == 'grouped') {
+          final tuning = normalizeTuning(song.tuning);
+          if (tuning != lastTuning) {
+            lastTuning = tuning;
+            buffer.writeln('<div class="tuning-divider">');
+            buffer.writeln(
+                '<span class="tuning-label">${_escapeHtml(tuning)}</span>');
+            buffer.writeln('</div>');
+          }
+        }
+
+        buffer.writeln('<div class="song-row">');
+
+        // Song number
+        if (template.showSongNumbers) {
+          buffer.writeln('<span class="song-number">$songNumber.</span>');
+        }
+
+        // Song title
+        buffer.write('<span class="song-title">${_escapeHtml(song.title)}');
+
+        // Capo inline with title
+        if (template.showCapo) {
+          final parsed = parseCapoTuning(song.tuning);
+          if (parsed.capoFret != null) {
+            buffer.write(
+                ' <span class="capo-label">Capo ${parsed.capoFret}</span>');
+          }
+        }
+        buffer.writeln('</span>');
+
+        // Right side: inline tuning and BPM (independent font sizes)
+        final hasInlineTuning =
+            template.showTuning && template.tuningDisplay == 'inline';
+        final hasInlineBpm =
+            template.showBpm && song.bpm != null && song.bpm! > 0;
+
+        if (hasInlineTuning || hasInlineBpm) {
+          buffer.write('<span class="song-meta">');
+          if (hasInlineTuning) {
+            buffer.write(
+                '<span class="meta-tuning">${_escapeHtml(tuningShortLabel(song.tuning))}</span>');
+          }
+          if (hasInlineTuning && hasInlineBpm) {
+            buffer.write(' &middot; ');
+          }
+          if (hasInlineBpm) {
+            buffer.write('<span class="meta-bpm">${song.bpm} BPM</span>');
+          }
+          buffer.writeln('</span>');
+        }
+
+        buffer.writeln('</div>'); // Close song-row
+
+        // Notes below title
+        if (template.showNotes &&
+            song.notes != null &&
+            song.notes!.isNotEmpty) {
+          buffer.writeln(
+              '<div class="song-notes">${_escapeHtml(song.notes!)}</div>');
+        }
+      }
     }
 
     buffer.writeln('</div>'); // Close song-list
@@ -178,19 +226,62 @@ class SetlistPrintService {
   }
 
   // ===========================================================================
+  // SET GROUPING
+  // ===========================================================================
+
+  /// Split items into set groups by Set Break markers.
+  /// If no set breaks exist, all items form one group with no set label.
+  static List<SetGroup> groupItemsBySets(List<SetlistItem> items) {
+    if (items.isEmpty) return [];
+
+    final groups = <SetGroup>[];
+    var currentItems = <SetlistItem>[];
+    int setNumber = 1;
+
+    for (final item in items) {
+      if (item.isSetBreak) {
+        // Save current group and start a new one
+        if (currentItems.isNotEmpty) {
+          groups.add(SetGroup(setNumber: setNumber, items: currentItems));
+          currentItems = <SetlistItem>[];
+          setNumber++;
+        }
+      } else {
+        currentItems.add(item);
+      }
+    }
+
+    // Don't forget the last group
+    if (currentItems.isNotEmpty) {
+      groups.add(SetGroup(setNumber: setNumber, items: currentItems));
+    }
+
+    return groups;
+  }
+
+  // ===========================================================================
   // CSS GENERATION (Web Print)
   // ===========================================================================
 
-  /// Generate print-optimized CSS for web printing.
-  /// Uses @media print to ensure proper rendering when printing.
-  static String _generatePrintCss() {
-    return '''
-/* ============================================================================
-   STAGE-READABLE PRINT STYLES
-   Optimized for low-light conditions and quick scanning during live shows.
-   ============================================================================ */
+  static String _generatePrintCss(PrintTemplate template) {
+    final fontSize = template.baseFontSize;
+    final titleSize = template.headerFontSize.round();
+    final numberSize = template.numberFontSize.round();
+    final bpmSize = template.bpmFontSize.round();
+    final bandNameSize = template.bandNameFontSize.round();
+    final tuningLabelSize = template.tuningFontSize.round();
+    final capoSize = template.capoFontSize.round();
+    final notesSize = template.notesFontSize.round();
+    final pauseSize = template.pauseFontSize.round();
+    final pageSize = switch (template.paperSize) {
+      'a4' => 'A4',
+      'legal' => 'legal',
+      'tabloid' => '11in 17in',
+      _ => 'letter',
+    };
+    final columnCount = template.columnCount;
 
-/* Reset and base styles */
+    return '''
 * {
   margin: 0;
   padding: 0;
@@ -202,55 +293,85 @@ body {
   background: white;
   color: black;
   padding: 0.5in;
-  /* Maximum 2 pages - content will scale if needed */
-  max-height: 21in; /* ~2 pages at letter size */
+${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
 }
 
-/* Setlist title - largest element for quick identification */
-.setlist-title {
-  font-size: 28pt;
-  font-weight: 700;
+.header {
+  ${columnCount == 2 ? 'column-span: all;' : ''}
   margin-bottom: 8px;
+}
+
+.setlist-title {
+  font-size: ${titleSize}pt;
+  font-weight: 700;
   color: black;
+  ${columnCount == 2 ? 'column-span: all;' : ''}
+}
+
+.band-name {
+  font-size: ${bandNameSize}pt;
+  color: #444;
+  ${columnCount == 2 ? 'column-span: all;' : ''}
+}
+
+.gig-date, .venue {
+  font-size: ${bpmSize}pt;
+  color: #444;
+  ${columnCount == 2 ? 'column-span: all;' : ''}
 }
 
 .title-divider {
   border: none;
   border-top: 2px solid black;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  ${columnCount == 2 ? 'column-span: all;' : ''}
 }
 
-/* Song list container */
 .song-list {
-  display: flex;
-  flex-direction: column;
 }
 
-/* Tuning block - keeps songs in same tuning together */
-.tuning-block {
-  break-inside: avoid; /* Never split tuning blocks across pages */
-  page-break-inside: avoid;
-  margin-bottom: 8px;
+.set-label {
+  font-size: ${(fontSize * 1.1).round()}pt;
+  font-weight: 700;
+  color: black;
+  margin: 16px 0 8px 0;
+  padding: 4px 0;
+  border-bottom: 2px solid black;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  ${columnCount == 2 ? 'column-span: all;' : ''}
 }
 
-/* Tuning section divider with centered label */
+.pause-row {
+  font-size: ${pauseSize}pt;
+  font-weight: 600;
+  color: #333;
+  padding: 6px 12px;
+  margin: 6px 0;
+  border: 1.5px solid #888;
+  border-radius: 4px;
+  text-align: center;
+  ${columnCount == 2 ? 'column-span: all;' : ''}
+}
+
 .tuning-divider {
   display: flex;
   align-items: center;
-  margin: 16px 0 10px 0;
+  margin: 12px 0 8px 0;
   gap: 12px;
+  break-inside: avoid;
 }
 
 .tuning-divider::before,
 .tuning-divider::after {
   content: '';
   flex: 1;
-  height: 2.5px;
+  height: 2px;
   background: #666;
 }
 
 .tuning-label {
-  font-size: 14pt;
+  font-size: ${tuningLabelSize}pt;
   font-weight: 700;
   color: #333;
   text-transform: uppercase;
@@ -258,36 +379,59 @@ body {
   white-space: nowrap;
 }
 
-/* Individual song row */
 .song-row {
   display: flex;
   align-items: baseline;
-  margin-bottom: 10px;
+  margin-bottom: ${(fontSize * 0.55 * template.lineSpacing).round()}px;
   gap: 8px;
+  break-inside: avoid;
 }
 
 .song-number {
-  font-size: 18pt;
+  font-size: ${numberSize}pt;
   font-weight: 700;
   color: black;
-  min-width: 36px;
+  min-width: ${(numberSize * 2).round()}px;
 }
 
 .song-title {
-  font-size: 18pt;
+  font-size: ${fontSize.round()}pt;
   font-weight: 700;
   color: black;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.song-bpm {
-  font-size: 16pt;
+.capo-label {
+  font-size: ${capoSize}pt;
+  font-weight: 600;
+  color: #555;
+}
+
+.song-meta {
   font-weight: 600;
   color: #444;
   white-space: nowrap;
 }
 
-/* Print-specific overrides */
+.meta-tuning {
+  font-size: ${tuningLabelSize}pt;
+}
+
+.meta-bpm {
+  font-size: ${bpmSize}pt;
+}
+
+.song-notes {
+  font-size: ${notesSize}pt;
+  color: #555;
+  font-style: italic;
+  margin: -${(fontSize * 0.2).round()}px 0 ${(fontSize * 0.4).round()}px 0;
+  break-inside: avoid;
+}
+
 @media print {
   body {
     padding: 0.4in;
@@ -295,19 +439,13 @@ body {
     print-color-adjust: exact;
   }
 
-  /* Ensure max 2 pages by scaling if needed */
   @page {
-    size: letter;
+    size: $pageSize;
     margin: 0.4in;
-  }
 
-  /* Hide any browser chrome */
-  @page :first {
-    margin-top: 0.4in;
   }
 }
 
-/* Screen preview styles (when viewing before print) */
 @media screen {
   body {
     max-width: 8.5in;
@@ -322,201 +460,321 @@ body {
   // PDF GENERATION (Native Platforms)
   // ===========================================================================
 
-  /// Build the PDF document with all songs.
-  /// Automatically scales content to fit within 2 pages.
   static pw.Document _buildPdfDocument({
     required String setlistName,
-    required List<SetlistSong> songs,
+    required List<SetlistItem> items,
+    required PrintTemplate template,
+    String? bandName,
+    String? gigDate,
+    String? venue,
   }) {
     final pdf = pw.Document();
-    final tuningBlocks = groupSongsByTuning(songs);
+    final setGroups = groupItemsBySets(items);
+    final hasMultipleSets = setGroups.length > 1;
 
-    // Calculate if we need to scale down to fit 2 pages
-    // Start with default scale and reduce if needed
-    double fontScale = 1.0;
-    
-    // Estimate content height (rough calculation)
-    // Header ~50pt, each song ~30pt, each tuning break ~50pt
-    final estimatedHeight = 50.0 + 
-        (songs.length * 30.0) + 
-        (tuningBlocks.length * 50.0);
-    
-    // Letter page usable height: ~10in * 72pt = 720pt, minus margins = ~640pt
-    // 2 pages = ~1280pt usable
-    const maxHeight = 1280.0;
-    
-    if (estimatedHeight > maxHeight) {
-      fontScale = (maxHeight / estimatedHeight).clamp(_minFontScale, 1.0);
+    final pageFormat = switch (template.paperSize) {
+      'a4' => PdfPageFormat.a4,
+      'legal' => PdfPageFormat.legal,
+      'tabloid' =>
+        const PdfPageFormat(11 * PdfPageFormat.inch, 17 * PdfPageFormat.inch),
+      _ => PdfPageFormat.letter,
+    };
+
+    final baseFontSize = template.baseFontSize;
+
+    // Build all content widgets
+    final allWidgets = <pw.Widget>[];
+
+    // Header
+    if (template.showHeader || template.showBandName) {
+      allWidgets.addAll(_buildHeader(
+        setlistName: setlistName,
+        bandName: bandName,
+        gigDate: gigDate,
+        venue: venue,
+        template: template,
+      ));
+    }
+
+    // Build song widgets per set group
+    for (final group in setGroups) {
+      // Per-set song numbering — resets at each set boundary
+      int songNumber = 0;
+      String? lastTuning;
+
+      if (hasMultipleSets) {
+        allWidgets.add(_buildSetLabel(group.setNumber, baseFontSize));
+      }
+
+      for (final item in group.items) {
+        if (item.isPause) {
+          if (template.showPauses) {
+            allWidgets.add(_buildPauseRow(item, template.pauseFontSize));
+          }
+          continue;
+        }
+
+        if (!item.isSong || item.song == null) continue;
+
+        final song = item.song!;
+        songNumber++;
+
+        // Grouped tuning: show divider when tuning changes
+        if (template.showTuning && template.tuningDisplay == 'grouped') {
+          final tuning = normalizeTuning(song.tuning);
+          if (tuning != lastTuning) {
+            lastTuning = tuning;
+            allWidgets
+                .add(_buildTuningDivider(tuning, template.tuningFontSize));
+          }
+        }
+
+        allWidgets.add(_buildSongRow(
+          song: song,
+          songNumber: songNumber,
+          template: template,
+        ));
+
+        // Notes below song
+        if (template.showNotes &&
+            song.notes != null &&
+            song.notes!.isNotEmpty) {
+          allWidgets.add(_buildNotesRow(song.notes!, template.notesFontSize));
+        }
+      }
     }
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.letter,
-        margin: pw.EdgeInsets.all(_pageMargin),
-        maxPages: 2, // Enforce 2-page maximum
-        build: (pw.Context context) => [
-          // Setlist title header
-          pw.Text(
-            setlistName,
-            style: pw.TextStyle(
-              fontSize: _titleFontSize * fontScale,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.black,
-            ),
-          ),
-
-          // Horizontal rule below title
-          pw.Container(
-            margin: pw.EdgeInsets.only(top: 8, bottom: 16),
-            height: 2,
-            color: PdfColors.black,
-          ),
-
-          // Song list organized by tuning blocks
-          ..._buildTuningBlockWidgets(tuningBlocks, fontScale),
-        ],
+        pageFormat: pageFormat,
+        margin: const pw.EdgeInsets.all(36.0),
+        build: (pw.Context context) {
+          if (template.columnCount == 2) {
+            return _buildTwoColumnLayout(allWidgets);
+          }
+          return allWidgets;
+        },
       ),
     );
 
     return pdf;
   }
 
-  /// Build widgets for all tuning blocks.
-  /// Each block has a tuning header and its songs.
-  static List<pw.Widget> _buildTuningBlockWidgets(
-    List<TuningBlock> blocks,
-    double fontScale,
+  /// Build two-column layout. Set labels and pause rows span full width;
+  /// song rows and other items participate in column flow.
+  static List<pw.Widget> _buildTwoColumnLayout(
+    List<pw.Widget> allWidgets,
   ) {
-    final widgets = <pw.Widget>[];
+    final result = <pw.Widget>[];
+    var columnBuffer = <pw.Widget>[];
 
-    for (final block in blocks) {
-      // Tuning section with divider and label
-      // Wrapped to prevent page break within a tuning block
-      widgets.add(
-        pw.Wrap(
+    void flushColumnBuffer() {
+      if (columnBuffer.isEmpty) return;
+      result.add(
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            // Tuning divider with centered label
-            _buildTuningDivider(block.tuning, fontScale),
-            // Songs in this tuning
-            ..._buildBlockSongRows(block, fontScale),
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: _takeFirstHalf(columnBuffer),
+              ),
+            ),
+            pw.SizedBox(width: 16),
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: _takeSecondHalf(columnBuffer),
+              ),
+            ),
           ],
         ),
       );
+      columnBuffer = <pw.Widget>[];
     }
 
-    return widgets;
+    for (final widget in allWidgets) {
+      if (widget is _FullWidthMarker) {
+        flushColumnBuffer();
+        result.add(widget.child);
+      } else {
+        columnBuffer.add(widget);
+      }
+    }
+
+    flushColumnBuffer();
+    return result;
   }
 
-  /// Build song rows for a single tuning block.
-  static List<pw.Widget> _buildBlockSongRows(
-    TuningBlock block,
-    double fontScale,
-  ) {
+  static List<pw.Widget> _takeFirstHalf(List<pw.Widget> widgets) {
+    final mid = (widgets.length + 1) ~/ 2;
+    return widgets.sublist(0, mid);
+  }
+
+  static List<pw.Widget> _takeSecondHalf(List<pw.Widget> widgets) {
+    final mid = (widgets.length + 1) ~/ 2;
+    return widgets.sublist(mid);
+  }
+
+  // ===========================================================================
+  // PDF WIDGET BUILDERS
+  // ===========================================================================
+
+  static List<pw.Widget> _buildHeader({
+    required String setlistName,
+    String? bandName,
+    String? gigDate,
+    String? venue,
+    required PrintTemplate template,
+  }) {
     final widgets = <pw.Widget>[];
+    final titleSize = template.headerFontSize;
+    final bandNameSize = template.bandNameFontSize;
+    final subtitleSize = template.bpmFontSize; // gig date / venue size
 
-    for (int i = 0; i < block.songs.length; i++) {
-      final song = block.songs[i];
-      final songNumber = block.startIndex + i;
-      widgets.add(_buildSongRow(song, songNumber, fontScale));
+    if (template.showHeader) {
+      widgets.add(
+        _fullWidth(pw.Text(
+          setlistName,
+          style: pw.TextStyle(
+            fontSize: titleSize,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+        )),
+      );
     }
+
+    if (template.showBandName && bandName != null && bandName.isNotEmpty) {
+      widgets.add(
+        _fullWidth(pw.Text(
+          bandName,
+          style: pw.TextStyle(
+            fontSize: bandNameSize,
+            color: PdfColors.grey700,
+          ),
+        )),
+      );
+    }
+
+    if (gigDate != null && gigDate.isNotEmpty) {
+      widgets.add(
+        _fullWidth(pw.Text(
+          gigDate,
+          style: pw.TextStyle(
+            fontSize: subtitleSize,
+            color: PdfColors.grey700,
+          ),
+        )),
+      );
+    }
+
+    if (venue != null && venue.isNotEmpty) {
+      widgets.add(
+        _fullWidth(pw.Text(
+          venue,
+          style: pw.TextStyle(
+            fontSize: subtitleSize,
+            color: PdfColors.grey700,
+          ),
+        )),
+      );
+    }
+
+    // Divider below header
+    widgets.add(
+      _fullWidth(pw.Container(
+        margin: const pw.EdgeInsets.only(top: 8, bottom: 16),
+        height: 2,
+        color: PdfColors.black,
+      )),
+    );
 
     return widgets;
   }
 
-  /// Build a single song row: "[number]. Title                 (### BPM)"
-  static pw.Widget _buildSongRow(
-    SetlistSong song,
-    int songNumber,
-    double fontScale,
-  ) {
-    // Format BPM: show "(### BPM)" or empty if not set
-    final bpmText = song.bpm != null && song.bpm! > 0 
-        ? '(${song.bpm} BPM)' 
-        : '';
-
-    return pw.Container(
-      margin: pw.EdgeInsets.only(bottom: _songSpacing * fontScale),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          // Song number (fixed width for alignment)
-          pw.SizedBox(
-            width: 36 * fontScale,
-            child: pw.Text(
-              '$songNumber.',
-              style: pw.TextStyle(
-                fontSize: _songFontSize * fontScale,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.black,
-              ),
-            ),
+  static pw.Widget _buildSetLabel(int setNumber, double baseFontSize) {
+    return _fullWidth(
+      pw.Container(
+        margin: pw.EdgeInsets.only(
+          top: baseFontSize * 0.9,
+          bottom: baseFontSize * 0.45,
+        ),
+        padding: const pw.EdgeInsets.only(bottom: 4),
+        decoration: const pw.BoxDecoration(
+          border: pw.Border(
+            bottom: pw.BorderSide(color: PdfColors.black, width: 2),
           ),
-
-          // Song title (expands to fill available space)
-          pw.Expanded(
-            child: pw.Text(
-              song.title,
-              style: pw.TextStyle(
-                fontSize: _songFontSize * fontScale,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.black,
-              ),
-            ),
+        ),
+        child: pw.Text(
+          'SET $setNumber',
+          style: pw.TextStyle(
+            fontSize: baseFontSize * 1.1,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+            letterSpacing: 0.5,
           ),
-
-          // BPM (inline, slightly smaller)
-          if (bpmText.isNotEmpty)
-            pw.Text(
-              bpmText,
-              style: pw.TextStyle(
-                fontSize: _bpmFontSize * fontScale,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.grey700,
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
 
-  /// Build a tuning section divider with centered tuning label.
-  ///
-  /// VISUAL DESIGN:
-  /// - Thick horizontal line with centered tuning name
-  /// - Bold uppercase label for quick identification
-  /// - Signals to guitarist: "switch to this tuning"
-  static pw.Widget _buildTuningDivider(String tuning, double fontScale) {
+  static pw.Widget _buildPauseRow(SetlistItem item, double pauseFontSize) {
+    final label = item.specialItem?.displayLabel ?? 'Pause';
+    return _fullWidth(
+      pw.Container(
+        margin: pw.EdgeInsets.symmetric(vertical: pauseFontSize * 0.4),
+        padding: pw.EdgeInsets.symmetric(
+          horizontal: pauseFontSize * 0.7,
+          vertical: pauseFontSize * 0.35,
+        ),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey600, width: 1.5),
+          borderRadius: pw.BorderRadius.circular(4),
+        ),
+        child: pw.Center(
+          child: pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: pauseFontSize,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.grey800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _buildTuningDivider(String tuning, double baseFontSize) {
     return pw.Container(
       margin: pw.EdgeInsets.only(
-        top: _dividerSpacingTop * fontScale,
-        bottom: _dividerSpacingBottom * fontScale,
+        top: baseFontSize * 1.0,
+        bottom: baseFontSize * 0.55,
       ),
       child: pw.Row(
         children: [
-          // Left line
           pw.Expanded(
             child: pw.Container(
-              height: _dividerHeight,
+              height: 2.5,
               color: PdfColors.grey600,
             ),
           ),
-          // Centered tuning label
           pw.Container(
-            padding: pw.EdgeInsets.symmetric(horizontal: 12),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 12),
             child: pw.Text(
               tuning.toUpperCase(),
               style: pw.TextStyle(
-                fontSize: _tuningLabelFontSize * fontScale,
+                fontSize: baseFontSize * 0.78,
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.grey800,
                 letterSpacing: 0.5,
               ),
             ),
           ),
-          // Right line
           pw.Expanded(
             child: pw.Container(
-              height: _dividerHeight,
+              height: 2.5,
               color: PdfColors.grey600,
             ),
           ),
@@ -525,63 +783,150 @@ body {
     );
   }
 
-  // ===========================================================================
-  // TUNING BLOCK UTILITIES
-  // ===========================================================================
+  static pw.Widget _buildSongRow({
+    required SetlistSong song,
+    required int songNumber,
+    required PrintTemplate template,
+  }) {
+    final titleFont = template.baseFontSize;
+    final numberFont = template.numberFontSize;
+    final bpmFont = template.bpmFontSize;
+    final capoFont = template.capoFontSize;
+    final tuningFont = template.tuningFontSize;
+    final titleChildren = <pw.InlineSpan>[];
 
-  /// Group songs by consecutive tuning sections.
-  /// Maintains setlist order while creating logical tuning blocks.
-  /// Public for use by web print implementation.
-  static List<TuningBlock> groupSongsByTuning(List<SetlistSong> songs) {
-    if (songs.isEmpty) return [];
+    // Build title text
+    titleChildren.add(pw.TextSpan(
+      text: song.title,
+      style: pw.TextStyle(
+        fontSize: titleFont,
+        fontWeight: pw.FontWeight.bold,
+        color: PdfColors.black,
+      ),
+    ));
 
-    final blocks = <TuningBlock>[];
-    String? currentTuning;
-    List<SetlistSong> currentSongs = [];
-    int blockStartIndex = 1;
-
-    for (int i = 0; i < songs.length; i++) {
-      final song = songs[i];
-      final tuning = normalizeTuning(song.tuning);
-
-      if (currentTuning == null) {
-        // First song
-        currentTuning = tuning;
-        currentSongs = [song];
-        blockStartIndex = i + 1;
-      } else if (tuning == currentTuning) {
-        // Same tuning, add to current block
-        currentSongs.add(song);
-      } else {
-        // Tuning changed, save current block and start new one
-        blocks.add(TuningBlock(
-          tuning: currentTuning,
-          songs: currentSongs,
-          startIndex: blockStartIndex,
+    // Capo inline
+    if (template.showCapo) {
+      final parsed = parseCapoTuning(song.tuning);
+      if (parsed.capoFret != null) {
+        titleChildren.add(pw.TextSpan(
+          text: '  Capo ${parsed.capoFret}',
+          style: pw.TextStyle(
+            fontSize: capoFont,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.grey700,
+          ),
         ));
-        currentTuning = tuning;
-        currentSongs = [song];
-        blockStartIndex = i + 1;
       }
     }
 
-    // Don't forget the last block
-    if (currentSongs.isNotEmpty && currentTuning != null) {
-      blocks.add(TuningBlock(
-        tuning: currentTuning,
-        songs: currentSongs,
-        startIndex: blockStartIndex,
+    // Right side metadata widgets (each with own font size)
+    final rightWidgets = <pw.Widget>[];
+
+    if (template.showTuning && template.tuningDisplay == 'inline') {
+      rightWidgets.add(pw.Text(
+        tuningShortLabel(song.tuning),
+        style: pw.TextStyle(
+          fontSize: tuningFont,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.grey700,
+        ),
       ));
     }
 
-    return blocks;
+    if (template.showBpm && song.bpm != null && song.bpm! > 0) {
+      rightWidgets.add(pw.Text(
+        '${song.bpm} BPM',
+        style: pw.TextStyle(
+          fontSize: bpmFont,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.grey700,
+        ),
+      ));
+    }
+
+    return pw.Container(
+      margin:
+          pw.EdgeInsets.only(bottom: titleFont * 0.55 * template.lineSpacing),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          // Song number
+          if (template.showSongNumbers)
+            pw.SizedBox(
+              width: numberFont * 2.0,
+              child: pw.Text(
+                '$songNumber.',
+                style: pw.TextStyle(
+                  fontSize: numberFont,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.black,
+                ),
+              ),
+            ),
+
+          // Title + capo (truncate, don't wrap)
+          pw.Expanded(
+            child: pw.ClipRect(
+              child: pw.RichText(
+                text: pw.TextSpan(children: titleChildren),
+                maxLines: 1,
+              ),
+            ),
+          ),
+
+          // Right meta (tuning and BPM with independent font sizes)
+          if (rightWidgets.isNotEmpty)
+            pw.Row(
+              mainAxisSize: pw.MainAxisSize.min,
+              children: [
+                for (int i = 0; i < rightWidgets.length; i++) ...[
+                  if (i > 0)
+                    pw.Text(
+                      ' · ',
+                      style: pw.TextStyle(
+                        fontSize: bpmFont,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  rightWidgets[i],
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
+  static pw.Widget _buildNotesRow(String notes, double notesFontSize) {
+    return pw.Container(
+      margin: pw.EdgeInsets.only(
+        bottom: notesFontSize * 0.56,
+      ),
+      child: pw.Text(
+        notes,
+        style: pw.TextStyle(
+          fontSize: notesFontSize,
+          fontStyle: pw.FontStyle.italic,
+          color: PdfColors.grey700,
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // TUNING UTILITIES
+  // ===========================================================================
+
   /// Normalize tuning string for comparison and display.
-  /// Public for use by web print implementation.
   static String normalizeTuning(String? tuning) {
     return tuningShortLabel(tuning);
   }
+
+  // ===========================================================================
+  // HTML UTILITIES
+  // ===========================================================================
 
   /// Escape HTML special characters for safe output.
   static String _escapeHtml(String text) {
@@ -592,4 +937,23 @@ body {
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
   }
+
+  // ===========================================================================
+  // TWO-COLUMN HELPERS
+  // ===========================================================================
+
+  /// Wrap a widget to mark it as full-width (spans both columns in 2-col).
+  static pw.Widget _fullWidth(pw.Widget child) {
+    return _FullWidthMarker(child: child);
+  }
+}
+
+/// Marker widget for full-width elements in two-column PDF layout.
+class _FullWidthMarker extends pw.StatelessWidget {
+  final pw.Widget child;
+
+  _FullWidthMarker({required this.child});
+
+  @override
+  pw.Widget build(pw.Context context) => child;
 }
