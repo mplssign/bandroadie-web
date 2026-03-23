@@ -79,6 +79,7 @@ class SpecialItemRepository {
     required String templateId,
     int? durationMinutes,
     int? durationSeconds,
+    bool clearDurationSeconds = false,
     List<String>? purposes,
     List<String>? customPurposes,
   }) async {
@@ -86,7 +87,11 @@ class SpecialItemRepository {
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
     if (durationMinutes != null) updates['duration_minutes'] = durationMinutes;
-    if (durationSeconds != null) updates['duration_seconds'] = durationSeconds;
+    if (durationSeconds != null) {
+      updates['duration_seconds'] = durationSeconds;
+    } else if (clearDurationSeconds) {
+      updates['duration_seconds'] = null;
+    }
     if (purposes != null) updates['purposes'] = purposes;
     if (customPurposes != null) updates['custom_purposes'] = customPurposes;
 

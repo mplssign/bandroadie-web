@@ -55,6 +55,8 @@ class Setlist {
   final List<SetlistSong> songs;
   final bool isCatalog;
   final int position;
+  final int pauseCount;
+  final int setBreakCount;
 
   const Setlist({
     required this.id,
@@ -66,6 +68,8 @@ class Setlist {
     this.songs = const [],
     this.isCatalog = false,
     this.position = 0,
+    this.pauseCount = 0,
+    this.setBreakCount = 0,
   });
 
   Setlist copyWith({
@@ -78,6 +82,8 @@ class Setlist {
     List<SetlistSong>? songs,
     bool? isCatalog,
     int? position,
+    int? pauseCount,
+    int? setBreakCount,
   }) {
     return Setlist(
       id: id ?? this.id,
@@ -89,6 +95,8 @@ class Setlist {
       songs: songs ?? this.songs,
       isCatalog: isCatalog ?? this.isCatalog,
       position: position ?? this.position,
+      pauseCount: pauseCount ?? this.pauseCount,
+      setBreakCount: setBreakCount ?? this.setBreakCount,
     );
   }
 
@@ -131,8 +139,7 @@ class Setlist {
     );
 
     // id is required but we provide a fallback to prevent crashes
-    final id =
-        _asString(json['id']) ??
+    final id = _asString(json['id']) ??
         'unknown-${DateTime.now().millisecondsSinceEpoch}';
 
     return Setlist(
@@ -144,6 +151,8 @@ class Setlist {
       lastUpdated: lastUpdated,
       isCatalog: isCatalog,
       position: _asInt(json['position']),
+      pauseCount: _asInt(json['pause_count']),
+      setBreakCount: _asInt(json['set_break_count']),
     );
   }
 
@@ -157,5 +166,21 @@ class Setlist {
   /// Format song count with proper pluralization
   String get formattedSongCount {
     return '$songCount ${songCount == 1 ? 'song' : 'songs'}';
+  }
+
+  /// Format metadata with counts: "24 songs, 6 pauses, 1 set break"
+  /// Omits pauses/set breaks when zero.
+  String get formattedMetadata {
+    final parts = <String>[
+      '$songCount ${songCount == 1 ? 'song' : 'songs'}',
+    ];
+    if (pauseCount > 0) {
+      parts.add('$pauseCount ${pauseCount == 1 ? 'pause' : 'pauses'}');
+    }
+    if (setBreakCount > 0) {
+      parts.add(
+          '$setBreakCount ${setBreakCount == 1 ? 'set break' : 'set breaks'}');
+    }
+    return parts.join(', ');
   }
 }
