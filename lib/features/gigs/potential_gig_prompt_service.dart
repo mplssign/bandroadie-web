@@ -159,14 +159,24 @@ class PotentialGigPromptNotifier extends Notifier<PotentialGigPromptState> {
           onRespond: (response) async {
             final responseStr =
                 response == AvailabilityResponse.yes ? 'yes' : 'no';
-            await _repository.upsertResponse(
+            // Save response for primary date
+            await _repository.upsertResponseForDate(
               gigId: gig.gigId,
-              bandId: bandId,
+              gigDateId: null,
               userId: userId,
               response: responseStr,
             );
+            // Save response for each additional date
+            for (final dateId in gig.additionalDateIds) {
+              await _repository.upsertResponseForDate(
+                gigId: gig.gigId,
+                gigDateId: dateId,
+                userId: userId,
+                response: responseStr,
+              );
+            }
             debugPrint(
-              '[PotentialGigPrompt] Submitted $responseStr for gig ${gig.gigId}',
+              '[PotentialGigPrompt] Submitted $responseStr for gig ${gig.gigId} (${1 + gig.additionalDateIds.length} dates)',
             );
           },
         );

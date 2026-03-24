@@ -25,7 +25,6 @@ class EventFormFields extends ConsumerWidget {
     required this.isPotentialGig,
     required this.isMultiDate,
     required this.additionalDates,
-    required this.onMultiDateToggled,
     required this.onAdditionalDateTap,
     required this.onAdditionalDateRemoved,
     required this.onAdditionalDateAdded,
@@ -61,7 +60,6 @@ class EventFormFields extends ConsumerWidget {
   final bool isPotentialGig;
   final bool isMultiDate;
   final List<DateTime> additionalDates;
-  final ValueChanged<bool> onMultiDateToggled;
   final ValueChanged<int> onAdditionalDateTap;
   final ValueChanged<int> onAdditionalDateRemoved;
   final VoidCallback onAdditionalDateAdded;
@@ -165,9 +163,6 @@ class EventFormFields extends ConsumerWidget {
                 color: AppColors.textSecondary,
               ),
             ),
-            const Spacer(),
-            if (eventType == EventType.gig && isPotentialGig)
-              _buildMultipleDatesToggle(),
           ],
         ),
         const SizedBox(height: 6),
@@ -177,80 +172,54 @@ class EventFormFields extends ConsumerWidget {
           onTap: isSaving ? null : onDateTap,
           showRemoveButton: false,
         ),
-        // Additional date pickers (when multi-date is enabled)
-        if (isMultiDate) ...[
+        // Additional date pickers (shown if any additional dates exist)
+        if (additionalDates.isNotEmpty) ...[
           for (int i = 0; i < additionalDates.length; i++) ...[
             const SizedBox(height: 8),
             _buildSingleDatePicker(
               date: additionalDates[i],
               onTap: isSaving ? null : () => onAdditionalDateTap(i),
               showRemoveButton: true,
-              showAddButton: i == additionalDates.length - 1,
               onRemove: () => onAdditionalDateRemoved(i),
-              onAdd: onAdditionalDateAdded,
-            ),
-          ],
-          // Show add button if no additional dates yet
-          if (additionalDates.isEmpty) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: isSaving ? null : onAdditionalDateAdded,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(
-                    color: AppColors.borderMuted,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(AppIcons.add, size: 18, color: AppColors.accent),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Add another date',
-                      style: AppTextStyles.callout.copyWith(
-                        color: AppColors.accent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
         ],
+        // Always show "+ Add Another Date" when potential gig
+        if (eventType == EventType.gig && isPotentialGig) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: isSaving ? null : onAdditionalDateAdded,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.scaffoldBg,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                border: Border.all(
+                  color: AppColors.borderMuted,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(AppIcons.add, size: 18, color: AppColors.accent),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Add another date',
+                    style: AppTextStyles.callout.copyWith(
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
-    );
-  }
-
-  Widget _buildMultipleDatesToggle() {
-    return GestureDetector(
-      onTap: isSaving ? null : () => onMultiDateToggled(!isMultiDate),
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isMultiDate ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isMultiDate ? AppColors.accent : AppColors.borderMuted,
-          ),
-        ),
-        child: Text(
-          'Multiple',
-          style: AppTextStyles.footnote.copyWith(
-            color: isMultiDate ? Colors.white : AppColors.textSecondary,
-            fontWeight: isMultiDate ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
     );
   }
 
