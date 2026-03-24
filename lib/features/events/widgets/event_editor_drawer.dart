@@ -753,6 +753,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   void _addAdditionalDate() {
     setState(() {
+      _isMultiDate = true;
       // Add a new date, default to one week after the last date
       final lastDate =
           _additionalDates.isNotEmpty ? _additionalDates.last : _selectedDate;
@@ -767,6 +768,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _additionalDates.removeAt(index);
       // Also remove from existingGigDateIds if present
       _existingGigDateIds.remove(dateToRemove);
+      if (_additionalDates.isEmpty) _isMultiDate = false;
     });
     _markDirty();
   }
@@ -1638,10 +1640,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       isPotentialGig: _isPotentialGig,
       isMultiDate: _isMultiDate,
       additionalDates: _additionalDates,
-      onMultiDateToggled: (v) {
-        setState(() => _isMultiDate = v);
-        _markDirty();
-      },
       onAdditionalDateTap: (i) => _showAdditionalDatePicker(i),
       onAdditionalDateRemoved: _removeAdditionalDate,
       onAdditionalDateAdded: _addAdditionalDate,
@@ -2215,6 +2213,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       }
     });
 
+    _markDirty();
     HapticFeedback.selectionClick();
   }
 

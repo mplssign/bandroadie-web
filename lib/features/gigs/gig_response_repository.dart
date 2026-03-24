@@ -78,10 +78,10 @@ class GigResponseSummary {
 
   /// Create empty summary
   const GigResponseSummary.empty()
-    : yesCount = 0,
-      noCount = 0,
-      notRespondedCount = 0,
-      totalMembers = 0;
+      : yesCount = 0,
+        noCount = 0,
+        notRespondedCount = 0,
+        totalMembers = 0;
 
   @override
   String toString() =>
@@ -97,6 +97,7 @@ class PendingPotentialGig {
   final String startTime;
   final String endTime;
   final String location;
+  final List<String> additionalDateIds;
 
   const PendingPotentialGig({
     required this.gigId,
@@ -106,9 +107,21 @@ class PendingPotentialGig {
     required this.startTime,
     required this.endTime,
     required this.location,
+    this.additionalDateIds = const [],
   });
 
   factory PendingPotentialGig.fromJson(Map<String, dynamic> json) {
+    // Parse additional date IDs from joined gig_dates
+    final gigDatesRaw = json['gig_dates'];
+    final additionalDateIds = <String>[];
+    if (gigDatesRaw is List) {
+      for (final entry in gigDatesRaw) {
+        if (entry is Map<String, dynamic> && entry['id'] != null) {
+          additionalDateIds.add(entry['id'] as String);
+        }
+      }
+    }
+
     return PendingPotentialGig(
       gigId: json['id'] as String,
       bandId: json['band_id'] as String,
@@ -117,6 +130,7 @@ class PendingPotentialGig {
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
       location: json['location'] as String? ?? '',
+      additionalDateIds: additionalDateIds,
     );
   }
 }
@@ -139,7 +153,8 @@ class GigResponseRepository {
     // Fetch all potential gigs for the band
     final gigsResponse = await supabase
         .from('gigs')
-        .select('id, band_id, name, date, start_time, end_time, location')
+        .select(
+            'id, band_id, name, date, start_time, end_time, location, gig_dates(id)')
         .eq('band_id', bandId)
         .eq('is_potential', true)
         .gte('date', today)
@@ -218,6 +233,7 @@ class GigResponseRepository {
         .select('response')
         .eq('gig_id', gigId)
         .eq('user_id', userId)
+        .isFilter('gig_date_id', null)
         .maybeSingle();
 
     if (response == null) return null;
@@ -281,24 +297,26 @@ class GigResponseRepository {
     required String userId,
     required String response,
   }) async {
-    // Check if a response already exists
+    // Check if a response already exists (primary date only)
     final existing = await supabase
         .from('gig_responses')
         .select('id')
         .eq('gig_id', gigId)
         .eq('user_id', userId)
+        .isFilter('gig_date_id', null)
         .maybeSingle();
 
     final now = DateTime.now().toUtc().toIso8601String();
 
     if (existing != null) {
-      // Update existing response
+      // Update existing response (primary date only)
       debugPrint('[GigResponseRepository] Updating existing response');
       await supabase
           .from('gig_responses')
           .update({'response': response, 'updated_at': now})
           .eq('gig_id', gigId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .isFilter('gig_date_id', null);
       debugPrint('[GigResponseRepository] Update successful');
     } else {
       // Insert new response
@@ -482,9 +500,8 @@ class GigResponseRepository {
         .eq('band_id', bandId)
         .eq('status', 'active');
 
-    final memberIds = membersResponse
-        .map((m) => m['user_id'] as String)
-        .toList();
+    final memberIds =
+        membersResponse.map((m) => m['user_id'] as String).toList();
 
     // Initialize result map
     final result = <String, Map<String, String?>>{};
@@ -713,38 +730,38 @@ final gigResponseRepositoryProvider = Provider(
 /// Automatically refreshes when gig list or band changes.
 final potentialGigResponseSummariesProvider =
     FutureProvider<Map<String, GigResponseSummary>>((ref) async {
-      // Import dependencies
-      final gigState = ref.watch(gigProvider);
-      final bandId = ref.watch(activeBandIdProvider);
+  // Import dependencies
+  final gigState = ref.watch(gigProvider);
+  final bandId = ref.watch(activeBandIdProvider);
 
-      // Return empty map if no band or no potential gigs
-      if (bandId == null || gigState.potentialGigs.isEmpty) {
-        return {};
-      }
+  // Return empty map if no band or no potential gigs
+  if (bandId == null || gigState.potentialGigs.isEmpty) {
+    return {};
+  }
 
-      // Avoid fetching while gigs are still loading to prevent stale data
-      if (gigState.isLoading) {
-        return {};
-      }
+  // Avoid fetching while gigs are still loading to prevent stale data
+  if (gigState.isLoading) {
+    return {};
+  }
 
-      final repository = ref.read(gigResponseRepositoryProvider);
-      final gigIds = gigState.potentialGigs.map((g) => g.id).toList();
+  final repository = ref.read(gigResponseRepositoryProvider);
+  final gigIds = gigState.potentialGigs.map((g) => g.id).toList();
 
-      debugPrint(
-        '[potentialGigResponseSummariesProvider] Fetching summaries for ${gigIds.length} potential gigs',
-      );
+  debugPrint(
+    '[potentialGigResponseSummariesProvider] Fetching summaries for ${gigIds.length} potential gigs',
+  );
 
-      try {
-        final summaries = await repository.fetchMultipleGigResponseSummaries(
-          gigIds: gigIds,
-          bandId: bandId,
-        );
-        debugPrint(
-          '[potentialGigResponseSummariesProvider] Loaded ${summaries.length} summaries',
-        );
-        return summaries;
-      } catch (e) {
-        debugPrint('[potentialGigResponseSummariesProvider] Error: $e');
-        rethrow;
-      }
-    });
+  try {
+    final summaries = await repository.fetchMultipleGigResponseSummaries(
+      gigIds: gigIds,
+      bandId: bandId,
+    );
+    debugPrint(
+      '[potentialGigResponseSummariesProvider] Loaded ${summaries.length} summaries',
+    );
+    return summaries;
+  } catch (e) {
+    debugPrint('[potentialGigResponseSummariesProvider] Error: $e');
+    rethrow;
+  }
+});
