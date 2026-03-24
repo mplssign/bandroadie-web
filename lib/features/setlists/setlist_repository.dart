@@ -249,7 +249,7 @@ class SetlistRepository {
               position,
               created_at,
               updated_at,
-              setlist_songs(item_type)
+              setlist_songs(item_type, song:songs(duration_seconds), setlist_special_items(duration_minutes, duration_seconds))
             ''').eq('band_id', bandId).order('position', ascending: true);
       } on PostgrestException catch (e) {
         // Handle missing columns gracefully
@@ -271,7 +271,7 @@ class SetlistRepository {
                     is_catalog,
                     created_at,
                     updated_at,
-                    setlist_songs(item_type)
+                    setlist_songs(item_type, song:songs(duration_seconds), setlist_special_items(duration_minutes, duration_seconds))
                   ''').eq('band_id', bandId).order('name', ascending: true);
             } on PostgrestException catch (e2) {
               if (e2.code == '42703' && e2.message.contains('is_catalog')) {
@@ -283,7 +283,7 @@ class SetlistRepository {
                       total_duration,
                       created_at,
                       updated_at,
-                      setlist_songs(item_type)
+                      setlist_songs(item_type, song:songs(duration_seconds), setlist_special_items(duration_minutes, duration_seconds))
                     ''').eq('band_id', bandId).order('name', ascending: true);
               } else {
                 rethrow;
@@ -304,7 +304,7 @@ class SetlistRepository {
                   position,
                   created_at,
                   updated_at,
-                  setlist_songs(item_type)
+                  setlist_songs(item_type, song:songs(duration_seconds), setlist_special_items(duration_minutes, duration_seconds))
                 ''').eq('band_id', bandId).order('position', ascending: true);
           } else {
             rethrow;
@@ -332,6 +332,7 @@ class SetlistRepository {
           int songCount = 0;
           int pauseCount = 0;
           int setBreakCount = 0;
+          int totalDurationSeconds = 0;
           if (json['setlist_songs'] != null) {
             final items = json['setlist_songs'];
             if (items is List) {
@@ -340,12 +341,29 @@ class SetlistRepository {
                 switch (itemType) {
                   case 'pause':
                     pauseCount++;
+                    final special =
+                        (item is Map) ? item['setlist_special_items'] : null;
+                    if (special is Map) {
+                      totalDurationSeconds +=
+                          (special['duration_seconds'] as int? ?? 0);
+                    }
                     break;
                   case 'set_break':
                     setBreakCount++;
+                    final special =
+                        (item is Map) ? item['setlist_special_items'] : null;
+                    if (special is Map) {
+                      totalDurationSeconds +=
+                          ((special['duration_minutes'] as int? ?? 0) * 60);
+                    }
                     break;
                   default:
                     songCount++;
+                    final songData = (item is Map) ? item['song'] : null;
+                    if (songData is Map) {
+                      totalDurationSeconds +=
+                          (songData['duration_seconds'] as int? ?? 0);
+                    }
                     break;
                 }
               }
@@ -357,6 +375,7 @@ class SetlistRepository {
           flatJson['song_count'] = songCount;
           flatJson['pause_count'] = pauseCount;
           flatJson['set_break_count'] = setBreakCount;
+          flatJson['total_duration'] = totalDurationSeconds;
 
           setlists.add(Setlist.fromSupabase(flatJson));
         } catch (parseError, stackTrace) {
