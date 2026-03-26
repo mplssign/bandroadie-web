@@ -205,9 +205,8 @@ class GigFormFields extends ConsumerWidget {
               controller: controller,
               focusNode: focusNode,
               enabled: !isSaving,
-              textCapitalization: TextCapitalization.words,
+              textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
-              inputFormatters: [TitleCaseTextFormatter()],
               style: AppTextStyles.callout.copyWith(
                 color: AppColors.textPrimary,
               ),
