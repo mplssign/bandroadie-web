@@ -44,7 +44,7 @@ class SetlistPrintService {
     String? gigDate,
     String? venue,
   }) async {
-    final pdf = _buildPdfDocument(
+    final pdf = await _buildPdfDocument(
       setlistName: setlistName,
       items: items,
       template: template,
@@ -68,7 +68,7 @@ class SetlistPrintService {
     String? gigDate,
     String? venue,
   }) async {
-    final pdf = _buildPdfDocument(
+    final pdf = await _buildPdfDocument(
       setlistName: setlistName,
       items: items,
       template: template,
@@ -460,15 +460,28 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
   // PDF GENERATION (Native Platforms)
   // ===========================================================================
 
-  static pw.Document _buildPdfDocument({
+  static Future<pw.Document> _buildPdfDocument({
     required String setlistName,
     required List<SetlistItem> items,
     required PrintTemplate template,
     String? bandName,
     String? gigDate,
     String? venue,
-  }) {
-    final pdf = pw.Document();
+  }) async {
+    // Load Noto Sans for full Unicode coverage (curly quotes, ♭, etc.)
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final fontBold = await PdfGoogleFonts.notoSansBold();
+    final fontItalic = await PdfGoogleFonts.notoSansItalic();
+    final fontBoldItalic = await PdfGoogleFonts.notoSansBoldItalic();
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: font,
+        bold: fontBold,
+        italic: fontItalic,
+        boldItalic: fontBoldItalic,
+      ),
+    );
     final setGroups = groupItemsBySets(items);
     final hasMultipleSets = setGroups.length > 1;
 
