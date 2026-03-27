@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/field_hint.dart';
-import '../../../shared/utils/title_case_formatter.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../../members/member_vm.dart';
 import '../../members/members_controller.dart';
@@ -351,9 +350,8 @@ class GigFormFields extends ConsumerWidget {
               controller: controller,
               focusNode: focusNode,
               enabled: !isSaving,
-              textCapitalization: TextCapitalization.words,
+              textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
-              inputFormatters: [TitleCaseTextFormatter()],
               style: AppTextStyles.callout.copyWith(
                 color: AppColors.textPrimary,
               ),
