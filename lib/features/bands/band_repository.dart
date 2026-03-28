@@ -28,10 +28,12 @@ class BandRepository {
 
     try {
       // Single query: join band_members → bands via foreign key
+      // Only include active memberships (not removed/inactive/invited)
       final response = await supabase
           .from('band_members')
           .select('bands(*)')
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .eq('status', 'active');
 
       final List<Band> bands = [];
 
