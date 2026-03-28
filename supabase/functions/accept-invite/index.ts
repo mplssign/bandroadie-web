@@ -113,12 +113,24 @@ serve(async (req) => {
         // Single RPC call wraps both writes in a PostgreSQL transaction.
         // band_id is derived from the invite row inside the function.
         // Role is hardcoded to 'member' inside the function.
-        await supabaseAdmin.rpc("accept_band_invite", {
-          p_invite_id: invite.id,
-          p_user_id: authUser.id,
-        });
+        const { error: rpcError } = await supabaseAdmin.rpc(
+          "accept_band_invite",
+          {
+            p_invite_id: invite.id,
+            p_user_id: authUser.id,
+          },
+        );
 
-        const bandName = (invite.bands as { name?: string })?.name || "Unknown";
+        if (rpcError) {
+          console.error(
+            `[accept-invite] RPC error for invite ${invite.id}:`,
+            rpcError.message,
+          );
+          continue;
+        }
+
+        const bandName =
+          (invite.bands as { name?: string })?.name || "Unknown";
         acceptedBands.push(bandName);
         console.log(`[accept-invite] Accepted invite to: ${bandName}`);
       } catch (e) {

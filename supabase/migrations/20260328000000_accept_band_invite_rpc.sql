@@ -42,11 +42,17 @@ BEGIN
   END IF;
 
   -- Upsert band membership.
-  -- ON CONFLICT DO NOTHING preserves existing role (admin/contributor)
-  -- for users who are already band members.
+  -- If a row already exists (e.g. previously removed member being re-invited),
+  -- reactivate them with 'member' role. Active admins/contributors keep their
+  -- current role because the UPDATE only fires when status is NOT 'active'.
   INSERT INTO band_members (band_id, user_id, role, status)
   VALUES (v_band_id, p_user_id, 'member'::band_role_type, 'active')
-  ON CONFLICT (band_id, user_id) DO NOTHING;
+  ON CONFLICT (band_id, user_id) DO UPDATE
+    SET status = 'active',
+        role = CASE
+                 WHEN band_members.status = 'active' THEN band_members.role
+                 ELSE EXCLUDED.role
+               END;
 
   -- Mark invitation as accepted
   UPDATE band_invitations
