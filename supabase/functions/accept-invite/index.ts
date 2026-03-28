@@ -8,14 +8,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -24,8 +25,11 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
       return new Response(
-        JSON.stringify({ error: "Missing Supabase env vars" }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Missing Supabase env vars" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -33,26 +37,41 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     // Get the JWT from the Authorization header to identify the current user
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Missing authorization header" }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Missing authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Create a client with the user's JWT to get their identity
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || serviceRoleKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    const supabaseUser = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY") || serviceRoleKey,
+      {
+        global: { headers: { Authorization: authHeader } },
+      },
+    );
 
     // Get the authenticated user
-    const { data: { user: authUser }, error: authError } = await supabaseUser.auth.getUser();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
     if (authError || !authUser || !authUser.email) {
       console.error("[accept-invite] Auth error:", authError);
       return new Response(
-        JSON.stringify({ error: "Invalid or expired session. Please sign in again." }), 
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: "Invalid or expired session. Please sign in again.",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -68,15 +87,21 @@ serve(async (req) => {
     if (inviteError) {
       console.error("[accept-invite] Error fetching invitations:", inviteError);
       return new Response(
-        JSON.stringify({ error: "Failed to fetch invitations" }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Failed to fetch invitations" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!invitations || invitations.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, accepted_count: 0, band_names: [] }), 
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, accepted_count: 0, band_names: [] }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -84,27 +109,23 @@ serve(async (req) => {
 
     for (const invite of invitations) {
       try {
-        // Add user to band_members (only if not already a member).
-        // ignoreDuplicates = ON CONFLICT DO NOTHING — preserves the existing
-        // role (admin/contributor) for users who are already band members.
-        await supabaseAdmin.from("band_members").upsert({
-          band_id: invite.band_id,
-          user_id: authUser.id,
-          role: 'member',
-          status: 'active',
-        }, { onConflict: "band_id,user_id", ignoreDuplicates: true });
-
-        // Mark invitation as accepted
-        await supabaseAdmin
-          .from("band_invitations")
-          .update({ status: "accepted", accepted_at: new Date().toISOString() })
-          .eq("id", invite.id);
+        // Atomically: upsert band_members + mark invitation accepted.
+        // Single RPC call wraps both writes in a PostgreSQL transaction.
+        // band_id is derived from the invite row inside the function.
+        // Role is hardcoded to 'member' inside the function.
+        await supabaseAdmin.rpc("accept_band_invite", {
+          p_invite_id: invite.id,
+          p_user_id: authUser.id,
+        });
 
         const bandName = (invite.bands as { name?: string })?.name || "Unknown";
         acceptedBands.push(bandName);
         console.log(`[accept-invite] Accepted invite to: ${bandName}`);
       } catch (e) {
-        console.error(`[accept-invite] Error accepting invite ${invite.id}:`, e);
+        console.error(
+          `[accept-invite] Error accepting invite ${invite.id}:`,
+          e,
+        );
       }
     }
 
@@ -113,15 +134,22 @@ serve(async (req) => {
         success: true,
         accepted_count: acceptedBands.length,
         band_names: acceptedBands,
-      }), 
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
     console.error("[accept-invite] Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: "An unexpected error occurred. Please try again." }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: "An unexpected error occurred. Please try again.",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
