@@ -92,19 +92,13 @@ class HomeAppBar extends ConsumerWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onAvatarTap,
-            child: Builder(
-              builder: (context) {
-                debugPrint(
-                    '[HomeAppBar] bandImageUrl=$bandImageUrl, localImageFile=$localImageFile');
-                return BandAvatar(
-                  imageUrl: bandImageUrl,
-                  localImageFile: localImageFile,
-                  name: bandName,
-                  avatarColor: bandAvatarColor,
-                  size: 36,
-                  fontSize: 15,
-                );
-              },
+            child: BandAvatar(
+              imageUrl: bandImageUrl,
+              localImageFile: localImageFile,
+              name: bandName,
+              avatarColor: bandAvatarColor,
+              size: 36,
+              fontSize: 15,
             ),
           ),
         ],

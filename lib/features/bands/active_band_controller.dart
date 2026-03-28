@@ -215,6 +215,9 @@ class ActiveBandState {
     if (identical(this, other)) return true;
     if (other is! ActiveBandState) return false;
     return activeBand?.id == other.activeBand?.id &&
+        activeBand?.name == other.activeBand?.name &&
+        activeBand?.imageUrl == other.activeBand?.imageUrl &&
+        activeBand?.avatarColor == other.activeBand?.avatarColor &&
         isLoading == other.isLoading &&
         error == other.error &&
         userBands.length == other.userBands.length &&
@@ -222,8 +225,15 @@ class ActiveBandState {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(activeBand?.id, isLoading, error, userBands.length);
+  int get hashCode => Object.hash(
+        activeBand?.id,
+        activeBand?.name,
+        activeBand?.imageUrl,
+        activeBand?.avatarColor,
+        isLoading,
+        error,
+        userBands.length,
+      );
 }
 
 /// Notifier that manages the active band state with persistence
