@@ -1121,6 +1121,33 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
     final bandId = widget.initialBand!.id;
 
+    // Check if email belongs to an existing active band member
+    try {
+      final userLookup = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+
+      if (userLookup != null) {
+        final userId = userLookup['id'] as String;
+        final memberLookup = await supabase
+            .from('band_members')
+            .select('id')
+            .eq('band_id', bandId)
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+        if (memberLookup != null) {
+          _showErrorSnackBar('This person is already a band member');
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('[Invite] Failed to check active membership: $e');
+    }
+
     // Check for existing pending invite in the database (not just local state)
     try {
       final existingInvites = await supabase
