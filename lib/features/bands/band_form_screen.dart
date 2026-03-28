@@ -132,8 +132,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   // Edit mode: Members and Invitations
   final _inviteEmailController = TextEditingController();
   List<Map<String, dynamic>> _pendingInvites = [];
-  List<Map<String, dynamic>> _members = [];
-  bool _isLoadingMembers = false;
   bool _isSendingInvite = false;
 
   late AnimationController _animController;
@@ -188,8 +186,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       // Initialize hint as hidden since field has content
       _bandNameHintController.initialize(hasInitialValue: true);
 
-      // Load members and invitations for edit mode
-      _loadMembersAndInvites();
+      // Load pending invitations for edit mode
+      _loadPendingInvites();
     } else {
       // Create mode: no initial value
       _bandNameHintController.initialize(hasInitialValue: false);
@@ -1057,56 +1055,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   // EDIT MODE: Members and Invitations
   // ===========================================================================
 
-  Future<void> _loadMembersAndInvites() async {
+  Future<void> _loadPendingInvites() async {
     if (!_isEditMode || widget.initialBand == null) return;
-
-    setState(() => _isLoadingMembers = true);
 
     try {
       final bandId = widget.initialBand!.id;
 
-      // 1. Load band members (NO embedded join - just band_members table)
-      // Include both 'active' and 'invited' statuses
-      final membersResponse = await supabase
-          .from('band_members')
-          .select('id, user_id, role, status, joined_at')
-          .eq('band_id', bandId)
-          .inFilter('status', ['active', 'invited']);
-
-      final membersList = List<Map<String, dynamic>>.from(membersResponse);
-
-      // 2. Fetch user info for all members (separate query)
-      final userIds = membersList
-          .map((m) => m['user_id'] as String?)
-          .whereType<String>()
-          .toList();
-
-      Map<String, Map<String, dynamic>> usersById = {};
-      if (userIds.isNotEmpty) {
-        final usersResponse = await supabase
-            .from('users')
-            .select('id, email, first_name, last_name')
-            .inFilter('id', userIds);
-
-        for (final user in usersResponse) {
-          usersById[user['id'] as String] = user;
-        }
-      }
-
-      // 3. Merge user data into members and collect emails
-      final Set<String> memberEmailSet = {};
-      for (final member in membersList) {
-        final userId = member['user_id'] as String?;
-        if (userId != null && usersById.containsKey(userId)) {
-          member['user_info'] = usersById[userId];
-          final email = usersById[userId]?['email'] as String?;
-          if (email != null) {
-            memberEmailSet.add(email.toLowerCase());
-          }
-        }
-      }
-
-      // 4. Load pending invitations (both 'pending' and 'sent' statuses)
+      // Load pending invitations (both 'pending' and 'sent' statuses)
       final invitesResponse = await supabase
           .from('band_invitations')
           .select('id, email, status, created_at')
@@ -1116,15 +1071,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
       final invitesList = List<Map<String, dynamic>>.from(invitesResponse);
 
-      // 5. Filter out invites where email matches an active member
-      final filteredInvites = invitesList.where((invite) {
-        final email = (invite['email'] as String?)?.toLowerCase().trim() ?? '';
-        return !memberEmailSet.contains(email);
-      }).toList();
-
-      // 6. Dedupe invites by email (keep newest created_at)
+      // Dedupe invites by email (keep newest created_at)
       final Map<String, Map<String, dynamic>> dedupedByEmail = {};
-      for (final invite in filteredInvites) {
+      for (final invite in invitesList) {
         final email = (invite['email'] as String?)?.toLowerCase().trim() ?? '';
         if (!dedupedByEmail.containsKey(email)) {
           dedupedByEmail[email] = invite;
@@ -1135,24 +1084,20 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
       if (mounted) {
         setState(() {
-          _members = membersList;
           _pendingInvites = dedupedInvites;
-          _isLoadingMembers = false;
         });
       }
     } on PostgrestException catch (e) {
       debugPrint(
-        '[LoadMembersAndInvites] PostgrestException: ${e.code} - ${e.message}',
+        '[LoadPendingInvites] PostgrestException: ${e.code} - ${e.message}',
       );
       if (mounted) {
-        setState(() => _isLoadingMembers = false);
-        _showErrorSnackBar('Failed to load members');
+        _showErrorSnackBar('Failed to load invitations');
       }
     } catch (e) {
-      debugPrint('[LoadMembersAndInvites] Error: $e');
+      debugPrint('[LoadPendingInvites] Error: $e');
       if (mounted) {
-        setState(() => _isLoadingMembers = false);
-        _showErrorSnackBar('Failed to load members');
+        _showErrorSnackBar('Failed to load invitations');
       }
     }
   }
@@ -1164,16 +1109,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
     if (!emailRegex.hasMatch(email)) {
       _showErrorSnackBar('Please enter a valid email address');
-      return;
-    }
-
-    // Check if already a member
-    final memberEmails = _members
-        .map((m) => (m['user_info']?['email'] as String?)?.toLowerCase())
-        .whereType<String>()
-        .toSet();
-    if (memberEmails.contains(email)) {
-      _showErrorSnackBar('This person is already a band member');
       return;
     }
 
@@ -1261,7 +1196,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         }
       }
 
-      await _loadMembersAndInvites();
+      await _loadPendingInvites();
     } on PostgrestException catch (e) {
       debugPrint('[SendInvite] PostgrestException: ${e.code} - ${e.message}');
       if (e.code == '23505') {
@@ -1356,7 +1291,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
       debugPrint('[CancelInvite] deleted invite ${invite['id']} for $email');
 
-      await _loadMembersAndInvites();
+      await _loadPendingInvites();
 
       if (mounted) {
         showSuccessSnackBar(context, message: 'Invitation to $email removed');
@@ -1370,136 +1305,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       debugPrint('[CancelInvite] Error: $e');
       if (mounted) {
         _showErrorSnackBar('Failed to cancel invite');
-      }
-    }
-  }
-
-  /// Get display name for a member from user_info
-  String _getMemberDisplayName(Map<String, dynamic> member) {
-    final userInfo = member['user_info'] as Map<String, dynamic>?;
-    if (userInfo != null) {
-      final firstName = userInfo['first_name'] as String? ?? '';
-      final lastName = userInfo['last_name'] as String? ?? '';
-      if (firstName.isNotEmpty || lastName.isNotEmpty) {
-        return '$firstName $lastName'.trim();
-      }
-      final email = userInfo['email'] as String?;
-      if (email != null && email.isNotEmpty) {
-        return email;
-      }
-    }
-    // Fallback to short ID
-    final id = member['id'] as String? ?? '';
-    return 'Member ${id.substring(0, 6)}';
-  }
-
-  Future<void> _removeMember(Map<String, dynamic> member) async {
-    final user = supabase.auth.currentUser;
-    if (user == null || widget.initialBand == null) return;
-
-    // Debug: Check current user's role in this band
-    final bandId = widget.initialBand!.id;
-    final myMembership =
-        _members.where((m) => m['user_id'] == user.id).toList();
-    debugPrint('[RemoveMember] Current user: ${user.id}');
-    debugPrint('[RemoveMember] Band ID: $bandId');
-    debugPrint('[RemoveMember] My membership: $myMembership');
-    debugPrint('[RemoveMember] Target member: $member');
-
-    // Prevent removing yourself
-    if (member['user_id'] == user.id) {
-      _showErrorSnackBar('You cannot remove yourself from the band');
-      return;
-    }
-
-    final displayName = _getMemberDisplayName(member);
-
-    // Show confirmation dialog (action button first, then Cancel)
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Remove Member?',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          'Remove $displayName from this band?',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Remove',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final bandId = widget.initialBand!.id;
-
-      // Use RPC function to remove member (bypasses RLS with proper auth checks)
-      await supabase.rpc(
-        'remove_band_member',
-        params: {'p_member_id': member['id'], 'p_band_id': bandId},
-      );
-
-      debugPrint(
-        '[RemoveMember] removed membership ${member['id']} for $displayName',
-      );
-
-      await _loadMembersAndInvites();
-
-      if (mounted) {
-        showSuccessSnackBar(context, message: '$displayName removed from band');
-      }
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[RemoveMember] PostgrestException: ${e.code} - ${e.message} - ${e.details}',
-      );
-      if (mounted) {
-        _showErrorSnackBar('Failed to remove member: ${e.message}');
-      }
-    } catch (e) {
-      debugPrint('[RemoveMember] Error: $e');
-      if (mounted) {
-        _showErrorSnackBar('Failed to remove member: $e');
       }
     }
   }
@@ -2023,13 +1828,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                                   const SizedBox(height: Spacing.space12),
                                   _buildPendingInvitesList(),
                                 ],
-
-                                // Members section
-                                const SizedBox(height: Spacing.space32),
-                                _buildSectionLabel('Members'),
-                                const SizedBox(height: Spacing.space12),
-                                _buildMembersSection(),
-                                const SizedBox(height: Spacing.space32),
                               ],
 
                               // Invite members section (only for create mode)
@@ -2668,45 +2466,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     );
   }
 
-  Widget _buildMembersSection() {
-    if (_isLoadingMembers) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(Spacing.space16),
-          child: CircularProgressIndicator(color: AppColors.accent),
-        ),
-      );
-    }
-
-    if (_members.isEmpty) {
-      return const Text(
-        'No members yet. Invite people to join your band!',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: AppColors.textSecondary,
-        ),
-      );
-    }
-
-    final currentUserId = supabase.auth.currentUser?.id;
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _members.map((member) {
-        final isCurrentUser = member['user_id'] == currentUserId;
-        final displayName = _getMemberDisplayName(member);
-
-        return _MemberChip(
-          displayName: displayName,
-          isCurrentUser: isCurrentUser,
-          onRemove: isCurrentUser ? null : () => _removeMember(member),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildSubmitButton(String label) {
     final isEnabled = _isEditMode
         ? _isDirty && !_isSubmitting && !_isDeleting
@@ -2927,87 +2686,6 @@ class _InvitePill extends StatelessWidget {
                 color: AppColors.textPrimary,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// MEMBER CHIP WIDGET
-// ============================================================================
-
-class _MemberChip extends StatelessWidget {
-  final String displayName;
-  final bool isCurrentUser;
-  final VoidCallback? onRemove;
-
-  const _MemberChip({
-    required this.displayName,
-    required this.isCurrentUser,
-    this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.7,
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space12,
-          vertical: Spacing.space8,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceOverlay,
-          borderRadius: BorderRadius.circular(50),
-          border: isCurrentUser
-              ? Border.all(
-                  color: AppColors.accent.withValues(alpha: 0.5),
-                  width: 1,
-                )
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                displayName.trim(),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  height: 1.33,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            if (isCurrentUser) ...[
-              const SizedBox(width: 6),
-              const Text(
-                '(you)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-            if (onRemove != null) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: onRemove,
-                child: const Icon(
-                  AppIcons.close,
-                  size: 16,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ],
           ],
         ),
       ),
