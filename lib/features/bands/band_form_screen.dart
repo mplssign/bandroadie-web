@@ -626,7 +626,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   }
 
   // ignore: unused_element
-Future<void> _showExportDialog() async {
+  Future<void> _showExportDialog() async {
     final band = widget.initialBand;
     if (band == null) return;
 
@@ -2256,50 +2256,39 @@ Future<void> _showExportDialog() async {
                 height: 32,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  // TODO: Change back to AvatarColors.colors.length + 1 when image upload is working
-                  itemCount: AvatarColors
-                      .colors.length, // Hide image upload button for now
+                  itemCount: AvatarColors.colors.length + 1,
                   itemBuilder: (context, index) {
-                    // TODO: Uncomment this block when image upload is working
-                    // if (index == 0) {
-                    //   return Padding(
-                    //     padding: const EdgeInsets.only(right: 8),
-                    //     child: Tooltip(
-                    //       message: 'Image upload is temporarily unavailable',
-                    //       child: GestureDetector(
-                    //         onTap: () {
-                    //           showAppSnackBar(
-                    //             context,
-                    //             message: '🎸 Image upload is temporarily unavailable. Coming soon!',
-                    //             backgroundColor: AppColors.warning,
-                    //           );
-                    //         },
-                    //         child: Container(
-                    //           width: 32,
-                    //           height: 32,
-                    //           decoration: BoxDecoration(
-                    //             color: AppColors.surfaceDark.withValues(alpha: 0.5),
-                    //             shape: BoxShape.circle,
-                    //             border: Border.all(
-                    //               color: AppColors.borderMuted.withValues(alpha: 0.5),
-                    //               width: 1,
-                    //             ),
-                    //           ),
-                    //           child: Center(
-                    //             child: Icon(
-                    //               Icons.upload_rounded,
-                    //               color: AppColors.textPrimary.withValues(alpha: 0.5),
-                    //               size: 16,
-                    //             ),
-                    //           ),
-                    //         ),
-                    //       ),
-                    //     ),
-                    //   );
-                    // }
-                    // final colorIndex = index - 1;
-                    final colorIndex =
-                        index; // Direct index since image upload is hidden
+                    if (index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color:
+                                  AppColors.surfaceDark.withValues(alpha: 0.5),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.textPrimary
+                                    .withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.upload_rounded,
+                                color: AppColors.textPrimary
+                                    .withValues(alpha: 0.5),
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    final colorIndex = index - 1;
                     final colorOption = AvatarColors.colors[colorIndex];
                     final isSelected =
                         colorOption.tailwindClass == _selectedAvatarColor &&
@@ -2355,7 +2344,7 @@ Future<void> _showExportDialog() async {
               ),
               const SizedBox(height: Spacing.space8),
               const Text(
-                'Choose a color for your band avatar. (Image upload coming soon)',
+                'Upload an image or choose a color for your band avatar.',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
@@ -2770,7 +2759,8 @@ Future<void> _showExportDialog() async {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.6), width: 1),
+                        color: AppColors.primary.withValues(alpha: 0.6),
+                        width: 1),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(
@@ -3056,8 +3046,8 @@ class _BackupSheetPanel extends StatelessWidget {
           onPressed: isLoading ? null : onTap,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
-            side:
-                BorderSide(color: AppColors.primary.withValues(alpha: 0.6), width: 1),
+            side: BorderSide(
+                color: AppColors.primary.withValues(alpha: 0.6), width: 1),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
