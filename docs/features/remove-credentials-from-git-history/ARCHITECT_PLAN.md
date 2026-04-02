@@ -15,7 +15,7 @@
 ```
 $ curl -s https://app.bandroadie.com/assets/.env
 SUPABASE_URL=https://nekwjxvgbveheooyorjo.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_B_tepNkEW3IRl0nQBcP4Ow_tDSvvi79
+SUPABASE_ANON_KEY=<REDACTED — key rotated>
 ```
 
 **Resolved 2026-04-02:** `.env` removed from `pubspec.yaml` assets (commit `9e7d59e`). Emergency deploy completed. Both production domains now return 404 for `/assets/.env`. Supabase anon key rotated and new key deployed.
