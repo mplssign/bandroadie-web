@@ -1,3 +1,4 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,7 +27,9 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // ============================================================================
 
 class NoBandShell extends ConsumerWidget {
-  const NoBandShell({super.key});
+  final bool isNewUser;
+
+  const NoBandShell({super.key, this.isNewUser = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,6 +65,7 @@ class NoBandShell extends ConsumerWidget {
               onOpenBandSwitcher: bandState.userBands.isNotEmpty
                   ? () => overlayNotifier.openBandSwitcher()
                   : null,
+              isNewUser: isNewUser,
             ),
           ),
 
@@ -92,8 +96,13 @@ class NoBandShell extends ConsumerWidget {
 class _NoBandContent extends StatefulWidget {
   final VoidCallback onOpenMenu;
   final VoidCallback? onOpenBandSwitcher;
+  final bool isNewUser;
 
-  const _NoBandContent({required this.onOpenMenu, this.onOpenBandSwitcher});
+  const _NoBandContent({
+    required this.onOpenMenu,
+    this.onOpenBandSwitcher,
+    this.isNewUser = false,
+  });
 
   @override
   State<_NoBandContent> createState() => _NoBandContentState();
@@ -103,6 +112,7 @@ class _NoBandContentState extends State<_NoBandContent>
     with TickerProviderStateMixin {
   late AnimationController _entranceController;
   late AnimationController _buttonController;
+  ConfettiController? _confettiController;
 
   late Animation<double> _logoFade;
   late Animation<Offset> _logoSlide;
@@ -191,18 +201,29 @@ class _NoBandContentState extends State<_NoBandContent>
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _buttonController.forward();
     });
+
+    // Fire confetti once for brand new users
+    if (widget.isNewUser) {
+      _confettiController = ConfettiController(
+        duration: const Duration(seconds: 3),
+      );
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) _confettiController?.play();
+      });
+    }
   }
 
   @override
   void dispose() {
     _entranceController.dispose();
     _buttonController.dispose();
+    _confettiController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final content = Container(
       width: double.infinity,
       decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
       child: SafeArea(
@@ -351,6 +372,35 @@ class _NoBandContentState extends State<_NoBandContent>
           ],
         ),
       ),
+    );
+
+    if (_confettiController == null) return content;
+
+    return Stack(
+      children: [
+        content,
+        // Confetti burst from top center — fires once for new users
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController!,
+            blastDirectionality: BlastDirectionality.explosive,
+            numberOfParticles: 30,
+            maxBlastForce: 20,
+            minBlastForce: 8,
+            gravity: 0.3,
+            emissionFrequency: 0.05,
+            shouldLoop: false,
+            colors: const [
+              Color(0xFFF43F5E), // rose (brand accent)
+              Color(0xFFFFFFFF), // white
+              Color(0xFFFBBF24), // amber
+              Color(0xFF34D399), // emerald
+              Color(0xFF60A5FA), // blue
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
