@@ -5,7 +5,7 @@
 	<key>API_KEY</key>
 	<string>AIzaSyAEOR0ErwTRZFmjNd4lrmp8pCEHF2K1Ng4</string>
 	<key>GCM_SENDER_ID</key>
-	<string>***REMOVED***</string>
+	<string>119100589120</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:***REMOVED***:ios:a949ed1b35dab353c3cba5</string>
+	<string>1:119100589120:ios:a949ed1b35dab353c3cba5</string>
 </dict>
 </plist>

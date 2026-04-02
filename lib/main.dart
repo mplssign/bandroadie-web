@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/services/app_version_service.dart';
 import 'app/services/deep_link_service.dart';
+import 'app/firebase_config.dart';
 import 'app/supabase_config.dart';
 import 'app/theme/app_animations.dart';
 import 'app/theme/app_theme.dart';
@@ -40,9 +41,6 @@ Future<void> main() async {
 
   // Initialize app version service
   await AppVersionService.init();
-
-  // Load .env file (silently fails if not present)
-  await loadEnvConfig();
 
   // Validate credentials - returns error message if missing
   final configError = validateSupabaseConfig();
@@ -76,15 +74,7 @@ Future<void> main() async {
   try {
     if (kIsWeb) {
       await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: '***REMOVED***',
-          authDomain: 'bandroadie-65b18.firebaseapp.com',
-          projectId: 'bandroadie-65b18',
-          storageBucket: 'bandroadie-65b18.firebasestorage.app',
-          messagingSenderId: '***REMOVED***',
-          appId: '***REMOVED***',
-          measurementId: '***REMOVED***',
-        ),
+        options: firebaseWebOptions,
       );
     } else if (Platform.isIOS || Platform.isAndroid) {
       await Firebase.initializeApp();

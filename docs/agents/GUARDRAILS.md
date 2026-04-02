@@ -14,15 +14,15 @@ The app must initialize in this exact sequence. Never reorder:
 2. URL strategy (web only)
 3. Portrait orientation lock
 4. AppVersionService.init()
-5. loadEnvConfig()              ← flutter_dotenv loads .env
-6. validateSupabaseConfig()     ← checks dart-define + .env
-7. Supabase.initialize()
-8. Firebase.initializeApp()     ← iOS/Android only
-9. DeepLinkService setup
-10. runApp()
+5. validateSupabaseConfig()     ← checks --dart-define values
+6. Supabase.initialize()
+7. Firebase.initializeApp()     ← iOS/Android only
+8. DeepLinkService setup
+9. runApp()
 ```
 
 Any change to initialization order requires:
+
 - Explicit Architect approval
 - A new decision recorded in `docs/global/AI_DECISIONS.md`
 - Update to `documentation/RUNTIME_CONFIG.md`
@@ -32,23 +32,23 @@ Any change to initialization order requires:
 ## 2. Configuration (Single Source of Truth)
 
 Config priority must remain:
-1. `--dart-define` (highest — compile-time injection)
-2. `.env` via `flutter_dotenv` (fallback for native)
 
-Never introduce alternative config loaders.
+1. `--dart-define` (compile-time injection — the only config source)
+
+Never introduce alternative config loaders (no runtime .env, no flutter_dotenv).
 Never use `service_role` keys in client code. Anon key only.
-Never hardcode Supabase credentials anywhere.
+Never hardcode Supabase or Firebase credentials in source code.
 
 ---
 
 ## 3. Platform Differences (Do Not Blur)
 
-| Area | Native (iOS / macOS / Android) | Web |
-|------|-------------------------------|-----|
-| Config | Reads `.env` via flutter_dotenv | `--dart-define` only |
-| Auth flow | PKCE | Implicit (detectSessionInUri: true) |
-| Firebase | Initialized | Not initialized |
-| Deep links | Handled via DeepLinkService | Not applicable |
+| Area       | Native (iOS / macOS / Android) | Web                                 |
+| ---------- | ------------------------------ | ----------------------------------- |
+| Config     | `--dart-define` only           | `--dart-define` only                |
+| Auth flow  | PKCE                           | Implicit (detectSessionInUri: true) |
+| Firebase   | Initialized                    | Not initialized                     |
+| Deep links | Handled via DeepLinkService    | Not applicable                      |
 
 Any change must respect these per-platform constraints.
 
@@ -68,15 +68,18 @@ Any change must respect these per-platform constraints.
 ## 5. Dart / Flutter Safety
 
 **Async lifecycle:**
+
 - Never call `setState` after an `async` gap without a `mounted` guard
 - Never use a `FocusNode`, `TextEditingController`, or `ScrollController` after `dispose()`
 - If a method becomes `async`, re-audit its lifecycle
 
 **Disposal:**
+
 - Every `TextEditingController`, `FocusNode`, and `ScrollController` must be disposed
 - Unfocus before disposing rows in lists
 
 **Rebuild discipline:**
+
 - Evaluate what triggers rebuilds before every state change
 - Use `ListView.builder` correctly — no rebuilds of unchanged items
 - Never scan entire lists inside `build()`
@@ -104,12 +107,12 @@ Any change must respect these per-platform constraints.
 
 ## 8. File Size Targets
 
-| File type | Target maximum |
-|-----------|---------------|
-| Dart files (general) | 500 lines |
-| Container widgets | 350 lines |
-| Feature widgets | 400 lines |
-| Helper widgets | 200 lines |
+| File type            | Target maximum |
+| -------------------- | -------------- |
+| Dart files (general) | 500 lines      |
+| Container widgets    | 350 lines      |
+| Feature widgets      | 400 lines      |
+| Helper widgets       | 200 lines      |
 
 Exceeding these is a warning, not a hard stop. Architect may permit localized modifications to oversized files if the change is minimal and does not worsen maintainability.
 
@@ -128,6 +131,7 @@ Exceeding these is a warning, not a hard stop. Architect may permit localized mo
 ## 10. Git Discipline
 
 Branch lifecycle — never reverse this order:
+
 1. Create branch
 2. Implement and commit
 3. Push
@@ -155,6 +159,7 @@ Flutter debug mode adds assertions, slows rendering, and inflates frame time.
 Release mode is the only truth.
 
 Before optimizing anything:
+
 - Measure parse time
 - Measure rebuild time
 - Compare debug vs. release

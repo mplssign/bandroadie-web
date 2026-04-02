@@ -26,9 +26,6 @@ dependencies:
   supabase_flutter: ^2.12.0
   http: ^1.6.0
 
-  # Environment
-  flutter_dotenv: ^6.0.0
-
   # Storage / Sharing
   shared_preferences: ^2.2.2
   share_plus: ^10.1.4

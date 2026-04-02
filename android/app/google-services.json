@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "***REMOVED***",
+    "project_number": "119100589120",
     "project_id": "bandroadie-65b18",
     "storage_bucket": "bandroadie-65b18.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:***REMOVED***:android:8f3bbdffb5ddfd44c3cba5",
+        "mobilesdk_app_id": "1:119100589120:android:8f3bbdffb5ddfd44c3cba5",
         "android_client_info": {
           "package_name": "com.bandroadie.app"
         }

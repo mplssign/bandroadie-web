@@ -15,7 +15,7 @@
 ```
 $ curl -s https://app.bandroadie.com/assets/.env
 SUPABASE_URL=https://nekwjxvgbveheooyorjo.supabase.co
-SUPABASE_ANON_KEY=***REMOVED***
+SUPABASE_ANON_KEY=sb_publishable_B_tepNkEW3IRl0nQBcP4Ow_tDSvvi79
 ```
 
 **Resolved 2026-04-02:** `.env` removed from `pubspec.yaml` assets (commit `9e7d59e`). Emergency deploy completed. Both production domains now return 404 for `/assets/.env`. Supabase anon key rotated and new key deployed.
@@ -274,7 +274,7 @@ ls -la .env
 # Expected: file exists
 
 # Verify no hardcoded Firebase credentials in main.dart
-grep -n "AIzaSy\|bandroadie-65b18\|***REMOVED***\|efcfb0cdf1501488" lib/main.dart
+grep -n "AIzaSy\|bandroadie-65b18\|119100589120\|efcfb0cdf1501488" lib/main.dart
 # Expected: empty output
 
 # Verify no dotenv imports remain
@@ -465,13 +465,13 @@ await loadEnvConfig();
     if (kIsWeb) {
       await Firebase.initializeApp(
         options: const FirebaseOptions(
-          apiKey: '***REMOVED***',
+          apiKey: 'AIzaSyD3nIWOdtwNuSkggGs_4Du_rsfvsd7qHxo',
           authDomain: 'bandroadie-65b18.firebaseapp.com',
           projectId: 'bandroadie-65b18',
           storageBucket: 'bandroadie-65b18.firebasestorage.app',
-          messagingSenderId: '***REMOVED***',
-          appId: '***REMOVED***',
-          measurementId: '***REMOVED***',
+          messagingSenderId: '119100589120',
+          appId: '1:119100589120:web:efcfb0cdf1501488c3cba5',
+          measurementId: 'G-QFC8JXHKDC',
         ),
       );
 
