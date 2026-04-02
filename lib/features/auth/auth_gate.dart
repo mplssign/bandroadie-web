@@ -33,6 +33,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
   bool _checkingProfile = false;
   bool? _profileComplete;
   bool _profileSkipped = false; // User chose to skip profile completion
+  bool _isNewUser = false; // True when user just passed through profile gate
   bool _processingPendingInvite = false;
   bool _hasCheckedPendingInvites =
       false; // Guard: only check invites once per session
@@ -320,11 +321,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
   /// Called when profile is saved to refresh the gate
   void onProfileSaved() {
+    setState(() => _isNewUser = true);
     _checkProfileComplete();
   }
 
   /// Called when user chooses to skip profile completion
   void onSkipProfile() {
+    setState(() => _isNewUser = true);
     debugPrint('[AuthGate] User skipped profile completion');
     AuthDebugLogger.routerTransition(
       from: 'profile_gate',
@@ -472,7 +475,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
         to: 'no_band_shell',
         reason: 'User has no bands',
       );
-      mainContent = const NoBandShell();
+      mainContent = NoBandShell(isNewUser: _isNewUser);
     } else {
       // Has bands -> full app access
       AuthDebugLogger.routerTransition(
