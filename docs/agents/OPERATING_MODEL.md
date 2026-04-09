@@ -127,8 +127,8 @@ These rules cannot be overridden by any agent or any feature request:
 
 - No secrets in code
 - No service_role keys in client code
-- No initialization order changes without explicit Architect decision recorded in `AI_DECISIONS.md`
-- No new config loading paths without updating `RUNTIME_CONFIG.md`
+- No initialization order changes without explicit Architect decision recorded in `docs/reference/general/AI_DECISIONS.md`
+- No new config loading paths without updating `docs/reference/general/RUNTIME_CONFIG.md`
 - No Supabase RPC signature changes without migration
 - No RLS self-referencing policies (causes infinite recursion)
 - No async `setState` without `mounted` guard

@@ -39,7 +39,7 @@ Do not start the pipeline with an incomplete or ambiguous input.
 Spawn the Architect sub-agent with:
 
 - The complete Feature Input
-- The full contents of: `ARCHITECT.md`, `GUARDRAILS.md`, `OPERATING_MODEL.md`
+- The full contents of: `docs/agents/ARCHITECT.md`, `docs/agents/GUARDRAILS.md`, `docs/agents/OPERATING_MODEL.md`
 - Read access to the codebase
 
 Wait for the Architect to produce `ARCHITECT_PLAN.md`.
@@ -78,7 +78,7 @@ If the branch already exists, confirm the working tree is clean before proceedin
 Spawn the Engineer sub-agent with:
 
 - The full `ARCHITECT_PLAN.md`
-- The full contents of: `ENGINEER.md`, `GUARDRAILS.md`
+- The full contents of: `docs/agents/ENGINEER.md`, `docs/agents/GUARDRAILS.md`
 - Write access to the codebase (scoped to approved files only)
 
 Wait for the Engineer to produce `ENGINEER_REPORT.md` and `git diff`.
@@ -105,7 +105,7 @@ Spawn the QA sub-agent with:
 - The full `ARCHITECT_PLAN.md`
 - The full `ENGINEER_REPORT.md`
 - The complete `git diff` output
-- The full contents of: `QA.md`, `GUARDRAILS.md`
+- The full contents of: `docs/agents/QA.md`, `docs/agents/GUARDRAILS.md`
 - Read access to the codebase
 
 Wait for the QA agent to produce `QA_REPORT.md` and a final verdict.

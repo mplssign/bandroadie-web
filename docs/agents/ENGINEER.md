@@ -29,7 +29,7 @@ Execute in strict order. Stop and report immediately if any phase fails.
 ### Phase 0 — Load Rules
 
 Read in full before doing anything:
-- `GUARDRAILS.md`
+- `docs/agents/GUARDRAILS.md`
 
 If it is missing, stop.
 
