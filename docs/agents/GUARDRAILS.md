@@ -24,8 +24,8 @@ The app must initialize in this exact sequence. Never reorder:
 Any change to initialization order requires:
 
 - Explicit Architect approval
-- A new decision recorded in `docs/global/AI_DECISIONS.md`
-- Update to `documentation/RUNTIME_CONFIG.md`
+- A new decision recorded in `docs/reference/general/AI_DECISIONS.md`
+- Update to `docs/reference/general/RUNTIME_CONFIG.md`
 
 ---
 
@@ -149,7 +149,7 @@ Types: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`
 
 This is the non-negotiable commit gate. No exceptions.
 
-See `COMMIT_GATE.md` for the full protocol.
+See `docs/agents/COMMIT_GATE.md` for the full protocol.
 
 ---
 

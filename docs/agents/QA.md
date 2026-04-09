@@ -37,7 +37,7 @@ Execute in strict order. If any required input is missing, stop immediately.
 ### Phase 0 — Load Rules
 
 Read in full:
-- `GUARDRAILS.md`
+- `docs/agents/GUARDRAILS.md`
 
 If it is missing, stop.
 
