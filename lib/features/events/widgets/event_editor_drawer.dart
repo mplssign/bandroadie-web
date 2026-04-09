@@ -206,6 +206,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
   }
 
+  /// Trigger rebuild in create mode so _isFormValid is re-evaluated
+  /// as the user types in required fields.
+  void _onFormFieldChanged() {
+    if (widget.mode == EventEditorMode.create) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -354,6 +362,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _nameController.addListener(_markDirty);
     _notesController.addListener(_markDirty);
     _gigPayController.addListener(_markDirty);
+
+    // Re-evaluate form validity in create mode on required field changes
+    _nameController.addListener(_onFormFieldChanged);
+    _locationController.addListener(_onFormFieldChanged);
   }
 
   @override
