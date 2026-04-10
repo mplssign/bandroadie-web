@@ -31,7 +31,7 @@ const List<NavItem> kDefaultNavItems = [
   NavItem(icon: AppIcons.home, label: 'Dashboard'),
   NavItem(icon: AppIcons.setlists, label: 'Setlists'),
   NavItem(icon: AppIcons.calendar, label: 'Calendar'),
-  NavItem(icon: AppIcons.users, label: 'Members'),
+  NavItem(icon: AppIcons.users, label: 'Contacts'),
 ];
 
 /// Navigation tab indices

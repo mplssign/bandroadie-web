@@ -18,7 +18,7 @@ import '../home/home_tab_content.dart';
 import '../home/widgets/animated_bottom_nav_bar.dart';
 import '../home/widgets/band_switcher.dart';
 import '../home/widgets/side_drawer.dart';
-import '../members/members_tab_content.dart';
+import '../contacts/contacts_tab_content.dart';
 import '../members/permissions/band_permissions.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import '../members/permissions/contributor_permissions.dart';
@@ -159,13 +159,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                 else
                   const RestrictedTabContent(featureName: 'Calendar'),
 
-                // Tab 3: Members (permission-gated)
+                // Tab 3: Contacts (permission-gated)
                 if (permissionsAsync.whenOrNull(
                         data: (p) => p.canViewMembers) !=
                     false)
-                  const MembersTabContent()
+                  const ContactsTabContent()
                 else
-                  const RestrictedTabContent(featureName: 'Members'),
+                  const RestrictedTabContent(featureName: 'Contacts'),
               ],
             ),
           ),
