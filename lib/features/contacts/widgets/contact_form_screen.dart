@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
 import '../contacts_repository.dart';
 import '../models/contact.dart';
@@ -129,6 +131,11 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
     );
   }
 
+  List<TextInputFormatter> _getPhoneFormatters() {
+    final tz = ref.read(activeBandProvider).activeBand?.timezone;
+    return isUSTimezone(tz) ? [USPhoneInputFormatter(isUSTimezone: true)] : [];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,6 +205,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           ),
           const SizedBox(height: 20),
 
+          // Address fields are intentionally omitted from standalone contacts.
+          // Contacts (agents, promoters) are lightweight records. Venues carry full address data.
+
           // Phone
           TextField(
             controller: _phoneController,
@@ -205,6 +215,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
+            inputFormatters: _getPhoneFormatters(),
           ),
           const SizedBox(height: 16),
 

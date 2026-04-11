@@ -6,7 +6,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../bands/active_band_controller.dart';
-import '../bands/band_form_screen.dart';
 import '../home/widgets/home_app_bar.dart';
 import '../members/member_vm.dart';
 import '../members/members_controller.dart';
@@ -18,6 +17,7 @@ import 'venues_controller.dart';
 import 'widgets/band_members_view.dart';
 import 'widgets/contact_form_screen.dart';
 import 'widgets/contacts_view.dart';
+import 'widgets/invite_members_screen.dart';
 import 'widgets/venue_form_screen.dart';
 import 'widgets/venues_view.dart';
 
@@ -104,10 +104,7 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
     if (bandState.activeBand != null) {
       Navigator.of(context).push(
         fadeSlideRoute(
-          page: BandFormScreen(
-            mode: BandFormMode.edit,
-            initialBand: bandState.activeBand,
-          ),
+          page: InviteMembersScreen(band: bandState.activeBand!),
         ),
       );
     }

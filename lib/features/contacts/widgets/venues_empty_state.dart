@@ -59,7 +59,7 @@ class VenuesEmptyState extends StatelessWidget {
             const SizedBox(height: 32),
             if (onAddTap != null)
               BrandActionButton(
-                label: '+ Add Venue',
+                label: 'Add Venue',
                 onPressed: onAddTap,
                 icon: AppIcons.add,
               ),

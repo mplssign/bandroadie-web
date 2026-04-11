@@ -59,7 +59,7 @@ class ContactsEmptyState extends StatelessWidget {
             const SizedBox(height: 32),
             if (onAddTap != null)
               BrandActionButton(
-                label: '+ Add Contact',
+                label: 'Add Contact',
                 onPressed: onAddTap,
                 icon: AppIcons.userAdd,
               ),
