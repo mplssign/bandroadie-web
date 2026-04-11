@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
 import '../models/venue.dart';
 import '../models/venue_contact.dart';
@@ -119,6 +121,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           initialPhone: entry.phone,
           initialEmail: entry.email,
           initialNotes: entry.notes,
+          timezone: ref.read(activeBandProvider).activeBand?.timezone,
           onRemove: () {},
           onChanged: (_) {},
         ),
@@ -251,6 +254,24 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
     );
   }
 
+  List<TextInputFormatter> _getPhoneFormatters() {
+    final tz = ref.read(activeBandProvider).activeBand?.timezone;
+    return isUSTimezone(tz) ? [USPhoneInputFormatter(isUSTimezone: true)] : [];
+  }
+
+  String _getStateLabel() {
+    final tz = ref.read(activeBandProvider).activeBand?.timezone;
+    if (isCanadianTimezone(tz)) return 'Province';
+    if (isUKTimezone(tz)) return 'County';
+    if (isUSTimezone(tz)) return 'State';
+    return '';
+  }
+
+  bool _showStateField() {
+    final tz = ref.read(activeBandProvider).activeBand?.timezone;
+    return isUSTimezone(tz) || isCanadianTimezone(tz) || isUKTimezone(tz);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -321,17 +342,19 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                   decoration: _inputDecoration('City'),
                 ),
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _stateController,
-                  focusNode: _stateFocus,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary, fontSize: 16),
-                  decoration: _inputDecoration('State'),
+              if (_showStateField()) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 100,
+                  child: TextField(
+                    controller: _stateController,
+                    focusNode: _stateFocus,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontSize: 16),
+                    decoration: _inputDecoration(_getStateLabel()),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -341,6 +364,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
+            inputFormatters: _getPhoneFormatters(),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -400,6 +424,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                     initialPhone: entry.phone,
                     initialEmail: entry.email,
                     initialNotes: entry.notes,
+                    timezone: ref.read(activeBandProvider).activeBand?.timezone,
                     onRemove: () => _removeContact(index),
                     onChanged: (data) {
                       entry.name = data['name'];

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import '../../../shared/utils/phone_input_formatter.dart';
 import 'title_pill_selector.dart';
 
 // ============================================================================
@@ -16,6 +18,7 @@ class VenueContactBlock extends StatefulWidget {
   final String? initialPhone;
   final String? initialEmail;
   final String? initialNotes;
+  final String? timezone;
   final VoidCallback onRemove;
   final ValueChanged<Map<String, String?>> onChanged;
 
@@ -26,6 +29,7 @@ class VenueContactBlock extends StatefulWidget {
     this.initialPhone,
     this.initialEmail,
     this.initialNotes,
+    this.timezone,
     required this.onRemove,
     required this.onChanged,
   });
@@ -85,6 +89,12 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
       'email': _emailController.text,
       'notes': _notesController.text,
     });
+  }
+
+  List<TextInputFormatter> _getPhoneFormatters() {
+    return isUSTimezone(widget.timezone)
+        ? [USPhoneInputFormatter(isUSTimezone: true)]
+        : [];
   }
 
   InputDecoration _inputDecoration(String label) {
@@ -184,6 +194,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
+            inputFormatters: _getPhoneFormatters(),
           ),
           const SizedBox(height: 12),
 
