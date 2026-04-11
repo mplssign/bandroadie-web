@@ -21,8 +21,8 @@ class PermissionPromptDismissedNotifier extends Notifier<bool> {
 
 final permissionPromptDismissedProvider =
     NotifierProvider<PermissionPromptDismissedNotifier, bool>(
-      PermissionPromptDismissedNotifier.new,
-    );
+  PermissionPromptDismissedNotifier.new,
+);
 
 class NotificationPermissionPrompt extends ConsumerWidget {
   const NotificationPermissionPrompt({super.key});
@@ -120,7 +120,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('🎸 Notifications enabled!'),
+                            content: Text('Notifications enabled!'),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -192,7 +192,7 @@ class _EnableNotificationsButtonState
         setState(() => _hasPermission = true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🎸 Notifications enabled!'),
+            content: Text('Notifications enabled!'),
             duration: Duration(seconds: 2),
           ),
         );

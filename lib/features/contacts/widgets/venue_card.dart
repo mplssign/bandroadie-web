@@ -5,6 +5,7 @@ import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../models/venue.dart';
+import '../models/venue_contact.dart';
 
 // ============================================================================
 // VENUE CARD
@@ -67,7 +68,7 @@ class VenueCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name
+                    // Venue Name
                     Text(
                       venue.name,
                       style: const TextStyle(
@@ -76,46 +77,16 @@ class VenueCard extends StatelessWidget {
                         color: AppColors.textPrimary,
                         height: 1.2,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
 
-                    const SizedBox(height: 10),
-
-                    // Contact count badge
-                    if (venue.contacts.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Text(
-                          '${venue.contacts.length} contact${venue.contacts.length == 1 ? '' : 's'}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primary,
-                            height: 1.2,
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
-
-                    // Location
-                    if (_hasLocation)
+                    // Address line (Address, City State)
+                    if (_hasLocation) ...[
+                      const SizedBox(height: 10),
                       _buildInfoRow(
                         icon: AppIcons.location,
-                        value: _formatLocation(),
+                        value: _formatFullAddress(),
                       ),
+                    ],
 
                     // Phone
                     if (venue.phone != null && venue.phone!.isNotEmpty)
@@ -125,13 +96,15 @@ class VenueCard extends StatelessWidget {
                         onTap: () => _launchPhone(venue.phone!),
                       ),
 
-                    // Notes preview
-                    if (venue.notes != null && venue.notes!.isNotEmpty)
-                      _buildInfoRow(
-                        icon: AppIcons.info,
-                        value: venue.notes!,
-                        maxLines: 1,
+                    // Venue contacts
+                    for (int i = 0; i < venue.contacts.length; i++) ...[
+                      Divider(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        thickness: 1,
+                        height: 24,
                       ),
+                      _buildVenueContactSection(venue.contacts[i]),
+                    ],
                   ],
                 ),
               ),
@@ -143,22 +116,85 @@ class VenueCard extends StatelessWidget {
   }
 
   bool get _hasLocation =>
+      (venue.address != null && venue.address!.isNotEmpty) ||
       (venue.city != null && venue.city!.isNotEmpty) ||
-      (venue.state != null && venue.state!.isNotEmpty) ||
-      (venue.address != null && venue.address!.isNotEmpty);
+      (venue.state != null && venue.state!.isNotEmpty);
 
-  String _formatLocation() {
+  String _formatFullAddress() {
     final parts = <String>[];
+    if (venue.address != null && venue.address!.isNotEmpty) {
+      parts.add(venue.address!);
+    }
+    final cityState = <String>[];
     if (venue.city != null && venue.city!.isNotEmpty) {
-      parts.add(venue.city!);
+      cityState.add(venue.city!);
     }
     if (venue.state != null && venue.state!.isNotEmpty) {
-      parts.add(venue.state!);
+      cityState.add(venue.state!);
     }
-    if (parts.isEmpty && venue.address != null && venue.address!.isNotEmpty) {
-      return venue.address!;
+    if (cityState.isNotEmpty) {
+      parts.add(cityState.join(' '));
     }
     return parts.join(', ');
+  }
+
+  Widget _buildVenueContactSection(VenueContact contact) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Contact name
+        Text(
+          contact.name,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+            height: 1.3,
+          ),
+        ),
+
+        // Title badge
+        if (contact.title != null && contact.title!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary,
+                width: 1,
+              ),
+            ),
+            child: Text(
+              contact.title!,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primary,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+
+        // Email
+        if (contact.email != null && contact.email!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _buildInfoRow(
+            icon: AppIcons.email,
+            value: contact.email!,
+          ),
+        ],
+
+        // Phone
+        if (contact.phone != null && contact.phone!.isNotEmpty)
+          _buildInfoRow(
+            icon: AppIcons.phone,
+            value: contact.phone!,
+            onTap: () => _launchPhone(contact.phone!),
+          ),
+      ],
+    );
   }
 
   Future<void> _launchPhone(String phone) async {

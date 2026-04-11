@@ -944,7 +944,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         final songWord = addedCount == 1 ? 'song' : 'songs';
         showAppSnackBar(
           context,
-          message: '🎸 Added $addedCount $songWord to "$targetSetlistName"',
+          message: 'Added $addedCount $songWord to "$targetSetlistName"',
         );
       } else if (skippedCount > 0) {
         showAppSnackBar(

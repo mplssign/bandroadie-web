@@ -64,25 +64,24 @@ class BandMembersView extends StatelessWidget {
                 Spacing.pagePadding,
                 Spacing.space8,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  const Text(
-                    'Members',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                  const Expanded(
+                    child: Text(
+                      'Band Members',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Everyone in this band. Try not to break up before the next gig.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.textSecondary.withValues(alpha: 0.8),
-                      height: 1.4,
+                  TextButton.icon(
+                    onPressed: onInvite,
+                    icon: const Icon(AppIcons.add, size: 18),
+                    label: const Text('Add'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
                     ),
                   ),
                 ],

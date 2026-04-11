@@ -345,6 +345,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         throw Exception('Failed to create band - no ID returned');
       }
 
+      // Save selected timezone
+      if (_selectedTimezone != 'America/Chicago') {
+        await supabase
+            .from('bands')
+            .update({'timezone': _selectedTimezone}).eq('id', bandId);
+      }
+
       // Send invites
       for (final email in _inviteEmails) {
         try {
@@ -1532,11 +1539,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                               _buildAvatarSection(),
                               const SizedBox(height: Spacing.space32),
 
-                              // Timezone picker (edit mode only, admin/manager)
-                              if (_isEditMode) ...[
-                                _buildTimezoneSection(),
-                                const SizedBox(height: Spacing.space32),
-                              ],
+                              // Timezone picker
+                              _buildTimezoneSection(),
+                              const SizedBox(height: Spacing.space32),
 
                               // Invite members section (only for create mode)
                               if (!_isEditMode) ...[
@@ -1867,32 +1872,48 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
   // Timezone entries. isHeader: true entries are rendered as disabled group labels.
   static const List<Map<String, dynamic>> _timezoneOptions = [
-    {'value': null, 'label': 'Canada', 'isHeader': true},
-    {'value': 'America/Vancouver', 'label': 'Vancouver (Pacific)'},
-    {'value': 'America/Edmonton', 'label': 'Edmonton (Mountain)'},
-    {'value': 'America/Regina', 'label': 'Regina (Central)'},
-    {'value': 'America/Toronto', 'label': 'Toronto (Eastern)'},
-    {'value': 'America/Halifax', 'label': 'Halifax (Atlantic)'},
-    {'value': 'America/St_Johns', 'label': "St. John's (Newfoundland)"},
+    // United States (first)
     {'value': null, 'label': 'United States', 'isHeader': true},
     {'value': 'America/New_York', 'label': 'New York (Eastern)'},
     {'value': 'America/Chicago', 'label': 'Chicago (Central)'},
     {'value': 'America/Denver', 'label': 'Denver (Mountain)'},
+    {'value': 'America/Phoenix', 'label': 'Phoenix (Mountain – No DST)'},
     {'value': 'America/Los_Angeles', 'label': 'Los Angeles (Pacific)'},
     {'value': 'America/Anchorage', 'label': 'Anchorage (Alaska)'},
     {'value': 'Pacific/Honolulu', 'label': 'Honolulu (Hawaii-Aleutian)'},
+    // Canada
+    {'value': null, 'label': 'Canada', 'isHeader': true},
+    {'value': 'America/Vancouver', 'label': 'Vancouver (Pacific)'},
+    {'value': 'America/Edmonton', 'label': 'Edmonton (Mountain)'},
+    {
+      'value': 'America/Dawson_Creek',
+      'label': 'Dawson Creek (Mountain – No DST)'
+    },
+    {'value': 'America/Creston', 'label': 'Creston (Mountain – No DST)'},
+    {'value': 'America/Regina', 'label': 'Regina (Central – No DST)'},
+    {'value': 'America/Toronto', 'label': 'Toronto (Eastern)'},
+    {'value': 'America/Halifax', 'label': 'Halifax (Atlantic)'},
+    {'value': 'America/St_Johns', 'label': "St. John's (Newfoundland)"},
+    {'value': 'America/Whitehorse', 'label': 'Whitehorse (Yukon – No DST)'},
+    // United Kingdom
     {'value': null, 'label': 'United Kingdom', 'isHeader': true},
     {'value': 'Europe/London', 'label': 'London'},
   ];
 
   Widget _buildTimezoneSection() {
-    // Only admins/managers can edit timezone
-    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
-    final canEdit = permissionsAsync.when(
-      data: (p) => p.canEditBandSettings,
-      loading: () => false,
-      error: (_, __) => false,
-    );
+    // In create mode, the creator is always admin so always enabled
+    // In edit mode, only admins/managers can edit timezone
+    final bool canEdit;
+    if (!_isEditMode) {
+      canEdit = true;
+    } else {
+      final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+      canEdit = permissionsAsync.when(
+        data: (p) => p.canEditBandSettings,
+        loading: () => false,
+        error: (_, __) => false,
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1936,20 +1957,42 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             color: AppColors.textPrimary,
             fontSize: 16,
           ),
-          items: _timezoneOptions.map((tz) {
+          items: _timezoneOptions.asMap().entries.map((entry) {
+            final index = entry.key;
+            final tz = entry.value;
             final isHeader = tz['isHeader'] == true;
             return DropdownMenuItem<String>(
               value: isHeader ? null : tz['value'] as String,
               enabled: !isHeader,
-              child: Text(
-                tz['label'] as String,
-                style: TextStyle(
-                  color: isHeader ? AppColors.textMuted : AppColors.textPrimary,
-                  fontSize: isHeader ? 12 : 14,
-                  fontWeight: isHeader ? FontWeight.w600 : FontWeight.w400,
-                  letterSpacing: isHeader ? 0.8 : 0,
-                ),
-              ),
+              child: isHeader
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (index > 0)
+                          Divider(
+                            color: Colors.grey.shade700,
+                            thickness: 0.5,
+                            height: 16,
+                          ),
+                        Text(
+                          tz['label'] as String,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      tz['label'] as String,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
             );
           }).toList(),
           onChanged: canEdit

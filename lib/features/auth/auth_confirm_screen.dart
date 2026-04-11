@@ -367,7 +367,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '🎸 Quick Fix:',
+                  'Quick Fix:',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,

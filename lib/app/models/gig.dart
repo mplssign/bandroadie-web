@@ -35,6 +35,9 @@ class Gig {
   /// Example: 15000 = $150.00
   final int? gigPayCents;
 
+  /// Optional linked venue ID from the venues table.
+  final String? venueId;
+
   /// If true, this gig requires band member approval before it's confirmed.
   /// Potential gigs show RSVP UI. Confirmed gigs show as scheduled.
   final bool isPotential;
@@ -63,6 +66,7 @@ class Gig {
     this.setlistName,
     this.notes,
     this.gigPayCents,
+    this.venueId,
     required this.isPotential,
     this.requiredMemberIds = const {},
     this.additionalDates = const [],
@@ -85,6 +89,7 @@ class Gig {
       setlistName: json['setlist_name'] as String?,
       notes: json['notes'] as String?,
       gigPayCents: _parseGigPay(json['gig_pay']),
+      venueId: json['venue_id'] as String?,
       isPotential: json['is_potential'] as bool? ?? false,
       requiredMemberIds: _parseRequiredMemberIds(json['required_member_ids']),
       additionalDates: _parseAdditionalDates(json['gig_dates']),
@@ -107,6 +112,7 @@ class Gig {
       'setlist_name': setlistName,
       'notes': notes,
       'gig_pay': gigPayCents != null ? gigPayCents! / 100.0 : null,
+      'venue_id': venueId,
       'is_potential': isPotential,
       'required_member_ids': requiredMemberIds.toList(),
     };

@@ -6,6 +6,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
+import '../contacts_controller.dart';
 import '../contacts_repository.dart';
 import '../models/contact.dart';
 import 'title_pill_selector.dart';
@@ -105,6 +106,70 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _deleteContact() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBgElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete Contact?',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          'This action cannot be undone.',
+          style: TextStyle(
+            fontSize: 16,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final bandId = ref.read(activeBandProvider).activeBandId;
+    if (bandId == null) return;
+
+    final success = await ref
+        .read(contactsProvider.notifier)
+        .delete(id: widget.contact!.id, bandId: bandId);
+
+    if (mounted) {
+      if (success) {
+        Navigator.of(context).pop(true);
       }
     }
   }
@@ -237,6 +302,24 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             decoration: _inputDecoration('Notes'),
             maxLines: 3,
           ),
+
+          // Delete button (edit mode only)
+          if (_isEditMode) ...[
+            const SizedBox(height: 32),
+            Center(
+              child: TextButton(
+                onPressed: _deleteContact,
+                child: const Text(
+                  'Delete Contact',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.error,
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           // Bottom padding
           SizedBox(

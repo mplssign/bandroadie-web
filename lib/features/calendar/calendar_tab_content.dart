@@ -100,7 +100,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     if (perms.isContributor && !perms.canCreateGigs) {
       showAppSnackBar(
         context,
-        message: '🎸 You don\'t have permission to create events.',
+        message: 'You don\'t have permission to create events.',
       );
       return;
     }
@@ -138,7 +138,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       if (perms != null && perms.isContributor && !perms.canCreateGigs) {
         showAppSnackBar(
           context,
-          message: '🎸 You don\'t have permission to create events.',
+          message: 'You don\'t have permission to create events.',
         );
         return;
       }

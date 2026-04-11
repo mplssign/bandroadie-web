@@ -164,7 +164,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
       if (mounted) {
         showAppSnackBar(
           context,
-          message: '🎸 Block outs are for admins and members.',
+          message: 'Block outs are for admins and members.',
         );
       }
       return;

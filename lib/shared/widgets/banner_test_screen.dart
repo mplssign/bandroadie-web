@@ -65,7 +65,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '🎸 Native App Banner Debugger',
+              'Native App Banner Debugger',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -253,9 +253,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
         child: Row(
           children: [
             Icon(
-              title.startsWith('✅')
-                  ? AppIcons.success
-                  : Icons.cancel_outlined,
+              title.startsWith('✅') ? AppIcons.success : Icons.cancel_outlined,
               color: color,
               size: 32,
             ),

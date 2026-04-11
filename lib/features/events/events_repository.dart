@@ -467,6 +467,7 @@ class EventsRepository {
       'gig_pay': formData.gigPayCents != null
           ? formData.gigPayCents! / 100.0
           : null,
+      if (formData.venueId != null) 'venue_id': formData.venueId,
     };
 
     debugPrint('[EventsRepository] Inserting gig with data: $data');
@@ -535,6 +536,7 @@ class EventsRepository {
       'gig_pay': formData.gigPayCents != null
           ? formData.gigPayCents! / 100.0
           : null,
+      if (formData.venueId != null) 'venue_id': formData.venueId,
       'updated_at': DateTime.now().toIso8601String(),
     };
 

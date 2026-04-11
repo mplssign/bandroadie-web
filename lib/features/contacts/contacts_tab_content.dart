@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/theme/app_animations.dart';
-import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../bands/active_band_controller.dart';
@@ -15,10 +14,8 @@ import '../../shared/widgets/segmented_toggle.dart';
 import 'contacts_controller.dart';
 import 'venues_controller.dart';
 import 'widgets/band_members_view.dart';
-import 'widgets/contact_form_screen.dart';
 import 'widgets/contacts_view.dart';
 import 'widgets/invite_members_screen.dart';
-import 'widgets/venue_form_screen.dart';
 import 'widgets/venues_view.dart';
 
 // ============================================================================
@@ -143,42 +140,6 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
     }
   }
 
-  void _onAddTap() {
-    switch (_selectedSegment) {
-      case 0:
-        _openInviteScreen();
-        break;
-      case 1:
-        Navigator.of(context)
-            .push<bool>(
-          fadeSlideRoute(page: const VenueFormScreen()),
-        )
-            .then((result) {
-          if (result == true) {
-            final bandId = ref.read(activeBandProvider).activeBandId;
-            if (bandId != null) {
-              ref.read(venuesProvider.notifier).refresh(bandId);
-            }
-          }
-        });
-        break;
-      case 2:
-        Navigator.of(context)
-            .push<bool>(
-          fadeSlideRoute(page: const ContactFormScreen()),
-        )
-            .then((result) {
-          if (result == true) {
-            final bandId = ref.read(activeBandProvider).activeBandId;
-            if (bandId != null) {
-              ref.read(contactsProvider.notifier).refresh(bandId);
-            }
-          }
-        });
-        break;
-    }
-  }
-
   Widget _buildActiveView() {
     switch (_selectedSegment) {
       case 0:
@@ -256,42 +217,13 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
                       },
                       child: Column(
                         children: [
-                          // Header row
+                          // Segmented toggle
                           Padding(
                             padding: const EdgeInsets.fromLTRB(
                               Spacing.pagePadding,
                               Spacing.space16,
                               Spacing.pagePadding,
-                              Spacing.space8,
-                            ),
-                            child: Row(
-                              children: [
-                                const Expanded(
-                                  child: Text(
-                                    'Contacts',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                TextButton.icon(
-                                  onPressed: _onAddTap,
-                                  icon: const Icon(AppIcons.add, size: 18),
-                                  label: const Text('Add'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Segmented toggle
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: Spacing.pagePadding,
+                              0,
                             ),
                             child: SegmentedToggle(
                               labels: const ['Band', 'Venues', 'Contacts'],

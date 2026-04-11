@@ -119,14 +119,14 @@ class AddSongResult {
   /// Uses humorous "roadie" copy per the BandRoadie brand voice.
   String get friendlyMessage {
     if (wasAlreadyInSetlist) {
-      return '🎸 "$songTitle" is already in this setlist — great minds rehearse alike!';
+      return '"$songTitle" is already in this setlist — great minds rehearse alike!';
     }
     if (wasAlreadyInCatalog) {
       // Humorous message for Catalog duplicates - "the Catalog remembers"
       if (wasEnriched) {
-        return '🎸 "$songTitle" already exists in the Catalog — updated with new info!';
+        return '"$songTitle" already exists in the Catalog — updated with new info!';
       }
-      return '🎸 "$songTitle" already exists in the Catalog. (The Catalog remembers everything… like a drummer.)';
+      return '"$songTitle" already exists in the Catalog. (The Catalog remembers everything… like a drummer.)';
     }
     return 'Added "$songTitle" to setlist';
   }
@@ -135,9 +135,9 @@ class AddSongResult {
   String get catalogAddMessage {
     if (wasAlreadyInCatalog) {
       if (wasEnriched) {
-        return '🎸 "$songTitle" already exists in the Catalog — updated with new info!';
+        return '"$songTitle" already exists in the Catalog — updated with new info!';
       }
-      return '🎸 "$songTitle" already exists in the Catalog. (The Catalog remembers everything… like a drummer.)';
+      return '"$songTitle" already exists in the Catalog. (The Catalog remembers everything… like a drummer.)';
     }
     return 'Added "$songTitle" to Catalog';
   }

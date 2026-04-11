@@ -47,7 +47,7 @@ class ContactsEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              "No contacts yet — who's your booking agent? 🎸",
+              "No contacts yet — who's your booking agent?",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,

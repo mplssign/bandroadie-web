@@ -8,6 +8,7 @@ import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
 import '../models/venue.dart';
 import '../models/venue_contact.dart';
+import '../venues_controller.dart';
 import '../venues_repository.dart';
 import 'venue_contact_block.dart';
 
@@ -232,6 +233,70 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
     }
   }
 
+  Future<void> _deleteVenue() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.cardBgElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete Venue?',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          'This action cannot be undone.',
+          style: TextStyle(
+            fontSize: 16,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final bandId = ref.read(activeBandProvider).activeBandId;
+    if (bandId == null) return;
+
+    final success = await ref
+        .read(venuesProvider.notifier)
+        .delete(id: widget.venue!.id, bandId: bandId);
+
+    if (mounted) {
+      if (success) {
+        Navigator.of(context).pop(true);
+      }
+    }
+  }
+
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
@@ -257,6 +322,11 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
   List<TextInputFormatter> _getPhoneFormatters() {
     final tz = ref.read(activeBandProvider).activeBand?.timezone;
     return isUSTimezone(tz) ? [USPhoneInputFormatter(isUSTimezone: true)] : [];
+  }
+
+  List<TextInputFormatter> _getStateFormatters() {
+    final tz = ref.read(activeBandProvider).activeBand?.timezone;
+    return isUSTimezone(tz) ? [UpperCaseTextFormatter()] : [];
   }
 
   String _getStateLabel() {
@@ -352,6 +422,8 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                     style: const TextStyle(
                         color: AppColors.textPrimary, fontSize: 16),
                     decoration: _inputDecoration(_getStateLabel()),
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: _getStateFormatters(),
                   ),
                 ),
               ],
@@ -438,6 +510,24 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
               );
             },
           ),
+
+          // Delete button (edit mode only)
+          if (_isEditMode) ...[
+            const SizedBox(height: 32),
+            Center(
+              child: TextButton(
+                onPressed: _deleteVenue,
+                child: const Text(
+                  'Delete Venue',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.error,
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           // Bottom padding
           SizedBox(

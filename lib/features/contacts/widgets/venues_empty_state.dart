@@ -47,7 +47,7 @@ class VenuesEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              "No venues yet — where's the gig at? 🎸",
+              "No venues yet — where's the gig at?",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,

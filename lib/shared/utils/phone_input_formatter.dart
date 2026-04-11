@@ -46,6 +46,7 @@ bool isUSTimezone(String? timezone) {
     'America/New_York',
     'America/Chicago',
     'America/Denver',
+    'America/Phoenix',
     'America/Los_Angeles',
     'America/Anchorage',
     'Pacific/Honolulu',
@@ -58,10 +59,13 @@ bool isCanadianTimezone(String? timezone) {
   const caTZs = {
     'America/Vancouver',
     'America/Edmonton',
+    'America/Dawson_Creek',
+    'America/Creston',
     'America/Regina',
     'America/Toronto',
     'America/Halifax',
     'America/St_Johns',
+    'America/Whitehorse',
   };
   return caTZs.contains(timezone);
 }
@@ -69,4 +73,15 @@ bool isCanadianTimezone(String? timezone) {
 /// Returns true if the given IANA timezone identifier is a UK timezone.
 bool isUKTimezone(String? timezone) {
   return timezone == 'Europe/London';
+}
+
+/// Converts all input text to uppercase as the user types.
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
+  }
 }

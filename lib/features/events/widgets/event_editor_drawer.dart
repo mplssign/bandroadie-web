@@ -15,6 +15,8 @@ import '../../../shared/widgets/currency_input_field.dart';
 import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
 import '../../calendar/models/calendar_event.dart';
+import '../../contacts/models/venue.dart';
+import '../../contacts/venues_controller.dart';
 import '../../gigs/gig_controller.dart';
 import '../../gigs/gig_response_repository.dart';
 import '../../members/members_controller.dart';
@@ -177,6 +179,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Timer? _gigNameDebounceTimer;
   Timer? _gigCityDebounceTimer;
 
+  // Linked venue state
+  String? _selectedVenueId;
+
   // Focus nodes for autocomplete fields (must be persistent, not created inline)
   final _gigNameFocusNode = FocusNode();
   final _gigCityFocusNode = FocusNode();
@@ -266,6 +271,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _gigPayController.cents = data.gigPayCents!;
       }
 
+      // Populate linked venue for edit mode
+      _selectedVenueId = data.venueId;
+
       // Store initial form data for change detection in edit mode
       _initialFormData = data;
     }
@@ -283,6 +291,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     // Load members for potential gig section
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(membersProvider.notifier).loadMembers(widget.bandId);
+      ref.read(venuesProvider.notifier).load(widget.bandId);
       _loadLocationSuggestions();
 
       // RBAC: If contributor with potential-only permission, force potential gig mode
@@ -600,7 +609,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         showSuccessSnackBar(
           context,
           message: response == 'yes'
-              ? 'You\'re available! 🎸'
+              ? 'You\'re available!'
               : 'Got it — you\'re not available.',
         );
       }
@@ -621,56 +630,54 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
   }
 
-  /// Fetch gig name suggestions with debounce (from past gig names for this band)
+  /// Fetch gig name suggestions from the band's venues list (local filter)
   void _fetchGigNameSuggestions(String query) {
-    _gigNameDebounceTimer?.cancel();
-
     // Clear suggestions if query is too short
     if (query.length < 2) {
       if (_gigNameSuggestions.isNotEmpty) {
         setState(() => _gigNameSuggestions = []);
       }
+      // Clear venue link if user is editing the name
+      if (_selectedVenueId != null) {
+        _selectedVenueId = null;
+      }
       return;
     }
 
-    _gigNameDebounceTimer = Timer(const Duration(milliseconds: 300), () async {
-      try {
-        // Query distinct gig names from past gigs for this band
-        // prefix-matched, case-insensitive
-        final response = await supabase
-            .from('gigs')
-            .select('name, date')
-            .eq('band_id', widget.bandId)
-            .not('name', 'is', null)
-            .neq('name', '')
-            .ilike('name', '$query%')
-            .order('date', ascending: false)
-            .limit(30);
+    final venues = ref.read(venuesProvider).venues;
+    final queryLower = query.toLowerCase();
+    final suggestions = venues
+        .where((v) => v.name.toLowerCase().contains(queryLower))
+        .map((v) => v.name)
+        .take(15)
+        .toList();
 
-        // Dedupe case-insensitively and limit to 15
-        final Set<String> seenLower = {};
-        final List<String> suggestions = [];
-        for (final row in response) {
-          final name = row['name'] as String?;
-          if (name != null && name.isNotEmpty) {
-            final lower = name.toLowerCase();
-            if (!seenLower.contains(lower)) {
-              seenLower.add(lower);
-              suggestions.add(name);
-              if (suggestions.length >= 15) break;
-            }
-          }
-        }
-
-        if (mounted) {
-          setState(() => _gigNameSuggestions = suggestions);
-          debugPrint('[GigNameAutocomplete] "$query" -> ${suggestions.length}');
-        }
-      } catch (e) {
-        debugPrint('[GigNameAutocomplete] Error: $e');
-        // Fail silently
+    // Check if current text exactly matches a venue to auto-link
+    final exactMatch = venues.cast<Venue?>().firstWhere(
+          (v) => v!.name.toLowerCase() == queryLower,
+          orElse: () => null,
+        );
+    if (exactMatch != null) {
+      _selectedVenueId = exactMatch.id;
+      // Auto-fill city from venue if city is set and location field is empty
+      if (exactMatch.city != null &&
+          exactMatch.city!.isNotEmpty &&
+          _locationController.text.trim().isEmpty) {
+        final cityState = [
+          exactMatch.city,
+          if (exactMatch.state != null && exactMatch.state!.isNotEmpty)
+            exactMatch.state,
+        ].join(', ');
+        _locationController.text = cityState;
       }
-    });
+    } else {
+      _selectedVenueId = null;
+    }
+
+    if (mounted) {
+      setState(() => _gigNameSuggestions = suggestions);
+      debugPrint('[GigNameAutocomplete] "$query" -> ${suggestions.length}');
+    }
   }
 
   /// Fetch gig city suggestions with debounce (from past gig cities for this band)
@@ -835,6 +842,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       gigPayCents: _eventType == EventType.gig && _gigPayController.isNotEmpty
           ? _gigPayController.cents
           : null,
+      venueId: _selectedVenueId,
     );
   }
 
@@ -980,7 +988,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (mounted) {
         showAppSnackBar(
           context,
-          message: '🎸 Block outs are for admins and members.',
+          message: 'Block outs are for admins and members.',
         );
       }
       return;
@@ -1144,7 +1152,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (widget.mode == EventEditorMode.create && !perms.canCreateGigs) {
         if (mounted) {
           showAppSnackBar(context,
-              message: '🎸 You don\'t have permission to create events.');
+              message: 'You don\'t have permission to create events.');
         }
         return;
       }
@@ -1153,7 +1161,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         if (!(_isPotentialGig && perms.canEditPotentialGigs)) {
           if (mounted) {
             showAppSnackBar(context,
-                message: '🎸 You don\'t have permission to edit events.');
+                message: 'You don\'t have permission to edit events.');
           }
           return;
         }
@@ -1166,7 +1174,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     });
 
     // Validate
-    final formData = _buildFormData();
+    var formData = _buildFormData();
     final errors = formData.validate();
 
     if (errors.isNotEmpty) {
@@ -1189,6 +1197,20 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     try {
       final repository = ref.read(eventsRepositoryProvider);
+
+      // Auto-create venue if user typed a name that doesn't match an existing venue
+      if (_eventType == EventType.gig &&
+          _selectedVenueId == null &&
+          _nameController.text.trim().isNotEmpty) {
+        final newVenue = await ref.read(venuesProvider.notifier).create(
+              bandId: widget.bandId,
+              data: {'name': _nameController.text.trim()},
+            );
+        if (newVenue != null) {
+          _selectedVenueId = newVenue.id;
+          formData = formData.copyWith(venueId: newVenue.id);
+        }
+      }
 
       if (widget.mode == EventEditorMode.edit &&
           widget.existingEventId != null) {
@@ -1436,7 +1458,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (!(_isPotentialGig && deletePerms.canEditPotentialGigs)) {
         if (mounted) {
           showAppSnackBar(context,
-              message: '🎸 You don\'t have permission to delete events.');
+              message: 'You don\'t have permission to delete events.');
         }
         return;
       }

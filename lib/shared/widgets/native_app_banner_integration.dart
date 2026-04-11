@@ -60,7 +60,7 @@ class AppShell extends ConsumerWidget {
             ),
           ),
 
-          // 🎸 ADD THE BANNER HERE
+          // ADD THE BANNER HERE
           const NativeAppBanner(
             delay: Duration(seconds: 4),
             position: BannerPosition.top,

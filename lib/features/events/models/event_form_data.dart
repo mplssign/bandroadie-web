@@ -238,6 +238,10 @@ class EventFormData {
   /// Null means no pay specified. 0 means explicitly unpaid.
   final int? gigPayCents;
 
+  // Linked venue (gigs only, optional)
+  /// Venue ID if the gig is linked to an existing venue.
+  final String? venueId;
+
   // Recurring rehearsal series tracking (rehearsals only)
   /// Parent rehearsal ID if this is a child in a recurring series.
   /// Null for non-recurring or parent rehearsals.
@@ -265,6 +269,7 @@ class EventFormData {
     this.setlistId,
     this.setlistName,
     this.gigPayCents,
+    this.venueId,
     this.parentRehearsalId,
   });
 
@@ -403,6 +408,7 @@ class EventFormData {
     String? setlistId,
     String? setlistName,
     int? gigPayCents,
+    String? venueId,
     String? parentRehearsalId,
     bool clearSetlist = false,
     bool clearGigPay = false,
@@ -426,6 +432,7 @@ class EventFormData {
       setlistId: clearSetlist ? null : (setlistId ?? this.setlistId),
       setlistName: clearSetlist ? null : (setlistName ?? this.setlistName),
       gigPayCents: clearGigPay ? null : (gigPayCents ?? this.gigPayCents),
+      venueId: venueId ?? this.venueId,
       parentRehearsalId: parentRehearsalId ?? this.parentRehearsalId,
     );
   }
@@ -504,6 +511,7 @@ class EventFormData {
       setlistId: gig.setlistId,
       setlistName: gig.setlistName,
       gigPayCents: gig.gigPayCents,
+      venueId: gig.venueId,
     );
   }
 

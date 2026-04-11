@@ -63,8 +63,8 @@ class _BugReportScreenState extends State<BugReportScreen> {
         showSuccessSnackBar(
           context,
           message: _selectedType == _FeedbackType.bug
-              ? "Bug report sent! We'll look into it 🎸"
-              : "Feature request sent! Thanks for the idea 🎸",
+              ? "Bug report sent! We'll look into it."
+              : "Feature request sent! Thanks for the idea.",
         );
         Navigator.of(context).pop();
 
@@ -89,8 +89,7 @@ class _BugReportScreenState extends State<BugReportScreen> {
   void _copyReportToClipboard() {
     if (_fallbackReportText == null) return;
 
-    final fullText =
-        '''
+    final fullText = '''
 To: ${BugReportEmailService.recipientEmail}
 Subject: BandRoadie ${_selectedType == _FeedbackType.bug ? 'Bug Report' : 'Feature Request'}
 

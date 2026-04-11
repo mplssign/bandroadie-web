@@ -675,7 +675,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           Navigator.of(context).pop();
           showAppSnackBar(
             context,
-            message: '🎸 You don\'t have permission to create setlists.',
+            message: 'You don\'t have permission to create setlists.',
           );
         }
       });
