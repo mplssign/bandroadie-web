@@ -982,7 +982,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     if (perms?.isContributor == true) {
       if (mounted) {
@@ -1146,7 +1146,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final perms = savePermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     if (perms != null) {
       if (widget.mode == EventEditorMode.create && !perms.canCreateGigs) {
@@ -1451,7 +1451,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final deletePerms = deletePermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     if (deletePerms != null && !deletePerms.canDeleteGigs) {
       // Allow contributors to delete potential gigs they can edit

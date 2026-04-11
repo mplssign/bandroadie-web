@@ -373,7 +373,7 @@ class _PauseScreenState extends State<PauseScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: kPredefinedPurposes.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (__, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final purpose = kPredefinedPurposes[index];
                       return _PurposeChip(
@@ -487,8 +487,7 @@ class _PauseScreenState extends State<PauseScreen> {
                             width: 1,
                           ),
                         ),
-                        child:
-                            Icon(AppIcons.add, color: _accent, size: 18),
+                        child: Icon(AppIcons.add, color: _accent, size: 18),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -831,8 +830,7 @@ class _CheckBox extends StatelessWidget {
           width: 1.5,
         ),
       ),
-      child:
-          isChecked ? Icon(AppIcons.check, size: 16, color: accent) : null,
+      child: isChecked ? Icon(AppIcons.check, size: 16, color: accent) : null,
     );
   }
 }

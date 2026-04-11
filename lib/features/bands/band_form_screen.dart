@@ -1911,7 +1911,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       canEdit = permissionsAsync.when(
         data: (p) => p.canEditBandSettings,
         loading: () => false,
-        error: (_, __) => false,
+        error: (__, _) => false,
       );
     }
 
@@ -2169,7 +2169,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             final canDelete = permissionsAsync.when(
               data: (perms) => perms.canDeleteBand,
               loading: () => false,
-              error: (_, __) => false,
+              error: (__, _) => false,
             );
             if (!canDelete) return const SizedBox.shrink();
             final isBusy =

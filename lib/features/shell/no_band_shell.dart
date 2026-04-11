@@ -51,7 +51,7 @@ class NoBandShell extends ConsumerWidget {
         return [first, last].where((s) => s.isNotEmpty).join(' ');
       },
       loading: () => '',
-      error: (_, __) => '',
+      error: (__, _) => '',
     );
 
     return Scaffold(
@@ -146,13 +146,13 @@ class _NoBandContentState extends State<_NoBandContent>
         curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
       ),
     );
-    _logoSlide = Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
-          ),
-        );
+    _logoSlide =
+        Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
+      ),
+    );
     _logoScale = Tween<double>(begin: 0.96, end: 1.0).animate(
       CurvedAnimation(
         parent: _entranceController,
@@ -167,13 +167,13 @@ class _NoBandContentState extends State<_NoBandContent>
         curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
       ),
     );
-    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic),
-          ),
-        );
+    _titleSlide =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // Body fade
     _bodyFade = Tween<double>(begin: 0.0, end: 1.0).animate(

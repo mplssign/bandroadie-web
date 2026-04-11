@@ -1293,7 +1293,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final canEdit = permissionsAsync.when(
       data: (p) => p.canEditSetlists,
       loading: () => false, // Fail closed — no mutation flicker
-      error: (_, __) => false, // Fail closed on error
+      error: (__, _) => false, // Fail closed on error
     );
 
     // Detect catalog sort mode changes and trigger animation
