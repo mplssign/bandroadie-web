@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -93,33 +94,14 @@ class PushNotificationService {
     debugPrint('[PushNotificationService] Initialized');
   }
 
+  static const _badgeChannel = MethodChannel('com.bandroadie/badge');
+
   /// Clear the app icon badge count
   Future<void> clearBadge() async {
     try {
-      if (Platform.isIOS || Platform.isMacOS) {
-        // On iOS/macOS, use the platform-specific implementation to set badge to 0
-        final iosPlugin =
-            _localNotifications.resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin>();
-        if (iosPlugin != null) {
-          // Show a silent notification with badge 0 to clear it, then cancel
-          await _localNotifications.show(
-            0, // notification id
-            null, // no title (silent)
-            null, // no body (silent)
-            const NotificationDetails(
-              iOS: DarwinNotificationDetails(
-                presentAlert: false,
-                presentBadge: true,
-                presentSound: false,
-                badgeNumber: 0, // Clear badge
-              ),
-            ),
-          );
-          // Cancel the silent notification immediately
-          await _localNotifications.cancel(0);
-          debugPrint('[PushNotificationService] Badge cleared to 0');
-        }
+      if (Platform.isIOS) {
+        await _badgeChannel.invokeMethod('clearBadge');
+        debugPrint('[PushNotificationService] Badge cleared to 0');
       }
       // Android doesn't have native badge support the same way
     } catch (e) {
