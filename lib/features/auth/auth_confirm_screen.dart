@@ -34,15 +34,55 @@ class AuthConfirmScreen extends ConsumerStatefulWidget {
 class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   bool _loading = true;
   String? _error;
+  bool _navigating = false;
+  StreamSubscription<AuthState>? _authSubscription;
+  Completer<void>? _sessionCompleter;
 
   @override
   void initState() {
     super.initState();
+    _authSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      final session = data.session;
+      if ((event == AuthChangeEvent.signedIn ||
+              event == AuthChangeEvent.initialSession) &&
+          session != null) {
+        // Complete the session completer if it's waiting
+        if (_sessionCompleter != null && !_sessionCompleter!.isCompleted) {
+          _sessionCompleter!.complete();
+        }
+        // Safety net: if still loading and not already navigating, navigate
+        if (_loading && !_navigating) {
+          if (!mounted) return;
+          _navigateToHome();
+        }
+      }
+    });
+    _detectInAppBrowser();
     _handleConfirm();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// Detect if user is in an in-app browser (Gmail, Instagram, etc.)
+  /// These browsers have restricted cookie/storage access
+  void _detectInAppBrowser() {
+    // Check user agent for common in-app browser patterns
+    // Note: This is a best-effort detection
+    // In Flutter web, we'd need to use dart:html, but for now
+    // we'll handle this in the error flow
   }
 
   /// Navigate to the main app after successful auth
   void _navigateToHome() {
+    if (_navigating) return;
+    _navigating = true;
+    debugPrint('🚀 Navigating to app from fragment auth');
     if (kIsWeb) {
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } else {
@@ -97,6 +137,12 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
               return;
             } else {
               debugPrint('❌ setSession returned null session');
+              if (!mounted) return;
+              setState(() {
+                _error = 'session_failed';
+                _loading = false;
+              });
+              return;
             }
           } else {
             debugPrint('❌ Missing tokens in fragment');
@@ -112,17 +158,26 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         (code == null || code.isEmpty)) {
       // On web, wait a bit in case Supabase is still processing
       if (kIsWeb) {
-        for (int i = 0; i < 10; i++) {
-          await Future.delayed(const Duration(milliseconds: 250));
-          final session = Supabase.instance.client.auth.currentSession;
-          if (session != null) {
-            if (!mounted) return;
-            _navigateToHome();
-            return;
-          }
+        debugPrint('⏳ No query params - waiting for session...');
+
+        _sessionCompleter = Completer<void>();
+        await _sessionCompleter!.future.timeout(
+          const Duration(seconds: 6),
+          onTimeout: () {
+            debugPrint('❌ Timeout waiting for session (6s)');
+          },
+        );
+
+        // Check session one final time after completer resolves or times out
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session != null) {
+          debugPrint('✅ Session established after event/timeout');
+          if (!mounted) return;
+          _navigateToHome();
+          return;
         }
 
-        debugPrint('❌ Timeout waiting for session');
+        debugPrint('❌ No session after waiting');
       }
       setState(() {
         _error = 'missing_token';
@@ -461,6 +516,13 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             'before you could click it. If you use Microsoft Outlook or a corporate '
             'email system, this is a known issue.\n\n'
             'Please request a new magic link and try again.';
+        break;
+      case 'session_failed':
+        icon = Icons.link_off;
+        iconColor = Colors.orange;
+        title = 'Login Could Not Be Completed';
+        message =
+            'We found your login tokens but couldn\'t establish a session. Please try again.';
         break;
       case 'no_user_id':
         icon = Icons.person_off;
