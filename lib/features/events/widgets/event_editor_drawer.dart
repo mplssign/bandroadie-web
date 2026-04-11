@@ -1203,9 +1203,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           _selectedVenueId == null &&
           _nameController.text.trim().isNotEmpty) {
         final newVenue = await ref.read(venuesProvider.notifier).create(
-              bandId: widget.bandId,
-              data: {'name': _nameController.text.trim()},
-            );
+          bandId: widget.bandId,
+          data: {'name': _nameController.text.trim()},
+        );
         if (newVenue != null) {
           _selectedVenueId = newVenue.id;
           formData = formData.copyWith(venueId: newVenue.id);

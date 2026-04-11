@@ -105,9 +105,8 @@ class EventsRepository {
           'setlist_id': formData.setlistId,
           // Recurrence fields - store on all instances for consistency
           'is_recurring': formData.isRecurring,
-          'recurrence_frequency': formData.isRecurring
-              ? formData.recurrence?.frequency.name
-              : null,
+          'recurrence_frequency':
+              formData.isRecurring ? formData.recurrence?.frequency.name : null,
           'recurrence_days': formData.isRecurring
               ? formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList()
               : null,
@@ -120,11 +119,8 @@ class EventsRepository {
 
         debugPrint('[EventsRepository] Inserting rehearsal with data: $data');
 
-        final response = await supabase
-            .from('rehearsals')
-            .insert(data)
-            .select()
-            .single();
+        final response =
+            await supabase.from('rehearsals').insert(data).select().single();
 
         debugPrint('[EventsRepository] Successfully created rehearsal');
 
@@ -255,9 +251,8 @@ class EventsRepository {
       'setlist_id': formData.setlistId,
       // Update recurrence fields
       'is_recurring': formData.isRecurring,
-      'recurrence_frequency': formData.isRecurring
-          ? formData.recurrence?.frequency.name
-          : null,
+      'recurrence_frequency':
+          formData.isRecurring ? formData.recurrence?.frequency.name : null,
       'recurrence_days': formData.isRecurring
           ? formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList()
           : null,
@@ -318,12 +313,10 @@ class EventsRepository {
       'setlist_id': formData.setlistId,
       'is_recurring': true,
       'recurrence_frequency': formData.recurrence?.frequency.name,
-      'recurrence_days': formData.recurrence?.daysOfWeek
-          .map((d) => d.dayIndex)
-          .toList(),
-      'recurrence_until': formData.recurrence?.untilDate
-          ?.toIso8601String()
-          .split('T')[0],
+      'recurrence_days':
+          formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList(),
+      'recurrence_until':
+          formData.recurrence?.untilDate?.toIso8601String().split('T')[0],
       'parent_rehearsal_id': null, // Parent has no parent
       'updated_at': DateTime.now().toIso8601String(),
     };
@@ -357,12 +350,10 @@ class EventsRepository {
         'setlist_id': formData.setlistId,
         'is_recurring': true,
         'recurrence_frequency': formData.recurrence?.frequency.name,
-        'recurrence_days': formData.recurrence?.daysOfWeek
-            .map((d) => d.dayIndex)
-            .toList(),
-        'recurrence_until': formData.recurrence?.untilDate
-            ?.toIso8601String()
-            .split('T')[0],
+        'recurrence_days':
+            formData.recurrence?.daysOfWeek.map((d) => d.dayIndex).toList(),
+        'recurrence_until':
+            formData.recurrence?.untilDate?.toIso8601String().split('T')[0],
         'parent_rehearsal_id': rehearsalId, // Link to parent
       };
 
@@ -416,9 +407,8 @@ class EventsRepository {
         .lte('date', endOfMonth.toIso8601String().split('T')[0])
         .order('date', ascending: true);
 
-    final rehearsals = response
-        .map<Rehearsal>((json) => Rehearsal.fromJson(json))
-        .toList();
+    final rehearsals =
+        response.map<Rehearsal>((json) => Rehearsal.fromJson(json)).toList();
 
     // Update cache
     _rehearsalCache[key] = _CacheEntry(rehearsals);
@@ -464,9 +454,8 @@ class EventsRepository {
       'setlist_id': formData.setlistId,
       'setlist_name': formData.setlistName,
       'required_member_ids': formData.selectedMemberIds.toList(),
-      'gig_pay': formData.gigPayCents != null
-          ? formData.gigPayCents! / 100.0
-          : null,
+      'gig_pay':
+          formData.gigPayCents != null ? formData.gigPayCents! / 100.0 : null,
       if (formData.venueId != null) 'venue_id': formData.venueId,
     };
 
@@ -533,9 +522,8 @@ class EventsRepository {
       'setlist_id': formData.setlistId,
       'setlist_name': formData.setlistName,
       'required_member_ids': formData.selectedMemberIds.toList(),
-      'gig_pay': formData.gigPayCents != null
-          ? formData.gigPayCents! / 100.0
-          : null,
+      'gig_pay':
+          formData.gigPayCents != null ? formData.gigPayCents! / 100.0 : null,
       if (formData.venueId != null) 'venue_id': formData.venueId,
       'updated_at': DateTime.now().toIso8601String(),
     };
