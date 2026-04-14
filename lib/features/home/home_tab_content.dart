@@ -239,7 +239,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     // Default to rehearsal for admin/member, gig for contributor
     final eventType =
@@ -253,7 +253,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     // Allow contributors to edit potential gigs they can create
     final canEdit = perms != null &&
@@ -295,7 +295,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     if (perms == null || !perms.canEditGigs) return;
 
@@ -338,19 +338,19 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final canCreateGig = permissionsAsync.when(
       data: (perms) => perms.canCreateGigs,
       loading: () => false, // Fail-closed — hide until permissions resolve
-      error: (_, __) => false,
+      error: (__, _) => false,
     );
     final canCreateSetlist = permissionsAsync.when(
       data: (perms) => perms.canCreateSetlists,
       loading: () => false,
-      error: (_, __) => false,
+      error: (__, _) => false,
     );
     // NOTE: canCreateGig/canCreateSetlist are passed to _buildContentState below
 
     final isContributor = permissionsAsync.when(
       data: (perms) => perms.isContributor,
       loading: () => false,
-      error: (_, __) => false,
+      error: (__, _) => false,
     );
 
     // Watch response summaries for potential gigs - this is the source of truth
@@ -365,7 +365,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         responseSummariesAsync.when(
       data: (summaries) => summaries,
       loading: () => {},
-      error: (_, __) => {},
+      error: (__, _) => {},
     );
 
     // Watch display band for header avatar (shows draft during editing)

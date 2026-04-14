@@ -719,7 +719,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
         itemCount: 12,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (__, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final fret = index + 1;
           final isSelected = _selectedCapoFret == fret;

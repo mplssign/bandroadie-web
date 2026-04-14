@@ -94,7 +94,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     final perms = permissionsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     if (perms == null) return; // Still loading — no-op
     if (perms.isContributor && !perms.canCreateGigs) {
@@ -215,7 +215,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     final editPerms = editPermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
     // Allow contributors to edit potential gigs they can create
     final canEditEvent = editPerms != null &&
@@ -245,7 +245,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       data: (p) => p,
       loading: () =>
           null, // null while loading — hide buttons to prevent flicker
-      error: (_, __) => null,
+      error: (__, _) => null,
     );
 
     debugPrint(

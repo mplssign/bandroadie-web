@@ -552,7 +552,7 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _templates.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (__, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final template = _templates[index];
                 final isSelected = template.id == _selectedTemplateId;

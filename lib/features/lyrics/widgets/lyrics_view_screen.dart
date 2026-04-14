@@ -32,12 +32,12 @@ void showLyricsViewScreen(
   Navigator.of(context).push(
     PageRouteBuilder(
       opaque: true,
-      pageBuilder: (_, __, ___) => _LyricsViewScreen(
+      pageBuilder: (__, ___, ____) => _LyricsViewScreen(
         lyrics: lyrics,
         songId: songId,
         songTitle: songTitle,
       ),
-      transitionsBuilder: (_, animation, __, child) {
+      transitionsBuilder: (__, animation, ___, child) {
         return FadeTransition(
           opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
           child: SlideTransition(

@@ -211,7 +211,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
     final canEdit = permissionsAsync.when(
       data: (p) => p.canEditSetlists,
       loading: () => false, // Fail closed — no mutation flicker
-      error: (_, __) => false, // Fail closed on error
+      error: (__, _) => false, // Fail closed on error
     );
 
     // Watch setlists provider
