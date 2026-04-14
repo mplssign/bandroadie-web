@@ -429,10 +429,13 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         return _buildBrowserMismatchHelp();
       case 'missing_token':
         icon = Icons.link_off;
-        iconColor = Colors.red;
+        iconColor = Colors.orange;
         title = 'Invalid Link';
         message =
-            'The magic link appears to be incomplete or corrupted. Please request a new one.';
+            'This magic link may have been opened by email security software '
+            'before you could click it. If you use Microsoft Outlook or a corporate '
+            'email system, this is a known issue.\n\n'
+            'Please request a new magic link and try again.';
         break;
       case 'no_user_id':
         icon = Icons.person_off;
