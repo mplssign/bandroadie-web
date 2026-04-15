@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
@@ -243,11 +244,12 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
+        backgroundColor: context.colors.surface,
         title: Text('Delete Block Out?', style: AppTextStyles.title3),
         content: Text(
           'This will remove the block out dates. This action cannot be undone.',
-          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.callout
+              .copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -255,7 +257,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             child: Text(
               'Cancel',
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -369,14 +371,15 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Widget _datePickerTheme(Widget? child) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: ColorScheme.dark(
-          primary: AppColors.accent,
-          surface: AppColors.cardBg,
-          onSurface: AppColors.textPrimary,
+        colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
+          primary: AppColors.primary,
+          surface: context.colors.surface,
+          onSurface: context.colors.textPrimary,
         ),
-        dialogTheme: DialogThemeData(backgroundColor: AppColors.cardBg),
+        dialogTheme: DialogThemeData(backgroundColor: context.colors.surface),
       ),
       child: child!,
     );
@@ -416,8 +419,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             maxHeight:
                 (MediaQuery.of(context).size.height - keyboardHeight) * 0.9,
           ),
-          decoration: const BoxDecoration(
-            color: AppColors.cardBg,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -432,7 +435,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderMuted,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -454,14 +457,14 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                       child: Container(
                         width: 32,
                         height: 32,
-                        decoration: const BoxDecoration(
-                          color: AppColors.scaffoldBg,
+                        decoration: BoxDecoration(
+                          color: context.colors.background,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           AppIcons.close,
                           size: 18,
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -480,17 +483,17 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.accent.withValues(alpha: 0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
                       children: [
                         const Icon(
                           AppIcons.info,
-                          color: AppColors.accent,
+                          color: AppColors.primary,
                           size: 18,
                         ),
                         const SizedBox(width: 8),
@@ -498,7 +501,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                           child: Text(
                             'Only the creator can edit or delete this block out.',
                             style: AppTextStyles.footnote.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ),
@@ -642,7 +645,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             Text(
               label,
               style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             if (isRequired)
@@ -660,10 +663,10 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: _isReadOnly
-                  ? AppColors.scaffoldBg.withValues(alpha: 0.5)
-                  : AppColors.scaffoldBg,
+                  ? context.colors.background.withValues(alpha: 0.5)
+                  : context.colors.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderMuted),
+              border: Border.all(color: context.colors.border),
             ),
             child: Row(
               children: [
@@ -675,9 +678,9 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                     style: AppTextStyles.callout.copyWith(
                       color: value != null
                           ? (_isReadOnly
-                              ? AppColors.textSecondary
-                              : AppColors.textPrimary)
-                          : AppColors.textSecondary.withValues(alpha: 0.6),
+                              ? context.colors.textSecondary
+                              : context.colors.textPrimary)
+                          : context.colors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -685,7 +688,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                   Icon(
                     AppIcons.calendar,
                     size: 18,
-                    color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    color: context.colors.textSecondary.withValues(alpha: 0.7),
                   ),
               ],
             ),
@@ -707,7 +710,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         Text(
           label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -716,37 +719,38 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           enabled: !_isSaving && !_isDeleting && !_isReadOnly,
           maxLines: maxLines,
           style: AppTextStyles.callout.copyWith(
-            color:
-                _isReadOnly ? AppColors.textSecondary : AppColors.textPrimary,
+            color: _isReadOnly
+                ? context.colors.textSecondary
+                : context.colors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTextStyles.callout.copyWith(
-              color: AppColors.textSecondary.withValues(alpha: 0.6),
+              color: context.colors.textSecondary.withValues(alpha: 0.6),
             ),
             filled: true,
             fillColor: _isReadOnly
-                ? AppColors.scaffoldBg.withValues(alpha: 0.5)
-                : AppColors.scaffoldBg,
+                ? context.colors.background.withValues(alpha: 0.5)
+                : context.colors.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.accent),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
           ),
         ),
@@ -767,10 +771,10 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           bottom: bottomPadding + Spacing.space16,
         ),
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: context.colors.surface,
           border: Border(
             top: BorderSide(
-              color: AppColors.borderMuted.withValues(alpha: 0.5),
+              color: context.colors.border.withValues(alpha: 0.5),
             ),
           ),
         ),
@@ -780,8 +784,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           child: OutlinedButton(
             onPressed: () => Navigator.pop(context),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-              side: const BorderSide(color: AppColors.borderMuted),
+              foregroundColor: context.colors.textSecondary,
+              side: BorderSide(color: context.colors.border),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
@@ -789,7 +793,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             child: Text(
               'Close',
               style: AppTextStyles.calloutEmphasized.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -807,10 +811,10 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           bottom: bottomPadding + Spacing.space12,
         ),
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: context.colors.surface,
           border: Border(
             top: BorderSide(
-              color: AppColors.borderMuted.withValues(alpha: 0.5),
+              color: context.colors.border.withValues(alpha: 0.5),
             ),
           ),
         ),
@@ -825,8 +829,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                       ? null
                       : () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: AppColors.borderMuted),
+                    foregroundColor: context.colors.textSecondary,
+                    side: BorderSide(color: context.colors.border),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     ),
@@ -834,7 +838,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                   child: Text(
                     'Cancel',
                     style: AppTextStyles.calloutEmphasized.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -863,9 +867,9 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         bottom: bottomPadding + Spacing.space16,
       ),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: context.colors.surface,
         border: Border(
-          top: BorderSide(color: AppColors.borderMuted.withValues(alpha: 0.5)),
+          top: BorderSide(color: context.colors.border.withValues(alpha: 0.5)),
         ),
       ),
       child: Row(
@@ -877,8 +881,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
               child: OutlinedButton(
                 onPressed: _isSaving ? null : () => Navigator.pop(context),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: const BorderSide(color: AppColors.borderMuted),
+                  foregroundColor: context.colors.textSecondary,
+                  side: BorderSide(color: context.colors.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   ),
@@ -886,7 +890,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                 child: Text(
                   'Cancel',
                   style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),

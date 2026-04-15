@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/features/lyrics/models/lyrics_data.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -367,15 +368,15 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
       position: _slideAnim,
       child: Container(
         height: MediaQuery.of(context).size.height * 0.92,
-        decoration: const BoxDecoration(
-          color: AppColors.scaffoldBg,
+        decoration: BoxDecoration(
+          color: context.colors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
             _buildHeader(),
             _buildFormattingToolbar(),
-            const Divider(color: AppColors.borderMuted, height: 1),
+            Divider(color: context.colors.border, height: 1),
             Expanded(child: _buildTextArea()),
           ],
         ),
@@ -395,7 +396,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             child: Text(
               'Cancel',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -403,7 +404,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
           Text(
             'Edit Lyrics',
             style: AppTextStyles.body.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -413,7 +414,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             onPressed: _handleSave,
             child: Text(
               'Save',
-              style: AppTextStyles.body.copyWith(color: AppColors.accent),
+              style: AppTextStyles.body.copyWith(color: AppColors.primary),
             ),
           ),
         ],
@@ -434,7 +435,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             _buildFontSizeControl(),
             const SizedBox(width: 10),
             // Vertical divider
-            Container(width: 1, height: 28, color: AppColors.borderMuted),
+            Container(width: 1, height: 28, color: context.colors.border),
             const SizedBox(width: 10),
             ..._buildColorPresets(),
           ],
@@ -467,7 +468,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
           child: Text(
             _fontSize.toInt().toString(),
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),
@@ -501,15 +502,15 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
           shape: BoxShape.circle,
           border: Border.all(
             color: enabled
-                ? AppColors.accent.withValues(alpha: 0.6)
-                : AppColors.borderMuted,
+                ? AppColors.primary.withValues(alpha: 0.6)
+                : context.colors.border,
             width: 1.5,
           ),
         ),
         child: Icon(
           icon,
           size: 16,
-          color: enabled ? AppColors.accent : AppColors.textDisabled,
+          color: enabled ? AppColors.primary : context.colors.textDisabled,
         ),
       ),
     );
@@ -551,7 +552,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(Spacing.chipRadius),
               border: Border.all(
-                color: isActive ? accentColor : AppColors.borderMuted,
+                color: isActive ? accentColor : context.colors.border,
                 width: isActive ? 1.5 : 1.0,
               ),
             ),
@@ -571,7 +572,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
                 Text(
                   h.label,
                   style: AppTextStyles.footnote.copyWith(
-                    color: isActive ? accentColor : AppColors.textSecondary,
+                    color: isActive ? accentColor : context.colors.textSecondary,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     fontSize: 12,
                   ),
@@ -595,7 +596,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
         expands: true,
         textAlignVertical: TextAlignVertical.top,
         style: TextStyle(
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
           fontSize: _fontSize,
           fontWeight: FontWeight.w700,
           height: 1.6,
@@ -604,14 +605,14 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
           hintText:
               'Paste or type your lyrics here…\n\nSeparate sections with a blank line.',
           hintStyle: TextStyle(
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
             fontSize: _fontSize,
             height: 1.6,
           ),
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
         ),
-        cursorColor: AppColors.accent,
+        cursorColor: AppColors.primary,
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/services/supabase_client.dart';
+import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
 import '../../app/theme/theme_mode_controller.dart';
 import '../../shared/utils/snackbar_helper.dart';
@@ -14,18 +15,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // Displays app settings with Delete Account as the final item.
 // Meets Apple App Store Guideline 5.1.1(v) for account deletion.
 // ============================================================================
-
-/// Design tokens for settings screen
-class _SettingsTokens {
-  _SettingsTokens._();
-
-  static const Color background = AppColors.background;
-  static const Color cardBackground = AppColors.surface; // slate-800
-  static const Color divider = AppColors.surfaceOverlay; // slate-700
-  static const Color textPrimary = AppColors.textPrimary;
-  static const Color textSecondary = AppColors.textSecondary; // slate-400
-  static const Color destructive = AppColors.error; // red-500
-}
 
 /// Settings item model for extensibility
 class SettingsItem {
@@ -94,21 +83,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       barrierDismissible: false, // Prevent accidental dismissal
       builder: (context) => AlertDialog(
-        backgroundColor: _SettingsTokens.cardBackground,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(
               AppIcons.warning,
-              color: _SettingsTokens.destructive,
+              color: AppColors.error,
               size: 28,
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Delete Account?',
                 style: TextStyle(
-                  color: _SettingsTokens.textPrimary,
+                  color: context.colors.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                 ),
@@ -120,19 +109,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'This action is permanent and cannot be undone.',
               style: TextStyle(
-                color: _SettingsTokens.textPrimary,
+                color: context.colors.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Deleting your account will:',
               style: TextStyle(
-                color: _SettingsTokens.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 14,
               ),
             ),
@@ -144,10 +133,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             _buildBulletPoint('Delete all your gig responses and notes'),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'This cannot be reversed. Are you sure?',
               style: TextStyle(
-                color: _SettingsTokens.destructive,
+                color: AppColors.error,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -157,10 +146,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(
-                color: _SettingsTokens.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
               ),
             ),
@@ -168,7 +157,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              backgroundColor: _SettingsTokens.destructive,
+              backgroundColor: AppColors.error,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -198,18 +187,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '• ',
             style: TextStyle(
-              color: _SettingsTokens.textSecondary,
+              color: context.colors.textSecondary,
               fontSize: 14,
             ),
           ),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: _SettingsTokens.textSecondary,
+              style: TextStyle(
+                color: context.colors.textSecondary,
                 fontSize: 14,
               ),
             ),
@@ -271,33 +260,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final deleteAccountItem = items.firstWhere((item) => item.isDestructive);
 
     return Scaffold(
-      backgroundColor: _SettingsTokens.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
-        title: const Text(
+        backgroundColor: context.colors.appBarBg,
+        title: Text(
           'Settings',
           style: TextStyle(
-            color: _SettingsTokens.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: _isDeleting
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: _SettingsTokens.destructive),
+                  CircularProgressIndicator(color: AppColors.error),
                   SizedBox(height: 24),
                   Text(
                     'Deleting your account...',
                     style: TextStyle(
-                      color: _SettingsTokens.textSecondary,
+                      color: context.colors.textSecondary,
                       fontSize: 16,
                     ),
                   ),
@@ -305,7 +294,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Text(
                     'This may take a moment',
                     style: TextStyle(
-                      color: _SettingsTokens.textSecondary,
+                      color: context.colors.textSecondary,
                       fontSize: 14,
                     ),
                   ),
@@ -314,34 +303,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             )
           : Column(
               children: [
-                // Light mode toggle
-                _LightModeToggle(),
-                const Divider(
-                  color: _SettingsTokens.divider,
+                // Scrollable area for regular settings items
+                if (regularItems.isNotEmpty)
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    itemCount: regularItems.length,
+                    itemBuilder: (context, index) {
+                      return _SettingsListItem(item: regularItems[index]);
+                    },
+                  ),
+                Divider(
+                  color: context.colors.surfaceOverlay,
                   height: 1,
                   indent: 16,
                   endIndent: 16,
                 ),
-                // Scrollable area for regular settings items
-                Expanded(
-                  child: regularItems.isEmpty
-                      ? const SizedBox.shrink()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          itemCount: regularItems.length,
-                          itemBuilder: (context, index) {
-                            return _SettingsListItem(item: regularItems[index]);
-                          },
-                        ),
+                // Light mode toggle
+                _LightModeToggle(),
+                Divider(
+                  color: context.colors.surfaceOverlay,
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
                 ),
+                const Spacer(),
 
                 // Bottom-anchored Delete Account section
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (regularItems.isNotEmpty) ...[
-                      const Divider(
-                        color: _SettingsTokens.divider,
+                      Divider(
+                        color: context.colors.surfaceOverlay,
                         height: 1,
                         indent: 16,
                         endIndent: 16,
@@ -371,8 +366,7 @@ class _LightModeToggle extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
-          Icon(Icons.light_mode,
-              color: _SettingsTokens.textSecondary, size: 24),
+          Icon(Icons.light_mode, color: context.colors.textSecondary, size: 24),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -381,7 +375,7 @@ class _LightModeToggle extends ConsumerWidget {
                 Text(
                   'Light mode',
                   style: TextStyle(
-                    color: _SettingsTokens.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -390,7 +384,7 @@ class _LightModeToggle extends ConsumerWidget {
                 Text(
                   'Switch to light theme',
                   style: TextStyle(
-                    color: _SettingsTokens.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -401,6 +395,8 @@ class _LightModeToggle extends ConsumerWidget {
             value: isLight,
             onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
             activeTrackColor: AppColors.primary,
+            inactiveTrackColor: context.colors.surfaceOverlay,
+            inactiveThumbColor: context.colors.textSecondary,
           ),
         ],
       ),
@@ -416,13 +412,11 @@ class _SettingsListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = item.isDestructive
-        ? _SettingsTokens.destructive
-        : _SettingsTokens.textPrimary;
+    final textColor =
+        item.isDestructive ? AppColors.error : context.colors.textPrimary;
 
-    final iconColor = item.isDestructive
-        ? _SettingsTokens.destructive
-        : _SettingsTokens.textSecondary;
+    final iconColor =
+        item.isDestructive ? AppColors.error : context.colors.textSecondary;
 
     return InkWell(
       onTap: item.onTap,
@@ -450,8 +444,8 @@ class _SettingsListItem extends StatelessWidget {
                       item.subtitle!,
                       style: TextStyle(
                         color: item.isDestructive
-                            ? _SettingsTokens.destructive.withValues(alpha: 0.7)
-                            : _SettingsTokens.textSecondary,
+                            ? AppColors.error.withValues(alpha: 0.7)
+                            : context.colors.textSecondary,
                         fontSize: 13,
                       ),
                     ),
@@ -462,8 +456,8 @@ class _SettingsListItem extends StatelessWidget {
             Icon(
               AppIcons.forward,
               color: item.isDestructive
-                  ? _SettingsTokens.destructive.withValues(alpha: 0.5)
-                  : _SettingsTokens.textSecondary.withValues(alpha: 0.5),
+                  ? AppColors.error.withValues(alpha: 0.5)
+                  : context.colors.textSecondary.withValues(alpha: 0.5),
               size: 24,
             ),
           ],

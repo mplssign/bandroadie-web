@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // Shared reusable building blocks for event editor form field widgets.
@@ -37,7 +38,7 @@ class EventTextField extends StatelessWidget {
         Text(
           label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -53,15 +54,16 @@ class EventTextField extends StatelessWidget {
           textCapitalization: isMultiline
               ? TextCapitalization.sentences
               : TextCapitalization.none,
-          style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
+          style:
+              AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
           onChanged: onChanged != null ? (_) => onChanged!() : null,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: AppTextStyles.callout.copyWith(
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
             filled: true,
-            fillColor: AppColors.scaffoldBg,
+            fillColor: context.colors.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 12,
@@ -69,19 +71,19 @@ class EventTextField extends StatelessWidget {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.borderMuted,
+                color: error != null ? AppColors.error : context.colors.border,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.borderMuted,
+                color: error != null ? AppColors.error : context.colors.border,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.accent,
+                color: error != null ? AppColors.error : AppColors.primary,
               ),
             ),
           ),
@@ -120,19 +122,20 @@ class EventDropdown<T> extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.scaffoldBg,
+        color: context.colors.background,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: AppColors.borderMuted),
+        border: Border.all(color: context.colors.border),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          dropdownColor: AppColors.cardBgElevated,
-          style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
-          icon: const Icon(
+          dropdownColor: context.colors.surfaceElevated,
+          style:
+              AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
+          icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
           items: items.map((item) {
             return DropdownMenuItem<T>(
@@ -170,13 +173,13 @@ class AmPmToggleButton extends StatelessWidget {
         duration: AppDurations.fast,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : Colors.transparent,
+          color: isSelected ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius - 2),
         ),
         child: Text(
           label,
           style: AppTextStyles.footnote.copyWith(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+            color: isSelected ? Colors.white : context.colors.textSecondary,
           ),
         ),
       ),
@@ -206,15 +209,17 @@ class AvailabilityButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = isPositive
-        ? AppColors.success // green-500
+        ? context.colors.success // green-500
         : AppColors.error; // red-500
 
-    final backgroundColor =
-        isSelected ? activeColor.withValues(alpha: 0.2) : AppColors.scaffoldBg;
+    final backgroundColor = isSelected
+        ? activeColor.withValues(alpha: 0.2)
+        : context.colors.background;
 
-    final borderColor = isSelected ? activeColor : AppColors.borderMuted;
+    final borderColor = isSelected ? activeColor : context.colors.border;
 
-    final contentColor = isSelected ? activeColor : AppColors.textSecondary;
+    final contentColor =
+        isSelected ? activeColor : context.colors.textSecondary;
 
     return Material(
       color: Colors.transparent,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/title_case_formatter.dart';
 import '../models/event_form_data.dart';
@@ -64,12 +65,12 @@ class RehearsalFormFields extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Location autocomplete
-        _buildLocationAutocomplete(),
+        _buildLocationAutocomplete(context),
 
         const SizedBox(height: Spacing.space16),
 
         // Recurring Toggle
-        _buildRecurringToggle(),
+        _buildRecurringToggle(context),
 
         // Recurring Section (animated with slide + fade)
         AnimatedSize(
@@ -81,7 +82,7 @@ class RehearsalFormFields extends StatelessWidget {
                   position: recurringSlideAnimation,
                   child: FadeTransition(
                     opacity: recurringFadeAnimation,
-                    child: _buildRecurringSection(),
+                    child: _buildRecurringSection(context),
                   ),
                 )
               : const SizedBox.shrink(),
@@ -94,14 +95,14 @@ class RehearsalFormFields extends StatelessWidget {
   // Location Autocomplete
   // ---------------------------------------------------------------------------
 
-  Widget _buildLocationAutocomplete() {
+  Widget _buildLocationAutocomplete(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Location',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -137,30 +138,30 @@ class RehearsalFormFields extends StatelessWidget {
               textInputAction: TextInputAction.done,
               inputFormatters: [TitleCaseTextFormatter()],
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
               decoration: InputDecoration(
                 hintText: 'e.g., Studio, Venue Address',
                 hintStyle: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 filled: true,
-                fillColor: AppColors.scaffoldBg,
+                fillColor: context.colors.background,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.accent),
+                  borderSide: const BorderSide(color: AppColors.primary),
                 ),
               ),
             );
@@ -178,9 +179,9 @@ class RehearsalFormFields extends StatelessWidget {
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 200),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBgElevated,
+                    color: context.colors.surfaceElevated,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: AppColors.borderMuted),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -193,7 +194,7 @@ class RehearsalFormFields extends StatelessWidget {
                         title: Text(
                           option,
                           style: AppTextStyles.callout.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                         onTap: () => onSelected(option),
@@ -217,22 +218,23 @@ class RehearsalFormFields extends StatelessWidget {
   // Recurring Toggle
   // ---------------------------------------------------------------------------
 
-  Widget _buildRecurringToggle() {
+  Widget _buildRecurringToggle(BuildContext context) {
     return Row(
       children: [
         Expanded(
           child: Text(
             'Make this recurring',
-            style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.callout
+                .copyWith(color: context.colors.textPrimary),
           ),
         ),
         Switch.adaptive(
           value: isRecurring,
           onChanged: isSaving ? null : onRecurringToggled,
-          activeTrackColor: AppColors.accent,
+          activeTrackColor: AppColors.primary,
           thumbColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return AppColors.textPrimary;
+              return Colors.white;
             }
             return null;
           }),
@@ -245,7 +247,7 @@ class RehearsalFormFields extends StatelessWidget {
   // Recurring Section
   // ---------------------------------------------------------------------------
 
-  Widget _buildRecurringSection() {
+  Widget _buildRecurringSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -255,7 +257,7 @@ class RehearsalFormFields extends StatelessWidget {
         Text(
           'Repeat on',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -275,11 +277,13 @@ class RehearsalFormFields extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
+                  color: isSelected
+                      ? AppColors.primary
+                      : context.colors.background,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color:
-                        isSelected ? AppColors.accent : AppColors.borderMuted,
+                        isSelected ? AppColors.primary : context.colors.border,
                   ),
                 ),
                 alignment: Alignment.center,
@@ -287,8 +291,8 @@ class RehearsalFormFields extends StatelessWidget {
                   day.shortLabel,
                   style: AppTextStyles.footnote.copyWith(
                     color: isSelected
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                        ? Colors.white
+                        : context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -302,7 +306,7 @@ class RehearsalFormFields extends StatelessWidget {
         Text(
           'Frequency',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 8),
@@ -324,11 +328,14 @@ class RehearsalFormFields extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
+                    color: isSelected
+                        ? AppColors.primary
+                        : context.colors.background,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     border: Border.all(
-                      color:
-                          isSelected ? AppColors.accent : AppColors.borderMuted,
+                      color: isSelected
+                          ? AppColors.primary
+                          : context.colors.border,
                     ),
                   ),
                   alignment: Alignment.center,
@@ -336,8 +343,8 @@ class RehearsalFormFields extends StatelessWidget {
                     freq.displayName,
                     style: AppTextStyles.footnote.copyWith(
                       color: isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                          ? Colors.white
+                          : context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -352,7 +359,7 @@ class RehearsalFormFields extends StatelessWidget {
         Text(
           'Until (optional)',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -362,16 +369,16 @@ class RehearsalFormFields extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.scaffoldBg,
+              color: context.colors.background,
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(color: AppColors.borderMuted),
+              border: Border.all(color: context.colors.border),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   AppIcons.calendarDays,
                   size: 18,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -381,18 +388,18 @@ class RehearsalFormFields extends StatelessWidget {
                         : 'No end date',
                     style: AppTextStyles.callout.copyWith(
                       color: untilDate != null
-                          ? AppColors.textPrimary
-                          : AppColors.textMuted,
+                          ? context.colors.textPrimary
+                          : context.colors.textMuted,
                     ),
                   ),
                 ),
                 if (untilDate != null)
                   GestureDetector(
                     onTap: onUntilDateCleared,
-                    child: const Icon(
+                    child: Icon(
                       AppIcons.close,
                       size: 18,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
               ],
@@ -407,7 +414,7 @@ class RehearsalFormFields extends StatelessWidget {
           Text(
             'Summary',
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -415,16 +422,16 @@ class RehearsalFormFields extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               border: Border.all(
-                color: AppColors.accent.withValues(alpha: 0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
               ),
             ),
             child: Text(
               _buildRecurrenceSummary(),
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
           ),

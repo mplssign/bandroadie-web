@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist_item.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -29,10 +30,10 @@ class SpecialItemCard extends StatelessWidget {
     this.onDelete,
   });
 
-  Color get _accentColor {
+  Color _accentColor(BuildContext context) {
     return item.isSetBreak
-        ? AppColors.primaryDim // rose
-        : AppColors.warning; // amber
+        ? context.colors.primaryDim // rose
+        : context.colors.warning; // amber
   }
 
   IconData get _icon {
@@ -84,12 +85,13 @@ class SpecialItemCard extends StatelessWidget {
 
   /// Set Break: Red filled background, centered title "SET BREAK – 20 mins"
   Widget _buildSetBreakCard(BuildContext context) {
+    final accentColor = _accentColor(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: _accentColor,
+          color: accentColor,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         ),
         child: Row(
@@ -137,15 +139,16 @@ class SpecialItemCard extends StatelessWidget {
 
   /// Pause: Accent-tinted card with purpose titles and optional duration below
   Widget _buildPauseCard(BuildContext context) {
+    final accentColor = _accentColor(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         constraints: const BoxConstraints(minHeight: 56),
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(
-            color: _accentColor.withValues(alpha: 0.3),
+            color: accentColor.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -155,7 +158,7 @@ class SpecialItemCard extends StatelessWidget {
             Container(
               width: 4,
               decoration: BoxDecoration(
-                color: _accentColor,
+                color: accentColor,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(Spacing.buttonRadius),
                   bottomLeft: Radius.circular(Spacing.buttonRadius),
@@ -171,7 +174,7 @@ class SpecialItemCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Icon(
                     AppIcons.drag,
-                    color: AppColors.textMuted.withValues(alpha: 0.5),
+                    color: context.colors.textMuted.withValues(alpha: 0.5),
                     size: 20,
                   ),
                 ),
@@ -180,7 +183,7 @@ class SpecialItemCard extends StatelessWidget {
               const SizedBox(width: 12),
 
             // Icon
-            Icon(_icon, color: _accentColor, size: 18),
+            Icon(_icon, color: accentColor, size: 18),
             const SizedBox(width: 8),
 
             // Label + optional duration subtitle
@@ -195,7 +198,7 @@ class SpecialItemCard extends StatelessWidget {
                       _label,
                       style: AppTextStyles.headline.copyWith(
                         fontSize: 14,
-                        color: _accentColor,
+                        color: accentColor,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -205,7 +208,7 @@ class SpecialItemCard extends StatelessWidget {
                       Text(
                         _durationText!,
                         style: AppTextStyles.label.copyWith(
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                           fontSize: 12,
                         ),
                       ),

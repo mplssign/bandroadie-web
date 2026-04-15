@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/constants/app_constants.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../components/ui/confirm_action_dialog.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
@@ -151,7 +152,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
       message:
           'Create a copy of "${setlist.name}" with all songs and settings?',
       confirmLabel: 'Duplicate',
-      confirmColor: AppColors.success,
+      confirmColor: context.colors.success,
     );
 
     if (confirmed == true) {
@@ -268,7 +269,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
         return false; // Allow notification to continue bubbling
       },
       child: Container(
-        color: AppColors.scaffoldBg,
+        color: context.colors.background,
         child: showLoading
             ? _buildLoadingState(
                 bandName,
@@ -311,8 +312,8 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentMuted,
+                decoration: BoxDecoration(
+                  color: context.colors.primarySubtle,
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -320,7 +321,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                     width: 28,
                     height: 28,
                     child: CircularProgressIndicator(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       strokeWidth: 3,
                     ),
                   ),
@@ -329,7 +330,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
               const SizedBox(height: Spacing.space24),
               Text(
                 'Setting up the stage...',
-                style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+                style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
               ),
             ],
           ),
@@ -358,11 +359,11 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   width: 88,
                   height: 88,
                   decoration: BoxDecoration(
-                    color: AppColors.accentMuted,
+                    color: context.colors.primarySubtle,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.2),
+                        color: AppColors.primary.withValues(alpha: 0.2),
                         blurRadius: 24,
                         spreadRadius: 4,
                       ),
@@ -371,7 +372,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   child: const Icon(
                     AppIcons.musicOff,
                     size: 40,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space32),
@@ -385,7 +386,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   error,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
                 const SizedBox(height: Spacing.space40),
@@ -415,8 +416,8 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
     return Stack(
       children: [
         RefreshIndicator(
-          color: AppColors.accent,
-          backgroundColor: AppColors.cardBg,
+          color: AppColors.primary,
+          backgroundColor: context.colors.surface,
           onRefresh: () async {
             await ref.read(setlistsProvider.notifier).refresh();
           },
@@ -455,7 +456,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                                 icon: const Icon(AppIcons.add, size: 18),
                                 label: const Text('New'),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.accent,
+                                  foregroundColor: AppColors.primary,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,

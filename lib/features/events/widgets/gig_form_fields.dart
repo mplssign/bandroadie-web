@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../../members/member_vm.dart';
@@ -136,7 +137,7 @@ class GigFormFields extends ConsumerWidget {
         const SizedBox(height: Spacing.space16),
 
         // Potential Gig container with member availability
-        _buildPotentialGigContainer(ref),
+        _buildPotentialGigContainer(context, ref),
         const SizedBox(height: Spacing.space12),
       ],
     );
@@ -148,8 +149,8 @@ class GigFormFields extends ConsumerWidget {
   }
 
   /// Builds the load-in time selector (called from parent build method).
-  Widget buildLoadInTimeSelector() {
-    return _buildLoadInTimeSelector();
+  Widget buildLoadInTimeSelector(BuildContext context) {
+    return _buildLoadInTimeSelector(context);
   }
 
   /// Builds the gig pay field (called from parent build method).
@@ -174,7 +175,7 @@ class GigFormFields extends ConsumerWidget {
         Text(
           'Gig Venue / Festival / Name',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -207,16 +208,16 @@ class GigFormFields extends ConsumerWidget {
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
               onChanged: (_) => onMarkDirty(),
               decoration: InputDecoration(
                 hintText: 'e.g., The Blue Note, SummerFest 2026',
                 hintStyle: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 filled: true,
-                fillColor: AppColors.scaffoldBg,
+                fillColor: context.colors.background,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
@@ -226,7 +227,7 @@ class GigFormFields extends ConsumerWidget {
                   borderSide: BorderSide(
                     color: fieldErrors['name'] != null
                         ? AppColors.error
-                        : AppColors.borderMuted,
+                        : context.colors.border,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
@@ -234,7 +235,7 @@ class GigFormFields extends ConsumerWidget {
                   borderSide: BorderSide(
                     color: fieldErrors['name'] != null
                         ? AppColors.error
-                        : AppColors.borderMuted,
+                        : context.colors.border,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -242,7 +243,7 @@ class GigFormFields extends ConsumerWidget {
                   borderSide: BorderSide(
                     color: fieldErrors['name'] != null
                         ? AppColors.error
-                        : AppColors.accent,
+                        : AppColors.primary,
                   ),
                 ),
               ),
@@ -264,9 +265,9 @@ class GigFormFields extends ConsumerWidget {
                   width: MediaQuery.of(context).size.width -
                       (Spacing.pagePadding * 2),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBgElevated,
+                    color: context.colors.surfaceElevated,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: AppColors.borderMuted),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -279,7 +280,7 @@ class GigFormFields extends ConsumerWidget {
                         title: Text(
                           option,
                           style: AppTextStyles.callout.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                         onTap: () => onSelected(option),
@@ -317,7 +318,7 @@ class GigFormFields extends ConsumerWidget {
         Text(
           'City',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -353,31 +354,31 @@ class GigFormFields extends ConsumerWidget {
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
               onChanged: (_) => onMarkDirty(),
               decoration: InputDecoration(
                 hintText: 'e.g., Chicago, IL',
                 hintStyle: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 filled: true,
-                fillColor: AppColors.scaffoldBg,
+                fillColor: context.colors.background,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 12,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.accent),
+                  borderSide: const BorderSide(color: AppColors.primary),
                 ),
               ),
             );
@@ -398,9 +399,9 @@ class GigFormFields extends ConsumerWidget {
                   width: MediaQuery.of(context).size.width -
                       (Spacing.pagePadding * 2),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBgElevated,
+                    color: context.colors.surfaceElevated,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: AppColors.borderMuted),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -413,7 +414,7 @@ class GigFormFields extends ConsumerWidget {
                         title: Text(
                           option,
                           style: AppTextStyles.callout.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                         onTap: () => onSelected(option),
@@ -437,7 +438,7 @@ class GigFormFields extends ConsumerWidget {
   // Potential Gig Container
   // ---------------------------------------------------------------------------
 
-  Widget _buildPotentialGigContainer(WidgetRef ref) {
+  Widget _buildPotentialGigContainer(BuildContext context, WidgetRef ref) {
     final membersState = ref.watch(membersProvider);
     final members = membersState.members;
 
@@ -453,7 +454,7 @@ class GigFormFields extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: isPotentialGig
-            ? Border.all(color: AppColors.accent, width: 2)
+            ? Border.all(color: AppColors.primary, width: 2)
             : null,
       ),
       child: Column(
@@ -469,14 +470,14 @@ class GigFormFields extends ConsumerWidget {
                     Text(
                       'Potential Gig',
                       style: AppTextStyles.callout.copyWith(
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Requires member confirmation before gig is official.',
                       style: AppTextStyles.footnote.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -487,10 +488,10 @@ class GigFormFields extends ConsumerWidget {
                 onChanged: (isSaving || forcePotentialOnly)
                     ? null
                     : onPotentialGigToggled,
-                activeTrackColor: AppColors.accent,
+                activeTrackColor: AppColors.primary,
                 thumbColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
-                    return AppColors.textPrimary;
+                    return Colors.white;
                   }
                   return null;
                 }),
@@ -506,13 +507,13 @@ class GigFormFields extends ConsumerWidget {
             child: isPotentialGig
                 ? isMultiDateEditMode
                     ? _buildMultiDateAvailabilitySection(
-                        members, membersState.isLoading)
+                        context, members, membersState.isLoading)
                     : Column(
                         children: [
                           _buildMemberSelectionGrid(
-                              members, membersState.isLoading),
+                              context, members, membersState.isLoading),
                           if (isEditMode && existingEventId != null)
-                            _buildUserAvailabilitySection(),
+                            _buildUserAvailabilitySection(context),
                         ],
                       )
                 : const SizedBox.shrink(),
@@ -527,6 +528,7 @@ class GigFormFields extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildMultiDateAvailabilitySection(
+    BuildContext context,
     List<MemberVM> members,
     bool isLoading,
   ) {
@@ -540,6 +542,7 @@ class GigFormFields extends ConsumerWidget {
         for (int i = 0; i < allDates.length; i++) ...[
           if (i > 0) const SizedBox(height: Spacing.space16),
           _buildPerDateSection(
+            context: context,
             date: allDates[i],
             members: members,
             isLoading: isLoading,
@@ -551,6 +554,7 @@ class GigFormFields extends ConsumerWidget {
   }
 
   Widget _buildPerDateSection({
+    required BuildContext context,
     required DateTime date,
     required List<MemberVM> members,
     required bool isLoading,
@@ -572,7 +576,7 @@ class GigFormFields extends ConsumerWidget {
           child: Text(
             _formatDateDisplay(date),
             style: AppTextStyles.calloutEmphasized.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
         ),
@@ -595,7 +599,7 @@ class GigFormFields extends ConsumerWidget {
             child: Text(
               'No members to notify',
               style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           )
@@ -604,7 +608,7 @@ class GigFormFields extends ConsumerWidget {
             items: members,
             labelBuilder: (member) => _getMemberLabel(member, members),
             labelWidgetBuilder: (member) =>
-                _buildMemberLabelWidget(member, members, availability),
+                _buildMemberLabelWidget(context, member, members, availability),
             isSelected: (member) => false,
             availabilityMode: true,
             availabilityState: (member) {
@@ -623,7 +627,7 @@ class GigFormFields extends ConsumerWidget {
         Text(
           'Your Availability',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -663,7 +667,7 @@ class GigFormFields extends ConsumerWidget {
   // User Availability Section (single-date)
   // ---------------------------------------------------------------------------
 
-  Widget _buildUserAvailabilitySection() {
+  Widget _buildUserAvailabilitySection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: Spacing.space16),
       child: Column(
@@ -672,12 +676,12 @@ class GigFormFields extends ConsumerWidget {
           Container(
             height: 1,
             margin: const EdgeInsets.only(bottom: Spacing.space12),
-            color: AppColors.borderMuted,
+            color: context.colors.border,
           ),
           Text(
             'Your Availability',
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -728,7 +732,8 @@ class GigFormFields extends ConsumerWidget {
   // Member Selection Grid
   // ---------------------------------------------------------------------------
 
-  Widget _buildMemberSelectionGrid(List<MemberVM> members, bool isLoading) {
+  Widget _buildMemberSelectionGrid(
+      BuildContext context, List<MemberVM> members, bool isLoading) {
     if (isLoading || isLoadingMemberAvailability) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: Spacing.space16),
@@ -748,7 +753,7 @@ class GigFormFields extends ConsumerWidget {
         child: Text(
           'No members to notify',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       );
@@ -759,8 +764,8 @@ class GigFormFields extends ConsumerWidget {
       child: ButtonGroupGrid<MemberVM>(
         items: members,
         labelBuilder: (member) => _getMemberLabel(member, members),
-        labelWidgetBuilder: (member) =>
-            _buildMemberLabelWidget(member, members, memberAvailability),
+        labelWidgetBuilder: (member) => _buildMemberLabelWidget(
+            context, member, members, memberAvailability),
         isSelected: (member) => false,
         availabilityMode: true,
         availabilityState: (member) {
@@ -780,7 +785,7 @@ class GigFormFields extends ConsumerWidget {
   // Load-in Time Selector
   // ---------------------------------------------------------------------------
 
-  Widget _buildLoadInTimeSelector() {
+  Widget _buildLoadInTimeSelector(BuildContext context) {
     if (loadInHour == null || loadInMinutes == null || loadInIsPM == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -788,7 +793,7 @@ class GigFormFields extends ConsumerWidget {
           Text(
             'Load-in Time',
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -797,23 +802,23 @@ class GigFormFields extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: AppColors.borderMuted),
+                border: Border.all(color: context.colors.border),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     AppIcons.add,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Set Load-in Time (Optional)',
                     style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -833,7 +838,7 @@ class GigFormFields extends ConsumerWidget {
             Text(
               'Load-in Time',
               style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             GestureDetector(
@@ -841,7 +846,7 @@ class GigFormFields extends ConsumerWidget {
               child: Text(
                 'Clear',
                 style: AppTextStyles.footnote.copyWith(
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -880,7 +885,7 @@ class GigFormFields extends ConsumerWidget {
             // AM/PM toggle
             Container(
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               padding: const EdgeInsets.all(4),
@@ -922,6 +927,7 @@ class GigFormFields extends ConsumerWidget {
   }
 
   Widget? _buildMemberLabelWidget(
+    BuildContext context,
     MemberVM member,
     List<MemberVM> allMembers,
     Map<String, String?> availability,
@@ -934,7 +940,7 @@ class GigFormFields extends ConsumerWidget {
     final response = availability[member.userId];
     final textColor = (response == 'yes' || response == 'no')
         ? Colors.white
-        : AppColors.textSecondary;
+        : context.colors.textSecondary;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,

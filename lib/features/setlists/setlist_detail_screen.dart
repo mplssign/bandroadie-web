@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../lyrics/models/lyrics_data.dart';
@@ -177,25 +178,25 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final newName = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Rename Setlist',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Form(
           key: formKey,
           child: TextFormField(
             controller: controller,
             autofocus: true,
-            style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Enter setlist name',
               hintStyle: AppTextStyles.body.copyWith(
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
               filled: true,
-              fillColor: AppColors.scaffoldBg,
+              fillColor: context.colors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -214,7 +215,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Cancel',
-              style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ),
           FilledButton(
@@ -223,7 +224,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                 Navigator.of(context).pop(controller.text.trim());
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Save'),
           ),
         ],
@@ -479,7 +480,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Remove $label?',
@@ -487,14 +488,14 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         ),
         content: Text(
           'Remove this ${item.type.displayName.toLowerCase()} from the setlist?',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.button.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.button.copyWith(color: context.colors.textMuted),
             ),
           ),
           TextButton(
@@ -526,19 +527,19 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Remove $label?', style: AppTextStyles.title3),
         content: Text(
           'Remove this ${item.type.displayName.toLowerCase()} from the setlist?',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.button.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.button.copyWith(color: context.colors.textMuted),
             ),
           ),
           TextButton(
@@ -716,7 +717,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           action: result.setlistSongIds.isNotEmpty
               ? SnackBarAction(
                   label: 'UNDO',
-                  textColor: AppColors.accent,
+                  textColor: AppColors.primary,
                   onPressed: () => _handleUndoBulkAdd(result.setlistSongIds),
                 )
               : null,
@@ -755,7 +756,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   ) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1153,14 +1154,14 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         title: Text(
           'Delete "${state.setlistName}"?',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           'This will remove the setlist. Songs will remain in your Catalog.',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1168,7 +1169,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             child: Text(
               'Cancel',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -1314,7 +1315,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     });
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -1393,16 +1394,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               focusNode: _searchFocusNode,
               autofocus: true,
               onChanged: _onSearchChanged,
-              style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Filter songs...',
                 hintStyle: AppTextStyles.body.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 prefixIcon: Icon(
                   AppIcons.search,
                   size: 20,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? GestureDetector(
@@ -1413,24 +1414,24 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                         child: Icon(
                           AppIcons.close,
                           size: 18,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       )
                     : null,
                 filled: true,
-                fillColor: AppColors.surfaceDark,
+                fillColor: context.colors.surface,
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
                 ),
               ),
             ),
@@ -1442,7 +1443,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           child: Text(
             'Cancel',
             style: AppTextStyles.body.copyWith(
-              color: AppColors.accent,
+              color: AppColors.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1455,7 +1456,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation(AppColors.accent),
+          valueColor: AlwaysStoppedAnimation(AppColors.primary),
         ),
       );
     }
@@ -1541,7 +1542,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     state.isDeleting ? 'Deleting...' : 'Delete Setlist',
                     style: AppTextStyles.body.copyWith(
                       color: state.isDeleting
-                          ? AppColors.textMuted
+                          ? context.colors.textMuted
                           : AppColors.error,
                     ),
                   ),
@@ -1576,7 +1577,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                 children: [
                   if (state.isCatalog) ...[
                     const Icon(AppIcons.star,
-                        color: AppColors.accent, size: 18),
+                        color: AppColors.primary, size: 18),
                     const SizedBox(width: 8),
                   ],
                   Flexible(
@@ -1590,9 +1591,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     const SizedBox(width: 6),
                     GestureDetector(
                       onTap: _showRenameDialog,
-                      child: const Icon(
+                      child: Icon(
                         AppIcons.edit,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                         size: 16,
                       ),
                     ),
@@ -1618,7 +1619,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                         ? (_allSongsSelected ? 'Unselect all' : 'Select all')
                         : 'Select',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1632,7 +1633,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               icon: const Icon(
                 Icons.print_rounded,
                 size: 20,
-                color: AppColors.accent,
+                color: AppColors.primary,
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
@@ -1643,7 +1644,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               icon: const Icon(
                 AppIcons.share,
                 size: 20,
-                color: AppColors.accent,
+                color: AppColors.primary,
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
@@ -1655,7 +1656,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         Text(
           '${state.formattedMetadata} • ${state.formattedDuration}',
           style: AppTextStyles.headline.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       ],
@@ -1677,12 +1678,12 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(
+            child: Icon(
               AppIcons.music,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
               size: 40,
             ),
           ),
@@ -1692,7 +1693,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             style: GoogleFonts.dmSans(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(height: Spacing.space12),
@@ -1700,7 +1701,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             "But this setlist is looking a bit too quiet.\nTime to add some bangers!",
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ],
@@ -1732,21 +1733,21 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               children: [
                 Icon(
                   Icons.search_off_rounded,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                   size: 48,
                 ),
                 const SizedBox(height: Spacing.space16),
                 Text(
                   'No songs found',
                   style: AppTextStyles.title3.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space8),
                 Text(
                   'Try a different search term',
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
               ],
@@ -2142,10 +2143,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
       ),
       decoration: BoxDecoration(
-        color: AppColors.scaffoldBg,
+        color: context.colors.background,
         border: Border(
           top: BorderSide(
-            color: AppColors.textSecondary.withValues(alpha: 0.2),
+            color: context.colors.textSecondary.withValues(alpha: 0.2),
           ),
         ),
         // Subtle shadow for separation
@@ -2169,7 +2170,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               child: Text(
                 'Cancel',
                 style: AppTextStyles.button.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ),
@@ -2184,9 +2185,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               onPressed: hasSelection ? _handleAddToSetlist : null,
               style: FilledButton.styleFrom(
                 backgroundColor: hasSelection
-                    ? AppColors.accent
-                    : AppColors.accent.withValues(alpha: 0.4),
-                disabledBackgroundColor: AppColors.accent.withValues(
+                    ? AppColors.primary
+                    : AppColors.primary.withValues(alpha: 0.4),
+                disabledBackgroundColor: AppColors.primary.withValues(
                   alpha: 0.4,
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -2298,11 +2299,11 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           height: 121,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             border: Border.all(
               // Highlight selected cards with accent border
               color: widget.isSelected
-                  ? AppColors.accent
+                  ? AppColors.primary
                   : StandardCardBorder.color,
               width: StandardCardBorder.width,
             ),
@@ -2414,10 +2415,10 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           // ================================================
           Text(
             song.isBpmPlaceholder ? '- BPM' : song.formattedBpm,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               height: 1,
             ),
           ),
@@ -2427,10 +2428,10 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           // ================================================
           Text(
             song.formattedDuration,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               height: 1,
             ),
           ),
@@ -2539,7 +2540,7 @@ class _SortOption extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.accent.withValues(alpha: 0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         ),
@@ -2549,13 +2550,13 @@ class _SortOption extends StatelessWidget {
               child: Text(
                 label,
                 style: AppTextStyles.body.copyWith(
-                  color: isSelected ? AppColors.accent : AppColors.textPrimary,
+                  color: isSelected ? AppColors.primary : context.colors.textPrimary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ),
             if (isSelected)
-              Icon(AppIcons.check, color: AppColors.accent, size: 20),
+              Icon(AppIcons.check, color: AppColors.primary, size: 20),
           ],
         ),
       ),
@@ -2625,13 +2626,13 @@ class _ActionButtonState extends State<_ActionButton>
             vertical: Spacing.space8,
           ),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.accent, width: 2),
+            border: Border.all(color: AppColors.primary, width: 2),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, size: 16, color: AppColors.accent),
+              Icon(widget.icon, size: 16, color: AppColors.primary),
               if (widget.label != null) ...[
                 const SizedBox(width: 8),
                 Text(
@@ -2639,7 +2640,7 @@ class _ActionButtonState extends State<_ActionButton>
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     height: 1,
                   ),
                 ),
@@ -2666,7 +2667,7 @@ class _DeleteSongDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -2680,7 +2681,7 @@ class _DeleteSongDialog extends StatelessWidget {
         children: [
           Text(
             '"$songTitle"',
-            style: AppTextStyles.headline.copyWith(color: AppColors.accent),
+            style: AppTextStyles.headline.copyWith(color: AppColors.primary),
           ),
           const SizedBox(height: Spacing.space16),
           Text(
@@ -2728,7 +2729,7 @@ class _DeleteSongDialog extends StatelessWidget {
           child: Text(
             'Cancel',
             style: AppTextStyles.button.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),
@@ -2737,12 +2738,12 @@ class _DeleteSongDialog extends StatelessWidget {
           style: TextButton.styleFrom(
             backgroundColor: isCatalog
                 ? AppColors.error.withValues(alpha: 0.15)
-                : AppColors.accent.withValues(alpha: 0.15),
+                : AppColors.primary.withValues(alpha: 0.15),
           ),
           child: Text(
             isCatalog ? 'Delete Forever' : 'Remove',
             style: AppTextStyles.button.copyWith(
-              color: isCatalog ? AppColors.error : AppColors.accent,
+              color: isCatalog ? AppColors.error : AppColors.primary,
             ),
           ),
         ),

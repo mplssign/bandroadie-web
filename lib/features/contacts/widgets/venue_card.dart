@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/venue.dart';
 import '../models/venue_contact.dart';
 
@@ -29,7 +30,7 @@ class VenueCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: context.colors.background,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: AppColors.primary,
@@ -71,10 +72,10 @@ class VenueCard extends StatelessWidget {
                     // Venue Name
                     Text(
                       venue.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                         height: 1.2,
                       ),
                     ),
@@ -83,6 +84,7 @@ class VenueCard extends StatelessWidget {
                     if (_hasLocation) ...[
                       const SizedBox(height: 10),
                       _buildInfoRow(
+                        context: context,
                         icon: AppIcons.location,
                         value: _formatFullAddress(),
                       ),
@@ -91,6 +93,7 @@ class VenueCard extends StatelessWidget {
                     // Phone
                     if (venue.phone != null && venue.phone!.isNotEmpty)
                       _buildInfoRow(
+                        context: context,
                         icon: AppIcons.phone,
                         value: venue.phone!,
                         onTap: () => _launchPhone(venue.phone!),
@@ -103,7 +106,7 @@ class VenueCard extends StatelessWidget {
                         thickness: 1,
                         height: 24,
                       ),
-                      _buildVenueContactSection(venue.contacts[i]),
+                      _buildVenueContactSection(context, venue.contacts[i]),
                     ],
                   ],
                 ),
@@ -138,17 +141,17 @@ class VenueCard extends StatelessWidget {
     return parts.join(', ');
   }
 
-  Widget _buildVenueContactSection(VenueContact contact) {
+  Widget _buildVenueContactSection(BuildContext context, VenueContact contact) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Contact name
         Text(
           contact.name,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             height: 1.3,
           ),
         ),
@@ -181,6 +184,7 @@ class VenueCard extends StatelessWidget {
         if (contact.email != null && contact.email!.isNotEmpty) ...[
           const SizedBox(height: 8),
           _buildInfoRow(
+            context: context,
             icon: AppIcons.email,
             value: contact.email!,
           ),
@@ -189,6 +193,7 @@ class VenueCard extends StatelessWidget {
         // Phone
         if (contact.phone != null && contact.phone!.isNotEmpty)
           _buildInfoRow(
+            context: context,
             icon: AppIcons.phone,
             value: contact.phone!,
             onTap: () => _launchPhone(contact.phone!),
@@ -209,6 +214,7 @@ class VenueCard extends StatelessWidget {
   }
 
   Widget _buildInfoRow({
+    required BuildContext context,
     required IconData icon,
     required String value,
     VoidCallback? onTap,
@@ -227,10 +233,10 @@ class VenueCard extends StatelessWidget {
             Expanded(
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   height: 1.3,
                 ),
                 maxLines: maxLines,

@@ -3,6 +3,7 @@ import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -221,7 +222,7 @@ class _AnimatedBottomNavBarState extends ConsumerState<AnimatedBottomNavBar>
                       width: highlightWidth,
                       height: Spacing.navItemHeight, // 53px
                       decoration: BoxDecoration(
-                        color: AppColors.accent,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(
                           Spacing.buttonRadius,
                         ),
@@ -304,13 +305,18 @@ class _AnimatedNavItem extends StatelessWidget {
                 children: [
                   Icon(
                     icon,
-                    color: AppColors.textNav,
+                    color:
+                        isActive ? Colors.white : context.colors.textSecondary,
                     size: isActive ? 20.5 : 20,
                   ),
                   SizedBox(height: isActive ? 4 : 6),
                   Text(
                     label,
-                    style: AppTextStyles.navLabel,
+                    style: AppTextStyles.navLabel.copyWith(
+                      color: isActive
+                          ? Colors.white
+                          : context.colors.textSecondary,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],

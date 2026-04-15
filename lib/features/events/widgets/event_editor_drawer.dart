@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
@@ -944,15 +945,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBgElevated,
+        backgroundColor: context.colors.surfaceElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Availability Notice',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           message,
-          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.callout
+              .copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -960,7 +963,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             child: Text(
               'OK',
               style: AppTextStyles.calloutEmphasized.copyWith(
-                color: AppColors.accent,
+                color: AppColors.primary,
               ),
             ),
           ),
@@ -1070,11 +1073,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
+        backgroundColor: context.colors.surface,
         title: Text('Delete Block Out?', style: AppTextStyles.title3),
         content: Text(
           'This will remove the block out dates. This action cannot be undone.',
-          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.callout
+              .copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1082,7 +1086,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             child: Text(
               'Cancel',
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -1349,15 +1353,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBgElevated,
+        backgroundColor: context.colors.surfaceElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Delete Event?',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           'This action cannot be undone.',
-          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.callout
+              .copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1365,7 +1371,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             child: Text(
               'Cancel',
               style: AppTextStyles.calloutEmphasized.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -1392,15 +1398,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBgElevated,
+        backgroundColor: context.colors.surfaceElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Delete Recurring Rehearsal?',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           'This rehearsal is part of a recurring series.',
-          style: AppTextStyles.callout.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.callout
+              .copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1408,7 +1416,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             child: Text(
               'Cancel',
               style: AppTextStyles.calloutEmphasized.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -1737,8 +1745,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.cardBg,
+      decoration: BoxDecoration(
+        color: context.colors.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -1752,7 +1760,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.borderMuted,
+              color: context.colors.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1784,14 +1792,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   child: Container(
                     width: 32,
                     height: 32,
-                    decoration: const BoxDecoration(
-                      color: AppColors.scaffoldBg,
+                    decoration: BoxDecoration(
+                      color: context.colors.background,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       AppIcons.close,
                       size: 18,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -1893,13 +1901,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         ] else ...[
                           gigFormFields!.buildCityAutocomplete(context),
                           const SizedBox(height: Spacing.space16),
-                          gigFormFields.buildLoadInTimeSelector(),
+                          gigFormFields.buildLoadInTimeSelector(context),
                         ],
 
                         const SizedBox(height: Spacing.space16),
 
                         // Setlist selector
-                        eventFormFields.buildSetlistSelector(ref),
+                        eventFormFields.buildSetlistSelector(context, ref),
 
                         // Gig Pay (gigs only)
                         if (_eventType == EventType.gig) ...[
@@ -2049,7 +2057,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         Text(
           label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -2059,16 +2067,16 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.scaffoldBg,
+              color: context.colors.background,
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(color: AppColors.borderMuted),
+              border: Border.all(color: context.colors.border),
             ),
             child: Row(
               children: [
                 Icon(
                   AppIcons.calendar,
                   size: 18,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -2076,18 +2084,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                     date != null ? _formatBlockOutDate(date) : placeholder,
                     style: AppTextStyles.callout.copyWith(
                       color: date != null
-                          ? AppColors.textPrimary
-                          : AppColors.textMuted,
+                          ? context.colors.textPrimary
+                          : context.colors.textMuted,
                     ),
                   ),
                 ),
                 if (showClearButton)
                   GestureDetector(
                     onTap: onClear,
-                    child: const Icon(
+                    child: Icon(
                       AppIcons.close,
                       size: 18,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
               ],
@@ -2135,14 +2143,15 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Widget _blockOutDatePickerTheme(Widget? child) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: ColorScheme.dark(
-          primary: AppColors.accent,
-          surface: AppColors.cardBg,
-          onSurface: AppColors.textPrimary,
+        colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
+          primary: AppColors.primary,
+          surface: context.colors.surface,
+          onSurface: context.colors.textPrimary,
         ),
-        dialogTheme: DialogThemeData(backgroundColor: AppColors.cardBg),
+        dialogTheme: DialogThemeData(backgroundColor: context.colors.surface),
       ),
       child: child!,
     );
@@ -2168,6 +2177,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showAdditionalDatePicker(int index) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _additionalDates[index],
@@ -2176,10 +2186,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.accent,
-              surface: AppColors.cardBg,
-              onSurface: AppColors.textPrimary,
+            colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
+              primary: AppColors.primary,
+              surface: context.colors.surface,
+              onSurface: context.colors.textPrimary,
             ),
           ),
           child: child!,
@@ -2194,6 +2204,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showDatePicker() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -2202,9 +2213,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.accent,
-              surface: AppColors.cardBg,
+            colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
+              primary: AppColors.primary,
+              surface: context.colors.surface,
             ),
           ),
           child: child!,
@@ -2309,6 +2320,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showUntilDatePicker() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _untilDate ?? _selectedDate.add(const Duration(days: 30)),
@@ -2317,9 +2329,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.accent,
-              surface: AppColors.cardBg,
+            colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
+              primary: AppColors.primary,
+              surface: context.colors.surface,
             ),
           ),
           child: child!,

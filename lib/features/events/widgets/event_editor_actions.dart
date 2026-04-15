@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
 
 /// Bottom action buttons for the event editor: Cancel + Save.
@@ -33,8 +34,8 @@ class EventEditorBottomActions extends StatelessWidget {
             child: OutlinedButton(
               onPressed: (isSaving || isDeleting) ? null : onCancel,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                side: const BorderSide(color: AppColors.borderMuted),
+                foregroundColor: context.colors.textSecondary,
+                side: BorderSide(color: context.colors.border),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                 ),
@@ -42,7 +43,7 @@ class EventEditorBottomActions extends StatelessWidget {
               child: Text(
                 'Cancel',
                 style: AppTextStyles.calloutEmphasized.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ),
@@ -79,8 +80,8 @@ class EventEditorViewOnlyClose extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onClose,
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textSecondary,
-          side: const BorderSide(color: AppColors.borderMuted),
+          foregroundColor: context.colors.textSecondary,
+          side: BorderSide(color: context.colors.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           ),
@@ -88,7 +89,7 @@ class EventEditorViewOnlyClose extends StatelessWidget {
         child: Text(
           'Close',
           style: AppTextStyles.calloutEmphasized.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       ),

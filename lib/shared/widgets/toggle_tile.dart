@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // APP TOGGLE TILE
@@ -51,7 +52,7 @@ class AppToggleTile extends StatelessWidget {
             )
           : const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
       child: Row(
@@ -65,8 +66,8 @@ class AppToggleTile extends StatelessWidget {
                         title,
                         style: AppTextStyles.body.copyWith(
                           color: enabled
-                              ? AppColors.textPrimary
-                              : AppColors.textMuted,
+                              ? context.colors.textPrimary
+                              : context.colors.textMuted,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -74,7 +75,7 @@ class AppToggleTile extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: AppTextStyles.footnote.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ],
@@ -83,8 +84,8 @@ class AppToggleTile extends StatelessWidget {
                     title,
                     style: AppTextStyles.body.copyWith(
                       color: enabled
-                          ? AppColors.textPrimary
-                          : AppColors.textMuted,
+                          ? context.colors.textPrimary
+                          : context.colors.textMuted,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -92,7 +93,7 @@ class AppToggleTile extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: enabled ? onChanged : null,
-            activeTrackColor: AppColors.accent,
+            activeTrackColor: AppColors.primary,
           ),
         ],
       ),

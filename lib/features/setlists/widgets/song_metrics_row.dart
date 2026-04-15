@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../tuning/tuning_helpers.dart';
 import 'animated_value_text.dart';
 
@@ -78,7 +79,7 @@ class SongMetricsRow extends StatelessWidget {
             width: SongCardLayout.bpmColWidth,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _buildBpmValue(),
+              child: _buildBpmValue(context),
             ),
           ),
 
@@ -90,7 +91,7 @@ class SongMetricsRow extends StatelessWidget {
             width: SongCardLayout.durationColWidth,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _buildDurationValue(),
+              child: _buildDurationValue(context),
             ),
           ),
 
@@ -110,16 +111,16 @@ class SongMetricsRow extends StatelessWidget {
     );
   }
 
-  Widget _buildBpmValue() {
+  Widget _buildBpmValue(BuildContext context) {
     return AnimatedValueText(
       displayText: formattedBpm,
       isPlaceholder: isBpmPlaceholder,
       onTap: isBpmPlaceholder ? null : onBpmTap,
-      backgroundColor: AppColors.surfaceElevated,
+      backgroundColor: context.colors.surfaceElevated,
     );
   }
 
-  Widget _buildDurationValue() {
+  Widget _buildDurationValue(BuildContext context) {
     final isPlaceholder = formattedDuration == null;
     final displayText = formattedDuration ?? '—';
 
@@ -127,7 +128,7 @@ class SongMetricsRow extends StatelessWidget {
       displayText: displayText,
       isPlaceholder: isPlaceholder,
       onTap: isPlaceholder ? null : onDurationTap,
-      backgroundColor: AppColors.surfaceElevated,
+      backgroundColor: context.colors.surfaceElevated,
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../bands/active_band_controller.dart';
 import '../contacts_controller.dart';
 import 'contact_card.dart';
@@ -71,7 +72,7 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
           children: [
             Text(
               contactsState.error!,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -94,8 +95,8 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
     // Contacts list
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceDark,
+      color: AppColors.primary,
+      backgroundColor: context.colors.surface,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -109,13 +110,13 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
               ),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Contacts',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                   ),
@@ -180,10 +181,10 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
           child: Container(
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: AppColors.border.withValues(alpha: 0.5),
+                color: context.colors.border.withValues(alpha: 0.5),
                 width: 2,
               ),
             ),

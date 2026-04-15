@@ -105,7 +105,7 @@ class _ActionButtonState extends State<_ActionButton>
           ),
           decoration: BoxDecoration(
             border: Border.all(
-              color: AppColors.accent, // Rose #F43F5E
+              color: AppColors.primary, // Rose #F43F5E
               width: 2,
             ),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -113,7 +113,7 @@ class _ActionButtonState extends State<_ActionButton>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, size: 16, color: AppColors.accent),
+              Icon(widget.icon, size: 16, color: AppColors.primary),
               if (widget.label != null) ...[
                 const SizedBox(width: 8),
                 Text(
@@ -121,7 +121,7 @@ class _ActionButtonState extends State<_ActionButton>
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     height: 1,
                   ),
                 ),

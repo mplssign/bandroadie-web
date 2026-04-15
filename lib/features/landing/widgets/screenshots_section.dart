@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 /// Download section with app store buttons
 class ScreenshotsSection extends StatelessWidget {
@@ -23,10 +24,10 @@ class ScreenshotsSection extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.scaffoldBg,
+            context.colors.background,
             const Color(0xFF0a0505),
             const Color(0xFF1a0a00),
-            AppColors.scaffoldBg,
+            context.colors.background,
           ],
           stops: const [0.0, 0.4, 0.6, 1.0],
         ),
@@ -46,7 +47,7 @@ class ScreenshotsSection extends StatelessWidget {
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
               fontSize: 20,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.5,
             ),
           ),

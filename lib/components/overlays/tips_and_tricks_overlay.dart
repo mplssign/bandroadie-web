@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -92,8 +93,8 @@ class TipsAndTricksOverlay extends StatelessWidget {
       maxChildSize: 0.95,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.cardBg,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -107,7 +108,7 @@ class TipsAndTricksOverlay extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textMuted.withValues(alpha: 0.4),
+                  color: context.colors.textMuted.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -124,9 +125,9 @@ class TipsAndTricksOverlay extends StatelessWidget {
                     Text('Tips & Tricks', style: AppTextStyles.title3),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(
+                      icon: Icon(
                         AppIcons.close,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                         size: 24,
                       ),
                       padding: EdgeInsets.zero,
@@ -140,7 +141,7 @@ class TipsAndTricksOverlay extends StatelessWidget {
               ),
 
               // Divider
-              Divider(color: AppColors.borderMuted, height: 1, thickness: 1),
+              Divider(color: context.colors.border, height: 1, thickness: 1),
 
               // Tips content
               Expanded(
@@ -189,7 +190,7 @@ class _TipSectionWidget extends StatelessWidget {
           child: Text(
             section.title,
             style: AppTextStyles.headline.copyWith(
-              color: AppColors.accent,
+              color: AppColors.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -235,7 +236,7 @@ class _TipRow extends StatelessWidget {
         ),
         if (showDivider)
           Divider(
-            color: AppColors.borderMuted.withValues(alpha: 0.5),
+            color: context.colors.border.withValues(alpha: 0.5),
             height: 1,
             thickness: 1,
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/event_form_data.dart';
 
 /// Event type toggle: Rehearsal / Gig / Block Out segmented control.
@@ -25,62 +26,88 @@ class EventTypeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDisabled = isEditMode || isSaving;
+    final currentIndex = availableTypes
+        .indexOf(selectedType)
+        .clamp(0, availableTypes.length - 1);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
+          height: 44,
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            color: context.colors.surface,
+            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            children: availableTypes.map((type) {
-              final isSelected = selectedType == type;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: isDisabled
-                      ? null
-                      : () {
-                          onTypeChanged(type);
-                          HapticFeedback.selectionClick();
-                        },
-                  child: AnimatedContainer(
-                    duration: AppDurations.fast,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? (isDisabled
-                              ? AppColors.accent.withValues(alpha: 0.5)
-                              : AppColors.accent)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(
-                        Spacing.buttonRadius - 2,
-                      ),
+          padding: const EdgeInsets.all(3),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final segmentWidth = constraints.maxWidth / availableTypes.length;
+              return Stack(
+                children: [
+                  // Sliding indicator
+                  AnimatedAlign(
+                    alignment: Alignment(
+                      -1.0 + (2.0 * currentIndex / (availableTypes.length - 1)),
+                      0.0,
                     ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      type.displayName,
-                      style: AppTextStyles.calloutEmphasized.copyWith(
-                        color: isSelected
-                            ? (isDisabled
-                                ? AppColors.textPrimary.withValues(alpha: 0.7)
-                                : AppColors.textPrimary)
-                            : AppColors.textSecondary,
+                    duration: AppDurations.fast,
+                    curve: AppCurves.ease,
+                    child: Container(
+                      width: segmentWidth,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: isDisabled
+                            ? AppColors.primary.withValues(alpha: 0.5)
+                            : AppColors.primary,
+                        borderRadius: BorderRadius.circular(9),
                       ),
                     ),
                   ),
-                ),
+                  // Labels
+                  Row(
+                    children: availableTypes.map((type) {
+                      final isSelected = selectedType == type;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: isDisabled
+                              ? null
+                              : () {
+                                  onTypeChanged(type);
+                                  HapticFeedback.selectionClick();
+                                },
+                          behavior: HitTestBehavior.opaque,
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: AppDurations.fast,
+                              curve: AppCurves.ease,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? (isDisabled
+                                        ? Colors.white.withValues(alpha: 0.7)
+                                        : Colors.white)
+                                    : context.colors.textPrimary,
+                              ),
+                              child: Text(type.displayName),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               );
-            }).toList(),
+            },
           ),
         ),
         if (isEditMode) ...[
           const SizedBox(height: 6),
           Text(
             'Event type cannot be changed after creation.',
-            style: AppTextStyles.footnote.copyWith(color: AppColors.textMuted),
+            style: AppTextStyles.footnote
+                .copyWith(color: context.colors.textMuted),
           ),
         ],
       ],

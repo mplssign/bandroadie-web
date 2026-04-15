@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/widgets/toggle_tile.dart';
 import 'notification_controller.dart';
 import 'push_notification_service.dart';
@@ -54,27 +55,27 @@ class _NotificationPreferencesScreenState
     final prefsAsync = ref.watch(notificationPreferencesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.scaffoldBg,
+        backgroundColor: context.colors.background,
         elevation: 0,
         title: Text(
           'Notifications',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         leading: IconButton(
-          icon: const Icon(AppIcons.back, color: AppColors.textPrimary),
+          icon: Icon(AppIcons.back, color: context.colors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: prefsAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (error, _) => Center(
           child: Text(
             'Error loading preferences',
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
           ),
         ),
         data: (prefs) => ListView(
@@ -172,7 +173,7 @@ class _NotificationPreferencesScreenState
             Text(
               'In-app notifications are always enabled. These settings control push notifications only.',
               style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
               textAlign: TextAlign.center,
             ),
@@ -186,9 +187,9 @@ class _NotificationPreferencesScreenState
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +198,7 @@ class _NotificationPreferencesScreenState
             children: [
               const Icon(
                 AppIcons.bellOff,
-                color: AppColors.accent,
+                color: AppColors.primary,
                 size: 24,
               ),
               const SizedBox(width: Spacing.space12),
@@ -205,7 +206,7 @@ class _NotificationPreferencesScreenState
                 child: Text(
                   'Notifications are disabled',
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -216,7 +217,7 @@ class _NotificationPreferencesScreenState
           Text(
             'Enable notifications to stay updated on gigs, rehearsals, and band activity.',
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: Spacing.space12),
@@ -225,7 +226,7 @@ class _NotificationPreferencesScreenState
             child: ElevatedButton(
               onPressed: _requestPermission,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
                 shape: RoundedRectangleBorder(
@@ -243,7 +244,7 @@ class _NotificationPreferencesScreenState
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: AppTextStyles.headline.copyWith(color: AppColors.textPrimary),
+      style: AppTextStyles.headline.copyWith(color: context.colors.textPrimary),
     );
   }
 

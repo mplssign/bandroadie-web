@@ -8,6 +8,7 @@ import 'auth_gate.dart';
 import 'auth_state_provider.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 /// AuthConfirmScreen handles /auth/confirm?token_hash=...&type=email
 /// Also handles PKCE flow: /auth/confirm?code=...
@@ -493,7 +494,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: Center(
         child: _loading
             ? const Column(

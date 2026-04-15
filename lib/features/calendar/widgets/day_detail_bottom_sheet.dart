@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
 import '../models/calendar_event.dart';
 import 'calendar_event_card.dart';
@@ -85,8 +86,8 @@ class DayDetailBottomSheet extends StatelessWidget {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.cardBg,
+      decoration: BoxDecoration(
+        color: context.colors.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -101,7 +102,7 @@ class DayDetailBottomSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.borderMuted,
+              color: context.colors.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -125,12 +126,12 @@ class DayDetailBottomSheet extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppColors.scaffoldBg,
+                      color: context.colors.background,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       AppIcons.close,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       size: 18,
                     ),
                   ),
@@ -151,7 +152,7 @@ class DayDetailBottomSheet extends StatelessWidget {
               child: Text(
                 '${events.length} ${events.length == 1 ? 'event' : 'events'}',
                 style: AppTextStyles.callout.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
               ),
             ),
@@ -171,7 +172,7 @@ class DayDetailBottomSheet extends StatelessWidget {
                       child: Text(
                         'No events on this day',
                         style: AppTextStyles.callout.copyWith(
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       ),
                     ),

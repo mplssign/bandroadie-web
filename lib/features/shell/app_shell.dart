@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
-import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/shared/widgets/native_app_banner.dart';
 import 'package:bandroadie/shared/widgets/restricted_tab_content.dart';
 import '../bands/active_band_controller.dart';
@@ -128,7 +128,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       // Use Stack to position bottom nav as overlay (for glass transparency)
       // Drawer overlays are rendered ABOVE the bottom nav
       body: Stack(

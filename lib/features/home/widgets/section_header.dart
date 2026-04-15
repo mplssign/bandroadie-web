@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // SECTION HEADER
@@ -35,7 +36,7 @@ class SectionHeader extends StatelessWidget {
       style: GoogleFonts.dmSans(
         fontSize: 21,
         fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
         height: 1.25,
       ),
     );

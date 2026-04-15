@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/special_item.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -123,7 +124,7 @@ class _PauseScreenState extends State<PauseScreen> {
   bool _saveForReuse = false;
   bool _isSubmitting = false;
 
-  static const Color _accent = AppColors.warning; // amber
+  Color get _accent => context.colors.warning; // amber
 
   bool get _isEditing => widget.editingItem != null;
 
@@ -361,7 +362,7 @@ class _PauseScreenState extends State<PauseScreen> {
                 Text(
                   'Purpose',
                   style: AppTextStyles.title3.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 16,
                   ),
                 ),
@@ -398,11 +399,11 @@ class _PauseScreenState extends State<PauseScreen> {
                           child: Container(
                             height: 44,
                             decoration: BoxDecoration(
-                              color: AppColors.cardBg,
+                              color: context.colors.surface,
                               borderRadius:
                                   BorderRadius.circular(Spacing.buttonRadius),
                               border: Border.all(
-                                color: AppColors.borderMuted,
+                                color: context.colors.border,
                                 width: 1,
                               ),
                             ),
@@ -410,13 +411,13 @@ class _PauseScreenState extends State<PauseScreen> {
                               controller: _customFields[i].$1,
                               focusNode: _customFields[i].$2,
                               style: AppTextStyles.body.copyWith(
-                                color: AppColors.textPrimary,
+                                color: context.colors.textPrimary,
                                 fontSize: 14,
                               ),
                               decoration: InputDecoration(
                                 hintText: 'Custom purpose...',
                                 hintStyle: AppTextStyles.body.copyWith(
-                                  color: AppColors.textDisabled,
+                                  color: context.colors.textDisabled,
                                   fontSize: 14,
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
@@ -448,18 +449,18 @@ class _PauseScreenState extends State<PauseScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: AppColors.cardBg,
+                                color: context.colors.surface,
                                 borderRadius: BorderRadius.circular(
                                   Spacing.buttonRadius,
                                 ),
                                 border: Border.all(
-                                  color: AppColors.borderMuted,
+                                  color: context.colors.border,
                                   width: 1,
                                 ),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 AppIcons.close,
-                                color: AppColors.textMuted,
+                                color: context.colors.textMuted,
                                 size: 20,
                               ),
                             ),
@@ -527,7 +528,7 @@ class _PauseScreenState extends State<PauseScreen> {
                       Text(
                         'Add duration',
                         style: AppTextStyles.body.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -547,13 +548,13 @@ class _PauseScreenState extends State<PauseScreen> {
                       width: 120,
                       height: 52,
                       decoration: BoxDecoration(
-                        color: AppColors.cardBg,
+                        color: context.colors.surface,
                         borderRadius:
                             BorderRadius.circular(Spacing.buttonRadius),
                         border: Border.all(
                           color: _showDuration
                               ? _accent.withValues(alpha: 0.6)
-                              : AppColors.borderMuted,
+                              : context.colors.border,
                           width: 1,
                         ),
                       ),
@@ -566,7 +567,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         onChanged: _onDurationChanged,
                         onTap: _onDurationTap,
                         style: AppTextStyles.headline.copyWith(
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                           fontSize: 24,
                           fontFeatures: const [
                             FontFeature.tabularFigures(),
@@ -575,7 +576,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         decoration: InputDecoration(
                           hintText: '0:00',
                           hintStyle: AppTextStyles.headline.copyWith(
-                            color: AppColors.textDisabled,
+                            color: context.colors.textDisabled,
                             fontSize: 24,
                             fontFeatures: const [
                               FontFeature.tabularFigures(),
@@ -606,7 +607,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         Text(
                           'Save for quick reuse',
                           style: AppTextStyles.body.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -622,7 +623,7 @@ class _PauseScreenState extends State<PauseScreen> {
                   Text(
                     'SAVED PAUSES',
                     style: AppTextStyles.label.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                       fontSize: 12,
                       letterSpacing: 1.0,
                     ),
@@ -691,10 +692,10 @@ class _PauseScreenState extends State<PauseScreen> {
             bottom: MediaQuery.of(context).padding.bottom + 12,
           ),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             border: Border(
               top: BorderSide(
-                color: AppColors.borderMuted.withValues(alpha: 0.5),
+                color: context.colors.border.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -748,7 +749,7 @@ class _PauseScreenState extends State<PauseScreen> {
                   child: Text(
                     'Cancel',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       fontSize: 16,
                     ),
                   ),
@@ -788,19 +789,21 @@ class _PurposeChip extends StatelessWidget {
         duration: AppDurations.fast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? accent.withValues(alpha: 0.15) : AppColors.cardBg,
+          color: isSelected
+              ? accent.withValues(alpha: 0.15)
+              : context.colors.surface,
           borderRadius: BorderRadius.circular(Spacing.chipRadius),
           border: Border.all(
             color: isSelected
                 ? accent.withValues(alpha: 0.5)
-                : AppColors.borderMuted,
+                : context.colors.border,
             width: 1.5,
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.label.copyWith(
-            color: isSelected ? accent : AppColors.textSecondary,
+            color: isSelected ? accent : context.colors.textSecondary,
             fontSize: 13,
           ),
         ),
@@ -826,7 +829,7 @@ class _CheckBox extends StatelessWidget {
         color: isChecked ? accent.withValues(alpha: 0.15) : Colors.transparent,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: isChecked ? accent : AppColors.textMuted,
+          color: isChecked ? accent : context.colors.textMuted,
           width: 1.5,
         ),
       ),
@@ -868,7 +871,7 @@ class _SavedPauseCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(
           color: accent.withValues(alpha: 0.3),
@@ -890,7 +893,7 @@ class _SavedPauseCard extends StatelessWidget {
                 Text(
                   _title,
                   style: AppTextStyles.headline.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 13,
                     letterSpacing: 0.3,
                   ),
@@ -902,7 +905,7 @@ class _SavedPauseCard extends StatelessWidget {
                   Text(
                     _subtitle!,
                     style: AppTextStyles.label.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                       fontSize: 12,
                     ),
                   ),

@@ -8,6 +8,7 @@ import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import '../../components/ui/confirm_action_dialog.dart';
 import '../../shared/utils/snackbar_helper.dart';
@@ -515,7 +516,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
       message:
           'Create a copy of "${setlist.name}" with all songs and settings?',
       confirmLabel: 'Duplicate',
-      confirmColor: AppColors.success,
+      confirmColor: context.colors.success,
     );
 
     if (confirmed == true) {
@@ -632,7 +633,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
 
     // Main content
     final content = Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: showLoading
           ? _buildLoadingState(
               bandName,
@@ -788,7 +789,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
           hasScrollBody: false,
           child: Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(AppColors.accent),
+              valueColor: AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
         ),
@@ -834,8 +835,8 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                   Text(
                     error,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: context.colors.textSecondary,
                       fontSize: 16,
                     ),
                   ),
@@ -845,7 +846,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       ref.read(setlistsProvider.notifier).refresh();
                     },
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.accent,
+                      backgroundColor: AppColors.primary,
                     ),
                     child: const Text('Try Again'),
                   ),
@@ -900,12 +901,12 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Setlists',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                       if (canEdit)
@@ -914,7 +915,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                           icon: const Icon(AppIcons.add, size: 18),
                           label: const Text('New'),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppColors.accent,
+                            foregroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 8,

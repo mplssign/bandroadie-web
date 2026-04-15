@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/models/user_profile.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -17,11 +18,8 @@ final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) return null;
 
-  final response = await supabase
-      .from('users')
-      .select()
-      .eq('id', userId)
-      .maybeSingle();
+  final response =
+      await supabase.from('users').select().eq('id', userId).maybeSingle();
 
   if (response == null) return null;
   return UserProfile.fromJson(response);
@@ -69,16 +67,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Not logged in');
 
-      await supabase
-          .from('users')
-          .update({
-            'first_name': _firstNameController.text.trim(),
-            'last_name': _lastNameController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'city': _cityController.text.trim(),
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', userId);
+      await supabase.from('users').update({
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'city': _cityController.text.trim(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
 
       // Refresh the profile data
       ref.invalidate(userProfileProvider);
@@ -104,12 +99,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profileAsync = ref.watch(userProfileProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: context.colors.appBarBg,
         title: Text('My Profile', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -139,7 +134,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   : const Text(
                       'Save',
                       style: TextStyle(
-                        color: AppColors.accent,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -148,7 +143,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
       body: profileAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (error, _) => Center(
           child: Padding(
@@ -173,7 +168,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ElevatedButton(
                   onPressed: () => ref.invalidate(userProfileProvider),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                   ),
                   child: const Text('Retry'),
                 ),
@@ -212,15 +207,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   height: 96,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.accent.withValues(alpha: 0.2),
-                    border: Border.all(color: AppColors.accent, width: 2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    border: Border.all(color: AppColors.primary, width: 2),
                   ),
                   child: Center(
                     child: Text(
                       _getInitials(profile),
                       style: AppTextStyles.title3.copyWith(
                         fontSize: 32,
-                        color: AppColors.accent,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -237,7 +232,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
 
           const SizedBox(height: Spacing.space32),
-          const Divider(color: AppColors.borderMuted),
+          Divider(color: context.colors.border),
           const SizedBox(height: Spacing.space24),
 
           // Profile details
@@ -306,7 +301,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: OutlinedButton(
                 onPressed: () => setState(() => _isEditing = false),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.borderMuted),
+                  side: BorderSide(color: context.colors.border),
                   padding: const EdgeInsets.symmetric(
                     vertical: Spacing.space16,
                   ),
@@ -335,7 +330,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         Text(
           label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: Spacing.space8),
@@ -345,20 +340,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textMuted),
+            hintStyle: TextStyle(color: context.colors.textMuted),
             filled: true,
-            fillColor: AppColors.surfaceDark,
+            fillColor: context.colors.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.accent, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
         ),
@@ -373,7 +368,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         Text(
           label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: Spacing.space8),
@@ -381,16 +376,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(Spacing.space16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark.withValues(alpha: 0.5),
+            color: context.colors.surface.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(
-              color: AppColors.borderMuted.withValues(alpha: 0.5),
+              color: context.colors.border.withValues(alpha: 0.5),
             ),
           ),
           child: Text(
             value,
             style: AppTextStyles.callout.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),
@@ -447,7 +442,7 @@ class _ProfileRow extends StatelessWidget {
             child: Text(
               label,
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),

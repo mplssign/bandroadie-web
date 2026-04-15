@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../push_notification_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -39,9 +40,9 @@ class NotificationPermissionPrompt extends ConsumerWidget {
       margin: const EdgeInsets.all(Spacing.pagePadding),
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -51,7 +52,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
             children: [
               Icon(
                 AppIcons.bellRing,
-                color: AppColors.accent,
+                color: AppColors.primary,
                 size: 24,
               ),
               const SizedBox(width: Spacing.space12),
@@ -59,13 +60,13 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                 child: Text(
                   'Stay in the Loop',
                   style: AppTextStyles.headline.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
               IconButton(
                 icon: const Icon(AppIcons.close, size: 20),
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 onPressed: () {
                   ref
                       .read(permissionPromptDismissedProvider.notifier)
@@ -78,7 +79,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
           Text(
             'Get notified when your band schedules gigs, rehearsals, or marks block-out dates.',
             style: AppTextStyles.callout.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: Spacing.space16),
@@ -94,7 +95,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                   child: Text(
                     'Not Now',
                     style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -128,8 +129,8 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: AppColors.textPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: context.colors.textPrimary,
                   ),
                   child: Text(
                     'Enable Notifications',
@@ -208,13 +209,13 @@ class _EnableNotificationsButtonState
 
     if (_hasPermission) {
       return ListTile(
-        leading: Icon(AppIcons.success, color: AppColors.accent),
+        leading: Icon(AppIcons.success, color: AppColors.primary),
         title: const Text('Push Notifications'),
         subtitle: const Text('Enabled'),
         trailing: Icon(
           AppIcons.forward,
           size: 16,
-          color: AppColors.textSecondary,
+          color: context.colors.textSecondary,
         ),
         onTap: () {
           // Could navigate to detailed settings
@@ -225,15 +226,15 @@ class _EnableNotificationsButtonState
     return ListTile(
       leading: Icon(
         AppIcons.bellOff,
-        color: AppColors.textSecondary,
+        color: context.colors.textSecondary,
       ),
       title: const Text('Enable Push Notifications'),
       subtitle: const Text('Get notified about band activity'),
       trailing: ElevatedButton(
         onPressed: _enableNotifications,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.primary,
+          foregroundColor: context.colors.textPrimary,
           padding: const EdgeInsets.symmetric(
             horizontal: Spacing.space16,
             vertical: Spacing.space8,

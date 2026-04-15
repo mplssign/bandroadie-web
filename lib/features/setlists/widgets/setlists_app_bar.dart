@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/animated_logo.dart';
 import '../../../shared/widgets/glass_surface.dart';
@@ -83,13 +84,13 @@ class SetlistsAppBar extends ConsumerWidget {
           children: [
             GestureDetector(
               onTap: onBack ?? () => Navigator.of(context).pop(),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     AppIcons.back,
                     size: 18,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                   SizedBox(width: 4),
                   Text(
@@ -97,7 +98,7 @@ class SetlistsAppBar extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       height: 1.4,
                     ),
                   ),
@@ -130,13 +131,13 @@ class SetlistsAppBar extends ConsumerWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onMenuTap,
-            child: const SizedBox(
+            child: SizedBox(
               width: 44,
               height: 44,
               child: Center(
                 child: Icon(
                   AppIcons.menu,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   size: 26,
                 ),
               ),

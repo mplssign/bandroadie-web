@@ -4,6 +4,7 @@ import '../utils/platform_detection.dart';
 import '../utils/web_storage.dart';
 import '../utils/banner_debug.dart';
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// A debug screen to test native app banner detection.
@@ -37,7 +38,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Banner Debug'),
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: context.colors.appBarBg,
       ),
       body: ListView(
         padding: const EdgeInsets.all(Spacing.space16),
@@ -58,24 +59,24 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
 
   Widget _buildHeader() {
     return Card(
-      color: AppColors.cardBgElevated,
+      color: context.colors.surfaceElevated,
       child: Padding(
         padding: const EdgeInsets.all(Spacing.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Native App Banner Debugger',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: Spacing.space8),
             Text(
               'Use this screen to debug why the banner is or isn\'t showing.',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: context.colors.textSecondary),
             ),
           ],
         ),
@@ -123,18 +124,18 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
     final dismissedAt = getBannerDismissedAt();
 
     return Card(
-      color: AppColors.cardBgElevated,
+      color: context.colors.surfaceElevated,
       child: Padding(
         padding: const EdgeInsets.all(Spacing.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'localStorage Info',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: Spacing.space12),
@@ -216,18 +217,18 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
     if (!kIsWeb || _debugInfo == null) return const SizedBox.shrink();
 
     return Card(
-      color: AppColors.cardBgElevated,
+      color: context.colors.surfaceElevated,
       child: Padding(
         padding: const EdgeInsets.all(Spacing.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Raw Debug Data',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: Spacing.space12),
@@ -235,7 +236,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
               _debugInfo.toString(),
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontFamily: 'monospace',
               ),
             ),
@@ -247,7 +248,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
 
   Widget _buildInfoCard(String title, String subtitle, Color color) {
     return Card(
-      color: AppColors.cardBgElevated,
+      color: context.colors.surfaceElevated,
       child: Padding(
         padding: const EdgeInsets.all(Spacing.space16),
         child: Row(
@@ -275,7 +276,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ],
@@ -290,7 +291,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
   Widget _buildConditionTile(String label, bool value, {bool invert = false}) {
     final passed = invert ? !value : value;
     return Card(
-      color: AppColors.cardBg,
+      color: context.colors.surface,
       child: ListTile(
         leading: Icon(
           passed ? AppIcons.success : Icons.cancel,
@@ -298,7 +299,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
         ),
         title: Text(
           label,
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
         ),
         trailing: Text(
           value ? 'true' : 'false',
@@ -317,12 +318,12 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
       children: [
         Text(
           key,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
         ),
         Text(
           value,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: context.colors.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),

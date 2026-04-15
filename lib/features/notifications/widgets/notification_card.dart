@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/app_notification.dart';
 import '../models/notification_type.dart';
 import '../notification_controller.dart';
@@ -36,13 +37,13 @@ class NotificationCard extends ConsumerWidget {
         padding: const EdgeInsets.all(Spacing.space16),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? AppColors.cardBg
-              : AppColors.cardBgElevated,
+              ? context.colors.surface
+              : context.colors.surfaceElevated,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
           border: notification.isRead
               ? null
               : Border.all(
-                  color: AppColors.accent.withValues(alpha: 0.3),
+                  color: AppColors.primary.withValues(alpha: 0.3),
                   width: 1,
                 ),
         ),
@@ -54,13 +55,13 @@ class NotificationCard extends ConsumerWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: _getIconBackgroundColor().withValues(alpha: 0.15),
+                color: _getIconBackgroundColor(context).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               child: Icon(
                 _getIcon(),
                 size: 20,
-                color: _getIconBackgroundColor(),
+                color: _getIconBackgroundColor(context),
               ),
             ),
             const SizedBox(width: Spacing.space12),
@@ -75,14 +76,14 @@ class NotificationCard extends ConsumerWidget {
                       fontWeight: notification.isRead
                           ? FontWeight.normal
                           : FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: Spacing.space4),
                   Text(
                     notification.body,
                     style: AppTextStyles.footnote.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -91,7 +92,7 @@ class NotificationCard extends ConsumerWidget {
                   Text(
                     _formatTimestamp(notification.createdAt),
                     style: AppTextStyles.footnote.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ],
@@ -103,7 +104,7 @@ class NotificationCard extends ConsumerWidget {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -141,20 +142,20 @@ class NotificationCard extends ConsumerWidget {
     }
   }
 
-  Color _getIconBackgroundColor() {
+  Color _getIconBackgroundColor(BuildContext context) {
     switch (notification.type.category) {
       case NotificationCategory.gigs:
-        return AppColors.accent;
+        return AppColors.primary;
       case NotificationCategory.rehearsals:
         return AppColors.blueAccent;
       case NotificationCategory.blockouts:
-        return AppColors.warning;
+        return context.colors.warning;
       case NotificationCategory.setlists:
-        return AppColors.success;
+        return context.colors.success;
       case NotificationCategory.availability:
-        return AppColors.warning;
+        return context.colors.warning;
       case NotificationCategory.members:
-        return AppColors.textSecondary;
+        return context.colors.textSecondary;
     }
   }
 

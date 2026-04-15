@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Footer section with legal links
@@ -19,8 +20,8 @@ class FooterSection extends StatelessWidget {
         vertical: 40,
       ),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
+        color: context.colors.surface,
+        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
       ),
       child: Column(
         children: [
@@ -67,7 +68,7 @@ class FooterSection extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontSize: 14,
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              color: context.colors.textSecondary.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -87,7 +88,7 @@ class _FooterLink extends StatelessWidget {
     return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.textSecondary,
+        foregroundColor: context.colors.textSecondary,
         textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
       child: Text(label),
@@ -121,11 +122,11 @@ class _SocialIconButton extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.cardBg,
+            color: context.colors.surface,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.borderMuted, width: 1),
+            border: Border.all(color: context.colors.border, width: 1),
           ),
-          child: Icon(icon, color: AppColors.textPrimary, size: 24),
+          child: Icon(icon, color: context.colors.textPrimary, size: 24),
         ),
       ),
     );

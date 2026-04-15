@@ -141,9 +141,7 @@ These rules cannot be overridden by any agent or any feature request:
 After QA APPROVED and commit is pushed:
 
 ```bash
-flutter clean
-flutter build web --release
-vercel deploy build/web --prod --yes
+./tools/deploy_web.sh
 ```
 
 Post-deploy verification:

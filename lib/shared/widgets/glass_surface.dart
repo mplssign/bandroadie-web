@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // GLASS SURFACE
@@ -75,7 +75,7 @@ class GlassSurface extends StatelessWidget {
   final double blurSigma;
 
   /// The tint color applied over the blur.
-  /// Defaults to AppColors.appBarBg.
+  /// Defaults to context.colors.appBarBg.
   final Color? tintColor;
 
   /// Opacity of the tint color (0.0..1.0).
@@ -116,7 +116,7 @@ class GlassSurface extends StatelessWidget {
     // Clamp blur sigma for performance
     final clampedBlur = blurSigma.clamp(0.0, 20.0);
 
-    final bgColor = (tintColor ?? AppColors.appBarBg).withValues(
+    final bgColor = (tintColor ?? context.colors.appBarBg).withValues(
       alpha: tintOpacity,
     );
 

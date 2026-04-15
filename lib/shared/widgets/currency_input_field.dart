@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -166,7 +167,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
         Text(
           widget.label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -200,12 +201,12 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                 border: Border.all(
                   color: _focusNode.hasFocus
-                      ? AppColors.accent
-                      : AppColors.borderMuted,
+                      ? AppColors.primary
+                      : context.colors.border,
                 ),
               ),
               child: Row(
@@ -217,8 +218,8 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
                           : widget.controller.formattedValue,
                       style: AppTextStyles.callout.copyWith(
                         color: widget.controller.isEmpty
-                            ? AppColors.textMuted
-                            : AppColors.textPrimary,
+                            ? context.colors.textMuted
+                            : context.colors.textPrimary,
                       ),
                     ),
                   ),
@@ -231,7 +232,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
                       child: Icon(
                         AppIcons.close,
                         size: 18,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     ),
                 ],
@@ -330,7 +331,7 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
         Text(
           widget.label,
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -342,35 +343,35 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
             FilteringTextInputFormatter.digitsOnly,
             _CurrencyInputFormatter(widget.controller),
           ],
-          style: AppTextStyles.callout.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
           onChanged: _onChanged,
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: AppTextStyles.callout.copyWith(
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
             filled: true,
-            fillColor: AppColors.scaffoldBg,
+            fillColor: context.colors.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 12,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.accent),
+              borderSide: const BorderSide(color: AppColors.primary),
             ),
             suffixIcon: widget.controller.isNotEmpty && widget.enabled
                 ? IconButton(
                     icon: const Icon(AppIcons.close, size: 18),
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     onPressed: () {
                       widget.controller.clear();
                       _textController.clear();

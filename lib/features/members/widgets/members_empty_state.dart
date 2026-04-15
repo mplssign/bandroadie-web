@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -28,25 +29,25 @@ class MembersEmptyState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 AppIcons.users,
                 size: 40,
-                color: AppColors.accent,
+                color: AppColors.primary,
               ),
             ),
 
             const SizedBox(height: 24),
 
             // Title (Title Case)
-            const Text(
+            Text(
               'No Members Yet',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -54,12 +55,12 @@ class MembersEmptyState extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Subtitle with humor
-            const Text(
+            Text(
               "It's just you and your dreams.\nInvite someone before you become a solo act.",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

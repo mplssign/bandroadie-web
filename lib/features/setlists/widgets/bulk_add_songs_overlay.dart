@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../models/bulk_song_row.dart';
 import '../services/bulk_song_parser.dart';
@@ -251,9 +252,9 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             keyboardHeight > 0 ? 0 : Spacing.space16,
           ),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: AppColors.borderMuted, width: 1),
+            border: Border.all(color: context.colors.border, width: 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -275,9 +276,9 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.borderMuted, width: 1),
+          bottom: BorderSide(color: context.colors.border, width: 1),
         ),
       ),
       child: Row(
@@ -287,10 +288,10 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             onTap: () => Navigator.of(context).pop(),
             child: Container(
               padding: const EdgeInsets.all(8),
-              child: const Icon(
+              child: Icon(
                 AppIcons.back,
                 size: 20,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
           ),
@@ -310,10 +311,10 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             onTap: () => Navigator.of(context).pop(),
             child: Container(
               padding: const EdgeInsets.all(8),
-              child: const Icon(
+              child: Icon(
                 AppIcons.close,
                 size: 24,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -329,9 +330,9 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         horizontal: Spacing.space16,
         vertical: Spacing.space8,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceElevated,
-        border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceElevated,
+        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -341,7 +342,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               child: const Text(
@@ -375,7 +376,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             Text(
               'COPY/PASTE:',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -387,7 +388,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             Text(
               'The columns in your spreadsheet should be in this order:',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
               ),
             ),
@@ -395,7 +396,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             Text(
               'ARTIST, SONG (Optional: BPM, TUNING)',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
               ),
             ),
@@ -406,7 +407,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             Text(
               'MANUALLY ENTER:',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -418,7 +419,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             Text(
               'Enter song info by typing ARTIST, SONG, BPM, TUNING (separated by commas)',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
               ),
             ),
@@ -477,9 +478,9 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
     return Container(
       constraints: const BoxConstraints(minHeight: 220),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: context.colors.surfaceElevated,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: AppColors.borderMuted, width: 1),
+        border: Border.all(color: context.colors.border, width: 1),
       ),
       child: TextField(
         controller: _inputController,
@@ -490,11 +491,11 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         textInputAction: TextInputAction.newline,
         maxLines: null,
         minLines: 8,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontFamily: 'monospace',
           fontWeight: FontWeight.w400,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
           height: 1.5,
         ),
         decoration: InputDecoration(
@@ -503,7 +504,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             fontSize: 14,
             fontFamily: 'monospace',
             fontWeight: FontWeight.w400,
-            color: AppColors.textMuted.withValues(alpha: 0.6),
+            color: context.colors.textMuted.withValues(alpha: 0.6),
             height: 1.5,
           ),
           border: InputBorder.none,
@@ -550,7 +551,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
 
     // Determine color based on status
     final hasErrors = invalidCount > 0;
-    final textColor = hasErrors ? AppColors.warning : AppColors.textSecondary;
+    final textColor = hasErrors ? context.colors.warning : context.colors.textSecondary;
 
     return Row(
       children: [
@@ -558,7 +559,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         Icon(
           hasErrors ? AppIcons.warning : Icons.check_circle_outline,
           size: 18,
-          color: hasErrors ? AppColors.warning : AppColors.success,
+          color: hasErrors ? context.colors.warning : context.colors.success,
         ),
         const SizedBox(width: 8),
         // Summary text
@@ -616,9 +617,9 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
 
   Widget _buildPreviewRow(BulkSongRow row) {
     final isValid = row.isValid;
-    final borderColor = isValid ? AppColors.borderMuted : AppColors.error;
+    final borderColor = isValid ? context.colors.border : AppColors.error;
     final bgColor = isValid
-        ? AppColors.surfaceElevated
+        ? context.colors.surfaceElevated
         : AppColors.error.withValues(alpha: 0.1);
 
     // Get tuning badge color
@@ -645,7 +646,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                   row.title.isEmpty ? '(No title)' : row.title,
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isValid ? AppColors.textPrimary : AppColors.error,
+                    color: isValid ? context.colors.textPrimary : AppColors.error,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -656,15 +657,15 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.colors.border,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   row.formattedBpm,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -700,7 +701,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                   row.artist.isEmpty ? '(No artist)' : row.artist,
                   style: AppTextStyles.body.copyWith(
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -736,7 +737,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.warning,
+                    color: context.colors.warning,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -761,8 +762,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
 
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
       ),
       child: Row(
         children: [
@@ -772,7 +773,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             child: Text(
               'Cancel',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -858,8 +859,8 @@ class _AddSongsButtonState extends State<_AddSongsButton>
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 color: isEnabled
-                    ? AppColors.accent
-                    : AppColors.accent.withValues(alpha: 0.4),
+                    ? AppColors.primary
+                    : AppColors.primary.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               child: Row(

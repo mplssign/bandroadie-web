@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -213,7 +214,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                     child: Text(
                       'Add original songs or hard to find covers',
                       style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                         fontSize: 15,
                       ),
                     ),
@@ -248,16 +249,16 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                                 AppIcons.add,
                                 size: 20,
                                 color: _isSubmitting
-                                    ? AppColors.textMuted
-                                    : AppColors.accent,
+                                    ? context.colors.textMuted
+                                    : AppColors.primary,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 'Add another',
                                 style: AppTextStyles.body.copyWith(
                                   color: _isSubmitting
-                                      ? AppColors.textMuted
-                                      : AppColors.accent,
+                                      ? context.colors.textMuted
+                                      : AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
                                 ),
@@ -310,10 +311,10 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
         MediaQuery.of(context).viewInsets.bottom + Spacing.space16,
       ),
       decoration: BoxDecoration(
-        color: AppColors.scaffoldBg,
+        color: context.colors.background,
         border: Border(
           top: BorderSide(
-            color: AppColors.borderMuted.withValues(alpha: 0.3),
+            color: context.colors.border.withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -331,8 +332,8 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
                     color: _isSubmitting || !_hasValidEntry
-                        ? AppColors.accent.withValues(alpha: 0.4)
-                        : AppColors.accent,
+                        ? AppColors.primary.withValues(alpha: 0.4)
+                        : AppColors.primary,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   ),
                   alignment: Alignment.center,
@@ -364,7 +365,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                 child: Text(
                   'Cancel',
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 16,
                   ),
                 ),
@@ -515,12 +516,12 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
         margin: const EdgeInsets.only(bottom: Spacing.space16),
         padding: const EdgeInsets.all(Spacing.space16),
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
           border: Border.all(
             color: hasError
-                ? AppColors.accent.withValues(alpha: 0.6)
-                : AppColors.borderMuted,
+                ? AppColors.primary.withValues(alpha: 0.6)
+                : context.colors.border,
             width: hasError ? 1.5 : 1,
           ),
         ),
@@ -533,7 +534,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                 Text(
                   'Song ${widget.index + 1}',
                   style: AppTextStyles.label.copyWith(
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     fontSize: 12,
                     letterSpacing: 0.5,
                   ),
@@ -547,7 +548,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                       child: Icon(
                         AppIcons.delete,
                         size: 18,
-                        color: AppColors.textMuted.withValues(alpha: 0.7),
+                        color: context.colors.textMuted.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -616,7 +617,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
         Text(
           label,
           style: AppTextStyles.label.copyWith(
-            color: hasError ? AppColors.accent : AppColors.textSecondary,
+            color: hasError ? AppColors.primary : context.colors.textSecondary,
             fontSize: 13,
           ),
         ),
@@ -631,7 +632,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
             onSubmitted: onSubmitted,
             onChanged: onChanged,
             style: AppTextStyles.body.copyWith(
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               fontSize: 15,
             ),
             decoration: InputDecoration(
@@ -639,11 +640,11 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                   ? 'Enter song name'
                   : 'Enter artist name',
               hintStyle: AppTextStyles.body.copyWith(
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
                 fontSize: 15,
               ),
               filled: true,
-              fillColor: AppColors.scaffoldBg,
+              fillColor: context.colors.background,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 10,
@@ -654,7 +655,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                 ),
                 borderSide: BorderSide(
                   color: hasError
-                      ? AppColors.accent
+                      ? AppColors.primary
                       : SongCardLayout.inputBorderColor,
                   width: hasError ? 1.5 : SongCardLayout.inputBorderWidth,
                 ),
@@ -665,7 +666,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                 ),
                 borderSide: BorderSide(
                   color: hasError
-                      ? AppColors.accent
+                      ? AppColors.primary
                       : SongCardLayout.inputBorderColor,
                   width: hasError ? 1.5 : SongCardLayout.inputBorderWidth,
                 ),
@@ -675,7 +676,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                   SongCardLayout.inputBorderRadius,
                 ),
                 borderSide: BorderSide(
-                  color: hasError ? AppColors.accent : AppColors.accent,
+                  color: hasError ? AppColors.primary : AppColors.primary,
                   width: 1.5,
                 ),
               ),

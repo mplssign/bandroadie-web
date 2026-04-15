@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // SEGMENTED TOGGLE
@@ -25,7 +26,7 @@ class SegmentedToggle extends StatelessWidget {
     return Container(
       height: 44,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(3),
@@ -67,8 +68,8 @@ class SegmentedToggle extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: isSelected
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
+                                ? Colors.white
+                                : context.colors.textPrimary,
                           ),
                           child: Text(labels[index]),
                         ),

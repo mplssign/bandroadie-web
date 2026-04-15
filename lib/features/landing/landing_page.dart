@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/widgets/scroll_animated_widget.dart';
 import 'widgets/hero_section.dart';
 import 'widgets/features_section.dart';
@@ -73,7 +74,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: !_isLoaded
           ? const Center(
               child: SizedBox.shrink(), // Invisible until loaded
@@ -118,7 +119,7 @@ class _LandingPageState extends State<LandingPage> {
                     bottom: 24,
                     child: FloatingActionButton(
                       onPressed: _scrollToTop,
-                      backgroundColor: AppColors.accent,
+                      backgroundColor: AppColors.primary,
                       child: const Icon(
                         AppIcons.arrowUp,
                         color: Colors.black,

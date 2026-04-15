@@ -45,23 +45,18 @@ Automatically fetches BPM (tempo) from Spotify when users add songs via Song Loo
 
 ```bash
 # 1. Deploy Edge Functions
-supabase functions deploy spotify_search
-supabase functions deploy spotify_audio_features
-supabase functions deploy musicbrainz_search
+supabase functions deploy spotify_search --project-ref nekwjxvgbveheooyorjo
+supabase functions deploy spotify_audio_features --project-ref nekwjxvgbveheooyorjo
+supabase functions deploy musicbrainz_search --project-ref nekwjxvgbveheooyorjo
 
-# 2. Set Spotify credentials (choose one method)
+# 2. Set Spotify credentials
+supabase secrets set SPOTIFY_CLIENT_ID=your_client_id --project-ref nekwjxvgbveheooyorjo
+supabase secrets set SPOTIFY_CLIENT_SECRET=your_client_secret --project-ref nekwjxvgbveheooyorjo
 
-## Option A: Environment variables
-supabase secrets set SPOTIFY_CLIENT_ID=your_client_id
-supabase secrets set SPOTIFY_CLIENT_SECRET=your_client_secret
-
-## Option B: Vault (in SQL Editor)
-INSERT INTO vault.secrets (name, secret) VALUES 
-  ('SPOTIFY_CLIENT_ID', 'your_client_id'),
-  ('SPOTIFY_CLIENT_SECRET', 'your_client_secret');
-
-# 3. Test
-flutter run -d macos
+# 3. Test (credentials required via --dart-define or .vscode/launch.json)
+flutter run -d macos \
+  --dart-define=SUPABASE_URL=https://nekwjxvgbveheooyorjo.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=your-anon-key-here
 # → Open setlist → Add song → Search Spotify → Verify BPM appears
 ```
 

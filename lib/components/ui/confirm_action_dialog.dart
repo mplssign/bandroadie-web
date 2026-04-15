@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // CONFIRM ACTION DIALOG
@@ -31,7 +32,7 @@ Future<bool> showConfirmActionDialog({
       message: message,
       confirmLabel: confirmLabel,
       confirmColor:
-          confirmColor ?? (isDestructive ? AppColors.error : AppColors.accent),
+          confirmColor ?? (isDestructive ? AppColors.error : AppColors.primary),
       cancelLabel: cancelLabel,
     ),
   );
@@ -57,7 +58,7 @@ class ConfirmActionDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.cardBg,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -69,7 +70,7 @@ class ConfirmActionDialog extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+        style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         textAlign: TextAlign.center,
       ),
       content: Column(
@@ -77,7 +78,7 @@ class ConfirmActionDialog extends StatelessWidget {
         children: [
           Text(
             message,
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: Spacing.space24),
@@ -109,7 +110,7 @@ class ConfirmActionDialog extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
                 cancelLabel,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
               ),
             ),
           ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
 import '../contacts_controller.dart';
@@ -114,32 +115,32 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBgElevated,
+        backgroundColor: context.colors.surfaceElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           'Delete Contact?',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
-        content: const Text(
+        content: Text(
           'This action cannot be undone.',
           style: TextStyle(
             fontSize: 16,
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -177,16 +178,16 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textMuted),
+      labelStyle: TextStyle(color: context.colors.textMuted),
       filled: true,
-      fillColor: AppColors.surface,
+      fillColor: context.colors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -204,17 +205,17 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.background,
         leading: IconButton(
-          icon: const Icon(AppIcons.close, color: AppColors.textPrimary),
+          icon: Icon(AppIcons.close, color: context.colors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           _isEditMode ? 'Edit Contact' : 'New Contact',
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: context.colors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -249,18 +250,18 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _nameController,
             focusNode: _nameFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Name *'),
           ),
           const SizedBox(height: 20),
 
           // Title
-          const Text(
+          Text(
             'Title',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -277,7 +278,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
@@ -288,7 +289,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _emailController,
             focusNode: _emailFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Email'),
             keyboardType: TextInputType.emailAddress,
           ),
@@ -298,7 +299,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _notesController,
             focusNode: _notesFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Notes'),
             maxLines: 3,
           ),

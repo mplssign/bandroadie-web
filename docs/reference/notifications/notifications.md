@@ -1,5 +1,7 @@
 # Notification System
 
+> ⚠️ **Architecture note:** This document describes the pg_cron + `deliver-notifications` architecture (Jan 2026). Some internal references below still mention the legacy FCM API (`fcm.googleapis.com/fcm/send` with `registration_ids` multicast), which was deprecated by Google in June 2024. The production Edge Function (`deliver-notifications`) uses the **FCM HTTP v1 API with OAuth2** authentication instead. See `NOTIFICATION_SYSTEM.md` for current implementation details including the correct API endpoints and secrets.
+
 ## Overview
 
 BandRoadie sends push notifications to band members when events are created (gigs, rehearsals, block-out dates). The system is designed to be **reliable, observable, and non-blocking**—database writes never fail due to notification delivery issues.

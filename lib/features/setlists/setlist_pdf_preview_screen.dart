@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'models/print_template.dart';
 import 'models/setlist_item.dart';
 import 'services/setlist_print_service.dart';
@@ -89,21 +90,21 @@ class _SetlistPdfPreviewScreenState extends State<SetlistPdfPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.background,
         title: Text(
           'Print Preview',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(color: context.colors.textPrimary),
         actions: [
           IconButton(
             onPressed: _handlePrint,
             icon: const Icon(
               Icons.print_rounded,
               size: 20,
-              color: AppColors.accent,
+              color: AppColors.primary,
             ),
           ),
           IconButton(
@@ -111,7 +112,7 @@ class _SetlistPdfPreviewScreenState extends State<SetlistPdfPreviewScreen> {
             icon: const Icon(
               AppIcons.share,
               size: 20,
-              color: AppColors.accent,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -124,8 +125,8 @@ class _SetlistPdfPreviewScreenState extends State<SetlistPdfPreviewScreen> {
         canChangePageFormat: false,
         canChangeOrientation: false,
         canDebug: false,
-        scrollViewDecoration: const BoxDecoration(
-          color: AppColors.background,
+        scrollViewDecoration: BoxDecoration(
+          color: context.colors.background,
         ),
         pdfPreviewPageDecoration: const BoxDecoration(
           color: Colors.white,

@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_gate.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -233,7 +234,7 @@ class _InviteScreenState extends State<InviteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -396,14 +397,14 @@ class _InviteScreenState extends State<InviteScreen> {
               labelStyle: const TextStyle(color: Colors.white54),
               errorText: _emailError,
               filled: true,
-              fillColor: AppColors.surfaceElevated,
+              fillColor: context.colors.surfaceElevated,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.border),
+                borderSide: BorderSide(color: context.colors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),

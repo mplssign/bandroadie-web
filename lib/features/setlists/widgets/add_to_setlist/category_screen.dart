@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'add_to_setlist_overlay.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -73,7 +74,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                     child: Text(
                       'What would you like to add?',
                       style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                         fontSize: 16,
                       ),
                       textAlign: TextAlign.center,
@@ -136,9 +137,9 @@ class _CategoryScreenState extends State<CategoryScreen>
                       padding: const EdgeInsets.only(bottom: Spacing.space16),
                       child: Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Divider(
-                              color: AppColors.borderMuted,
+                              color: context.colors.border,
                               thickness: 1,
                             ),
                           ),
@@ -147,15 +148,15 @@ class _CategoryScreenState extends State<CategoryScreen>
                             child: Text(
                               'BREAKS & PAUSES',
                               style: AppTextStyles.label.copyWith(
-                                color: AppColors.textMuted,
+                                color: context.colors.textMuted,
                                 fontSize: 11,
                                 letterSpacing: 1.0,
                               ),
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             child: Divider(
-                              color: AppColors.borderMuted,
+                              color: context.colors.border,
                               thickness: 1,
                             ),
                           ),
@@ -173,7 +174,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                         icon: AppIcons.timer,
                         label: 'Set Break',
                         subtitle: 'Break between sets',
-                        accentColor: AppColors.primaryDim,
+                        accentColor: context.colors.primaryDim,
                         onTap: () => widget.onCategorySelected(
                           AddToSetlistCategory.setBreak,
                         ),
@@ -188,7 +189,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                       icon: Icons.pause_circle_outline_rounded,
                       label: 'Pause',
                       subtitle: 'Guitar change, tuning break, band intro, etc.',
-                      accentColor: AppColors.warning,
+                      accentColor: context.colors.warning,
                       onTap: () =>
                           widget.onCategorySelected(AddToSetlistCategory.pause),
                     ),
@@ -303,9 +304,9 @@ class _CategoryButtonState extends State<_CategoryButton>
             vertical: Spacing.space16,
           ),
           decoration: BoxDecoration(
-            color: AppColors.cardBg,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: AppColors.borderMuted, width: 1.5),
+            border: Border.all(color: context.colors.border, width: 1.5),
           ),
           child: Row(
             children: [
@@ -314,7 +315,7 @@ class _CategoryButtonState extends State<_CategoryButton>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: (widget.accentColor ?? AppColors.accent).withValues(
+                  color: (widget.accentColor ?? AppColors.primary).withValues(
                     alpha: 0.15,
                   ),
                   borderRadius: BorderRadius.circular(12),
@@ -322,7 +323,7 @@ class _CategoryButtonState extends State<_CategoryButton>
                 child: Icon(
                   widget.icon,
                   size: 22,
-                  color: widget.accentColor ?? AppColors.accent,
+                  color: widget.accentColor ?? AppColors.primary,
                 ),
               ),
 
@@ -341,7 +342,7 @@ class _CategoryButtonState extends State<_CategoryButton>
                     Text(
                       widget.subtitle,
                       style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -350,10 +351,10 @@ class _CategoryButtonState extends State<_CategoryButton>
               ),
 
               // Chevron
-              const Icon(
+              Icon(
                 AppIcons.forward,
                 size: 24,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
             ],
           ),

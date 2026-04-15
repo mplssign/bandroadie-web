@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -113,7 +114,7 @@ class _NoBandStateState extends State<NoBandState>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
@@ -134,11 +135,11 @@ class _NoBandStateState extends State<NoBandState>
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.12),
+                        color: AppColors.primary.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.15),
+                            color: AppColors.primary.withValues(alpha: 0.15),
                             blurRadius: 40,
                             spreadRadius: 8,
                           ),
@@ -147,7 +148,7 @@ class _NoBandStateState extends State<NoBandState>
                       child: const Icon(
                         AppIcons.music,
                         size: 56,
-                        color: AppColors.accent,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -181,7 +182,7 @@ class _NoBandStateState extends State<NoBandState>
                     style: AppTextStyles.body.copyWith(
                       fontSize: 16,
                       height: 1.6,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -196,7 +197,7 @@ class _NoBandStateState extends State<NoBandState>
                     child: FilledButton(
                       onPressed: () {},
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.accent,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           vertical: Spacing.space16,
@@ -234,12 +235,12 @@ class _NoBandStateState extends State<NoBandState>
                     child: OutlinedButton(
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textPrimary,
+                        foregroundColor: context.colors.textPrimary,
                         padding: const EdgeInsets.symmetric(
                           vertical: Spacing.space16,
                         ),
                         side: BorderSide(
-                          color: AppColors.borderMuted,
+                          color: context.colors.border,
                           width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
@@ -251,7 +252,7 @@ class _NoBandStateState extends State<NoBandState>
                       child: Text(
                         'Join Existing Band',
                         style: AppTextStyles.button.copyWith(
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -266,7 +267,7 @@ class _NoBandStateState extends State<NoBandState>
                   child: Text(
                     'Got an invite code? Tap "Join" above.',
                     style: AppTextStyles.label.copyWith(
-                      color: AppColors.textDisabled,
+                      color: context.colors.textDisabled,
                     ),
                   ),
                 ),

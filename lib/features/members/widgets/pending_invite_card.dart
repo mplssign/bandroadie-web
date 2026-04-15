@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../pending_invite_vm.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -78,10 +79,10 @@ class _PendingInviteCardState extends State<PendingInviteCard>
         },
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.border, // gray-700
+              color: context.colors.border, // gray-700
               width: 1.5,
             ),
           ),
@@ -94,12 +95,12 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.surface, // gray-800
+                    color: context.colors.surface, // gray-800
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     AppIcons.email,
-                    color: AppColors.textSecondary, // gray-400
+                    color: context.colors.textSecondary, // gray-400
                     size: 24,
                   ),
                 ),
@@ -115,10 +116,10 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                         widget.invite.email.isNotEmpty
                             ? widget.invite.email
                             : 'Unknown',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -157,10 +158,10 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                   PopupMenuButton<String>(
                     icon: Icon(
                       Icons.more_vert,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       size: 20,
                     ),
-                    color: AppColors.surfaceDark,
+                    color: context.colors.surface,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -176,7 +177,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                         value: 'resend',
                         child: Row(
                           children: [
-                            Icon(AppIcons.refresh, color: AppColors.accent),
+                            Icon(AppIcons.refresh, color: AppColors.primary),
                             SizedBox(width: 12),
                             Text('Resend invite'),
                           ],

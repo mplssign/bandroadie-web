@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../app/models/gig.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 
 // ============================================================================
@@ -92,10 +93,10 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                 // Title - 20px Title3/Emphasized
                 Text(
                   widget.gig.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     height: 1.2,
                   ),
                   maxLines: 1,
@@ -107,10 +108,10 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                 // Location - 16px Callout/Regular, gray-400
                 Text(
                   widget.gig.location,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary, // gray-400
+                    color: context.colors.textSecondary, // gray-400
                     height: 1.2,
                   ),
                   maxLines: 1,
@@ -122,10 +123,10 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                 // Date - 17px Headline bold
                 Text(
                   _formatFullDate(widget.gig.date),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     height: 1.2,
                   ),
                 ),
@@ -140,10 +141,10 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                     widget.gig.date,
                     widget.bandTimezone,
                   ),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary, // gray-400
+                    color: context.colors.textSecondary, // gray-400
                     height: 1.2,
                   ),
                 ),

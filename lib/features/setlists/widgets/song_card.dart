@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
@@ -109,9 +110,9 @@ class _SongCardState extends State<SongCard>
           height: 121,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             border: Border.all(
-              color: AppColors.accent, // Rose/500 #F43F5E
+              color: AppColors.primary, // Rose/500 #F43F5E
               width: StandardCardBorder.width, // 1.5px - matches Setlist cards
             ),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius), // 8px
@@ -126,7 +127,7 @@ class _SongCardState extends State<SongCard>
                   child: Icon(
                     AppIcons.drag,
                     size: 24,
-                    color: AppColors.textSecondary.withValues(alpha: 0.6),
+                    color: context.colors.textSecondary.withValues(alpha: 0.6),
                   ),
                 ),
 
@@ -176,7 +177,7 @@ class _SongCardState extends State<SongCard>
                               padding: EdgeInsets.only(left: 8),
                               child: Icon(
                                 AppIcons.lyrics,
-                                color: AppColors.accent,
+                                color: AppColors.primary,
                                 size: 28,
                               ),
                             ),
@@ -245,7 +246,7 @@ class _SongCardState extends State<SongCard>
       displayText: widget.song.formattedBpm,
       isPlaceholder: widget.song.isBpmPlaceholder,
       onTap: null, // Read-only card
-      backgroundColor: AppColors.surfaceElevated,
+      backgroundColor: context.colors.surfaceElevated,
     );
   }
 
@@ -255,7 +256,7 @@ class _SongCardState extends State<SongCard>
       displayText: widget.song.formattedDuration,
       isPlaceholder: false,
       onTap: null, // Read-only card
-      backgroundColor: AppColors.surfaceElevated,
+      backgroundColor: context.colors.surfaceElevated,
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/models/user_profile.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/utils/phone_formatter.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
@@ -23,66 +24,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 //
 // BAND SCOPING: Custom roles are stored per-band in the band_roles table.
 // ============================================================================
-
-/// Design tokens for this screen
-class _ProfileTokens {
-  _ProfileTokens._();
-
-  // Colors
-  static const Color accent = AppColors.primaryDim; // rose-700
-  static const Color background = AppColors.background;
-  static const Color surfaceDark = AppColors.surface;
-  static const Color borderMuted = AppColors.surfaceOverlay;
-  static const Color textPrimary = AppColors.textPrimary;
-  static const Color textSecondary = AppColors.textSecondary;
-  static const Color textMuted = AppColors.textMuted;
-
-  // Pill styling
-  static const double pillHeight = 36.0;
-  static const double pillRadius = 18.0;
-  static const double dayCircleSize = 40.0;
-
-  // Typography
-  static const TextStyle titleStyle = TextStyle(
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: textPrimary,
-    height: 1.25,
-  );
-
-  static const TextStyle subtitleStyle = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    color: textSecondary,
-    height: 1.4,
-  );
-
-  static const TextStyle labelStyle = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    color: textPrimary,
-    height: 1.4,
-  );
-
-  static const TextStyle smallLabelStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-    color: textSecondary,
-    height: 1.4,
-  );
-
-  static const TextStyle pillTextStyle = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    height: 1.2,
-  );
-
-  static const TextStyle dayTextStyle = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    height: 1.2,
-  );
-}
 
 /// Predefined role options
 const List<String> _predefinedRoles = [
@@ -205,7 +146,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   // Multi-band support
   List<Band> _userBands = []; // All bands user belongs to
   String?
-  _selectedBandId; // Currently selected band for role editing (multi-band mode)
+      _selectedBandId; // Currently selected band for role editing (multi-band mode)
   Map<String, Set<String>> _bandRolesMap = {}; // bandId -> selected roles
   Map<String, Set<String>> _originalBandRolesMap =
       {}; // Original for dirty checking
@@ -249,11 +190,8 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       final bandState = ref.read(activeBandProvider);
       _userBands = bandState.userBands;
 
-      final response = await supabase
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+      final response =
+          await supabase.from('users').select().eq('id', userId).maybeSingle();
 
       // New user with no profile record yet - show empty form
       if (response == null) {
@@ -486,57 +424,57 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            backgroundColor: _ProfileTokens.surfaceDark,
+            backgroundColor: context.colors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text(
+            title: Text(
               'Add custom role',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
-                color: _ProfileTokens.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Enter a custom role to add to your roles list.',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
-                    color: _ProfileTokens.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: controller,
                   autofocus: true,
-                  style: const TextStyle(color: _ProfileTokens.textPrimary),
+                  style: TextStyle(color: context.colors.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'e.g. Rhythm Guitar',
-                    hintStyle: const TextStyle(color: _ProfileTokens.textMuted),
+                    hintStyle: TextStyle(color: context.colors.textMuted),
                     errorText: errorText,
                     filled: true,
-                    fillColor: _ProfileTokens.background,
+                    fillColor: context.colors.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: _ProfileTokens.borderMuted,
+                      borderSide: BorderSide(
+                        color: context.colors.surfaceOverlay,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: _ProfileTokens.borderMuted,
+                      borderSide: BorderSide(
+                        color: context.colors.surfaceOverlay,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: _ProfileTokens.accent,
+                      borderSide: BorderSide(
+                        color: context.colors.primaryDim,
                         width: 2,
                       ),
                     ),
@@ -554,9 +492,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
+                child: Text(
                   'Cancel',
-                  style: TextStyle(color: _ProfileTokens.textSecondary),
+                  style: TextStyle(color: context.colors.textSecondary),
                 ),
               ),
               TextButton(
@@ -567,10 +505,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     (error) => errorText = error,
                   );
                 },
-                child: const Text(
+                child: Text(
                   'Add',
                   style: TextStyle(
-                    color: _ProfileTokens.accent,
+                    color: context.colors.primaryDim,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -638,28 +576,28 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: _ProfileTokens.surfaceDark,
-        title: const Text(
+        backgroundColor: context.colors.surface,
+        title: Text(
           'Delete Role',
-          style: TextStyle(color: _ProfileTokens.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
         ),
         content: Text(
           'Remove "$roleLabel" from your roles?',
-          style: const TextStyle(color: _ProfileTokens.textSecondary),
+          style: TextStyle(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: _ProfileTokens.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: _ProfileTokens.accent),
+              style: TextStyle(color: context.colors.primaryDim),
             ),
           ),
         ],
@@ -706,13 +644,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       }
 
       // Also update global roles in users table for backward compatibility
-      await supabase
-          .from('users')
-          .update({
-            'roles': _selectedRoles.toList(),
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', userId);
+      await supabase.from('users').update({
+        'roles': _selectedRoles.toList(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
 
       // Update originals to reflect saved state (prevents dirty state issues)
       _originalRoles = Set.from(_selectedRoles);
@@ -924,18 +859,22 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _ProfileTokens.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: context.colors.appBarBg,
         title: Text(
           widget.isGated ? 'Complete Your Profile' : 'My Profile',
-          style: _ProfileTokens.titleStyle,
+          style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w600, height: 1.25)
+              .copyWith(
+            color: context.colors.textPrimary,
+          ),
         ),
         automaticallyImplyLeading: false,
         leading: widget.isGated
             ? null
             : IconButton(
-                icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
+                icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
                 onPressed: () => Navigator.of(context).pop(),
               ),
       ),
@@ -945,8 +884,8 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: _ProfileTokens.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.primaryDim),
       );
     }
 
@@ -959,14 +898,22 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             children: [
               const Icon(AppIcons.error, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Error loading profile',
-                style: _ProfileTokens.titleStyle,
+                style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w600, height: 1.25)
+                    .copyWith(
+                  color: context.colors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 _loadError!,
-                style: _ProfileTokens.subtitleStyle,
+                style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w400, height: 1.4)
+                    .copyWith(
+                  color: context.colors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -996,7 +943,13 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     widget.isGated
                         ? 'Please complete your profile to continue'
                         : 'Update your personal information',
-                    style: _ProfileTokens.subtitleStyle,
+                    style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            height: 1.4)
+                        .copyWith(
+                      color: context.colors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -1093,12 +1046,16 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         RichText(
           text: TextSpan(
             text: label,
-            style: _ProfileTokens.labelStyle,
+            style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                .copyWith(
+              color: context.colors.textPrimary,
+            ),
             children: isRequired
                 ? [
-                    const TextSpan(
+                    TextSpan(
                       text: ' *',
-                      style: TextStyle(color: _ProfileTokens.accent),
+                      style: TextStyle(color: context.colors.primaryDim),
                     ),
                   ]
                 : null,
@@ -1109,13 +1066,12 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          style: const TextStyle(color: _ProfileTokens.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
           onChanged: (value) {
             setState(() {}); // Trigger dirty check
             onChanged?.call(value);
           },
-          validator:
-              customValidator ??
+          validator: customValidator ??
               (isRequired
                   ? (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -1126,26 +1082,26 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   : null),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: _ProfileTokens.textMuted),
+            hintStyle: TextStyle(color: context.colors.textMuted),
             errorText: errorText,
             filled: true,
-            fillColor: _ProfileTokens.surfaceDark,
+            fillColor: context.colors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _ProfileTokens.borderMuted),
+              borderSide: BorderSide(color: context.colors.surfaceOverlay),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: _ProfileTokens.borderMuted),
+              borderSide: BorderSide(color: context.colors.surfaceOverlay),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: _ProfileTokens.accent,
+              borderSide: BorderSide(
+                color: context.colors.primaryDim,
                 width: 2,
               ),
             ),
@@ -1179,13 +1135,20 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            const Text('Birthday', style: _ProfileTokens.labelStyle),
+            Text('Birthday',
+                style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                    .copyWith(
+                  color: context.colors.textPrimary,
+                )),
             if (selectedBirthdayLabel != null) ...[
               const SizedBox(width: 8),
               Text(
                 selectedBirthdayLabel,
-                style: _ProfileTokens.labelStyle.copyWith(
-                  color: _ProfileTokens.accent,
+                style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                    .copyWith(
+                  color: context.colors.primaryDim,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1195,7 +1158,12 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         const SizedBox(height: 16),
 
         // Month subsection
-        const Text('Month', style: _ProfileTokens.smallLabelStyle),
+        Text('Month',
+            style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w500, height: 1.4)
+                .copyWith(
+              color: context.colors.textSecondary,
+            )),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1212,13 +1180,18 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         const SizedBox(height: 16),
 
         // Day subsection
-        const Text('Day', style: _ProfileTokens.smallLabelStyle),
+        Text('Day',
+            style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w500, height: 1.4)
+                .copyWith(
+              color: context.colors.textSecondary,
+            )),
         const SizedBox(height: 8),
         _selectedMonth == null
-            ? const Text(
+            ? Text(
                 'Select a month first',
                 style: TextStyle(
-                  color: _ProfileTokens.textMuted,
+                  color: context.colors.textMuted,
                   fontStyle: FontStyle.italic,
                 ),
               )
@@ -1302,15 +1275,25 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Role in Band', style: _ProfileTokens.labelStyle),
+        Text('Role in Band',
+            style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                .copyWith(
+              color: context.colors.textPrimary,
+            )),
 
         // Band selector row - only shown in multi-band mode
         if (_isMultiBandMode) ...[
           const SizedBox(height: 12),
-          const Text('Select Band', style: _ProfileTokens.smallLabelStyle),
+          Text('Select Band',
+              style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w500, height: 1.4)
+                  .copyWith(
+                color: context.colors.textSecondary,
+              )),
           const SizedBox(height: 8),
           SizedBox(
-            height: _ProfileTokens.pillHeight,
+            height: 36.0,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -1334,15 +1317,14 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         const SizedBox(height: 12),
         // Single horizontal scrollable row (no wrapping)
         SizedBox(
-          height: _ProfileTokens.pillHeight,
+          height: 36.0,
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children:
-                  allRolePills
-                      .expand((widget) => [widget, const SizedBox(width: 8)])
-                      .toList()
-                    ..removeLast(), // Remove trailing spacer
+              children: allRolePills
+                  .expand((widget) => [widget, const SizedBox(width: 8)])
+                  .toList()
+                ..removeLast(), // Remove trailing spacer
             ),
           ),
         ),
@@ -1353,9 +1335,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: _ProfileTokens.background,
-        border: Border(top: BorderSide(color: _ProfileTokens.borderMuted)),
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        border: Border(top: BorderSide(color: context.colors.surfaceOverlay)),
       ),
       child: SafeArea(
         top: false,
@@ -1374,12 +1356,12 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: _ProfileTokens.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -1394,12 +1376,12 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Skip for now',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: _ProfileTokens.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -1423,11 +1405,11 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             // Helper text for gated mode - inform users they can complete profile later
             if (widget.isGated) ...[
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'You can complete your profile later in the menu.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: _ProfileTokens.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1494,17 +1476,17 @@ class _MonthPillState extends State<_MonthPill>
         scale: _scaleAnimation,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: _ProfileTokens.pillHeight,
+          height: 36.0,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? _ProfileTokens.accent
+                ? context.colors.primaryDim
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(_ProfileTokens.pillRadius),
+            borderRadius: BorderRadius.circular(18.0),
             border: Border.all(
               color: widget.isSelected
-                  ? _ProfileTokens.accent
-                  : _ProfileTokens.borderMuted,
+                  ? context.colors.primaryDim
+                  : context.colors.surfaceOverlay,
             ),
           ),
           child: Align(
@@ -1512,10 +1494,12 @@ class _MonthPillState extends State<_MonthPill>
             widthFactor: 1.0,
             child: Text(
               widget.label,
-              style: _ProfileTokens.pillTextStyle.copyWith(
+              style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500, height: 1.2)
+                  .copyWith(
                 color: widget.isSelected
                     ? Colors.white
-                    : _ProfileTokens.textSecondary,
+                    : context.colors.textSecondary,
               ),
             ),
           ),
@@ -1580,26 +1564,28 @@ class _DayCircleState extends State<_DayCircle>
         scale: _scaleAnimation,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          width: _ProfileTokens.dayCircleSize,
-          height: _ProfileTokens.dayCircleSize,
+          width: 40.0,
+          height: 40.0,
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? _ProfileTokens.accent
+                ? context.colors.primaryDim
                 : Colors.transparent,
             shape: BoxShape.circle,
             border: Border.all(
               color: widget.isSelected
-                  ? _ProfileTokens.accent
-                  : _ProfileTokens.borderMuted,
+                  ? context.colors.primaryDim
+                  : context.colors.surfaceOverlay,
             ),
           ),
           child: Center(
             child: Text(
               widget.day.toString(),
-              style: _ProfileTokens.dayTextStyle.copyWith(
+              style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500, height: 1.2)
+                  .copyWith(
                 color: widget.isSelected
                     ? Colors.white
-                    : _ProfileTokens.textSecondary,
+                    : context.colors.textSecondary,
               ),
             ),
           ),
@@ -1675,9 +1661,9 @@ class _RolePillState extends State<_RolePill>
     } else if (isCustomRole) {
       borderColor = const Color(0xFF6366F1); // Indigo for custom roles
     } else if (widget.isSelected) {
-      borderColor = _ProfileTokens.accent;
+      borderColor = context.colors.primaryDim;
     } else {
-      borderColor = _ProfileTokens.borderMuted;
+      borderColor = context.colors.surfaceOverlay;
     }
 
     // Determine text color
@@ -1687,7 +1673,7 @@ class _RolePillState extends State<_RolePill>
     } else if (widget.isSelected) {
       textColor = Colors.white;
     } else {
-      textColor = _ProfileTokens.textSecondary;
+      textColor = context.colors.textSecondary;
     }
 
     // Determine background color
@@ -1695,7 +1681,7 @@ class _RolePillState extends State<_RolePill>
     if (isRemoveButton && widget.isSelected) {
       bgColor = rose600; // Filled rose when in delete mode
     } else if (widget.isSelected && !isAddButton) {
-      bgColor = _ProfileTokens.accent;
+      bgColor = context.colors.primaryDim;
     } else {
       bgColor = Colors.transparent;
     }
@@ -1711,11 +1697,11 @@ class _RolePillState extends State<_RolePill>
         scale: _scaleAnimation,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: _ProfileTokens.pillHeight,
+          height: 36.0,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(_ProfileTokens.pillRadius),
+            borderRadius: BorderRadius.circular(18.0),
             border: Border.all(color: borderColor),
           ),
           child: Center(
@@ -1729,7 +1715,11 @@ class _RolePillState extends State<_RolePill>
                 ],
                 Text(
                   widget.label,
-                  style: _ProfileTokens.pillTextStyle.copyWith(
+                  style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 1.2)
+                      .copyWith(
                     color: textColor,
                   ),
                 ),
@@ -1801,21 +1791,22 @@ class _BandPillState extends State<_BandPill>
         scale: _scaleAnimation,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          height: _ProfileTokens.pillHeight,
+          height: 36.0,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: widget.isSelected ? rose600 : Colors.transparent,
-            borderRadius: BorderRadius.circular(_ProfileTokens.pillRadius),
+            borderRadius: BorderRadius.circular(18.0),
             border: Border.all(color: rose600, width: 1),
           ),
           child: Center(
             child: Text(
               widget.label,
-              style: _ProfileTokens.pillTextStyle.copyWith(
+              style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500, height: 1.2)
+                  .copyWith(
                 color: widget.isSelected ? Colors.white : rose600,
-                fontWeight: widget.isSelected
-                    ? FontWeight.w600
-                    : FontWeight.w500,
+                fontWeight:
+                    widget.isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ),

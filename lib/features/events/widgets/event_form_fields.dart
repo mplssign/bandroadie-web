@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../setlists/models/setlist.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
@@ -98,17 +99,17 @@ class EventFormFields extends ConsumerWidget {
         ],
 
         // Date Picker
-        _buildDatePicker(),
+        _buildDatePicker(context),
 
         const SizedBox(height: Spacing.space16),
 
         // Start Time Selectors
-        _buildTimeSelector(),
+        _buildTimeSelector(context),
 
         const SizedBox(height: Spacing.space16),
 
         // Duration Selector
-        _buildDurationSelector(),
+        _buildDurationSelector(context),
 
         const SizedBox(height: Spacing.space16),
       ],
@@ -151,7 +152,7 @@ class EventFormFields extends ConsumerWidget {
   // Date Picker
   // ---------------------------------------------------------------------------
 
-  Widget _buildDatePicker() {
+  Widget _buildDatePicker(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -160,7 +161,7 @@ class EventFormFields extends ConsumerWidget {
             Text(
               'Date',
               style: AppTextStyles.footnote.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -168,6 +169,7 @@ class EventFormFields extends ConsumerWidget {
         const SizedBox(height: 6),
         // Primary date picker
         _buildSingleDatePicker(
+          context: context,
           date: selectedDate,
           onTap: isSaving ? null : onDateTap,
           showRemoveButton: false,
@@ -177,6 +179,7 @@ class EventFormFields extends ConsumerWidget {
           for (int i = 0; i < additionalDates.length; i++) ...[
             const SizedBox(height: 8),
             _buildSingleDatePicker(
+              context: context,
               date: additionalDates[i],
               onTap: isSaving ? null : () => onAdditionalDateTap(i),
               showRemoveButton: true,
@@ -196,22 +199,22 @@ class EventFormFields extends ConsumerWidget {
                 vertical: 12,
               ),
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                 border: Border.all(
-                  color: AppColors.borderMuted,
+                  color: context.colors.border,
                   style: BorderStyle.solid,
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(AppIcons.add, size: 18, color: AppColors.accent),
+                  Icon(AppIcons.add, size: 18, color: AppColors.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Add another date',
                     style: AppTextStyles.callout.copyWith(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                     ),
                   ),
                 ],
@@ -224,6 +227,7 @@ class EventFormFields extends ConsumerWidget {
   }
 
   Widget _buildSingleDatePicker({
+    required BuildContext context,
     required DateTime date,
     required VoidCallback? onTap,
     required bool showRemoveButton,
@@ -239,22 +243,22 @@ class EventFormFields extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: AppColors.borderMuted),
+                border: Border.all(color: context.colors.border),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     AppIcons.calendar,
                     size: 18,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                   const SizedBox(width: 10),
                   Text(
                     _formatDateDisplay(date),
                     style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                 ],
@@ -271,14 +275,14 @@ class EventFormFields extends ConsumerWidget {
                 width: 36,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
+                  color: context.colors.background,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderMuted),
+                  border: Border.all(color: context.colors.border),
                 ),
-                child: const Icon(
+                child: Icon(
                   AppIcons.remove,
                   size: 20,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ),
@@ -290,14 +294,14 @@ class EventFormFields extends ConsumerWidget {
                 width: 36,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
+                  color: context.colors.background,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.borderMuted),
+                  border: Border.all(color: context.colors.border),
                 ),
                 child: const Icon(
                   AppIcons.add,
                   size: 20,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                 ),
               ),
             ),
@@ -310,14 +314,14 @@ class EventFormFields extends ConsumerWidget {
   // Time Selector
   // ---------------------------------------------------------------------------
 
-  Widget _buildTimeSelector() {
+  Widget _buildTimeSelector(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Start Time',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -349,7 +353,7 @@ class EventFormFields extends ConsumerWidget {
             const SizedBox(width: 8),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               padding: const EdgeInsets.all(4),
@@ -381,9 +385,9 @@ class EventFormFields extends ConsumerWidget {
   // Duration Selector
   // ---------------------------------------------------------------------------
 
-  Widget _buildDurationSelector() {
+  Widget _buildDurationSelector(BuildContext context) {
     const minDuration = 15;
-    const rose700 = AppColors.primaryDim;
+    const roseColor = AppColors.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +395,7 @@ class EventFormFields extends ConsumerWidget {
         Text(
           'Duration',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -409,8 +413,8 @@ class EventFormFields extends ConsumerWidget {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: durationMinutes <= minDuration
-                        ? rose700.withValues(alpha: 0.4)
-                        : rose700,
+                        ? roseColor.withValues(alpha: 0.4)
+                        : roseColor,
                     width: 2,
                   ),
                 ),
@@ -421,8 +425,8 @@ class EventFormFields extends ConsumerWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: durationMinutes <= minDuration
-                          ? rose700.withValues(alpha: 0.4)
-                          : rose700,
+                          ? roseColor.withValues(alpha: 0.4)
+                          : roseColor,
                     ),
                   ),
                 ),
@@ -433,10 +437,10 @@ class EventFormFields extends ConsumerWidget {
               child: Center(
                 child: Text(
                   _formatDurationMinutes(durationMinutes),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -448,7 +452,7 @@ class EventFormFields extends ConsumerWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: rose700, width: 2),
+                  border: Border.all(color: roseColor, width: 2),
                 ),
                 child: Center(
                   child: Text(
@@ -456,7 +460,7 @@ class EventFormFields extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: rose700,
+                      color: roseColor,
                     ),
                   ),
                 ),
@@ -474,7 +478,7 @@ class EventFormFields extends ConsumerWidget {
 
   /// Builds the setlist selector. Called by parent build method as a separate
   /// section below the main EventFormFields.build() output.
-  Widget buildSetlistSelector(WidgetRef ref) {
+  Widget buildSetlistSelector(BuildContext context, WidgetRef ref) {
     final setlistsState = ref.watch(setlistsProvider);
     final setlists = setlistsState.setlists;
     final isLoading = setlistsState.isLoading;
@@ -489,7 +493,7 @@ class EventFormFields extends ConsumerWidget {
         Text(
           'Setlist',
           style: AppTextStyles.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: 6),
@@ -508,7 +512,7 @@ class EventFormFields extends ConsumerWidget {
                 Text(
                   'Setting up the stage...',
                   style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                 ),
               ],
@@ -531,6 +535,7 @@ class EventFormFields extends ConsumerWidget {
               child: Row(
                 children: [
                   _buildSetlistPill(
+                    context: context,
                     id: null,
                     name: 'None',
                     isSelected: selectedSetlistId == null,
@@ -542,7 +547,7 @@ class EventFormFields extends ConsumerWidget {
                       child: Text(
                         '+ Create Setlist',
                         style: AppTextStyles.footnote.copyWith(
-                          color: AppColors.accent,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -552,6 +557,7 @@ class EventFormFields extends ConsumerWidget {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _buildSetlistPill(
+                          context: context,
                           id: setlist.id,
                           name: setlist.name,
                           isSelected: selectedSetlistId == setlist.id,
@@ -568,6 +574,7 @@ class EventFormFields extends ConsumerWidget {
   }
 
   Widget _buildSetlistPill({
+    required BuildContext context,
     required String? id,
     required String name,
     required bool isSelected,
@@ -584,10 +591,10 @@ class EventFormFields extends ConsumerWidget {
         duration: AppDurations.fast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
+          color: isSelected ? AppColors.primary : context.colors.background,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(
-            color: isSelected ? AppColors.accent : AppColors.borderMuted,
+            color: isSelected ? AppColors.primary : context.colors.border,
           ),
         ),
         child: Row(
@@ -597,18 +604,14 @@ class EventFormFields extends ConsumerWidget {
               Icon(
                 AppIcons.library,
                 size: 14,
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: isSelected ? Colors.white : context.colors.textSecondary,
               ),
               const SizedBox(width: 4),
             ],
             Text(
               name,
               style: AppTextStyles.footnote.copyWith(
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: isSelected ? Colors.white : context.colors.textSecondary,
               ),
             ),
           ],

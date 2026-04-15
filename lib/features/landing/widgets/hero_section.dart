@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/widgets/responsive.dart';
 
 /// Hero section with app name, tagline, and CTAs
@@ -31,7 +32,7 @@ class _HeroMobile extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.scaffoldBg,
+            context.colors.background,
             const Color(0xFF1a0a14),
             const Color(0xFF1a0505),
           ],
@@ -118,7 +119,7 @@ class _HeroDesktop extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.scaffoldBg,
+            context.colors.background,
             const Color(0xFF1a0a14),
             const Color(0xFF1a0505),
           ],
@@ -219,7 +220,7 @@ class _HeroDesktop extends StatelessWidget {
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 60,
                           spreadRadius: 10,
                         ),

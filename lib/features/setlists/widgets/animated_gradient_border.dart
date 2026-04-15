@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // ANIMATED GRADIENT BORDER
@@ -72,7 +73,7 @@ class AnimatedGradientBorder extends StatefulWidget {
   /// Gradient colors. Defaults to [AppColors.setlistGradientColors].
   final List<Color>? gradientColors;
 
-  /// Background color for the inner area. Defaults to [AppColors.scaffoldBg].
+  /// Background color for the inner area. Defaults to [context.colors.background].
   final Color? backgroundColor;
 
   const AnimatedGradientBorder({
@@ -120,7 +121,7 @@ class _AnimatedGradientBorderState extends State<AnimatedGradientBorder>
   @override
   Widget build(BuildContext context) {
     final colors = widget.gradientColors ?? AppColors.setlistGradientColors;
-    final bgColor = widget.backgroundColor ?? AppColors.scaffoldBg;
+    final bgColor = widget.backgroundColor ?? context.colors.background;
 
     return AnimatedBuilder(
       animation: _controller,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // RESTRICTED TAB CONTENT
@@ -70,7 +71,7 @@ class _RestrictedTabContentState extends State<RestrictedTabContent>
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.scaffoldBg,
+      color: context.colors.background,
       child: SafeArea(
         child: Center(
           child: Padding(

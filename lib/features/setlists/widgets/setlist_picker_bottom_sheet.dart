@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist.dart';
 import '../setlists_screen.dart' show setlistsProvider;
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -223,7 +224,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
           ),
           child: Column(
@@ -255,7 +256,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppColors.textSecondary.withValues(alpha: 0.2),
+            color: context.colors.textSecondary.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -273,7 +274,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                 Text(
                   'Adding $songsText',
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -282,9 +283,9 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
           // Close button
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
+            icon: Icon(
               AppIcons.close,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ],
@@ -308,7 +309,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
         // Divider
         if (setlists.isNotEmpty)
           Divider(
-            color: AppColors.textSecondary.withValues(alpha: 0.2),
+            color: context.colors.textSecondary.withValues(alpha: 0.2),
             height: 1,
           ),
 
@@ -321,20 +322,20 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                 Icon(
                   AppIcons.setlists,
                   size: 48,
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 const SizedBox(height: Spacing.space12),
                 Text(
                   'No setlists yet',
                   style: AppTextStyles.headline.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space8),
                 Text(
                   'Create one to add your songs!',
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -377,30 +378,30 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             controller: _newNameController,
             focusNode: _newNameFocus,
             autofocus: true,
-            style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
               hintText: 'Setlist name',
               hintStyle: AppTextStyles.body.copyWith(
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
               errorText: _validationError,
               filled: true,
-              fillColor: AppColors.scaffoldBg,
+              fillColor: context.colors.background,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                 borderSide: BorderSide(
-                  color: AppColors.textSecondary.withValues(alpha: 0.3),
+                  color: context.colors.textSecondary.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: AppColors.accent, width: 1.5),
+                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -432,7 +433,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                   onPressed: _handleCancelCreate,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      color: context.colors.textSecondary.withValues(alpha: 0.5),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -442,7 +443,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                   child: Text(
                     'Cancel',
                     style: AppTextStyles.button.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -455,7 +456,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                 child: FilledButton(
                   onPressed: _handleConfirmCreate,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -516,14 +517,14 @@ class _SetlistOptionTile extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: isCreateNew
-                      ? AppColors.accent.withValues(alpha: 0.15)
-                      : AppColors.scaffoldBg,
+                      ? AppColors.primary.withValues(alpha: 0.15)
+                      : context.colors.background,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   icon,
                   size: 22,
-                  color: isCreateNew ? AppColors.accent : AppColors.textPrimary,
+                  color: isCreateNew ? AppColors.primary : context.colors.textPrimary,
                 ),
               ),
 
@@ -538,15 +539,15 @@ class _SetlistOptionTile extends StatelessWidget {
                       title,
                       style: AppTextStyles.headline.copyWith(
                         color: isCreateNew
-                            ? AppColors.accent
-                            : AppColors.textPrimary,
+                            ? AppColors.primary
+                            : context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
                       style: AppTextStyles.footnote.copyWith(
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -557,7 +558,7 @@ class _SetlistOptionTile extends StatelessWidget {
               Icon(
                 AppIcons.forward,
                 size: 20,
-                color: AppColors.textSecondary.withValues(alpha: 0.6),
+                color: context.colors.textSecondary.withValues(alpha: 0.6),
               ),
             ],
           ),

@@ -23,6 +23,7 @@ import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/utils/timezone_helper.dart';
 
 Future<void> main() async {
@@ -215,7 +216,7 @@ class ConfigErrorApp extends StatelessWidget {
       themeMode: ThemeMode.dark,
       darkTheme: AppTheme.darkTheme,
       home: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: BrandColors.dark.background,
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -247,26 +248,27 @@ class ConfigErrorApp extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'The roadie can\'t find the venue address.\nCheck your .env file or launch config.',
                     textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                    style: TextStyle(
+                        color: BrandColors.dark.textSecondary, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
                   // Technical details
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: BrandColors.dark.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.surfaceOverlay),
+                      border:
+                          Border.all(color: BrandColors.dark.surfaceOverlay),
                     ),
                     child: SingleChildScrollView(
                       child: Text(
                         errorMessage,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: BrandColors.dark.textSecondary,
                           fontSize: 11,
                           fontFamily: 'monospace',
                         ),

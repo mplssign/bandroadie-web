@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import 'bug_report_email_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -111,12 +112,12 @@ $_fallbackReportText
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: context.colors.appBarBg,
         title: Text('Report Bugs', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -141,7 +142,7 @@ $_fallbackReportText
               Text(
                 'Type',
                 style: AppTextStyles.footnote.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: Spacing.space12),
@@ -175,7 +176,7 @@ $_fallbackReportText
               Text(
                 'Description',
                 style: AppTextStyles.footnote.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: Spacing.space8),
@@ -189,21 +190,21 @@ $_fallbackReportText
                   hintText: _selectedType == _FeedbackType.bug
                       ? 'What happened? What did you expect to happen? Steps to reproduce...'
                       : 'Describe the feature and how it would help you...',
-                  hintStyle: TextStyle(color: AppColors.textMuted),
+                  hintStyle: TextStyle(color: context.colors.textMuted),
                   filled: true,
-                  fillColor: AppColors.surfaceDark,
+                  fillColor: context.colors.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.borderMuted),
+                    borderSide: BorderSide(color: context.colors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.borderMuted),
+                    borderSide: BorderSide(color: context.colors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     borderSide: const BorderSide(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       width: 2,
                     ),
                   ),
@@ -227,7 +228,7 @@ $_fallbackReportText
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitFeedback,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       vertical: Spacing.space16,
@@ -235,7 +236,7 @@ $_fallbackReportText
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     ),
-                    disabledBackgroundColor: AppColors.accent.withValues(
+                    disabledBackgroundColor: AppColors.primary.withValues(
                       alpha: 0.5,
                     ),
                   ),
@@ -267,7 +268,7 @@ $_fallbackReportText
                 child: Text(
                   'We read every submission and appreciate your feedback!',
                   style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -307,18 +308,18 @@ class _FallbackCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.15),
+        color: context.colors.warning.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: AppColors.warning, width: 1),
+        border: Border.all(color: context.colors.warning, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 AppIcons.warning,
-                color: AppColors.warning,
+                color: context.colors.warning,
                 size: 20,
               ),
               const SizedBox(width: Spacing.space8),
@@ -326,16 +327,16 @@ class _FallbackCard extends StatelessWidget {
                 child: Text(
                   errorMessage,
                   style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.warning,
+                    color: context.colors.warning,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               GestureDetector(
                 onTap: onDismiss,
-                child: const Icon(
+                child: Icon(
                   AppIcons.close,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   size: 18,
                 ),
               ),
@@ -345,7 +346,7 @@ class _FallbackCard extends StatelessWidget {
           Text(
             'No worries! Copy your report below and email it to us at ${BugReportEmailService.recipientEmail}',
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: Spacing.space12),
@@ -356,8 +357,8 @@ class _FallbackCard extends StatelessWidget {
               icon: const Icon(AppIcons.copy, size: 18),
               label: const Text('Copy Report'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.accent,
-                side: const BorderSide(color: AppColors.accent),
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
                 padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -399,11 +400,11 @@ class _TypeChip extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.accent.withValues(alpha: 0.15)
-              : AppColors.surfaceDark,
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : context.colors.surface,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(
-            color: isSelected ? AppColors.accent : AppColors.borderMuted,
+            color: isSelected ? AppColors.primary : context.colors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -413,13 +414,16 @@ class _TypeChip extends StatelessWidget {
             Icon(
               icon,
               size: 20,
-              color: isSelected ? AppColors.accent : AppColors.textSecondary,
+              color:
+                  isSelected ? AppColors.primary : context.colors.textSecondary,
             ),
             const SizedBox(width: Spacing.space8),
             Text(
               label,
               style: AppTextStyles.footnote.copyWith(
-                color: isSelected ? AppColors.accent : AppColors.textSecondary,
+                color: isSelected
+                    ? AppColors.primary
+                    : context.colors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),

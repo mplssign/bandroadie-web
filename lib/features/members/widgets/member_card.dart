@@ -5,6 +5,7 @@ import '../../../app/utils/phone_formatter.dart';
 import '../member_vm.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // MEMBER CARD
@@ -17,10 +18,7 @@ class _MemberCardTokens {
   _MemberCardTokens._();
 
   // Colors
-  static const Color cardBackground = AppColors.background;
   static const Color borderRose = AppColors.primary; // rose-500
-  static const Color textPrimary = AppColors.textPrimary;
-  static const Color textSecondary = AppColors.textSecondary;
   static const Color iconRose = AppColors.primary;
 
   // Sizing
@@ -38,7 +36,6 @@ class _MemberCardTokens {
   static const TextStyle nameStyle = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.w700,
-    color: textPrimary,
     height: 1.2,
   );
 
@@ -52,14 +49,12 @@ class _MemberCardTokens {
   static const TextStyle contactLabelStyle = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    color: textPrimary,
     height: 1.3,
   );
 
   static const TextStyle contactValueStyle = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,
-    color: textPrimary,
     height: 1.3,
   );
 }
@@ -88,7 +83,7 @@ class _MemberCardState extends State<MemberCard> {
     // No card-level tap handler - contact rows handle their own taps (phone, email)
     return Container(
       decoration: BoxDecoration(
-        color: _MemberCardTokens.cardBackground,
+        color: context.colors.background,
         borderRadius: BorderRadius.circular(_MemberCardTokens.cardRadius),
         border: Border.all(
           color: _MemberCardTokens.borderRose,
@@ -139,7 +134,9 @@ class _MemberCardState extends State<MemberCard> {
                       Expanded(
                         child: Text(
                           widget.member.name,
-                          style: _MemberCardTokens.nameStyle,
+                          style: _MemberCardTokens.nameStyle.copyWith(
+                            color: context.colors.textPrimary,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -338,18 +335,24 @@ class _MemberCardState extends State<MemberCard> {
                         children: [
                           TextSpan(
                             text: '$label ',
-                            style: _MemberCardTokens.contactLabelStyle,
+                            style: _MemberCardTokens.contactLabelStyle.copyWith(
+                              color: context.colors.textPrimary,
+                            ),
                           ),
                           TextSpan(
                             text: value,
-                            style: _MemberCardTokens.contactValueStyle,
+                            style: _MemberCardTokens.contactValueStyle.copyWith(
+                              color: context.colors.textPrimary,
+                            ),
                           ),
                         ],
                       ),
                     )
                   : Text(
                       value,
-                      style: _MemberCardTokens.contactValueStyle,
+                      style: _MemberCardTokens.contactValueStyle.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -363,9 +366,9 @@ class _MemberCardState extends State<MemberCard> {
   /// Direct admin action button — single tap opens RoleManagementSheet
   Widget _buildAdminButton() {
     return IconButton(
-      icon: const Icon(
+      icon: Icon(
         Icons.more_vert,
-        color: _MemberCardTokens.textSecondary,
+        color: context.colors.textSecondary,
         size: 20,
       ),
       onPressed: () => widget.onManageRole?.call(),

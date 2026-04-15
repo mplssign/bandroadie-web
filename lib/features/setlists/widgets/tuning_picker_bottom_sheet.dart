@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
 import 'custom_tuning_modal.dart';
@@ -398,24 +399,24 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
         title: Text(
           'Delete Custom Tuning?',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
         ),
         content: Text(
           'Are you sure you want to delete "${option.name}"? This cannot be undone.',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
             ),
           ),
           TextButton(
@@ -509,7 +510,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         builder: (context, scrollController) {
           return Container(
             decoration: BoxDecoration(
-              color: AppColors.surfaceDark,
+              color: context.colors.surface,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(Spacing.cardRadius),
               ),
@@ -524,8 +525,8 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                 _buildHeader(),
 
                 // Divider
-                const Divider(
-                  color: AppColors.borderMuted,
+                Divider(
+                  color: context.colors.border,
                   height: 1,
                   thickness: 1,
                 ),
@@ -593,7 +594,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         width: 36,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.textMuted.withValues(alpha: 0.5),
+          color: context.colors.textMuted.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -616,9 +617,9 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
             onTap: _handleCancel,
             child: Container(
               padding: const EdgeInsets.all(Spacing.space4),
-              child: const Icon(
+              child: Icon(
                 AppIcons.close,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 size: 24,
               ),
             ),
@@ -638,10 +639,10 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       ),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         ),
       ),
     );
@@ -664,24 +665,24 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
             vertical: Spacing.space16,
           ),
           decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.12),
+            color: AppColors.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(
-              color: AppColors.accent.withValues(alpha: 0.4),
+              color: AppColors.primary.withValues(alpha: 0.4),
               width: 1.5,
             ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(AppIcons.add, color: AppColors.accent, size: 22),
+              Icon(AppIcons.add, color: AppColors.primary, size: 22),
               const SizedBox(width: Spacing.space8),
               Text(
                 'Add Custom Tuning',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   height: 1.3,
                 ),
               ),
@@ -700,12 +701,12 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         Spacing.pagePadding,
         Spacing.space12,
       ),
-      child: const Text(
+      child: Text(
         'Select fret',
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: AppColors.textSecondary,
+          color: context.colors.textSecondary,
           height: 1.3,
         ),
       ),
@@ -749,8 +750,8 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
           height: 48,
           decoration: BoxDecoration(
             color: hasSelection
-                ? AppColors.accent
-                : AppColors.accent.withValues(alpha: 0.3),
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           ),
           alignment: Alignment.center,
@@ -784,12 +785,12 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
           width: double.infinity,
           height: 44,
           alignment: Alignment.center,
-          child: const Text(
+          child: Text(
             'Cancel',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.3,
             ),
           ),
@@ -858,11 +859,11 @@ class _CapoFretButtonState extends State<_CapoFretButton>
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: widget.isSelected ? AppColors.accent : Colors.transparent,
+            color: widget.isSelected ? AppColors.primary : Colors.transparent,
             shape: BoxShape.circle,
             border: Border.all(
               color:
-                  widget.isSelected ? AppColors.accent : AppColors.borderMuted,
+                  widget.isSelected ? AppColors.primary : context.colors.border,
             ),
           ),
           child: Center(
@@ -872,7 +873,7 @@ class _CapoFretButtonState extends State<_CapoFretButton>
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color:
-                    widget.isSelected ? Colors.white : AppColors.textSecondary,
+                    widget.isSelected ? Colors.white : context.colors.textSecondary,
                 height: 1.2,
               ),
             ),
@@ -968,13 +969,13 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
           ),
           decoration: BoxDecoration(
             color: widget.isSelected
-                ? AppColors.accent.withValues(alpha: 0.12)
+                ? AppColors.primary.withValues(alpha: 0.12)
                 : (_isPressed
-                    ? AppColors.scaffoldBg.withValues(alpha: 0.5)
+                    ? context.colors.background.withValues(alpha: 0.5)
                     : Colors.transparent),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: widget.isSelected
-                ? Border.all(color: AppColors.accent, width: 1.5)
+                ? Border.all(color: AppColors.primary, width: 1.5)
                 : null,
           ),
           child: Row(
@@ -1002,8 +1003,8 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: widget.isSelected
-                            ? AppColors.textPrimary
-                            : AppColors.textPrimary,
+                            ? context.colors.textPrimary
+                            : context.colors.textPrimary,
                         height: 1.3,
                       ),
                     ),
@@ -1011,10 +1012,10 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                     // Line 2: String notes
                     Text(
                       widget.option.strings,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                         height: 1.3,
                       ),
                     ),
@@ -1028,7 +1029,7 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                   padding: EdgeInsets.only(left: Spacing.space12),
                   child: Icon(
                     AppIcons.check,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     size: 20,
                   ),
                 ),

@@ -32,11 +32,11 @@ A beautiful, Zenity-inspired marketing landing page with:
 
 ### Option 1: Flutter Web (Chrome) - Recommended
 ```bash
-# Navigate to project directory
-cd /Users/tonyholmes/Documents/Apps/bandroadie
-
-# Run on Chrome with hot reload
-flutter run -d chrome
+# Run on Chrome with hot reload (from project root)
+flutter run -d chrome \
+  --dart-define=SUPABASE_URL=https://nekwjxvgbveheooyorjo.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=your-anon-key-here
+# Or use .vscode/launch.json with dart-define values configured
 ```
 
 **What to expect:**

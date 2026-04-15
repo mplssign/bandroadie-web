@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Features grid section showcasing the 4 main features
@@ -23,7 +24,7 @@ class FeaturesSection extends StatelessWidget {
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
           colors: [
-            AppColors.scaffoldBg,
+            context.colors.background,
             const Color(0xFF1a0505),
             const Color(0xFF1a0a00),
           ],
@@ -43,7 +44,7 @@ class FeaturesSection extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontSize: 18,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           SizedBox(height: isMobile ? 40 : 60),
@@ -149,18 +150,18 @@ class _FeatureCardState extends State<_FeatureCard> {
         constraints: const BoxConstraints(minHeight: 280),
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _isHovered
-                ? AppColors.accent.withValues(alpha: 0.4)
-                : AppColors.borderMuted,
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : context.colors.border,
             width: 1,
           ),
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -176,10 +177,10 @@ class _FeatureCardState extends State<_FeatureCard> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.15),
+                color: AppColors.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(widget.icon, size: 32, color: AppColors.accent),
+              child: Icon(widget.icon, size: 32, color: AppColors.primary),
             ),
             const SizedBox(height: 24),
 
@@ -196,7 +197,7 @@ class _FeatureCardState extends State<_FeatureCard> {
               style: AppTextStyles.callout.copyWith(
                 fontFamily: 'Caveat',
                 fontSize: 20,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
               ),
             ),

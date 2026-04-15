@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../../components/ui/brand_action_button.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../../shared/utils/event_permission_helper.dart';
 import '../../shared/utils/snackbar_helper.dart';
@@ -338,7 +339,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   Widget _buildContent(CalendarState calendarState, BandPermissions? perms) {
     if (calendarState.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -351,7 +352,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
             const SizedBox(height: Spacing.space16),
             Text(
               calendarState.error!,
-              style: AppTextStyles.callout.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.callout.copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: Spacing.space16),
@@ -365,8 +366,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     }
 
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.cardBg,
+      color: AppColors.primary,
+      backgroundColor: context.colors.surface,
       onRefresh: () async {
         ref.invalidate(bandFullStateProvider);
         await ref.read(bandFullStateProvider.future);
@@ -423,7 +424,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
                   child: Text(
                     '+ Subscribe to Calendar',
                     style: TextStyle(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -486,23 +487,23 @@ class _EventsSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(Spacing.space24),
             decoration: BoxDecoration(
-              color: AppColors.cardBgElevated,
+              color: context.colors.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderMuted),
+              border: Border.all(color: context.colors.border),
             ),
             child: Center(
               child: Column(
                 children: [
                   Icon(
                     AppIcons.calendarCheck,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     size: 48,
                   ),
                   const SizedBox(height: Spacing.space12),
                   Text(
                     'No events this month',
                     style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ],

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/services/app_version_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // SIDE DRAWER - FIGMA NODE 27-69 "Menu"
@@ -23,13 +24,8 @@ class _DrawerTokens {
   static const double drawerWidth = 336.0;
   static const double drawerMaxWidth = 400.0;
 
-  // Colors - Figma exact hex values
-  static const Color background = AppColors.background;
-  static const Color divider = AppColors.surface; // gray-800
-  static const Color iconDefault = AppColors.textSecondary;
+  // Colors - non-theme constants
   static const Color iconAccent = AppColors.primary; // rose-500
-  static const Color textPrimary = AppColors.textPrimary; // white
-  static const Color textSecondary = AppColors.textSecondary;
   static const Color pressedBg = Color(0x14FFFFFF); // ~8% white
 
   // Header padding - Figma: pt 12, pr 12, pb 16, pl 24
@@ -74,7 +70,6 @@ class _DrawerTokens {
     fontSize: 18,
     fontWeight: FontWeight.w500,
     height: 1.3,
-    color: textPrimary,
     decoration: TextDecoration.none,
   );
 
@@ -83,7 +78,6 @@ class _DrawerTokens {
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.4,
-    color: textSecondary,
     decoration: TextDecoration.none,
   );
 
@@ -92,7 +86,6 @@ class _DrawerTokens {
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.4,
-    color: textSecondary,
     decoration: TextDecoration.none,
   );
 
@@ -110,7 +103,6 @@ class _DrawerTokens {
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.4,
-    color: textSecondary,
     decoration: TextDecoration.none,
   );
 
@@ -119,7 +111,6 @@ class _DrawerTokens {
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.4,
-    color: textSecondary,
     decoration: TextDecoration.none,
   );
 }
@@ -184,13 +175,13 @@ class _SideDrawerState extends State<SideDrawer>
         curve: const Interval(0, 0.4, curve: Curves.easeOut),
       ),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(0.1, 0), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _staggerController,
-            curve: const Interval(0, 0.4, curve: Curves.easeOutCubic),
-          ),
-        );
+    _headerSlide =
+        Tween<Offset>(begin: const Offset(0.1, 0), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _staggerController,
+        curve: const Interval(0, 0.4, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // User name: 15-55%
     _userNameFade = Tween<double>(begin: 0, end: 1).animate(
@@ -201,11 +192,11 @@ class _SideDrawerState extends State<SideDrawer>
     );
     _userNameSlide =
         Tween<Offset>(begin: const Offset(-0.05, 0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _staggerController,
-            curve: const Interval(0.15, 0.55, curve: Curves.easeOutCubic),
-          ),
-        );
+      CurvedAnimation(
+        parent: _staggerController,
+        curve: const Interval(0.15, 0.55, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // Email: 30-70%
     _userEmailFade = Tween<double>(begin: 0, end: 1).animate(
@@ -216,11 +207,11 @@ class _SideDrawerState extends State<SideDrawer>
     );
     _userEmailSlide =
         Tween<Offset>(begin: const Offset(-0.03, 0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _staggerController,
-            curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
-          ),
-        );
+      CurvedAnimation(
+        parent: _staggerController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
+      ),
+    );
 
     if (widget.isVisible) {
       _staggerController.forward();
@@ -246,7 +237,16 @@ class _SideDrawerState extends State<SideDrawer>
     return Container(
       width: _DrawerTokens.drawerWidth,
       constraints: const BoxConstraints(maxWidth: _DrawerTokens.drawerMaxWidth),
-      color: _DrawerTokens.background,
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(4, 0),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -263,28 +263,28 @@ class _SideDrawerState extends State<SideDrawer>
           const DrawerSectionDivider(),
           DrawerNavItem(
             icon: AppIcons.user,
-            iconColor: _DrawerTokens.iconDefault,
+            iconColor: context.colors.textSecondary,
             label: 'My Profile',
             onTap: widget.onProfileTap,
           ),
           const DrawerSectionDivider(),
           DrawerNavItem(
             icon: AppIcons.settings,
-            iconColor: _DrawerTokens.iconDefault,
+            iconColor: context.colors.textSecondary,
             label: 'Settings',
             onTap: widget.onSettingsTap,
           ),
           const DrawerSectionDivider(),
           DrawerNavItem(
             icon: Icons.lightbulb_outline_rounded,
-            iconColor: _DrawerTokens.iconDefault,
+            iconColor: context.colors.textSecondary,
             label: 'Tips & Tricks',
             onTap: widget.onTipsAndTricksTap,
           ),
           const DrawerSectionDivider(),
           DrawerNavItem(
             icon: AppIcons.bug,
-            iconColor: _DrawerTokens.iconDefault,
+            iconColor: context.colors.textSecondary,
             label: 'Report Bugs',
             onTap: widget.onReportBugsTap,
           ),
@@ -349,7 +349,9 @@ class _SideDrawerState extends State<SideDrawer>
               position: _userNameSlide,
               child: Text(
                 widget.userName,
-                style: _DrawerTokens.nameStyle,
+                style: _DrawerTokens.nameStyle.copyWith(
+                  color: context.colors.textPrimary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -363,7 +365,9 @@ class _SideDrawerState extends State<SideDrawer>
               position: _userEmailSlide,
               child: Text(
                 widget.userEmail,
-                style: _DrawerTokens.emailStyle,
+                style: _DrawerTokens.emailStyle.copyWith(
+                  color: context.colors.textSecondary,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -383,29 +387,34 @@ class _SideDrawerState extends State<SideDrawer>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('BandRoadie', style: _DrawerTokens.footerAppNameStyle),
+            Text('BandRoadie',
+                style: _DrawerTokens.footerAppNameStyle.copyWith(
+                  color: context.colors.textSecondary,
+                )),
             const SizedBox(height: 2),
             GestureDetector(
               onTap: () => launchUrl(
                 Uri.parse('https://bandroadie.com/privacy'),
                 mode: LaunchMode.externalApplication,
               ),
-              child: const Text(
+              child: Text(
                 'Privacy Policy',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   height: 1.4,
-                  color: _DrawerTokens.textSecondary,
+                  color: context.colors.textSecondary,
                   decoration: TextDecoration.underline,
-                  decorationColor: _DrawerTokens.textSecondary,
+                  decorationColor: context.colors.textSecondary,
                 ),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               widget.appVersion ?? AppVersionService.displayVersion,
-              style: _DrawerTokens.footerVersionStyle,
+              style: _DrawerTokens.footerVersionStyle.copyWith(
+                color: context.colors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -496,9 +505,9 @@ class _CloseButtonState extends State<_CloseButton>
                         ? _DrawerTokens.pressedBg
                         : Colors.transparent,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     AppIcons.close,
-                    color: _DrawerTokens.iconDefault,
+                    color: context.colors.textSecondary,
                     size: _DrawerTokens.closeIconSize,
                   ),
                 ),
@@ -645,7 +654,10 @@ class _DrawerNavItemState extends State<DrawerNavItem>
               Expanded(
                 child: Text(
                   widget.label,
-                  style: widget.labelStyle ?? _DrawerTokens.navItemStyle,
+                  style: widget.labelStyle ??
+                      _DrawerTokens.navItemStyle.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
                 ),
               ),
             ],
@@ -670,7 +682,7 @@ class DrawerSectionDivider extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: 1,
-      color: _DrawerTokens.divider,
+      color: context.colors.surface,
     );
   }
 }
@@ -739,12 +751,12 @@ class _DrawerOverlayState extends State<DrawerOverlay>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: _openCurve,
-            reverseCurve: _closeCurve,
-          ),
-        );
+      CurvedAnimation(
+        parent: _controller,
+        curve: _openCurve,
+        reverseCurve: _closeCurve,
+      ),
+    );
 
     _scrimAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
@@ -942,12 +954,12 @@ class _DrawerOverlayContentState extends State<DrawerOverlayContent>
 
     _slideAnimation =
         Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: _openCurve,
-            reverseCurve: _closeCurve,
-          ),
-        );
+      CurvedAnimation(
+        parent: _controller,
+        curve: _openCurve,
+        reverseCurve: _closeCurve,
+      ),
+    );
 
     _scrimAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(

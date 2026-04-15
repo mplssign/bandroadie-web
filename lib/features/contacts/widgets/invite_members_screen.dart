@@ -6,6 +6,7 @@ import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 
 // ============================================================================
@@ -196,7 +197,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             showAppSnackBar(
               context,
               message: 'Invite saved but email failed to send',
-              backgroundColor: AppColors.warning,
+              backgroundColor: context.colors.warning,
             );
           }
         }
@@ -206,7 +207,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
           showAppSnackBar(
             context,
             message: 'Invite saved but email failed to send',
-            backgroundColor: AppColors.warning,
+            backgroundColor: context.colors.warning,
           );
         }
       }
@@ -239,19 +240,19 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           'Cancel Invite?',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           'Cancel invite for $email?',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
@@ -263,7 +264,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -279,9 +280,9 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text(
+                child: Text(
                   'Cancel',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.colors.textSecondary),
                 ),
               ),
             ],
@@ -331,20 +332,20 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _sendInvite(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: 'name@example.com',
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
               filled: true,
-              fillColor: AppColors.surfaceDark,
+              fillColor: context.colors.surface,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: Spacing.space16,
                 vertical: Spacing.space14,
@@ -359,7 +360,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
           ),
@@ -372,8 +373,8 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             height: 48,
             decoration: BoxDecoration(
               color: _isSendingInvite
-                  ? AppColors.accent.withValues(alpha: 0.5)
-                  : AppColors.accent,
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : AppColors.primary,
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             ),
             child: Center(
@@ -417,17 +418,17 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.background,
         leading: IconButton(
-          icon: const Icon(AppIcons.back, color: AppColors.textPrimary),
+          icon: Icon(AppIcons.back, color: context.colors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Invite Members',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -440,32 +441,32 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
           children: [
             Text(
               widget.band.name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: Spacing.space8),
-            const Text(
+            Text(
               'Send an invitation to join your band',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
                 height: 1.4,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: Spacing.space24),
             _buildInviteEmailInput(),
             if (_pendingInvites.isNotEmpty) ...[
               const SizedBox(height: Spacing.space24),
-              const Text(
+              Text(
                 'Invited',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: Spacing.space12),
@@ -496,20 +497,20 @@ class _InvitePill extends StatelessWidget {
           vertical: Spacing.space8,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surfaceOverlay,
+          color: context.colors.surfaceOverlay,
           borderRadius: BorderRadius.circular(50),
           border: Border.all(
-            color: AppColors.warning.withValues(alpha: 0.3),
+            color: context.colors.warning.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               AppIcons.clock,
               size: 14,
-              color: AppColors.warning,
+              color: context.colors.warning,
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -517,21 +518,21 @@ class _InvitePill extends StatelessWidget {
                 email.trim(),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                   height: 1.33,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
             ),
             const SizedBox(width: 8),
             GestureDetector(
               onTap: onCancel,
-              child: const Icon(
+              child: Icon(
                 AppIcons.close,
                 size: 16,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
           ],

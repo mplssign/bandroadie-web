@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
@@ -168,22 +169,22 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Remove ${widget.member.name}?',
-          style: const TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: context.colors.textPrimary),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to remove this member from the band? This cannot be undone.',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
             ),
           ),
           TextButton(
@@ -229,18 +230,18 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(AppIcons.close, color: AppColors.textPrimary),
+          icon: Icon(AppIcons.close, color: context.colors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Manage Role',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -256,31 +257,31 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
               // ─── Member name heading ───
               Text(
                 widget.member.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 21,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   height: 1.3,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 _roleDisplayName(widget.member.bandRole),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
 
               const SizedBox(height: 32),
 
               // ─── Change role section ───
-              const Text(
+              Text(
                 'Change role',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -310,12 +311,12 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
               // ─── Contributor sub-permissions ───
               if (_selectedRole == 'contributor') ...[
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Contributor permissions',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -367,23 +368,23 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.1),
+                    color: context.colors.warning.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.warning.withValues(alpha: 0.3),
+                      color: context.colors.warning.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(AppIcons.warning,
-                          color: AppColors.warning, size: 20),
+                          color: context.colors.warning, size: 20),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'You are the only admin. You cannot change your own role.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.warning,
+                            color: context.colors.warning,
                             height: 1.4,
                           ),
                         ),
@@ -402,9 +403,9 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                 child: ElevatedButton(
                   onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                     disabledBackgroundColor:
-                        AppColors.accent.withValues(alpha: 0.3),
+                        AppColors.primary.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -436,12 +437,12 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -500,15 +501,15 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.accent.withValues(alpha: 0.12)
+              ? AppColors.primary.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? AppColors.accent
+                ? AppColors.primary
                 : enabled
-                    ? AppColors.borderMuted
-                    : AppColors.borderMuted.withValues(alpha: 0.3),
+                    ? context.colors.border
+                    : context.colors.border.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -522,13 +523,13 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.accent
+                      ? AppColors.primary
                       : enabled
-                          ? AppColors.textSecondary
-                          : AppColors.textDisabled,
+                          ? context.colors.textSecondary
+                          : context.colors.textDisabled,
                   width: 2,
                 ),
-                color: isSelected ? AppColors.accent : Colors.transparent,
+                color: isSelected ? AppColors.primary : Colors.transparent,
               ),
               child: isSelected
                   ? const Icon(AppIcons.check, size: 14, color: Colors.white)
@@ -546,8 +547,8 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: enabled
-                          ? AppColors.textPrimary
-                          : AppColors.textDisabled,
+                          ? context.colors.textPrimary
+                          : context.colors.textDisabled,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -556,8 +557,8 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                     style: TextStyle(
                       fontSize: 13,
                       color: enabled
-                          ? AppColors.textSecondary
-                          : AppColors.textDisabled,
+                          ? context.colors.textSecondary
+                          : context.colors.textDisabled,
                     ),
                   ),
                 ],
@@ -582,13 +583,13 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
           style: TextStyle(
             fontSize: 14,
             color: onChanged != null
-                ? AppColors.textPrimary
-                : AppColors.textDisabled,
+                ? context.colors.textPrimary
+                : context.colors.textDisabled,
           ),
         ),
         value: value,
         onChanged: onChanged,
-        activeTrackColor: AppColors.accent,
+        activeTrackColor: AppColors.primary,
         contentPadding: const EdgeInsets.symmetric(horizontal: 4),
         dense: true,
       ),

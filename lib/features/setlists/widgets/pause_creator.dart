@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -66,7 +67,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
   final TextEditingController _secondsController = TextEditingController();
   final FocusNode _customPurposeFocus = FocusNode();
 
-  static const Color _accent = AppColors.warning; // amber
+  Color get _accent => context.colors.warning; // amber
 
   @override
   void initState() {
@@ -164,8 +165,8 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
-        decoration: const BoxDecoration(
-          color: AppColors.scaffoldBg,
+        decoration: BoxDecoration(
+          color: context.colors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
@@ -183,7 +184,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.textMuted.withValues(alpha: 0.4),
+                        color: context.colors.textMuted.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -213,7 +214,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                         onTap: () => Navigator.of(context).pop(),
                         child: Icon(
                           AppIcons.close,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                           size: 24,
                         ),
                       ),
@@ -231,7 +232,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                   child: Text(
                     'What\'s this pause for?',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),
@@ -280,11 +281,11 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                         child: Container(
                           height: 42,
                           decoration: BoxDecoration(
-                            color: AppColors.cardBg,
+                            color: context.colors.surface,
                             borderRadius:
                                 BorderRadius.circular(Spacing.buttonRadius),
                             border: Border.all(
-                              color: AppColors.borderMuted,
+                              color: context.colors.border,
                               width: 1,
                             ),
                           ),
@@ -292,13 +293,13 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                             controller: _customPurposeController,
                             focusNode: _customPurposeFocus,
                             style: AppTextStyles.body.copyWith(
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                               fontSize: 14,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Custom reason…',
                               hintStyle: AppTextStyles.body.copyWith(
-                                color: AppColors.textDisabled,
+                                color: context.colors.textDisabled,
                                 fontSize: 14,
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -348,7 +349,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                   child: Text(
                     'Duration (optional)',
                     style: AppTextStyles.label.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                       fontSize: 12,
                       letterSpacing: 0.5,
                     ),
@@ -378,7 +379,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                         child: Text(
                           ':',
                           style: AppTextStyles.headline.copyWith(
-                            color: AppColors.textMuted,
+                            color: context.colors.textMuted,
                             fontSize: 20,
                           ),
                         ),
@@ -468,12 +469,14 @@ class _PurposeChip extends StatelessWidget {
         duration: AppDurations.fast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? accent.withValues(alpha: 0.15) : AppColors.cardBg,
+          color: isSelected
+              ? accent.withValues(alpha: 0.15)
+              : context.colors.surface,
           borderRadius: BorderRadius.circular(Spacing.chipRadius),
           border: Border.all(
             color: isSelected
                 ? accent.withValues(alpha: 0.5)
-                : AppColors.borderMuted,
+                : context.colors.border,
             width: 1.5,
           ),
         ),
@@ -483,7 +486,7 @@ class _PurposeChip extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.label.copyWith(
-                color: isSelected ? accent : AppColors.textSecondary,
+                color: isSelected ? accent : context.colors.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -514,9 +517,9 @@ class _DurationField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: AppColors.borderMuted, width: 1),
+        border: Border.all(color: context.colors.border, width: 1),
       ),
       child: TextField(
         controller: controller,
@@ -524,7 +527,7 @@ class _DurationField extends StatelessWidget {
         textAlign: TextAlign.center,
         maxLength: 2,
         style: AppTextStyles.headline.copyWith(
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
           fontSize: 16,
         ),
         inputFormatters: [
@@ -534,7 +537,7 @@ class _DurationField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.headline.copyWith(
-            color: AppColors.textDisabled,
+            color: context.colors.textDisabled,
             fontSize: 16,
           ),
           counterText: '',

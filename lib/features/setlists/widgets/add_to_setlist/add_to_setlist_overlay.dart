@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/bulk_song_row.dart';
 import '../../models/setlist_item_type.dart';
 import '../../models/special_item.dart';
@@ -193,9 +194,9 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
         child: Container(
           margin: const EdgeInsets.all(Spacing.space16),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: AppColors.borderMuted, width: 1),
+            border: Border.all(color: context.colors.border, width: 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -204,7 +205,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                 // ── Header ──
                 _buildHeader(),
 
-                const Divider(color: AppColors.borderMuted, height: 1),
+                Divider(color: context.colors.border, height: 1),
 
                 // ── Content area with animated transitions ──
                 Expanded(
@@ -256,13 +257,13 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                 children: [
                   Icon(
                     AppIcons.back,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     size: 22,
                   ),
                   Text(
                     'Back',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       fontSize: 16,
                     ),
                   ),
@@ -281,7 +282,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                   key: ValueKey(_title),
                   style: AppTextStyles.title3.copyWith(
                     fontSize: 18,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -293,10 +294,10 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
             onTap: () => Navigator.of(context).pop(),
             child: Container(
               padding: const EdgeInsets.all(8),
-              child: const Icon(
+              child: Icon(
                 AppIcons.close,
                 size: 24,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -427,9 +428,9 @@ class _EditSpecialItemOverlay extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.all(Spacing.space16),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: AppColors.borderMuted, width: 1),
+            border: Border.all(color: context.colors.border, width: 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -454,13 +455,13 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                             children: [
                               Icon(
                                 AppIcons.back,
-                                color: AppColors.accent,
+                                color: AppColors.primary,
                                 size: 22,
                               ),
                               Text(
                                 'Back',
                                 style: AppTextStyles.body.copyWith(
-                                  color: AppColors.accent,
+                                  color: AppColors.primary,
                                   fontSize: 16,
                                 ),
                               ),
@@ -474,7 +475,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                             _title,
                             style: AppTextStyles.title3.copyWith(
                               fontSize: 18,
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                             ),
                           ),
                         ),
@@ -483,10 +484,10 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                         onTap: () => Navigator.of(context).pop(),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          child: const Icon(
+                          child: Icon(
                             AppIcons.close,
                             size: 24,
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ),
@@ -494,7 +495,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                   ),
                 ),
 
-                const Divider(color: AppColors.borderMuted, height: 1),
+                Divider(color: context.colors.border, height: 1),
 
                 // ── Content ──
                 Expanded(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -57,13 +58,13 @@ class BackOnlyAppBar extends ConsumerWidget {
           // Back button
           GestureDetector(
             onTap: onBack ?? () => Navigator.of(context).pop(),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   AppIcons.back,
                   size: 18,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 SizedBox(width: 4),
                 Text(
@@ -71,7 +72,7 @@ class BackOnlyAppBar extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     height: 1.4,
                   ),
                 ),
@@ -88,7 +89,7 @@ class BackOnlyAppBar extends ConsumerWidget {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(AppColors.accent),
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
               ),
             ),
         ],

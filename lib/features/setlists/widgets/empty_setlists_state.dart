@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -86,12 +87,12 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     AppIcons.setlists,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     size: 40,
                   ),
                 ),
@@ -104,7 +105,7 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                   style: GoogleFonts.dmSans(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
 
@@ -115,7 +116,7 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                   'Create your first setlist to organize your songs for gigs and rehearsals.',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
 
