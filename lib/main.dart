@@ -14,6 +14,7 @@ import 'app/firebase_config.dart';
 import 'app/supabase_config.dart';
 import 'app/theme/app_animations.dart';
 import 'app/theme/app_theme.dart';
+import 'app/theme/theme_mode_controller.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
 import 'features/auth/invite_screen.dart';
@@ -116,15 +117,16 @@ bool _isMarketingHost() {
   return host == 'bandroadie.com' || host == 'www.bandroadie.com';
 }
 
-class BandRoadieApp extends StatelessWidget {
+class BandRoadieApp extends ConsumerWidget {
   const BandRoadieApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'BandRoadie',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.dark,
+      themeMode: ref.watch(themeModeProvider),
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       // Disable device text scaling - use fixed font sizes
       builder: (context, child) {
