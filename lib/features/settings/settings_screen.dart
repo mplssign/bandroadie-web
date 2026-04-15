@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/services/supabase_client.dart';
 import '../../app/theme/design_tokens.dart';
+import '../../app/theme/theme_mode_controller.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../notifications/notification_settings_screen.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -313,6 +314,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             )
           : Column(
               children: [
+                // Light mode toggle
+                _LightModeToggle(),
+                const Divider(
+                  color: _SettingsTokens.divider,
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                ),
                 // Scrollable area for regular settings items
                 Expanded(
                   child: regularItems.isEmpty
@@ -348,6 +357,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+/// Light mode toggle widget
+class _LightModeToggle extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLight = ref.watch(themeModeProvider) == ThemeMode.light;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Row(
+        children: [
+          Icon(Icons.light_mode,
+              color: _SettingsTokens.textSecondary, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Light mode',
+                  style: TextStyle(
+                    color: _SettingsTokens.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Switch to light theme',
+                  style: TextStyle(
+                    color: _SettingsTokens.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: isLight,
+            onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+            activeTrackColor: AppColors.primary,
+          ),
+        ],
+      ),
     );
   }
 }
