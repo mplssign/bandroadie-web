@@ -218,7 +218,12 @@ class EventsRepository {
     while (currentWeekStart.isBefore(untilDate) && iterations < maxIterations) {
       // Check each selected day of the week
       for (final day in recurrence.daysOfWeek) {
-        final dateForDay = currentWeekStart.add(Duration(days: day.dayIndex));
+        final dateForDay = DateTime(
+          currentWeekStart.year,
+          currentWeekStart.month,
+          currentWeekStart.day + day.dayIndex,
+          12,
+        );
 
         // Only include dates from the start date onwards and before until date
         if (!dateForDay.isBefore(formData.date) &&
@@ -228,7 +233,12 @@ class EventsRepository {
       }
 
       // Move to next interval
-      currentWeekStart = currentWeekStart.add(Duration(days: 7 * weekInterval));
+      currentWeekStart = DateTime(
+        currentWeekStart.year,
+        currentWeekStart.month,
+        currentWeekStart.day + (7 * weekInterval),
+        12,
+      );
       iterations++;
     }
 
@@ -259,14 +269,13 @@ class EventsRepository {
     final targetDartWeekday = weekdayDayIndex == 0 ? 7 : weekdayDayIndex;
 
     // Find the first occurrence of this weekday in the month
-    final firstDayOfMonth = DateTime(year, month, 1);
+    final firstDayOfMonth = DateTime(year, month, 1, 12);
     final daysUntilTarget =
         (targetDartWeekday - firstDayOfMonth.weekday + 7) % 7;
-    final firstOccurrence =
-        firstDayOfMonth.add(Duration(days: daysUntilTarget));
+    final dayOfMonth = 1 + daysUntilTarget + (7 * (occurrence - 1));
 
-    // Calculate the nth occurrence
-    final result = firstOccurrence.add(Duration(days: 7 * (occurrence - 1)));
+    // Calculate the nth occurrence using calendar-day construction to avoid DST drift.
+    final result = DateTime(year, month, dayOfMonth, 12);
 
     // Return null if the result falls outside the target month
     if (result.month != month || result.year != year) return null;
