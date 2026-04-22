@@ -177,6 +177,19 @@ function formatRruleUntil(dateStr: string): string {
     return `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}T235959Z`;
 }
 
+// Returns the first occurrence date (YYYY-MM-DD) on or after parentDateStr
+// whose day-of-week matches targetDayIndex (0=Sun..6=Sat).
+function computeFirstOccurrenceDate(parentDateStr: string, targetDayIndex: number): string {
+    const [year, month, day] = parentDateStr.split('-').map(n => parseInt(n, 10));
+    const startDate = new Date(year, month - 1, day);
+    const daysOffset = (targetDayIndex - startDate.getDay() + 7) % 7;
+    const firstOccurrence = new Date(year, month - 1, day + daysOffset);
+    const y = String(firstOccurrence.getFullYear());
+    const m = String(firstOccurrence.getMonth() + 1).padStart(2, '0');
+    const d = String(firstOccurrence.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 // Build an RRULE value (without the leading 'RRULE:') for a recurring rehearsal
 // parent row. Returns null if the recurrence metadata is missing or unsupported,
 // signaling callers to fall back to a single-instance VEVENT.
@@ -199,7 +212,14 @@ function buildRehearsalRrule(rehearsal: RehearsalEvent): string | null {
             .map(d => BYDAY_MAP[d])
             .filter((t): t is string => Boolean(t));
         if (tokens.length > 0) {
-            rrule += `;BYDAY=${tokens.join(',')}`;
+            if (freq === 'monthly') {
+                const firstDateStr = computeFirstOccurrenceDate(rehearsal.date, days[0]);
+                const firstDay = parseInt(firstDateStr.split('-')[2], 10);
+                const N = Math.ceil(firstDay / 7);
+                rrule += `;BYDAY=${tokens.map(t => `${N}${t}`).join(',')}`;
+            } else {
+                rrule += `;BYDAY=${tokens.join(',')}`;
+            }
         }
     }
 
@@ -835,11 +855,21 @@ function generateCalendar(
         if (rehearsal.location) description += `\\nLocation: ${rehearsal.location}`;
         if (rehearsal.notes) description += `\\n\\nNotes: ${rehearsal.notes}`;
 
+        // For monthly recurring parent rows with recurrence_days, DTSTART must
+        // land on the first actual occurrence of the series, not the parent date.
+        const freq = rehearsal.recurrence_frequency;
+        const effectiveDate =
+            isRecurring && !isChild &&
+            freq === 'monthly' &&
+            rehearsal.recurrence_days && rehearsal.recurrence_days.length > 0
+                ? computeFirstOccurrenceDate(rehearsal.date, rehearsal.recurrence_days[0])
+                : rehearsal.date;
+
         // Format as local time with TZID
-        const startDt = formatLocalDateTime(rehearsal.date, rehearsal.start_time);
+        const startDt = formatLocalDateTime(effectiveDate, rehearsal.start_time);
         const endDt = rehearsal.end_time
-            ? formatLocalDateTime(rehearsal.date, rehearsal.end_time)
-            : defaultEndLocalDateTime(rehearsal.date, rehearsal.start_time);
+            ? formatLocalDateTime(effectiveDate, rehearsal.end_time)
+            : defaultEndLocalDateTime(effectiveDate, rehearsal.start_time);
 
         // For recurring parent rows, build an RRULE. If the metadata is
         // incomplete or the frequency is unsupported, fall back to a flat
