@@ -800,15 +800,32 @@ function generateCalendar(
         lines.push('END:VEVENT');
     }
 
+    // Build an index of child rows per parent so the loop below can decide
+    // whether to emit an RRULE (no children materialized) or fall back to
+    // emitting each child row individually (deletion-safe).
+    const childRowsByParent = new Map<string, RehearsalEvent[]>();
+    for (const r of rehearsals) {
+        if (r.parent_rehearsal_id) {
+            const arr = childRowsByParent.get(r.parent_rehearsal_id) ?? [];
+            arr.push(r);
+            childRowsByParent.set(r.parent_rehearsal_id, arr);
+        }
+    }
+
     // Add rehearsals
     for (const rehearsal of rehearsals) {
         const isRecurring = rehearsal.is_recurring === true;
         const isChild = !!rehearsal.parent_rehearsal_id;
 
-        // Skip materialized child instances of recurring series — the parent
-        // row will emit an RRULE that already covers these occurrences.
-        if (isRecurring && isChild) {
-            continue;
+        // Recurring parent: if any child rows exist, the children represent
+        // the (possibly edited/deleted) series — skip the parent and let the
+        // children emit individually below. Only emit RRULE when no children
+        // have been materialized yet.
+        if (isRecurring && !isChild) {
+            const children = childRowsByParent.get(rehearsal.id) ?? [];
+            if (children.length > 0) {
+                continue;
+            }
         }
 
         const uid = generateUid('rehearsal', rehearsal.id, domain);
