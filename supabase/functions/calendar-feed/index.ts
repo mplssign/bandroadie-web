@@ -876,7 +876,7 @@ function generateCalendar(
         // VEVENT so the series is not silently dropped.
         let rrule: string | null = null;
         let recurrenceIncomplete = false;
-        if (isRecurring && !isChild) {
+        if (isRecurring && !isChild && rehearsal.recurrence_frequency === 'monthly') {
             rrule = buildRehearsalRrule(rehearsal);
             if (rrule === null) {
                 recurrenceIncomplete = true;
