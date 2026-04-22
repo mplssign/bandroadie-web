@@ -147,11 +147,70 @@ async function computeEtag(
         band: calendarName,
         tz: timezone,
         g: gigs.map(g => [g.id, g.date, g.start_time, g.end_time]),
-        r: rehearsals.map(r => [r.id, r.date, r.start_time, r.end_time]),
+        r: rehearsals.map(r => [
+            r.id,
+            r.date,
+            r.start_time,
+            r.end_time,
+            r.is_recurring ?? false,
+            r.recurrence_frequency ?? null,
+            r.recurrence_until ?? null,
+            (r.recurrence_days ?? []).join(','),
+            r.parent_rehearsal_id ?? null,
+        ]),
         b: blockOuts.map(b => [b.id, b.date]),
     });
     const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(source));
     return `"${Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("")}"`;
+}
+
+// Map a day-of-week index (0=Sun..6=Sat) to its iCal BYDAY token.
+const BYDAY_MAP: Record<number, string> = {
+    0: 'SU', 1: 'MO', 2: 'TU', 3: 'WE', 4: 'TH', 5: 'FR', 6: 'SA',
+};
+
+// Format a YYYY-MM-DD date as end-of-day UTC for an RRULE UNTIL value.
+function formatRruleUntil(dateStr: string): string {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return '';
+    const [y, m, d] = parts;
+    return `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}T235959Z`;
+}
+
+// Build an RRULE value (without the leading 'RRULE:') for a recurring rehearsal
+// parent row. Returns null if the recurrence metadata is missing or unsupported,
+// signaling callers to fall back to a single-instance VEVENT.
+function buildRehearsalRrule(rehearsal: RehearsalEvent): string | null {
+    const freq = rehearsal.recurrence_frequency;
+    let rrule: string;
+    if (freq === 'weekly') {
+        rrule = 'FREQ=WEEKLY';
+    } else if (freq === 'biweekly') {
+        rrule = 'FREQ=WEEKLY;INTERVAL=2';
+    } else if (freq === 'monthly') {
+        rrule = 'FREQ=MONTHLY';
+    } else {
+        return null;
+    }
+
+    const days = rehearsal.recurrence_days;
+    if (days && days.length > 0) {
+        const tokens = days
+            .map(d => BYDAY_MAP[d])
+            .filter((t): t is string => Boolean(t));
+        if (tokens.length > 0) {
+            rrule += `;BYDAY=${tokens.join(',')}`;
+        }
+    }
+
+    if (rehearsal.recurrence_until) {
+        const until = formatRruleUntil(rehearsal.recurrence_until);
+        if (until) {
+            rrule += `;UNTIL=${until}`;
+        }
+    }
+
+    return rrule;
 }
 
 // Known VTIMEZONE definitions for IANA timezone identifiers.
@@ -372,6 +431,11 @@ interface RehearsalEvent {
     end_time: string | null;
     band_name: string;
     notes: string | null;
+    is_recurring?: boolean | null;
+    recurrence_frequency?: string | null;  // 'weekly' | 'biweekly' | 'monthly'
+    recurrence_days?: number[] | null;     // 0=Sun..6=Sat
+    recurrence_until?: string | null;      // YYYY-MM-DD
+    parent_rehearsal_id?: string | null;
 }
 
 interface BlockOutEvent {
@@ -553,6 +617,8 @@ Deno.serve(async (req) => {
             .from('rehearsals')
             .select(`
                 id, date, location, start_time, end_time, notes, band_id,
+                is_recurring, recurrence_frequency, recurrence_days,
+                recurrence_until, parent_rehearsal_id,
                 bands(name)
             `)
             .in('band_id', bandIds)
@@ -608,6 +674,11 @@ Deno.serve(async (req) => {
             end_time: r.end_time,
             band_name: (r.bands as any)?.name || 'Band',
             notes: r.notes,
+            is_recurring: (r as any).is_recurring ?? null,
+            recurrence_frequency: (r as any).recurrence_frequency ?? null,
+            recurrence_days: (r as any).recurrence_days ?? null,
+            recurrence_until: (r as any).recurrence_until ?? null,
+            parent_rehearsal_id: (r as any).parent_rehearsal_id ?? null,
         }));
 
         const blockOutEvents: BlockOutEvent[] = (blockOuts || []).map(b => ({
@@ -731,6 +802,15 @@ function generateCalendar(
 
     // Add rehearsals
     for (const rehearsal of rehearsals) {
+        const isRecurring = rehearsal.is_recurring === true;
+        const isChild = !!rehearsal.parent_rehearsal_id;
+
+        // Skip materialized child instances of recurring series — the parent
+        // row will emit an RRULE that already covers these occurrences.
+        if (isRecurring && isChild) {
+            continue;
+        }
+
         const uid = generateUid('rehearsal', rehearsal.id, domain);
         const summary = `Rehearsal - ${rehearsal.band_name}`;
 
@@ -744,11 +824,29 @@ function generateCalendar(
             ? formatLocalDateTime(rehearsal.date, rehearsal.end_time)
             : defaultEndLocalDateTime(rehearsal.date, rehearsal.start_time);
 
+        // For recurring parent rows, build an RRULE. If the metadata is
+        // incomplete or the frequency is unsupported, fall back to a flat
+        // VEVENT so the series is not silently dropped.
+        let rrule: string | null = null;
+        let recurrenceIncomplete = false;
+        if (isRecurring && !isChild) {
+            rrule = buildRehearsalRrule(rehearsal);
+            if (rrule === null) {
+                recurrenceIncomplete = true;
+            }
+        }
+
         lines.push('BEGIN:VEVENT');
         lines.push(foldLine(`UID:${uid}`));
         lines.push(foldLine(`DTSTAMP:${now}`));
         lines.push(foldLine(`DTSTART;TZID=${timezone}:${startDt}`));
         lines.push(foldLine(`DTEND;TZID=${timezone}:${endDt}`));
+        if (rrule) {
+            lines.push(foldLine(`RRULE:${rrule}`));
+        }
+        if (recurrenceIncomplete) {
+            lines.push(foldLine('X-BANDROADIE-NOTE:RECURRENCE-DATA-INCOMPLETE'));
+        }
         lines.push(foldLine(`SUMMARY:${escapeIcsText(summary)}`));
         if (rehearsal.location) {
             lines.push(foldLine(`LOCATION:${escapeIcsText(rehearsal.location)}`));
