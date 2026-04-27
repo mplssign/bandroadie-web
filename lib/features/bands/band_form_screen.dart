@@ -530,6 +530,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   // ─────────────────────────────────────────────────────────────────────────
 
   void _showBackupRestoreSheet() {
+    final permissionsAsync = ref.read(currentUserPermissionsProvider);
+    final canRestore = permissionsAsync.when(
+      data: (perms) => perms.canDeleteBand,
+      loading: () => false,
+      error: (__, _) => false,
+    );
+
     showModalBottomSheet(
       context: context,
       backgroundColor: context.colors.surface,
@@ -544,7 +551,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Drag handle
                 Container(
                   width: 40,
                   height: 4,
@@ -554,59 +560,76 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // ── Backup side ──────────────────────────────────
-                      Expanded(
-                        child: _BackupSheetPanel(
-                          icon: AppIcons.download,
-                          label: 'Backup Data',
-                          description:
-                              'Save a local copy of your band\'s current data.',
-                          bullets: const [
-                            'Band info & members',
-                            'Songs & setlists',
-                            'Gigs & rehearsals',
-                            'Block-out dates',
-                          ],
-                          isLoading: _isExporting,
-                          onTap: () {
-                            Navigator.pop(sheetContext);
-                            _startExport();
-                          },
+                if (canRestore)
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _BackupSheetPanel(
+                            icon: AppIcons.download,
+                            label: 'Backup Data',
+                            description:
+                                'Save a local copy of your band\'s current data.',
+                            bullets: const [
+                              'Band info & members',
+                              'Songs & setlists',
+                              'Gigs & rehearsals',
+                              'Block-out dates',
+                            ],
+                            isLoading: _isExporting,
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              _startExport();
+                            },
+                          ),
                         ),
-                      ),
-                      // ── Divider ──────────────────────────────────────
-                      VerticalDivider(
-                        width: 28,
-                        thickness: 1,
-                        color: context.colors.textMuted.withValues(alpha: 0.2),
-                      ),
-                      // ── Restore side ─────────────────────────────────
-                      Expanded(
-                        child: _BackupSheetPanel(
-                          icon: AppIcons.rotateCcw,
-                          label: 'Restore Data',
-                          description:
-                              'Replace current band data with a backup file.',
-                          bullets: const [
-                            'Band info & members',
-                            'Songs & setlists',
-                            'Gigs & rehearsals',
-                            'Block-out dates',
-                          ],
-                          isLoading: _isImporting,
-                          onTap: () {
-                            Navigator.pop(sheetContext);
-                            _showImportDialog();
-                          },
+                        VerticalDivider(
+                          width: 28,
+                          thickness: 1,
+                          color:
+                              context.colors.textMuted.withValues(alpha: 0.2),
                         ),
-                      ),
+                        Expanded(
+                          child: _BackupSheetPanel(
+                            icon: AppIcons.rotateCcw,
+                            label: 'Restore Data',
+                            description:
+                                'Replace current band data with a backup file.',
+                            bullets: const [
+                              'Band info & members',
+                              'Songs & setlists',
+                              'Gigs & rehearsals',
+                              'Block-out dates',
+                            ],
+                            isLoading: _isImporting,
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              _showImportDialog();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  _BackupSheetPanel(
+                    icon: AppIcons.download,
+                    label: 'Backup Data',
+                    description:
+                        'Save a local copy of your band\'s current data.',
+                    bullets: const [
+                      'Band info & members',
+                      'Songs & setlists',
+                      'Gigs & rehearsals',
+                      'Block-out dates',
                     ],
+                    isLoading: _isExporting,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _startExport();
+                    },
                   ),
-                ),
               ],
             ),
           ),
@@ -676,7 +699,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     Expanded(
                         child: Text(item,
                             style: TextStyle(
-                                color: context.colors.textSecondary, fontSize: 14))),
+                                color: context.colors.textSecondary,
+                                fontSize: 14))),
                   ],
                 ),
               ),
@@ -699,7 +723,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text('Cancel',
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 16)),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 16)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -855,7 +880,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text('Cancel',
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 16)),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 16)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -886,7 +912,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       child: Row(
         children: [
           Text('• ',
-              style: TextStyle(color: context.colors.textSecondary, fontSize: 15)),
+              style:
+                  TextStyle(color: context.colors.textSecondary, fontSize: 15)),
           Expanded(
               child: Text(label,
                   style: TextStyle(
@@ -1287,7 +1314,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 ),
                 subtitle: Text(
                   'Use camera to take a new photo',
-                  style: TextStyle(fontSize: 14, color: context.colors.textMuted),
+                  style:
+                      TextStyle(fontSize: 14, color: context.colors.textMuted),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
@@ -1315,7 +1343,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 ),
                 subtitle: Text(
                   'Choose from your photos',
-                  style: TextStyle(fontSize: 14, color: context.colors.textMuted),
+                  style:
+                      TextStyle(fontSize: 14, color: context.colors.textMuted),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
@@ -1748,7 +1777,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   decoration: BoxDecoration(
                     color: context.colors.success,
                     shape: BoxShape.circle,
-                    border: Border.all(color: context.colors.background, width: 2),
+                    border:
+                        Border.all(color: context.colors.background, width: 2),
                   ),
                   child: const Icon(
                     AppIcons.check,
@@ -2057,7 +2087,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
           ),
@@ -2120,8 +2151,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                     height: 1.33,
-                    color:
-                        isSelected ? AppColors.primary : context.colors.textPrimary,
+                    color: isSelected
+                        ? AppColors.primary
+                        : context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -2167,12 +2199,17 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           // Only show delete button if user has canDeleteBand permission
           Builder(builder: (context) {
             final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+            final canExport = permissionsAsync.when(
+              data: (perms) => perms.canExportBandData,
+              loading: () => false,
+              error: (__, _) => false,
+            );
             final canDelete = permissionsAsync.when(
               data: (perms) => perms.canDeleteBand,
               loading: () => false,
               error: (__, _) => false,
             );
-            if (!canDelete) return const SizedBox.shrink();
+            if (!canExport) return const SizedBox.shrink();
             final isBusy =
                 _isSubmitting || _isDeleting || _isExporting || _isImporting;
             return Column(
@@ -2202,39 +2239,41 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                           ),
                         )
                       : const Icon(AppIcons.rotateCcw, size: 15),
-                  label: const Text(
-                    'Backup / Restore Data',
-                    style: TextStyle(
+                  label: Text(
+                    canDelete ? 'Backup / Restore Data' : 'Backup Data',
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                const SizedBox(height: Spacing.space8),
-                TextButton(
-                  onPressed:
-                      (_isSubmitting || _isDeleting) ? null : _deleteBand,
-                  child: _isDeleting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.primary,
+                if (canDelete) ...[
+                  const SizedBox(height: Spacing.space8),
+                  TextButton(
+                    onPressed:
+                        (_isSubmitting || _isDeleting) ? null : _deleteBand,
+                    child: _isDeleting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            'Delete',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: AppColors.primary,
+                              decoration: TextDecoration.none,
                             ),
                           ),
-                        )
-                      : const Text(
-                          'Delete',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.primary,
-                            decoration: TextDecoration.none,
-                          ),
-                        ),
-                ),
+                  ),
+                ],
               ],
             );
           }),
@@ -2367,8 +2406,8 @@ class _BackupSheetPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('• ',
-                    style:
-                        TextStyle(fontSize: 15, color: context.colors.textPrimary)),
+                    style: TextStyle(
+                        fontSize: 15, color: context.colors.textPrimary)),
                 Expanded(
                   child: Text(
                     item,

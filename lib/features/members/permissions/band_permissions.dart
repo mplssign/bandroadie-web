@@ -62,6 +62,10 @@ class BandPermissions {
   /// Delete the band entirely
   bool get canDeleteBand => isAdmin;
 
+  /// Whether this user can export / backup band data.
+  /// Admin & member: yes. Contributor: no.
+  bool get canExportBandData => isAdmin || isMember;
+
   // ──────────────────────────────────────────────────────
   // Gig actions
   // ──────────────────────────────────────────────────────
