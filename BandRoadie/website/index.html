@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BandRoadie — Keeping your band in tune, on stage and off</title>
+<meta name="description" content="BandRoadie brings gigs, rehearsals, setlists, calendars, and members into one shared workspace. Free on iOS, Android, and web.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0d0d0d;
+  color: #fff;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+img  { max-width: 100%; height: auto; display: block; }
+a    { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
+ul   { list-style: none; }
+
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root {
+  --bg:      #0d0d0d;
+  --bg2:     #111111;
+  --bg3:     #171717;
+  --bg4:     #1e1e1e;
+  --accent:  #BE123C;
+  --accent2: #F43F5E;
+  --glow:    rgba(190,18,60,.28);
+  --t1: #ffffff;
+  --t2: #9CA3AF;
+  --t3: #6B7280;
+  --border:  rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.13);
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container  { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+.section    { padding: 110px 0; }
+.section-alt{ background: var(--bg2); }
+
+.s-label {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent2); display: block; margin-bottom: 14px;
+}
+.s-title {
+  font-size: clamp(30px, 4vw, 52px);
+  font-weight: 900; line-height: 1.06;
+  letter-spacing: -.025em; margin-bottom: 16px;
+}
+.s-sub {
+  font-size: 17px; color: var(--t2);
+  line-height: 1.65; max-width: 520px; margin: 0 auto;
+}
+.text-center { text-align: center; }
+.s-head { text-align: center; margin-bottom: 72px; }
+.grad {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   SCROLL ANIMATIONS — exact GenieNova pattern
+   translate3d + scale3d(1.1→1) matching Webflow IX2 scroll-into-view
+   ============================================================ */
+.fu  { opacity: 0; transform: translate3d(0, 80px, 0) scale3d(1.1, 1.1, 1);  transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+.fl  { opacity: 0; transform: translate3d(-60px, 0, 0) scale3d(1.1, 1.1, 1); transition: opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1); }
+.fr  { opacity: 0; transform: translate3d(60px, 0, 0) scale3d(1.1, 1.1, 1);  transition: opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1); }
+.fu.on,.fl.on,.fr.on { opacity: 1; transform: translate3d(0,0,0) scale3d(1,1,1); }
+.d1 { transition-delay: .08s; } .d2 { transition-delay: .16s; }
+.d3 { transition-delay: .24s; } .d4 { transition-delay: .32s; }
+.d5 { transition-delay: .40s; } .d6 { transition-delay: .48s; }
+
+/* ============================================================
+   HERO PAGE-LOAD ANIMATIONS — match GenieNova IX2 page-load
+   Left word: 3D flip-in from left with rotateX (perspective)
+   Right word: slide from right
+   Phone: rise up from below
+   CTAs: simple fade-up
+   ============================================================ */
+@keyframes heroWordLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-50px, 0, 0) scale3d(1.2, 1.2, 1) rotateX(60deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1) rotateX(0deg);
+  }
+}
+@keyframes heroWordRight {
+  from {
+    opacity: 0;
+    transform: translate3d(50px, 0, 0) scale3d(1.2, 1.2, 1);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+}
+@keyframes heroPhoneUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 80px, 0) scale3d(1.05, 1.05, 1);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+  }
+}
+@keyframes heroCtaFade {
+  from { opacity: 0; transform: translate3d(0, 40px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* perspective added to the main .hero-bg-text rule below */
+
+.hero-anim-left {
+  display: inline-block;
+  transform-style: preserve-3d;
+  animation: heroWordLeft .9s cubic-bezier(.16,1,.3,1) .05s both;
+}
+.hero-anim-right {
+  display: inline-block;
+  animation: heroWordRight .9s cubic-bezier(.16,1,.3,1) .2s both;
+}
+.hero-phone-anim {
+  animation: heroPhoneUp 1s cubic-bezier(.16,1,.3,1) .3s both;
+}
+.hero-cta-anim {
+  animation: heroCtaFade .8s cubic-bezier(.16,1,.3,1) .55s both;
+}
+
+/* ============================================================
+   TESTIMONIAL MARQUEE — two rows scrolling in opposite directions
+   ============================================================ */
+@keyframes marqueeLeft  { from { transform: translateX(0); }    to { transform: translateX(-50%); } }
+@keyframes marqueeRight { from { transform: translateX(-50%); } to { transform: translateX(0); }    }
+
+.testi-marquee-wrap {
+  overflow: hidden;
+  position: relative;
+}
+.testi-marquee-wrap::before,
+.testi-marquee-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 180px;
+  z-index: 2;
+  pointer-events: none;
+}
+.testi-marquee-wrap::before { left:  0; background: linear-gradient(to right, var(--bg2), transparent); }
+.testi-marquee-wrap::after  { right: 0; background: linear-gradient(to left,  var(--bg2), transparent); }
+
+.testi-row {
+  display: flex;
+  gap: 20px;
+  padding: 10px 0;
+  width: max-content;
+}
+.testi-row-1 { animation: marqueeLeft  38s linear infinite; }
+.testi-row-2 { animation: marqueeRight 42s linear infinite; }
+.testi-row:hover { animation-play-state: paused; }
+
+.testi-marquee-wrap .testi {
+  min-width: 380px;
+  max-width: 380px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   PHONE MOCKUP — images already contain the phone frame
+   (generated by make_phone_mockups.py — composite PNG)
+   ============================================================ */
+.phone { position: relative; flex-shrink: 0; }
+.phone-glow {
+  position: absolute; inset: -60px;
+  background: radial-gradient(ellipse at center, var(--glow) 0%, transparent 65%);
+  pointer-events: none; z-index: -1;
+}
+/* phone-shell is now a simple transparent wrapper so old HTML still works */
+.phone-shell { background: none; border: none; padding: 0; box-shadow: none; border-radius: 0; }
+.phone-notch { display: none; }   /* Dynamic Island is baked into the image */
+.phone-shell img { width: 100%; display: block; border-radius: 0; }
+
+/* Drop-shadow on the phone mockup image */
+.phone img, .phone-shell img {
+  filter: drop-shadow(0 40px 80px rgba(0,0,0,.85))
+          drop-shadow(0 0 1px rgba(255,255,255,.06));
+}
+
+/* Size variants — control the visual width */
+.ph-xs  { width: 160px; }
+.ph-sm  { width: 200px; }
+.ph-md  { width: 240px; }
+.ph-lg  { width: 278px; }
+.ph-xl  { width: 300px; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 26px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff; border-radius: 12px;
+  font-weight: 700; font-size: 14px;
+  box-shadow: 0 8px 28px var(--glow);
+  transition: opacity .2s, transform .2s;
+}
+.btn-primary:hover { opacity: .88; transform: translateY(-2px); }
+
+.btn-dark {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 22px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  color: #fff; border-radius: 12px;
+  font-weight: 600; font-size: 14px;
+  transition: border-color .2s, transform .2s;
+}
+.btn-dark:hover { border-color: rgba(255,255,255,.28); transform: translateY(-2px); }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 500; color: var(--t2);
+  transition: color .2s;
+}
+.btn-ghost:hover { color: #fff; }
+.btn-ghost .arr { transition: transform .2s; }
+.btn-ghost:hover .arr { transform: translateX(4px); }
+
+/* Store badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 11px;
+  padding: 12px 22px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  border-radius: 13px; cursor: pointer;
+  transition: border-color .2s, transform .2s;
+}
+.badge:hover { border-color: rgba(255,255,255,.3); transform: translateY(-2px); }
+.badge-icon { font-size: 24px; line-height: 1; }
+.badge-text { display: flex; flex-direction: column; }
+.badge-sub  { font-size: 9px; color: var(--t3); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.badge-name { font-size: 15px; font-weight: 800; line-height: 1.3; }
+
+/* ============================================================
+   NAV — logo left · links absolute-center · pill CTA right
+   ============================================================ */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  height: 68px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 36px;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  background: rgba(13,13,13,.85);
+}
+.nav-logo {
+  font-size: 17px; font-weight: 900; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 0;
+}
+.nav-logo .star { color: var(--accent2); margin: 0 1px; }
+.nav-links {
+  display: flex; gap: 36px; align-items: center;
+}
+.nav-links a {
+  font-size: 14px; font-weight: 500; color: var(--t2);
+  transition: color .2s;
+}
+.nav-links a:hover { color: #fff; }
+.nav-right { display: flex; justify-content: flex-end; align-items: center; }
+
+/* Pill CTA with arrow circle — matches template */
+.nav-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 12px 10px 22px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 100px; color: #fff;
+  font-size: 14px; font-weight: 700;
+  box-shadow: 0 6px 24px var(--glow);
+  transition: opacity .2s, transform .2s;
+}
+.nav-pill:hover { opacity: .88; transform: translateY(-1px); }
+.nav-pill-arrow {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(0,0,0,.22);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Hamburger */
+.nav-burger {
+  display: none; flex-direction: column; gap: 5px;
+  padding: 6px; cursor: pointer;
+}
+.nav-burger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; transition: all .3s; }
+.nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-burger.open span:nth-child(2) { opacity: 0; }
+.nav-burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile menu */
+.mob-menu {
+  display: none; position: fixed; top: 68px; left: 0; right: 0;
+  background: rgba(12,12,12,.97); backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border); padding: 20px 28px 28px; z-index: 999;
+}
+.mob-menu.open { display: block; }
+.mob-menu ul { margin-bottom: 20px; }
+.mob-menu li a { display: block; padding: 13px 0; font-size: 16px; font-weight: 500; color: var(--t2); border-bottom: 1px solid var(--border); }
+.mob-menu li a:hover { color: #fff; }
+.mob-menu .nav-pill { width: 100%; justify-content: center; border-radius: 14px; margin-top: 4px; }
+
+/* ============================================================
+   HERO — centered phone · giant text behind it · glow
+   ============================================================ */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding-top: 68px; /* nav clearance */
+}
+
+/* Radial glow below phone — matches template warm glow */
+.hero-glow {
+  position: absolute;
+  bottom: -80px; left: 50%;
+  transform: translateX(-50%);
+  width: 700px; height: 400px;
+  background: radial-gradient(ellipse at center, rgba(190,18,60,.32) 0%, rgba(190,18,60,.10) 40%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+/* Small top-right glow */
+.hero-glow2 {
+  position: absolute; top: 80px; right: -100px;
+  width: 400px; height: 300px;
+  background: radial-gradient(ellipse at center, rgba(190,18,60,.08) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+
+/* Giant background text — sits BEHIND the phone */
+.hero-bg-text {
+  position: absolute;
+  top: 50%; left: 0; right: 0;
+  transform: translateY(-58%); /* shift up slightly to clear CTAs */
+  z-index: 1; pointer-events: none;
+  user-select: none;
+  perspective: 1200px; /* enables rotateX on child words */
+}
+.hero-bg-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 48px;
+  line-height: .92;
+}
+.bg-word {
+  font-size: clamp(72px, 11.5vw, 172px);
+  font-weight: 900;
+  letter-spacing: -.04em;
+  white-space: nowrap;
+}
+.bg-white { color: #fff; }
+.bg-rose  {
+  background: linear-gradient(135deg, rgba(255,160,180,.9) 0%, var(--accent2) 60%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Phone — centered, on top of bg text */
+.hero-phone-wrap {
+  position: relative;
+  z-index: 10;
+  margin: 20px 0 28px;
+}
+
+/* CTA block below phone */
+.hero-cta {
+  position: relative; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  margin-bottom: 28px;
+}
+.hero-badges {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+.hero-trust {
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  margin-top: 8px;
+}
+.hero-trust-item {
+  font-size: 12px; font-weight: 500; color: var(--t3);
+  display: flex; align-items: center; gap: 7px;
+}
+.hero-trust-item::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent2); flex-shrink: 0;
+}
+
+/* ============================================================
+   TRUST BAR
+   ============================================================ */
+.trust-bar {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+}
+.trust-bar-inner {
+  display: flex; justify-content: center; align-items: stretch; flex-wrap: wrap;
+}
+.tstat {
+  display: flex; align-items: center; gap: 10px;
+  padding: 22px 32px;
+  border-right: 1px solid var(--border2);
+  font-size: 13px; font-weight: 500; color: var(--t2);
+}
+.tstat:last-child { border-right: none; }
+.tstat strong { color: #fff; }
+.tstat-icon { color: var(--accent2); flex-shrink: 0; }
+
+/* ============================================================
+   FEATURE CARDS
+   ============================================================ */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 22px; padding: 28px 26px;
+  transition: border-color .3s, transform .3s;
+}
+.card:hover { border-color: rgba(190,18,60,.36); transform: translateY(-5px); }
+.card-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: rgba(190,18,60,.1); border: 1px solid rgba(190,18,60,.2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent2); margin-bottom: 18px;
+}
+.card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.01em; }
+.card p  { font-size: 14px; color: var(--t2); line-height: 1.6; }
+
+/* ============================================================
+   HOW IT WORKS
+   ============================================================ */
+.steps {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 48px; align-items: start; position: relative;
+}
+.steps::before { /* connecting line */
+  content: ''; position: absolute;
+  top: 28px; left: calc(16.7% + 16px); right: calc(16.7% + 16px);
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), rgba(190,18,60,.25), var(--accent));
+}
+.step { text-align: center; }
+.step-num {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 900; margin: 0 auto 24px;
+  box-shadow: 0 8px 28px var(--glow); position: relative; z-index: 1;
+}
+.step-phone-wrap { width: 176px; margin: 0 auto 22px; }
+.step-icon {
+  width: 78px; height: 78px; border-radius: 22px;
+  background: var(--bg3); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 22px; color: var(--accent2);
+}
+.step h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; letter-spacing: -.01em; }
+.step p  { font-size: 14px; color: var(--t2); line-height: 1.65; max-width: 220px; margin: 0 auto; }
+
+/* ============================================================
+   CAROUSEL
+   ============================================================ */
+.carousel-wrap { display: flex; flex-direction: column; align-items: center; }
+.car-phone {
+  width: 280px; position: relative;
+}
+/* phone-shell/notch are no-ops — image has the frame baked in */
+.car-phone .phone-glow { inset: -80px; background: radial-gradient(ellipse, var(--glow) 0%, transparent 62%); }
+
+.car-slides { position: relative; }
+.car-slide  { display: none; }
+.car-slide.on { display: block; }
+
+.car-caption { text-align: center; margin-top: 30px; min-height: 48px; }
+.car-caption p { font-size: 15px; color: var(--t2); max-width: 340px; margin: 0 auto; line-height: 1.5; }
+
+.car-controls { display: flex; align-items: center; gap: 18px; margin-top: 20px; }
+.car-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg4); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.car-btn:hover { border-color: var(--accent2); background: rgba(190,18,60,.15); }
+.dots { display: flex; gap: 8px; }
+.dot {
+  width: 8px; height: 8px; border-radius: 4px;
+  background: var(--bg4); border: 1px solid var(--border2);
+  cursor: pointer; transition: all .3s;
+}
+.dot.on { width: 24px; background: var(--accent); border-color: var(--accent); }
+
+/* ============================================================
+   FEATURE SECTIONS (alternating)
+   ============================================================ */
+.feat { padding: 88px 0; border-bottom: 1px solid var(--border); }
+.feat:nth-child(even) { background: var(--bg2); }
+.feat-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+}
+.feat-row.rev .feat-text  { order: 2; }
+.feat-row.rev .feat-vis   { order: 1; }
+
+.feat-text .s-label { display: block; margin-bottom: 12px; }
+.feat-text h2 {
+  font-size: clamp(26px, 3.4vw, 42px); font-weight: 900;
+  line-height: 1.08; letter-spacing: -.022em; margin-bottom: 16px;
+}
+.feat-text p { font-size: 15px; color: var(--t2); line-height: 1.72; margin-bottom: 24px; }
+.bullets { display: flex; flex-direction: column; gap: 12px; }
+.bullets li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--t2); line-height: 1.5; }
+.chk {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(190,18,60,.1); border: 1px solid rgba(190,18,60,.25);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px; color: var(--accent2);
+  font-size: 10px; font-weight: 800;
+}
+.feat-vis { display: flex; justify-content: center; align-items: flex-start; gap: 16px; }
+.feat-vis .phone:nth-child(2) { margin-top: 48px; }
+
+/* ============================================================
+   TESTIMONIALS
+   ============================================================ */
+.testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; } /* kept for fallback */
+/* Marquee section should not clip horizontally */
+#reviews { overflow: hidden; }
+.testi {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 22px; padding: 28px; position: relative; overflow: hidden;
+}
+.testi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.testi-stars { display: flex; gap: 2px; margin-bottom: 16px; }
+.testi-stars span { color: #F59E0B; font-size: 13px; }
+.testi-q { font-size: 14px; color: #ccc; line-height: 1.68; margin-bottom: 22px; font-style: italic; }
+.testi-author { display: flex; align-items: center; gap: 12px; }
+.testi-av {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; flex-shrink: 0;
+}
+.testi-name { font-size: 13px; font-weight: 600; display: block; }
+.testi-role { font-size: 11px; color: var(--t3); display: block; }
+
+/* ============================================================
+   INCLUDED
+   ============================================================ */
+.inc-card {
+  max-width: 620px; margin: 0 auto;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 36px; padding: 52px 48px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.inc-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+}
+.inc-price { font-size: 80px; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+.inc-sub   { font-size: 14px; color: var(--t3); margin-bottom: 36px; }
+.inc-list  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; text-align: left; margin-bottom: 36px; }
+.inc-item  { display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--t2); }
+.inc-ck    { color: var(--accent2); font-weight: 800; font-size: 15px; flex-shrink: 0; }
+.inc-note  { font-size: 13px; color: var(--t3); font-style: italic; border-top: 1px solid var(--border); padding-top: 20px; line-height: 1.6; }
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.faq-list { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.faq-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color .25s; }
+.faq-item.open { border-color: rgba(190,18,60,.3); }
+.faq-q {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 20px 22px; text-align: left;
+  font-size: 15px; font-weight: 600; color: #fff; cursor: pointer; background: none; border: none;
+}
+.faq-ico {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg4); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: background .2s, transform .35s cubic-bezier(.16,1,.3,1); color: var(--t2);
+}
+.faq-item.open .faq-ico { background: rgba(190,18,60,.18); transform: rotate(45deg); color: var(--accent2); }
+.faq-a { max-height: 0; overflow: hidden; transition: max-height .4s cubic-bezier(.16,1,.3,1), padding .3s; padding: 0 22px; }
+.faq-item.open .faq-a { max-height: 280px; padding-bottom: 20px; }
+.faq-a p { font-size: 14px; color: var(--t2); line-height: 1.68; }
+
+/* ============================================================
+   FINAL CTA
+   ============================================================ */
+.final {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(190,18,60,.2) 0%, transparent 70%), var(--bg);
+  text-align: center;
+}
+.final h2 {
+  font-size: clamp(30px, 5vw, 62px); font-weight: 900;
+  letter-spacing: -.025em; line-height: 1.05; margin-bottom: 18px;
+}
+.final p { font-size: 17px; color: var(--t2); margin-bottom: 44px; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+.final-badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+.final-web { font-size: 13px; color: var(--t3); }
+.final-web a { color: var(--accent2); text-decoration: underline; }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 52px 0 28px; }
+.foot-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 48px; margin-bottom: 48px; flex-wrap: wrap; }
+.foot-logo { font-size: 18px; font-weight: 900; letter-spacing: -.01em; margin-bottom: 10px; }
+.foot-logo .star { color: var(--accent2); }
+.foot-tag { font-size: 13px; color: var(--t3); line-height: 1.55; max-width: 220px; }
+.foot-links { display: flex; gap: 60px; flex-wrap: wrap; }
+.foot-col h4 { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--t3); margin-bottom: 16px; }
+.foot-col ul { display: flex; flex-direction: column; gap: 10px; }
+.foot-col a { font-size: 14px; color: var(--t2); transition: color .2s; }
+.foot-col a:hover { color: #fff; }
+.foot-bottom { border-top: 1px solid var(--border); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.foot-copy { font-size: 13px; color: var(--t3); }
+.foot-badges { display: flex; gap: 8px; }
+.foot-badge { display: flex; align-items: center; gap: 5px; padding: 5px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; font-size: 12px; color: var(--t2); font-weight: 500; transition: border-color .2s; }
+.foot-badge:hover { border-color: var(--border2); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1024px) {
+  .feat-row         { grid-template-columns: 1fr; gap: 52px; }
+  .feat-row.rev .feat-text { order: 0; }
+  .feat-row.rev .feat-vis  { order: 0; }
+  .cards            { grid-template-columns: repeat(2, 1fr); }
+  .steps            { grid-template-columns: 1fr; max-width: 380px; margin: 0 auto; }
+  .steps::before    { display: none; }
+  .testi-grid       { grid-template-columns: 1fr 1fr; }
+  .foot-top         { flex-direction: column; }
+  .hero-bg-line     { padding: 0 24px; }
+}
+
+@media (max-width: 768px) {
+  .section          { padding: 72px 0; }
+  .feat             { padding: 64px 0; }
+  .nav-links        { display: none; }
+  .nav-right        { display: none; }
+  .nav-burger       { display: flex; }
+  .nav              { grid-template-columns: 1fr auto; padding: 0 20px; }
+  .cards            { grid-template-columns: 1fr; }
+  .testi-grid       { grid-template-columns: 1fr; }
+  .feat-vis         { flex-direction: column; align-items: center; }
+  .feat-vis .phone:nth-child(2) { margin-top: 0; }
+  .inc-card         { padding: 36px 24px; }
+  .inc-list         { grid-template-columns: 1fr; }
+  .foot-links       { flex-direction: column; gap: 32px; }
+  .foot-bottom      { flex-direction: column; text-align: center; }
+  .car-phone        { width: 256px; }
+  .ph-md            { width: 220px; }
+
+  /* Mobile hero: stack vertically, hide bg text */
+  .hero-bg-text     { display: none; }
+  .hero             { justify-content: flex-start; padding-top: 100px; }
+  .hero-phone-wrap  { margin: 0 0 24px; }
+  .ph-xl            { width: 260px; }
+  .hero-mobile-title { display: block !important; }
+}
+
+@media (max-width: 480px) {
+  .container        { padding: 0 18px; }
+  .hero-badges      { flex-direction: column; align-items: center; }
+  .badge            { width: 100%; }
+  .final-badges     { flex-direction: column; align-items: center; }
+  .tstat            { border-right: none; border-bottom: 1px solid var(--border2); width: 100%; justify-content: center; }
+}
+
+/* Mobile hero title — only shown on small screens */
+.hero-mobile-title {
+  display: none;
+  text-align: center; padding: 0 24px; margin-bottom: 28px;
+}
+.hero-mobile-title h1 {
+  font-size: clamp(36px, 10vw, 52px); font-weight: 900;
+  letter-spacing: -.03em; line-height: 1.05; margin-bottom: 14px;
+}
+.hero-mobile-title p { font-size: 16px; color: var(--t2); line-height: 1.6; }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAV
+     ============================================================ -->
+<nav class="nav" id="nav">
+  <div class="nav-logo">BAND<span class="star">★</span>ROADIE</div>
+
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+
+  <div class="nav-right">
+    <a href="https://apps.apple.com/us/app/band-roadie/id6757283775" class="nav-pill" target="_blank" rel="noopener">
+      Download Free
+      <span class="nav-pill-arrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+  </div>
+
+  <button class="nav-burger" id="burger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mob-menu" id="mob-menu">
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <a href="https://apps.apple.com/us/app/band-roadie/id6757283775" class="nav-pill" target="_blank" rel="noopener">
+    Download Free
+    <span class="nav-pill-arrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </span>
+  </a>
+</div>
+
+
+<!-- ============================================================
+     HERO — centered phone · giant background text · glow
+     ============================================================ -->
+<section class="hero" id="hero">
+
+  <!-- Warm glow from behind/below phone -->
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+
+  <!-- Giant text BEHIND the phone (desktop only) -->
+  <div class="hero-bg-text" aria-hidden="true">
+    <div class="hero-bg-line">
+      <span class="bg-word bg-white hero-anim-left">One app.</span>
+      <span class="bg-word bg-rose hero-anim-right">Zero</span>
+    </div>
+    <div class="hero-bg-line">
+      <span class="bg-word bg-white hero-anim-left" style="animation-delay:.12s">Your band.</span>
+      <span class="bg-word bg-rose hero-anim-right" style="animation-delay:.27s">Drama.</span>
+    </div>
+  </div>
+
+  <!-- Mobile-only title (bg text hidden on small screens) -->
+  <div class="hero-mobile-title">
+    <h1>Keeping your band<br><span class="grad">in tune.</span></h1>
+    <p>Gigs, rehearsals, setlists, calendars, and members — one shared workspace. No group texts. No drama.</p>
+  </div>
+
+  <!-- Phone mockup — centered, on top of text -->
+  <div class="hero-phone-wrap hero-phone-anim">
+    <div class="phone ph-xl">
+      <div class="phone-glow"></div>
+      <div class="phone-shell">
+        <div class="phone-notch"></div>
+        <img src="images/dashboard.png" alt="BandRoadie dashboard — next rehearsal, upcoming gigs, quick actions">
+      </div>
+    </div>
+  </div>
+
+  <!-- CTAs below phone -->
+  <div class="hero-cta hero-cta-anim">
+    <div class="hero-badges">
+      <a href="https://apps.apple.com/us/app/band-roadie/id6757283775" class="badge" target="_blank" rel="noopener">
+        <span class="badge-icon">&#xf8ff;</span>
+        <div class="badge-text">
+          <span class="badge-sub">Download on the</span>
+          <span class="badge-name">App Store</span>
+        </div>
+      </a>
+      <a href="https://play.google.com/store/apps/details?id=com.bandroadie.app" class="badge" target="_blank" rel="noopener">
+        <span class="badge-icon">&#9654;</span>
+        <div class="badge-text">
+          <span class="badge-sub">Get it on</span>
+          <span class="badge-name">Google Play</span>
+        </div>
+      </a>
+    </div>
+    <a href="https://app.bandroadie.com" class="btn-ghost" target="_blank" rel="noopener">
+      Or open the web app
+      <svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <div class="hero-trust">
+      <span class="hero-trust-item">Free to download</span>
+      <span class="hero-trust-item">No ads</span>
+      <span class="hero-trust-item">No data selling</span>
+      <span class="hero-trust-item">Built by a musician</span>
+    </div>
+  </div>
+
+</section>
+
+
+<!-- ============================================================
+     TRUST BAR
+     ============================================================ -->
+<div class="trust-bar">
+  <div class="trust-bar-inner">
+    <div class="tstat">
+      <svg class="tstat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span><strong>100+</strong> active bands</span>
+    </div>
+    <div class="tstat">
+      <svg class="tstat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      <span><strong>iOS · Android · Web</strong></span>
+    </div>
+    <div class="tstat">
+      <svg class="tstat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span><strong>No ads.</strong> No data selling.</span>
+    </div>
+    <div class="tstat">
+      <svg class="tstat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <span>Magic-link login — <strong>no passwords</strong></span>
+    </div>
+    <div class="tstat">
+      <svg class="tstat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Multi-band support</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     FEATURE CARDS
+     ============================================================ -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="s-head">
+      <span class="s-label fu">Everything you need</span>
+      <h2 class="s-title fu d1">One app. Every band need.<br>Nothing extra.</h2>
+      <p class="s-sub fu d2">Stop duct-taping your band together with group texts, shared spreadsheets, and a Notes doc full of setlists.</p>
+    </div>
+    <div class="cards">
+      <div class="card fu d1">
+        <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <h3>Band Dashboard</h3>
+        <p>See your next rehearsal, upcoming gigs, and quick actions the moment you open the app. Your band's full picture at a glance.</p>
+      </div>
+      <div class="card fu d2">
+        <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></div>
+        <h3>Add &amp; Edit Events</h3>
+        <p>Add rehearsals, gigs, or block-out dates from one form. Set duration, location, recurrence, and attach a setlist. One tap to update.</p>
+      </div>
+      <div class="card fu d3">
+        <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <h3>Setlists &amp; Songs</h3>
+        <p>Build setlists from your song library. Drag to reorder, track BPM, duration, and tuning per song, and add set breaks.</p>
+      </div>
+      <div class="card fu d4">
+        <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <h3>Shared Band Calendar</h3>
+        <p>Every gig, rehearsal, and block-out date in one view. Subscribe via iCal to sync with Apple, Google, or Outlook.</p>
+      </div>
+      <div class="card fu d5">
+        <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Members, Venues &amp; Contacts</h3>
+        <p>Band directory, venue list, and contact book — all per band. Instruments, phones, addresses, and roles in one place.</p>
+      </div>
+      <div class="card fu d6">
+        <div class="card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <h3>Potential Gigs</h3>
+        <p>Track bookings in progress. Members get an RSVP prompt when a potential gig goes live. Confirm it with one toggle.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     HOW IT WORKS
+     ============================================================ -->
+<section class="section section-alt" id="how-it-works">
+  <div class="container">
+    <div class="s-head">
+      <span class="s-label fu">Get started in minutes</span>
+      <h2 class="s-title fu d1">Three steps. Then it runs itself.</h2>
+      <p class="s-sub fu d2">No password required. No credit card. No nonsense.</p>
+    </div>
+    <div class="steps">
+      <div class="step fu d1">
+        <div class="step-num">1</div>
+        <div class="step-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h3>Sign in with your email</h3>
+        <p>We send a magic link to your email. Click it and you're in — no password, no account setup, no friction.</p>
+      </div>
+      <div class="step fu d2">
+        <div class="step-num">2</div>
+        <div class="step-phone-wrap">
+          <div class="phone-shell">
+            <div class="phone-notch"></div>
+            <img src="images/edit-band.png" alt="Create your band in BandRoadie">
+          </div>
+        </div>
+        <h3>Create your band</h3>
+        <p>Name it, pick a color, set your timezone, and invite bandmates by email. They join with one tap.</p>
+      </div>
+      <div class="step fu d3">
+        <div class="step-num">3</div>
+        <div class="step-phone-wrap">
+          <div class="phone-shell">
+            <div class="phone-notch"></div>
+            <img src="images/dashboard-potential.png" alt="BandRoadie dashboard with events">
+          </div>
+        </div>
+        <h3>Add events and go</h3>
+        <p>Add your next rehearsal, build a setlist, drop in the upcoming gig. Everyone sees it the moment you save.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     SCREENSHOT CAROUSEL
+     ============================================================ -->
+<section class="section" id="screenshots">
+  <div class="container">
+    <div class="s-head">
+      <span class="s-label fu">See it in action</span>
+      <h2 class="s-title fu d1">Built for real bands.<br>Designed to get out of the way.</h2>
+    </div>
+    <div class="carousel-wrap">
+      <div class="car-phone fu d2">
+        <div class="phone-glow"></div>
+        <div class="phone-shell">
+          <div class="phone-notch"></div>
+          <div class="car-slides" id="carSlides">
+            <div class="car-slide on"><img src="images/dashboard.png" alt="Dashboard"></div>
+            <div class="car-slide"><img src="images/dashboard-potential.png" alt="Dashboard with potential gig"></div>
+            <div class="car-slide"><img src="images/add-rehearsal.png" alt="Add rehearsal"></div>
+            <div class="car-slide"><img src="images/add-gig.png" alt="Add gig"></div>
+            <div class="car-slide"><img src="images/add-potential-gig.png" alt="Potential gig"></div>
+            <div class="car-slide"><img src="images/add-blockout.png" alt="Add block-out date"></div>
+            <div class="car-slide"><img src="images/calendar.png" alt="Calendar view"></div>
+            <div class="car-slide"><img src="images/band-contacts.png" alt="Band contacts"></div>
+          </div>
+        </div>
+      </div>
+      <div class="car-caption fu d3"><p id="carCap">Your band at a glance — next rehearsal, upcoming gigs, and quick actions on the dashboard.</p></div>
+      <div class="car-controls fu d4">
+        <button class="car-btn" id="carPrev" aria-label="Previous"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="dots" id="carDots">
+          <button class="dot on" data-i="0"></button>
+          <button class="dot" data-i="1"></button>
+          <button class="dot" data-i="2"></button>
+          <button class="dot" data-i="3"></button>
+          <button class="dot" data-i="4"></button>
+          <button class="dot" data-i="5"></button>
+          <button class="dot" data-i="6"></button>
+          <button class="dot" data-i="7"></button>
+        </div>
+        <button class="car-btn" id="carNext" aria-label="Next"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FEATURE SECTIONS
+     ============================================================ -->
+
+<section class="feat" id="f-dashboard">
+  <div class="container">
+    <div class="feat-row">
+      <div class="feat-text fl">
+        <span class="s-label">Dashboard</span>
+        <h2>Open the app and know exactly what's coming up.</h2>
+        <p>The dashboard puts your most important band information front and center — next rehearsal, upcoming gigs, potential bookings, and quick actions. No digging. Just open it and go.</p>
+        <ul class="bullets">
+          <li><span class="chk">✓</span> Next rehearsal date, time, location, and attached setlist</li>
+          <li><span class="chk">✓</span> Upcoming gigs listed in order with date and time</li>
+          <li><span class="chk">✓</span> Potential gigs shown so the whole band sees the pipeline</li>
+          <li><span class="chk">✓</span> Quick actions: Add Event · Create Setlist</li>
+          <li><span class="chk">✓</span> Real-time — every member sees the same view</li>
+        </ul>
+      </div>
+      <div class="feat-vis fr">
+        <div class="phone ph-md">
+          <div class="phone-glow"></div>
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/dashboard.png" alt="BandRoadie dashboard"></div>
+        </div>
+        <div class="phone ph-md">
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/dashboard-potential.png" alt="Dashboard with potential gig"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="feat" id="f-events">
+  <div class="container">
+    <div class="feat-row rev">
+      <div class="feat-text fr">
+        <span class="s-label">Add &amp; Edit Events</span>
+        <h2>Add a gig, rehearsal, or block-out in seconds.</h2>
+        <p>One form handles everything. Choose Rehearsal, Gig, or Block Out — fill in the details and save. Your whole band sees it immediately. Need to change something? Open the event, edit, and hit Update. Done.</p>
+        <ul class="bullets">
+          <li><span class="chk">✓</span> Rehearsals with location, duration, setlist, and recurrence</li>
+          <li><span class="chk">✓</span> Gigs with venue, city, load-in time, pay, and setlist</li>
+          <li><span class="chk">✓</span> Block-out dates with start/end and optional reason</li>
+          <li><span class="chk">✓</span> Make any rehearsal recurring — weekly, biweekly, or monthly</li>
+          <li><span class="chk">✓</span> Edit any field at any time — updates appear for everyone instantly</li>
+        </ul>
+      </div>
+      <div class="feat-vis fl">
+        <div class="phone ph-md">
+          <div class="phone-glow"></div>
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/add-rehearsal.png" alt="Add rehearsal form"></div>
+        </div>
+        <div class="phone ph-md">
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/add-gig.png" alt="Add gig form"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="feat" id="f-potential">
+  <div class="container">
+    <div class="feat-row">
+      <div class="feat-text fl">
+        <span class="s-label">Potential Gigs</span>
+        <h2>Track gigs you're working on, not just the ones confirmed.</h2>
+        <p>Mark a gig as "potential" while you're waiting on confirmation. Members get an RSVP popup to say they're available before anything is locked in. Add multiple date options. When the gig confirms, flip the toggle and it goes live for everyone.</p>
+        <ul class="bullets">
+          <li><span class="chk">✓</span> Mark any gig as potential — separate from confirmed events</li>
+          <li><span class="chk">✓</span> Members confirm availability before you commit</li>
+          <li><span class="chk">✓</span> Add multiple date options for the same gig</li>
+          <li><span class="chk">✓</span> "Are you available?" popup sent to the whole band</li>
+          <li><span class="chk">✓</span> Shows on the dashboard so everyone knows what's in the pipeline</li>
+          <li><span class="chk">✓</span> Convert to confirmed with one toggle when it's locked in</li>
+        </ul>
+      </div>
+      <div class="feat-vis fr">
+        <div class="phone ph-md">
+          <div class="phone-glow"></div>
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/add-potential-gig.png" alt="Potential gig with member confirmation"></div>
+        </div>
+        <div class="phone ph-md">
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/availability-popup.png" alt="Are you available popup"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="feat" id="f-calendar">
+  <div class="container">
+    <div class="feat-row rev">
+      <div class="feat-text fr">
+        <span class="s-label">Calendar &amp; Block-out Dates</span>
+        <h2>The full picture — gigs, rehearsals, and who's out of town.</h2>
+        <p>Your band's calendar shows every scheduled event plus member block-out dates so you can see who's available before booking anything. Subscribe via iCal and your schedule syncs directly into Apple Calendar, Google Calendar, or Outlook.</p>
+        <ul class="bullets">
+          <li><span class="chk">✓</span> Month view with gigs, rehearsals, and block-out dates</li>
+          <li><span class="chk">✓</span> Members add block-out dates with start, end, and reason</li>
+          <li><span class="chk">✓</span> Subscribe via iCal — syncs to Apple, Google, or Outlook</li>
+          <li><span class="chk">✓</span> Choose which event types appear in your external calendar</li>
+          <li><span class="chk">✓</span> Stays in sync automatically as events change</li>
+        </ul>
+      </div>
+      <div class="feat-vis fl">
+        <div class="phone ph-md">
+          <div class="phone-glow"></div>
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/calendar.png" alt="Band calendar with blockout dates"></div>
+        </div>
+        <div class="phone ph-md">
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/add-blockout.png" alt="Add block-out date"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="feat" id="f-contacts">
+  <div class="container">
+    <div class="feat-row">
+      <div class="feat-text fl">
+        <span class="s-label">Contacts &amp; Venues</span>
+        <h2>Your band's contact book, built right into the app.</h2>
+        <p>Stop scrolling your personal contacts for a venue's load-in number. BandRoadie stores your band members, your regular venues, and anyone else you work with — all in one place, accessible to the whole band.</p>
+        <ul class="bullets">
+          <li><span class="chk">✓</span> Band member directory with instruments, phone, email, address</li>
+          <li><span class="chk">✓</span> Venue directory with address and phone per venue</li>
+          <li><span class="chk">✓</span> Add bookers, agents, and contacts per venue</li>
+          <li><span class="chk">✓</span> Separate from your personal contacts — band-only</li>
+          <li><span class="chk">✓</span> Available to every member of the band</li>
+        </ul>
+      </div>
+      <div class="feat-vis fr">
+        <div class="phone ph-md">
+          <div class="phone-glow"></div>
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/band-contacts.png" alt="Band member contacts"></div>
+        </div>
+        <div class="phone ph-md">
+          <div class="phone-shell"><div class="phone-notch"></div><img src="images/venue-contacts.png" alt="Venue contacts"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     TESTIMONIALS — two-row marquee matching GenieNova style
+     ============================================================ -->
+<section class="section section-alt" id="reviews">
+  <div class="container">
+    <div class="s-head">
+      <span class="s-label fu">Real bands. Real relief.</span>
+      <h2 class="s-title fu d1">What musicians say.</h2>
+    </div>
+  </div>
+
+  <!-- Row 1 — scrolls left -->
+  <div class="testi-marquee-wrap fu d2">
+    <div class="testi-row testi-row-1">
+      <!-- set 1 -->
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"We used to manage everything in a group text and a shared Google sheet. BandRoadie replaced both. Our drummer actually shows up knowing what songs we're playing now."</p>
+        <div class="testi-author"><div class="testi-av">SG</div><div><span class="testi-name">Guitarist, Chicago Band</span><span class="testi-role">5-piece rock band</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"The setlist builder alone is worth it. I used to make ours in a Notes doc and text a photo before every gig. Now everyone just opens the app."</p>
+        <div class="testi-author"><div class="testi-av">TH</div><div><span class="testi-name">Bassist</span><span class="testi-role">Touring cover band</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"I run three bands. Being able to switch between them in one app and keep everything separate is the thing I didn't know I needed."</p>
+        <div class="testi-author"><div class="testi-av">MJ</div><div><span class="testi-name">Drummer</span><span class="testi-role">Multi-band musician</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Block-out dates are a game changer. Before BandRoadie we'd book a gig and then find out someone's on holiday. Now it's impossible to miss."</p>
+        <div class="testi-author"><div class="testi-av">RP</div><div><span class="testi-name">Rhythm guitarist</span><span class="testi-role">Wedding band, London</span></div></div>
+      </div>
+      <!-- duplicate set for seamless loop -->
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"We used to manage everything in a group text and a shared Google sheet. BandRoadie replaced both. Our drummer actually shows up knowing what songs we're playing now."</p>
+        <div class="testi-author"><div class="testi-av">SG</div><div><span class="testi-name">Guitarist, Chicago Band</span><span class="testi-role">5-piece rock band</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"The setlist builder alone is worth it. I used to make ours in a Notes doc and text a photo before every gig. Now everyone just opens the app."</p>
+        <div class="testi-author"><div class="testi-av">TH</div><div><span class="testi-name">Bassist</span><span class="testi-role">Touring cover band</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"I run three bands. Being able to switch between them in one app and keep everything separate is the thing I didn't know I needed."</p>
+        <div class="testi-author"><div class="testi-av">MJ</div><div><span class="testi-name">Drummer</span><span class="testi-role">Multi-band musician</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Block-out dates are a game changer. Before BandRoadie we'd book a gig and then find out someone's on holiday. Now it's impossible to miss."</p>
+        <div class="testi-author"><div class="testi-av">RP</div><div><span class="testi-name">Rhythm guitarist</span><span class="testi-role">Wedding band, London</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2 — scrolls right -->
+  <div class="testi-marquee-wrap fu d3" style="margin-top:16px">
+    <div class="testi-row testi-row-2">
+      <!-- set 1 -->
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"The iCal sync is the hidden gem. Our whole band just subscribes and it shows up in their own calendar. No one has to check anything separately."</p>
+        <div class="testi-author"><div class="testi-av">DK</div><div><span class="testi-name">Keys player</span><span class="testi-role">Jazz quartet, NYC</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Potential gigs are brilliant. We can flag something and let everyone signal availability before we commit. Saved us from at least two double-bookings."</p>
+        <div class="testi-author"><div class="testi-av">AL</div><div><span class="testi-name">Singer / bandleader</span><span class="testi-role">Function band</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Magic-link login means nobody has a password to forget. We've had zero 'I can't log in' problems since switching. Zero. That alone is worth it."</p>
+        <div class="testi-author"><div class="testi-av">BW</div><div><span class="testi-name">Lead guitarist</span><span class="testi-role">Indie rock trio</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Finally an app that thinks about bands the way bands actually work. Not a generic calendar. Not a task manager. Just exactly what we needed."</p>
+        <div class="testi-author"><div class="testi-av">CM</div><div><span class="testi-name">Vocalist</span><span class="testi-role">Country duo</span></div></div>
+      </div>
+      <!-- duplicate set for seamless loop -->
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"The iCal sync is the hidden gem. Our whole band just subscribes and it shows up in their own calendar. No one has to check anything separately."</p>
+        <div class="testi-author"><div class="testi-av">DK</div><div><span class="testi-name">Keys player</span><span class="testi-role">Jazz quartet, NYC</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Potential gigs are brilliant. We can flag something and let everyone signal availability before we commit. Saved us from at least two double-bookings."</p>
+        <div class="testi-author"><div class="testi-av">AL</div><div><span class="testi-name">Singer / bandleader</span><span class="testi-role">Function band</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Magic-link login means nobody has a password to forget. We've had zero 'I can't log in' problems since switching. Zero. That alone is worth it."</p>
+        <div class="testi-author"><div class="testi-av">BW</div><div><span class="testi-name">Lead guitarist</span><span class="testi-role">Indie rock trio</span></div></div>
+      </div>
+      <div class="testi">
+        <div class="testi-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
+        <p class="testi-q">"Finally an app that thinks about bands the way bands actually work. Not a generic calendar. Not a task manager. Just exactly what we needed."</p>
+        <div class="testi-author"><div class="testi-av">CM</div><div><span class="testi-name">Vocalist</span><span class="testi-role">Country duo</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     WHAT'S INCLUDED
+     ============================================================ -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="s-head">
+      <span class="s-label fu">Pricing</span>
+      <h2 class="s-title fu d1">Everything's included. For free.</h2>
+      <p class="s-sub fu d2">No hidden fees. No ads. No selling your data.</p>
+    </div>
+    <div class="inc-card fu d2">
+      <div class="inc-price">$0</div>
+      <p class="inc-sub">Always free · No subscription · No credit card</p>
+      <div class="inc-list">
+        <div class="inc-item"><span class="inc-ck">✓</span> Band dashboard</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Unlimited gigs &amp; rehearsals</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Potential gig tracking</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Member availability &amp; RSVP</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Setlists with drag-and-drop</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Song catalog with BPM &amp; tuning</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Shared band calendar</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> iCal sync for external calendars</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Block-out dates</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Member directory with roles</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Venues &amp; contacts directory</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Push notifications (iOS &amp; Android)</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Data backup &amp; restore</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Multi-band support</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> No ads · No data selling</div>
+        <div class="inc-item"><span class="inc-ck">✓</span> Magic-link login (no passwords)</div>
+      </div>
+      <p class="inc-note">"BandRoadie was built by a musician who wanted this tool to exist. It's free because it should be."</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FAQ
+     ============================================================ -->
+<section class="section section-alt" id="faq">
+  <div class="container">
+    <div class="s-head">
+      <span class="s-label fu">FAQ</span>
+      <h2 class="s-title fu d1">Questions? Answered.</h2>
+    </div>
+    <div class="faq-list fu d2">
+
+      <div class="faq-item">
+        <button class="faq-q">Is BandRoadie really free?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>Yes. Free to download and use on iOS, Android, and web. No ads, no in-app purchases, no subscription. Built by a musician, released as a free tool for real working bands.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">What platforms is it available on?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>iPhone and iPad (iOS 16.6+), Android, and web at app.bandroadie.com. All platforms stay in sync in real time.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">What's a magic link? Do I need a password?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>No password needed. We send a one-time login link to your email. Click it and you're in — nothing to create, forget, or reset.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Can I be in more than one band?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>Yes. BandRoadie supports multiple bands from one account. Switch between them from the band selector. Each band's data is completely separate.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Is my band's data private?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>Your data is only accessible to members of your band. We don't sell user data, we don't run ads, and we don't share your information with third parties.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Can I sync with Google, Apple, or Outlook Calendar?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>Yes. BandRoadie generates an iCal feed for your band. Subscribe in any calendar app — gigs, rehearsals, and block-out dates sync automatically.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Does my whole band need to download the app?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>They need the app or web access to see real-time updates. Invite them with their email — they tap the link and they're in. No setup required on their end.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Can I back up my band's data?<span class="faq-ico"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
+        <div class="faq-a"><p>Yes. Band admins can export a full backup — setlists, songs, gigs, rehearsals, members, venues, and contacts. Restore from it at any time.</p></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FINAL CTA
+     ============================================================ -->
+<section class="section final" id="download">
+  <div class="container">
+    <h2 class="fu">Your band runs on group texts.<br><span class="grad">It doesn't have to.</span></h2>
+    <p class="fu d1">BandRoadie brings your gigs, setlists, rehearsals, and members into one shared workspace — free on iOS, Android, and web.</p>
+    <div class="final-badges fu d2">
+      <a href="https://apps.apple.com/us/app/band-roadie/id6757283775" class="badge" target="_blank" rel="noopener">
+        <span class="badge-icon">&#xf8ff;</span>
+        <div class="badge-text"><span class="badge-sub">Download on the</span><span class="badge-name">App Store</span></div>
+      </a>
+      <a href="https://play.google.com/store/apps/details?id=com.bandroadie.app" class="badge" target="_blank" rel="noopener">
+        <span class="badge-icon">&#9654;</span>
+        <div class="badge-text"><span class="badge-sub">Get it on</span><span class="badge-name">Google Play</span></div>
+      </a>
+    </div>
+    <p class="final-web fu d3">Or use the web app at <a href="https://app.bandroadie.com" target="_blank" rel="noopener">app.bandroadie.com</a></p>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer>
+  <div class="container">
+    <div class="foot-top">
+      <div>
+        <div class="foot-logo">BAND<span class="star">★</span>ROADIE</div>
+        <p class="foot-tag">For bands who have better things to do than manage their band.</p>
+      </div>
+      <div class="foot-links">
+        <div class="foot-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#screenshots">Screenshots</a></li>
+            <li><a href="#pricing">What's Included</a></li>
+            <li><a href="https://app.bandroadie.com" target="_blank">Open Web App</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <h4>Download</h4>
+          <ul>
+            <li><a href="https://apps.apple.com/us/app/band-roadie/id6757283775" target="_blank">App Store</a></li>
+            <li><a href="https://play.google.com/store/apps/details?id=com.bandroadie.app" target="_blank">Google Play</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="https://bandroadie.com/privacy" target="_blank">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+            <li><a href="#">Support</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <p class="foot-copy">© 2026 BandRoadie. All rights reserved.</p>
+      <div class="foot-badges">
+        <a href="https://apps.apple.com/us/app/band-roadie/id6757283775" class="foot-badge" target="_blank">&#xf8ff; App Store</a>
+        <a href="https://play.google.com/store/apps/details?id=com.bandroadie.app" class="foot-badge" target="_blank">&#9654; Google Play</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+(function(){
+  'use strict';
+
+  /* ---- Scroll animations ---- */
+  const els = document.querySelectorAll('.fu,.fl,.fr');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+    els.forEach(el => io.observe(el));
+  } else {
+    els.forEach(el => el.classList.add('on'));
+  }
+
+  /* Hero animations handled by CSS @keyframes (heroWordLeft, heroPhoneUp, etc) */
+  /* Skip hero from IntersectionObserver — already animated by CSS */
+
+  /* ---- Mobile nav ---- */
+  const burger  = document.getElementById('burger');
+  const mobMenu = document.getElementById('mob-menu');
+  burger.addEventListener('click', () => {
+    burger.classList.toggle('open');
+    mobMenu.classList.toggle('open');
+  });
+  mobMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    burger.classList.remove('open'); mobMenu.classList.remove('open');
+  }));
+
+  /* ---- Carousel ---- */
+  const caps = [
+    'Your band at a glance — next rehearsal, upcoming gigs, and quick actions.',
+    'Potential gigs on the dashboard — the whole band knows what\'s in the pipeline.',
+    'Add a rehearsal: date, time, duration, location, setlist, and recurrence in one form.',
+    'Book a gig with venue, city, load-in time, pay, and a potential gig toggle.',
+    'Potential gigs require member confirmation — know who\'s available before you commit.',
+    'Add a block-out date with a start, end date, and optional reason.',
+    'Your full band calendar: gigs, rehearsals, and block-out dates in one view.',
+    'Your band directory — instruments, phone, email, and address per member.'
+  ];
+  let cur = 0;
+  const slides = document.querySelectorAll('.car-slide');
+  const dots   = document.querySelectorAll('.dot');
+  const capEl  = document.getElementById('carCap');
+  const total  = slides.length;
+
+  function goTo(n) {
+    slides[cur].classList.remove('on'); dots[cur].classList.remove('on');
+    cur = ((n % total) + total) % total;
+    slides[cur].classList.add('on');   dots[cur].classList.add('on');
+    capEl.textContent = caps[cur];
+  }
+
+  document.getElementById('carPrev').addEventListener('click', () => goTo(cur - 1));
+  document.getElementById('carNext').addEventListener('click', () => goTo(cur + 1));
+  dots.forEach(d => d.addEventListener('click', () => goTo(parseInt(d.dataset.i))));
+
+  let timer = setInterval(() => goTo(cur + 1), 4000);
+  const carEl = document.querySelector('.car-phone');
+  carEl.addEventListener('mouseenter', () => clearInterval(timer));
+  carEl.addEventListener('mouseleave', () => { timer = setInterval(() => goTo(cur + 1), 4000); });
+
+  // Touch swipe
+  let tx = 0;
+  carEl.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  carEl.addEventListener('touchend',   e => { const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 40) goTo(dx < 0 ? cur + 1 : cur - 1); }, { passive: true });
+
+  /* ---- FAQ ---- */
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.parentElement;
+      const was  = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!was) item.classList.add('open');
+    });
+  });
+
+  /* ---- Smooth anchor scroll ---- */
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const t = document.querySelector(a.getAttribute('href'));
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
