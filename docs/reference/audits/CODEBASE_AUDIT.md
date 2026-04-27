@@ -5,6 +5,8 @@
 **Scope:** Full repository — 225 Dart files across lib/, supabase/, build configs, and deployment pipeline
 **Context:** Production app with 100+ bands. Recommendations prioritize stability over rewrites.
 
+> This is a point-in-time audit. Items marked with **Update** notes have been resolved since the audit date. Verify current state before acting on any recommendation.
+
 ---
 
 ## 1. Critical Issues (Must Fix)
@@ -64,6 +66,7 @@
 **File:** `app/app_router.dart` (0 bytes, empty)
 **Issue:** All routing logic lives in `main.dart` lines 131–187 using `onGenerateRoute`. No named route constants. `_isMarketingHost()` check repeated 4 times.
 **Fix:** Extract routing into `app_router.dart` or adopt GoRouter for type-safe, deep-link-aware routing.
+**Note:** `go_router` is listed as a key dependency in `BAND_ROADIE_DOCUMENTATION.md` and the directory structure shows `app/router/`. Verify current state of router migration.
 
 ### 2.3 Anemic Service Layer
 **Files:** `app/services/band_service.dart` (14 lines), `app/services/user_profile_service.dart` (14 lines)
@@ -143,6 +146,7 @@
 **Files:** `tools/deploy_web.sh`, `web/vercel.json`
 **Issue:** PWA strategy is explicitly disabled (`--pwa-strategy=none`). No cache headers for static assets in Vercel config (only `version.json` has cache-control).
 **Fix:** Add aggressive caching for versioned build artifacts (JS, CSS, fonts). Consider enabling PWA for offline capability.
+**Update (April 2026):** `no-cache, no-store, must-revalidate` headers added to `index.html` and `flutter_service_worker.js` in `web/vercel.json` to prevent stale deploys. Static build artifacts remain uncached.
 
 ---
 

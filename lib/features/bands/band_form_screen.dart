@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
@@ -267,7 +268,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       showAppSnackBar(
         context,
         message: 'Email already added',
-        backgroundColor: AppColors.warning,
+        backgroundColor: context.colors.warning,
       );
       return;
     }
@@ -387,7 +388,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 showAppSnackBar(
                   context,
                   message: 'Invite saved but email failed to send',
-                  backgroundColor: AppColors.warning,
+                  backgroundColor: context.colors.warning,
                 );
               }
             }
@@ -399,7 +400,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               showAppSnackBar(
                 context,
                 message: 'Invite saved but email failed to send',
-                backgroundColor: AppColors.warning,
+                backgroundColor: context.colors.warning,
               );
             }
           }
@@ -531,7 +532,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   void _showBackupRestoreSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -549,7 +550,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
-                    color: AppColors.textMuted.withValues(alpha: 0.4),
+                    color: context.colors.textMuted.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -581,7 +582,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                       VerticalDivider(
                         width: 28,
                         thickness: 1,
-                        color: AppColors.textMuted.withValues(alpha: 0.2),
+                        color: context.colors.textMuted.withValues(alpha: 0.2),
                       ),
                       // ── Restore side ─────────────────────────────────
                       Expanded(
@@ -629,17 +630,17 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(AppIcons.download, color: AppColors.primary, size: 24),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Backup Band Data',
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -654,7 +655,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             Text(
               'A backup file will be created for ${band.name}. The backup includes:',
               style:
-                  const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  TextStyle(color: context.colors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 12),
             ...[
@@ -669,13 +670,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('• ',
+                    Text('• ',
                         style: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 14)),
+                            color: context.colors.textSecondary, fontSize: 14)),
                     Expanded(
                         child: Text(item,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 14))),
+                            style: TextStyle(
+                                color: context.colors.textSecondary, fontSize: 14))),
                   ],
                 ),
               ),
@@ -684,12 +685,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
+              child: Text(
                 '⚠ Backup files may contain sensitive information such as lyrics, notes, and member details. Store the file securely.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                style: TextStyle(color: context.colors.textMuted, fontSize: 12),
               ),
             ),
           ],
@@ -697,8 +698,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+            child: Text('Cancel',
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 16)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -787,18 +788,18 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.colors.surface,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(AppIcons.warning, color: AppColors.warning, size: 26),
+            Icon(AppIcons.warning, color: context.colors.warning, size: 26),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Restore Band Data?',
                 style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.w600),
               ),
@@ -811,16 +812,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           children: [
             RichText(
               text: TextSpan(
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 15),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 15),
                 children: [
                   const TextSpan(
                       text:
                           'Your current data will be replaced with the backup from '),
                   TextSpan(
                       text: stats.bandName,
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
+                      style: TextStyle(
+                          color: context.colors.textPrimary,
                           fontWeight: FontWeight.w600)),
                   const TextSpan(text: '. The following will be replaced:'),
                 ],
@@ -837,7 +838,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -853,8 +854,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+            child: Text('Cancel',
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 16)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -884,15 +885,15 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          const Text('• ',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
+          Text('• ',
+              style: TextStyle(color: context.colors.textSecondary, fontSize: 15)),
           Expanded(
               child: Text(label,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 15))),
+                  style: TextStyle(
+                      color: context.colors.textSecondary, fontSize: 15))),
           Text('$count',
-              style: const TextStyle(
-                  color: AppColors.textPrimary,
+              style: TextStyle(
+                  color: context.colors.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w600)),
         ],
@@ -939,33 +940,33 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           'Delete Band?',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           'Are you sure you want to delete "${band.name}"? This action cannot be undone and will remove all associated gigs, rehearsals, and member data.',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text(
               'Delete',
-              style: TextStyle(color: AppColors.accent),
+              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],
@@ -1135,7 +1136,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         showAppSnackBar(
           context,
           message: 'Camera permission is required to take photos',
-          backgroundColor: AppColors.warning,
+          backgroundColor: context.colors.warning,
         );
       }
       return false;
@@ -1177,7 +1178,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         showAppSnackBar(
           context,
           message: 'Photo library permission is required',
-          backgroundColor: AppColors.warning,
+          backgroundColor: context.colors.warning,
         );
       }
       return false;
@@ -1194,26 +1195,26 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBg,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           title,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          style: TextStyle(
+            color: context.colors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           message,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
+            child: Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
             ),
           ),
           TextButton(
@@ -1223,7 +1224,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             },
             child: const Text(
               'Open Settings',
-              style: TextStyle(color: AppColors.accent),
+              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],
@@ -1235,7 +1236,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   Future<void> _pickImage() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: AppColors.cardBg,
+      backgroundColor: context.colors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1249,17 +1250,17 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(height: Spacing.space16),
-              const Text(
+              Text(
                 'Choose Image Source',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: Spacing.space24),
@@ -1268,25 +1269,25 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     AppIcons.camera,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                   ),
                 ),
-                title: const Text(
+                title: Text(
                   'Take Photo',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   'Use camera to take a new photo',
-                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 14, color: context.colors.textMuted),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
@@ -1296,25 +1297,25 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     AppIcons.image,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                   ),
                 ),
-                title: const Text(
+                title: Text(
                   'Photo Library',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   'Choose from your photos',
-                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                  style: TextStyle(fontSize: 14, color: context.colors.textMuted),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
@@ -1438,7 +1439,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       showAppSnackBar(
         context,
         message: 'Please enter a username first',
-        backgroundColor: AppColors.warning,
+        backgroundColor: context.colors.warning,
       );
       return;
     }
@@ -1467,7 +1468,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final submitLabel = _isEditMode ? 'Update Band' : 'Create Band';
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Stack(
         children: [
           SafeArea(
@@ -1488,21 +1489,21 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                             children: [
                               Text(
                                 title,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
                                   height: 1.25,
-                                  color: AppColors.textPrimary,
+                                  color: context.colors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 subtitle,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w400,
                                   height: 1.4,
-                                  color: AppColors.textSecondary,
+                                  color: context.colors.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: Spacing.space32),
@@ -1547,13 +1548,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                               if (!_isEditMode) ...[
                                 _buildSectionLabel('Invite Members'),
                                 const SizedBox(height: Spacing.space6),
-                                const Text(
+                                Text(
                                   'Add email addresses to invite members to your band',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w400,
                                     height: 1.4,
-                                    color: AppColors.textSecondary,
+                                    color: context.colors.textSecondary,
                                   ),
                                 ),
                                 const SizedBox(height: Spacing.space12),
@@ -1606,12 +1607,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   AppIcons.back,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   size: 24,
                 ),
                 Text(
@@ -1620,7 +1621,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     height: 1.4,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ],
@@ -1635,11 +1636,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   Widget _buildSectionLabel(String label) {
     return Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         height: 1.4,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
       ),
     );
   }
@@ -1660,20 +1661,20 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       textCapitalization: textCapitalization,
       onChanged: onChanged,
       inputFormatters: inputFormatters,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
       ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
-          color: AppColors.textMuted,
+          color: context.colors.textMuted,
         ),
         filled: true,
-        fillColor: AppColors.surfaceDark,
+        fillColor: context.colors.surface,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: Spacing.space16,
           vertical: Spacing.space14,
@@ -1688,7 +1689,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          borderSide: const BorderSide(color: AppColors.accent, width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -1732,7 +1733,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     height: 28,
                     child: CircularProgressIndicator(
                       strokeWidth: 3,
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -1745,9 +1746,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: AppColors.success,
+                    color: context.colors.success,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.scaffoldBg, width: 2),
+                    border: Border.all(color: context.colors.background, width: 2),
                   ),
                   child: const Icon(
                     AppIcons.check,
@@ -1779,10 +1780,10 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                             height: 32,
                             decoration: BoxDecoration(
                               color:
-                                  AppColors.surfaceDark.withValues(alpha: 0.5),
+                                  context.colors.surface.withValues(alpha: 0.5),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.textPrimary
+                                color: context.colors.textPrimary
                                     .withValues(alpha: 0.5),
                                 width: 1,
                               ),
@@ -1790,7 +1791,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                             child: Center(
                               child: Icon(
                                 Icons.upload_rounded,
-                                color: AppColors.textPrimary
+                                color: context.colors.textPrimary
                                     .withValues(alpha: 0.5),
                                 size: 16,
                               ),
@@ -1854,13 +1855,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 ),
               ),
               const SizedBox(height: Spacing.space8),
-              const Text(
+              Text(
                 'Upload an image or choose a color for your band avatar.',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
                   height: 1.4,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ],
@@ -1920,13 +1921,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       children: [
         _buildSectionLabel('Timezone Location'),
         const SizedBox(height: Spacing.space6),
-        const Text(
+        Text(
           'Used for general formatting and calendar feeds',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w400,
             height: 1.4,
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
         const SizedBox(height: Spacing.space12),
@@ -1938,23 +1939,23 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               : 'America/Chicago',
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.cardBgElevated,
+            fillColor: context.colors.surfaceElevated,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: Spacing.space16,
               vertical: Spacing.space12,
             ),
           ),
-          dropdownColor: AppColors.cardBgElevated,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
+          dropdownColor: context.colors.surfaceElevated,
+          style: TextStyle(
+            color: context.colors.textPrimary,
             fontSize: 16,
           ),
           items: _timezoneOptions.asMap().entries.map((entry) {
@@ -1977,8 +1978,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                           ),
                         Text(
                           tz['label'] as String,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: context.colors.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1987,8 +1988,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     )
                   : Text(
                       tz['label'] as String,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                       ),
@@ -2004,12 +2005,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               : null,
         ),
         if (!canEdit)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: Spacing.space8),
             child: Text(
               'Only admins can change the timezone',
               style: TextStyle(
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
                 fontSize: 12,
               ),
             ),
@@ -2028,20 +2029,20 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _addEmail(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: 'name@example.com',
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
               filled: true,
-              fillColor: AppColors.surfaceDark,
+              fillColor: context.colors.surface,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: Spacing.space16,
                 vertical: Spacing.space14,
@@ -2056,7 +2057,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
           ),
@@ -2068,7 +2069,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.accent,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             ),
             child: const Center(
@@ -2107,10 +2108,10 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.transparent
-                      : AppColors.surfaceOverlay,
+                      : context.colors.surfaceOverlay,
                   borderRadius: BorderRadius.circular(50),
                   border: isSelected
-                      ? Border.all(color: AppColors.accent, width: 1)
+                      ? Border.all(color: AppColors.primary, width: 1)
                       : null,
                 ),
                 child: Text(
@@ -2120,7 +2121,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     fontWeight: FontWeight.w400,
                     height: 1.33,
                     color:
-                        isSelected ? AppColors.accent : AppColors.textPrimary,
+                        isSelected ? AppColors.primary : context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -2151,12 +2152,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           onPressed: (_isSubmitting || _isDeleting)
               ? null
               : () => Navigator.of(context).pop(),
-          child: const Text(
+          child: Text(
             'Cancel',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               decoration: TextDecoration.none,
             ),
           ),
@@ -2220,7 +2221,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.accent,
+                              AppColors.primary,
                             ),
                           ),
                         )
@@ -2229,7 +2230,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            color: AppColors.accent,
+                            color: AppColors.primary,
                             decoration: TextDecoration.none,
                           ),
                         ),
@@ -2261,7 +2262,7 @@ class _EmailPill extends StatelessWidget {
         vertical: Spacing.space8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceOverlay,
+        color: context.colors.surfaceOverlay,
         borderRadius: BorderRadius.circular(50),
       ),
       child: Row(
@@ -2269,20 +2270,20 @@ class _EmailPill extends StatelessWidget {
         children: [
           Text(
             email,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
               height: 1.33,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: onRemove,
-            child: const Icon(
+            child: Icon(
               AppIcons.close,
               size: 16,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
         ],
@@ -2351,9 +2352,9 @@ class _BackupSheetPanel extends StatelessWidget {
         // Description
         Text(
           description,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             height: 1.4,
           ),
         ),
@@ -2365,15 +2366,15 @@ class _BackupSheetPanel extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('• ',
+                Text('• ',
                     style:
-                        TextStyle(fontSize: 15, color: AppColors.textPrimary)),
+                        TextStyle(fontSize: 15, color: context.colors.textPrimary)),
                 Expanded(
                   child: Text(
                     item,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       height: 1.3,
                     ),
                   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import 'notification_permission_service.dart';
 import 'notification_preferences_controller.dart';
@@ -23,18 +24,18 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final permissionState = ref.watch(notificationPermissionProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.scaffoldBg,
+        backgroundColor: context.colors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: AppColors.textPrimary),
+          icon: Icon(AppIcons.arrowLeft, color: context.colors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Notifications',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -46,7 +47,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         error: (error, _) => Center(
           child: Text(
             'Failed to load preferences',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: context.colors.textSecondary),
           ),
         ),
       ),
@@ -61,16 +62,14 @@ class NotificationSettingsScreen extends ConsumerWidget {
   ) {
     // App toggle represents USER INTENT
     // Toggle can only be ON if system permission is granted
-    final appToggleEnabled =
-        permissionState.enabledInApp &&
+    final appToggleEnabled = permissionState.enabledInApp &&
         (permissionState.systemPermission ==
                 NotificationPermissionStatus.granted ||
             permissionState.systemPermission ==
                 NotificationPermissionStatus.notApplicable);
 
     // Show warning banner if system permission is denied or permanently denied
-    final showPermissionDeniedBanner =
-        permissionState.systemPermission ==
+    final showPermissionDeniedBanner = permissionState.systemPermission ==
             NotificationPermissionStatus.denied ||
         permissionState.systemPermission ==
             NotificationPermissionStatus.permanentlyDenied;
@@ -132,13 +131,12 @@ class NotificationSettingsScreen extends ConsumerWidget {
           Text(
             'Notify me when:',
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: Spacing.space12),
-
           _CategoryCheckbox(
             label: 'Gigs',
             description: 'Someone schedules a confirmed gig',
@@ -157,9 +155,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   }
                 : null,
           ),
-
           const SizedBox(height: Spacing.space8),
-
           _CategoryCheckbox(
             label: 'Potential Gigs',
             description: 'Someone creates a potential gig',
@@ -178,9 +174,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   }
                 : null,
           ),
-
           const SizedBox(height: Spacing.space8),
-
           _CategoryCheckbox(
             label: 'Rehearsals',
             description: 'Someone schedules a rehearsal',
@@ -199,9 +193,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   }
                 : null,
           ),
-
           const SizedBox(height: Spacing.space8),
-
           _CategoryCheckbox(
             label: 'Block-out Dates',
             description: 'Someone marks themselves unavailable',
@@ -230,13 +222,13 @@ class NotificationSettingsScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(AppIcons.info, color: AppColors.accent, size: 24),
+          const Icon(AppIcons.info, color: AppColors.primary, size: 24),
           const SizedBox(width: Spacing.space12),
           Expanded(
             child: Column(
@@ -245,7 +237,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 Text(
                   'Notifications Disabled',
                   style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -253,7 +245,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   'BandRoadie doesn\'t have permission to send notifications. '
                   'Enable the toggle below to fix this.',
                   style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -280,15 +272,15 @@ class _MasterToggleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        border: Border.all(color: AppColors.borderMuted),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(
             AppIcons.bell,
-            color: enabled ? AppColors.accent : AppColors.textMuted,
+            color: enabled ? AppColors.primary : context.colors.textMuted,
             size: 28,
           ),
           const SizedBox(width: Spacing.space12),
@@ -301,7 +293,7 @@ class _MasterToggleCard extends StatelessWidget {
                 Text(
                   enabled ? 'You\'ll receive updates' : 'All notifications off',
                   style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -310,7 +302,7 @@ class _MasterToggleCard extends StatelessWidget {
           Switch.adaptive(
             value: enabled,
             onChanged: onChanged,
-            activeTrackColor: AppColors.accent,
+            activeTrackColor: AppColors.primary,
           ),
         ],
       ),
@@ -345,8 +337,8 @@ class _CategoryCheckbox extends StatelessWidget {
         vertical: Spacing.space12,
       ),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        border: Border.all(color: AppColors.borderMuted),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -354,9 +346,10 @@ class _CategoryCheckbox extends StatelessWidget {
           Checkbox(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.accent,
+            activeColor: AppColors.primary,
             side: BorderSide(
-              color: isEnabled ? AppColors.borderMuted : AppColors.textMuted,
+              color:
+                  isEnabled ? context.colors.border : context.colors.textMuted,
             ),
           ),
           const SizedBox(width: Spacing.space8),
@@ -368,8 +361,8 @@ class _CategoryCheckbox extends StatelessWidget {
                   label,
                   style: AppTextStyles.callout.copyWith(
                     color: isEnabled
-                        ? AppColors.textPrimary
-                        : AppColors.textMuted,
+                        ? context.colors.textPrimary
+                        : context.colors.textMuted,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -377,7 +370,7 @@ class _CategoryCheckbox extends StatelessWidget {
                 Text(
                   description,
                   style: AppTextStyles.footnote.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],

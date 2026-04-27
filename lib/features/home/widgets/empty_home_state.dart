@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'empty_section_card.dart';
 import 'home_app_bar.dart';
 import 'quick_actions_row.dart';
@@ -213,12 +214,12 @@ class _EmptyHeroSection extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.rocket_launch_rounded,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   size: 24,
                 ),
               ),
@@ -232,7 +233,7 @@ class _EmptyHeroSection extends StatelessWidget {
                       style: GoogleFonts.dmSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: Spacing.space4),

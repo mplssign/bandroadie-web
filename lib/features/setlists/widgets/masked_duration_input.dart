@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // MASKED DURATION INPUT
@@ -261,13 +262,13 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
   Widget build(BuildContext context) {
     final effectiveTextStyle =
         widget.textStyle ??
-        const TextStyle(
+        TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
         );
 
-    final effectiveBgColor = widget.backgroundColor ?? AppColors.surfaceElevated;
+    final effectiveBgColor = widget.backgroundColor ?? context.colors.surfaceElevated;
     final effectiveBorderColor = widget.borderColor ?? Colors.white;
 
     return Container(

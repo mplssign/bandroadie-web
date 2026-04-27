@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../bands/active_band_controller.dart';
@@ -234,8 +235,8 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
     // Members list with optional pending invites section
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceDark,
+      color: AppColors.primary,
+      backgroundColor: context.colors.surface,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -255,10 +256,10 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
                 children: [
                   Text(
                     'Members',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -267,7 +268,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: AppColors.textSecondary.withValues(alpha: 0.8),
+                      color: context.colors.textSecondary.withValues(alpha: 0.8),
                       height: 1.4,
                     ),
                   ),
@@ -349,20 +350,20 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
               color: AppColors.error,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Something went wrong',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -374,7 +375,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
               },
               icon: const Icon(AppIcons.refresh),
               label: const Text('Retry'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Value proposition section - Why BandRoadie
@@ -22,11 +23,11 @@ class ValueSection extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            AppColors.scaffoldBg,
+            context.colors.background,
             const Color(0xFF14050a),
             const Color(0xFF1a0505),
             const Color(0xFF0a0505),
-            AppColors.scaffoldBg,
+            context.colors.background,
           ],
           stops: const [0.0, 0.3, 0.5, 0.7, 1.0],
         ),
@@ -46,7 +47,7 @@ class ValueSection extends StatelessWidget {
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
               fontSize: 20,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -116,10 +117,10 @@ class _ValuePoint extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.15),
+              color: AppColors.primary.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 40, color: AppColors.accent),
+            child: Icon(icon, size: 40, color: AppColors.primary),
           ),
           const SizedBox(height: 24),
 
@@ -138,7 +139,7 @@ class _ValuePoint extends StatelessWidget {
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
               fontSize: 20,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.5,
             ),
           ),

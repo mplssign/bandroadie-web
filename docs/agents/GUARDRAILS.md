@@ -43,12 +43,12 @@ Never hardcode Supabase or Firebase credentials in source code.
 
 ## 3. Platform Differences (Do Not Blur)
 
-| Area       | Native (iOS / macOS / Android) | Web                                 |
-| ---------- | ------------------------------ | ----------------------------------- |
-| Config     | `--dart-define` only           | `--dart-define` only                |
-| Auth flow  | PKCE                           | Implicit (detectSessionInUri: true) |
-| Firebase   | Initialized                    | Not initialized                     |
-| Deep links | Handled via DeepLinkService    | Not applicable                      |
+| Area       | Native (iOS / macOS / Android) | Web                                          |
+| ---------- | ------------------------------ | -------------------------------------------- |
+| Config     | `--dart-define` only           | `--dart-define` only                         |
+| Auth flow  | PKCE                           | PKCE (migrated from implicit — April 2026, DECISION-001) |
+| Firebase   | Initialized                    | Not initialized                              |
+| Deep links | Handled via DeepLinkService    | Not applicable                               |
 
 Any change must respect these per-platform constraints.
 

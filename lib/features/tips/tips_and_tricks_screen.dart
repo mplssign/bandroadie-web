@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -71,12 +72,12 @@ class TipsAndTricksScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.appBarBg,
+        backgroundColor: context.colors.appBarBg,
         title: Text('Tips & Tricks', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: Colors.white),
+          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -155,7 +156,7 @@ class _TipRow extends StatelessWidget {
             child: Text(
               '•',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 16,
                 height: 1.5,
               ),
@@ -166,7 +167,7 @@ class _TipRow extends StatelessWidget {
             child: Text(
               tip.text,
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
                 fontSize: 16,
               ),

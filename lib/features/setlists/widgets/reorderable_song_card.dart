@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
@@ -160,7 +161,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           width: double.infinity,
           height: 121,
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             border: Border.all(
               color: StandardCardBorder.color,
               width: StandardCardBorder.width,
@@ -187,7 +188,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                         child: Icon(
                           AppIcons.drag,
                           size: 24,
-                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                          color: context.colors.textSecondary.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
@@ -205,7 +206,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.accent.withValues(alpha: 0.7),
+                        AppColors.primary.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -269,7 +270,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                                   padding: EdgeInsets.only(left: 8),
                                   child: Icon(
                                     AppIcons.lyrics,
-                                    color: AppColors.accent,
+                                    color: AppColors.primary,
                                     size: 28,
                                   ),
                                 ),
@@ -286,7 +287,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                             child: Text(
                               _editError!,
                               style: const TextStyle(
-                                color: AppColors.accent,
+                                color: AppColors.primary,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -355,7 +356,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                 onPressed: widget.onEdit,
                 icon: Icon(
                   AppIcons.edit,
-                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                  color: context.colors.textSecondary.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -375,10 +376,10 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
   Widget _buildBpmValue() {
     return Text(
       widget.song.isBpmPlaceholder ? '- BPM' : widget.song.formattedBpm,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
         height: 1,
       ),
     );
@@ -389,10 +390,10 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
   Widget _buildDurationValue() {
     return Text(
       widget.song.formattedDuration,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
         height: 1,
       ),
     );

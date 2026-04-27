@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/contact.dart';
 
 // ============================================================================
@@ -28,7 +29,7 @@ class ContactCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: context.colors.background,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: AppColors.primary,
@@ -70,10 +71,10 @@ class ContactCard extends StatelessWidget {
                     // Name
                     Text(
                       contact.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                         height: 1.2,
                       ),
                       maxLines: 2,
@@ -113,6 +114,7 @@ class ContactCard extends StatelessWidget {
                     // Phone
                     if (contact.phone != null && contact.phone!.isNotEmpty)
                       _buildInfoRow(
+                        context: context,
                         icon: AppIcons.phone,
                         value: contact.phone!,
                         onTap: () => _launchPhone(contact.phone!),
@@ -121,6 +123,7 @@ class ContactCard extends StatelessWidget {
                     // Email
                     if (contact.email != null && contact.email!.isNotEmpty)
                       _buildInfoRow(
+                        context: context,
                         icon: AppIcons.email,
                         value: contact.email!,
                         onTap: () => _launchEmail(contact.email!),
@@ -129,6 +132,7 @@ class ContactCard extends StatelessWidget {
                     // Notes preview
                     if (contact.notes != null && contact.notes!.isNotEmpty)
                       _buildInfoRow(
+                        context: context,
                         icon: AppIcons.info,
                         value: contact.notes!,
                         maxLines: 1,
@@ -165,6 +169,7 @@ class ContactCard extends StatelessWidget {
   }
 
   Widget _buildInfoRow({
+    required BuildContext context,
     required IconData icon,
     required String value,
     VoidCallback? onTap,
@@ -183,10 +188,10 @@ class ContactCard extends StatelessWidget {
             Expanded(
               child: Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   height: 1.3,
                 ),
                 maxLines: maxLines,

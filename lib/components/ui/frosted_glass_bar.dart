@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // FROSTED GLASS BAR
@@ -46,7 +46,7 @@ class FrostedGlassBar extends StatelessWidget {
   final double blurSigma;
 
   /// The background color applied over the blur.
-  /// Default is AppColors.appBarBg with 50% opacity.
+  /// Default is context.colors.appBarBg with 50% opacity.
   final Color? backgroundColor;
 
   /// The opacity of the background color (0.0 to 1.0).
@@ -80,7 +80,7 @@ class FrostedGlassBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bgColor =
         backgroundColor ??
-        AppColors.appBarBg.withValues(alpha: backgroundOpacity);
+        context.colors.appBarBg.withValues(alpha: backgroundOpacity);
 
     Widget container = Container(
       height: height,
@@ -146,7 +146,7 @@ class FrostedGlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final bgColor =
         backgroundColor ??
-        AppColors.cardBg.withValues(alpha: backgroundOpacity);
+        context.colors.surface.withValues(alpha: backgroundOpacity);
 
     return Container(
       margin: margin,

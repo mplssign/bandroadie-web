@@ -31,7 +31,7 @@ class AppShell extends ConsumerWidget {
     // ... other state ...
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Stack(
         children: [
           // Full-bleed content

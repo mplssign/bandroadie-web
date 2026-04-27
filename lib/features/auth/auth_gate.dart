@@ -16,6 +16,7 @@ import 'auth_state_provider.dart';
 import 'login_screen.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // Re-export supabase client for backward compatibility
 export '../../app/services/supabase_client.dart';
@@ -358,8 +359,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
     // Show loading while initializing
     if (!_initialized) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
+      return Scaffold(
+        backgroundColor: context.colors.background,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -388,8 +389,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
           }
         });
         // Show loading while we sync instead of login screen
-        return const Scaffold(
-          backgroundColor: AppColors.background,
+        return Scaffold(
+          backgroundColor: context.colors.background,
           body: Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
@@ -419,7 +420,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
         _checkingProfile ||
         _processingPendingInvite) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.colors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -457,8 +458,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
     // Still loading bands
     if (bandState.isLoading) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
+      return Scaffold(
+        backgroundColor: context.colors.background,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -498,7 +499,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
             child: Material(
               elevation: 8,
               borderRadius: BorderRadius.circular(12),
-              color: AppColors.success,
+              color: context.colors.success,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,

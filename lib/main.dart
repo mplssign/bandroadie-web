@@ -14,6 +14,7 @@ import 'app/firebase_config.dart';
 import 'app/supabase_config.dart';
 import 'app/theme/app_animations.dart';
 import 'app/theme/app_theme.dart';
+import 'app/theme/theme_mode_controller.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
 import 'features/auth/invite_screen.dart';
@@ -22,6 +23,7 @@ import 'features/legal/privacy_policy_screen.dart';
 import 'features/setlists/tuning/tuning_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/utils/timezone_helper.dart';
 
 Future<void> main() async {
@@ -116,15 +118,16 @@ bool _isMarketingHost() {
   return host == 'bandroadie.com' || host == 'www.bandroadie.com';
 }
 
-class BandRoadieApp extends StatelessWidget {
+class BandRoadieApp extends ConsumerWidget {
   const BandRoadieApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'BandRoadie',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.dark,
+      themeMode: ref.watch(themeModeProvider),
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       // Disable device text scaling - use fixed font sizes
       builder: (context, child) {
@@ -213,7 +216,7 @@ class ConfigErrorApp extends StatelessWidget {
       themeMode: ThemeMode.dark,
       darkTheme: AppTheme.darkTheme,
       home: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: BrandColors.dark.background,
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -245,26 +248,27 @@ class ConfigErrorApp extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'The roadie can\'t find the venue address.\nCheck your .env file or launch config.',
                     textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                    style: TextStyle(
+                        color: BrandColors.dark.textSecondary, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
                   // Technical details
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: BrandColors.dark.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.surfaceOverlay),
+                      border:
+                          Border.all(color: BrandColors.dark.surfaceOverlay),
                     ),
                     child: SingleChildScrollView(
                       child: Text(
                         errorMessage,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: BrandColors.dark.textSecondary,
                           fontSize: 11,
                           fontFamily: 'monospace',
                         ),

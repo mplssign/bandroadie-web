@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // SNACKBAR HELPER
@@ -160,7 +161,7 @@ class _AnimatedSnackBarState extends State<_AnimatedSnackBar>
     final bgColor =
         widget.backgroundColor ??
         Theme.of(context).snackBarTheme.backgroundColor ??
-        AppColors.cardBg;
+        context.colors.surface;
 
     return Positioned(
       left: Spacing.space16,
@@ -211,7 +212,7 @@ class _AnimatedSnackBarState extends State<_AnimatedSnackBar>
                       },
                       style: TextButton.styleFrom(
                         foregroundColor:
-                            widget.action!.textColor ?? AppColors.accent,
+                            widget.action!.textColor ?? AppColors.primary,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -242,7 +243,7 @@ void showSuccessSnackBar(
   showAppSnackBar(
     context,
     message: message,
-    backgroundColor: AppColors.success,
+    backgroundColor: context.colors.success,
     duration: duration,
     action: action,
   );

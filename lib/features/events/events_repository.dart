@@ -147,18 +147,65 @@ class EventsRepository {
       return [formData.date];
     }
 
-    final recurrence = formData.recurrence!;
+    final rawRecurrence = formData.recurrence!;
+
+    // Safety net: if daysOfWeek is empty, default to the weekday of formData.date.
+    // Prevents zero-instance generation when the UI deselects all day chips.
+    final recurrence = rawRecurrence.daysOfWeek.isEmpty
+        ? RecurrenceConfig(
+            daysOfWeek: {Weekday.values[formData.date.weekday % 7]},
+            frequency: rawRecurrence.frequency,
+            untilDate: rawRecurrence.untilDate,
+          )
+        : rawRecurrence;
+
     final dates = <DateTime>[];
 
     // Default end date: 1 year from start if not specified (indefinite recurrence)
     final untilDate =
         recurrence.untilDate ?? formData.date.add(const Duration(days: 365));
 
+    // --- Monthly: true calendar-month intervals (Nth weekday of month) ---
+    if (recurrence.frequency == RecurrenceFrequency.monthly) {
+      final n = _weekdayOccurrenceInMonth(formData.date);
+
+      var year = formData.date.year;
+      var month = formData.date.month;
+      const maxMonths = 24;
+      var monthCount = 0;
+
+      while (monthCount < maxMonths) {
+        final monthStart = DateTime(year, month, 1);
+        if (monthStart.isAfter(untilDate)) break;
+
+        for (final day in recurrence.daysOfWeek) {
+          final candidate = _nthWeekdayOfMonth(year, month, day.dayIndex, n);
+          if (candidate != null &&
+              !candidate.isBefore(formData.date) &&
+              !candidate.isAfter(untilDate)) {
+            dates.add(candidate);
+          }
+        }
+
+        // Advance to next month
+        month++;
+        if (month > 12) {
+          month = 1;
+          year++;
+        }
+        monthCount++;
+      }
+
+      dates.sort();
+      return dates.isEmpty ? [formData.date] : dates;
+    }
+
+    // --- Weekly / Biweekly: unchanged ---
     // Calculate interval based on frequency
     final weekInterval = switch (recurrence.frequency) {
       RecurrenceFrequency.weekly => 1,
       RecurrenceFrequency.biweekly => 2,
-      RecurrenceFrequency.monthly => 4, // Approximate monthly as 4 weeks
+      RecurrenceFrequency.monthly => 4, // unreachable; handled above
     };
 
     // Start from the event date
@@ -171,7 +218,12 @@ class EventsRepository {
     while (currentWeekStart.isBefore(untilDate) && iterations < maxIterations) {
       // Check each selected day of the week
       for (final day in recurrence.daysOfWeek) {
-        final dateForDay = currentWeekStart.add(Duration(days: day.dayIndex));
+        final dateForDay = DateTime(
+          currentWeekStart.year,
+          currentWeekStart.month,
+          currentWeekStart.day + day.dayIndex,
+          12,
+        );
 
         // Only include dates from the start date onwards and before until date
         if (!dateForDay.isBefore(formData.date) &&
@@ -181,13 +233,54 @@ class EventsRepository {
       }
 
       // Move to next interval
-      currentWeekStart = currentWeekStart.add(Duration(days: 7 * weekInterval));
+      currentWeekStart = DateTime(
+        currentWeekStart.year,
+        currentWeekStart.month,
+        currentWeekStart.day + (7 * weekInterval),
+        12,
+      );
       iterations++;
     }
 
     // Sort dates and return
     dates.sort();
     return dates.isEmpty ? [formData.date] : dates;
+  }
+
+  /// Returns the 1-based occurrence of [date]'s weekday within its month.
+  /// Example: April 20, 2026 (3rd Monday) → 3
+  int _weekdayOccurrenceInMonth(DateTime date) {
+    return ((date.day - 1) ~/ 7) + 1;
+  }
+
+  /// Returns the [occurrence]-th (1-based) instance of the weekday identified
+  /// by [weekdayDayIndex] (0=Sun..6=Sat) in the given [year]/[month].
+  /// Returns null if that occurrence does not exist in the month
+  /// (e.g., a 5th Monday in a month that only has 4).
+  ///
+  /// Example: _nthWeekdayOfMonth(2026, 5, 1, 3) → May 18, 2026 (3rd Monday)
+  DateTime? _nthWeekdayOfMonth(
+    int year,
+    int month,
+    int weekdayDayIndex,
+    int occurrence,
+  ) {
+    // Convert Weekday dayIndex (0=Sun..6=Sat) to Dart weekday (1=Mon..7=Sun)
+    final targetDartWeekday = weekdayDayIndex == 0 ? 7 : weekdayDayIndex;
+
+    // Find the first occurrence of this weekday in the month
+    final firstDayOfMonth = DateTime(year, month, 1, 12);
+    final daysUntilTarget =
+        (targetDartWeekday - firstDayOfMonth.weekday + 7) % 7;
+    final dayOfMonth = 1 + daysUntilTarget + (7 * (occurrence - 1));
+
+    // Calculate the nth occurrence using calendar-day construction to avoid DST drift.
+    final result = DateTime(year, month, dayOfMonth, 12);
+
+    // Return null if the result falls outside the target month
+    if (result.month != month || result.year != year) return null;
+
+    return result;
   }
 
   /// Get start of week (Sunday) for a given date

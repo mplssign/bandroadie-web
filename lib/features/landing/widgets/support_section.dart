@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Community/Support section with Reddit link
@@ -50,7 +51,7 @@ class _SupportSectionState extends State<SupportSection> {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontSize: 18,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 40),
@@ -77,22 +78,22 @@ class _SupportSectionState extends State<SupportSection> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.accent,
-                      AppColors.accent.withValues(alpha: 0.85),
+                      AppColors.primary,
+                      AppColors.primary.withValues(alpha: 0.85),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: _isHovered
                       ? [
                           BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.4),
+                            color: AppColors.primary.withValues(alpha: 0.4),
                             blurRadius: 20,
                             spreadRadius: 2,
                           ),
                         ]
                       : [
                           BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.2),
+                            color: AppColors.primary.withValues(alpha: 0.2),
                             blurRadius: 8,
                             spreadRadius: 0,
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/bulk_song_row.dart';
 import '../../services/bulk_song_parser.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -365,9 +366,9 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 autofocus: true,
                 maxLines: 5,
                 minLines: 3,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
@@ -376,7 +377,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                       'e.g.: Aerosmith, Eat The Rich, 123, Standard',
                   hintStyle: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textMuted.withValues(alpha: 0.5),
+                    color: context.colors.textMuted.withValues(alpha: 0.5),
                     fontFamily: 'monospace',
                   ),
                   filled: true,
@@ -384,20 +385,20 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   contentPadding: const EdgeInsets.all(12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: AppColors.borderMuted,
+                    borderSide: BorderSide(
+                      color: context.colors.border,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: AppColors.borderMuted,
+                    borderSide: BorderSide(
+                      color: context.colors.border,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       width: 2,
                     ),
                   ),
@@ -411,8 +412,8 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: _isLoadingSongs
-                          ? AppColors.accent.withValues(alpha: 0.4)
-                          : AppColors.accent,
+                          ? AppColors.primary.withValues(alpha: 0.4)
+                          : AppColors.primary,
                       borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     ),
                     alignment: Alignment.center,
@@ -440,7 +441,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 Text(
                   _ingestionSummary!,
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -480,9 +481,9 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   Widget _buildColumnHeaders() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.borderMuted, width: 1),
+          bottom: BorderSide(color: context.colors.border, width: 1),
         ),
       ),
       child: Row(
@@ -505,7 +506,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         child: Text(
           label,
           style: AppTextStyles.label.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
@@ -527,8 +528,8 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
       decoration: BoxDecoration(
         color:
             isEven ? Colors.transparent : Colors.white.withValues(alpha: 0.02),
-        border: const Border(
-          bottom: BorderSide(color: AppColors.surfaceElevated, width: 1),
+        border: Border(
+          bottom: BorderSide(color: context.colors.surfaceElevated, width: 1),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
@@ -574,11 +575,11 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 ? GestureDetector(
                     onTap: () => _removeRow(index),
                     behavior: HitTestBehavior.opaque,
-                    child: const Center(
+                    child: Center(
                       child: Icon(
                         AppIcons.close,
                         size: 16,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                       ),
                     ),
                   )
@@ -628,24 +629,24 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
       onTap: _addRow,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: AppColors.borderMuted, width: 1),
+            bottom: BorderSide(color: context.colors.border, width: 1),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               AppIcons.add,
               size: 18,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
               'Add Row',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -666,9 +667,9 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         horizontal: Spacing.space16,
         vertical: Spacing.space8,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceElevated,
-        border: Border(top: BorderSide(color: AppColors.borderMuted, width: 1)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceElevated,
+        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -678,7 +679,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               child: const Text(
@@ -717,10 +718,10 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         MediaQuery.of(context).viewInsets.bottom + Spacing.space16,
       ),
       decoration: BoxDecoration(
-        color: AppColors.scaffoldBg,
+        color: context.colors.background,
         border: Border(
           top: BorderSide(
-            color: AppColors.borderMuted.withValues(alpha: 0.3),
+            color: context.colors.border.withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -739,8 +740,8 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
                     color: _isSubmitting || !_hasValidSongData
-                        ? AppColors.accent.withValues(alpha: 0.4)
-                        : AppColors.accent,
+                        ? AppColors.primary.withValues(alpha: 0.4)
+                        : AppColors.primary,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   ),
                   alignment: Alignment.center,
@@ -773,7 +774,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 child: Text(
                   'Cancel',
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 16,
                   ),
                 ),
@@ -818,16 +819,16 @@ class _TableTextField extends StatelessWidget {
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       textCapitalization: textCapitalization,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
         fontWeight: FontWeight.w400,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
           fontSize: 13,
-          color: AppColors.textMuted.withValues(alpha: 0.4),
+          color: context.colors.textMuted.withValues(alpha: 0.4),
         ),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
@@ -836,7 +837,7 @@ class _TableTextField extends StatelessWidget {
           borderSide: BorderSide(color: Colors.transparent),
         ),
         focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.accent, width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
     );

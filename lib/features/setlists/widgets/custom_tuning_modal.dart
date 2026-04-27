@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../services/custom_tuning_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -218,8 +219,8 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
       },
       child: Container(
         padding: EdgeInsets.only(bottom: keyboardHeight),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceDark,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(Spacing.cardRadius),
           ),
@@ -236,8 +237,8 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
               _buildHeader(),
 
               // Divider
-              const Divider(
-                color: AppColors.borderMuted,
+              Divider(
+                color: context.colors.border,
                 height: 1,
                 thickness: 1,
               ),
@@ -288,7 +289,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
         height: 4,
         margin: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: AppColors.textMuted.withValues(alpha: 0.5),
+          color: context.colors.textMuted.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -311,9 +312,9 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
             onTap: _handleCancel,
             child: Container(
               padding: const EdgeInsets.all(Spacing.space4),
-              child: const Icon(
+              child: Icon(
                 AppIcons.close,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 size: 24,
               ),
             ),
@@ -327,24 +328,24 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
     return Container(
       padding: const EdgeInsets.all(Spacing.space12),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.1),
+        color: AppColors.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(
-          color: AppColors.accent.withValues(alpha: 0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(AppIcons.info, color: AppColors.accent, size: 20),
+          Icon(AppIcons.info, color: AppColors.primary, size: 20),
           const SizedBox(width: Spacing.space12),
           Expanded(
             child: Text(
               'Enter strings from low to high\nExample: E A D G B E',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -363,7 +364,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: Spacing.space8),
@@ -376,21 +377,21 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           inputFormatters: [_StringsInputFormatter()],
           decoration: InputDecoration(
             hintText: 'E A D G B E',
-            hintStyle: TextStyle(color: AppColors.textMuted),
+            hintStyle: TextStyle(color: context.colors.textMuted),
             errorText: _stringsError,
             filled: true,
-            fillColor: AppColors.scaffoldBg,
+            fillColor: context.colors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.accent, width: 2),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -403,7 +404,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           ),
           style: TextStyle(
             fontSize: 16,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             letterSpacing: 1.2,
           ),
         ),
@@ -420,7 +421,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
         ),
         const SizedBox(height: Spacing.space8),
@@ -432,21 +433,21 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(
             hintText: 'My Custom Tuning',
-            hintStyle: TextStyle(color: AppColors.textMuted),
+            hintStyle: TextStyle(color: context.colors.textMuted),
             errorText: _nameError,
             filled: true,
-            fillColor: AppColors.scaffoldBg,
+            fillColor: context.colors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.borderMuted),
+              borderSide: BorderSide(color: context.colors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.accent, width: 2),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -457,7 +458,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
               vertical: Spacing.space12,
             ),
           ),
-          style: TextStyle(fontSize: 16, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, color: context.colors.textPrimary),
         ),
       ],
     );
@@ -475,14 +476,14 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
-              side: BorderSide(color: AppColors.borderMuted),
+              side: BorderSide(color: context.colors.border),
             ),
             child: Text(
               'Cancel',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -496,8 +497,8 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           child: ElevatedButton(
             onPressed: (_isValid && !_isSaving) ? _handleSave : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.3),
+              backgroundColor: AppColors.primary,
+              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.3),
               padding: const EdgeInsets.symmetric(vertical: Spacing.space14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),

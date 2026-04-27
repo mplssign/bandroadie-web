@@ -6,6 +6,7 @@ import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/models/rehearsal.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../bands/active_band_controller.dart';
@@ -466,7 +467,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
   Widget _buildLoadingState(String message) {
     return Container(
-      color: AppColors.scaffoldBg,
+      color: context.colors.background,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -481,8 +482,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               child: Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentMuted,
+                decoration: BoxDecoration(
+                  color: context.colors.primarySubtle,
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -490,7 +491,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                     width: 28,
                     height: 28,
                     child: CircularProgressIndicator(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       strokeWidth: 3,
                     ),
                   ),
@@ -500,7 +501,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
             const SizedBox(height: Spacing.space24),
             Text(
               message,
-              style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -510,7 +511,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
   Widget _buildErrorState(String title, String details) {
     return Container(
-      color: AppColors.scaffoldBg,
+      color: context.colors.background,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.space32),
@@ -521,11 +522,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
-                  color: AppColors.accentMuted,
+                  color: context.colors.primarySubtle,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       blurRadius: 24,
                       spreadRadius: 4,
                     ),
@@ -534,7 +535,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 child: const Icon(
                   AppIcons.musicOff,
                   size: 40,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: Spacing.space32),
@@ -580,14 +581,14 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
     // Content WITHOUT Scaffold - just the body content
     return Container(
-      color: AppColors.scaffoldBg,
+      color: context.colors.background,
       child: Stack(
         children: [
           // Scrollable content
           Positioned.fill(
             child: RefreshIndicator(
-              color: AppColors.accent,
-              backgroundColor: AppColors.cardBg,
+              color: AppColors.primary,
+              backgroundColor: context.colors.surface,
               onRefresh: () async {
                 ref.invalidate(bandFullStateProvider);
                 await ref.read(bandFullStateProvider.future);

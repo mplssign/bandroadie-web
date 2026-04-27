@@ -7,6 +7,7 @@ import 'package:bandroadie/app/models/rehearsal.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/band_full_state.dart';
@@ -465,7 +466,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Loading screen with roadie-style message
   Widget _buildLoadingScreen(String message) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -481,8 +482,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
-                  color: AppColors.accentMuted,
+                decoration: BoxDecoration(
+                  color: context.colors.primarySubtle,
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
@@ -490,7 +491,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     width: 28,
                     height: 28,
                     child: CircularProgressIndicator(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       strokeWidth: 3,
                     ),
                   ),
@@ -500,7 +501,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             const SizedBox(height: Spacing.space24),
             Text(
               message,
-              style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -511,7 +512,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Error screen with humor and retry button
   Widget _buildErrorScreen(String title, String details) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: Spacing.space32),
@@ -523,11 +524,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
-                  color: AppColors.accentMuted,
+                  color: context.colors.primarySubtle,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       blurRadius: 24,
                       spreadRadius: 4,
                     ),
@@ -536,7 +537,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: const Icon(
                   AppIcons.musicOff,
                   size: 40,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: Spacing.space32),
@@ -559,7 +560,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   icon: const Icon(AppIcons.refresh, size: 20),
                   label: const Text('Try Again'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: Spacing.space24,
@@ -577,7 +578,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onTap: () {
                   showModalBottomSheet(
                     context: context,
-                    backgroundColor: AppColors.cardBg,
+                    backgroundColor: context.colors.surface,
                     shape: const RoundedRectangleBorder(
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(Spacing.cardRadius),
@@ -598,7 +599,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             details,
                             style: AppTextStyles.label.copyWith(
                               fontFamily: 'monospace',
-                              color: AppColors.textMuted,
+                              color: context.colors.textMuted,
                             ),
                           ),
                           const SizedBox(height: Spacing.space24),
@@ -610,7 +611,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Text(
                   'View technical stuff',
                   style: AppTextStyles.label.copyWith(
-                    color: AppColors.textDisabled,
+                    color: context.colors.textDisabled,
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -641,7 +642,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final nextRehearsal = rehearsalState.nextRehearsal;
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       extendBody: true,
       extendBodyBehindAppBar: true,
       bottomNavigationBar: const BottomNavBar(),
@@ -650,8 +651,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // Scrollable content (behind nav bars)
           Positioned.fill(
             child: RefreshIndicator(
-              color: AppColors.accent,
-              backgroundColor: AppColors.cardBg,
+              color: AppColors.primary,
+              backgroundColor: context.colors.surface,
               onRefresh: () async {
                 ref.invalidate(bandFullStateProvider);
                 final bandId = ref.read(activeBandIdProvider);

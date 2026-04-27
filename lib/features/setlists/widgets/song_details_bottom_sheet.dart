@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
@@ -449,17 +450,17 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
         title: Text(
           'Unsaved Changes',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           'Are you sure you want to leave without saving?',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
@@ -468,14 +469,14 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             child: Text(
               'Discard',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(false),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(
               'Keep Editing',
               style: AppTextStyles.body.copyWith(
@@ -501,13 +502,13 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final result = await showDialog<YouTubeLink>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
         title: Text(
           'Add YouTube Link',
-          style: AppTextStyles.title3.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
         content: Column(
@@ -518,25 +519,25 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               controller: titleController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Link name (e.g., "Live Performance")',
                 hintStyle: AppTextStyles.body.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 filled: true,
-                fillColor: AppColors.scaffoldBg,
+                fillColor: context.colors.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.accent),
+                  borderSide: BorderSide(color: AppColors.primary),
                 ),
               ),
             ),
@@ -544,25 +545,25 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             TextField(
               controller: urlController,
               keyboardType: TextInputType.url,
-              style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'YouTube URL',
                 hintStyle: AppTextStyles.body.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.colors.textMuted,
                 ),
                 filled: true,
-                fillColor: AppColors.scaffoldBg,
+                fillColor: context.colors.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.borderMuted),
+                  borderSide: BorderSide(color: context.colors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.accent),
+                  borderSide: BorderSide(color: AppColors.primary),
                 ),
               ),
             ),
@@ -577,7 +578,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 }
               },
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accent,
+                backgroundColor: AppColors.primary,
                 minimumSize: const Size(double.infinity, 48),
               ),
               child: Text(
@@ -595,7 +596,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 child: Text(
                   'Cancel',
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -662,7 +663,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             minHeight: screenHeight * 0.6,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
+            color: context.colors.surface,
             borderRadius: const BorderRadius.vertical(
               top: Radius.circular(Spacing.cardRadius),
             ),
@@ -672,7 +673,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             children: [
               _buildDragHandle(),
               _buildHeader(),
-              const Divider(color: AppColors.borderMuted, height: 1),
+              Divider(color: context.colors.border, height: 1),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(Spacing.space16),
@@ -703,7 +704,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       height: 4,
       margin: const EdgeInsets.only(top: 12, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.textMuted.withValues(alpha: 0.3),
+        color: context.colors.textMuted.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -730,10 +731,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 onTap: _handleCancel,
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  child: const Icon(
+                  child: Icon(
                     AppIcons.close,
                     size: 24,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -745,7 +746,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 ? 'View-only mode.'
                 : 'Changes apply to this song everywhere.',
             style: AppTextStyles.callout.copyWith(
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
               fontSize: 12,
             ),
           ),
@@ -762,7 +763,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         Text(
           'Song Title',
           style: AppTextStyles.callout.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -770,9 +771,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         _isEditingTitle && !widget.isReadOnly
             ? Container(
                 decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
+                  color: context.colors.background,
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(color: AppColors.accent, width: 1.5),
+                  border: Border.all(color: AppColors.primary, width: 1.5),
                 ),
                 child: TextField(
                   controller: _titleController,
@@ -798,9 +799,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.scaffoldBg,
+                    color: context.colors.background,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: AppColors.borderMuted),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: Row(
                     children: [
@@ -811,18 +812,18 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                               : _titleController.text,
                           style: AppTextStyles.title3.copyWith(
                             color: _titleController.text.isEmpty
-                                ? AppColors.textMuted
-                                : AppColors.textPrimary,
+                                ? context.colors.textMuted
+                                : context.colors.textPrimary,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (!widget.isReadOnly)
-                        const Icon(
+                        Icon(
                           AppIcons.edit,
                           size: 18,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                     ],
                   ),
@@ -835,7 +836,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         Text(
           'Artist / Band',
           style: AppTextStyles.callout.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -843,16 +844,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         _isEditingArtist && !widget.isReadOnly
             ? Container(
                 decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
+                  color: context.colors.background,
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(color: AppColors.accent, width: 1.5),
+                  border: Border.all(color: AppColors.primary, width: 1.5),
                 ),
                 child: TextField(
                   controller: _artistController,
                   focusNode: _artistFocus,
                   textCapitalization: TextCapitalization.words,
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
@@ -873,9 +874,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.scaffoldBg,
+                    color: context.colors.background,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: AppColors.borderMuted),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: Row(
                     children: [
@@ -886,18 +887,18 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                               : _artistController.text,
                           style: AppTextStyles.body.copyWith(
                             color: _artistController.text.isEmpty
-                                ? AppColors.textMuted
-                                : AppColors.textPrimary,
+                                ? context.colors.textMuted
+                                : context.colors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (!widget.isReadOnly)
-                        const Icon(
+                        Icon(
                           AppIcons.edit,
                           size: 18,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                     ],
                   ),
@@ -927,16 +928,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               Text(
                 'BPM',
                 style: AppTextStyles.callout.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.scaffoldBg,
+                  color: context.colors.background,
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(color: AppColors.borderMuted),
+                  border: Border.all(color: context.colors.border),
                 ),
                 child: TextField(
                   controller: _bpmController,
@@ -947,12 +948,12 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                     LengthLimitingTextInputFormatter(3),
                   ],
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: '—',
                     hintStyle: AppTextStyles.body.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -976,7 +977,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               Text(
                 'Duration',
                 style: AppTextStyles.callout.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -985,10 +986,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 initialSeconds: _currentDurationSeconds,
                 onChanged: _onDurationChanged,
                 enabled: !widget.isReadOnly,
-                backgroundColor: AppColors.scaffoldBg,
-                borderColor: AppColors.borderMuted,
+                backgroundColor: context.colors.background,
+                borderColor: context.colors.border,
                 textStyle: AppTextStyles.body.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
             ],
@@ -1005,7 +1006,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               Text(
                 'Tuning',
                 style: AppTextStyles.callout.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1018,9 +1019,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.scaffoldBg,
+                    color: context.colors.background,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: AppColors.borderMuted),
+                    border: Border.all(color: context.colors.border),
                   ),
                   child: Row(
                     children: [
@@ -1028,15 +1029,15 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                         child: Text(
                           tuningDisplayName,
                           style: AppTextStyles.body.copyWith(
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (!widget.isReadOnly)
-                        const Icon(
+                        Icon(
                           AppIcons.forward,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                           size: 18,
                         ),
                     ],
@@ -1066,7 +1067,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         Text(
           'Notes',
           style: AppTextStyles.callout.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1074,9 +1075,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         Container(
           constraints: const BoxConstraints(minHeight: 180),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: AppColors.borderMuted),
+            border: Border.all(color: context.colors.border),
           ),
           child: TextField(
             controller: _notesController,
@@ -1086,11 +1087,11 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
-            style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Add notes for this song...',
               hintStyle: AppTextStyles.body.copyWith(
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
               ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
@@ -1115,14 +1116,14 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             children: [
               Icon(
                 hasLyrics ? AppIcons.edit : AppIcons.add,
-                color: AppColors.accent,
+                color: AppColors.primary,
                 size: 18,
               ),
               const SizedBox(width: 4),
               Text(
                 hasLyrics ? 'Edit Lyrics' : 'Add Lyrics',
                 style: AppTextStyles.body.copyWith(
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1136,12 +1137,12 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.add, color: AppColors.accent, size: 18),
+              Icon(AppIcons.add, color: AppColors.primary, size: 18),
               const SizedBox(width: 4),
               Text(
                 'Add YouTube',
                 style: AppTextStyles.body.copyWith(
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1168,16 +1169,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: AppColors.borderMuted),
+            border: Border.all(color: context.colors.border),
           ),
           child: Text(
             lyricsData.plainText.length > 120
                 ? '${lyricsData.plainText.substring(0, 120)}…'
                 : lyricsData.plainText,
             style: AppTextStyles.footnote.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.4,
             ),
             maxLines: 4,
@@ -1213,9 +1214,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return Container(
       padding: const EdgeInsets.only(left: 12, top: 6, bottom: 6, right: 4),
       decoration: BoxDecoration(
-        color: AppColors.scaffoldBg,
+        color: context.colors.background,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: AppColors.borderMuted),
+        border: Border.all(color: context.colors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1231,7 +1232,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 Text(
                   title,
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ],
@@ -1244,7 +1245,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               onTap: () => _removeYouTubeLink(index),
               child: Padding(
                 padding: const EdgeInsets.all(4),
-                child: Icon(AppIcons.close, color: AppColors.textMuted, size: 16),
+                child: Icon(AppIcons.close, color: context.colors.textMuted, size: 16),
               ),
             ),
         ],
@@ -1281,10 +1282,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.colors.surface,
         border: Border(
           top: BorderSide(
-            color: AppColors.borderMuted.withValues(alpha: 0.5),
+            color: context.colors.border.withValues(alpha: 0.5),
           ),
         ),
         boxShadow: [
@@ -1312,10 +1313,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 onPressed: _hasChanges ? _handleSave : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: _hasChanges
-                      ? AppColors.accent
-                      : AppColors.borderMuted.withValues(alpha: 0.3),
+                      ? AppColors.primary
+                      : context.colors.border.withValues(alpha: 0.3),
                   disabledBackgroundColor:
-                      AppColors.borderMuted.withValues(alpha: 0.3),
+                      context.colors.border.withValues(alpha: 0.3),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -1324,7 +1325,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 child: Text(
                   'Save',
                   style: AppTextStyles.body.copyWith(
-                    color: _hasChanges ? Colors.white : AppColors.textMuted,
+                    color: _hasChanges ? Colors.white : context.colors.textMuted,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -1343,7 +1344,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             child: Text(
               widget.isReadOnly ? 'Close' : 'Cancel',
               style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),

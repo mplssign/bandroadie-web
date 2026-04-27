@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // ANIMATED VALUE TEXT
@@ -30,7 +31,7 @@ class AnimatedValueText extends StatelessWidget {
   final TextStyle? textStyle;
 
   /// Background color for the tag container
-  final Color backgroundColor;
+  final Color? backgroundColor;
 
   /// Border color override (e.g., rose/500 for override indicator)
   /// If null, uses white border by default
@@ -46,7 +47,7 @@ class AnimatedValueText extends StatelessWidget {
     this.isPlaceholder = false,
     this.onTap,
     this.textStyle,
-    this.backgroundColor = AppColors.surfaceElevated,
+    this.backgroundColor,
     this.borderColor,
     this.isFocused = false,
   });
@@ -54,7 +55,7 @@ class AnimatedValueText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use ValueKey to trigger AnimatedSwitcher when text changes
-    final content = _buildContent();
+    final content = _buildContent(context);
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 200),
@@ -79,23 +80,24 @@ class AnimatedValueText extends StatelessWidget {
     );
   }
 
-  Widget _buildContent() {
-    final effectiveStyle =
-        textStyle ??
+  Widget _buildContent(BuildContext context) {
+    final effectiveBgColor = backgroundColor ?? context.colors.surfaceElevated;
+    final effectiveStyle = textStyle ??
         TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: isPlaceholder ? AppColors.textMuted : AppColors.textPrimary,
+          color: isPlaceholder
+              ? context.colors.textMuted
+              : context.colors.textPrimary,
           height: 1,
         );
 
     // Determine border color:
-    // 1. If focused -> rose/500 (AppColors.accent)
+    // 1. If focused -> rose/500 (AppColors.primary)
     // 2. If override exists (borderColor provided) -> use that color
     // 3. Default -> white
-    final effectiveBorderColor = isFocused
-        ? AppColors.accent
-        : (borderColor ?? Colors.white);
+    final effectiveBorderColor =
+        isFocused ? AppColors.primary : (borderColor ?? Colors.white);
     final effectiveBorderWidth = isFocused || borderColor != null ? 2.0 : 1.0;
 
     // Always show bordered container for consistent "input field" appearance
@@ -106,7 +108,7 @@ class AnimatedValueText extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: effectiveBgColor,
           border: Border.all(
             color: effectiveBorderColor,
             width: effectiveBorderWidth,

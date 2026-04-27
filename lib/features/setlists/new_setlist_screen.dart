@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
@@ -419,7 +420,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           action: result.setlistSongIds.isNotEmpty
               ? SnackBarAction(
                   label: 'UNDO',
-                  textColor: AppColors.accent,
+                  textColor: AppColors.primary,
                   onPressed: () => _handleUndoBulkAdd(result.setlistSongIds),
                 )
               : null,
@@ -679,8 +680,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           );
         }
       });
-      return const Scaffold(
-        backgroundColor: AppColors.scaffoldBg,
+      return Scaffold(
+        backgroundColor: context.colors.background,
         body: SizedBox.shrink(),
       );
     }
@@ -688,18 +689,18 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     // Show creating state
     if (_isCreating) {
       return Scaffold(
-        backgroundColor: AppColors.scaffoldBg,
-        body: const Center(
+        backgroundColor: context.colors.background,
+        body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(AppColors.accent),
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
               ),
               SizedBox(height: Spacing.space16),
               Text(
                 'Creating setlist...',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
               ),
             ],
           ),
@@ -710,11 +711,11 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     // Show error state
     if (_createError != null) {
       return Scaffold(
-        backgroundColor: AppColors.scaffoldBg,
+        backgroundColor: context.colors.background,
         appBar: AppBar(
-          backgroundColor: AppColors.appBarBg,
+          backgroundColor: context.colors.appBarBg,
           leading: IconButton(
-            icon: const Icon(AppIcons.close, color: AppColors.textPrimary),
+            icon: Icon(AppIcons.close, color: context.colors.textPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -734,7 +735,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   _createError!,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space24),
@@ -767,7 +768,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     });
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -790,7 +791,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation(AppColors.accent),
+          valueColor: AlwaysStoppedAnimation(AppColors.primary),
         ),
       );
     }
@@ -952,7 +953,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         Text(
           '${state.formattedMetadata} • ${state.formattedDuration}',
           style: AppTextStyles.headline.copyWith(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
           ),
         ),
       ],
@@ -970,13 +971,13 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.scaffoldBg,
+              color: context.colors.background,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
+            child: Icon(
               AppIcons.edit,
               size: 18,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),
@@ -1000,11 +1001,11 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.accent),
+                borderSide: const BorderSide(color: AppColors.primary),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.accent, width: 2),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
             onSubmitted: (_) => _saveSetlistName(),
@@ -1018,21 +1019,21 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.accent,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(8),
             ),
             child: _isSavingName
-                ? const Padding(
+                ? Padding(
                     padding: EdgeInsets.all(6),
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   )
-                : const Icon(
+                : Icon(
                     AppIcons.check,
                     size: 18,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
           ),
         ),
@@ -1093,12 +1094,12 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceDark,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     AppIcons.music,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     size: 40,
                   ),
                 ),
@@ -1108,7 +1109,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   style: GoogleFonts.dmSans(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space12),
@@ -1116,7 +1117,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   "But this setlist is looking a bit too quiet.\nTime to add some bangers!",
                   textAlign: TextAlign.center,
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space32),
@@ -1128,7 +1129,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                       vertical: Spacing.space12,
                     ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.accent, width: 2),
+                      border: Border.all(color: AppColors.primary, width: 2),
                       borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     ),
                     child: Row(
@@ -1136,14 +1137,14 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                       children: [
                         const Icon(
                           AppIcons.add,
-                          color: AppColors.accent,
+                          color: AppColors.primary,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Add to Setlist',
                           style: AppTextStyles.button.copyWith(
-                            color: AppColors.accent,
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
@@ -1172,7 +1173,7 @@ class _DeleteSongDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -1186,7 +1187,7 @@ class _DeleteSongDialog extends StatelessWidget {
         children: [
           Text(
             '"$songTitle"',
-            style: AppTextStyles.headline.copyWith(color: AppColors.accent),
+            style: AppTextStyles.headline.copyWith(color: AppColors.primary),
           ),
           const SizedBox(height: Spacing.space16),
           Text(
@@ -1234,7 +1235,7 @@ class _DeleteSongDialog extends StatelessWidget {
           child: Text(
             'Cancel',
             style: AppTextStyles.button.copyWith(
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),
@@ -1243,12 +1244,12 @@ class _DeleteSongDialog extends StatelessWidget {
           style: TextButton.styleFrom(
             backgroundColor: isCatalog
                 ? AppColors.error.withValues(alpha: 0.15)
-                : AppColors.accent.withValues(alpha: 0.15),
+                : AppColors.primary.withValues(alpha: 0.15),
           ),
           child: Text(
             isCatalog ? 'Delete Forever' : 'Remove',
             style: AppTextStyles.button.copyWith(
-              color: isCatalog ? AppColors.error : AppColors.accent,
+              color: isCatalog ? AppColors.error : AppColors.primary,
             ),
           ),
         ),

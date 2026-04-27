@@ -1,5 +1,9 @@
 # Magic Link Authentication Fix - Verification Checklist
 
+> **Note (April 2026):** Web auth was subsequently migrated from implicit flow to PKCE flow on all platforms (see `docs/reference/general/AI_DECISIONS.md` DECISION-001). The checklist below describes the January 2026 fix. The PKCE migration means web now uses `token_hash` not `code`, and the `code_verifier` is stored in `localStorage` to protect against email scanner pre-fetch. The redirect URL is `https://app.bandroadie.com/auth/confirm`.
+
+---
+
 ## 🎯 Root Causes Identified & Fixed
 
 ### 1. **Race Condition: Auth State Not Synced**
@@ -118,8 +122,8 @@ while (attempts < maxAttempts) {
 
 ### **Test 10: Redirect URL Validation**
 1. ✓ Check browser console during login
-2. ✓ **Expected:** Magic link URL contains `https://bandroadie.com/auth/confirm`
-3. ✓ **Expected:** URL has either `?token_hash=` or `?code=` parameter
+2. ✓ **Expected:** Magic link URL contains `https://app.bandroadie.com/auth/confirm`
+3. ✓ **Expected:** URL has `?token_hash=` parameter (PKCE flow — as of April 2026)
 4. ✓ **Verify:** Redirect URL matches Supabase dashboard configuration
 
 ---
@@ -236,8 +240,8 @@ After deploying, monitor these metrics for 7 days:
 Verify these settings match:
 
 1. **Authentication → URL Configuration**
-   - Redirect URLs: `https://bandroadie.com/auth/confirm`
-   - Redirect URLs: `bandroadie://login-callback/`
+   - Redirect URLs: `https://app.bandroadie.com/auth/confirm` (web — matches `emailRedirectTo` in code)
+   - Redirect URLs: `bandroadie://login-callback/` (native apps)
 
 2. **Authentication → Email Templates**
    - Magic Link: Should use `{{ .ConfirmationURL }}`

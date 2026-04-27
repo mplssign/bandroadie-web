@@ -26,7 +26,7 @@ Two bugs exist:
 ### 2.1 Vercel Deployment
 
 - **Build command (manual):** `flutter build web --release --base-href / && cd build/web && vercel --prod`
-- **Build script (CI):** `tools/build_web.sh` — clones Flutter, builds with `--dart-define` env vars, copies `web/vercel.json` and `web/.well-known/` to `build/web/`
+- **Build script (CI):** `tools/build_web.sh` — ~~clones Flutter, builds with `--dart-define` env vars, copies `web/vercel.json` and `web/.well-known/` to `build/web/`~~ **[CORRECTION 2026-04-14: `tools/build_web.sh` is a dead script not used in any build process. The actual deploy script is `tools/deploy_web.sh`, which reads credentials from a local `.env` file.]**
 - **Vercel project linkage:** `build/web/.vercel/project.json` links to project `bandroadie-staging` (projectId: `prj_nPoARX3pVNg5zYG12jucXJK7Ole6`)
 - **No root-level `vercel.json`** — only `web/vercel.json` (copied to `build/web/` during build)
 - **No `.github/workflows/`** — no GitHub Actions CI/CD; deployments appear manual via `vercel --prod` from `build/web/`
@@ -389,7 +389,7 @@ If the marketing site is a separate repo, the redirects must be added there. If 
 
 ### MEDIUM RISK
 
-4. **Android App Links verification:** If `assetlinks.json` is not served at `app.bandroadie.com/.well-known/assetlinks.json`, Android verified deep links to the new subdomain will fail. The `web/.well-known/assetlinks.json` must be in the `build/web` output (already handled by `tools/build_web.sh`).
+4. **Android App Links verification:** If `assetlinks.json` is not served at `app.bandroadie.com/.well-known/assetlinks.json`, Android verified deep links to the new subdomain will fail. The `web/.well-known/assetlinks.json` must be in the `build/web` output (handled by `tools/deploy_web.sh` — note: `tools/build_web.sh` is a dead script and should not be referenced).
 
 5. **Calendar feed proxy:** The Vercel rewrite for `/api/calendar-feed` → Supabase must exist in the `app.bandroadie.com` project's `vercel.json`. It currently does. But if the marketing site also had this rewrite, removing it could break existing calendar subscriptions that use `bandroadie.com/api/calendar-feed`. Marketing site should also redirect `/api/calendar-feed` to `app.bandroadie.com/api/calendar-feed`.
 
@@ -549,7 +549,7 @@ If issues arise after Phase B:
 - RLS policy changes
 - Performance optimization
 - UI redesign of auth screens
-- Migrating the build script (`tools/build_web.sh`) to GitHub Actions
+- Migrating the deploy process (`tools/deploy_web.sh`) to GitHub Actions
 - Removing Capacitor dependencies
 
 ---

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../songs/external_song_lookup_service.dart';
 import '../models/song.dart';
@@ -323,9 +324,9 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         child: Container(
           margin: const EdgeInsets.all(Spacing.space16),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: AppColors.borderMuted, width: 1),
+            border: Border.all(color: context.colors.border, width: 1),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -333,7 +334,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
               children: [
                 _buildHeader(),
                 _buildSearchField(),
-                const Divider(color: AppColors.borderMuted, height: 1),
+                Divider(color: context.colors.border, height: 1),
                 Expanded(child: _buildBody()),
               ],
             ),
@@ -362,13 +363,13 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                 children: [
                   Icon(
                     AppIcons.back,
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     size: 22,
                   ),
                   Text(
                     'Back',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       fontSize: 16,
                     ),
                   ),
@@ -384,7 +385,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                 'Song Lookup',
                 style: AppTextStyles.title3.copyWith(
                   fontSize: 18,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
             ),
@@ -395,10 +396,10 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             onTap: () => Navigator.of(context).pop(),
             child: Container(
               padding: const EdgeInsets.all(8),
-              child: const Icon(
+              child: Icon(
                 AppIcons.close,
                 size: 24,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -416,31 +417,31 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       child: Container(
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: context.colors.surfaceElevated,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(color: AppColors.borderMuted, width: 1),
+          border: Border.all(color: context.colors.border, width: 1),
         ),
         child: TextField(
           controller: _searchController,
           focusNode: _searchFocus,
           autofocus: true,
           onChanged: _onSearchChanged,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: 'Search songs or artists',
             hintStyle: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               AppIcons.search,
               size: 22,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? GestureDetector(
@@ -449,10 +450,10 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                       _filterSongs('');
                       setState(() {});
                     },
-                    child: const Icon(
+                    child: Icon(
                       AppIcons.close,
                       size: 20,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   )
                 : null,
@@ -503,7 +504,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       margin: const EdgeInsets.only(bottom: Spacing.space12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: context.colors.surfaceElevated,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       ),
       child: Row(
@@ -513,7 +514,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: context.colors.border,
               borderRadius: BorderRadius.circular(6),
             ),
           ),
@@ -527,7 +528,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   width: 160,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.colors.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -536,7 +537,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   width: 100,
                   height: 14,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: context.colors.border,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -553,15 +554,15 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             AppIcons.error,
             size: 48,
-            color: AppColors.textMuted,
+            color: context.colors.textMuted,
           ),
           const SizedBox(height: Spacing.space16),
           Text(
             _error ?? 'Something went wrong',
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
           ),
           const SizedBox(height: Spacing.space16),
           GestureDetector(
@@ -572,12 +573,12 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                 vertical: Spacing.space10,
               ),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.accent, width: 1.5),
+                border: Border.all(color: AppColors.primary, width: 1.5),
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               ),
               child: Text(
                 'Retry',
-                style: AppTextStyles.button.copyWith(color: AppColors.accent),
+                style: AppTextStyles.button.copyWith(color: AppColors.primary),
               ),
             ),
           ),
@@ -596,13 +597,13 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             Icon(
               AppIcons.search,
               size: 56,
-              color: AppColors.textMuted.withValues(alpha: 0.5),
+              color: context.colors.textMuted.withValues(alpha: 0.5),
             ),
             const SizedBox(height: Spacing.space16),
             Text(
               'Start typing. Your drummer will still be late.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -620,13 +621,13 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             Icon(
               AppIcons.musicOff,
               size: 56,
-              color: AppColors.textMuted.withValues(alpha: 0.5),
+              color: context.colors.textMuted.withValues(alpha: 0.5),
             ),
             const SizedBox(height: Spacing.space16),
             Text(
               'No matching songs.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -669,7 +670,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   const SizedBox(height: 8),
                   Text(
                     'Searching...',
-                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    style: TextStyle(fontSize: 13, color: context.colors.textMuted),
                   ),
                 ],
               ),
@@ -707,7 +708,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                     'Retry',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -724,14 +725,14 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       padding: const EdgeInsets.only(bottom: Spacing.space8),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.accent),
+          Icon(icon, size: 18, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
             title,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.accent,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -804,10 +805,10 @@ class _SongResultRowState extends State<_SongResultRow>
           margin: const EdgeInsets.only(bottom: Spacing.space12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
+            color: context.colors.surfaceElevated,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(
-              color: AppColors.borderMuted.withValues(alpha: 0.5),
+              color: context.colors.border.withValues(alpha: 0.5),
               width: 1,
             ),
           ),
@@ -830,10 +831,10 @@ class _SongResultRowState extends State<_SongResultRow>
                           Expanded(
                             child: Text(
                               widget.song.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                                color: context.colors.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -842,10 +843,10 @@ class _SongResultRowState extends State<_SongResultRow>
                           const SizedBox(width: 8),
                           Text(
                             widget.song.formattedDuration,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ],
@@ -858,10 +859,10 @@ class _SongResultRowState extends State<_SongResultRow>
                           Expanded(
                             child: Text(
                               widget.song.artist,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
-                                color: AppColors.textSecondary,
+                                color: context.colors.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -870,10 +871,10 @@ class _SongResultRowState extends State<_SongResultRow>
                           const SizedBox(width: 8),
                           Text(
                             widget.song.formattedBpm,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                             ),
                           ),
                         ],
@@ -914,13 +915,13 @@ class _SongResultRowState extends State<_SongResultRow>
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.accentMuted,
+        color: context.colors.primarySubtle,
         borderRadius: BorderRadius.circular(6),
       ),
       child: const Icon(
         AppIcons.music,
         size: 24,
-        color: AppColors.accent,
+        color: AppColors.primary,
       ),
     );
   }
@@ -990,9 +991,9 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
           margin: const EdgeInsets.only(bottom: Spacing.space12),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
+            color: context.colors.surfaceElevated,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: AppColors.borderMuted, width: 1),
+            border: Border.all(color: context.colors.border, width: 1),
           ),
           child: Opacity(
             opacity: widget.isAdding ? 0.5 : 1.0,
@@ -1013,10 +1014,10 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                           Expanded(
                             child: Text(
                               widget.result.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                                color: context.colors.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1027,10 +1028,10 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                               widget.result.durationSeconds! > 0)
                             Text(
                               _formatDuration(widget.result.durationSeconds!),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
+                                color: context.colors.textSecondary,
                               ),
                             ),
                         ],
@@ -1043,10 +1044,10 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                           Expanded(
                             child: Text(
                               widget.result.artist,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w400,
-                                color: AppColors.textSecondary,
+                                color: context.colors.textSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1057,10 +1058,10 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                             const SizedBox(width: 8),
                             Text(
                               '${widget.result.bpm} BPM',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: AppColors.textMuted,
+                                color: context.colors.textMuted,
                               ),
                             ),
                           ],
@@ -1104,13 +1105,13 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.surfaceDark,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: const Icon(
+      child: Icon(
         AppIcons.music,
         size: 24,
-        color: AppColors.textMuted,
+        color: context.colors.textMuted,
       ),
     );
   }

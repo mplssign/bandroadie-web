@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // MEMBER CARD SKELETON
@@ -41,10 +41,10 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
       builder: (context, child) {
         return Container(
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: context.colors.background,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppColors.borderMuted.withValues(alpha: 0.5),
+              color: context.colors.border.withValues(alpha: 0.5),
               width: 2,
             ),
           ),
@@ -91,7 +91,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: const [AppColors.surface, AppColors.surfaceOverlay, AppColors.surface],
+      colors: [context.colors.surface, context.colors.surfaceOverlay, context.colors.surface],
       stops: const [0.0, 0.5, 1.0],
     );
 
@@ -109,7 +109,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: const [AppColors.surface, AppColors.surfaceOverlay, AppColors.surface],
+      colors: [context.colors.surface, context.colors.surfaceOverlay, context.colors.surface],
       stops: const [0.0, 0.5, 1.0],
     );
 
@@ -127,7 +127,7 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: const [AppColors.surface, AppColors.surfaceOverlay, AppColors.surface],
+      colors: [context.colors.surface, context.colors.surfaceOverlay, context.colors.surface],
       stops: const [0.0, 0.5, 1.0],
     );
 

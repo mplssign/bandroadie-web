@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/shared/widgets/animated_logo.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
@@ -55,7 +56,7 @@ class NoBandShell extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Stack(
         children: [
           // Welcome content (no footer)
@@ -312,7 +313,7 @@ class _NoBandContentState extends State<_NoBandContent>
                         style: AppTextStyles.body.copyWith(
                           fontSize: 16,
                           height: 1.6,
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -332,7 +333,7 @@ class _NoBandContentState extends State<_NoBandContent>
                             );
                           },
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.accent,
+                            backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                               vertical: Spacing.space16,
@@ -361,7 +362,7 @@ class _NoBandContentState extends State<_NoBandContent>
                         textAlign: TextAlign.center,
                         style: AppTextStyles.body.copyWith(
                           fontSize: 14,
-                          color: AppColors.textMuted,
+                          color: context.colors.textMuted,
                         ),
                       ),
                     ),

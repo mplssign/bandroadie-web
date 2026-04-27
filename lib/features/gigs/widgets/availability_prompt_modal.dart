@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../gig_response_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -117,15 +118,15 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
         child: Container(
           constraints: const BoxConstraints(maxWidth: 400),
           decoration: BoxDecoration(
-            color: AppColors.cardBg,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppColors.accent.withValues(alpha: 0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 0,
               ),
@@ -198,10 +199,10 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     // Gig name
                     Text(
                       widget.gig.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -287,8 +288,8 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: _isSubmitting
-                                ? AppColors.textMuted.withValues(alpha: 0.5)
-                                : AppColors.textMuted,
+                                ? context.colors.textMuted.withValues(alpha: 0.5)
+                                : context.colors.textMuted,
                           ),
                         ),
                       ),
@@ -335,14 +336,14 @@ class _DetailRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 18, color: AppColors.textMuted),
+        Icon(icon, size: 18, color: context.colors.textMuted),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -371,7 +372,7 @@ class _ResponseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isPositive
-        ? AppColors.success // green-500
+        ? context.colors.success // green-500
         : AppColors.error; // red-500
 
     // Wrap with AnimatedPressable for subtle press feedback

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist.dart';
 import 'animated_gradient_border.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -97,7 +98,7 @@ class _SetlistCardState extends State<SetlistCard>
         Row(
           children: [
             if (widget.setlist.isCatalog) ...[
-              const Icon(AppIcons.star, color: AppColors.accent, size: 18),
+              const Icon(AppIcons.star, color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
             ],
             Expanded(
@@ -154,7 +155,7 @@ class _SetlistCardState extends State<SetlistCard>
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.cardBg,
+                color: context.colors.surface,
                 border: Border.all(
                   color: StandardCardBorder.color,
                   width: StandardCardBorder.width,
@@ -177,7 +178,7 @@ class _SetlistCardState extends State<SetlistCard>
                             AppIcons.drag,
                             size: 24,
                             color:
-                                AppColors.textSecondary.withValues(alpha: 0.6),
+                                context.colors.textSecondary.withValues(alpha: 0.6),
                           ),
                         ),
                       ),
@@ -214,7 +215,7 @@ class _SetlistCardState extends State<SetlistCard>
       decoration: widget.setlist.isCatalog
           ? null // Catalog uses AnimatedGradientBorder
           : BoxDecoration(
-              color: AppColors.cardBg,
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
               border: Border.all(
                 color: StandardCardBorder.color,

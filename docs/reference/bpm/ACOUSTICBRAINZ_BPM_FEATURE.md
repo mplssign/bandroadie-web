@@ -1,9 +1,11 @@
 # Hybrid BPM Enrichment Feature
 
+> ⚠️ **AcousticBrainz is shut down.** The AcousticBrainz API was permanently decommissioned in November 2022. Any code referencing AcousticBrainz as a fallback source will fail at runtime. The current fallback is `musicbrainz_search` (MusicBrainz metadata only, no BPM data). This document is retained for historical reference.
+
 ## Overview
 Optional BPM enrichment using a hybrid fallback strategy:
 1. **Primary:** Spotify Audio Features API (when Spotify ID available)
-2. **Secondary:** AcousticBrainz API (fallback when Spotify fails or unavailable)
+2. **Secondary:** ~~AcousticBrainz API~~ (shut down — fallback is MusicBrainz search, no BPM)
 3. **Final Fallback:** Manual entry only
 
 This feature runs asynchronously after songs are saved and never blocks song creation.

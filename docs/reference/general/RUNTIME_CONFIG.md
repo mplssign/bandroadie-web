@@ -84,15 +84,21 @@ Edit `launch.json` with your credentials. It is git-ignored.
 
 ## Production / Vercel Deployment
 
-Web builds are deployed via Vercel. Config values are supplied as Vercel environment variables and injected at build time via the `build_web.sh` script as `--dart-define` flags.
+Web builds are built and deployed locally by running `tools/deploy_web.sh`. The script loads credentials from a local `.env` file (git-ignored) and passes them to `flutter build web` as `--dart-define` flags. The compiled output is then uploaded to Vercel via the CLI. Vercel does not run the build.
 
 ```bash
-flutter build web --release \
-  --dart-define=SUPABASE_URL=$SUPABASE_URL \
-  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+# Credentials are read from .env — do not set them as Vercel environment variables
+./tools/deploy_web.sh          # production deploy
+./tools/deploy_web.sh --preview  # preview deploy
 ```
 
+The `.env` file must define:
+- `SUPABASE_URL` — Supabase project URL
+- `SUPABASE_ANON_KEY` — Supabase anon (public) key
+
 Without these values, `validateSupabaseConfig()` fails and the app will not start.
+
+> **Note:** `tools/build_web.sh` exists in the repo but is not used by any build or deploy process. Do not reference it in new documentation or agent plans.
 
 ---
 

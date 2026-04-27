@@ -73,7 +73,7 @@ class _BrandActionButtonState extends State<BrandActionButton> {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.textPrimary),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           )
         : Row(
@@ -81,13 +81,13 @@ class _BrandActionButtonState extends State<BrandActionButton> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (widget.icon != null) ...[
-                Icon(widget.icon, size: 18, color: AppColors.textPrimary),
+                Icon(widget.icon, size: 18, color: Colors.white),
                 const SizedBox(width: Spacing.space8),
               ],
               Text(
                 widget.label,
                 style: AppTextStyles.button.copyWith(
-                  color: AppColors.textPrimary,
+                  color: Colors.white,
                 ),
               ),
             ],

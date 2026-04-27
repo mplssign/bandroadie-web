@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // BUTTON GROUP GRID
@@ -127,8 +128,7 @@ class ButtonGroupGrid<T> extends StatelessWidget {
 
               if (availabilityMode) {
                 // Availability mode: show availability state colors
-                final state =
-                    availabilityState?.call(item) ??
+                final state = availabilityState?.call(item) ??
                     AvailabilityState.notResponded;
 
                 return Expanded(
@@ -199,21 +199,18 @@ class _ButtonGridItem extends StatelessWidget {
         duration: AppDurations.fast,
         height: height,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : AppColors.scaffoldBg,
+          color: isSelected ? AppColors.primary : context.colors.background,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(
-            color: isSelected ? AppColors.accent : AppColors.borderMuted,
+            color: isSelected ? AppColors.primary : context.colors.border,
           ),
         ),
         alignment: Alignment.center,
-        child:
-            labelWidget ??
+        child: labelWidget ??
             Text(
               label,
               style: AppTextStyles.footnote.copyWith(
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: isSelected ? Colors.white : context.colors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -249,21 +246,21 @@ class _AvailabilityGridItem extends StatelessWidget {
     switch (state) {
       case AvailabilityState.available:
         // Green for available
-        backgroundColor = AppColors.success; // Green-500
-        borderColor = AppColors.success;
+        backgroundColor = context.colors.success; // Green-500
+        borderColor = context.colors.success;
         textColor = Colors.white;
         break;
       case AvailabilityState.notAvailable:
         // Rose for not available
-        backgroundColor = AppColors.accent; // Rose
-        borderColor = AppColors.accent;
+        backgroundColor = AppColors.primary; // Rose
+        borderColor = AppColors.primary;
         textColor = Colors.white;
         break;
       case AvailabilityState.notResponded:
         // Outlined for not responded
-        backgroundColor = AppColors.scaffoldBg;
-        borderColor = AppColors.borderMuted;
-        textColor = AppColors.textSecondary;
+        backgroundColor = context.colors.background;
+        borderColor = context.colors.border;
+        textColor = context.colors.textSecondary;
         break;
     }
 
@@ -276,8 +273,7 @@ class _AvailabilityGridItem extends StatelessWidget {
         border: Border.all(color: borderColor),
       ),
       alignment: Alignment.center,
-      child:
-          labelWidget ??
+      child: labelWidget ??
           Text(
             label,
             style: AppTextStyles.footnote.copyWith(

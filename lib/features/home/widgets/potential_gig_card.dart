@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app/models/gig.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 
 // ============================================================================
@@ -92,6 +93,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
   @override
   Widget build(BuildContext context) {
+    final gradientAlpha =
+        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.60;
     // Wrap with AnimatedScale for subtle press feedback on tap
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -115,15 +118,15 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   colors: [
                     const Color(
                       0xFFF77800,
-                    ).withValues(alpha: 0.60), // orange (reduced)
+                    ).withValues(alpha: gradientAlpha), // orange
                     const Color(
                       0xFFE11D48,
-                    ).withValues(alpha: 0.60), // rose-600 (reduced)
+                    ).withValues(alpha: gradientAlpha), // rose-600
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius), // 16px
                 border: Border.all(
-                  color: AppColors.textSecondary, // gray-400
+                  color: context.colors.textSecondary, // gray-400
                   width: 1,
                 ),
               ),

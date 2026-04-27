@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/special_item.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -84,7 +85,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
   static const int _maxMinutes = 60;
   static const int _step = 5;
 
-  static const Color _accent = AppColors.primaryDim; // rose
+  Color get _accent => context.colors.primaryDim; // rose
 
   bool get _isEditing => widget.editingItem != null;
 
@@ -190,7 +191,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                 Text(
                   'How long is this break?',
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
 
@@ -215,14 +216,14 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                             '$_minutes',
                             style: AppTextStyles.displayLarge.copyWith(
                               fontSize: 48,
-                              color: AppColors.textPrimary,
+                              color: context.colors.textPrimary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
                             'minutes',
                             style: AppTextStyles.label.copyWith(
-                              color: AppColors.textMuted,
+                              color: context.colors.textMuted,
                               fontSize: 14,
                             ),
                           ),
@@ -256,7 +257,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                         Text(
                           'Save for quick reuse',
                           style: AppTextStyles.body.copyWith(
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -274,7 +275,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                     child: Text(
                       'SAVED SET BREAKS',
                       style: AppTextStyles.label.copyWith(
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                         fontSize: 12,
                         letterSpacing: 1.0,
                       ),
@@ -340,10 +341,10 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
             bottom: MediaQuery.of(context).padding.bottom + 12,
           ),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
+            color: context.colors.background,
             border: Border(
               top: BorderSide(
-                color: AppColors.borderMuted.withValues(alpha: 0.5),
+                color: context.colors.border.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -391,7 +392,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                   child: Text(
                     'Cancel',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       fontSize: 16,
                     ),
                   ),
@@ -421,7 +422,7 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? accent : AppColors.textDisabled;
+    final color = enabled ? accent : context.colors.textDisabled;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
@@ -455,12 +456,11 @@ class _CheckBox extends StatelessWidget {
         color: isChecked ? accent.withValues(alpha: 0.15) : Colors.transparent,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: isChecked ? accent : AppColors.textMuted,
+          color: isChecked ? accent : context.colors.textMuted,
           width: 1.5,
         ),
       ),
-      child:
-          isChecked ? Icon(AppIcons.check, size: 16, color: accent) : null,
+      child: isChecked ? Icon(AppIcons.check, size: 16, color: accent) : null,
     );
   }
 }
@@ -487,7 +487,7 @@ class _SavedSetBreakCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(
           color: accent.withValues(alpha: 0.3),
@@ -506,7 +506,7 @@ class _SavedSetBreakCard extends StatelessWidget {
             child: Text(
               _title,
               style: AppTextStyles.headline.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontSize: 13,
                 letterSpacing: 0.3,
               ),

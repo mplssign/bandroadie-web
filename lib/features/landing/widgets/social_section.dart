@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Social media section with Instagram and Facebook tiles
@@ -18,7 +19,7 @@ class SocialSection extends StatelessWidget {
         horizontal: isMobile ? 24 : 80,
         vertical: isMobile ? 60 : 80,
       ),
-      color: AppColors.scaffoldBg,
+      color: context.colors.background,
       child: Column(
         children: [
           // Section title
@@ -34,7 +35,7 @@ class SocialSection extends StatelessWidget {
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
               fontSize: 20,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -135,7 +136,7 @@ class _SocialTileState extends State<_SocialTile> {
             gradient: LinearGradient(
               colors: _isHovered
                   ? widget.gradientColors
-                  : [AppColors.cardBg, AppColors.cardBg],
+                  : [context.colors.surface, context.colors.surface],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -143,7 +144,7 @@ class _SocialTileState extends State<_SocialTile> {
             border: Border.all(
               color: _isHovered
                   ? widget.gradientColors.first.withValues(alpha: 0.5)
-                  : AppColors.borderMuted,
+                  : context.colors.border,
               width: 2,
             ),
             boxShadow: _isHovered
@@ -187,7 +188,7 @@ class _SocialTileState extends State<_SocialTile> {
                       style: AppTextStyles.title3.copyWith(
                         fontSize: 20,
                         color:
-                            _isHovered ? Colors.white : AppColors.textPrimary,
+                            _isHovered ? Colors.white : context.colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -196,7 +197,7 @@ class _SocialTileState extends State<_SocialTile> {
                       style: AppTextStyles.callout.copyWith(
                         color: _isHovered
                             ? Colors.white.withValues(alpha: 0.9)
-                            : AppColors.textSecondary,
+                            : context.colors.textSecondary,
                       ),
                     ),
                   ],
@@ -206,7 +207,7 @@ class _SocialTileState extends State<_SocialTile> {
               // Arrow
               Icon(
                 AppIcons.arrowRight,
-                color: _isHovered ? Colors.white : AppColors.textSecondary,
+                color: _isHovered ? Colors.white : context.colors.textSecondary,
                 size: 24,
               ),
             ],

@@ -45,13 +45,15 @@ The app uses **Firebase Cloud Messaging (FCM) with Supabase Edge Functions**:
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | Full JSON service account key |
 
 ### Authentication Architecture
-The app uses **Supabase Magic Link Authentication with PKCE flow**:
+The app uses **Supabase Magic Link Authentication with PKCE flow** on all platforms:
 1. User enters email → `signInWithOtp()` called with `emailRedirectTo`
-2. Web: No redirect URL (uses Supabase default)
-3. Native apps: Uses `bandroadie://login-callback/` redirect
-4. Magic link email sent with confirmation URL
-5. Web: Opens `/auth/confirm?token_hash=...` → `AuthConfirmScreen` handles
-6. Native: Deep link opens app → Supabase SDK handles auth automatically
+2. Web: `emailRedirectTo` = `https://app.bandroadie.com/auth/confirm`
+3. Native apps: `emailRedirectTo` = `bandroadie://login-callback/`
+4. Magic link email sent — web link format: `https://app.bandroadie.com/auth/confirm?token_hash=...&type=email`
+5. Web: User clicks link → `AuthConfirmScreen` calls `verifyOTP(tokenHash:, type: OtpType.email)`
+6. Native: Deep link opens app → `DeepLinkService` routes to `AuthConfirmScreen`
+
+**PKCE protects against email scanners:** The `code_verifier` is stored in the requesting browser's `localStorage`. Scanners that follow the link cannot complete the exchange without it. (Migrated from implicit flow April 2026 — see `docs/reference/general/AI_DECISIONS.md` DECISION-001.)
 
 **Key Auth Files:**
 - [lib/features/auth/login_screen.dart](lib/features/auth/login_screen.dart) - Magic link request
@@ -87,8 +89,8 @@ Deep links are configured for magic link authentication on native platforms:
 The following settings must be configured in Supabase Dashboard:
 
 1. **Authentication → URL Configuration → Redirect URLs:**
-   - `https://bandroadie.com/auth/confirm`
-   - `bandroadie://login-callback/`
+   - `https://app.bandroadie.com/auth/confirm` (web — matches `emailRedirectTo` in code)
+   - `bandroadie://login-callback/` (native apps)
 
 2. **Authentication → Email Templates → Confirm signup:**
    - Template must use `{{ .ConfirmationURL }}` (NOT hardcoded URLs)
@@ -114,12 +116,19 @@ flutter run -d ios
 # Clean rebuild
 flutter clean && flutter pub get
 
-# Build and deploy web
-flutter build web --release
-cd build/web && vercel --prod
+# Build and deploy web (production)
+./tools/deploy_web.sh
+
+# Build and deploy web (preview)
+./tools/deploy_web.sh --preview
+
+# Rollback web deployment
+./tools/deploy_web.sh --rollback <deployment-url>
 
 # Hot reload: Press 'r' in terminal while app is running
 ```
+
+> Credentials for web builds are read from a local `.env` file at the project root (git-ignored). The script handles building, versioning, and deploying to Vercel in one step.
 
 ---
 
@@ -398,26 +407,19 @@ get_user_band_role(p_band_id)     -- Returns current user's role (SECURITY INVOK
 
 ### Web Deployment (Vercel)
 - **URL:** https://bandroadie.com
-- **Build:** `flutter build web --release` (via `scripts/build_web.sh`)
+- **Build & deploy:** `./tools/deploy_web.sh` (run locally — Vercel does not run the build)
 - **Hosting:** Vercel with SPA routing configuration
-- **Caching:** Static assets cached with long TTLs
+- **Caching:** Static assets cached with long TTLs; `index.html` and `flutter_service_worker.js` served with `no-cache`
 
-#### Environment Variables (Vercel)
-Vercel **must have the following environment variables** set for the build to succeed:
+#### Credentials
+Credentials are loaded from a local `.env` file (git-ignored) and injected at build time as `--dart-define` flags by `tools/deploy_web.sh`. Vercel environment variables are **not** used.
 
 | Variable | Description | Source |
 |----------|-------------|--------|
-| `SUPABASE_URL` | Supabase project URL | Supabase Dashboard > Settings > API |
-| `SUPABASE_ANON_KEY` | Supabase anonymous publishable key | Supabase Dashboard > Settings > API > Project API keys |
+| `SUPABASE_URL` | Supabase project URL | Supabase Dashboard → Settings → API |
+| `SUPABASE_ANON_KEY` | Supabase anonymous publishable key | Supabase Dashboard → Settings → API → Project API keys |
 
-**Setup Instructions:**
-1. Go to Vercel Dashboard → Project Settings → Environment Variables
-2. Add `SUPABASE_URL` with value from Supabase project
-3. Add `SUPABASE_ANON_KEY` with value from Supabase (use the "anon public" key)
-4. Set both to apply to Production
-5. Redeploy the project
-
-**Note:** The `build_web.sh` script passes these as `--dart-define` flags to the Flutter build. Without these variables, the app will show a configuration error screen.
+**Setup:** Add both values to your local `.env` file at the project root. The file is git-ignored. Without these values, `validateSupabaseConfig()` fails at startup and the app will not load.
 
 ### Mobile-First Design
 - **Responsive Design:** Optimized for mobile devices first
@@ -457,28 +459,37 @@ Vercel **must have the following environment variables** set for the build to su
 flutter pub get
 
 # Run on macOS
-flutter run -d macos
+flutter run -d macos \
+  --dart-define=SUPABASE_URL=<url> \
+  --dart-define=SUPABASE_ANON_KEY=<key>
 
 # Run on iOS Simulator
-flutter run -d ios
+flutter run -d ios \
+  --dart-define=SUPABASE_URL=<url> \
+  --dart-define=SUPABASE_ANON_KEY=<key>
 
 # Run on Chrome (Web)
-flutter run -d chrome
+flutter run -d chrome \
+  --dart-define=SUPABASE_URL=<url> \
+  --dart-define=SUPABASE_ANON_KEY=<key>
 
-# Build for web production
-flutter build web --release
-
-# Deploy to Vercel
-cd build/web && vercel --prod
+# Build and deploy web (reads credentials from .env automatically)
+./tools/deploy_web.sh
 ```
+
+> Tip: Use `.vscode/launch.json` (copied from `.vscode/launch.template.json`, git-ignored) to store `--dart-define` values for local runs in VS Code.
 
 ### Environment Variables
-```
-# Set in Supabase Dashboard and app configuration
-SUPABASE_URL=              # Supabase project URL
-SUPABASE_ANON_KEY=         # Supabase anonymous key
-RESEND_API_KEY=            # Resend email API key (Edge Functions)
-```
+
+All credentials are compile-time injected via `--dart-define`. There is no runtime config loading.
+
+| Variable | Used by | Source |
+|----------|---------|--------|
+| `SUPABASE_URL` | Flutter app (all platforms) | `.env` file (web), `launch.json` (local dev) |
+| `SUPABASE_ANON_KEY` | Flutter app (all platforms) | `.env` file (web), `launch.json` (local dev) |
+| `RESEND_API_KEY` | Supabase Edge Functions | Supabase Dashboard → Edge Functions → Secrets |
+| `FIREBASE_PROJECT_ID` | Supabase Edge Function (`send-push`) | Supabase Dashboard → Edge Functions → Secrets |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Supabase Edge Function (`send-push`) | Supabase Dashboard → Edge Functions → Secrets |
 
 ### Testing Strategy
 - **Unit Tests:** Dart tests for models, utilities, and services
@@ -689,7 +700,7 @@ Another Artist                    - BPM • Drop D
 
 ### Known Working Configurations
 - **macOS:** Magic link authentication tested and working (January 2026)
-- **Web:** Magic link authentication tested and working (January 2026)
+- **Web:** Magic link authentication working with PKCE flow (migrated from implicit flow April 2026 — see AI_DECISIONS.md DECISION-001)
 - **Android:** Deep link configuration in place, needs device testing
 - **iOS:** Deep link configuration in place, needs device testing
 
@@ -698,20 +709,20 @@ Another Artist                    - BPM • Drop D
 #### Web App Blank White Screen in Production
 **Problem:** App loads but shows blank white screen at https://bandroadie.com
 
-**Root Cause:** Supabase credentials (SUPABASE_URL, SUPABASE_ANON_KEY) are not set as Vercel environment variables during the build.
+**Root Cause:** `SUPABASE_URL` or `SUPABASE_ANON_KEY` are missing or empty in the local `.env` file used by `tools/deploy_web.sh` at build time.
 
 **Solution:**
-1. Go to Vercel Dashboard → BandRoadie Project → Settings → Environment Variables
-2. Add `SUPABASE_URL` = your Supabase project URL
-3. Add `SUPABASE_ANON_KEY` = your Supabase anonymous key (from Dashboard > Settings > API > Project API keys)
-4. Ensure both are set for **Production**
-5. **Redeploy** the project (git push or manual redeploy from Vercel)
+1. Open the `.env` file at the project root (create it if missing — it is git-ignored)
+2. Confirm `SUPABASE_URL` is set to your Supabase project URL
+3. Confirm `SUPABASE_ANON_KEY` is set to your Supabase anon key (from Supabase Dashboard → Settings → API → Project API keys)
+4. Re-run `./tools/deploy_web.sh`
 
-**Technical Details:** The `build_web.sh` script passes these as `--dart-define` flags to the Flutter build. Without these, `validateSupabaseConfig()` fails and shows a config error (though it may appear as blank screen due to theme rendering).
+**Technical Details:** Credentials are injected as `--dart-define` flags by `tools/deploy_web.sh`, which reads them from the local `.env` file. Vercel does not run the build — credentials do not need to be set in the Vercel Dashboard. Without these values, `validateSupabaseConfig()` fails at startup and the app cannot load.
 
 **Files Involved:**
-- `scripts/build_web.sh` - Passes environment variables to build
-- `lib/app/supabase_config.dart` - Validates credentials
+- `.env` — local credentials file (git-ignored, must exist at project root)
+- `tools/deploy_web.sh` — loads `.env` and passes credentials to `flutter build web`
+- `lib/app/supabase_config.dart` — validates credentials at startup
 
 #### Magic Link Not Opening Native App
 1. Check Supabase Dashboard → Authentication → URL Configuration → Redirect URLs includes `bandroadie://login-callback/`
@@ -740,7 +751,6 @@ Another Artist                    - BPM • Drop D
 - **Native App Store Releases:** iOS App Store and Google Play
 - **Payment Integration:** Premium features and subscriptions
 - **RBAC Audit Logging:** Track role changes with timestamp and actor
-- **Backup Band Data:** Admin-only data export feature
 
 ## Key Files Reference
 
@@ -806,17 +816,21 @@ Another Artist                    - BPM • Drop D
 
 ## Environment Setup
 
-### Required Environment Variables (.env file)
+### Credentials (.env file)
+
+Credentials are **compile-time only** — never loaded at runtime. The `.env` file is read by `tools/deploy_web.sh` during the build step and injected as `--dart-define` flags. It is git-ignored and must never be committed or added to `pubspec.yaml` assets.
+
 ```bash
+# .env (project root — git-ignored)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-**IMPORTANT:** The `.env` file must be in the project root and is loaded at runtime. It's included in `pubspec.yaml` assets.
+For local dev (all platforms), pass credentials directly via `--dart-define` or store them in `.vscode/launch.json` (copied from `.vscode/launch.template.json`, also git-ignored).
 
 ### Supabase Dashboard Configuration Checklist
+- [ ] **URL Configuration:** Add `https://app.bandroadie.com/auth/confirm` to Redirect URLs
 - [ ] **URL Configuration:** Add `bandroadie://login-callback/` to Redirect URLs
-- [ ] **URL Configuration:** Add `https://bandroadie.com/auth/confirm` to Redirect URLs
 - [ ] **Email Templates → Confirm signup:** Use `{{ .ConfirmationURL }}` in link href
 - [ ] **Email Templates → Magic Link:** Use `{{ .ConfirmationURL }}` in link href
 

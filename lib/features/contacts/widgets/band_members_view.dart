@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../bands/active_band_controller.dart';
 import '../../members/members_controller.dart';
 import '../../members/member_vm.dart';
@@ -40,7 +41,7 @@ class BandMembersView extends StatelessWidget {
 
     // Error state
     if (membersState.error != null && !membersState.hasMembers) {
-      return _buildErrorState(membersState.error!);
+      return _buildErrorState(context, membersState.error!);
     }
 
     // Empty state
@@ -51,8 +52,8 @@ class BandMembersView extends StatelessWidget {
     // Members list
     return RefreshIndicator(
       onRefresh: onRefresh,
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceDark,
+      color: AppColors.primary,
+      backgroundColor: context.colors.surface,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -66,13 +67,13 @@ class BandMembersView extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Band Members',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                   ),
@@ -139,7 +140,7 @@ class BandMembersView extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(BuildContext context, String error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -157,15 +158,14 @@ class BandMembersView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -174,7 +174,7 @@ class BandMembersView extends StatelessWidget {
               onPressed: onRefresh,
               icon: const Icon(AppIcons.refresh),
               label: const Text('Retry'),
-              style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
           ],
         ),

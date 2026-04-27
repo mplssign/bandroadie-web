@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../calendar_controller.dart';
 import '../calendar_markers.dart';
@@ -30,12 +31,6 @@ class CalendarColors {
 
   /// Rose indicator for block outs (#F43F5E)
   static const Color blockOutIndicator = Color(MarkerColors.blockOutColor);
-
-  /// Date cell background
-  static const Color dateCellBg = AppColors.surfaceElevated;
-
-  /// Calendar container border
-  static const Color containerBorder = AppColors.surfaceOverlay;
 }
 
 class CalendarGrid extends StatefulWidget {
@@ -146,8 +141,7 @@ class _CalendarGridState extends State<CalendarGrid>
     late VoidCallback listener;
     listener = () {
       setState(() {
-        _dragOffset =
-            _animationController.value *
+        _dragOffset = _animationController.value *
             (targetOffset - (_animationController.value > 0 ? 0 : _dragOffset));
       });
 
@@ -194,8 +188,8 @@ class _CalendarGridState extends State<CalendarGrid>
       child: Container(
         padding: const EdgeInsets.all(Spacing.space16),
         decoration: BoxDecoration(
-          color: AppColors.scaffoldBg,
-          border: Border.all(color: CalendarColors.containerBorder),
+          color: context.colors.background,
+          border: Border.all(color: context.colors.surfaceOverlay),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -277,7 +271,7 @@ class _MonthHeader extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             child: Icon(
               AppIcons.back,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               size: 24,
             ),
           ),
@@ -286,7 +280,8 @@ class _MonthHeader extends StatelessWidget {
         // Month and year
         Text(
           _monthYearText,
-          style: AppTextStyles.headline.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.headline
+              .copyWith(color: context.colors.textPrimary),
         ),
 
         // Next month button
@@ -297,7 +292,7 @@ class _MonthHeader extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             child: Icon(
               AppIcons.forward,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               size: 24,
             ),
           ),
@@ -325,7 +320,7 @@ class _DayHeaders extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary.withValues(alpha: 0.7),
+                color: context.colors.textPrimary.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -515,11 +510,13 @@ class _DayCell extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: isToday ? AppColors.accent : CalendarColors.dateCellBg,
+                color: isToday
+                    ? AppColors.primary
+                    : context.colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(8),
                 border: hasAnyMarker && !isToday
                     ? Border.all(
-                        color: AppColors.accent.withValues(alpha: 0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         width: 1,
                       )
                     : null,
@@ -530,7 +527,7 @@ class _DayCell extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
-                    color: AppColors.textPrimary,
+                    color: isToday ? Colors.white : context.colors.textPrimary,
                   ),
                 ),
               ),

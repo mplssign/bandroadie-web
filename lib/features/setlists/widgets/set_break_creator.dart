@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -44,7 +45,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
   static const int _maxMinutes = 60;
   static const int _step = 5;
 
-  static const Color _accent = AppColors.primaryDim; // rose
+  Color get _accent => context.colors.primaryDim; // rose
 
   @override
   void initState() {
@@ -104,8 +105,8 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
       },
       child: Container(
         padding: EdgeInsets.only(bottom: bottomInset),
-        decoration: const BoxDecoration(
-          color: AppColors.scaffoldBg,
+        decoration: BoxDecoration(
+          color: context.colors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
@@ -120,7 +121,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.textMuted.withValues(alpha: 0.4),
+                    color: context.colors.textMuted.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -146,7 +147,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                       onTap: () => Navigator.of(context).pop(),
                       child: Icon(
                         AppIcons.close,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                         size: 24,
                       ),
                     ),
@@ -163,7 +164,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                 child: Text(
                   'How long is this break?',
                   style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -193,14 +194,14 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                           '$_minutes',
                           style: AppTextStyles.displayLarge.copyWith(
                             fontSize: 48,
-                            color: AppColors.textPrimary,
+                            color: context.colors.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         Text(
                           'minutes',
                           style: AppTextStyles.label.copyWith(
-                            color: AppColors.textMuted,
+                            color: context.colors.textMuted,
                             fontSize: 14,
                           ),
                         ),
@@ -276,7 +277,7 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? accent : AppColors.textDisabled;
+    final color = enabled ? accent : context.colors.textDisabled;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(

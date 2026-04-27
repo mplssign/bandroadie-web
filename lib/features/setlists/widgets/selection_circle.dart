@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -138,12 +139,12 @@ class _SelectionCircleState extends State<SelectionCircle>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: widget.isSelected
-                        ? AppColors.accent
+                        ? AppColors.primary
                         : Colors.transparent,
                     border: Border.all(
                       color: widget.isSelected
-                          ? AppColors.accent
-                          : AppColors.textSecondary.withValues(alpha: 0.5),
+                          ? AppColors.primary
+                          : context.colors.textSecondary.withValues(alpha: 0.5),
                       width: 2,
                     ),
                   ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/lyrics_data.dart';
 import '../services/lyrics_view_settings_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -227,7 +228,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: NotificationListener<ScrollNotification>(
           onNotification: _onScrollNotification,
@@ -260,9 +261,9 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.scaffoldBg,
-              AppColors.scaffoldBg.withValues(alpha: 0.85),
-              AppColors.scaffoldBg.withValues(alpha: 0.0),
+              context.colors.background,
+              context.colors.background.withValues(alpha: 0.85),
+              context.colors.background.withValues(alpha: 0.0),
             ],
             stops: const [0.0, 0.7, 1.0],
           ),
@@ -271,9 +272,9 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 AppIcons.back,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 size: 20,
               ),
               onPressed: () => Navigator.of(context).pop(),
@@ -282,7 +283,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
               child: Text(
                 widget.songTitle,
                 style: AppTextStyles.headline.copyWith(
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -291,17 +292,17 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
             ),
             // Font size controls
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.text_decrease,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 size: 20,
               ),
               onPressed: () => _changeFontSize(-2),
             ),
             IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.text_increase,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 size: 20,
               ),
               onPressed: () => _changeFontSize(2),
@@ -348,18 +349,18 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
               height: 56,
               decoration: BoxDecoration(
                 color:
-                    _isAutoScrolling ? AppColors.accent : AppColors.surfaceDark,
+                    _isAutoScrolling ? AppColors.primary : context.colors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: _isAutoScrolling
-                      ? AppColors.accent
-                      : AppColors.borderMuted,
+                      ? AppColors.primary
+                      : context.colors.border,
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: _isAutoScrolling
-                        ? AppColors.accent.withValues(alpha: 0.35)
+                        ? AppColors.primary.withValues(alpha: 0.35)
                         : Colors.black.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
@@ -390,11 +391,11 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppColors.surfaceDark,
+            color: context.colors.surface,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.borderMuted),
+            border: Border.all(color: context.colors.border),
           ),
-          child: Icon(icon, color: AppColors.textSecondary, size: 18),
+          child: Icon(icon, color: context.colors.textSecondary, size: 18),
         ),
       ),
     );
@@ -407,7 +408,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
       return Center(
         child: Text(
           'No lyrics added yet.',
-          style: AppTextStyles.callout.copyWith(color: AppColors.textMuted),
+          style: AppTextStyles.callout.copyWith(color: context.colors.textMuted),
         ),
       );
     }
@@ -436,7 +437,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
         style: TextStyle(
           color: block.highlight != LyricsHighlight.none
               ? Color(block.highlight.accentColorValue)
-              : AppColors.textPrimary,
+              : context.colors.textPrimary,
           fontSize: fontSize,
           fontWeight: block.isBold ? FontWeight.bold : FontWeight.normal,
           height: 1.7,

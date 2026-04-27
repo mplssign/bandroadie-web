@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist.dart';
 import 'setlist_card.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -173,7 +174,7 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
       alignment: Alignment.centerLeft,
       padding: const EdgeInsets.only(left: Spacing.space24),
       decoration: BoxDecoration(
-        color: AppColors.success,
+        color: context.colors.success,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       ),
       child: const Row(

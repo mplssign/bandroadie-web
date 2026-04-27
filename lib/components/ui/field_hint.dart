@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
 // FIELD HINT
@@ -97,10 +98,10 @@ class FieldHint extends StatelessWidget {
                     ),
                     child: Text(
                       text,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: AppColors.textMuted,
+                        color: context.colors.textMuted,
                         height: 1.4,
                       ),
                     ),

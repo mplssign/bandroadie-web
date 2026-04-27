@@ -32,6 +32,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/services/auth_debug_logger.dart';
 import '../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import '../../shared/widgets/animated_logo.dart';
@@ -333,8 +334,8 @@ class _LoginScreenState extends State<LoginScreen>
     // SAFEGUARD: If we detected an existing session, show loading
     // instead of login UI. AuthGate will handle the redirect.
     if (_sessionDetected) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
+      return Scaffold(
+        backgroundColor: context.colors.background,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -349,7 +350,7 @@ class _LoginScreenState extends State<LoginScreen>
     final hasValidEmail = emailText.contains('@') && emailText.length > 3;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: LayoutBuilder(
@@ -442,10 +443,10 @@ class _LoginScreenState extends State<LoginScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Email address',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -468,9 +469,9 @@ class _LoginScreenState extends State<LoginScreen>
                 onSubmitted: (_) => _handleSubmit(),
                 decoration: InputDecoration(
                   hintText: 'you@email.com',
-                  hintStyle: const TextStyle(color: AppColors.textMuted),
+                  hintStyle: TextStyle(color: context.colors.textMuted),
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: context.colors.surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -575,8 +576,8 @@ class _LoginScreenState extends State<LoginScreen>
           child: FilledButton(
             onPressed: _isLoading || !hasValidEmail ? null : _sendMagicLink,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              disabledBackgroundColor: AppColors.accent.withValues(alpha: 0.5),
+              backgroundColor: AppColors.primary,
+              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
               padding: const EdgeInsets.symmetric(vertical: 18),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -606,7 +607,7 @@ class _LoginScreenState extends State<LoginScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -614,8 +615,8 @@ class _LoginScreenState extends State<LoginScreen>
         textAlign: TextAlign.center,
         style: TextStyle(
           color: _message!.contains('Check your email')
-              ? AppColors.success
-              : AppColors.warning,
+              ? context.colors.success
+              : context.colors.warning,
           fontSize: 14,
         ),
       ),
@@ -651,11 +652,11 @@ class _DomainChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.15)
-              : AppColors.surface,
+              : context.colors.surface,
           borderRadius: BorderRadius.circular(100), // Pill shape
           border: Border.all(
             color:
-                isSelected ? AppColors.primary : AppColors.surfaceOverlay,
+                isSelected ? AppColors.primary : context.colors.surfaceOverlay,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -664,9 +665,9 @@ class _DomainChip extends StatelessWidget {
           style: TextStyle(
             color: isEnabled
                 ? (isSelected
-                    ? AppColors.primaryLight
-                    : AppColors.textSecondary)
-                : AppColors.textMuted,
+                    ? context.colors.primaryLight
+                    : context.colors.textSecondary)
+                : context.colors.textMuted,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),

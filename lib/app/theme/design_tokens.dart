@@ -143,65 +143,20 @@ String formatBpm(int? bpm) {
 class AppColors {
   AppColors._();
 
-  // ── Backgrounds (4-stop surface ramp) ──────────────────────────────────────
-
-  /// Page / scaffold background. The darkest level.
-  static const Color background      = Color(0xFF09090B); // zinc-950
-
-  /// Default card, bottom sheet, drawer background.
-  static const Color surface         = Color(0xFF18181B); // zinc-900
-
-  /// Elevated card, modal, popover background.
-  static const Color surfaceElevated = Color(0xFF27272A); // zinc-800
-
-  /// Hover state, selected row, pressed surface overlay.
-  static const Color surfaceOverlay  = Color(0xFF3F3F46); // zinc-700
-
-  // ── Borders (2 levels) ─────────────────────────────────────────────────────
-
-  /// Default dividers, card outlines, input borders.
-  static const Color border          = Color(0xFF27272A); // zinc-800
-
-  /// Focused, emphasized, or interactive borders.
-  static const Color borderStrong    = Color(0xFF52525B); // zinc-600
-
-  // ── Text (4-level hierarchy) ───────────────────────────────────────────────
-
-  /// Headings, card titles, primary labels.
-  static const Color textPrimary     = Color(0xFFFAFAFA); // zinc-50
-
-  /// Body copy, supporting text, subtitles.
-  static const Color textSecondary   = Color(0xFFA1A1AA); // zinc-400
-
-  /// Hints, placeholders, timestamps, captions.
-  static const Color textMuted       = Color(0xFF71717A); // zinc-500
-
-  /// Inactive labels, disabled states.
-  static const Color textDisabled    = Color(0xFF52525B); // zinc-600
-
   // ── Brand — Rose ───────────────────────────────────────────────────────────
 
   /// Primary CTA, active nav, links, focus rings.
   /// Rose-500: brighter and more stage-ready than previous rose-700.
-  static const Color primary         = Color(0xFFF43F5E); // rose-500
-
-  /// Secondary brand moments — icons, badges, secondary actions.
-  static const Color primaryDim      = Color(0xFFBE123C); // rose-700
-
-  /// Subtle tinted background behind brand elements.
-  static const Color primaryContainer = Color(0xFF1C0A12); // rose-950 dark
-
-  /// Lighter rose for active/hover text states (selected tabs, focused labels).
-  static const Color primaryLight    = Color(0xFFFB7185); // rose-400
-
-  /// Primary at 30% opacity for subtle backgrounds.
-  static const Color primarySubtle   = Color(0x4DF43F5E); // rose-500 @ 30%
+  static const Color primary = Color(0xFFF43F5E); // rose-500
 
   // ── Semantic ───────────────────────────────────────────────────────────────
 
-  static const Color success         = Color(0xFF22C55E); // green-500
-  static const Color warning         = Color(0xFFF59E0B); // amber-500
-  static const Color error           = Color(0xFFEF4444); // red-500
+  static const Color error = Color(0xFFEF4444); // red-500
+
+  // ── Accent ─────────────────────────────────────────────────────────────────
+
+  /// Blue accent — kept for gradient and instrument UI use.
+  static const Color blueAccent = Color(0xFF2563EB);
 
   // ── Gradients ──────────────────────────────────────────────────────────────
 
@@ -216,7 +171,7 @@ class AppColors {
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [surface, background],
+    colors: [Color(0xFF18181B), Color(0xFF09090B)],
   );
 
   /// Setlist card animated gradient border colors
@@ -229,47 +184,6 @@ class AppColors {
     Color(0xFFEA580C), // orange-600
     Color(0xFFF43F5E), // rose-500 (loop)
   ];
-
-  // ── Deprecated aliases (migrate to new names above) ────────────────────────
-
-  @Deprecated('Use AppColors.primary')
-  static const Color accent          = primary;
-
-  @Deprecated('Use AppColors.primarySubtle')
-  static const Color accentMuted     = primarySubtle;
-
-  @Deprecated('Use AppColors.background')
-  static const Color scaffoldBg      = background;
-
-  @Deprecated('Use AppColors.background')
-  static const Color appBarBg        = background;
-
-  @Deprecated('Use AppColors.surface')
-  static const Color surfaceDark     = surface;
-
-  @Deprecated('Use AppColors.surface')
-  static const Color cardBg          = surface;
-
-  @Deprecated('Use AppColors.surfaceElevated')
-  static const Color cardBgElevated  = surfaceElevated;
-
-  @Deprecated('Use AppColors.background')
-  static const Color navBg           = background;
-
-  @Deprecated('Use AppColors.borderStrong')
-  static const Color borderSubtle    = borderStrong;
-
-  @Deprecated('Use AppColors.border')
-  static const Color borderMuted     = border;
-
-  /// Blue accent — kept for gradient and instrument UI use.
-  static const Color blueAccent      = Color(0xFF2563EB);
-
-  @Deprecated('Use AppColors.blueAccent')
-  static const Color borderBlue      = blueAccent;
-
-  @Deprecated('Use AppColors.textPrimary')
-  static const Color textNav         = textPrimary;
 }
 
 /// Setlist card border constants
@@ -308,18 +222,11 @@ class StandardCardBorder {
 class BrandButton {
   BrandButton._();
 
-  /// Background gradient: rose accent with prominent visibility
-  static LinearGradient get gradient => LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      AppColors.accent.withValues(alpha: 0.30),
-      AppColors.accent.withValues(alpha: 0.15),
-    ],
-  );
+  /// Background: solid rose accent
+  static Color get backgroundColor => AppColors.primary;
 
-  /// Border color: accent @ 60% opacity for prominence
-  static Color get borderColor => AppColors.accent.withValues(alpha: 0.6);
+  /// Border color: solid rose accent
+  static Color get borderColor => AppColors.primary;
 
   /// Border width
   static const double borderWidth = 1.5;
@@ -329,18 +236,10 @@ class BrandButton {
 
   /// Get a BoxDecoration for brand buttons
   static BoxDecoration get decoration => BoxDecoration(
-    gradient: gradient,
-    border: Border.all(color: borderColor, width: borderWidth),
-    borderRadius: BorderRadius.circular(radius),
-    boxShadow: [
-      BoxShadow(
-        color: AppColors.accent.withValues(alpha: 0.25),
-        blurRadius: 12,
-        spreadRadius: 0,
-        offset: const Offset(0, 2),
-      ),
-    ],
-  );
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: borderWidth),
+        borderRadius: BorderRadius.circular(radius),
+      );
 
   /// Get a BorderSide for OutlinedButton styling
   static BorderSide get side =>
@@ -407,51 +306,45 @@ class AppTextStyles {
 
   // Title3/Emphasized - 20px, weight 600, line-height 25px
   static TextStyle get title3 => GoogleFonts.dmSans(
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.25, // 25/20
-  );
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        height: 1.25, // 25/20
+      );
 
   // Headline/Regular - 17px, weight 600, line-height 22px
   static TextStyle get headline => GoogleFonts.dmSans(
-    fontSize: 17,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.29, // 22/17
-  );
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        height: 1.29, // 22/17
+      );
 
   // Callout/Regular - 16px, weight 400, line-height 21px
   static TextStyle get callout => GoogleFonts.dmSans(
-    fontSize: 16,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textSecondary,
-    height: 1.31, // 21/16
-  );
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        height: 1.31, // 21/16
+      );
 
   // Callout/Emphasized - 16px, weight 600, line-height 21px
   static TextStyle get calloutEmphasized => GoogleFonts.dmSans(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.31,
-  );
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        height: 1.31,
+      );
 
   // Footnote/Emphasized - 13px, weight 600, line-height 18px
   static TextStyle get footnote => GoogleFonts.dmSans(
-    fontSize: 13,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.38, // 18/13
-  );
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        height: 1.38, // 18/13
+      );
 
   // Nav label - 11px, weight 600, line-height 12px
   static TextStyle get navLabel => GoogleFonts.dmSans(
-    fontSize: 11,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textNav,
-    height: 1.09, // 12/11
-  );
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        height: 1.09, // 12/11
+      );
 
   // Legacy aliases for compatibility
   static TextStyle get displayLarge => title3.copyWith(fontSize: 28);
@@ -464,16 +357,14 @@ class AppTextStyles {
 
   // Button and badge styles
   static TextStyle get button => GoogleFonts.dmSans(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.31,
-  );
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        height: 1.31,
+      );
 
   static TextStyle get badge => GoogleFonts.dmSans(
-    fontSize: 11,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-    height: 1.09,
-  );
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        height: 1.09,
+      );
 }

@@ -42,7 +42,7 @@ brew install supabase/tap/supabase
 supabase login
 
 # Link to your project
-supabase link --project-ref YOUR_PROJECT_REF
+supabase link --project-ref nekwjxvgbveheooyorjo
 
 # Deploy the functions
 supabase functions deploy spotify_search
@@ -130,7 +130,10 @@ ADD COLUMN bpm INTEGER;
    ```bash
    flutter clean
    flutter pub get
-   flutter run -d macos  # or chrome, ios, etc.
+   flutter run -d macos \
+     --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+     --dart-define=SUPABASE_ANON_KEY=your-anon-key-here
+   # or use .vscode/launch.json with dart-define values set
    ```
 
 2. **Test Song Lookup flow:**

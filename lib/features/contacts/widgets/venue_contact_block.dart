@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import 'title_pill_selector.dart';
 
@@ -100,16 +101,16 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textMuted),
+      labelStyle: TextStyle(color: context.colors.textMuted),
       filled: true,
-      fillColor: AppColors.surface,
+      fillColor: context.colors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: context.colors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
@@ -125,9 +126,9 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,13 +136,13 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           // Header with remove button
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Contact',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),
@@ -163,18 +164,18 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           TextField(
             controller: _nameController,
             focusNode: _nameFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Name'),
           ),
           const SizedBox(height: 12),
 
           // Title
-          const Text(
+          Text(
             'Title',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -191,7 +192,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           TextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
@@ -202,7 +203,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           TextField(
             controller: _emailController,
             focusNode: _emailFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Email'),
             keyboardType: TextInputType.emailAddress,
           ),
@@ -212,7 +213,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           TextField(
             controller: _notesController,
             focusNode: _notesFocus,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
             decoration: _inputDecoration('Notes'),
             maxLines: 2,
           ),

@@ -5,6 +5,7 @@ import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/event_permission_helper.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import '../tips/tips_and_tricks_screen.dart';
@@ -289,7 +290,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
     // Build the main content
     final content = Scaffold(
-      backgroundColor: AppColors.scaffoldBg,
+      backgroundColor: context.colors.background,
       body: Column(
         children: [
           // Safe area padding at top
@@ -386,7 +387,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       {required bool isContributor, required bool canCreateGig}) {
     if (calendarState.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+        child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
@@ -399,7 +400,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
             const SizedBox(height: Spacing.space16),
             Text(
               calendarState.error!,
-              style: AppTextStyles.callout.copyWith(color: AppColors.textMuted),
+              style: AppTextStyles.callout
+                  .copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: Spacing.space16),
@@ -467,7 +469,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                 child: Text(
                   '+ Subscribe to Calendar',
                   style: TextStyle(
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -521,15 +523,16 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.accent,
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.textPrimary, size: 20),
+            Icon(icon, color: Colors.white, size: 20),
             const SizedBox(width: Spacing.space8),
-            Text(label, style: AppTextStyles.button),
+            Text(label,
+                style: AppTextStyles.button.copyWith(color: Colors.white)),
           ],
         ),
       ),
@@ -565,23 +568,23 @@ class _EventsSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(Spacing.space24),
             decoration: BoxDecoration(
-              color: AppColors.cardBgElevated,
+              color: context.colors.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderMuted),
+              border: Border.all(color: context.colors.border),
             ),
             child: Center(
               child: Column(
                 children: [
                   Icon(
                     AppIcons.calendarCheck,
-                    color: AppColors.textMuted,
+                    color: context.colors.textMuted,
                     size: 48,
                   ),
                   const SizedBox(height: Spacing.space12),
                   Text(
                     'No events this month',
                     style: AppTextStyles.callout.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                     ),
                   ),
                 ],

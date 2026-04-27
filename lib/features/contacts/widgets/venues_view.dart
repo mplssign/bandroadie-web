@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../bands/active_band_controller.dart';
 import '../venues_controller.dart';
 import 'venue_card.dart';
@@ -71,7 +72,7 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
           children: [
             Text(
               venuesState.error!,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -94,8 +95,8 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
     // Venues list
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceDark,
+      color: AppColors.primary,
+      backgroundColor: context.colors.surface,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -109,13 +110,13 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
               ),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Venues',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                   ),
@@ -180,10 +181,10 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
           child: Container(
             height: 120,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: context.colors.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: AppColors.border.withValues(alpha: 0.5),
+                color: context.colors.border.withValues(alpha: 0.5),
                 width: 2,
               ),
             ),

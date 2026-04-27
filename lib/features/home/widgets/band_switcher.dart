@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/models/band.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../bands/widgets/band_avatar.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -23,14 +24,7 @@ class _BandSwitcherTokens {
   static const double drawerMaxWidth = 400.0;
 
   // Colors - Figma exact
-  static const Color background = AppColors.background;
-  static const Color divider = AppColors.surface; // gray-800
-  static const Color iconDefault = AppColors.textPrimary; // white
   static const Color pressedBg = Color(0x14FFFFFF); // ~8% white
-
-  // Selected band row - solid background with visible top/bottom borders
-  static const Color selectedBackground = AppColors.surface; // gray-800
-  static const Color selectedBorderColor = AppColors.surfaceOverlay; // gray-700
 
   // Header padding - Figma: pt 12, pr 12, pb 16, pl 24
   static const EdgeInsets headerPadding = EdgeInsets.only(
@@ -69,7 +63,6 @@ class _BandSwitcherTokens {
     fontSize: 18,
     fontWeight: FontWeight.w500,
     height: 1.25,
-    color: iconDefault,
     decoration: TextDecoration.none,
   );
 }
@@ -123,13 +116,13 @@ class _BandSwitcherState extends State<BandSwitcher>
         curve: const Interval(0, 0.4, curve: Curves.easeOut),
       ),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _staggerController,
-            curve: const Interval(0, 0.4, curve: Curves.easeOutCubic),
-          ),
-        );
+    _headerSlide =
+        Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _staggerController,
+        curve: const Interval(0, 0.4, curve: Curves.easeOutCubic),
+      ),
+    );
 
     if (widget.isVisible) {
       _staggerController.forward();
@@ -157,7 +150,7 @@ class _BandSwitcherState extends State<BandSwitcher>
       constraints: const BoxConstraints(
         maxWidth: _BandSwitcherTokens.drawerMaxWidth,
       ),
-      color: _BandSwitcherTokens.background,
+      color: context.colors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -228,7 +221,7 @@ class _BandSwitcherState extends State<BandSwitcher>
                     widget.onEditBand!();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       vertical: Spacing.space14,
@@ -256,7 +249,7 @@ class _BandSwitcherState extends State<BandSwitcher>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.accent,
+                  color: AppColors.primary,
                   decoration: TextDecoration.none,
                 ),
               ),
@@ -349,9 +342,9 @@ class _CloseButtonState extends State<_CloseButton>
                         ? _BandSwitcherTokens.pressedBg
                         : Colors.transparent,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     AppIcons.close,
-                    color: _BandSwitcherTokens.iconDefault,
+                    color: context.colors.textPrimary,
                     size: _BandSwitcherTokens.closeIconSize,
                   ),
                 ),
@@ -453,18 +446,18 @@ class _BandListItemState extends State<_BandListItem>
               padding: _BandSwitcherTokens.bandItemPadding,
               decoration: BoxDecoration(
                 color: widget.isActive
-                    ? _BandSwitcherTokens.selectedBackground
+                    ? context.colors.surface
                     : (_isPressed
-                          ? _BandSwitcherTokens.pressedBg
-                          : _BandSwitcherTokens.background),
+                        ? _BandSwitcherTokens.pressedBg
+                        : context.colors.background),
                 border: widget.isActive
-                    ? const Border(
+                    ? Border(
                         top: BorderSide(
-                          color: _BandSwitcherTokens.selectedBorderColor,
+                          color: context.colors.surfaceOverlay,
                           width: 1,
                         ),
                         bottom: BorderSide(
-                          color: _BandSwitcherTokens.selectedBorderColor,
+                          color: context.colors.surfaceOverlay,
                           width: 1,
                         ),
                       )
@@ -483,7 +476,9 @@ class _BandListItemState extends State<_BandListItem>
                   Expanded(
                     child: Text(
                       widget.band.name,
-                      style: _BandSwitcherTokens.bandNameStyle,
+                      style: _BandSwitcherTokens.bandNameStyle.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -495,7 +490,7 @@ class _BandListItemState extends State<_BandListItem>
               Container(
                 width: _BandSwitcherTokens.dividerWidth,
                 height: 1,
-                color: _BandSwitcherTokens.divider,
+                color: context.colors.surface,
               ),
           ],
         ),
@@ -558,17 +553,16 @@ class _BandSwitcherOverlayState extends State<BandSwitcherOverlay>
     );
 
     // Slide from RIGHT (positive X offset to zero)
-    _slideAnimation =
-        Tween<Offset>(
-          begin: const Offset(1, 0), // Start off-screen to the right
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: _openCurve,
-            reverseCurve: _closeCurve,
-          ),
-        );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1, 0), // Start off-screen to the right
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: _openCurve,
+        reverseCurve: _closeCurve,
+      ),
+    );
 
     _scrimAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
@@ -752,17 +746,16 @@ class _BandSwitcherOverlayContentState extends State<BandSwitcherOverlayContent>
     );
 
     // Slide from RIGHT (positive X offset to zero)
-    _slideAnimation =
-        Tween<Offset>(
-          begin: const Offset(1, 0), // Start off-screen to the right
-          end: Offset.zero,
-        ).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: _openCurve,
-            reverseCurve: _closeCurve,
-          ),
-        );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1, 0), // Start off-screen to the right
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: _openCurve,
+        reverseCurve: _closeCurve,
+      ),
+    );
 
     _scrimAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(

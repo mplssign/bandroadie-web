@@ -47,7 +47,7 @@ const Map<String, Color> avatarColorMap = {
 
 /// Get Flutter Color from Tailwind class string
 Color getAvatarColor(String? tailwindClass) {
-  return avatarColorMap[tailwindClass] ?? AppColors.accent;
+  return avatarColorMap[tailwindClass] ?? AppColors.primary;
 }
 
 class BandAvatar extends StatelessWidget {

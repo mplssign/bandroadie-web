@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app/models/rehearsal.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -92,6 +93,8 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   @override
   Widget build(BuildContext context) {
+    final gradientAlpha =
+        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.60;
     // Wrap with AnimatedScale for subtle press feedback on tap
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -115,15 +118,15 @@ class _RehearsalCardState extends State<RehearsalCard>
                   colors: [
                     const Color(
                       0xFF2563EB,
-                    ).withValues(alpha: 0.60), // blue-600 (reduced)
+                    ).withValues(alpha: gradientAlpha), // blue-600
                     const Color(
                       0xFF9333EA,
-                    ).withValues(alpha: 0.60), // purple-600 (reduced)
+                    ).withValues(alpha: gradientAlpha), // purple-600
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius), // 16px
                 border: Border.all(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   width: 1,
                 ),
               ),
@@ -215,7 +218,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                       height: 32,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.accent,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(
                           Spacing.chipRadius,
                         ), // 16px

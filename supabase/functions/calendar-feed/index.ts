@@ -147,11 +147,90 @@ async function computeEtag(
         band: calendarName,
         tz: timezone,
         g: gigs.map(g => [g.id, g.date, g.start_time, g.end_time]),
-        r: rehearsals.map(r => [r.id, r.date, r.start_time, r.end_time]),
+        r: rehearsals.map(r => [
+            r.id,
+            r.date,
+            r.start_time,
+            r.end_time,
+            r.is_recurring ?? false,
+            r.recurrence_frequency ?? null,
+            r.recurrence_until ?? null,
+            (r.recurrence_days ?? []).join(','),
+            r.parent_rehearsal_id ?? null,
+        ]),
         b: blockOuts.map(b => [b.id, b.date]),
     });
     const hash = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(source));
     return `"${Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("")}"`;
+}
+
+// Map a day-of-week index (0=Sun..6=Sat) to its iCal BYDAY token.
+const BYDAY_MAP: Record<number, string> = {
+    0: 'SU', 1: 'MO', 2: 'TU', 3: 'WE', 4: 'TH', 5: 'FR', 6: 'SA',
+};
+
+// Format a YYYY-MM-DD date as end-of-day UTC for an RRULE UNTIL value.
+function formatRruleUntil(dateStr: string): string {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return '';
+    const [y, m, d] = parts;
+    return `${y}${m.padStart(2, '0')}${d.padStart(2, '0')}T235959Z`;
+}
+
+// Returns the first occurrence date (YYYY-MM-DD) on or after parentDateStr
+// whose day-of-week matches targetDayIndex (0=Sun..6=Sat).
+function computeFirstOccurrenceDate(parentDateStr: string, targetDayIndex: number): string {
+    const [year, month, day] = parentDateStr.split('-').map(n => parseInt(n, 10));
+    const startDate = new Date(year, month - 1, day);
+    const daysOffset = (targetDayIndex - startDate.getDay() + 7) % 7;
+    const firstOccurrence = new Date(year, month - 1, day + daysOffset);
+    const y = String(firstOccurrence.getFullYear());
+    const m = String(firstOccurrence.getMonth() + 1).padStart(2, '0');
+    const d = String(firstOccurrence.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// Build an RRULE value (without the leading 'RRULE:') for a recurring rehearsal
+// parent row. Returns null if the recurrence metadata is missing or unsupported,
+// signaling callers to fall back to a single-instance VEVENT.
+function buildRehearsalRrule(rehearsal: RehearsalEvent): string | null {
+    const freq = rehearsal.recurrence_frequency;
+    let rrule: string;
+    if (freq === 'weekly') {
+        rrule = 'FREQ=WEEKLY';
+    } else if (freq === 'biweekly') {
+        rrule = 'FREQ=WEEKLY;INTERVAL=2';
+    } else if (freq === 'monthly') {
+        rrule = 'FREQ=MONTHLY';
+    } else {
+        return null;
+    }
+
+    const days = rehearsal.recurrence_days;
+    if (days && days.length > 0) {
+        const tokens = days
+            .map(d => BYDAY_MAP[d])
+            .filter((t): t is string => Boolean(t));
+        if (tokens.length > 0) {
+            if (freq === 'monthly') {
+                const firstDateStr = computeFirstOccurrenceDate(rehearsal.date, days[0]);
+                const firstDay = parseInt(firstDateStr.split('-')[2], 10);
+                const N = Math.ceil(firstDay / 7);
+                rrule += `;BYDAY=${tokens.map(t => `${N}${t}`).join(',')}`;
+            } else {
+                rrule += `;BYDAY=${tokens.join(',')}`;
+            }
+        }
+    }
+
+    if (rehearsal.recurrence_until) {
+        const until = formatRruleUntil(rehearsal.recurrence_until);
+        if (until) {
+            rrule += `;UNTIL=${until}`;
+        }
+    }
+
+    return rrule;
 }
 
 // Known VTIMEZONE definitions for IANA timezone identifiers.
@@ -372,6 +451,11 @@ interface RehearsalEvent {
     end_time: string | null;
     band_name: string;
     notes: string | null;
+    is_recurring?: boolean | null;
+    recurrence_frequency?: string | null;  // 'weekly' | 'biweekly' | 'monthly'
+    recurrence_days?: number[] | null;     // 0=Sun..6=Sat
+    recurrence_until?: string | null;      // YYYY-MM-DD
+    parent_rehearsal_id?: string | null;
 }
 
 interface BlockOutEvent {
@@ -553,6 +637,8 @@ Deno.serve(async (req) => {
             .from('rehearsals')
             .select(`
                 id, date, location, start_time, end_time, notes, band_id,
+                is_recurring, recurrence_frequency, recurrence_days,
+                recurrence_until, parent_rehearsal_id,
                 bands(name)
             `)
             .in('band_id', bandIds)
@@ -608,6 +694,11 @@ Deno.serve(async (req) => {
             end_time: r.end_time,
             band_name: (r.bands as any)?.name || 'Band',
             notes: r.notes,
+            is_recurring: (r as any).is_recurring ?? null,
+            recurrence_frequency: (r as any).recurrence_frequency ?? null,
+            recurrence_days: (r as any).recurrence_days ?? null,
+            recurrence_until: (r as any).recurrence_until ?? null,
+            parent_rehearsal_id: (r as any).parent_rehearsal_id ?? null,
         }));
 
         const blockOutEvents: BlockOutEvent[] = (blockOuts || []).map(b => ({
@@ -729,8 +820,34 @@ function generateCalendar(
         lines.push('END:VEVENT');
     }
 
+    // Build an index of child rows per parent so the loop below can decide
+    // whether to emit an RRULE (no children materialized) or fall back to
+    // emitting each child row individually (deletion-safe).
+    const childRowsByParent = new Map<string, RehearsalEvent[]>();
+    for (const r of rehearsals) {
+        if (r.parent_rehearsal_id) {
+            const arr = childRowsByParent.get(r.parent_rehearsal_id) ?? [];
+            arr.push(r);
+            childRowsByParent.set(r.parent_rehearsal_id, arr);
+        }
+    }
+
     // Add rehearsals
     for (const rehearsal of rehearsals) {
+        const isRecurring = rehearsal.is_recurring === true;
+        const isChild = !!rehearsal.parent_rehearsal_id;
+
+        // Recurring parent: if any child rows exist, the children represent
+        // the (possibly edited/deleted) series — skip the parent and let the
+        // children emit individually below. Only emit RRULE when no children
+        // have been materialized yet.
+        if (isRecurring && !isChild) {
+            const children = childRowsByParent.get(rehearsal.id) ?? [];
+            if (children.length > 0) {
+                continue;
+            }
+        }
+
         const uid = generateUid('rehearsal', rehearsal.id, domain);
         const summary = `Rehearsal - ${rehearsal.band_name}`;
 
@@ -738,17 +855,45 @@ function generateCalendar(
         if (rehearsal.location) description += `\\nLocation: ${rehearsal.location}`;
         if (rehearsal.notes) description += `\\n\\nNotes: ${rehearsal.notes}`;
 
+        // For monthly recurring parent rows with recurrence_days, DTSTART must
+        // land on the first actual occurrence of the series, not the parent date.
+        const freq = rehearsal.recurrence_frequency;
+        const effectiveDate =
+            isRecurring && !isChild &&
+            freq === 'monthly' &&
+            rehearsal.recurrence_days && rehearsal.recurrence_days.length > 0
+                ? computeFirstOccurrenceDate(rehearsal.date, rehearsal.recurrence_days[0])
+                : rehearsal.date;
+
         // Format as local time with TZID
-        const startDt = formatLocalDateTime(rehearsal.date, rehearsal.start_time);
+        const startDt = formatLocalDateTime(effectiveDate, rehearsal.start_time);
         const endDt = rehearsal.end_time
-            ? formatLocalDateTime(rehearsal.date, rehearsal.end_time)
-            : defaultEndLocalDateTime(rehearsal.date, rehearsal.start_time);
+            ? formatLocalDateTime(effectiveDate, rehearsal.end_time)
+            : defaultEndLocalDateTime(effectiveDate, rehearsal.start_time);
+
+        // For recurring parent rows, build an RRULE. If the metadata is
+        // incomplete or the frequency is unsupported, fall back to a flat
+        // VEVENT so the series is not silently dropped.
+        let rrule: string | null = null;
+        let recurrenceIncomplete = false;
+        if (isRecurring && !isChild && rehearsal.recurrence_frequency === 'monthly') {
+            rrule = buildRehearsalRrule(rehearsal);
+            if (rrule === null) {
+                recurrenceIncomplete = true;
+            }
+        }
 
         lines.push('BEGIN:VEVENT');
         lines.push(foldLine(`UID:${uid}`));
         lines.push(foldLine(`DTSTAMP:${now}`));
         lines.push(foldLine(`DTSTART;TZID=${timezone}:${startDt}`));
         lines.push(foldLine(`DTEND;TZID=${timezone}:${endDt}`));
+        if (rrule) {
+            lines.push(foldLine(`RRULE:${rrule}`));
+        }
+        if (recurrenceIncomplete) {
+            lines.push(foldLine('X-BANDROADIE-NOTE:RECURRENCE-DATA-INCOMPLETE'));
+        }
         lines.push(foldLine(`SUMMARY:${escapeIcsText(summary)}`));
         if (rehearsal.location) {
             lines.push(foldLine(`LOCATION:${escapeIcsText(rehearsal.location)}`));

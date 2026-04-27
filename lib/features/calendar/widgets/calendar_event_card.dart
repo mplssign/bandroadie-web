@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../models/calendar_event.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -10,9 +11,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // Displays an event (gig or rehearsal) in the "This Month's Events" list.
 // Figma: #334155 border, deep blue date badge on left, title/time/location on right
 // ============================================================================
-
-/// Figma-spec border color (strict)
-const _kCardBorderColor = AppColors.surfaceOverlay;
 
 class CalendarEventCard extends StatefulWidget {
   final CalendarEvent event;
@@ -103,8 +101,9 @@ class _CalendarEventCardState extends State<CalendarEventCard>
         child: Container(
           constraints: const BoxConstraints(minHeight: 80),
           decoration: BoxDecoration(
-            color: AppColors.scaffoldBg,
-            border: Border.all(color: _kCardBorderColor, width: 1.5),
+            color: context.colors.background,
+            border:
+                Border.all(color: context.colors.surfaceOverlay, width: 1.5),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IntrinsicHeight(
@@ -117,7 +116,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                 ),
 
                 // Divider
-                Container(width: 1, color: AppColors.borderMuted),
+                Container(width: 1, color: context.colors.border),
 
                 // Event details
                 Expanded(
@@ -162,7 +161,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                             Text(
                               widget.event.notes!,
                               style: AppTextStyles.callout.copyWith(
-                                color: AppColors.textSecondary,
+                                color: context.colors.textSecondary,
                                 fontSize: 14,
                               ),
                               maxLines: 1,
@@ -178,7 +177,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                               widget.bandTimezone,
                             ),
                             style: AppTextStyles.callout.copyWith(
-                              color: AppColors.textSecondary,
+                              color: context.colors.textSecondary,
                               fontSize: 14,
                             ),
                             maxLines: 1,
@@ -193,7 +192,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                 // For multi-day block outs: show end date badge instead of chevron
                 // For other events: show chevron
                 if (_isMultiDayBlockOut) ...[
-                  Container(width: 1, color: AppColors.borderMuted),
+                  Container(width: 1, color: context.colors.border),
                   _DateBadge(
                     date: widget.event.endDate!,
                     eventType: widget.event.type,
@@ -204,7 +203,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                     padding: const EdgeInsets.only(right: Spacing.space12),
                     child: Icon(
                       AppIcons.forward,
-                      color: AppColors.textMuted,
+                      color: context.colors.textMuted,
                       size: 24,
                     ),
                   ),
@@ -247,8 +246,9 @@ class _DateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Deep blue/indigo background for date badge per Figma
-    const dateBoxColor = Color(0xFF1E3A5F);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dateBoxColor =
+        isDark ? const Color(0xFF1E3A5F) : const Color(0xFF333333);
 
     return Container(
       width: 68,

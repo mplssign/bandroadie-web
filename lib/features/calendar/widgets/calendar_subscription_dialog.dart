@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/widgets/toggle_tile.dart';
 import '../calendar_subscription_service.dart';
@@ -91,7 +92,7 @@ class _CalendarSubscriptionDialogState
     );
 
     return Dialog(
-      backgroundColor: AppColors.cardBg,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -113,11 +114,11 @@ class _CalendarSubscriptionDialogState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        CircularProgressIndicator(color: AppColors.accent),
+        CircularProgressIndicator(color: AppColors.primary),
         const SizedBox(height: Spacing.space16),
-        const Text(
+        Text(
           'Generating your calendar link...',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: context.colors.textSecondary),
         ),
       ],
     );
@@ -129,10 +130,10 @@ class _CalendarSubscriptionDialogState
       children: [
         const Icon(AppIcons.error, color: AppColors.error, size: 48),
         const SizedBox(height: Spacing.space16),
-        const Text(
+        Text(
           'Unable to generate calendar link',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -140,7 +141,7 @@ class _CalendarSubscriptionDialogState
         const SizedBox(height: Spacing.space8),
         Text(
           error,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: Spacing.space24),
@@ -166,13 +167,13 @@ class _CalendarSubscriptionDialogState
         // ── Header ──────────────────────────────────────────────────────────
         Row(
           children: [
-            Icon(AppIcons.calendar, color: AppColors.accent, size: 28),
+            Icon(AppIcons.calendar, color: AppColors.primary, size: 28),
             const SizedBox(width: Spacing.space12),
             Expanded(
               child: Text(
                 'Subscribe to ${widget.bandName} Calendar',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: context.colors.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
                 ),
@@ -180,7 +181,7 @@ class _CalendarSubscriptionDialogState
             ),
             IconButton(
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(AppIcons.close, color: AppColors.textSecondary),
+              icon: Icon(AppIcons.close, color: context.colors.textSecondary),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
@@ -190,11 +191,11 @@ class _CalendarSubscriptionDialogState
         const SizedBox(height: Spacing.space16),
 
         // ── Description ─────────────────────────────────────────────────────
-        const Text(
+        Text(
           'Add your BandRoadie events to your favorite calendar app. '
           'Events will stay in sync automatically.',
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontSize: 14,
             height: 1.4,
           ),
@@ -206,17 +207,17 @@ class _CalendarSubscriptionDialogState
         Container(
           padding: const EdgeInsets.all(Spacing.space12),
           decoration: BoxDecoration(
-            color: AppColors.cardBgElevated,
+            color: context.colors.surfaceElevated,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: AppColors.borderMuted),
+            border: Border.all(color: context.colors.border),
           ),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   url,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
                     fontSize: 12,
                     fontFamily: 'monospace',
                   ),
@@ -246,10 +247,10 @@ class _CalendarSubscriptionDialogState
         const SizedBox(height: Spacing.space20),
 
         // ── Feed content toggles ─────────────────────────────────────────────
-        const Text(
+        Text(
           'Include in feed:',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -294,10 +295,10 @@ class _CalendarSubscriptionDialogState
         const SizedBox(height: Spacing.space20),
 
         // ── Platform instructions ────────────────────────────────────────────
-        const Text(
+        Text(
           'How to subscribe:',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -333,7 +334,7 @@ class _CalendarSubscriptionDialogState
         Container(
           padding: const EdgeInsets.all(Spacing.space12),
           decoration: BoxDecoration(
-            color: AppColors.cardBgElevated.withValues(alpha: 0.5),
+            color: context.colors.surfaceElevated.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           ),
           child: const Column(
@@ -372,7 +373,7 @@ class _CopyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: copied ? AppColors.success : AppColors.accent,
+      color: copied ? context.colors.success : AppColors.primary,
       borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       child: InkWell(
         onTap: () {
@@ -430,7 +431,7 @@ class _InstructionTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppColors.textSecondary),
+        Icon(icon, size: 20, color: context.colors.textSecondary),
         const SizedBox(width: Spacing.space12),
         Expanded(
           child: Column(
@@ -438,16 +439,16 @@ class _InstructionTile extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: context.colors.textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 instruction,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: context.colors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -473,14 +474,14 @@ class _NoteBullet extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '•  ',
-          style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          style: TextStyle(color: context.colors.textMuted, fontSize: 12),
         ),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.colors.textMuted, fontSize: 12),
           ),
         ),
       ],

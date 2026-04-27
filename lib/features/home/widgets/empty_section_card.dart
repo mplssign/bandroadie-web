@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -73,9 +74,9 @@ class _EmptySectionCardState extends State<EmptySectionCard>
       width: double.infinity,
       padding: const EdgeInsets.all(Spacing.space24),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        border: Border.all(color: AppColors.borderSubtle, width: 1),
+        border: Border.all(color: context.colors.borderStrong, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,10 +87,10 @@ class _EmptySectionCardState extends State<EmptySectionCard>
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.surfaceDark,
+                color: context.colors.surface,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(widget.icon, color: AppColors.textMuted, size: 28),
+              child: Icon(widget.icon, color: context.colors.textMuted, size: 28),
             ),
             const SizedBox(height: Spacing.space16),
           ],
@@ -100,7 +101,7 @@ class _EmptySectionCardState extends State<EmptySectionCard>
             style: GoogleFonts.dmSans(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.colors.textPrimary,
               height: 1.25,
             ),
           ),
@@ -111,10 +112,10 @@ class _EmptySectionCardState extends State<EmptySectionCard>
           Text(
             widget.subtitle,
             textAlign: TextAlign.left,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w400,
-              color: AppColors.textMuted,
+              color: context.colors.textMuted,
               height: 1.4,
             ),
           ),

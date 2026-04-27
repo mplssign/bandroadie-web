@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 /// Download CTA section with app store buttons
 class DownloadSection extends StatelessWidget {
@@ -24,7 +25,7 @@ class DownloadSection extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             const Color(0xFF0a0505),
-            AppColors.scaffoldBg,
+            context.colors.background,
             const Color(0xFF14050a),
           ],
         ),
@@ -43,7 +44,7 @@ class DownloadSection extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontSize: 18,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           SizedBox(height: isMobile ? 40 : 60),

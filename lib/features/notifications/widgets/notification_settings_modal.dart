@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -31,7 +32,7 @@ class NotificationSettingsModal extends StatelessWidget {
     final isIOS = !kIsWeb && Platform.isIOS;
 
     return Dialog(
-      backgroundColor: AppColors.cardBg,
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -45,12 +46,12 @@ class NotificationSettingsModal extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.textMuted.withValues(alpha: 0.1),
+                color: context.colors.textMuted.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 AppIcons.bellOff,
-                color: AppColors.textMuted,
+                color: context.colors.textMuted,
                 size: 32,
               ),
             ),
@@ -61,7 +62,7 @@ class NotificationSettingsModal extends StatelessWidget {
             Text(
               'Notifications Disabled',
               style: AppTextStyles.title3.copyWith(
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
               textAlign: TextAlign.center,
@@ -77,7 +78,7 @@ class NotificationSettingsModal extends StatelessWidget {
                   : 'Notifications are disabled for BandRoadie. '
                       'To enable them, you\'ll need to update your app settings.',
               style: AppTextStyles.callout.copyWith(
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -89,7 +90,7 @@ class NotificationSettingsModal extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(Spacing.space12),
               decoration: BoxDecoration(
-                color: AppColors.scaffoldBg,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -97,7 +98,7 @@ class NotificationSettingsModal extends StatelessWidget {
                     ? 'Settings → Notifications → BandRoadie'
                     : 'Settings → Apps → BandRoadie → Permissions',
                 style: AppTextStyles.footnote.copyWith(
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   fontFamily: 'monospace',
                 ),
                 textAlign: TextAlign.center,
@@ -118,7 +119,7 @@ class NotificationSettingsModal extends StatelessWidget {
                   await _openAppSettings();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     vertical: Spacing.space16,
@@ -147,7 +148,7 @@ class NotificationSettingsModal extends StatelessWidget {
                   Navigator.of(context).pop();
                 },
                 style: TextButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
+                  foregroundColor: context.colors.textSecondary,
                   padding: const EdgeInsets.symmetric(
                     vertical: Spacing.space12,
                   ),
@@ -155,7 +156,7 @@ class NotificationSettingsModal extends StatelessWidget {
                 child: Text(
                   'Cancel',
                   style: AppTextStyles.callout.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
