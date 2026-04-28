@@ -330,7 +330,8 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
               const SizedBox(height: Spacing.space24),
               Text(
                 'Setting up the stage...',
-                style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
+                style: AppTextStyles.body
+                    .copyWith(color: context.colors.textMuted),
               ),
             ],
           ),

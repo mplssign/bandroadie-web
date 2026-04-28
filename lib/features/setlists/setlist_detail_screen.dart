@@ -182,14 +182,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Rename Setlist',
-          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Form(
           key: formKey,
           child: TextFormField(
             controller: controller,
             autofocus: true,
-            style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+            style:
+                AppTextStyles.body.copyWith(color: context.colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Enter setlist name',
               hintStyle: AppTextStyles.body.copyWith(
@@ -215,7 +217,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Cancel',
-              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
+              style:
+                  AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ),
           FilledButton(
@@ -488,14 +491,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         ),
         content: Text(
           'Remove this ${item.type.displayName.toLowerCase()} from the setlist?',
-          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+          style:
+              AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.button.copyWith(color: context.colors.textMuted),
+              style: AppTextStyles.button
+                  .copyWith(color: context.colors.textMuted),
             ),
           ),
           TextButton(
@@ -532,14 +537,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         title: Text('Remove $label?', style: AppTextStyles.title3),
         content: Text(
           'Remove this ${item.type.displayName.toLowerCase()} from the setlist?',
-          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+          style:
+              AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.button.copyWith(color: context.colors.textMuted),
+              style: AppTextStyles.button
+                  .copyWith(color: context.colors.textMuted),
             ),
           ),
           TextButton(
@@ -1157,11 +1164,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         backgroundColor: context.colors.surface,
         title: Text(
           'Delete "${state.setlistName}"?',
-          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           'This will remove the setlist. Songs will remain in your Catalog.',
-          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+          style:
+              AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -1394,7 +1403,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               focusNode: _searchFocusNode,
               autofocus: true,
               onChanged: _onSearchChanged,
-              style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+              style: AppTextStyles.body
+                  .copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Filter songs...',
                 hintStyle: AppTextStyles.body.copyWith(
@@ -2552,7 +2562,9 @@ class _SortOption extends StatelessWidget {
               child: Text(
                 label,
                 style: AppTextStyles.body.copyWith(
-                  color: isSelected ? AppColors.primary : context.colors.textPrimary,
+                  color: isSelected
+                      ? AppColors.primary
+                      : context.colors.textPrimary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

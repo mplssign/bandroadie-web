@@ -188,7 +188,8 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                         child: Icon(
                           AppIcons.drag,
                           size: 24,
-                          color: context.colors.textSecondary.withValues(alpha: 0.6),
+                          color: context.colors.textSecondary
+                              .withValues(alpha: 0.6),
                         ),
                       ),
                     ),

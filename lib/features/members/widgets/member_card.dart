@@ -78,6 +78,8 @@ class MemberCard extends StatefulWidget {
 }
 
 class _MemberCardState extends State<MemberCard> {
+  String get _normalizedBandRole => widget.member.bandRole.trim().toLowerCase();
+
   @override
   Widget build(BuildContext context) {
     // No card-level tap handler - contact rows handle their own taps (phone, email)
@@ -131,7 +133,7 @@ class _MemberCardState extends State<MemberCard> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (widget.member.bandRole != 'member')
+                      if (_normalizedBandRole != 'member')
                         Padding(
                           padding: const EdgeInsets.only(top: 6, right: 10),
                           child: _buildRoleIcon(),
@@ -371,7 +373,8 @@ class _MemberCardState extends State<MemberCard> {
   /// Role badge icon shown before the role pills.
   Widget _buildRoleIcon() {
     final IconData icon;
-    switch (widget.member.bandRole) {
+    switch (_normalizedBandRole) {
+      case 'owner':
       case 'admin':
         icon = AppIcons.crown;
         break;

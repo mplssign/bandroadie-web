@@ -73,7 +73,7 @@ class VenueCard extends StatelessWidget {
                     Text(
                       venue.name,
                       style: TextStyle(
-                          fontSize: 21,
+                        fontSize: 21,
                         fontWeight: FontWeight.w700,
                         color: context.colors.textPrimary,
                         height: 1.2,

@@ -456,11 +456,13 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         ),
         title: Text(
           'Unsaved Changes',
-          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         content: Text(
           'Are you sure you want to leave without saving?',
-          style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+          style:
+              AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
@@ -508,7 +510,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         ),
         title: Text(
           'Add YouTube Link',
-          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
         contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
         content: Column(
@@ -519,7 +522,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               controller: titleController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+              style: AppTextStyles.body
+                  .copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Link name (e.g., "Live Performance")',
                 hintStyle: AppTextStyles.body.copyWith(
@@ -545,7 +549,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             TextField(
               controller: urlController,
               keyboardType: TextInputType.url,
-              style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+              style: AppTextStyles.body
+                  .copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'YouTube URL',
                 hintStyle: AppTextStyles.body.copyWith(
@@ -1089,7 +1094,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
-            style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+            style:
+                AppTextStyles.body.copyWith(color: context.colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Add notes for this song...',
               hintStyle: AppTextStyles.body.copyWith(
@@ -1247,7 +1253,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               onTap: () => _removeYouTubeLink(index),
               child: Padding(
                 padding: const EdgeInsets.all(4),
-                child: Icon(AppIcons.close, color: context.colors.textMuted, size: 16),
+                child: Icon(AppIcons.close,
+                    color: context.colors.textMuted, size: 16),
               ),
             ),
         ],
@@ -1327,7 +1334,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 child: Text(
                   'Save',
                   style: AppTextStyles.body.copyWith(
-                    color: _hasChanges ? Colors.white : context.colors.textMuted,
+                    color:
+                        _hasChanges ? Colors.white : context.colors.textMuted,
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),

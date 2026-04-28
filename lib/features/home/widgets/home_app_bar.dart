@@ -91,7 +91,8 @@ class HomeAppBar extends ConsumerWidget {
           ),
           // Band name — centered until within 16px of sides, then left-justified
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 60), // 44px icon + 16px gap
+            padding: const EdgeInsets.symmetric(
+                horizontal: 60), // 44px icon + 16px gap
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final baseStyle = AppTextStyles.title3.copyWith(
@@ -99,7 +100,8 @@ class HomeAppBar extends ConsumerWidget {
                   letterSpacing: -0.5,
                 );
                 final painter = TextPainter(
-                  text: TextSpan(text: bandName.toUpperCase(), style: baseStyle),
+                  text:
+                      TextSpan(text: bandName.toUpperCase(), style: baseStyle),
                   maxLines: 1,
                   textDirection: TextDirection.ltr,
                 )..layout();
