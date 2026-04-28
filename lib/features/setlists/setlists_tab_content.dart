@@ -448,7 +448,9 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                           children: [
                             Text(
                               'Setlists',
-                              style: AppTextStyles.displayMedium,
+                              style: AppTextStyles.pageTitle.copyWith(
+                                color: Colors.white,
+                              ),
                             ),
                             if (canEdit)
                               TextButton.icon(

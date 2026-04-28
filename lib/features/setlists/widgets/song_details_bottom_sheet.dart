@@ -724,7 +724,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               Expanded(
                 child: Text(
                   'Song Details',
-                  style: AppTextStyles.title3.copyWith(fontSize: 18),
+                  style: AppTextStyles.pageTitle.copyWith(
+                    color: const Color(0xFFFFF1F2),
+                  ),
                 ),
               ),
               GestureDetector(

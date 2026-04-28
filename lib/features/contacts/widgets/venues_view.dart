@@ -113,9 +113,7 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
                   Expanded(
                     child: Text(
                       'Venues',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                      style: AppTextStyles.pageTitle.copyWith(
                         color: context.colors.textPrimary,
                       ),
                     ),

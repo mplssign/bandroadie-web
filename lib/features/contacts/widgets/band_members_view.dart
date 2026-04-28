@@ -70,9 +70,7 @@ class BandMembersView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Band Members',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                      style: AppTextStyles.pageTitle.copyWith(
                         color: context.colors.textPrimary,
                       ),
                     ),

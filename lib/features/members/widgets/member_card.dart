@@ -34,7 +34,7 @@ class _MemberCardTokens {
 
   // Typography
   static const TextStyle nameStyle = TextStyle(
-    fontSize: 28,
+    fontSize: 21,
     fontWeight: FontWeight.w700,
     height: 1.2,
   );
@@ -131,6 +131,11 @@ class _MemberCardState extends State<MemberCard> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (widget.member.bandRole != 'member')
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, right: 10),
+                          child: _buildRoleIcon(),
+                        ),
                       Expanded(
                         child: Text(
                           widget.member.name,
@@ -360,6 +365,26 @@ class _MemberCardState extends State<MemberCard> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Role badge icon shown before the role pills.
+  Widget _buildRoleIcon() {
+    final IconData icon;
+    switch (widget.member.bandRole) {
+      case 'admin':
+        icon = AppIcons.crown;
+        break;
+      case 'contributor':
+        icon = Icons.visibility_outlined;
+        break;
+      default:
+        return const SizedBox.shrink();
+    }
+    return Icon(
+      icon,
+      size: 18,
+      color: _MemberCardTokens.iconRose,
     );
   }
 

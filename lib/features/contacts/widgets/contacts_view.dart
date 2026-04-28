@@ -113,9 +113,7 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
                   Expanded(
                     child: Text(
                       'Contacts',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
+                      style: AppTextStyles.pageTitle.copyWith(
                         color: context.colors.textPrimary,
                       ),
                     ),

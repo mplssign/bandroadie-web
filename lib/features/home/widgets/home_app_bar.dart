@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
-import '../../../shared/widgets/animated_logo.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../bands/widgets/band_avatar.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -67,39 +67,74 @@ class HomeAppBar extends ConsumerWidget {
         // Push content below the status bar/notch
         top: topSafeArea,
       ),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          // Hamburger menu icon with 48px tap target for accessibility
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onMenuTap,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Center(
-                child: Icon(
-                  AppIcons.menu,
-                  color: context.colors.textPrimary,
-                  size: 26,
+          // Hamburger — pinned left, always fixed
+          Align(
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onMenuTap,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Center(
+                  child: Icon(
+                    AppIcons.menu,
+                    color: context.colors.textPrimary,
+                    size: 26,
+                  ),
                 ),
               ),
             ),
           ),
-          const Spacer(),
-          // Centered app logo
-          const AnimatedBandRoadieLogo(height: 18),
-          const Spacer(),
-          // Avatar with band image/initials - opens band switcher
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onAvatarTap,
-            child: BandAvatar(
-              imageUrl: bandImageUrl,
-              localImageFile: localImageFile,
-              name: bandName,
-              avatarColor: bandAvatarColor,
-              size: 36,
-              fontSize: 15,
+          // Band name — centered until within 16px of sides, then left-justified
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 60), // 44px icon + 16px gap
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final baseStyle = AppTextStyles.title3.copyWith(
+                  color: const Color(0xFF334155),
+                  letterSpacing: -0.5,
+                );
+                final painter = TextPainter(
+                  text: TextSpan(text: bandName.toUpperCase(), style: baseStyle),
+                  maxLines: 1,
+                  textDirection: TextDirection.ltr,
+                )..layout();
+
+                final fits = painter.width <= constraints.maxWidth;
+                double fontSize = 20;
+                if (!fits) {
+                  final scaleFactor = constraints.maxWidth / painter.width;
+                  fontSize = max(13, 20 * scaleFactor);
+                }
+
+                return Text(
+                  bandName.toUpperCase(),
+                  style: baseStyle.copyWith(fontSize: fontSize),
+                  textAlign: fits ? TextAlign.center : TextAlign.left,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                );
+              },
+            ),
+          ),
+          // Avatar — pinned right, always fixed
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onAvatarTap,
+              child: BandAvatar(
+                imageUrl: bandImageUrl,
+                localImageFile: localImageFile,
+                name: bandName,
+                avatarColor: bandAvatarColor,
+                size: 36,
+                fontSize: 15,
+              ),
             ),
           ),
         ],

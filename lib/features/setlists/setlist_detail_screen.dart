@@ -1583,7 +1583,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   Flexible(
                     child: Text(
                       _currentName,
-                      style: AppTextStyles.title3,
+                      style: AppTextStyles.pageTitle.copyWith(
+                        color: const Color(0xFFFFF1F2),
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

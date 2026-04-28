@@ -93,11 +93,8 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                 // Title - 20px Title3/Emphasized
                 Text(
                   widget.gig.name,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.textPrimary,
-                    height: 1.2,
+                  style: AppTextStyles.title3.copyWith(
+                    color: const Color(0xFFFFF1F2),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

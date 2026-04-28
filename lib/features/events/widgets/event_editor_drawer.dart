@@ -1781,7 +1781,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         : widget.mode == EventEditorMode.edit
                             ? 'Edit ${_eventType.displayName}'
                             : 'Add Event',
-                    style: AppTextStyles.title3,
+                    style: AppTextStyles.pageTitle.copyWith(
+                      color: const Color(0xFFFFF1F2),
+                    ),
                   ),
                 ),
                 GestureDetector(

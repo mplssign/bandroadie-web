@@ -903,10 +903,8 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                     children: [
                       Text(
                         'Setlists',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: context.colors.textPrimary,
+                        style: AppTextStyles.pageTitle.copyWith(
+                          color: Colors.white,
                         ),
                       ),
                       if (canEdit)

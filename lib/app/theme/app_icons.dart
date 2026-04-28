@@ -98,6 +98,7 @@ class AppIcons {
   static const IconData userAdd = LucideIcons.userPlus;
   static const IconData userRemove = LucideIcons.userMinus;
   static const IconData userCheck = LucideIcons.userCheck;
+  static const IconData crown = LucideIcons.crown;
 
   static const IconData phone = LucideIcons.phone;
   static const IconData email = LucideIcons.mail;

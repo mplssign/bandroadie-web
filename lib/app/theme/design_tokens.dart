@@ -147,7 +147,7 @@ class AppColors {
 
   /// Primary CTA, active nav, links, focus rings.
   /// Rose-500: brighter and more stage-ready than previous rose-700.
-  static const Color primary = Color(0xFFF43F5E); // rose-500
+  static const Color primary = Color(0xFFBE123C); // rose-700
 
   // ── Semantic ───────────────────────────────────────────────────────────────
 
@@ -303,6 +303,14 @@ class _RubberbandCurve extends Curve {
 /// Typography styles - Using DM Sans font
 class AppTextStyles {
   AppTextStyles._();
+
+  // Unified page title style used by Setlists/Band Members/Venues/Contacts
+  // and Home section headers (Upcoming Gigs, Quick Actions).
+  static TextStyle get pageTitle => GoogleFonts.dmSans(
+        fontSize: 21,
+        fontWeight: FontWeight.w700,
+        height: 1.25,
+      );
 
   // Title3/Emphasized - 20px, weight 600, line-height 25px
   static TextStyle get title3 => GoogleFonts.dmSans(

@@ -246,7 +246,9 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                                 children: [
                                   Text(
                                     widget.song.title,
-                                    style: AppTextStyles.title3,
+                                    style: AppTextStyles.title3.copyWith(
+                                      color: const Color(0xFFFFF1F2),
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
