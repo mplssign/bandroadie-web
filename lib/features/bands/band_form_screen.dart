@@ -1641,7 +1641,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               children: [
                 Icon(
                   AppIcons.back,
-                  color: context.colors.textPrimary,
+                  color: Colors.white,
                   size: 24,
                 ),
                 Text(
@@ -1650,7 +1650,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     height: 1.4,
-                    color: context.colors.textPrimary,
+                    color: Colors.white,
                   ),
                 ),
               ],

@@ -1303,7 +1303,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final canEdit = permissionsAsync.when(
       data: (p) => p.canEditSetlists,
       loading: () => false, // Fail closed — no mutation flicker
-      error: (__, _) => false, // Fail closed on error
+      error: (err, stack) => false, // Fail closed on error
     );
 
     // Detect catalog sort mode changes and trigger animation
@@ -1594,7 +1594,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                     child: Text(
                       _currentName,
                       style: AppTextStyles.pageTitle.copyWith(
-                        color: const Color(0xFFFFF1F2),
+                        color: context.colors.textPrimary,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -2311,7 +2311,9 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           height: 121,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: context.colors.background,
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.white
+                : context.colors.background,
             border: Border.all(
               // Highlight selected cards with accent border
               color: widget.isSelected

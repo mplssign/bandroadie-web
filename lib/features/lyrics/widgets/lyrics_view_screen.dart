@@ -33,12 +33,12 @@ void showLyricsViewScreen(
   Navigator.of(context).push(
     PageRouteBuilder(
       opaque: true,
-      pageBuilder: (__, ___, ____) => _LyricsViewScreen(
+      pageBuilder: (context, anim1, anim2) => _LyricsViewScreen(
         lyrics: lyrics,
         songId: songId,
         songTitle: songTitle,
       ),
-      transitionsBuilder: (__, animation, ___, child) {
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return FadeTransition(
           opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
           child: SlideTransition(
@@ -348,8 +348,9 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color:
-                    _isAutoScrolling ? AppColors.primary : context.colors.surface,
+                color: _isAutoScrolling
+                    ? AppColors.primary
+                    : context.colors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: _isAutoScrolling
@@ -369,7 +370,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
               ),
               child: Icon(
                 _isAutoScrolling ? AppIcons.pause : AppIcons.play,
-                color: Colors.white,
+                color: _isAutoScrolling ? Colors.white : AppColors.primary,
                 size: 28,
               ),
             ),
@@ -408,7 +409,8 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
       return Center(
         child: Text(
           'No lyrics added yet.',
-          style: AppTextStyles.callout.copyWith(color: context.colors.textMuted),
+          style:
+              AppTextStyles.callout.copyWith(color: context.colors.textMuted),
         ),
       );
     }

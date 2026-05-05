@@ -63,8 +63,7 @@ class _CalendarSubscriptionDialogState
 
   Future<void> _loadPreferences() async {
     final service = ref.read(calendarSubscriptionServiceProvider);
-    final prefs =
-        await service.getBandSubscriptionPreferences(widget.bandId);
+    final prefs = await service.getBandSubscriptionPreferences(widget.bandId);
     if (mounted) {
       setState(() {
         _prefs = prefs;
@@ -92,7 +91,7 @@ class _CalendarSubscriptionDialogState
     );
 
     return Dialog(
-      backgroundColor: context.colors.surface,
+      backgroundColor: const Color(0xFFD1D5DB),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -160,197 +159,200 @@ class _CalendarSubscriptionDialogState
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Header ──────────────────────────────────────────────────────────
-        Row(
-          children: [
-            Icon(AppIcons.calendar, color: AppColors.primary, size: 28),
-            const SizedBox(width: Spacing.space12),
-            Expanded(
-              child: Text(
-                'Subscribe to ${widget.bandName} Calendar',
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: Icon(AppIcons.close, color: context.colors.textSecondary),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: Spacing.space16),
-
-        // ── Description ─────────────────────────────────────────────────────
-        Text(
-          'Add your BandRoadie events to your favorite calendar app. '
-          'Events will stay in sync automatically.',
-          style: TextStyle(
-            color: context.colors.textSecondary,
-            fontSize: 14,
-            height: 1.4,
-          ),
-        ),
-
-        const SizedBox(height: Spacing.space20),
-
-        // ── Subscription URL ─────────────────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.all(Spacing.space12),
-          decoration: BoxDecoration(
-            color: context.colors.surfaceElevated,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: context.colors.border),
-          ),
-          child: Row(
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──────────────────────────────────────────────────────────
+          Row(
             children: [
+              Icon(AppIcons.calendar, color: AppColors.primary, size: 28),
+              const SizedBox(width: Spacing.space12),
               Expanded(
                 child: Text(
-                  url,
+                  'Subscribe to ${widget.bandName} Calendar',
                   style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: 12,
-                    fontFamily: 'monospace',
+                    color: context.colors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: Spacing.space12),
-              _CopyButton(
-                url: url,
-                copied: _copied,
-                onCopied: () {
-                  setState(() => _copied = true);
-                  showSuccessSnackBar(
-                    context,
-                    message: 'Link copied to clipboard',
-                  );
-                  Future.delayed(const Duration(seconds: 2), () {
-                    if (mounted) setState(() => _copied = false);
-                  });
-                },
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: Icon(AppIcons.close, color: context.colors.textSecondary),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
-        ),
 
-        const SizedBox(height: Spacing.space20),
+          const SizedBox(height: Spacing.space16),
 
-        // ── Feed content toggles ─────────────────────────────────────────────
-        Text(
-          'Include in feed:',
-          style: TextStyle(
-            color: context.colors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-
-        const SizedBox(height: Spacing.space8),
-
-        if (_prefsLoaded) ...[
-          AppToggleTile(
-            title: 'Gigs',
-            value: _prefs.includeGigs,
-            onChanged: (v) => _updatePref(_prefs.copyWith(includeGigs: v)),
-            compact: true,
-          ),
-          const SizedBox(height: Spacing.space4),
-          AppToggleTile(
-            title: 'Rehearsals',
-            value: _prefs.includeRehearsal,
-            onChanged: (v) => _updatePref(_prefs.copyWith(includeRehearsal: v)),
-            compact: true,
-          ),
-          const SizedBox(height: Spacing.space4),
-          AppToggleTile(
-            title: 'Member block-out days',
-            value: _prefs.includeBlockouts,
-            onChanged: (v) =>
-                _updatePref(_prefs.copyWith(includeBlockouts: v)),
-            compact: true,
-          ),
-        ] else
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: Spacing.space12),
-            child: Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+          // ── Description ─────────────────────────────────────────────────────
+          Text(
+            'Add your BandRoadie events to your favorite calendar app. '
+            'Events will stay in sync automatically.',
+            style: TextStyle(
+              color: context.colors.textSecondary,
+              fontSize: 14,
+              height: 1.4,
             ),
           ),
 
-        const SizedBox(height: Spacing.space20),
+          const SizedBox(height: Spacing.space20),
 
-        // ── Platform instructions ────────────────────────────────────────────
-        Text(
-          'How to subscribe:',
-          style: TextStyle(
-            color: context.colors.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          // ── Subscription URL ─────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(Spacing.space12),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceElevated,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              border: Border.all(color: context.colors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    url,
+                    style: TextStyle(
+                      color: context.colors.textSecondary,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: Spacing.space12),
+                _CopyButton(
+                  url: url,
+                  copied: _copied,
+                  onCopied: () {
+                    setState(() => _copied = true);
+                    showSuccessSnackBar(
+                      context,
+                      message: 'Link copied to clipboard',
+                    );
+                    Future.delayed(const Duration(seconds: 2), () {
+                      if (mounted) setState(() => _copied = false);
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: Spacing.space12),
+          const SizedBox(height: Spacing.space20),
 
-        const _InstructionTile(
-          icon: Icons.apple,
-          title: 'Apple Calendar',
-          instruction: 'File → New Calendar Subscription → Paste link',
-        ),
-
-        const SizedBox(height: Spacing.space8),
-
-        const _InstructionTile(
-          icon: AppIcons.calendarDays,
-          title: 'Google Calendar',
-          instruction: 'Other calendars → From URL → Paste link',
-        ),
-
-        const SizedBox(height: Spacing.space8),
-
-        const _InstructionTile(
-          icon: AppIcons.email,
-          title: 'Outlook',
-          instruction: 'Add calendar → Subscribe from web → Paste link',
-        ),
-
-        const SizedBox(height: Spacing.space20),
-
-        // ── Notes ────────────────────────────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.all(Spacing.space12),
-          decoration: BoxDecoration(
-            color: context.colors.surfaceElevated.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          // ── Feed content toggles ─────────────────────────────────────────────
+          Text(
+            'Include in feed:',
+            style: TextStyle(
+              color: context.colors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _NoteBullet(text: 'Calendar is read-only'),
-              SizedBox(height: 4),
-              _NoteBullet(text: 'Updates sync automatically'),
-              SizedBox(height: 4),
-              _NoteBullet(
-                text: 'Sync timing varies by app (usually 15min - 24hrs)',
+
+          const SizedBox(height: Spacing.space8),
+
+          if (_prefsLoaded) ...[
+            AppToggleTile(
+              title: 'Gigs',
+              value: _prefs.includeGigs,
+              onChanged: (v) => _updatePref(_prefs.copyWith(includeGigs: v)),
+              compact: true,
+            ),
+            const SizedBox(height: Spacing.space4),
+            AppToggleTile(
+              title: 'Rehearsals',
+              value: _prefs.includeRehearsal,
+              onChanged: (v) =>
+                  _updatePref(_prefs.copyWith(includeRehearsal: v)),
+              compact: true,
+            ),
+            const SizedBox(height: Spacing.space4),
+            AppToggleTile(
+              title: 'Member block-out days',
+              value: _prefs.includeBlockouts,
+              onChanged: (v) =>
+                  _updatePref(_prefs.copyWith(includeBlockouts: v)),
+              compact: true,
+            ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: Spacing.space12),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
-            ],
+            ),
+
+          const SizedBox(height: Spacing.space20),
+
+          // ── Platform instructions ────────────────────────────────────────────
+          Text(
+            'How to subscribe:',
+            style: TextStyle(
+              color: context.colors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      ],
+
+          const SizedBox(height: Spacing.space12),
+
+          const _InstructionTile(
+            icon: Icons.apple,
+            title: 'Apple Calendar',
+            instruction: 'File → New Calendar Subscription → Paste link',
+          ),
+
+          const SizedBox(height: Spacing.space8),
+
+          const _InstructionTile(
+            icon: AppIcons.calendarDays,
+            title: 'Google Calendar',
+            instruction: 'Other calendars → From URL → Paste link',
+          ),
+
+          const SizedBox(height: Spacing.space8),
+
+          const _InstructionTile(
+            icon: AppIcons.email,
+            title: 'Outlook',
+            instruction: 'Add calendar → Subscribe from web → Paste link',
+          ),
+
+          const SizedBox(height: Spacing.space20),
+
+          // ── Notes ────────────────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(Spacing.space12),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceElevated.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _NoteBullet(text: 'Calendar is read-only'),
+                SizedBox(height: 4),
+                _NoteBullet(text: 'Updates sync automatically'),
+                SizedBox(height: 4),
+                _NoteBullet(
+                  text: 'Sync timing varies by app (usually 15min - 24hrs)',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

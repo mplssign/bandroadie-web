@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -64,7 +63,7 @@ class BackOnlyAppBar extends ConsumerWidget {
                 Icon(
                   AppIcons.back,
                   size: 18,
-                  color: context.colors.textPrimary,
+                  color: Colors.white,
                 ),
                 SizedBox(width: 4),
                 Text(
@@ -72,7 +71,7 @@ class BackOnlyAppBar extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: context.colors.textPrimary,
+                    color: Colors.white,
                     height: 1.4,
                   ),
                 ),

@@ -169,7 +169,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surface,
+        backgroundColor: const Color(0xFFD1D5DB),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Remove ${widget.member.name}?',

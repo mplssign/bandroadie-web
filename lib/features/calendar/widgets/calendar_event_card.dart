@@ -101,9 +101,15 @@ class _CalendarEventCardState extends State<CalendarEventCard>
         child: Container(
           constraints: const BoxConstraints(minHeight: 80),
           decoration: BoxDecoration(
-            color: context.colors.background,
-            border:
-                Border.all(color: context.colors.surfaceOverlay, width: 1.5),
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.white
+                : context.colors.background,
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.light
+                  ? Colors.black
+                  : StandardCardBorder.color,
+              width: StandardCardBorder.width,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IntrinsicHeight(

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../bands/widgets/band_avatar.dart';
@@ -82,7 +81,7 @@ class HomeAppBar extends ConsumerWidget {
                 child: Center(
                   child: Icon(
                     AppIcons.menu,
-                    color: context.colors.textPrimary,
+                    color: Colors.white,
                     size: 26,
                   ),
                 ),
@@ -95,8 +94,12 @@ class HomeAppBar extends ConsumerWidget {
                 horizontal: 60), // 44px icon + 16px gap
             child: LayoutBuilder(
               builder: (context, constraints) {
+                final isLight =
+                    Theme.of(context).brightness == Brightness.light;
                 final baseStyle = AppTextStyles.title3.copyWith(
-                  color: const Color(0xFF334155),
+                  color: isLight
+                      ? const Color(0xFFD1D5DB)
+                      : const Color(0xFF334155),
                   letterSpacing: -0.5,
                 );
                 final painter = TextPainter(

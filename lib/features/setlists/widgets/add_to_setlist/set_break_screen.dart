@@ -423,6 +423,7 @@ class _StepperButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = enabled ? accent : context.colors.textDisabled;
+    final isLight = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
@@ -431,7 +432,9 @@ class _StepperButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: color, width: 2),
-          color: enabled ? color.withValues(alpha: 0.12) : Colors.transparent,
+          color: isLight && enabled
+              ? Colors.white
+              : (enabled ? color.withValues(alpha: 0.12) : Colors.transparent),
         ),
         child: Icon(icon, color: color, size: 28),
       ),

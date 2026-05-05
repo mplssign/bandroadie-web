@@ -715,7 +715,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         appBar: AppBar(
           backgroundColor: context.colors.appBarBg,
           leading: IconButton(
-            icon: Icon(AppIcons.close, color: context.colors.textPrimary),
+            icon: Icon(AppIcons.close, color: Colors.white),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),

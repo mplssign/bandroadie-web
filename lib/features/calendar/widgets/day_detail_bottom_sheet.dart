@@ -87,7 +87,7 @@ class DayDetailBottomSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: context.colors.surface,
+        color: const Color(0xFFD1D5DB),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),

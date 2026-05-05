@@ -161,7 +161,9 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           width: double.infinity,
           height: 121,
           decoration: BoxDecoration(
-            color: context.colors.background,
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.white
+                : context.colors.background,
             border: Border.all(
               color: StandardCardBorder.color,
               width: StandardCardBorder.width,
@@ -248,7 +250,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                                   Text(
                                     widget.song.title,
                                     style: AppTextStyles.title3.copyWith(
-                                      color: const Color(0xFFFFF1F2),
+                                      color: context.colors.textPrimary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

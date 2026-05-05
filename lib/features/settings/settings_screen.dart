@@ -266,7 +266,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(
           'Settings',
           style: TextStyle(
-            color: context.colors.textPrimary,
+            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),

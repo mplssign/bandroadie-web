@@ -29,19 +29,14 @@ class ContactCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: context.colors.background,
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.white
+              : context.colors.background,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: AppColors.primary,
             width: 2,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.15),
-              blurRadius: 20,
-              spreadRadius: 0,
-            ),
-          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(22),

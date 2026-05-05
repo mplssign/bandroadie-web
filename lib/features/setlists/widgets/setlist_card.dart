@@ -89,6 +89,7 @@ class _SetlistCardState extends State<SetlistCard>
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final innerContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -105,7 +106,7 @@ class _SetlistCardState extends State<SetlistCard>
               child: Text(
                 widget.setlist.name,
                 style: AppTextStyles.title3.copyWith(
-                  color: const Color(0xFFFFF1F2),
+                  color: isLight ? Colors.black : const Color(0xFFFFF1F2),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -120,17 +121,22 @@ class _SetlistCardState extends State<SetlistCard>
             children: [
               TextSpan(
                 text: '${widget.setlist.formattedMetadata} ',
-                style: AppTextStyles.callout,
+                style: AppTextStyles.callout.copyWith(
+                  color: isLight ? Colors.black : null,
+                ),
               ),
               TextSpan(
                 text: '• ',
                 style: AppTextStyles.callout.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: isLight ? Colors.black : null,
                 ),
               ),
               TextSpan(
                 text: widget.setlist.formattedDuration,
-                style: AppTextStyles.callout,
+                style: AppTextStyles.callout.copyWith(
+                  color: isLight ? Colors.black : null,
+                ),
               ),
             ],
           ),
@@ -159,7 +165,7 @@ class _SetlistCardState extends State<SetlistCard>
               decoration: BoxDecoration(
                 color: context.colors.surface,
                 border: Border.all(
-                  color: StandardCardBorder.color,
+                  color: isLight ? Colors.black : StandardCardBorder.color,
                   width: StandardCardBorder.width,
                 ),
                 borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
@@ -217,10 +223,10 @@ class _SetlistCardState extends State<SetlistCard>
       decoration: widget.setlist.isCatalog
           ? null // Catalog uses AnimatedGradientBorder
           : BoxDecoration(
-              color: context.colors.surface,
+              color: isLight ? Colors.white : context.colors.surface,
               borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
               border: Border.all(
-                color: StandardCardBorder.color,
+                color: isLight ? Colors.black : StandardCardBorder.color,
                 width: StandardCardBorder.width,
               ),
             ),

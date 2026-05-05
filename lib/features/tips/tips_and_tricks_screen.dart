@@ -108,6 +108,7 @@ class _TipSectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -120,7 +121,7 @@ class _TipSectionWidget extends StatelessWidget {
           child: Text(
             section.title,
             style: AppTextStyles.headline.copyWith(
-              color: Colors.white,
+              color: isLight ? Colors.black : Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 22,
             ),
@@ -145,6 +146,7 @@ class _TipRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     return Padding(
       padding: const EdgeInsets.only(bottom: Spacing.space8),
       child: Row(
@@ -156,7 +158,9 @@ class _TipRow extends StatelessWidget {
             child: Text(
               '•',
               style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
+                color: isLight
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
                 fontSize: 16,
                 height: 1.5,
               ),
@@ -167,7 +171,9 @@ class _TipRow extends StatelessWidget {
             child: Text(
               tip.text,
               style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
+                color: isLight
+                    ? context.colors.textPrimary
+                    : context.colors.textSecondary,
                 height: 1.5,
                 fontSize: 16,
               ),

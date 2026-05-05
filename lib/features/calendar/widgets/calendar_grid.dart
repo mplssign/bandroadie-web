@@ -188,7 +188,9 @@ class _CalendarGridState extends State<CalendarGrid>
       child: Container(
         padding: const EdgeInsets.all(Spacing.space16),
         decoration: BoxDecoration(
-          color: context.colors.background,
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.white
+              : context.colors.background,
           border: Border.all(color: context.colors.surfaceOverlay),
           borderRadius: BorderRadius.circular(16),
         ),

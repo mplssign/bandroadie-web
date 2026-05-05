@@ -212,7 +212,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
     final canEdit = permissionsAsync.when(
       data: (p) => p.canEditSetlists,
       loading: () => false, // Fail closed — no mutation flicker
-      error: (__, _) => false, // Fail closed on error
+      error: (err, stack) => false, // Fail closed on error
     );
 
     // Watch setlists provider
@@ -450,7 +450,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                             Text(
                               'Setlists',
                               style: AppTextStyles.pageTitle.copyWith(
-                                color: Colors.white,
+                                color: context.colors.textPrimary,
                               ),
                             ),
                             if (canEdit)

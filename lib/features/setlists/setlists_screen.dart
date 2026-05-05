@@ -554,7 +554,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     final canEdit = permissionsAsync.when(
       data: (p) => p.canEditSetlists,
       loading: () => false, // Fail closed — no mutation flicker
-      error: (__, _) => false, // Fail closed on error
+      error: (_, __) => false, // Fail closed on error
     );
 
     // Watch setlists provider (automatically reloads when band changes)
@@ -622,7 +622,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
 
     // Update animations when setlists change
     if (!setlistsState.isLoading && setlistsToShow.isNotEmpty) {
-      final itemCount = setlistsToShow.length + 1; // +1 for header
+      final itemCount = setlistsToShow.length; // Just the cards, not the header
       _updateAnimations(itemCount);
     }
 
@@ -630,6 +630,15 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     final showLoading = setlistsState.isLoading;
     final showError = setlistsState.error != null && setlistsToShow.isEmpty;
     final showEmpty = !showLoading && !showError && setlistsToShow.isEmpty;
+
+    if (kDebugMode) {
+      debugPrint(
+          '[SetlistsScreen BUILD] showLoading: $showLoading, showError: $showError, showEmpty: $showEmpty');
+      debugPrint(
+          '[SetlistsScreen BUILD] setlistsToShow.length: ${setlistsToShow.length}');
+      debugPrint(
+          '[SetlistsScreen BUILD] Will show: ${showLoading ? "LOADING" : showError ? "ERROR" : showEmpty ? "EMPTY" : "CONTENT"}');
+    }
 
     // Main content
     final content = Scaffold(
@@ -716,7 +725,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
         onEditBand: permissionsAsync.when(
           data: (p) => p.canEditBandSettings,
           loading: () => false,
-          error: (__, _) => false,
+          error: (_, __) => false,
         )
             ? () {
                 final activeBand = bandState.activeBand;
@@ -896,32 +905,37 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                 const SizedBox(height: Spacing.space24),
 
                 // Section title with + New button
-                _buildAnimatedSection(
-                  0,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Setlists',
-                        style: AppTextStyles.pageTitle.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      if (canEdit)
-                        TextButton.icon(
-                          onPressed: _navigateToCreateSetlist,
-                          icon: const Icon(AppIcons.add, size: 18),
-                          label: const Text('New'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                Builder(
+                  builder: (context) {
+                    if (kDebugMode) {
+                      debugPrint('[SetlistsScreen] Rendering Setlists title');
+                    }
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Setlists',
+                            style: AppTextStyles.pageTitle.copyWith(
+                              color: context.colors.textPrimary,
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                        if (canEdit)
+                          TextButton.icon(
+                            onPressed: _navigateToCreateSetlist,
+                            icon: const Icon(AppIcons.add, size: 18),
+                            label: const Text('New'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
 
                 const SizedBox(height: Spacing.space12),
@@ -934,7 +948,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                       bottom: index < setlists.length - 1 ? Spacing.space12 : 0,
                     ),
                     child: _buildAnimatedSection(
-                      index + 1,
+                      index,
                       SwipeableSetlistCard(
                         setlist: setlist,
                         onTap: () => _onSetlistTap(setlist),

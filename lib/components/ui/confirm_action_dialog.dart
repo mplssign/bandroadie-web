@@ -58,7 +58,7 @@ class ConfirmActionDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: context.colors.surface,
+      backgroundColor: const Color(0xFFD1D5DB),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),
@@ -78,7 +78,8 @@ class ConfirmActionDialog extends StatelessWidget {
         children: [
           Text(
             message,
-            style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+            style: AppTextStyles.body
+                .copyWith(color: context.colors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: Spacing.space24),
@@ -110,7 +111,8 @@ class ConfirmActionDialog extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
                 cancelLabel,
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 16),
               ),
             ),
           ),

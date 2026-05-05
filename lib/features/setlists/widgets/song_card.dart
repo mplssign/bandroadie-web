@@ -14,7 +14,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // Figma: Rose/500 border (#F43F5E) 1.5px, 8px radius
 // Layout:
 // - Drag handle icon (left, 6px from edge)
-// - Song title (20px white semibold, 36px from left)
+// - Song title (20px semibold, theme-aware color)
 // - Artist name (16px gray, below title)
 // - Delete icon (top right, rose/red)
 // - Tags row: BPM, Duration, Tuning (with colored backgrounds)
@@ -110,7 +110,9 @@ class _SongCardState extends State<SongCard>
           height: 121,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: context.colors.background,
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.white
+                : context.colors.background,
             border: Border.all(
               color: AppColors.primary, // Rose/500 #F43F5E
               width: StandardCardBorder.width, // 1.5px - matches Setlist cards
@@ -154,7 +156,7 @@ class _SongCardState extends State<SongCard>
                               Text(
                                 widget.song.title,
                                 style: AppTextStyles.title3.copyWith(
-                                  color: const Color(0xFFFFF1F2),
+                                  color: context.colors.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,

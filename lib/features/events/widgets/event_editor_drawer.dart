@@ -985,7 +985,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (__, _) => null,
+      error: (err, stack) => null,
     );
     if (perms?.isContributor == true) {
       if (mounted) {
@@ -1150,7 +1150,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final perms = savePermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (__, _) => null,
+      error: (err2, stack2) => null,
     );
     if (perms != null) {
       if (widget.mode == EventEditorMode.create && !perms.canCreateGigs) {
@@ -1459,7 +1459,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final deletePerms = deletePermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (__, _) => null,
+      error: (err3, stack3) => null,
     );
     if (deletePerms != null && !deletePerms.canDeleteGigs) {
       // Allow contributors to delete potential gigs they can edit
@@ -1746,7 +1746,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       decoration: BoxDecoration(
-        color: context.colors.surface,
+        color: const Color(0xFFD1D5DB),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -1782,7 +1782,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                             ? 'Edit ${_eventType.displayName}'
                             : 'Add Event',
                     style: AppTextStyles.pageTitle.copyWith(
-                      color: const Color(0xFFFFF1F2),
+                      color: context.colors.textPrimary,
                     ),
                   ),
                 ),

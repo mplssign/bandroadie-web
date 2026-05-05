@@ -68,15 +68,15 @@ class BrandColors extends ThemeExtension<BrandColors> {
   );
 
   static const light = BrandColors(
-    background: Color(0xFFFFFFFF),
+    background: Color(0xFFF8FAFC), // Slate 50 - oklch(98.4% 0.003 247.858)
     surface: Color(0xFFFAFAFA),
     surfaceElevated: Color(0xFFF4F4F5),
     surfaceOverlay: Color(0xFFE4E4E7),
     border: Color(0xFFE4E4E7),
     borderStrong: Color(0xFFA1A1AA),
-    textPrimary: Color(0xFF18181B),
-    textSecondary: Color(0xFF52525B),
-    textMuted: Color(0xFF71717A),
+    textPrimary: Color(0xFF020617), // Slate 950
+    textSecondary: Color(0xFF020617), // Slate 950
+    textMuted: Color(0xFF020617), // Slate 950
     textDisabled: Color(0xFFD4D4D8),
     primary: AppColors.primary,
     primaryDim: Color(0xFFBE123C),
@@ -86,7 +86,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     success: Color(0xFF16A34A),
     warning: Color(0xFFD97706),
     error: AppColors.error,
-    appBarBg: Color(0xFFFFFFFF),
+    appBarBg: Color(0xFF18181B),
   );
 
   @override

@@ -284,6 +284,7 @@ class _AnimatedNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: onTap,
       onTapDown: (_) => onTapDown(),
@@ -305,8 +306,11 @@ class _AnimatedNavItem extends StatelessWidget {
                 children: [
                   Icon(
                     icon,
-                    color:
-                        isActive ? Colors.white : context.colors.textSecondary,
+                    color: isActive
+                        ? Colors.white
+                        : (isLight
+                            ? Colors.white
+                            : context.colors.textSecondary),
                     size: isActive ? 20.5 : 20,
                   ),
                   SizedBox(height: isActive ? 4 : 6),
@@ -315,7 +319,9 @@ class _AnimatedNavItem extends StatelessWidget {
                     style: AppTextStyles.navLabel.copyWith(
                       color: isActive
                           ? Colors.white
-                          : context.colors.textSecondary,
+                          : (isLight
+                              ? Colors.white
+                              : context.colors.textSecondary),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),

@@ -49,15 +49,15 @@ class SetlistPickerResult {
   const SetlistPickerResult.existing({
     required this.setlistId,
     required this.setlistName,
-  }) : createNew = false,
-       newSetlistName = null;
+  })  : createNew = false,
+        newSetlistName = null;
 
   /// Factory for creating a new setlist
   const SetlistPickerResult.createNew({required String name})
-    : setlistId = null,
-      setlistName = null,
-      createNew = true,
-      newSetlistName = name;
+      : setlistId = null,
+        setlistName = null,
+        createNew = true,
+        newSetlistName = name;
 }
 
 /// Show the setlist picker bottom sheet.
@@ -173,9 +173,8 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
 
     // Check for duplicate names
     final setlistsState = ref.read(setlistsProvider);
-    final existingNames = setlistsState.setlists
-        .map((s) => s.name.toLowerCase())
-        .toSet();
+    final existingNames =
+        setlistsState.setlists.map((s) => s.name.toLowerCase()).toSet();
     if (existingNames.contains(name.toLowerCase())) {
       setState(() {
         _validationError = 'A setlist with this name already exists';
@@ -200,9 +199,8 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
     final setlistsState = ref.watch(setlistsProvider);
 
     // Filter out Catalog setlist
-    final selectableSetlists = setlistsState.setlists
-        .where((s) => !s.isCatalog)
-        .toList();
+    final selectableSetlists =
+        setlistsState.setlists.where((s) => !s.isCatalog).toList();
 
     // Get keyboard height to push content above keyboard
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -224,7 +222,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
           decoration: BoxDecoration(
-            color: context.colors.surface,
+            color: const Color(0xFFD1D5DB),
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
           ),
           child: Column(
@@ -378,7 +376,8 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             controller: _newNameController,
             focusNode: _newNameFocus,
             autofocus: true,
-            style: AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+            style:
+                AppTextStyles.body.copyWith(color: context.colors.textPrimary),
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
               hintText: 'Setlist name',
@@ -433,7 +432,8 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                   onPressed: _handleCancelCreate,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: context.colors.textSecondary.withValues(alpha: 0.5),
+                      color:
+                          context.colors.textSecondary.withValues(alpha: 0.5),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -524,7 +524,9 @@ class _SetlistOptionTile extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 22,
-                  color: isCreateNew ? AppColors.primary : context.colors.textPrimary,
+                  color: isCreateNew
+                      ? AppColors.primary
+                      : context.colors.textPrimary,
                 ),
               ),
 

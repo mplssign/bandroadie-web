@@ -306,7 +306,7 @@ class AppTheme {
     outlineVariant: const Color(0xFFE4E4E7),
     error: AppColors.error,
     onSurface: const Color(0xFF18181B),
-    onSurfaceVariant: const Color(0xFF71717A),
+    onSurfaceVariant: const Color(0xFF020617), // Slate 950
   );
 
   // ========================================
@@ -327,13 +327,13 @@ class AppTheme {
       // APP BAR
       // ----------------------------------------
       appBarTheme: AppBarTheme(
-        backgroundColor: bc.background,
-        foregroundColor: bc.textPrimary,
+        backgroundColor: bc.appBarBg,
+        foregroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: bc.textPrimary,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),

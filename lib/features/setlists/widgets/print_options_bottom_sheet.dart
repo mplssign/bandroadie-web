@@ -44,7 +44,7 @@ class PrintOptionsBottomSheet extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: context.colors.surface,
+      backgroundColor: const Color(0xFFD1D5DB),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -164,12 +164,12 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               content: TextField(
                 controller: controller,
                 autofocus: true,
-                style:
-                    AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+                style: AppTextStyles.body
+                    .copyWith(color: context.colors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Layout name',
-                  hintStyle:
-                      AppTextStyles.body.copyWith(color: context.colors.textMuted),
+                  hintStyle: AppTextStyles.body
+                      .copyWith(color: context.colors.textMuted),
                   filled: true,
                   fillColor: context.colors.surface,
                   border: OutlineInputBorder(
@@ -204,8 +204,8 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                             ),
                           ),
                           child: Text('Cancel',
-                              style: AppTextStyles.button
-                                  .copyWith(color: context.colors.textSecondary)),
+                              style: AppTextStyles.button.copyWith(
+                                  color: context.colors.textSecondary)),
                         ),
                       ),
                     ),
@@ -542,8 +542,8 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
             padding: const EdgeInsets.only(left: 16, bottom: 12),
             child: Text(
               'No saved layouts yet',
-              style:
-                  AppTextStyles.footnote.copyWith(color: context.colors.textMuted),
+              style: AppTextStyles.footnote
+                  .copyWith(color: context.colors.textMuted),
             ),
           )
         else ...[
@@ -553,7 +553,7 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _templates.length,
-              separatorBuilder: (__, _) => const SizedBox(width: 8),
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final template = _templates[index];
                 final isSelected = template.id == _selectedTemplateId;
@@ -675,7 +675,8 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
             Text(
               '${fontSize.round()}px',
               style: AppTextStyles.footnote.copyWith(
-                  color: context.colors.textPrimary, fontWeight: FontWeight.w700),
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -717,8 +718,8 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
         Expanded(
           child: Text(
             label,
-            style:
-                AppTextStyles.footnote.copyWith(color: context.colors.textSecondary),
+            style: AppTextStyles.footnote
+                .copyWith(color: context.colors.textSecondary),
           ),
         ),
         Switch.adaptive(
@@ -762,7 +763,8 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
             Text(
               '${_current.lineSpacing.toStringAsFixed(1)}x',
               style: AppTextStyles.footnote.copyWith(
-                  color: context.colors.textPrimary, fontWeight: FontWeight.w700),
+                  color: context.colors.textPrimary,
+                  fontWeight: FontWeight.w700),
             ),
             const SizedBox(width: 8),
             Expanded(

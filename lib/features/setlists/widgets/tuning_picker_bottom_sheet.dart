@@ -399,7 +399,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
+        backgroundColor: const Color(0xFFD1D5DB),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
@@ -720,7 +720,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
         itemCount: 12,
-        separatorBuilder: (__, _) => const SizedBox(width: 8),
+        separatorBuilder: (ctx, idx) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final fret = index + 1;
           final isSelected = _selectedCapoFret == fret;
@@ -872,8 +872,9 @@ class _CapoFretButtonState extends State<_CapoFretButton>
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color:
-                    widget.isSelected ? Colors.white : context.colors.textSecondary,
+                color: widget.isSelected
+                    ? Colors.white
+                    : context.colors.textSecondary,
                 height: 1.2,
               ),
             ),

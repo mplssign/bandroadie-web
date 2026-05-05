@@ -867,7 +867,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           style: const TextStyle(
                   fontSize: 20, fontWeight: FontWeight.w600, height: 1.25)
               .copyWith(
-            color: context.colors.textPrimary,
+            color: Colors.white,
           ),
         ),
         automaticallyImplyLeading: false,

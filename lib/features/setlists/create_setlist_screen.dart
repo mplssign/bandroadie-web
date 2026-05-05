@@ -21,7 +21,7 @@ class CreateSetlistScreen extends StatelessWidget {
         backgroundColor: context.colors.appBarBg,
         title: Text('New Setlist', style: AppTextStyles.title3),
         leading: IconButton(
-          icon: Icon(AppIcons.close, color: context.colors.textPrimary),
+          icon: Icon(AppIcons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),

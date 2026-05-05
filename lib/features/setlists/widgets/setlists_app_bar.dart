@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import '../../bands/widgets/band_avatar.dart';
@@ -90,7 +89,7 @@ class SetlistsAppBar extends ConsumerWidget {
                   Icon(
                     AppIcons.back,
                     size: 18,
-                    color: context.colors.textPrimary,
+                    color: Colors.white,
                   ),
                   SizedBox(width: 4),
                   Text(
@@ -98,7 +97,7 @@ class SetlistsAppBar extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: context.colors.textPrimary,
+                      color: Colors.white,
                       height: 1.4,
                     ),
                   ),
@@ -139,7 +138,7 @@ class SetlistsAppBar extends ConsumerWidget {
                 child: Center(
                   child: Icon(
                     AppIcons.menu,
-                    color: context.colors.textPrimary,
+                    color: Colors.white,
                     size: 26,
                   ),
                 ),
@@ -150,8 +149,12 @@ class SetlistsAppBar extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 60),
             child: LayoutBuilder(
               builder: (context, constraints) {
+                final isLight =
+                    Theme.of(context).brightness == Brightness.light;
                 final baseStyle = AppTextStyles.title3.copyWith(
-                  color: const Color(0xFF334155),
+                  color: isLight
+                      ? const Color(0xFFD1D5DB)
+                      : const Color(0xFF334155),
                   letterSpacing: -0.5,
                 );
                 final painter = TextPainter(

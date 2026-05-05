@@ -388,6 +388,7 @@ class EventFormFields extends ConsumerWidget {
   Widget _buildDurationSelector(BuildContext context) {
     const minDuration = 15;
     const roseColor = AppColors.primary;
+    final isLight = Theme.of(context).brightness == Brightness.light;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -417,6 +418,9 @@ class EventFormFields extends ConsumerWidget {
                         : roseColor,
                     width: 2,
                   ),
+                  color: isLight && durationMinutes > minDuration && !isSaving
+                      ? Colors.white
+                      : null,
                 ),
                 child: Center(
                   child: Text(
@@ -453,6 +457,7 @@ class EventFormFields extends ConsumerWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: roseColor, width: 2),
+                  color: isLight && !isSaving ? Colors.white : null,
                 ),
                 child: Center(
                   child: Text(

@@ -450,7 +450,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
+        backgroundColor: const Color(0xFFD1D5DB),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
@@ -730,7 +730,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 child: Text(
                   'Song Details',
                   style: AppTextStyles.pageTitle.copyWith(
-                    color: const Color(0xFFFFF1F2),
+                    color: context.colors.textPrimary,
                   ),
                 ),
               ),

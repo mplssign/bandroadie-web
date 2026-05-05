@@ -58,6 +58,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     // Wrap with AnimatedScale for subtle press feedback on tap
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -83,6 +84,11 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
           child: Container(
             constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
             height: Spacing.gigCardHeight, // 126px
+            margin: const EdgeInsets.all(3), // Space for gradient border
+            decoration: BoxDecoration(
+              color: isLight ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            ),
             padding: const EdgeInsets.symmetric(
               horizontal: Spacing.space20,
               vertical: Spacing.space16,
@@ -94,7 +100,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                 Text(
                   widget.gig.name,
                   style: AppTextStyles.title3.copyWith(
-                    color: const Color(0xFFFFF1F2),
+                    color: isLight ? Colors.black : const Color(0xFFFFF1F2),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

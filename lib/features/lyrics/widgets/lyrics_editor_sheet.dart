@@ -185,8 +185,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
       int prefixLen = 0;
       final minPfx =
           oldLines.length < newLines.length ? oldLines.length : newLines.length;
-      while (prefixLen < minPfx &&
-          oldLines[prefixLen] == newLines[prefixLen]) {
+      while (prefixLen < minPfx && oldLines[prefixLen] == newLines[prefixLen]) {
         prefixLen++;
       }
 
@@ -369,7 +368,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
       child: Container(
         height: MediaQuery.of(context).size.height * 0.92,
         decoration: BoxDecoration(
-          color: context.colors.background,
+          color: const Color(0xFFD1D5DB),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -572,7 +571,8 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
                 Text(
                   h.label,
                   style: AppTextStyles.footnote.copyWith(
-                    color: isActive ? accentColor : context.colors.textSecondary,
+                    color:
+                        isActive ? accentColor : context.colors.textSecondary,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                     fontSize: 12,
                   ),
