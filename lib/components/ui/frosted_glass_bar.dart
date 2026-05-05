@@ -78,16 +78,16 @@ class FrostedGlassBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor =
-        backgroundColor ??
-        context.colors.appBarBg.withValues(alpha: backgroundOpacity);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final effectiveOpacity = isLight ? 0.93 : backgroundOpacity;
+    final bgColor = backgroundColor ??
+        context.colors.appBarBg.withValues(alpha: effectiveOpacity);
 
     Widget container = Container(
       height: height,
       width: width,
       padding: padding,
-      decoration:
-          decoration ??
+      decoration: decoration ??
           BoxDecoration(color: bgColor, borderRadius: borderRadius),
       child: child,
     );
@@ -144,8 +144,7 @@ class FrostedGlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor =
-        backgroundColor ??
+    final bgColor = backgroundColor ??
         context.colors.surface.withValues(alpha: backgroundOpacity);
 
     return Container(

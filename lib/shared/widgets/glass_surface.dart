@@ -115,16 +115,17 @@ class GlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     // Clamp blur sigma for performance
     final clampedBlur = blurSigma.clamp(0.0, 20.0);
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final effectiveOpacity = isLight ? 0.93 : tintOpacity;
 
     final bgColor = (tintColor ?? context.colors.appBarBg).withValues(
-      alpha: tintOpacity,
+      alpha: effectiveOpacity,
     );
 
     // Determine effective edge and strength (support legacy API)
     final effectiveEdge = topEdgeFade ? GlassEdge.top : edge;
-    final effectiveStrength = topEdgeFade
-        ? topEdgeFadeStrength
-        : edgeFadeStrength;
+    final effectiveStrength =
+        topEdgeFade ? topEdgeFadeStrength : edgeFadeStrength;
 
     // Main container with tint
     Widget content = Container(
