@@ -352,7 +352,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
             const SizedBox(height: Spacing.space16),
             Text(
               calendarState.error!,
-              style: AppTextStyles.callout.copyWith(color: context.colors.textMuted),
+              style: AppTextStyles.callout
+                  .copyWith(color: context.colors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: Spacing.space16),

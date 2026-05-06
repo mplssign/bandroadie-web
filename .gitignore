@@ -116,3 +116,4 @@ tools/build_android.sh
 tools/secrets.txt
 run.sh
 android/app/src/main/assets/public/assets/.env
+.mcp.json
