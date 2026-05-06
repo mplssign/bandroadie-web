@@ -91,7 +91,7 @@ class _CalendarSubscriptionDialogState
     );
 
     return Dialog(
-      backgroundColor: const Color(0xFFD1D5DB),
+      backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Spacing.cardRadius),
       ),

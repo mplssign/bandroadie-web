@@ -1746,7 +1746,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFD1D5DB),
+        color: context.colors.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
