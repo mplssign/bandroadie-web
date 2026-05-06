@@ -1,7 +1,6 @@
-cat /Users/tonyholmes/Documents/Apps/bandroadie/.mcp.json
 {
   "app_name": "bandroadie",
   "version": "1.2.13",
-  "build_number": "132",
+  "build_number": "133",
   "package_name": "bandroadie"
 }
