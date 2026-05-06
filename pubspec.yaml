@@ -2,7 +2,7 @@ name: bandroadie
 description: "Gig and setlist management for bands."
 publish_to: "none"
 
-version: 1.2.13+133
+version: 1.2.14+134
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -17,6 +17,7 @@ dependencies:
   flutter_svg: ^2.2.3
   google_fonts: ^8.0.0
   confetti: ^0.7.0
+  cupertino_icons: ^1.0.8
 
   # State / Routing
   flutter_riverpod: ^3.0.3
