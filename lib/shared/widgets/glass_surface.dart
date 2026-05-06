@@ -20,7 +20,7 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 // SCROLL-DRIVEN BLUR:
 // Both header and footer should read from scrollBlurProvider and use:
 //   blurSigma: scrollBlur.lerpTo(8.0, 18.0)
-//   tintOpacity: scrollBlur.lerpTo(0.10, 0.25)
+//   tintOpacity: scrollBlur.lerpTo(0.85, 0.95)  // High opacity for visibility in light mode
 //   edgeFadeStrength: scrollBlur.lerpTo(0.15, 0.55)
 //
 // PERFORMANCE:
@@ -122,9 +122,8 @@ class GlassSurface extends StatelessWidget {
 
     // Determine effective edge and strength (support legacy API)
     final effectiveEdge = topEdgeFade ? GlassEdge.top : edge;
-    final effectiveStrength = topEdgeFade
-        ? topEdgeFadeStrength
-        : edgeFadeStrength;
+    final effectiveStrength =
+        topEdgeFade ? topEdgeFadeStrength : edgeFadeStrength;
 
     // Main container with tint
     Widget content = Container(

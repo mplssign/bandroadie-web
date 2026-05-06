@@ -56,8 +56,8 @@ class SetlistsAppBar extends ConsumerWidget {
 
     // Dynamic blur: 8 at rest, 18 when scrolled
     final blurSigma = scrollBlur.lerpTo(8.0, 18.0);
-    // Dynamic tint: 0.10 at rest, 0.25 when scrolled
-    final tintOpacity = scrollBlur.lerpTo(0.10, 0.25);
+    // Dynamic tint: 0.85 at rest, 0.95 when scrolled (higher opacity for visibility in light mode)
+    final tintOpacity = scrollBlur.lerpTo(0.85, 0.95);
     // Dynamic edge fade: 0.15 at rest, 0.55 when scrolled
     final edgeFadeStrength = scrollBlur.lerpTo(0.15, 0.55);
 
