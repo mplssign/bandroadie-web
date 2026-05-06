@@ -102,7 +102,7 @@ No database, migration, Supabase function, or RLS files were changed.
 Command run:
 
 ```bash
-flutter analyze
+flutter analyze ()
 ```
 
 Result:
