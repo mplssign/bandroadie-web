@@ -501,7 +501,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
             const SizedBox(height: Spacing.space24),
             Text(
               message,
-              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
+              style:
+                  AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),

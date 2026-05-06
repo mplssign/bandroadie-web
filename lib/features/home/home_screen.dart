@@ -501,7 +501,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             const SizedBox(height: Spacing.space24),
             Text(
               message,
-              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
+              style:
+                  AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
