@@ -39,10 +39,12 @@ Do not start the pipeline with an incomplete or ambiguous input.
 Spawn the Architect sub-agent with:
 
 - The complete Feature Input
-- The full contents of: `docs/agents/ARCHITECT.md`, `docs/agents/GUARDRAILS.md`, `docs/agents/OPERATING_MODEL.md`
-- Read access to the codebase
+- Instructions to read these files at the start of the session (do not embed content):
+  - `docs/agents/ARCHITECT.md`
+  - `docs/agents/GUARDRAILS.md`
+  - `docs/agents/OPERATING_MODEL.md`
 
-Wait for the Architect to produce `ARCHITECT_PLAN.md`.
+Wait for the Architect to produce `ARCHITECT_PLAN.md` **and** create the feature branch (Phase 12 and Phase 13 of ARCHITECT.md).
 
 **Architecture Gate review — check all of the following:**
 
@@ -61,15 +63,15 @@ If the plan passes: present a summary to Tony and advance to Engineer.
 
 ---
 
-### Step 3 — Create Feature Branch
+### Step 3 — Confirm Feature Branch
 
-Before spawning the Engineer, confirm the feature branch exists:
+Confirm the Architect created the feature branch (it is the Architect's responsibility — see ARCHITECT.md Phase 13). Verify:
 
 ```bash
-git checkout -b <feature-identifier>
+git branch --show-current
 ```
 
-If the branch already exists, confirm the working tree is clean before proceeding.
+Expected output: `feature/<slug>` or `bug/<slug>`. If the branch does not exist, the Architect did not complete Phase 13 — return to the Architect before proceeding.
 
 ---
 
@@ -77,8 +79,10 @@ If the branch already exists, confirm the working tree is clean before proceedin
 
 Spawn the Engineer sub-agent with:
 
-- The full `ARCHITECT_PLAN.md`
-- The full contents of: `docs/agents/ENGINEER.md`, `docs/agents/GUARDRAILS.md`
+- The path to `docs/features/<slug>/ARCHITECT_PLAN.md` (agent reads it directly)
+- Instructions to read these files at the start of the session (do not embed content):
+  - `docs/agents/ENGINEER.md`
+  - `docs/agents/GUARDRAILS.md`
 - Write access to the codebase (scoped to approved files only)
 
 Wait for the Engineer to produce `ENGINEER_REPORT.md` and `git diff`.
@@ -102,10 +106,11 @@ If the gate passes: advance to QA.
 
 Spawn the QA sub-agent with:
 
-- The full `ARCHITECT_PLAN.md`
-- The full `ENGINEER_REPORT.md`
-- The complete `git diff` output
-- The full contents of: `docs/agents/QA.md`, `docs/agents/GUARDRAILS.md`
+- The path to `docs/features/<slug>/ARCHITECT_PLAN.md` (agent reads it directly)
+- The path to `docs/features/<slug>/ENGINEER_REPORT.md` (agent reads it directly)
+- Instructions to read these files at the start of the session (do not embed content):
+  - `docs/agents/QA.md`
+  - `docs/agents/GUARDRAILS.md`
 - Read access to the codebase
 
 Wait for the QA agent to produce `QA_REPORT.md` and a final verdict.

@@ -181,7 +181,17 @@ None  /  (document any)
 Yes  /  No (explain if No)
 ```
 
-After creating the file, print exactly:
+**MANDATORY: Write this file to disk using your file write tool.** Do not print it to chat only. Printing without writing is a protocol failure.
+
+After writing, verify the file exists on disk:
+
+```bash
+ls -la <PROJECT_ROOT>/docs/features/<slug>/ENGINEER_REPORT.md
+```
+
+If the file is not present, write it again. Do not proceed to Phase 8 until this file is confirmed on disk.
+
+Print exactly when confirmed:
 
 ```
 ENGINEER_REPORT.md created at:

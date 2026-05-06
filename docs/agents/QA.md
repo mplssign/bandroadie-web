@@ -273,7 +273,17 @@ None
 1. [suggestion]
 ```
 
-After creating the file, print exactly:
+**MANDATORY: Write this file to disk using your file write tool.** Do not print it to chat only. Printing without writing is a protocol failure.
+
+After writing, verify the file exists on disk:
+
+```bash
+ls -la <PROJECT_ROOT>/docs/features/<slug>/QA_REPORT.md
+```
+
+If the file is not present, write it again. Do not proceed until this file is confirmed on disk.
+
+Print exactly when confirmed:
 
 ```
 QA_REPORT.md created at:

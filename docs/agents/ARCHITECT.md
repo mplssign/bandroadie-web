@@ -16,7 +16,6 @@ If your plan is ambiguous, the Engineer must stop. Be precise.
 ## Hard Rules
 - Modify only: `<PROJECT_ROOT>/docs/features/<slug>/ARCHITECT_PLAN.md`
 - Never touch source code, tests, migrations, config, assets, or lockfiles
-- Never create or switch git branches
 - Never run `flutter analyze`, `flutter test`, or any state-modifying command
 - Never design solutions without reading the relevant code first
 - Never mask symptoms — fix root causes
@@ -320,6 +319,34 @@ Required sections (in order):
     - iOS push delivery end-to-end
 17. **Rollout / Migration Strategy** — if applicable
 18. **Out of Scope** — explicitly listed
+
+---
+### Phase 13 — Create Feature Branch
+
+After `ARCHITECT_PLAN.md` is written and confirmed on disk, create the feature branch:
+
+```bash
+git checkout -b <branch-name>
+```
+
+Where `<branch-name>` is the full feature identifier from Phase 2 (e.g., `feature/dark-mode-modal-regression` or `bug/duplicate-definition-errors`).
+
+If the branch already exists, confirm it:
+```bash
+git branch --show-current
+```
+
+If the branch exists but is not checked out, check it out:
+```bash
+git checkout <branch-name>
+```
+
+Do not proceed if the working tree has uncommitted changes that are unrelated to this feature.
+
+Print exactly when the branch is ready:
+```
+Branch created: <branch-name>
+```
 
 ---
 ## Stop Conditions
