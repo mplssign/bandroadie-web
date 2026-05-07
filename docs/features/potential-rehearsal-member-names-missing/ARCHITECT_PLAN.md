@@ -13,6 +13,7 @@ When a rehearsal is marked as potential in the create/edit form, no band member 
 The `_buildPotentialToggle()` method in `rehearsal_form_fields.dart` displays only the toggle switch and descriptive text. It does not include the member name display logic that exists in `gig_form_fields.dart`'s `_buildPotentialGigContainer()`.
 
 **Comparison:**
+
 - **Gig form**: Uses `ConsumerWidget`, accesses `ref.watch(membersProvider)`, wraps toggle in `AnimatedSize` that reveals `ButtonGroupGrid<MemberVM>` showing all band members when `isPotentialGig` is true
 - **Rehearsal form**: Uses `StatelessWidget`, has no member provider access, shows only the toggle itself when `isPotential` is true
 
@@ -21,6 +22,7 @@ The `_buildPotentialToggle()` method in `rehearsal_form_fields.dart` displays on
 ## 4) Reference Docs Consulted
 
 No domain-specific reference docs exist for events/gigs/rehearsals. Diagnosis was based on:
+
 - Direct code inspection of `lib/features/events/widgets/gig_form_fields.dart`
 - Direct code inspection of `lib/features/events/widgets/rehearsal_form_fields.dart`
 - `docs/features/rehearsal-potential-toggle/ARCHITECT_PLAN.md` (previous feature)
@@ -87,24 +89,29 @@ The `rehearsals.is_potential` column already exists (added in `feature/rehearsal
 No new architecture layers. Existing patterns remain:
 
 **State:**
+
 - `RehearsalFormFields` changes from `StatelessWidget` to `ConsumerWidget`
 - Accesses existing `membersProvider` (already used by gig form)
 
 **Widgets:**
+
 - Reuses existing `ButtonGroupGrid` (already shared)
 - New shared helper functions for member label generation (extract from gig form)
 
 **Repositories:**
+
 - No changes
 
 ## 9) Files to Create
 
 **Option A: Extract to new shared file**
+
 - `lib/features/events/widgets/member_display_helpers.dart`
   - Contains `getMemberLabel()`, `buildMemberLabelWidget()`, and `getMemberDisambiguation()` functions extracted from `gig_form_fields.dart`
   - Shared by both gig and rehearsal forms
 
 **Option B: Extract to existing shared file**
+
 - Update `lib/features/events/widgets/event_editor_helpers.dart`
   - Add the three member label functions to the existing shared helpers file
 
@@ -112,43 +119,44 @@ No new architecture layers. Existing patterns remain:
 
 ## 10) Files to Modify
 
-| File | What changes |
-|------|-------------|
-| `lib/features/events/widgets/event_editor_helpers.dart` | Add shared member label functions: `getMemberLabel()`, `buildMemberLabelWidget()`, `getMemberDisambiguation()`, and supporting `MemberDisambiguation` class (extracted from `gig_form_fields.dart`) |
-| `lib/features/events/widgets/gig_form_fields.dart` | Replace inline member label methods with calls to shared functions from `event_editor_helpers.dart` |
-| `lib/features/events/widgets/rehearsal_form_fields.dart` | Change from `StatelessWidget` to `ConsumerWidget`; wrap potential toggle in `AnimatedSize`; add `_buildMemberGrid()` that displays when `isPotential` is true; use shared member label functions |
+| File                                                     | What changes                                                                                                                                                                                        |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/features/events/widgets/event_editor_helpers.dart`  | Add shared member label functions: `getMemberLabel()`, `buildMemberLabelWidget()`, `getMemberDisambiguation()`, and supporting `MemberDisambiguation` class (extracted from `gig_form_fields.dart`) |
+| `lib/features/events/widgets/gig_form_fields.dart`       | Replace inline member label methods with calls to shared functions from `event_editor_helpers.dart`                                                                                                 |
+| `lib/features/events/widgets/rehearsal_form_fields.dart` | Change from `StatelessWidget` to `ConsumerWidget`; wrap potential toggle in `AnimatedSize`; add `_buildMemberGrid()` that displays when `isPotential` is true; use shared member label functions    |
 
 ## 11) Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/main.dart` | Init order must not change |
-| `lib/app/models/rehearsal.dart` | Model already has `isPotential`; no changes needed |
-| `lib/features/events/events_repository.dart` | Persistence already handles `is_potential`; no changes needed |
-| `lib/features/events/widgets/event_editor_drawer.dart` | Drawer already passes `isPotential` state; no changes needed |
-| `lib/features/events/widgets/button_group_grid.dart` | Existing shared widget; no modifications needed |
-| `lib/features/members/members_controller.dart` | Member provider unchanged |
-| Any notification files | Out of scope |
-| Any database migration files | Schema already complete |
+| File                                                   | Reason                                                        |
+| ------------------------------------------------------ | ------------------------------------------------------------- |
+| `lib/main.dart`                                        | Init order must not change                                    |
+| `lib/app/models/rehearsal.dart`                        | Model already has `isPotential`; no changes needed            |
+| `lib/features/events/events_repository.dart`           | Persistence already handles `is_potential`; no changes needed |
+| `lib/features/events/widgets/event_editor_drawer.dart` | Drawer already passes `isPotential` state; no changes needed  |
+| `lib/features/events/widgets/button_group_grid.dart`   | Existing shared widget; no modifications needed               |
+| `lib/features/members/members_controller.dart`         | Member provider unchanged                                     |
+| Any notification files                                 | Out of scope                                                  |
+| Any database migration files                           | Schema already complete                                       |
 
 ## 12) System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | unaffected (refactor to shared helpers is transparent) |
-| Rehearsals | affected (adds member name display) |
-| Setlists / Catalog | unaffected |
-| Members / RBAC | unaffected (read-only access to members) |
-| Auth / Session | unaffected |
-| Routing | unaffected |
-| Notifications | unaffected |
-| Platform (iOS / Android / Web / macOS) | affected (UI change visible on all platforms) |
+| System                                 | Impact                                                 |
+| -------------------------------------- | ------------------------------------------------------ |
+| Gigs                                   | unaffected (refactor to shared helpers is transparent) |
+| Rehearsals                             | affected (adds member name display)                    |
+| Setlists / Catalog                     | unaffected                                             |
+| Members / RBAC                         | unaffected (read-only access to members)               |
+| Auth / Session                         | unaffected                                             |
+| Routing                                | unaffected                                             |
+| Notifications                          | unaffected                                             |
+| Platform (iOS / Android / Web / macOS) | affected (UI change visible on all platforms)          |
 
 ## 13) Regression Risk
 
 **LOW**
 
 Rationale:
+
 - UI-only change, no database or state mutations
 - No new data flow or async operations
 - No new widget lifecycle concerns (no controllers to dispose, no new async gaps)
@@ -282,6 +290,7 @@ QA must specifically test:
 Not applicable — UI-only change, no database migration required.
 
 **Deployment:**
+
 1. Merge PR into main
 2. Deploy web via `./tools/deploy_web.sh`
 3. Increment iOS/Android build number for next release
