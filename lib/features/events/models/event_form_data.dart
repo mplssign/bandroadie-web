@@ -548,7 +548,7 @@ class EventFormData {
       name: null,
       isRecurring: rehearsal.isRecurring,
       recurrence: recurrence,
-      isPotentialGig: false,
+      isPotentialGig: rehearsal.isPotential,
       selectedMemberIds: const {},
       setlistId: rehearsal.setlistId,
       setlistName: null, // Rehearsals don't store setlist name

@@ -20,6 +20,8 @@ import 'rehearsal_repository.dart';
 class RehearsalState {
   final List<Rehearsal> allRehearsals;
   final List<Rehearsal> upcomingRehearsals;
+  final List<Rehearsal> potentialRehearsals;
+  final List<Rehearsal> confirmedRehearsals;
   final Rehearsal? nextRehearsal;
   final bool isLoading;
   final String? error;
@@ -30,6 +32,8 @@ class RehearsalState {
   const RehearsalState({
     this.allRehearsals = const [],
     this.upcomingRehearsals = const [],
+    this.potentialRehearsals = const [],
+    this.confirmedRehearsals = const [],
     this.nextRehearsal,
     this.isLoading = false,
     this.error,
@@ -45,6 +49,8 @@ class RehearsalState {
   RehearsalState copyWith({
     List<Rehearsal>? allRehearsals,
     List<Rehearsal>? upcomingRehearsals,
+    List<Rehearsal>? potentialRehearsals,
+    List<Rehearsal>? confirmedRehearsals,
     Rehearsal? nextRehearsal,
     bool? isLoading,
     String? error,
@@ -55,6 +61,8 @@ class RehearsalState {
     return RehearsalState(
       allRehearsals: allRehearsals ?? this.allRehearsals,
       upcomingRehearsals: upcomingRehearsals ?? this.upcomingRehearsals,
+      potentialRehearsals: potentialRehearsals ?? this.potentialRehearsals,
+      confirmedRehearsals: confirmedRehearsals ?? this.confirmedRehearsals,
       nextRehearsal:
           clearNextRehearsal ? null : (nextRehearsal ?? this.nextRehearsal),
       isLoading: isLoading ?? this.isLoading,
@@ -71,6 +79,8 @@ class RehearsalState {
         error == other.error &&
         loadedBandId == other.loadedBandId &&
         allRehearsals.length == other.allRehearsals.length &&
+        potentialRehearsals.length == other.potentialRehearsals.length &&
+        confirmedRehearsals.length == other.confirmedRehearsals.length &&
         nextRehearsal?.id == other.nextRehearsal?.id;
   }
 
@@ -80,6 +90,8 @@ class RehearsalState {
         error,
         loadedBandId,
         allRehearsals.length,
+        potentialRehearsals.length,
+        confirmedRehearsals.length,
         nextRehearsal?.id,
       );
 }
@@ -119,7 +131,7 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
   RehearsalRepository get _repository => ref.read(rehearsalRepositoryProvider);
   String? get _bandId => ref.read(activeBandIdProvider);
 
-  /// Categorize a flat list of rehearsals into upcoming / next
+  /// Categorize a flat list of rehearsals into upcoming / potential / confirmed / next
   /// using the same client-side time filtering as the repository methods.
   RehearsalState _categorizeRehearsals(
     List<Rehearsal> allRehearsals,
@@ -136,13 +148,21 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
       return _isEndTimeInFuture(rehearsal, nowUtc, bandTimezone);
     }).toList();
 
-    // Next rehearsal: first upcoming
+    // Categorize upcoming into potential vs confirmed
+    final potentialRehearsals =
+        upcomingRehearsals.where((r) => r.isPotential).toList();
+    final confirmedRehearsals =
+        upcomingRehearsals.where((r) => !r.isPotential).toList();
+
+    // Next rehearsal: first confirmed upcoming
     final nextRehearsal =
-        upcomingRehearsals.isNotEmpty ? upcomingRehearsals.first : null;
+        confirmedRehearsals.isNotEmpty ? confirmedRehearsals.first : null;
 
     return RehearsalState(
       allRehearsals: allRehearsals,
       upcomingRehearsals: upcomingRehearsals,
+      potentialRehearsals: potentialRehearsals,
+      confirmedRehearsals: confirmedRehearsals,
       nextRehearsal: nextRehearsal,
       isLoading: false,
       loadedBandId: bandId,
@@ -255,4 +275,9 @@ final hasUpcomingRehearsalProvider = Provider<bool>((ref) {
 /// Convenience: get the next upcoming rehearsal
 final nextRehearsalProvider = Provider<Rehearsal?>((ref) {
   return ref.watch(rehearsalProvider).nextRehearsal;
+});
+
+/// Convenience: does the active band have any potential rehearsals?
+final hasPotentialRehearsalsProvider = Provider<bool>((ref) {
+  return ref.watch(rehearsalProvider).potentialRehearsals.isNotEmpty;
 });

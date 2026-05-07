@@ -21,6 +21,7 @@ class Rehearsal {
   final String? setlistId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isPotential; // Whether this is a tentative/potential rehearsal
 
   // Recurrence fields
   final bool isRecurring;
@@ -40,6 +41,7 @@ class Rehearsal {
     this.setlistId,
     required this.createdAt,
     required this.updatedAt,
+    this.isPotential = false,
     this.isRecurring = false,
     this.recurrenceFrequency,
     this.recurrenceDays,
@@ -60,6 +62,7 @@ class Rehearsal {
       setlistId: json['setlist_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      isPotential: json['is_potential'] as bool? ?? false,
       isRecurring: json['is_recurring'] as bool? ?? false,
       recurrenceFrequency: json['recurrence_frequency'] as String?,
       recurrenceDays: (json['recurrence_days'] as List<dynamic>?)
@@ -82,6 +85,7 @@ class Rehearsal {
       'location': location,
       'notes': notes,
       'setlist_id': setlistId,
+      'is_potential': isPotential,
       'is_recurring': isRecurring,
       'recurrence_frequency': recurrenceFrequency,
       'recurrence_days': recurrenceDays,

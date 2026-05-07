@@ -23,6 +23,7 @@ import '../../gigs/gig_response_repository.dart';
 import '../../members/members_controller.dart';
 import '../../members/permissions/band_permissions_provider.dart';
 import '../../rehearsals/rehearsal_controller.dart';
+import '../../rehearsals/rehearsal_response_repository.dart';
 import '../../setlists/new_setlist_screen.dart';
 import '../models/event_form_data.dart';
 import '../events_repository.dart';
@@ -442,17 +443,25 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   /// Load the current user's RSVP response for this potential gig
   Future<void> _loadCurrentUserResponse() async {
-    final gigId = widget.existingEventId;
+    final eventId = widget.existingEventId;
     final userId = supabase.auth.currentUser?.id;
 
-    if (gigId == null || userId == null) return;
+    if (eventId == null || userId == null) return;
 
     setState(() => _isLoadingUserResponse = true);
 
     try {
-      final response = await ref
-          .read(gigResponseRepositoryProvider)
-          .fetchUserResponse(gigId: gigId, userId: userId);
+      final String? response;
+
+      if (_eventType == EventType.gig) {
+        response = await ref
+            .read(gigResponseRepositoryProvider)
+            .fetchUserResponse(gigId: eventId, userId: userId);
+      } else {
+        response = await ref
+            .read(rehearsalResponseRepositoryProvider)
+            .fetchUserResponse(rehearsalId: eventId, userId: userId);
+      }
 
       if (mounted) {
         setState(() {
@@ -468,17 +477,26 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
   }
 
-  /// Load all member availability responses for this potential gig (edit mode)
+  /// Load all member availability responses for this potential event (edit mode)
   Future<void> _loadMemberAvailability() async {
-    final gigId = widget.existingEventId;
-    if (gigId == null) return;
+    final eventId = widget.existingEventId;
+    if (eventId == null) return;
 
     setState(() => _isLoadingMemberAvailability = true);
 
     try {
-      final responses = await ref
-          .read(gigResponseRepositoryProvider)
-          .fetchAllMemberResponses(gigId: gigId, bandId: widget.bandId);
+      final Map<String, String?> responses;
+
+      if (_eventType == EventType.gig) {
+        responses = await ref
+            .read(gigResponseRepositoryProvider)
+            .fetchAllMemberResponses(gigId: eventId, bandId: widget.bandId);
+      } else {
+        responses = await ref
+            .read(rehearsalResponseRepositoryProvider)
+            .fetchAllMemberResponses(
+                rehearsalId: eventId, bandId: widget.bandId);
+      }
 
       if (mounted) {
         setState(() {
@@ -834,7 +852,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       loadInHour: _loadInHour,
       loadInMinutes: _loadInMinutes,
       loadInIsPM: _loadInIsPM,
-      isPotentialGig: _eventType == EventType.gig && _isPotentialGig,
+      isPotentialGig: _isPotentialGig,
       selectedMemberIds: _selectedMemberIds,
       additionalDates: _isMultiDate ? _additionalDates : [],
       existingGigDateIds: _existingGigDateIds,
@@ -1871,6 +1889,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                             locationController: _locationController,
                             locationHintController: _locationHintController,
                             locationSuggestions: _locationSuggestions,
+                            isPotential: _isPotentialGig,
+                            onPotentialToggled: _togglePotentialGig,
                             isRecurring: _isRecurring,
                             onRecurringToggled: _toggleRecurring,
                             recurringSlideAnimation: _recurringSlideAnimation,
@@ -1899,6 +1919,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                             },
                             selectedDate: _selectedDate,
                             onMarkDirty: _markDirty,
+                            memberAvailability: _memberAvailability,
+                            isLoadingMemberAvailability:
+                                _isLoadingMemberAvailability,
+                            isLoadingUserResponse: _isLoadingUserResponse,
+                            currentUserResponse: _currentUserResponse,
+                            onUserResponseChanged: (response) {
+                              setState(() => _currentUserResponse = response);
+                              _markDirty();
+                              HapticFeedback.selectionClick();
+                            },
+                            isEditMode: widget.mode == EventEditorMode.edit,
+                            existingEventId: widget.existingEventId,
                           ),
                         ] else ...[
                           gigFormFields!.buildCityAutocomplete(context),

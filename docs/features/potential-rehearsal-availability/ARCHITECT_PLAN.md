@@ -32,6 +32,7 @@ Direct code observation confirms the complete absence of rehearsal response comp
 ## 4) Reference Docs Consulted
 
 Required by Architect phase sequence:
+
 - `docs/reference/architecture/database_schema.md` — confirmed `gig_responses` table structure (67 rows), confirmed no `rehearsal_responses` table exists
 - `docs/reference/general/BAND_ROADIE_DOCUMENTATION.md` — general system architecture and event management overview
 
@@ -42,17 +43,20 @@ No dedicated RSVP/availability domain docs exist in `docs/reference/`.
 ### Current data flow (gigs — reference pattern)
 
 **Database layer:**
+
 - Table: `gig_responses` (id, gig_id, user_id, response [yes/no], gig_date_id, created_at, updated_at)
 - RLS policies enforce band-scoped access via join to gigs → band_members
 - RPC helper: `check_gig_response_access()` (referenced in schema doc)
 
 **Model layer:**
+
 - `lib/app/models/gig_response.dart`
 - Enum: `GigResponseType { yes, no }`
 - Fields: id, gigId, userId, response, createdAt, updatedAt
 - Methods: fromJson, toJson, isYes, isNo
 
 **Repository layer:**
+
 - `lib/features/gigs/gig_response_repository.dart`
 - Class: `GigResponseRepository` with methods:
   - `fetchPendingPotentialGigs()` — returns gigs where user hasn't responded
@@ -66,10 +70,12 @@ No dedicated RSVP/availability domain docs exist in `docs/reference/`.
 - Pending model: `PendingPotentialGig` (gigId, bandId, name, date, times, location)
 
 **Provider layer:**
+
 - `gigResponseRepositoryProvider` — singleton repository
 - `potentialGigResponseSummariesProvider` — FutureProvider that watches `gigProvider.potentialGigs` and `activeBandIdProvider`, fetches summaries for all potential gigs, invalidated by EventEditorDrawer after updates
 
 **Prompt service layer:**
+
 - `lib/features/gigs/potential_gig_prompt_service.dart`
 - Class: `PotentialGigPromptNotifier` (extends Notifier)
 - State: `PotentialGigPromptState` (isShowingPrompt, isChecking, pendingCount)
@@ -79,6 +85,7 @@ No dedicated RSVP/availability domain docs exist in `docs/reference/`.
 - Provider: `potentialGigPromptProvider`
 
 **UI integration:**
+
 - `lib/features/home/home_tab_content.dart`:
   - Watches `potentialGigResponseSummariesProvider` → extracts `responseSummaries` map
   - Calls `ref.read(potentialGigPromptProvider.notifier).checkAndShowPendingPrompts(context)` on app resume and after band switch
@@ -91,28 +98,35 @@ No dedicated RSVP/availability domain docs exist in `docs/reference/`.
 ### Current data flow (rehearsals — target domain)
 
 **Database layer:**
+
 - Table: `rehearsals` has `is_potential BOOLEAN NOT NULL DEFAULT FALSE` (added in prior feature)
 - **No `rehearsal_responses` table**
 
 **Model layer:**
+
 - `lib/app/models/rehearsal.dart` has `isPotential` field
 
 **Repository layer:**
+
 - `lib/features/events/events_repository.dart` persists `is_potential` on create/update
 - **No rehearsal response repository**
 
 **Controller layer:**
+
 - `lib/features/rehearsals/rehearsal_controller.dart` — `RehearsalState` has potential/confirmed categorization (added in prior feature)
 
 **Prompt service layer:**
+
 - **No prompt service**
 
 **UI layer:**
+
 - `lib/features/home/widgets/rehearsal_card.dart` — displays rehearsal info (date, time, location, setlist)
 - **No availability display**
 - Rendered in same horizontal scroll area as potential gigs in `home_tab_content.dart`
 
 **Integration:**
+
 - `home_tab_content.dart` renders potential rehearsals alongside potential gigs in `_buildHorizontalPotentialEvents()`
 - **No prompt check**, **no response summaries loaded**
 
@@ -121,6 +135,7 @@ No dedicated RSVP/availability domain docs exist in `docs/reference/`.
 Implement rehearsal availability system by creating **parallel components** that mirror the proven gig RSVP pattern. Enhance both gig and rehearsal cards to display availability counts.
 
 ### Database layer (new migration)
+
 1. Create `rehearsal_responses` table:
    - Columns: id (uuid PK), rehearsal_id (uuid FK → rehearsals), user_id (uuid FK → auth.users), response (text CHECK 'yes'/'no'), created_at (timestamptz), updated_at (timestamptz)
    - Unique constraint: (rehearsal_id, user_id) — one response per member per rehearsal
@@ -134,6 +149,7 @@ Implement rehearsal availability system by creating **parallel components** that
 4. Create RLS helper function: `check_rehearsal_response_access(p_rehearsal_id uuid, p_user_id uuid)` RETURNS boolean — checks if user is active member of rehearsal's band
 
 ### Model layer (new file)
+
 5. Create `lib/app/models/rehearsal_response.dart`:
    - Mirror `GigResponse` structure
    - Enum: `RehearsalResponseType { yes, no }`
@@ -141,6 +157,7 @@ Implement rehearsal availability system by creating **parallel components** that
    - Methods: fromJson, toJson, isYes, isNo
 
 ### Repository layer (new file)
+
 6. Create `lib/features/rehearsals/rehearsal_response_repository.dart`:
    - Mirror `GigResponseRepository` structure
    - Class: `RehearsalResponseRepository` with methods:
@@ -157,6 +174,7 @@ Implement rehearsal availability system by creating **parallel components** that
    - Provider: `potentialRehearsalResponseSummariesProvider` (FutureProvider, watches `rehearsalProvider.potentialRehearsals` and `activeBandIdProvider`)
 
 ### Prompt service layer (new file)
+
 7. Create `lib/features/rehearsals/potential_rehearsal_prompt_service.dart`:
    - Mirror `PotentialGigPromptService` structure
    - Class: `PotentialRehearsalPromptNotifier` (extends Notifier)
@@ -166,6 +184,7 @@ Implement rehearsal availability system by creating **parallel components** that
    - Provider: `potentialRehearsalPromptProvider`
 
 ### UI layer modifications
+
 8. **Modify `lib/features/home/widgets/rehearsal_card.dart`:**
    - Add optional `responseSummary` parameter (RehearsalResponseSummary?)
    - When `rehearsal.isPotential == true` AND `responseSummary != null`, display availability row at bottom:
@@ -190,6 +209,7 @@ Implement rehearsal availability system by creating **parallel components** that
     - Update `_buildHorizontalPotentialEvents()` to accept both summary maps and pass to card constructors
 
 ### Must not change
+
 - `lib/main.dart` — off-limits, init order cannot change
 - `lib/features/gigs/potential_gig_prompt_service.dart` — off-limits, create parallel instead
 - `lib/features/gigs/gig_response_repository.dart` — off-limits, create parallel instead
@@ -205,6 +225,7 @@ Implement rehearsal availability system by creating **parallel components** that
 **New migration:** `supabase/migrations/<timestamp>_add_rehearsal_responses.sql`
 
 Migration content must include:
+
 1. CREATE TABLE rehearsal_responses with all columns and constraints
 2. CREATE UNIQUE INDEX on (rehearsal_id, user_id)
 3. ALTER TABLE ... ENABLE ROW LEVEL SECURITY
@@ -221,18 +242,21 @@ Band-scoped access enforced via join: `rehearsal_responses` → `rehearsals` →
 Policies must **NOT** query the table they protect (no self-referencing — guardrails rule). Use SECURITY DEFINER helper function pattern as in gig_responses.
 
 **RPC functions:**
+
 - `check_rehearsal_response_access(p_rehearsal_id uuid, p_user_id uuid)` — new helper function
 - Signature mirrors gig pattern
 - Returns TRUE if user is active member of rehearsal's band
 - Used in RLS policies via: `USING (check_rehearsal_response_access(rehearsal_id, auth.uid()))`
 
 **Triggers:**
+
 - None required for this feature
 - Existing notification triggers remain unchanged (CREATE-only behavior preserved)
 
 **No self-referencing RLS:** Confirmed — policies will use helper function, not direct table query.
 
 **Migration rollback safety:**
+
 - Additive only (new table, no schema changes to existing tables)
 - Can be rolled back with `DROP TABLE rehearsal_responses CASCADE;`
 
@@ -241,68 +265,72 @@ Policies must **NOT** query the table they protect (no self-referencing — guar
 **No new architecture layers.**
 
 Existing patterns:
+
 - Feature-first structure: new files go in `lib/features/rehearsals/`
 - Riverpod state management: use `Notifier` + `NotifierProvider` (not deprecated StateNotifier)
 - Repository pattern: new repository for data access
 - Provider invalidation: same pattern as gig responses
 
 State management:
+
 - New providers: `rehearsalResponseRepositoryProvider`, `potentialRehearsalResponseSummariesProvider`, `potentialRehearsalPromptProvider`
 - All follow existing Riverpod conventions
 - No new state abstractions
 
 Widget modifications:
+
 - `RehearsalCard` gains optional parameter, conditional rendering
 - `PotentialGigCard` gains optional parameter, conditional rendering
 - No new widget abstractions needed (reuse AvailabilityPromptModal)
 
 Data flow:
+
 - Mirrors gig pattern exactly: repository → provider → notifier → modal → save → invalidate → refresh
 - Band isolation maintained via `activeBandIdProvider` dependency
 
 ## 9) Files to Create
 
-| File | Justification |
-|------|---------------|
-| `supabase/migrations/<timestamp>_add_rehearsal_responses.sql` | Required to create persistence layer for rehearsal responses. No existing table. |
-| `lib/app/models/rehearsal_response.dart` | Required domain model for type-safe response handling. Mirrors GigResponse proven pattern. |
-| `lib/features/rehearsals/rehearsal_response_repository.dart` | Required data access layer. Replicates GigResponseRepository pattern with rehearsal-specific queries. |
+| File                                                              | Justification                                                                                                        |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `supabase/migrations/<timestamp>_add_rehearsal_responses.sql`     | Required to create persistence layer for rehearsal responses. No existing table.                                     |
+| `lib/app/models/rehearsal_response.dart`                          | Required domain model for type-safe response handling. Mirrors GigResponse proven pattern.                           |
+| `lib/features/rehearsals/rehearsal_response_repository.dart`      | Required data access layer. Replicates GigResponseRepository pattern with rehearsal-specific queries.                |
 | `lib/features/rehearsals/potential_rehearsal_prompt_service.dart` | Required prompt orchestration. Mirrors PotentialGigPromptService — manages app-open check, sequential modals, state. |
 
 Total: **4 new files**. All justified by feature scope and proven pattern replication.
 
 ## 10) Files to Modify
 
-| File | What changes |
-|------|-------------|
-| `lib/features/home/widgets/rehearsal_card.dart` | Add optional `responseSummary` parameter. Conditionally render availability row (yes/no/not responded counts) when `isPotential == true` and summary provided. Format: "✓ X available • ✗ Y unavailable • ? Z not responded". White text, 14-15px, bottom position. No changes to non-potential rendering. |
-| `lib/features/home/widgets/potential_gig_card.dart` | Add optional `responseSummary` parameter. Conditionally render availability row (same format as rehearsal card). Fixes gig implementation gap — summaries are already loaded but not displayed. |
-| `lib/features/home/home_tab_content.dart` | (1) Watch `potentialRehearsalResponseSummariesProvider`. (2) Call `potentialRehearsalPromptProvider.notifier.checkAndShowPendingPrompts(context)` on app resume and after band switch (same locations as gig check). (3) Invalidate rehearsal summaries provider after prompt. (4) Pass both gig and rehearsal summary maps to `_buildHorizontalPotentialEvents()`. (5) Update card constructors in item builder to accept and pass summaries. Estimated ~50-80 lines of additions/modifications. |
+| File                                                | What changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/features/home/widgets/rehearsal_card.dart`     | Add optional `responseSummary` parameter. Conditionally render availability row (yes/no/not responded counts) when `isPotential == true` and summary provided. Format: "✓ X available • ✗ Y unavailable • ? Z not responded". White text, 14-15px, bottom position. No changes to non-potential rendering.                                                                                                                                                                                        |
+| `lib/features/home/widgets/potential_gig_card.dart` | Add optional `responseSummary` parameter. Conditionally render availability row (same format as rehearsal card). Fixes gig implementation gap — summaries are already loaded but not displayed.                                                                                                                                                                                                                                                                                                   |
+| `lib/features/home/home_tab_content.dart`           | (1) Watch `potentialRehearsalResponseSummariesProvider`. (2) Call `potentialRehearsalPromptProvider.notifier.checkAndShowPendingPrompts(context)` on app resume and after band switch (same locations as gig check). (3) Invalidate rehearsal summaries provider after prompt. (4) Pass both gig and rehearsal summary maps to `_buildHorizontalPotentialEvents()`. (5) Update card constructors in item builder to accept and pass summaries. Estimated ~50-80 lines of additions/modifications. |
 
 Total: **3 files modified**. All changes are localized, additive, and follow existing patterns.
 
 ## 11) Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/main.dart` | Init order must not change (guardrails). |
-| `lib/features/gigs/potential_gig_prompt_service.dart` | Explicitly forbidden by feature constraints. Create parallel service for rehearsals. |
-| `lib/features/gigs/gig_response_repository.dart` | Explicitly forbidden by feature constraints. Create parallel repository for rehearsals. |
-| All notification edge function files | CREATE-only trigger behavior must remain unchanged (feature constraint). |
-| All database trigger SQL files | Notification triggers off-limits. |
+| File                                                  | Reason                                                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `lib/main.dart`                                       | Init order must not change (guardrails).                                                |
+| `lib/features/gigs/potential_gig_prompt_service.dart` | Explicitly forbidden by feature constraints. Create parallel service for rehearsals.    |
+| `lib/features/gigs/gig_response_repository.dart`      | Explicitly forbidden by feature constraints. Create parallel repository for rehearsals. |
+| All notification edge function files                  | CREATE-only trigger behavior must remain unchanged (feature constraint).                |
+| All database trigger SQL files                        | Notification triggers off-limits.                                                       |
 
 ## 12) System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | **affected** (PotentialGigCard gains availability display — implementation gap fix) |
-| Rehearsals | **affected** (full RSVP system added — primary scope) |
-| Setlists / Catalog | unaffected |
-| Members / RBAC | unaffected (reuses existing band membership for authorization) |
-| Auth / Session | unaffected |
-| Routing | unaffected |
-| Notifications | unaffected (CREATE-only trigger behavior preserved) |
-| Platform (iOS / Android / Web / macOS) | **affected** (new prompts on app open, new UI elements on cards — all platforms) |
+| System                                 | Impact                                                                              |
+| -------------------------------------- | ----------------------------------------------------------------------------------- |
+| Gigs                                   | **affected** (PotentialGigCard gains availability display — implementation gap fix) |
+| Rehearsals                             | **affected** (full RSVP system added — primary scope)                               |
+| Setlists / Catalog                     | unaffected                                                                          |
+| Members / RBAC                         | unaffected (reuses existing band membership for authorization)                      |
+| Auth / Session                         | unaffected                                                                          |
+| Routing                                | unaffected                                                                          |
+| Notifications                          | unaffected (CREATE-only trigger behavior preserved)                                 |
+| Platform (iOS / Android / Web / macOS) | **affected** (new prompts on app open, new UI elements on cards — all platforms)    |
 
 ## 13) Regression Risk
 
@@ -311,6 +339,7 @@ Total: **3 files modified**. All changes are localized, additive, and follow exi
 **Rationale:**
 
 **Factors increasing risk:**
+
 - Multi-layer change: database (new table + RLS) → model → repository → service → UI integration → cross-platform
 - Touches home dashboard integration and app lifecycle hooks (app resume/band switch)
 - New RLS policies — potential for permission errors if policies don't match gig pattern exactly
@@ -318,6 +347,7 @@ Total: **3 files modified**. All changes are localized, additive, and follow exi
 - Cross-platform UI changes (iOS, Android, Web, macOS) — card layout and prompt behavior must work everywhere
 
 **Factors reducing risk (preventing HIGH):**
+
 - **Pure additive feature** — no existing rehearsal RSVP to break, potential rehearsals currently have zero response functionality
 - **Proven pattern replication** — gig RSVP is battle-tested in production with 67 rows in gig_responses
 - **Parallel implementation** — gig files remain untouched, no risk of breaking existing gig RSVP
@@ -399,6 +429,7 @@ Execute in strict order. Mark complete only when verified working.
 These tests run **BEFORE** applying the migration. They verify supporting code without touching the new table.
 
 **-- PRE-DEPLOY TEST 1:** Flutter static analysis
+
 ```bash
 flutter analyze lib/app/models/rehearsal_response.dart
 flutter analyze lib/features/rehearsals/rehearsal_response_repository.dart
@@ -407,9 +438,11 @@ flutter analyze lib/features/home/widgets/rehearsal_card.dart
 flutter analyze lib/features/home/widgets/potential_gig_card.dart
 flutter analyze lib/features/home/home_tab_content.dart
 ```
+
 Expected: 0 errors, 0 warnings. Any issues must be fixed before deployment.
 
 **-- PRE-DEPLOY TEST 2:** Unit test RehearsalResponse model (pure Dart, no DB)
+
 ```dart
 // test/app/models/rehearsal_response_test.dart
 void main() {
@@ -441,19 +474,24 @@ void main() {
   });
 }
 ```
+
 Run: `flutter test test/app/models/rehearsal_response_test.dart`
 Expected: All tests pass.
 
 **-- PRE-DEPLOY TEST 3:** Verify no notification code changed
+
 ```bash
 git diff --name-only | grep -i "notification\|trigger" || echo "No notification files changed"
 ```
+
 Expected: Output "No notification files changed" OR list only unrelated files.
 
 **-- PRE-DEPLOY TEST 4:** Verify gig RSVP files untouched
+
 ```bash
 git diff --name-only | grep "gig_response_repository.dart\|potential_gig_prompt_service.dart" && echo "ERROR: Off-limits files modified" || echo "Off-limits files safe"
 ```
+
 Expected: "Off-limits files safe"
 
 ### Tier 2 — Post-deployment (run after `supabase db push` succeeds)
@@ -461,66 +499,75 @@ Expected: "Off-limits files safe"
 These tests run **AFTER** the migration is applied. They verify the database objects and full integration.
 
 **-- POST-DEPLOY TEST 1:** Verify rehearsal_responses table exists
+
 ```sql
 -- Run in Supabase SQL Editor
-SELECT 
-  column_name, 
-  data_type, 
-  is_nullable, 
+SELECT
+  column_name,
+  data_type,
+  is_nullable,
   column_default
-FROM information_schema.columns 
-WHERE table_schema='public' 
+FROM information_schema.columns
+WHERE table_schema='public'
   AND table_name='rehearsal_responses'
 ORDER BY ordinal_position;
 ```
+
 Expected result: 6 rows (id, rehearsal_id, user_id, response, created_at, updated_at)
+
 - `response` type: text
 - `is_nullable`: NO for all columns
 
 **-- POST-DEPLOY TEST 2:** Verify unique constraint exists
+
 ```sql
 -- Run in Supabase SQL Editor
-SELECT 
-  constraint_name, 
+SELECT
+  constraint_name,
   constraint_type
 FROM information_schema.table_constraints
-WHERE table_schema='public' 
+WHERE table_schema='public'
   AND table_name='rehearsal_responses'
   AND constraint_type IN ('UNIQUE', 'PRIMARY KEY');
 ```
+
 Expected: At least 2 rows — one PRIMARY KEY (id), one UNIQUE (rehearsal_id, user_id combination)
 
 **-- POST-DEPLOY TEST 3:** Verify RLS enabled and policies exist
+
 ```sql
 -- Run in Supabase SQL Editor
 -- Check RLS enabled
-SELECT tablename, rowsecurity 
-FROM pg_tables 
+SELECT tablename, rowsecurity
+FROM pg_tables
 WHERE schemaname='public' AND tablename='rehearsal_responses';
 -- Expected: rowsecurity = true
 
 -- Check policies exist
-SELECT policyname, cmd 
-FROM pg_policies 
+SELECT policyname, cmd
+FROM pg_policies
 WHERE schemaname='public' AND tablename='rehearsal_responses'
 ORDER BY policyname;
 -- Expected: 4 policies (SELECT, INSERT, UPDATE, DELETE)
 ```
 
 **-- POST-DEPLOY TEST 4:** Verify helper function exists
+
 ```sql
 -- Run in Supabase SQL Editor
-SELECT 
-  proname, 
-  prosrc 
+SELECT
+  proname,
+  prosrc
 FROM pg_proc p
 JOIN pg_namespace n ON p.pronamespace = n.oid
-WHERE n.nspname = 'public' 
+WHERE n.nspname = 'public'
   AND proname = 'check_rehearsal_response_access';
 ```
+
 Expected: 1 row returned, `prosrc` contains band_members join logic
 
 **-- POST-DEPLOY TEST 5:** Test INSERT with real band/rehearsal (integration test)
+
 ```sql
 -- Run in Supabase SQL Editor as authenticated user
 -- PREREQUISITE: Must have a test band and a potential rehearsal in database
@@ -534,50 +581,52 @@ DECLARE
 BEGIN
   -- Get current authenticated user
   v_user_id := auth.uid();
-  
+
   -- Get a test band where user is a member
   SELECT band_id INTO v_band_id
   FROM band_members
   WHERE user_id = v_user_id AND status = 'active'
   LIMIT 1;
-  
+
   IF v_band_id IS NULL THEN
     RAISE EXCEPTION 'User is not a member of any band';
   END IF;
-  
+
   -- Get or create a potential rehearsal in that band
   SELECT id INTO v_rehearsal_id
   FROM rehearsals
   WHERE band_id = v_band_id AND is_potential = true
   LIMIT 1;
-  
+
   IF v_rehearsal_id IS NULL THEN
     -- Create test rehearsal
     INSERT INTO rehearsals (band_id, date, start_time, end_time, location, is_potential)
     VALUES (v_band_id, CURRENT_DATE + 7, '19:00', '21:00', 'Test Location', true)
     RETURNING id INTO v_rehearsal_id;
   END IF;
-  
+
   -- Insert response (should succeed via RLS)
   INSERT INTO rehearsal_responses (rehearsal_id, user_id, response)
   VALUES (v_rehearsal_id, v_user_id, 'yes')
   RETURNING id INTO v_response_id;
-  
+
   RAISE NOTICE 'Response inserted successfully: %', v_response_id;
-  
+
   -- Clean up test data
   DELETE FROM rehearsal_responses WHERE id = v_response_id;
-  
+
   -- Note: Don't delete rehearsal if it existed before test
   -- If you created it: DELETE FROM rehearsals WHERE id = v_rehearsal_id;
-  
+
   RAISE NOTICE 'Test passed, cleanup complete';
 END $$;
 ```
+
 Expected output: "Response inserted successfully" notice with UUID, "Test passed" notice.
 If fails: Check RLS policies and helper function logic.
 
 **-- POST-DEPLOY TEST 6:** App integration test (manual)
+
 1. Open app on iOS/Android/Web/macOS
 2. Create a potential rehearsal for tomorrow
 3. Close app completely
@@ -592,6 +641,7 @@ If fails: Check RLS policies and helper function logic.
 Expected: All steps pass, no errors in console, no RLS errors, availability displays correctly.
 
 **-- POST-DEPLOY TEST 7:** Gig availability display regression check
+
 1. Create a potential gig
 2. Have 2+ band members respond (via event editor or prompt)
 3. Navigate to home dashboard
@@ -601,6 +651,7 @@ Expected: All steps pass, no errors in console, no RLS errors, availability disp
 Expected: Gig pattern enhanced but not broken. Availability now visible.
 
 **-- POST-DEPLOY TEST 8:** Production verification query (no bad data)
+
 ```sql
 -- Run in Supabase SQL Editor against production
 SELECT COUNT(*) as bad_data_count
@@ -609,11 +660,13 @@ WHERE response NOT IN ('yes', 'no')
    OR rehearsal_id IS NULL
    OR user_id IS NULL;
 ```
+
 Expected: `bad_data_count = 0`. If non-zero, investigate and clean up.
 
 ### SQL Test Authoring Rules (Enforced)
 
 All SQL tests MUST follow these rules:
+
 - Tests that INSERT data: wrap in `DO $$ ... END $$;` with cleanup DELETEs OR use `BEGIN; ... ROLLBACK;` transaction
 - Tests that UPDATE existing rows: save original value, restore in all code paths (including EXCEPTION), assert restore succeeded
 - Never use hardcoded production UUIDs — use `gen_random_uuid()` or query for test-only data
@@ -626,6 +679,7 @@ All SQL tests MUST follow these rules:
 QA must specifically test these areas after Engineer implementation:
 
 **Primary scope (rehearsals):**
+
 - Create potential rehearsal → verify no errors
 - App close → app open → verify prompt modal appears
 - Respond yes → verify saves, modal closes, doesn't reappear
@@ -636,23 +690,27 @@ QA must specifically test these areas after Engineer implementation:
 - Edit potential rehearsal → verify response persists
 
 **Regression scope (gigs):**
+
 - Create potential gig → verify prompt still works
 - Verify potential gig card NOW displays availability counts (enhancement)
 - Verify gig RSVP flow unchanged (no breakage from parallel implementation)
 - Verify gig response summaries still load correctly
 
 **Notification behavior (must remain unchanged):**
+
 - Create potential rehearsal → verify notification sent to other members (if applicable via CREATE-only trigger)
 - Verify no new notification types introduced
 - Verify response submission does NOT trigger additional notifications
 
 **Cross-platform:**
+
 - iOS: prompt modal renders correctly, card layout doesn't break
 - Android: same as iOS
 - Web: modal works in browser, card layout responsive
 - macOS: prompt behavior consistent with iOS
 
 **Edge cases:**
+
 - No band members → verify availability shows 0/0/0 gracefully
 - User not logged in → verify no errors (prompt check should skip)
 - No potential rehearsals → verify no prompts, no errors
@@ -660,12 +718,14 @@ QA must specifically test these areas after Engineer implementation:
 - Rehearsal deleted after response → verify no orphaned data errors
 
 **Performance:**
+
 - Dashboard load time with 10+ potential events (gigs + rehearsals) → should remain fast (<2s)
 - Prompt check on app resume → should not block UI (async operation)
 
 ## 17) Rollout / Migration Strategy
 
 **Deployment sequence:**
+
 1. Merge feature branch to main after QA APPROVED
 2. Deploy migration:
    - Run Tier 1 verification locally (pre-deploy tests)
@@ -678,22 +738,26 @@ QA must specifically test these areas after Engineer implementation:
 
 **Rollback plan:**
 If migration succeeds but app has critical issues:
+
 - Rollback app release (redeploy previous version)
 - Keep database migration in place (backward compatible — new table doesn't break old app)
 - Fix app issues in new branch, redeploy after QA
 
 If migration fails or causes RLS errors:
+
 - Do NOT proceed with app deploy
 - Diagnose migration failure
 - Fix migration
 - Test again in staging before production
 
 **Post-deployment monitoring:**
+
 - Check Supabase logs for RLS errors on rehearsal_responses table (first 24 hours)
 - Monitor user reports of prompt not appearing or responses not saving
 - Verify response counts in rehearsal_responses table grow as expected
 
 **Backward compatibility:**
+
 - Old app versions (before this feature) will not see rehearsal prompts → **acceptable, feature is new**
 - Old app can still view potential rehearsals (is_potential column already exists)
 - New table doesn't affect old app behavior

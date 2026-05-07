@@ -53,8 +53,9 @@ class Spacing {
   static const double gigCardHeight = 126.0;
 
   /// Potential gig card dimensions for horizontal scroll
-  static const double potentialGigCardHeight = 130.0;
-  static const double potentialGigCardWidth = 300.0;
+  /// Height accommodates large date, time, location, and full-width buttons
+  static const double potentialGigCardHeight = 240.0;
+  static const double potentialGigCardWidth = 340.0;
 
   /// Figma: active nav item 80x53
   static const double navItemWidth = 80.0;
@@ -152,6 +153,7 @@ class AppColors {
   // ── Semantic ───────────────────────────────────────────────────────────────
 
   static const Color error = Color(0xFFEF4444); // red-500
+  static const Color success = Color(0xFF22C55E); // green-500
 
   // ── Accent ─────────────────────────────────────────────────────────────────
 

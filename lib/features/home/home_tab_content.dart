@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/models/rehearsal.dart';
+import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -21,6 +22,8 @@ import '../gigs/potential_gig_prompt_service.dart';
 import '../members/members_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import '../rehearsals/rehearsal_controller.dart';
+import '../rehearsals/rehearsal_response_repository.dart';
+import '../rehearsals/potential_rehearsal_prompt_service.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
 import '../shell/overlay_state.dart';
@@ -126,6 +129,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         );
         _lastCheckedBandId = next;
         _checkPendingGigPrompts();
+        _checkPendingRehearsalPrompts();
       }
     }, fireImmediately: true);
   }
@@ -148,6 +152,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       // Reset the check so we re-check on resume
       _lastCheckedBandId = null;
       _checkPendingGigPrompts();
+      _checkPendingRehearsalPrompts();
     }
   }
 
@@ -190,6 +195,49 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
     // NOTE: Response summaries now load automatically via potentialGigResponseSummariesProvider
     // which watches gigProvider and activeBandIdProvider. No manual load needed.
+  }
+
+  /// Check for pending potential rehearsals and show prompt modals.
+  /// Shows every time the app opens until the user responds to each pending rehearsal.
+  /// Once a user responds, that rehearsal is filtered out by fetchPendingPotentialRehearsals().
+  void _checkPendingRehearsalPrompts() {
+    debugPrint('[HomeTabContent] _checkPendingRehearsalPrompts called');
+
+    if (!mounted) {
+      debugPrint('[HomeTabContent] Not mounted, returning');
+      return;
+    }
+
+    final bandId = ref.read(activeBandIdProvider);
+    if (bandId == null) {
+      debugPrint('[HomeTabContent] No band selected, returning');
+      return;
+    }
+
+    debugPrint(
+      '[HomeTabContent] Checking pending rehearsal prompts for band $bandId',
+    );
+
+    // Delay slightly to ensure UI is ready
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
+      ref
+          .read(potentialRehearsalPromptProvider.notifier)
+          .checkAndShowPendingPrompts(
+        context,
+        onResponseSubmitted: () {
+          // Refresh rehearsal data after user responds.
+          // Response summaries auto-refresh via potentialRehearsalResponseSummariesProvider
+          // which watches rehearsalProvider - no manual invalidation needed here.
+          ref.read(rehearsalProvider.notifier).refresh();
+          ref.invalidate(potentialRehearsalResponseSummariesProvider);
+        },
+      );
+    });
+
+    // NOTE: Response summaries now load automatically via potentialRehearsalResponseSummariesProvider
+    // which watches rehearsalProvider and activeBandIdProvider. No manual load needed.
   }
 
   @override
@@ -369,6 +417,31 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       error: (__, _) => {},
     );
 
+    // Watch response summaries for potential rehearsals - mirrors gig pattern
+    final rehearsalResponseSummariesAsync = ref.watch(
+      potentialRehearsalResponseSummariesProvider,
+    );
+    final Map<String, RehearsalResponseSummary> rehearsalResponseSummaries =
+        rehearsalResponseSummariesAsync.when(
+      data: (summaries) => summaries,
+      loading: () => {},
+      error: (__, _) => {},
+    );
+
+    // Watch current user's own inline responses for the card YES/NO buttons
+    final Map<String, String?> gigUserResponses =
+        ref.watch(currentUserGigResponsesProvider).when(
+              data: (r) => r,
+              loading: () => {},
+              error: (__, _) => {},
+            );
+    final Map<String, String?> rehearsalUserResponses =
+        ref.watch(currentUserRehearsalResponsesProvider).when(
+              data: (r) => r,
+              loading: () => {},
+              error: (__, _) => {},
+            );
+
     // Watch display band for header avatar (shows draft during editing)
     final displayBand = ref.watch(displayBandProvider);
     final draftLocalImage = ref.watch(draftLocalImageProvider);
@@ -439,6 +512,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         setlistsState,
         displayBand,
         responseSummaries,
+        rehearsalResponseSummaries,
+        gigUserResponses: gigUserResponses,
+        rehearsalUserResponses: rehearsalUserResponses,
         canCreateGig: canCreateGig,
         canCreateSetlist: canCreateSetlist,
         isContributor: isContributor,
@@ -571,7 +647,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     MembersState membersState,
     SetlistsState setlistsState,
     Band? displayBand,
-    Map<String, GigResponseSummary> responseSummaries, {
+    Map<String, GigResponseSummary> responseSummaries,
+    Map<String, RehearsalResponseSummary> rehearsalResponseSummaries, {
+    required Map<String, String?> gigUserResponses,
+    required Map<String, String?> rehearsalUserResponses,
     required bool canCreateGig,
     required bool canCreateSetlist,
     required bool isContributor,
@@ -631,24 +710,28 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                               children: [
                                 const SizedBox(height: Spacing.space24),
 
-                                // Potential gig cards (stacked, sorted by date proximity)
-                                // Availability counts come from responseSummaries, which is
-                                // watched from potentialGigResponseSummariesProvider.
+                                // Potential events (gigs + rehearsals) in horizontal scroll
+                                // Availability counts come from responseSummaries and rehearsalResponseSummaries,
+                                // which are watched from their respective providers.
                                 // This ensures counts update immediately when user changes
-                                // availability in the Edit Gig drawer.
-                                if (gigState.potentialGigs.isNotEmpty) ...[
+                                // availability in modals or edit drawers.
+                                if (gigState.potentialGigs.isNotEmpty ||
+                                    rehearsalState
+                                        .potentialRehearsals.isNotEmpty) ...[
                                   _AnimatedCardEntrance(
                                     delay: const Duration(milliseconds: 0),
-                                    child: _buildHorizontalPotentialGigs(
+                                    child: _buildHorizontalPotentialEvents(
                                       gigState.potentialGigs,
-                                      responseSummaries,
-                                      membersState.members.length,
+                                      rehearsalState.potentialRehearsals,
+                                      gigUserResponses,
+                                      rehearsalUserResponses,
+                                      setlistsState,
                                     ),
                                   ),
                                   const SizedBox(height: Spacing.space24),
                                 ],
 
-                                // Next rehearsal card
+                                // Next rehearsal card (confirmed only)
                                 _AnimatedCardEntrance(
                                   delay: const Duration(milliseconds: 80),
                                   child: nextRehearsal != null
@@ -683,17 +766,20 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                             );
                                           },
                                         )
-                                      : EmptySectionCard(
-                                          title: 'No Rehearsal Scheduled',
-                                          subtitle:
-                                              'The stage is empty and the amps are cold.',
-                                          buttonLabel: 'Schedule Rehearsal',
-                                          onButtonPressed: isContributor
-                                              ? null
-                                              : () => _openAddEventSheet(
-                                                    EventType.rehearsal,
-                                                  ),
-                                        ),
+                                      : rehearsalState
+                                              .potentialRehearsals.isNotEmpty
+                                          ? const SizedBox.shrink()
+                                          : EmptySectionCard(
+                                              title: 'No Rehearsal Scheduled',
+                                              subtitle:
+                                                  'The stage is empty and the amps are cold.',
+                                              buttonLabel: 'Schedule Rehearsal',
+                                              onButtonPressed: isContributor
+                                                  ? null
+                                                  : () => _openAddEventSheet(
+                                                        EventType.rehearsal,
+                                                      ),
+                                            ),
                                 ),
 
                                 // Upcoming gigs section
@@ -795,39 +881,132 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     );
   }
 
-  /// Builds a horizontal scrolling list of potential gig cards, sorted by date proximity
-  Widget _buildHorizontalPotentialGigs(
+  /// Builds a horizontal scrolling list of potential events (gigs + rehearsals), sorted by date proximity.
+  Widget _buildHorizontalPotentialEvents(
     List<Gig> potentialGigs,
-    Map<String, GigResponseSummary> responseSummaries,
-    int memberCount,
+    List<Rehearsal> potentialRehearsals,
+    Map<String, String?> gigUserResponses,
+    Map<String, String?> rehearsalUserResponses,
+    SetlistsState setlistsState,
   ) {
-    // Filter out past gigs
-    final now = DateTime.now();
-    final upcomingPotentialGigs = potentialGigs
-        .where((g) => g.date.isAfter(now.subtract(const Duration(days: 1))))
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+
+    final upcomingGigs = potentialGigs
+        .where((g) => g.date.isAfter(yesterday))
+        .map((g) => {'type': 'gig', 'date': g.date, 'gig': g})
         .toList();
 
-    if (upcomingPotentialGigs.isEmpty) {
+    // Filter potential rehearsals to only show parent rehearsals for recurring series
+    // (child instances with parentRehearsalId are excluded)
+    final upcomingRehearsals = potentialRehearsals
+        .where((r) => r.date.isAfter(yesterday) && r.parentRehearsalId == null)
+        .map((r) => {'type': 'rehearsal', 'date': r.date, 'rehearsal': r})
+        .toList();
+
+    final allPotentialEvents = [...upcomingGigs, ...upcomingRehearsals];
+    allPotentialEvents.sort(
+        (a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+
+    if (allPotentialEvents.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // Display as horizontal scrolling list
+    final bandTimezone =
+        ref.watch(activeBandProvider).activeBand?.timezone ?? 'America/Chicago';
+    final bandId = ref.read(activeBandIdProvider);
+    final userId = supabase.auth.currentUser?.id;
+
     return SizedBox(
       height: Spacing.potentialGigCardHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
-        itemCount: upcomingPotentialGigs.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemCount: allPotentialEvents.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
-          final gig = upcomingPotentialGigs[index];
-          return PotentialGigCard(
-            gig: gig,
-            width: Spacing.potentialGigCardWidth,
-            bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
-                'America/Chicago',
-            onTap: () => _openEditGigSheet(gig),
-          );
+          final event = allPotentialEvents[index];
+          final type = event['type'] as String;
+
+          if (type == 'gig') {
+            final gig = event['gig'] as Gig;
+            return PotentialGigCard(
+              gig: gig,
+              width: Spacing.potentialGigCardWidth,
+              bandTimezone: bandTimezone,
+              currentUserResponse: gigUserResponses[gig.id],
+              onRespond: (bandId == null || userId == null)
+                  ? null
+                  : (response) async {
+                      if (response == null) {
+                        // Delete response (unselect)
+                        await ref
+                            .read(gigResponseRepositoryProvider)
+                            .deleteResponse(
+                              gigId: gig.id,
+                              userId: userId,
+                            );
+                      } else {
+                        // Upsert response
+                        await ref
+                            .read(gigResponseRepositoryProvider)
+                            .upsertResponse(
+                              gigId: gig.id,
+                              bandId: bandId,
+                              userId: userId,
+                              response: response,
+                            );
+                      }
+                      ref.invalidate(currentUserGigResponsesProvider);
+                      ref.invalidate(potentialGigResponseSummariesProvider);
+                    },
+              onTap: () => _openEditGigSheet(gig),
+            );
+          } else {
+            final rehearsal = event['rehearsal'] as Rehearsal;
+            String? setlistName;
+            if (rehearsal.setlistId != null) {
+              setlistName = setlistsState.setlists
+                  .where((s) => s.id == rehearsal.setlistId)
+                  .firstOrNull
+                  ?.name;
+            }
+            return SizedBox(
+              width: Spacing.potentialGigCardWidth,
+              child: RehearsalCard(
+                rehearsal: rehearsal,
+                setlistName: setlistName,
+                bandTimezone: bandTimezone,
+                currentUserResponse: rehearsalUserResponses[rehearsal.id],
+                onRespond: (bandId == null || userId == null)
+                    ? null
+                    : (response) async {
+                        if (response == null) {
+                          // Delete response (unselect)
+                          await ref
+                              .read(rehearsalResponseRepositoryProvider)
+                              .deleteResponse(
+                                rehearsalId: rehearsal.id,
+                                userId: userId,
+                              );
+                        } else {
+                          // Upsert response
+                          await ref
+                              .read(rehearsalResponseRepositoryProvider)
+                              .upsertResponse(
+                                rehearsalId: rehearsal.id,
+                                bandId: bandId,
+                                userId: userId,
+                                response: response,
+                              );
+                        }
+                        ref.invalidate(currentUserRehearsalResponsesProvider);
+                        ref.invalidate(
+                            potentialRehearsalResponseSummariesProvider);
+                      },
+                onTap: () => _openEditRehearsalSheet(rehearsal),
+              ),
+            );
+          }
         },
       ),
     );

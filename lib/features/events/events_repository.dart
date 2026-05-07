@@ -103,6 +103,7 @@ class EventsRepository {
           'location': formData.location,
           'notes': formData.notes,
           'setlist_id': formData.setlistId,
+          'is_potential': formData.isPotentialGig,
           // Recurrence fields - store on all instances for consistency
           'is_recurring': formData.isRecurring,
           'recurrence_frequency':
@@ -342,6 +343,7 @@ class EventsRepository {
       'location': formData.location,
       'notes': formData.notes,
       'setlist_id': formData.setlistId,
+      'is_potential': formData.isPotentialGig,
       // Update recurrence fields
       'is_recurring': formData.isRecurring,
       'recurrence_frequency':
@@ -404,6 +406,7 @@ class EventsRepository {
       'location': formData.location,
       'notes': formData.notes,
       'setlist_id': formData.setlistId,
+      'is_potential': formData.isPotentialGig,
       'is_recurring': true,
       'recurrence_frequency': formData.recurrence?.frequency.name,
       'recurrence_days':
@@ -441,6 +444,7 @@ class EventsRepository {
         'location': formData.location,
         'notes': formData.notes,
         'setlist_id': formData.setlistId,
+        'is_potential': formData.isPotentialGig,
         'is_recurring': true,
         'recurrence_frequency': formData.recurrence?.frequency.name,
         'recurrence_days':

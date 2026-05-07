@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -7,10 +8,14 @@ import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/title_case_formatter.dart';
 import '../models/event_form_data.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../members/member_vm.dart';
+import '../../members/members_controller.dart';
+import 'button_group_grid.dart';
+import 'event_editor_helpers.dart';
 
-/// Rehearsal-specific form fields: location autocomplete, recurring toggle,
-/// and the animated recurring section (day selector, frequency, until date).
-class RehearsalFormFields extends StatelessWidget {
+/// Rehearsal-specific form fields: location autocomplete, potential toggle,
+/// recurring toggle, and the animated recurring section.
+class RehearsalFormFields extends ConsumerWidget {
   const RehearsalFormFields({
     super.key,
     required this.isSaving,
@@ -18,6 +23,9 @@ class RehearsalFormFields extends StatelessWidget {
     required this.locationController,
     required this.locationHintController,
     required this.locationSuggestions,
+    // Potential rehearsal toggle
+    required this.isPotential,
+    required this.onPotentialToggled,
     // Recurring state
     required this.isRecurring,
     required this.onRecurringToggled,
@@ -33,6 +41,14 @@ class RehearsalFormFields extends StatelessWidget {
     required this.onUntilDateCleared,
     required this.selectedDate,
     required this.onMarkDirty,
+    // Member availability (for potential rehearsals)
+    required this.memberAvailability,
+    required this.isLoadingMemberAvailability,
+    required this.isLoadingUserResponse,
+    this.currentUserResponse,
+    this.onUserResponseChanged,
+    this.isEditMode = false,
+    this.existingEventId,
   });
 
   final bool isSaving;
@@ -41,6 +57,10 @@ class RehearsalFormFields extends StatelessWidget {
   final TextEditingController locationController;
   final FieldHintController locationHintController;
   final List<String> locationSuggestions;
+
+  // --- Potential rehearsal toggle ---
+  final bool isPotential;
+  final ValueChanged<bool> onPotentialToggled;
 
   // --- Recurring toggle ---
   final bool isRecurring;
@@ -59,13 +79,27 @@ class RehearsalFormFields extends StatelessWidget {
   final DateTime selectedDate;
   final VoidCallback onMarkDirty;
 
+  // --- Member availability ---
+  final Map<String, String?> memberAvailability;
+  final bool isLoadingMemberAvailability;
+  final String? currentUserResponse;
+  final ValueChanged<String>? onUserResponseChanged;
+  final bool isEditMode;
+  final String? existingEventId;
+  final bool isLoadingUserResponse;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Location autocomplete
         _buildLocationAutocomplete(context),
+
+        const SizedBox(height: Spacing.space16),
+
+        // Potential Rehearsal Toggle + Member Grid
+        _buildPotentialToggle(context, ref),
 
         const SizedBox(height: Spacing.space16),
 
@@ -215,31 +249,223 @@ class RehearsalFormFields extends StatelessWidget {
   }
 
   // ---------------------------------------------------------------------------
+  // Potential Toggle
+  // ---------------------------------------------------------------------------
+
+  Widget _buildPotentialToggle(BuildContext context, WidgetRef ref) {
+    final membersState = ref.watch(membersProvider);
+    final members = membersState.members;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: const EdgeInsets.all(Spacing.space12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border:
+            isPotential ? Border.all(color: AppColors.primary, width: 2) : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Potential Rehearsal',
+                      style: AppTextStyles.callout.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Requires member confirmation before rehearsal is official.',
+                      style: AppTextStyles.footnote.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch.adaptive(
+                value: isPotential,
+                onChanged: isSaving ? null : onPotentialToggled,
+                activeTrackColor: AppColors.primary,
+                thumbColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return Colors.white;
+                  }
+                  return null;
+                }),
+              ),
+            ],
+          ),
+          // Member grid — shown when potential is ON
+          if (isPotential) ...[
+            const SizedBox(height: Spacing.space12),
+            if (membersState.isLoading || isLoadingMemberAvailability)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              )
+            else ...[
+              ButtonGroupGrid<MemberVM>(
+                items: members,
+                labelBuilder: (member) => _getMemberLabel(member, members),
+                labelWidgetBuilder: (member) => _buildMemberLabelWidget(
+                    context, member, members, memberAvailability),
+                isSelected: (_) => false,
+                availabilityMode: true,
+                availabilityState: (member) {
+                  final response = memberAvailability[member.userId];
+                  if (response == 'yes') return AvailabilityState.available;
+                  if (response == 'no') return AvailabilityState.notAvailable;
+                  return AvailabilityState.notResponded;
+                },
+                onTap: null,
+              ),
+              if (isEditMode && existingEventId != null)
+                _buildUserAvailabilitySection(context),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Member label helpers (mirrors gig_form_fields.dart logic)
+  // ---------------------------------------------------------------------------
+
+  String _getMemberLabel(MemberVM member, List<MemberVM> allMembers) {
+    final disambiguation = _getMemberDisambiguation(member, allMembers);
+    if (disambiguation == null) {
+      final name = member.name;
+      return name.length > 10 ? '${name.substring(0, 9)}…' : name;
+    }
+    return disambiguation.line1;
+  }
+
+  Widget? _buildMemberLabelWidget(
+    BuildContext context,
+    MemberVM member,
+    List<MemberVM> allMembers,
+    Map<String, String?> memberAvailability,
+  ) {
+    final disambiguation = _getMemberDisambiguation(member, allMembers);
+    if (disambiguation == null || !disambiguation.requiresTwoLines) return null;
+
+    final textColor = context.colors.textSecondary;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          disambiguation.line1,
+          style: AppTextStyles.footnote.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+        ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            disambiguation.line2!,
+            style: AppTextStyles.navLabel.copyWith(
+              color: textColor.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
+  }
+
+  MemberDisambiguation? _getMemberDisambiguation(
+    MemberVM member,
+    List<MemberVM> allMembers,
+  ) {
+    final firstName = member.firstName;
+    if (firstName == null || firstName.isEmpty) return null;
+
+    final sameFirstName =
+        allMembers.where((m) => m.firstName == firstName).toList();
+
+    if (sameFirstName.length <= 1) {
+      final label =
+          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName;
+      return MemberDisambiguation(line1: label);
+    }
+
+    if (member.lastName == null || member.lastName!.isEmpty) {
+      final label =
+          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName;
+      return MemberDisambiguation(line1: label);
+    }
+
+    final lastInitial = member.lastName![0].toUpperCase();
+    final sameFirstAndInitial = sameFirstName.where((m) {
+      final mLastName = m.lastName;
+      if (mLastName == null || mLastName.isEmpty) return false;
+      return mLastName[0].toUpperCase() == lastInitial;
+    }).toList();
+
+    if (sameFirstAndInitial.length <= 1) {
+      final label = '$firstName $lastInitial.';
+      return MemberDisambiguation(
+        line1: label.length > 10 ? '${label.substring(0, 9)}…' : label,
+      );
+    }
+
+    return MemberDisambiguation(
+      line1:
+          firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName,
+      line2: member.lastName!,
+      requiresTwoLines: true,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Recurring Toggle
   // ---------------------------------------------------------------------------
 
   Widget _buildRecurringToggle(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Make this recurring',
-            style: AppTextStyles.callout
-                .copyWith(color: context.colors.textPrimary),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.space12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Make this recurring',
+              style: AppTextStyles.callout
+                  .copyWith(color: context.colors.textPrimary),
+            ),
           ),
-        ),
-        Switch.adaptive(
-          value: isRecurring,
-          onChanged: isSaving ? null : onRecurringToggled,
-          activeTrackColor: AppColors.primary,
-          thumbColor: WidgetStateProperty.resolveWith((states) {
-            if (states.contains(WidgetState.selected)) {
-              return Colors.white;
-            }
-            return null;
-          }),
-        ),
-      ],
+          Switch.adaptive(
+            value: isRecurring,
+            onChanged: isSaving ? null : onRecurringToggled,
+            activeTrackColor: AppColors.primary,
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return Colors.white;
+              }
+              return null;
+            }),
+          ),
+        ],
+      ),
     );
   }
 
@@ -509,5 +735,70 @@ class RehearsalFormFields extends StatelessWidget {
       'December',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  // ---------------------------------------------------------------------------
+  // User Availability Section (for editing potential rehearsals)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildUserAvailabilitySection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.space16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 1,
+            margin: const EdgeInsets.only(bottom: Spacing.space12),
+            color: context.colors.border,
+          ),
+          Text(
+            'Your Availability',
+            style: AppTextStyles.footnote.copyWith(
+              color: context.colors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: Spacing.space8),
+          if (isLoadingUserResponse)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: Spacing.space8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: AvailabilityButton(
+                    label: 'NO',
+                    icon: AppIcons.close,
+                    isSelected: currentUserResponse == 'no',
+                    isPositive: false,
+                    isLoading: false,
+                    onPressed: () => onUserResponseChanged?.call('no'),
+                  ),
+                ),
+                const SizedBox(width: Spacing.space12),
+                Expanded(
+                  child: AvailabilityButton(
+                    label: 'YES',
+                    icon: AppIcons.check,
+                    isSelected: currentUserResponse == 'yes',
+                    isPositive: true,
+                    isLoading: false,
+                    onPressed: () => onUserResponseChanged?.call('yes'),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 }

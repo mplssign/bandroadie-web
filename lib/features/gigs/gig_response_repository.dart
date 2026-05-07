@@ -332,6 +332,33 @@ class GigResponseRepository {
     }
   }
 
+  /// Delete the user's response for a gig (unselect).
+  /// Throws [GigResponseError] with user-friendly message on failure.
+  Future<void> deleteResponse({
+    required String gigId,
+    required String userId,
+  }) async {
+    debugPrint(
+      '[GigResponseRepository] deleteResponse: gigId=$gigId, userId=$userId',
+    );
+
+    try {
+      await supabase
+          .from('gig_responses')
+          .delete()
+          .eq('gig_id', gigId)
+          .eq('user_id', userId)
+          .isFilter('gig_date_id', null);
+      debugPrint('[GigResponseRepository] Delete successful');
+    } catch (e, stackTrace) {
+      debugPrint('[GigResponseRepository] Delete failed: $e');
+      debugPrint('[GigResponseRepository] Stack trace: $stackTrace');
+      throw GigResponseError.fromException(
+        e is Exception ? e : Exception(e.toString()),
+      );
+    }
+  }
+
   /// Check if an error is non-retryable (permissions, RLS violation, etc.)
   bool _isNonRetryableError(dynamic error) {
     final message = error.toString().toLowerCase();
@@ -705,6 +732,28 @@ class GigResponseRepository {
 
     return summaries;
   }
+
+  /// Fetch the current user's own responses for multiple potential gigs.
+  /// Returns gigId → 'yes'/'no'/null (null = not responded).
+  Future<Map<String, String?>> fetchCurrentUserGigResponses({
+    required List<String> gigIds,
+    required String userId,
+  }) async {
+    if (gigIds.isEmpty) return {};
+
+    final responses = await supabase
+        .from('gig_responses')
+        .select('gig_id, response')
+        .eq('user_id', userId)
+        .isFilter('gig_date_id', null) // primary date only
+        .inFilter('gig_id', gigIds);
+
+    final result = <String, String?>{for (final id in gigIds) id: null};
+    for (final r in responses) {
+      result[r['gig_id'] as String] = r['response'] as String?;
+    }
+    return result;
+  }
 }
 
 /// Provider for the repository
@@ -763,5 +812,32 @@ final potentialGigResponseSummariesProvider =
   } catch (e) {
     debugPrint('[potentialGigResponseSummariesProvider] Error: $e');
     rethrow;
+  }
+});
+
+/// Async provider for the current user's own responses across all potential gigs.
+/// Returns gigId → 'yes'/'no'/null. Invalidated after the user submits a response.
+final currentUserGigResponsesProvider =
+    FutureProvider<Map<String, String?>>((ref) async {
+  final gigState = ref.watch(gigProvider);
+  final bandId = ref.watch(activeBandIdProvider);
+  final userId = supabase.auth.currentUser?.id;
+
+  if (bandId == null || userId == null || gigState.potentialGigs.isEmpty) {
+    return {};
+  }
+  if (gigState.isLoading) return {};
+
+  final repository = ref.read(gigResponseRepositoryProvider);
+  final gigIds = gigState.potentialGigs.map((g) => g.id).toList();
+
+  try {
+    return await repository.fetchCurrentUserGigResponses(
+      gigIds: gigIds,
+      userId: userId,
+    );
+  } catch (e) {
+    debugPrint('[currentUserGigResponsesProvider] Error: $e');
+    return {};
   }
 });
