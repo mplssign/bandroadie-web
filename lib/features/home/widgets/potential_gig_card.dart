@@ -117,8 +117,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
       try {
         await widget.onRespond!(null); // null means delete
       } catch (_) {
-        if (mounted)
+        if (mounted) {
           setState(() => _localResponse = widget.currentUserResponse);
+        }
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
       }
