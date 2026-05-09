@@ -43,7 +43,8 @@ String applyEmailDomainShortcut(String current, String domain) {
 /// Common email domains for shortcuts.
 const List<String> emailDomainShortcuts = [
   '@gmail.com',
-  '@yahoo.com',
   '@icloud.com',
+  '@yahoo.com',
+  '@hotmail.com',
   '@outlook.com',
 ];
