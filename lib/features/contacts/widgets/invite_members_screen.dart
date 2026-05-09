@@ -95,7 +95,9 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     final email = _inviteEmailController.text.trim().toLowerCase();
     if (email.isEmpty) return;
 
-    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
+    final emailRegex = RegExp(
+      r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+    );
     if (!emailRegex.hasMatch(email)) {
       _showErrorSnackBar('Please enter a valid email address');
       return;
@@ -360,7 +362,8 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
           ),
