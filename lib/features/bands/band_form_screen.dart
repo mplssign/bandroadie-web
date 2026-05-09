@@ -258,7 +258,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final email = _emailController.text.trim().toLowerCase();
     if (email.isEmpty) return;
 
-    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$');
+    final emailRegex = RegExp(
+      r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+    );
     if (!emailRegex.hasMatch(email)) {
       showErrorSnackBar(context, message: 'Please enter a valid email address');
       return;
