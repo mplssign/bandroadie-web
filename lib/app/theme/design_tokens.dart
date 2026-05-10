@@ -220,7 +220,7 @@ class StandardCardBorder {
 }
 
 /// Brand action button styling (rose-outlined buttons)
-/// Matches the "Let's get this show started" hero card styling
+/// Brand gradient styling for primary action cards
 class BrandButton {
   BrandButton._();
 

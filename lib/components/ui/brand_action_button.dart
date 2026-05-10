@@ -7,7 +7,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 /// rose-accent styling (gradient background + rose border).
 ///
 /// Features:
-/// - Gradient background matching "Let's get this show started" hero card
+/// - Brand gradient background with rose accent
 /// - Rose-accent border at 20% opacity
 /// - Optional leading icon
 /// - Loading state with spinner
