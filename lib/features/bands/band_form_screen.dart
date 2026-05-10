@@ -14,6 +14,8 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
+import '../../components/ui/domain_chip.dart';
+import '../../shared/utils/email_domain_helper.dart';
 import '../../shared/utils/initials.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -121,7 +123,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   File? _selectedImage;
   String? _uploadedImageUrl;
   final ImagePicker _imagePicker = ImagePicker();
-  String? _selectedEmailDomain;
+  String? _selectedDomain;
 
   // Initial values for dirty state detection (edit mode)
   String _initialName = '';
@@ -1464,9 +1466,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     }
   }
 
-  void _addEmailDomain(String domain) {
-    final currentText = _emailController.text.trim();
-    if (currentText.isEmpty) {
+  void _applyDomainShortcut(String domain) {
+    final current = _emailController.text;
+    final result = applyEmailDomainShortcut(current, domain);
+
+    if (result.isEmpty) {
       showAppSnackBar(
         context,
         message: 'Please enter a username first',
@@ -1475,18 +1479,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       return;
     }
 
-    String newEmail;
-    if (currentText.contains('@')) {
-      final username = currentText.split('@').first;
-      newEmail = '$username$domain';
-    } else {
-      newEmail = '$currentText$domain';
-    }
-
-    setState(() {
-      _emailController.text = newEmail;
-      _selectedEmailDomain = domain;
-    });
+    _emailController.text = result;
+    _emailController.selection = TextSelection.fromPosition(
+      TextPosition(offset: result.length),
+    );
+    setState(() => _selectedDomain = domain);
     HapticFeedback.selectionClick();
   }
 
@@ -2115,50 +2112,23 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   }
 
   Widget _buildEmailDomainShortcuts() {
-    const domains = ['@gmail.com', '@yahoo.com', '@icloud.com', '@outlook.com'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       child: Row(
-        children: domains.asMap().entries.map((entry) {
+        mainAxisSize: MainAxisSize.min,
+        children: emailDomainShortcuts.asMap().entries.map((entry) {
           final index = entry.key;
           final domain = entry.value;
-          final isSelected = _selectedEmailDomain == domain;
           return Padding(
-            padding: EdgeInsets.only(right: index < domains.length - 1 ? 8 : 0),
-            child: GestureDetector(
-              onTap: () {
-                setState(
-                  () => _selectedEmailDomain = isSelected ? null : domain,
-                );
-                _addEmailDomain(domain);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.space8,
-                  vertical: Spacing.space8,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? Colors.transparent
-                      : context.colors.surfaceOverlay,
-                  borderRadius: BorderRadius.circular(50),
-                  border: isSelected
-                      ? Border.all(color: AppColors.primary, width: 1)
-                      : null,
-                ),
-                child: Text(
-                  domain,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    height: 1.33,
-                    color: isSelected
-                        ? AppColors.primary
-                        : context.colors.textPrimary,
-                  ),
-                ),
-              ),
+            padding: EdgeInsets.only(
+              right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
+            ),
+            child: DomainChip(
+              domain: domain,
+              isSelected: _selectedDomain == domain,
+              isEnabled: true, // Always enabled in create mode
+              onTap: () => _applyDomainShortcut(domain),
             ),
           );
         }).toList(),
