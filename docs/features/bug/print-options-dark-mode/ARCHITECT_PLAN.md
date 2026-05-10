@@ -92,7 +92,8 @@ return showModalBottomSheet<void>(
 );
 ```
 
-**Rationale**: 
+**Rationale**:
+
 - `Theme.of(context).colorScheme.surface` is the standard Material 3 surface color, which is already configured correctly in `app_theme.dart` to use `BrandColors.dark.surface` for dark mode
 - This is the minimal change — one line replacement
 - No new colors introduced; uses existing theme infrastructure
@@ -110,18 +111,18 @@ return showModalBottomSheet<void>(
 
 ## System Impact Assessment
 
-| System | Impact |
-|--------|--------|
-| Gigs | unaffected |
-| Rehearsals | unaffected |
+| System             | Impact                                  |
+| ------------------ | --------------------------------------- |
+| Gigs               | unaffected                              |
+| Rehearsals         | unaffected                              |
 | Setlists / Catalog | affected — print options rendering only |
-| Members / RBAC | unaffected |
-| Auth / Session | unaffected |
-| Routing | unaffected |
-| Database | not applicable |
-| RLS | not applicable |
-| RPC | not applicable |
-| Edge Functions | not applicable |
+| Members / RBAC     | unaffected                              |
+| Auth / Session     | unaffected                              |
+| Routing            | unaffected                              |
+| Database           | not applicable                          |
+| RLS                | not applicable                          |
+| RPC                | not applicable                          |
+| Edge Functions     | not applicable                          |
 
 ---
 
@@ -179,6 +180,7 @@ return showModalBottomSheet<void>(
 5. Verify no regressions in print options functionality
 
 **Do not**:
+
 - Refactor any other part of the print options widget
 - Change any other colors or styles
 - Add new color constants
