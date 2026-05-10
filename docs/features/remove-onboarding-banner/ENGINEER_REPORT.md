@@ -346,3 +346,75 @@ Successfully removed the onboarding banner from the dashboard empty state by:
 6. Cleaning up unused imports
 
 The remaining empty-state UI (Rehearsal card, Gigs card, Quick Actions) continues to function identically. No backend, database, or architectural changes were required. The implementation is minimal, safe, and ready for QA validation across all platforms.
+
+---
+
+## Remediation
+
+**Date:** May 9, 2026  
+**Trigger:** QA identified 3 blocking issues with branch state
+
+### Issues Identified by QA
+
+1. **Wrong commits on branch:** Commits `8bc79d1` and `23b3bff` from the email domain shortcuts feature were present on `bug/remove-onboarding-banner` branch
+2. **Implementation not committed:** All code changes existed only in the working tree (unstaged)
+3. **Unrelated file modified:** `docs/features/email-domain-shortcut-bar/QA_REPORT.md` had modifications not approved by Architect plan
+
+### Remediation Steps Executed
+
+```bash
+# 1. Confirmed current state
+git branch --show-current  # bug/remove-onboarding-banner
+git status --short         # 4 unstaged modified files
+
+# 2. Stashed working tree changes
+git stash push -m "banner-fix-working-tree"
+
+# 3. Reset branch to main (removed wrong commits)
+git reset --hard main
+
+# 4. Restored working tree changes
+git stash pop
+
+# 5. Resolved merge conflict and removed unrelated file
+git rm docs/features/email-domain-shortcut-bar/QA_REPORT.md
+
+# 6. Verified only 3 approved files remained staged
+git status --short
+# M  lib/app/theme/design_tokens.dart
+# M  lib/components/ui/brand_action_button.dart
+# M  lib/features/home/widgets/empty_home_state.dart
+
+# 7. Added docs and committed
+git add docs/features/remove-onboarding-banner/*.md
+git commit -m "fix(home): remove onboarding banner from dashboard empty state"
+```
+
+### Final Git State
+
+- **Branch:** `bug/remove-onboarding-banner`
+- **Commits ahead of main:** 1 (commit `639892d`)
+- **Working tree:** Clean
+- **Files in commit:** 6 (3 implementation files + 3 documentation files)
+
+**Verification:**
+```bash
+$ git log --oneline main..bug/remove-onboarding-banner
+639892d (HEAD -> bug/remove-onboarding-banner) fix(home): remove onboarding banner from dashboard empty state
+
+$ git status --short
+?? dart_defines.json
+```
+
+### Root Cause Analysis
+
+The wrong commits were present because the branch was created from or merged with another feature branch instead of being based directly on `main`. The working tree changes were never committed, likely due to an interrupted workflow.
+
+### Resolution Confirmation
+
+✅ All 3 QA blockers resolved:
+- Removed wrong feature commits from branch history
+- Committed implementation with correct message
+- Discarded unrelated file modifications
+
+Branch is now in correct state for QA validation.
