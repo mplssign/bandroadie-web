@@ -1,10 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'empty_section_card.dart';
 import 'home_app_bar.dart';
 import 'quick_actions_row.dart';
@@ -57,8 +55,8 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
       vsync: this,
     );
 
-    // Create staggered animations for 4 sections
-    _fadeAnimations = List.generate(4, (index) {
+    // Create staggered animations for 3 sections
+    _fadeAnimations = List.generate(3, (index) {
       final start = index * 0.15;
       final end = (start + 0.4).clamp(0.0, 1.0);
       return Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -69,7 +67,7 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
       );
     });
 
-    _slideAnimations = List.generate(4, (index) {
+    _slideAnimations = List.generate(3, (index) {
       final start = index * 0.15;
       final end = (start + 0.4).clamp(0.0, 1.0);
       return Tween<Offset>(
@@ -128,16 +126,11 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: Spacing.space32),
-
-                // Empty hero message
-                _buildAnimatedSection(0, _EmptyHeroSection()),
-
                 const SizedBox(height: 34),
 
                 // Rehearsal section
                 _buildAnimatedSection(
-                  1,
+                  0,
                   EmptySectionCard(
                     title: 'No Rehearsal Scheduled',
                     subtitle: 'The stage is empty and the amps are cold.',
@@ -150,7 +143,7 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
 
                 // Gigs section
                 _buildAnimatedSection(
-                  2,
+                  1,
                   EmptySectionCard(
                     title: 'No Upcoming Gigs',
                     subtitle:
@@ -165,7 +158,7 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                 // Quick actions (only shown when at least one action is available)
                 if (widget.onAddEvent != null || widget.onCreateSetlist != null)
                   _buildAnimatedSection(
-                    3,
+                    2,
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -193,61 +186,6 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Hero section for empty state with encouraging copy
-class _EmptyHeroSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.space24),
-      decoration: BrandButton.decoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.rocket_launch_rounded,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: Spacing.space16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Let's get this show started!",
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: context.colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.space4),
-                    Text(
-                      'Add your first gig or rehearsal below.',
-                      style: AppTextStyles.cardSubtitle,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

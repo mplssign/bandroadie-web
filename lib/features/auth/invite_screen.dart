@@ -9,6 +9,8 @@ import 'auth_gate.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/domain_chip.dart';
+import 'package:bandroadie/shared/utils/email_domain_helper.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -35,6 +37,7 @@ class _InviteScreenState extends State<InviteScreen> {
   bool _magicLinkSent = false;
   StreamSubscription<AuthState>? _authSubscription;
   bool _hasTriedAccept = false;
+  String? _selectedDomain;
 
   @override
   void initState() {
@@ -231,6 +234,23 @@ class _InviteScreenState extends State<InviteScreen> {
     }
   }
 
+  void _applyDomainShortcut(String domain) {
+    if (_signingIn) return;
+
+    final current = _emailController.text;
+    final result = applyEmailDomainShortcut(current, domain);
+
+    if (result.isEmpty) {
+      return;
+    }
+
+    _emailController.text = result;
+    _emailController.selection = TextSelection.fromPosition(
+      TextPosition(offset: result.length),
+    );
+    setState(() => _selectedDomain = domain);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -412,6 +432,29 @@ class _InviteScreenState extends State<InviteScreen> {
               ),
             ),
             onSubmitted: (_) => _sendMagicLink(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: emailDomainShortcuts.asMap().entries.map((entry) {
+              final index = entry.key;
+              final domain = entry.value;
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
+                ),
+                child: DomainChip(
+                  domain: domain,
+                  isSelected: _selectedDomain == domain,
+                  isEnabled: !_signingIn,
+                  onTap: () => _applyDomainShortcut(domain),
+                ),
+              );
+            }).toList(),
           ),
         ),
         const SizedBox(height: 16),
