@@ -398,6 +398,7 @@ git commit -m "fix(home): remove onboarding banner from dashboard empty state"
 - **Files in commit:** 6 (3 implementation files + 3 documentation files)
 
 **Verification:**
+
 ```bash
 $ git log --oneline main..bug/remove-onboarding-banner
 639892d (HEAD -> bug/remove-onboarding-banner) fix(home): remove onboarding banner from dashboard empty state
@@ -413,6 +414,7 @@ The wrong commits were present because the branch was created from or merged wit
 ### Resolution Confirmation
 
 ✅ All 3 QA blockers resolved:
+
 - Removed wrong feature commits from branch history
 - Committed implementation with correct message
 - Discarded unrelated file modifications
