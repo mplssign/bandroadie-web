@@ -29,17 +29,29 @@ class AnimatedBandRoadieLogo extends StatelessWidget {
 }
 
 /// Static version of the logo for use without animation.
-/// Falls back to PNG if SVG fails to load.
+/// Provide [width] to size by width (height scales proportionally),
+/// or [height] to size by height. If both are null, defaults to height 80.
 class BandRoadieLogo extends StatelessWidget {
-  const BandRoadieLogo({super.key, this.height = 80});
+  const BandRoadieLogo({
+    super.key,
+    this.height,
+    this.width,
+    this.asset = 'assets/images/bandroadie_logo_optimized.svg',
+  });
 
-  final double height;
+  final double? height;
+  final double? width;
+
+  /// Asset path for the SVG logo. Defaults to the standard b&w optimized logo.
+  /// Pass a different path to use a logo variant (e.g. rose+tag on the login screen).
+  final String asset;
 
   @override
   Widget build(BuildContext context) {
     return SvgPicture.asset(
-      'assets/images/bandroadie_logo_optimized.svg',
-      height: height,
+      asset,
+      height: height ?? (width == null ? 80 : null),
+      width: width,
       fit: BoxFit.contain,
       semanticsLabel: 'Band Roadie Logo',
     );

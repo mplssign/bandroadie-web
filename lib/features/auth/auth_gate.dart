@@ -14,6 +14,7 @@ import '../shell/app_shell.dart';
 import '../shell/no_band_shell.dart';
 import 'auth_state_provider.dart';
 import 'login_screen.dart';
+import 'splash_screen.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -30,6 +31,7 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate>
     with WidgetsBindingObserver {
+  bool _showSplash = true;
   bool _initialized = false;
   bool _checkingProfile = false;
   bool? _profileComplete;
@@ -357,6 +359,31 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // Any change to auth state will trigger a rebuild
     final authState = ref.watch(authStateProvider);
 
+    // Build the real auth content first so it sits in the tree as the
+    // splash wipes away — the wipe reveals this content underneath.
+    final authContent = _buildAuthContent(context, authState);
+
+    debugPrint(
+        '[AuthGate] build() - _showSplash=$_showSplash, authenticated=${authState.isAuthenticated}');
+
+    if (_showSplash) {
+      return Stack(
+        children: [
+          authContent,
+          SplashScreen(
+            onComplete: () {
+              debugPrint('[AuthGate] Splash completed, hiding splash screen');
+              setState(() => _showSplash = false);
+            },
+          ),
+        ],
+      );
+    }
+
+    return authContent;
+  }
+
+  Widget _buildAuthContent(BuildContext context, AppAuthState authState) {
     // Show loading while initializing
     if (!_initialized) {
       return Scaffold(

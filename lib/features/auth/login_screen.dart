@@ -133,8 +133,8 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    // Shrink to 50% of the displayed size when keyboard is up
-    _logoShrinkScale = Tween<double>(begin: 1.0, end: 0.5).animate(
+    // Shrink to 75% of the displayed size when keyboard is up
+    _logoShrinkScale = Tween<double>(begin: 1.0, end: 0.75).animate(
       CurvedAnimation(
         parent: _logoShrinkController,
         curve: Curves.easeOutCubic,
@@ -365,15 +365,15 @@ class _LoginScreenState extends State<LoginScreen>
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - (keyboardHeight * 0.5),
                   ),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: AnimatedBuilder(
-                        animation: _animController,
-                        builder: (context, _) => _buildContentCluster(
-                          hasValidEmail: hasValidEmail,
-                          maxWidth: constraints.maxWidth - 64,
-                        ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: AnimatedBuilder(
+                      animation: _animController,
+                      builder: (context, _) => _buildContentCluster(
+                        hasValidEmail: hasValidEmail,
+                        maxWidth: constraints.maxWidth - 64,
+                        availableHeight:
+                            constraints.maxHeight - (keyboardHeight * 0.5),
                       ),
                     ),
                   ),
@@ -386,18 +386,29 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  /// Builds the centered content cluster with all animated elements.
+  /// Builds the content cluster.
+  ///
+  /// Layout contract:
+  ///   - Logo occupies the upper half of [availableHeight], centered within it.
+  ///     This places the logo's vertical center at exactly half the distance
+  ///     between the top of the screen and the top of the email field.
+  ///   - Logo width is 90% of the email field width.
+  ///   - Form elements start at the midpoint of the available screen height.
   Widget _buildContentCluster({
     required bool hasValidEmail,
     required double maxWidth,
+    required double availableHeight,
   }) {
+    final logoWidth = (maxWidth * 0.9).clamp(0.0, 600.0);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // === LOGO ===
-        _buildLogo(),
-
-        const SizedBox(height: 48),
+        // === LOGO — centered in upper half ===
+        SizedBox(
+          height: availableHeight / 2,
+          child: Center(child: _buildLogo(logoWidth: logoWidth)),
+        ),
 
         // === EMAIL FIELD ===
         _buildEmailField(),
@@ -414,12 +425,17 @@ class _LoginScreenState extends State<LoginScreen>
 
         // === MESSAGE ===
         if (_message != null) ...[const SizedBox(height: 20), _buildMessage()],
+
+        const SizedBox(height: 40),
       ],
     );
   }
 
-  /// Logo with fade + scale animation.
-  Widget _buildLogo() {
+  /// Logo with fade + scale animation and a rose glow bloom behind it.
+  ///
+  /// [logoWidth] is 90% of the email field width, passed from _buildContentCluster.
+  Widget _buildLogo({required double logoWidth}) {
+
     return FadeTransition(
       opacity: _titleOpacity,
       child: ScaleTransition(
@@ -428,7 +444,10 @@ class _LoginScreenState extends State<LoginScreen>
           animation: _logoShrinkScale,
           builder: (context, child) =>
               Transform.scale(scale: _logoShrinkScale.value, child: child),
-          child: const BandRoadieLogo(height: 80),
+          child: BandRoadieLogo(
+            width: logoWidth,
+            asset: 'assets/images/bandroadie_logo_rose_tag.svg',
+          ),
         ),
       ),
     );
