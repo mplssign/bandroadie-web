@@ -183,14 +183,10 @@ class RehearsalResponseRepository {
     }
 
     // Build set of rehearsals user has responded to
-    final respondedRehearsalIds = <String>{};
-    for (final r in responsesResponse) {
-      final response = r['response'] as String?;
-      // Only count as responded if they have a yes/no response
-      if (response == 'yes' || response == 'no') {
-        respondedRehearsalIds.add(r['rehearsal_id'] as String);
-      }
-    }
+    // If a response row exists, the user has responded (DB constraint ensures valid 'yes'/'no' values)
+    final respondedRehearsalIds = <String>{
+      for (final r in responsesResponse) r['rehearsal_id'] as String,
+    };
 
     // Filter out rehearsals user has already responded to
     final pendingRehearsals = <PendingPotentialRehearsal>[];

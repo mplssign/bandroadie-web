@@ -905,7 +905,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
     final allPotentialEvents = [...upcomingGigs, ...upcomingRehearsals];
     allPotentialEvents.sort(
-        (a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+        (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
 
     if (allPotentialEvents.isEmpty) {
       return const SizedBox.shrink();

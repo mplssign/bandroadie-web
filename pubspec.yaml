@@ -2,7 +2,7 @@ name: bandroadie
 description: "Gig and setlist management for bands."
 publish_to: "none"
 
-version: 1.2.15+144
+version: 1.2.15+145
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -67,6 +67,15 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  remove_alpha_ios: true
+  # Adaptive icon for Android (Material Design)
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+  adaptive_icon_background: "#000000"
 
 flutter:
   uses-material-design: true

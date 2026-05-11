@@ -197,14 +197,10 @@ class GigResponseRepository {
     }
 
     // Build set of gigs user has responded to
-    final respondedGigIds = <String>{};
-    for (final r in responsesResponse) {
-      final response = r['response'] as String?;
-      // Only count as responded if they have a yes/no response
-      if (response == 'yes' || response == 'no') {
-        respondedGigIds.add(r['gig_id'] as String);
-      }
-    }
+    // If a response row exists, the user has responded (DB constraint ensures valid 'yes'/'no' values)
+    final respondedGigIds = <String>{
+      for (final r in responsesResponse) r['gig_id'] as String,
+    };
 
     // Filter out gigs user has already responded to
     final pendingGigs = <PendingPotentialGig>[];
