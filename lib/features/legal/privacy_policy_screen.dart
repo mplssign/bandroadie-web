@@ -24,7 +24,10 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
               )
             : null,
-        title: const BandRoadieLogo(height: 32),
+        title: const BandRoadieLogo(
+          height: 32,
+          asset: 'assets/images/bandroadie_logo_rose_tag.svg',
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

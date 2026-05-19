@@ -10,6 +10,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
+import '../auth/splash_complete_provider.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/band_full_state.dart';
 import '../calendar/calendar_controller.dart';
@@ -88,9 +89,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       ),
     );
 
-    // Start entrance animation
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) _entranceController.forward();
+    // Start entrance animation after splash completes
+    // Check immediately in case splash already completed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndStartAnimation();
     });
 
     // Note: We no longer call loadUserBands() here because AuthGate
@@ -101,6 +103,32 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _listenForBandAndCheckPrompts();
     });
+  }
+
+  /// Check if splash is complete and start entrance animation
+  void _checkAndStartAnimation() {
+    if (!mounted) return;
+    final splashComplete = ref.read(splashCompleteProvider);
+    if (splashComplete) {
+      debugPrint(
+          '[HomeTabContent] Splash complete, starting entrance animation');
+      _entranceController.forward();
+    } else {
+      // Listen for splash completion
+      debugPrint('[HomeTabContent] Waiting for splash to complete...');
+      ref.listenManual<bool>(
+        splashCompleteProvider,
+        (previous, next) {
+          if (next == true && mounted) {
+            debugPrint(
+                '[HomeTabContent] Splash completed, starting entrance animation');
+            Future.delayed(const Duration(milliseconds: 50), () {
+              if (mounted) _entranceController.forward();
+            });
+          }
+        },
+      );
+    }
   }
 
   /// Track if we've already checked for this band to avoid duplicate checks

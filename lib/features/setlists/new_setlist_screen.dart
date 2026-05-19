@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
@@ -23,6 +22,8 @@ import 'tuning/tuning_helpers.dart';
 import 'widgets/action_buttons_row.dart';
 import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
 import 'widgets/add_to_setlist/bulk_entry_screen.dart';
+import 'widgets/add_to_setlist/category_button.dart';
+import 'widgets/add_to_setlist/original_song_screen.dart';
 import 'widgets/back_only_app_bar.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/song_lookup_overlay.dart';
@@ -452,6 +453,134 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     );
   }
 
+  /// Handle Original Song entry — shows full-screen modal
+  void _handleOriginalSongEntry() {
+    if (_setlistId == null) return;
+    final bandId = ref.read(activeBandIdProvider);
+    final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
+    if (bandId == null) return;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'Original Song Entry',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return Material(
+          color: Colors.transparent,
+          child: SafeArea(
+            child: Container(
+              margin: const EdgeInsets.all(Spacing.space16),
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                border: Border.all(color: context.colors.border, width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                child: OriginalSongScreen(
+                  defaultArtist: bandName,
+                  onSubmit: (songs) async {
+                    final addedCount =
+                        await _handleOriginalSongsSubmit(bandId, songs);
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                    return addedCount;
+                  },
+                  onBack: () => Navigator.of(dialogContext).pop(),
+                  onClose: () => Navigator.of(dialogContext).pop(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutQuart,
+          reverseCurve: Curves.easeInQuart,
+        );
+
+        return FadeTransition(
+          opacity: curvedAnimation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.05),
+              end: Offset.zero,
+            ).animate(curvedAnimation),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Handle Bulk Entry — shows full-screen modal
+  void _handleBulkEntry() {
+    if (_setlistId == null) return;
+    final bandId = ref.read(activeBandIdProvider);
+    if (bandId == null) return;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'Bulk Entry',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (dialogContext, animation, secondaryAnimation) {
+        return Material(
+          color: Colors.transparent,
+          child: SafeArea(
+            child: Container(
+              margin: const EdgeInsets.all(Spacing.space16),
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                border: Border.all(color: context.colors.border, width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                child: BulkEntryScreen(
+                  onSubmit: (validRows) async {
+                    final result =
+                        await _handleBulkSongsSubmit(bandId, validRows);
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                    return result;
+                  },
+                  onBack: () => Navigator.of(dialogContext).pop(),
+                  onClose: () => Navigator.of(dialogContext).pop(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curvedAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutQuart,
+          reverseCurve: Curves.easeInQuart,
+        );
+
+        return FadeTransition(
+          opacity: curvedAnimation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.05),
+              end: Offset.zero,
+            ).animate(curvedAnimation),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   /// Undo bulk add by removing songs from the setlist
   Future<void> _handleUndoBulkAdd(List<String> setlistSongIds) async {
     if (setlistSongIds.isEmpty) return;
@@ -700,7 +829,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               SizedBox(height: Spacing.space16),
               Text(
                 'Creating setlist...',
-                style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 16),
               ),
             ],
           ),
@@ -1005,7 +1135,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
             onSubmitted: (_) => _saveSetlistName(),
@@ -1090,66 +1221,36 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: context.colors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(
-                    AppIcons.music,
-                    color: context.colors.textMuted,
-                    size: 40,
-                  ),
-                ),
-                const SizedBox(height: Spacing.space24),
+                // Subtitle
                 Text(
-                  'Silence is Golden...',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: context.colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: Spacing.space12),
-                Text(
-                  "But this setlist is looking a bit too quiet.\nTime to add some bangers!",
+                  "Choose how you'd like to add songs:",
                   textAlign: TextAlign.center,
                   style: AppTextStyles.callout.copyWith(
                     color: context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: Spacing.space32),
-                GestureDetector(
-                  onTap: _handleAddToSetlist,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.space24,
-                      vertical: Spacing.space12,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary, width: 2),
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          AppIcons.add,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Add to Setlist',
-                          style: AppTextStyles.button.copyWith(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+
+                // Action buttons
+                CategoryButton(
+                  icon: AppIcons.search,
+                  label: 'Cover Song',
+                  subtitle: 'Search by song or artist',
+                  onTap: _handleSongLookup,
+                ),
+                const SizedBox(height: Spacing.space16),
+                CategoryButton(
+                  icon: AppIcons.edit,
+                  label: 'Original Song',
+                  subtitle: 'Add originals or hard to find covers',
+                  onTap: _handleOriginalSongEntry,
+                ),
+                const SizedBox(height: Spacing.space16),
+                CategoryButton(
+                  icon: Icons.list_rounded,
+                  label: 'Bulk Entry',
+                  subtitle: 'Paste from a spreadsheet',
+                  onTap: _handleBulkEntry,
                 ),
               ],
             ),

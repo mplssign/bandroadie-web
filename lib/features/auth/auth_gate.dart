@@ -15,6 +15,7 @@ import '../shell/no_band_shell.dart';
 import 'auth_state_provider.dart';
 import 'login_screen.dart';
 import 'splash_screen.dart';
+import 'splash_complete_provider.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -374,6 +375,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
             onComplete: () {
               debugPrint('[AuthGate] Splash completed, hiding splash screen');
               setState(() => _showSplash = false);
+              // Signal that splash is complete so dashboard can start entrance animation
+              ref.read(splashCompleteProvider.notifier).markComplete();
             },
           ),
         ],
