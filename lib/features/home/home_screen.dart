@@ -63,11 +63,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   late AnimationController _entranceController;
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   // Drawer state
   bool _isDrawerOpen = false;
   bool _isBandSwitcherOpen = false;
+
+  // Track if entrance animation has been triggered
+  bool _hasTriggeredEntrance = false;
 
   // User profile data
   String? _userFirstName;
@@ -88,14 +90,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       curve: AppCurves.ease,
     );
 
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _entranceController,
-        curve: AppCurves.slideIn,
-      ),
-    );
-
     // Load user's bands when screen initializes
     Future.microtask(() {
       ref.read(activeBandProvider.notifier).loadUserBands();
@@ -103,11 +97,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Load user profile data
     _loadUserProfile();
-
-    // Start entrance animation
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) _entranceController.forward();
-    });
   }
 
   Future<void> _loadUserProfile() async {
@@ -364,6 +353,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       );
     } else {
       stateKey = 'content';
+
+      // Trigger entrance animation when content first appears
+      if (!_hasTriggeredEntrance) {
+        _hasTriggeredEntrance = true;
+        _entranceController.forward();
+      }
+
       stateWidget = _buildContentScreen(
         bandState,
         gigState,
@@ -391,10 +387,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Wrap in AnimatedSwitcher for smooth state transitions
     final content = AnimatedSwitcher(
-      duration: AppDurations.medium,
+      duration: stateKey == 'content' ? Duration.zero : AppDurations.medium,
       switchInCurve: AppCurves.ease,
       switchOutCurve: Curves.easeIn,
       transitionBuilder: (child, animation) {
+        // Skip transition for content state - let entrance animation handle it
+        final childKey = (child as KeyedSubtree).key as ValueKey<String>;
+        if (childKey.value == 'content') {
+          return child;
+        }
+
         final slideAnimation = Tween<Offset>(
           begin: const Offset(0.0, 0.02),
           end: Offset.zero,
@@ -642,209 +644,217 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final upcomingGig = gigState.nextConfirmedGig;
     final nextRehearsal = rehearsalState.nextRehearsal;
 
-    return Scaffold(
-      backgroundColor: context.colors.background,
-      extendBody: true,
-      extendBodyBehindAppBar: true,
-      bottomNavigationBar: const BottomNavBar(),
-      body: Stack(
-        children: [
-          // Scrollable content (behind nav bars)
-          Positioned.fill(
-            child: RefreshIndicator(
-              color: AppColors.primary,
-              backgroundColor: context.colors.surface,
-              onRefresh: () async {
-                ref.invalidate(bandFullStateProvider);
-                final bandId = ref.read(activeBandIdProvider);
-                await Future.wait([
-                  ref.read(bandFullStateProvider.future),
-                  ref.read(gigProvider.notifier).refresh(),
-                  ref.read(rehearsalProvider.notifier).refresh(),
-                  if (bandId != null)
-                    ref
-                        .read(calendarProvider.notifier)
-                        .invalidateAndRefresh(bandId: bandId),
-                ]);
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                slivers: [
-                  // Top padding for app bar
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: Spacing.appBarHeight +
-                          MediaQuery.of(context).padding.top,
-                    ),
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Scaffold(
+        backgroundColor: context.colors.background,
+        extendBody: true,
+        extendBodyBehindAppBar: true,
+        bottomNavigationBar: const BottomNavBar(),
+        body: Stack(
+          children: [
+            // Scrollable content (behind nav bars)
+            Positioned.fill(
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                backgroundColor: context.colors.surface,
+                onRefresh: () async {
+                  ref.invalidate(bandFullStateProvider);
+                  final bandId = ref.read(activeBandIdProvider);
+                  await Future.wait([
+                    ref.read(bandFullStateProvider.future),
+                    ref.read(gigProvider.notifier).refresh(),
+                    ref.read(rehearsalProvider.notifier).refresh(),
+                    if (bandId != null)
+                      ref
+                          .read(calendarProvider.notifier)
+                          .invalidateAndRefresh(bandId: bandId),
+                  ]);
+                },
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
                   ),
-                  // Main content with staggered entrance
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.pagePadding,
+                  slivers: [
+                    // Top padding for app bar
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: Spacing.appBarHeight +
+                            MediaQuery.of(context).padding.top,
+                      ),
                     ),
-                    sliver: SliverToBoxAdapter(
-                      child: FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: SlideTransition(
-                          position: _slideAnimation,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: Spacing.space24),
-
-                              // Potential gig card (urgent, needs response)
-                              if (potentialGig != null) ...[
-                                _AnimatedCardEntrance(
-                                  delay: const Duration(milliseconds: 0),
-                                  child: PotentialGigCard(
-                                    gig: potentialGig,
-                                    bandTimezone: bandTimezone,
-                                    onTap: () =>
-                                        _openEditGigSheet(potentialGig),
-                                  ),
-                                ),
-                                const SizedBox(height: Spacing.space24),
-                              ],
-
-                              // Next rehearsal card (no section header per Figma)
-                              _AnimatedCardEntrance(
-                                delay: const Duration(milliseconds: 80),
-                                child: nextRehearsal != null
-                                    ? Builder(
-                                        builder: (context) {
-                                          // Look up setlist name from setlistId
-                                          String? setlistName;
-                                          if (nextRehearsal.setlistId != null) {
-                                            final setlist = setlistsState
-                                                .setlists
-                                                .where(
-                                                  (s) =>
-                                                      s.id ==
-                                                      nextRehearsal.setlistId,
-                                                )
-                                                .firstOrNull;
-                                            setlistName = setlist?.name;
-                                          }
-                                          return RehearsalCard(
-                                            rehearsal: nextRehearsal,
-                                            bandTimezone: bandTimezone,
-                                            setlistName: setlistName,
-                                            onTap: () =>
-                                                _openEditRehearsalSheet(
-                                              nextRehearsal,
-                                            ),
-                                          );
-                                        },
-                                      )
-                                    : EmptySectionCard(
-                                        title: 'No Rehearsal Scheduled',
-                                        subtitle:
-                                            'The stage is empty and the amps are cold.',
-                                        buttonLabel: 'Schedule Rehearsal',
-                                        onButtonPressed: isContributor
-                                            ? null
-                                            : () => _openAddEventSheet(
-                                                  EventType.rehearsal,
-                                                ),
-                                      ),
-                              ),
-
-                              // Upcoming gigs section - horizontal scroll
-                              const SectionHeader(title: 'Upcoming Gigs'),
-                              const SizedBox(height: Spacing.space12),
-                              _AnimatedCardEntrance(
-                                delay: const Duration(milliseconds: 160),
-                                child: upcomingGig != null
-                                    ? _buildHorizontalGigsList(
-                                        gigState, bandTimezone)
-                                    : EmptySectionCard(
-                                        title: 'No Gigs Booked',
-                                        subtitle:
-                                            'The world clearly isn\'t ready yet.',
-                                        buttonLabel: 'Create Gig',
-                                        onButtonPressed: canCreateGig
-                                            ? () => _openAddEventSheet(
-                                                EventType.gig)
-                                            : null,
-                                      ),
-                              ),
-
-                              // Quick actions - horizontal scroll
-                              // Show section if at least one action button is visible
-                              Builder(builder: (context) {
-                                final showAddEvent =
-                                    !isContributor || canCreateGig;
-                                final hasAnyButton =
-                                    showAddEvent || canCreateSetlist;
-                                if (!hasAnyButton) {
-                                  return const SizedBox.shrink();
-                                }
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SectionHeader(title: 'Quick Actions'),
-                                    const SizedBox(height: Spacing.space16),
-                                    _AnimatedCardEntrance(
-                                      delay: const Duration(milliseconds: 240),
-                                      child: QuickActionsRow(
-                                        onAddEvent: showAddEvent
-                                            ? _handleAddEvent
-                                            : null,
-                                        onCreateSetlist: canCreateSetlist
-                                            ? () {
-                                                Navigator.of(context).push(
-                                                  fadeSlideRoute(
-                                                    page:
-                                                        const NewSetlistScreen(),
-                                                  ),
-                                                );
-                                              }
-                                            : null,
-                                        showAddEvent: showAddEvent,
-                                        showCreateSetlist: canCreateSetlist,
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }),
-
-                              // Bottom padding for nav bar (extra space to scroll past)
-                              SizedBox(
-                                height: Spacing.space48 +
-                                    Spacing.bottomNavHeight +
-                                    MediaQuery.of(context).padding.bottom +
-                                    32, // Extra scroll clearance
-                              ),
-                            ],
-                          ),
+                    // Main content with staggered entrance
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.pagePadding,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: _buildDashboardContent(
+                          potentialGig: potentialGig,
+                          nextRehearsal: nextRehearsal,
+                          upcomingGig: upcomingGig,
+                          gigState: gigState,
+                          setlistsState: setlistsState,
+                          bandTimezone: bandTimezone,
+                          canCreateGig: canCreateGig,
+                          canCreateSetlist: canCreateSetlist,
+                          isContributor: isContributor,
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          // Static app bar at top (floating over content)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: HomeAppBar(
-              // Use displayBand for header avatar (shows draft during editing)
-              bandName: displayBand?.name ?? activeBand?.name ?? 'BandRoadie',
-              onMenuTap: _openDrawer,
-              onAvatarTap: _openBandSwitcher,
-              bandAvatarColor:
-                  displayBand?.avatarColor ?? activeBand?.avatarColor,
-              bandImageUrl: displayBand?.imageUrl ?? activeBand?.imageUrl,
-              localImageFile: ref.watch(draftLocalImageProvider),
+            // Static app bar at top (floating over content)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: HomeAppBar(
+                // Use displayBand for header avatar (shows draft during editing)
+                bandName: displayBand?.name ?? activeBand?.name ?? 'BandRoadie',
+                onMenuTap: _openDrawer,
+                onAvatarTap: _openBandSwitcher,
+                bandAvatarColor:
+                    displayBand?.avatarColor ?? activeBand?.avatarColor,
+                bandImageUrl: displayBand?.imageUrl ?? activeBand?.imageUrl,
+                localImageFile: ref.watch(draftLocalImageProvider),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build the main content column with dashboard sections
+  Widget _buildDashboardContent({
+    required Gig? potentialGig,
+    required Rehearsal? nextRehearsal,
+    required Gig? upcomingGig,
+    required GigState gigState,
+    required SetlistsState setlistsState,
+    required String bandTimezone,
+    required bool canCreateGig,
+    required bool canCreateSetlist,
+    required bool isContributor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: Spacing.space24),
+
+        // Potential gig card (urgent, needs response)
+        if (potentialGig != null) ...[
+          _AnimatedCardEntrance(
+            delay: const Duration(milliseconds: 50),
+            child: PotentialGigCard(
+              gig: potentialGig,
+              bandTimezone: bandTimezone,
+              onTap: () => _openEditGigSheet(potentialGig),
             ),
           ),
+          const SizedBox(height: Spacing.space24),
         ],
-      ),
+
+        // Next rehearsal card (no section header per Figma)
+        _AnimatedCardEntrance(
+          delay: const Duration(milliseconds: 100),
+          child: nextRehearsal != null
+              ? Builder(
+                  builder: (context) {
+                    // Look up setlist name from setlistId
+                    String? setlistName;
+                    if (nextRehearsal.setlistId != null) {
+                      final setlist = setlistsState.setlists
+                          .where(
+                            (s) => s.id == nextRehearsal.setlistId,
+                          )
+                          .firstOrNull;
+                      setlistName = setlist?.name;
+                    }
+                    return RehearsalCard(
+                      rehearsal: nextRehearsal,
+                      bandTimezone: bandTimezone,
+                      setlistName: setlistName,
+                      onTap: () => _openEditRehearsalSheet(
+                        nextRehearsal,
+                      ),
+                    );
+                  },
+                )
+              : EmptySectionCard(
+                  title: 'No Rehearsal Scheduled',
+                  subtitle: 'The stage is empty and the amps are cold.',
+                  buttonLabel: 'Schedule Rehearsal',
+                  onButtonPressed: isContributor
+                      ? null
+                      : () => _openAddEventSheet(
+                            EventType.rehearsal,
+                          ),
+                ),
+        ),
+
+        // Upcoming gigs section - horizontal scroll
+        const SectionHeader(title: 'Upcoming Gigs'),
+        const SizedBox(height: Spacing.space12),
+        _AnimatedCardEntrance(
+          delay: const Duration(milliseconds: 150),
+          child: upcomingGig != null
+              ? _buildHorizontalGigsList(gigState, bandTimezone)
+              : EmptySectionCard(
+                  title: 'No Gigs Booked',
+                  subtitle: 'The world clearly isn\'t ready yet.',
+                  buttonLabel: 'Create Gig',
+                  onButtonPressed: canCreateGig
+                      ? () => _openAddEventSheet(EventType.gig)
+                      : null,
+                ),
+        ),
+
+        // Quick actions - horizontal scroll
+        // Show section if at least one action button is visible
+        Builder(builder: (context) {
+          final showAddEvent = !isContributor || canCreateGig;
+          final hasAnyButton = showAddEvent || canCreateSetlist;
+          if (!hasAnyButton) {
+            return const SizedBox.shrink();
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SectionHeader(title: 'Quick Actions'),
+              const SizedBox(height: Spacing.space16),
+              _AnimatedCardEntrance(
+                delay: const Duration(milliseconds: 200),
+                child: QuickActionsRow(
+                  onAddEvent: showAddEvent ? _handleAddEvent : null,
+                  onCreateSetlist: canCreateSetlist
+                      ? () {
+                          Navigator.of(context).push(
+                            fadeSlideRoute(
+                              page: const NewSetlistScreen(),
+                            ),
+                          );
+                        }
+                      : null,
+                  showAddEvent: showAddEvent,
+                  showCreateSetlist: canCreateSetlist,
+                ),
+              ),
+            ],
+          );
+        }),
+
+        // Bottom padding for nav bar (extra space to scroll past)
+        SizedBox(
+          height: Spacing.space48 +
+              Spacing.bottomNavHeight +
+              MediaQuery.of(context).padding.bottom +
+              32, // Extra scroll clearance
+        ),
+      ],
     );
   }
 
@@ -885,7 +895,10 @@ class _AnimatedCardEntrance extends StatefulWidget {
   final Widget child;
   final Duration delay;
 
-  const _AnimatedCardEntrance({required this.child, required this.delay});
+  const _AnimatedCardEntrance({
+    required this.child,
+    required this.delay,
+  });
 
   @override
   State<_AnimatedCardEntrance> createState() => _AnimatedCardEntranceState();
@@ -901,7 +914,7 @@ class _AnimatedCardEntranceState extends State<_AnimatedCardEntrance>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: AppDurations.medium,
+      duration: AppDurations.fast,
       vsync: this,
     );
 

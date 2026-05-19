@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
-/// Social media section with Instagram and Facebook tiles
+/// Catalog → Setlist section explaining BandRoadie's core song library model
 class SocialSection extends StatelessWidget {
   const SocialSection({super.key});
 
@@ -22,15 +21,16 @@ class SocialSection extends StatelessWidget {
       color: context.colors.background,
       child: Column(
         children: [
-          // Section title
+          // Section headline
           Text(
-            'Follow Us',
+            'Your Catalog is the heart of BandRoadie',
             textAlign: TextAlign.center,
             style: AppTextStyles.title3.copyWith(fontSize: isMobile ? 32 : 40),
           ),
           const SizedBox(height: 16),
+          // Subheadline
           Text(
-            'Stay updated with the latest news and features',
+            'Every song your band knows lives in one place. Setlists are built from the Catalog, not copied from scratch.',
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
@@ -39,15 +39,41 @@ class SocialSection extends StatelessWidget {
               height: 1.5,
             ),
           ),
+          const SizedBox(height: 24),
+          // Supporting copy
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Text(
+              'Bands reuse songs constantly — across gigs, rehearsals, old favorites, new material, and songs still in progress. BandRoadie treats your Catalog as the source of truth, so every setlist stays connected to the same shared song library.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.callout.copyWith(
+                fontSize: 16,
+                color: context.colors.textSecondary,
+                height: 1.6,
+              ),
+            ),
+          ),
           SizedBox(height: isMobile ? 40 : 60),
 
-          // Social media tiles
+          // Feature cards grid
           LayoutBuilder(
             builder: (context, constraints) {
-              final spacing = isMobile ? 16.0 : 24.0;
-              final tileWidth = isMobile
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - spacing) / 2;
+              final int columns;
+              final double spacing;
+
+              if (constraints.maxWidth < 700) {
+                columns = 1;
+                spacing = 24.0;
+              } else if (constraints.maxWidth < 1200) {
+                columns = 2;
+                spacing = 24.0;
+              } else {
+                columns = 4;
+                spacing = 32.0;
+              }
+
+              final cardWidth =
+                  (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
               return Wrap(
                 spacing: spacing,
@@ -55,32 +81,39 @@ class SocialSection extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: [
                   SizedBox(
-                    width: tileWidth > 400 ? 400 : tileWidth,
-                    child: _SocialTile(
-                      icon: Icons.camera_alt,
-                      platform: 'Instagram',
-                      handle: '@bandroadie26',
-                      url: 'https://www.instagram.com/bandroadie26/',
-                      gradientColors: const [
-                        Color(0xFFf09433),
-                        Color(0xFFe6683c),
-                        Color(0xFFdc2743),
-                        Color(0xFFcc2366),
-                        Color(0xFFbc1888),
-                      ],
+                    width: cardWidth,
+                    child: _CatalogCard(
+                      icon: AppIcons.library,
+                      title: 'One Song Library',
+                      description:
+                          'Store every song once with notes, lyrics, BPM, duration, tuning, and status.',
                     ),
                   ),
                   SizedBox(
-                    width: tileWidth > 400 ? 400 : tileWidth,
-                    child: _SocialTile(
-                      icon: Icons.facebook,
-                      platform: 'Facebook',
-                      handle: '@Band Roadie App',
-                      url: 'https://www.facebook.com/BandRoadieApp',
-                      gradientColors: const [
-                        Color(0xFF1877F2),
-                        Color(0xFF0C63D4),
-                      ],
+                    width: cardWidth,
+                    child: _CatalogCard(
+                      icon: AppIcons.setlists,
+                      title: 'Build Setlists Faster',
+                      description:
+                          'Create show-ready setlists by pulling songs directly from your Catalog.',
+                    ),
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _CatalogCard(
+                      icon: AppIcons.success,
+                      title: 'No Lost Songs',
+                      description:
+                          'Remove a song from a setlist without deleting it from your band\'s library.',
+                    ),
+                  ),
+                  SizedBox(
+                    width: cardWidth,
+                    child: _CatalogCard(
+                      icon: AppIcons.refresh,
+                      title: 'Reuse Every Night',
+                      description:
+                          'Bring songs back for future gigs, rehearsals, and special sets without re-entering anything.',
                     ),
                   ),
                 ],
@@ -93,26 +126,22 @@ class SocialSection extends StatelessWidget {
   }
 }
 
-class _SocialTile extends StatefulWidget {
+class _CatalogCard extends StatefulWidget {
   final IconData icon;
-  final String platform;
-  final String handle;
-  final String url;
-  final List<Color> gradientColors;
+  final String title;
+  final String description;
 
-  const _SocialTile({
+  const _CatalogCard({
     required this.icon,
-    required this.platform,
-    required this.handle,
-    required this.url,
-    required this.gradientColors,
+    required this.title,
+    required this.description,
   });
 
   @override
-  State<_SocialTile> createState() => _SocialTileState();
+  State<_CatalogCard> createState() => _CatalogCardState();
 }
 
-class _SocialTileState extends State<_SocialTile> {
+class _CatalogCardState extends State<_CatalogCard> {
   bool _isHovered = false;
 
   @override
@@ -120,98 +149,64 @@ class _SocialTileState extends State<_SocialTile> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () async {
-          final uri = Uri.parse(widget.url);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          transform: Matrix4.translationValues(0, _isHovered ? -8 : 0, 0),
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _isHovered
-                  ? widget.gradientColors
-                  : [context.colors.surface, context.colors.surface],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _isHovered
-                  ? widget.gradientColors.first.withValues(alpha: 0.5)
-                  : context.colors.border,
-              width: 2,
-            ),
-            boxShadow: _isHovered
-                ? [
-                    BoxShadow(
-                      color: widget.gradientColors.first.withValues(alpha: 0.3),
-                      blurRadius: 24,
-                      spreadRadius: 0,
-                    ),
-                  ]
-                : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        transform: Matrix4.translationValues(0, _isHovered ? -8 : 0, 0),
+        constraints: const BoxConstraints(minHeight: 280),
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _isHovered
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : context.colors.border,
+            width: 1,
           ),
-          child: Row(
-            children: [
-              // Icon
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: _isHovered
-                      ? Colors.white.withValues(alpha: 0.2)
-                      : widget.gradientColors.first.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  widget.icon,
-                  size: 32,
-                  color:
-                      _isHovered ? Colors.white : widget.gradientColors.first,
-                ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 20),
+              child: Icon(widget.icon, size: 32, color: AppColors.primary),
+            ),
+            const SizedBox(height: 24),
 
-              // Text
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.platform,
-                      style: AppTextStyles.title3.copyWith(
-                        fontSize: 20,
-                        color:
-                            _isHovered ? Colors.white : context.colors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.handle,
-                      style: AppTextStyles.callout.copyWith(
-                        color: _isHovered
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : context.colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            // Title
+            Text(
+              widget.title,
+              style: AppTextStyles.headline.copyWith(fontSize: 24),
+            ),
+            const SizedBox(height: 12),
 
-              // Arrow
-              Icon(
-                AppIcons.arrowRight,
-                color: _isHovered ? Colors.white : context.colors.textSecondary,
-                size: 24,
+            // Description
+            Text(
+              widget.description,
+              style: AppTextStyles.callout.copyWith(
+                fontFamily: 'Caveat',
+                fontSize: 20,
+                color: context.colors.textSecondary,
+                height: 1.5,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

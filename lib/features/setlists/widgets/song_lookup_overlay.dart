@@ -562,7 +562,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           const SizedBox(height: Spacing.space16),
           Text(
             _error ?? 'Something went wrong',
-            style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+            style: AppTextStyles.body
+                .copyWith(color: context.colors.textSecondary),
           ),
           const SizedBox(height: Spacing.space16),
           GestureDetector(
@@ -591,21 +592,10 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(Spacing.space32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              AppIcons.search,
-              size: 56,
-              color: context.colors.textMuted.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: Spacing.space16),
-            Text(
-              'Start typing. Your drummer will still be late.',
-              textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
-            ),
-          ],
+        child: Icon(
+          AppIcons.search,
+          size: 56,
+          color: context.colors.textMuted.withValues(alpha: 0.5),
         ),
       ),
     );
@@ -627,7 +617,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             Text(
               'No matching songs.',
               textAlign: TextAlign.center,
-              style: AppTextStyles.body.copyWith(color: context.colors.textMuted),
+              style:
+                  AppTextStyles.body.copyWith(color: context.colors.textMuted),
             ),
           ],
         ),
@@ -670,7 +661,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   const SizedBox(height: 8),
                   Text(
                     'Searching...',
-                    style: TextStyle(fontSize: 13, color: context.colors.textMuted),
+                    style: TextStyle(
+                        fontSize: 13, color: context.colors.textMuted),
                   ),
                 ],
               ),

@@ -3,9 +3,9 @@ import 'package:video_player/video_player.dart';
 
 /// Full-screen video splash screen.
 ///
-/// Plays [_kVideoAsset] at full screen. When the video ends, a right-to-left
-/// wipe transition reveals whatever is beneath the splash in the widget tree,
-/// then [onComplete] fires so the caller can drop this widget entirely.
+/// Plays [_kVideoAsset] at full screen. During the last 2 seconds of the video,
+/// zooms in and fades to black, then holds briefly before calling [onComplete].
+/// The dashboard beneath handles its own entrance animation.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, this.onComplete});
 
@@ -18,34 +18,50 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   static const _kVideoAsset = 'assets/videos/splash_bandroadie.mp4';
-  static const _kWipeDuration = Duration(milliseconds: 600);
+  static const _kFadeDuration =
+      Duration(milliseconds: 1500); // Fade video to black
+  static const _kFadeStartBeforeEnd =
+      Duration(seconds: 2); // Start fade 2s before video ends
+  static const _kBlackHoldDuration =
+      Duration(milliseconds: 300); // Hold at black before removing splash
 
   VideoPlayerController? _video;
 
-  late final AnimationController _wipeCtrl;
-  late final Animation<double> _wipeProgress; // 0 = full screen, 1 = gone
+  late final AnimationController _fadeCtrl;
+  late final Animation<double>
+      _fadeProgress; // 0 = video visible, 1 = completely faded out
 
   bool _videoReady = false;
-  bool _wiping = false;
-  DateTime? _videoStartTime;
+  bool _fading = false;
+  bool _completeCalled = false;
 
   @override
   void initState() {
     super.initState();
 
-    _wipeCtrl = AnimationController(duration: _kWipeDuration, vsync: this);
-    _wipeProgress = CurvedAnimation(
-      parent: _wipeCtrl,
+    _fadeCtrl = AnimationController(duration: _kFadeDuration, vsync: this);
+    _fadeProgress = CurvedAnimation(
+      parent: _fadeCtrl,
       curve: Curves.easeInOut,
     );
 
-    _wipeCtrl.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        widget.onComplete?.call();
-      }
-    });
+    // Remove splash from tree slightly before animation completes to avoid flicker
+    _fadeCtrl.addListener(_checkCompletion);
 
     _initVideo();
+  }
+
+  void _checkCompletion() {
+    // Call onComplete when animation completes + black hold duration
+    if (!_completeCalled && _fadeCtrl.isCompleted) {
+      _completeCalled = true;
+      // Hold at black briefly before signaling completion
+      Future.delayed(_kBlackHoldDuration, () {
+        if (mounted) {
+          widget.onComplete?.call();
+        }
+      });
+    }
   }
 
   Future<void> _initVideo() async {
@@ -72,9 +88,6 @@ class _SplashScreenState extends State<SplashScreen>
       // Start playback BEFORE adding listener to avoid immediate completion detection
       await _video!.play();
 
-      // Track when video playback started
-      _videoStartTime = DateTime.now();
-
       // Add listener after play() to avoid race condition
       _video!.addListener(_onVideoTick);
 
@@ -88,47 +101,32 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _onVideoTick() {
     final v = _video?.value;
-    if (v == null || _wiping) return;
+    if (v == null || _fading) return;
 
     // Don't check for completion if video isn't actually playing
     if (!v.isPlaying) return;
 
-    // Enforce minimum display time (4 seconds) before checking for completion
-    // This ensures the full video plays even if position reporting is buggy
-    final startTime = _videoStartTime;
-    if (startTime != null) {
-      final elapsed = DateTime.now().difference(startTime);
-      if (elapsed < const Duration(seconds: 4)) {
-        return; // Video hasn't been playing long enough yet
-      }
-    }
-
-    // isCompleted is set by the plugin when playback reaches the end
-    if (v.isCompleted) {
-      _startWipe();
-      return;
-    }
-
-    // Belt-and-suspenders: also check position vs duration
+    // Check if we're within 2 seconds of the end - start the fade
     final dur = v.duration;
     final pos = v.position;
-    if (dur > Duration.zero && pos >= dur - const Duration(milliseconds: 120)) {
-      _startWipe();
+    if (dur > Duration.zero && pos >= dur - _kFadeStartBeforeEnd) {
+      _startFade();
     }
   }
 
-  void _startWipe() {
-    if (_wiping || !mounted) return;
-    _wiping = true;
+  void _startFade() {
+    if (_fading || !mounted) return;
+    _fading = true;
     _video?.removeListener(_onVideoTick);
-    _wipeCtrl.forward();
+    _fadeCtrl.forward();
   }
 
   @override
   void dispose() {
     _video?.removeListener(_onVideoTick);
     _video?.dispose();
-    _wipeCtrl.dispose();
+    _fadeCtrl.removeListener(_checkCompletion);
+    _fadeCtrl.dispose();
     super.dispose();
   }
 
@@ -140,15 +138,32 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     return AnimatedBuilder(
-      animation: _wipeProgress,
+      animation: _fadeProgress,
       builder: (context, child) {
-        final progress = _wipeProgress.value;
+        final progress = _fadeProgress.value;
 
-        if (progress >= 1.0) return const SizedBox.shrink();
+        // Simple fade: zoom in and fade video to black
+        // Stay at black (don't fade to transparent)
+        // Dashboard will animate in when splash is removed
 
-        return ClipRect(
-          clipper: _RightToLeftWipeClipper(progress),
-          child: child,
+        final videoOpacity = 1.0 - progress; // Fade out video (1.0 -> 0.0)
+
+        // Zoom in during fade: scale from 1.0 to 2.5
+        final videoScale = 1.0 + (progress * 1.5);
+
+        return ColoredBox(
+          color: Colors.black, // Solid black - ensures dashboard is blocked
+          child: SizedBox.expand(
+            child: videoOpacity > 0
+                ? Transform.scale(
+                    scale: videoScale,
+                    child: Opacity(
+                      opacity: videoOpacity,
+                      child: child,
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         );
       },
       child: _buildVideoLayer(),
@@ -179,24 +194,4 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-// Wipe clipper — right-to-left
-//
-// progress = 0 → full rect (splash covers screen)
-// progress = 1 → zero width (splash wiped away, content beneath fully visible)
-// ---------------------------------------------------------------------------
-
-class _RightToLeftWipeClipper extends CustomClipper<Rect> {
-  const _RightToLeftWipeClipper(this.progress);
-
-  final double progress;
-
-  @override
-  Rect getClip(Size size) =>
-      Rect.fromLTWH(0, 0, size.width * (1.0 - progress), size.height);
-
-  @override
-  bool shouldReclip(_RightToLeftWipeClipper old) => old.progress != progress;
 }

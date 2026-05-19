@@ -122,7 +122,6 @@ class _NoBandContentState extends State<_NoBandContent>
   late Animation<Offset> _titleSlide;
   late Animation<double> _bodyFade;
   late Animation<double> _createButtonScale;
-  late Animation<double> _joinButtonFade;
 
   @override
   void initState() {
@@ -187,14 +186,6 @@ class _NoBandContentState extends State<_NoBandContent>
     // Create button with rubberband scale
     _createButtonScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _buttonController, curve: AppCurves.rubberband),
-    );
-
-    // Join button fade in
-    _joinButtonFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _buttonController,
-        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
-      ),
     );
 
     // Start animations with stagger
@@ -266,108 +257,106 @@ class _NoBandContentState extends State<_NoBandContent>
 
             // Main content
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.space32,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Animated logo with subtle fade, slide, and scale
-                    SlideTransition(
-                      position: _logoSlide,
-                      child: FadeTransition(
-                        opacity: _logoFade,
-                        child: ScaleTransition(
-                          scale: _logoScale,
-                          child: const BandRoadieLogo(height: 64),
-                        ),
-                      ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxWidth = constraints.maxWidth - (Spacing.space32 * 2);
+                  final logoWidth = (maxWidth * 0.9).clamp(0.0, 600.0);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.space32,
                     ),
-
-                    const SizedBox(height: Spacing.space40),
-
-                    // Animated title
-                    SlideTransition(
-                      position: _titleSlide,
-                      child: FadeTransition(
-                        opacity: _titleFade,
-                        child: Text(
-                          'Welcome backstage!',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.displayLarge.copyWith(
-                            fontSize: 28,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: Spacing.space16),
-
-                    // Animated body copy
-                    FadeTransition(
-                      opacity: _bodyFade,
-                      child: Text(
-                        'Create your band or ask a fellow\nbandmate to invite you.',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 16,
-                          height: 1.6,
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: Spacing.space48),
-
-                    // Create Band button with rubberband pop
-                    ScaleTransition(
-                      scale: _createButtonScale,
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () {
-                            // Use custom fade+slide transition
-                            Navigator.of(context).push(
-                              fadeSlideRoute(page: const CreateBandScreen()),
-                            );
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: Spacing.space16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                Spacing.buttonRadius,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Animated logo with subtle fade, slide, and scale
+                        SlideTransition(
+                          position: _logoSlide,
+                          child: FadeTransition(
+                            opacity: _logoFade,
+                            child: ScaleTransition(
+                              scale: _logoScale,
+                              child: BandRoadieLogo(
+                                width: logoWidth,
+                                asset:
+                                    'assets/images/bandroadie_logo_rose_tag.svg',
                               ),
                             ),
                           ),
-                          child: Text(
-                            'Create a Band',
-                            style: AppTextStyles.button.copyWith(fontSize: 16),
+                        ),
+
+                        const SizedBox(height: Spacing.space40),
+
+                        // Animated title
+                        SlideTransition(
+                          position: _titleSlide,
+                          child: FadeTransition(
+                            opacity: _titleFade,
+                            child: Text(
+                              'Welcome backstage!',
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.displayLarge.copyWith(
+                                fontSize: 28,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
 
-                    const SizedBox(height: Spacing.space16),
+                        const SizedBox(height: Spacing.space16),
 
-                    // Secondary text
-                    FadeTransition(
-                      opacity: _joinButtonFade,
-                      child: Text(
-                        'Or wait for an invite from your band',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.body.copyWith(
-                          fontSize: 14,
-                          color: context.colors.textMuted,
+                        // Animated body copy
+                        FadeTransition(
+                          opacity: _bodyFade,
+                          child: Text(
+                            'Create your band or ask a fellow\nbandmate to invite you.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 16,
+                              height: 1.6,
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
                         ),
-                      ),
+
+                        const SizedBox(height: Spacing.space48),
+
+                        // Create Band button with rubberband pop
+                        ScaleTransition(
+                          scale: _createButtonScale,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: () {
+                                // Use custom fade+slide transition
+                                Navigator.of(context).push(
+                                  fadeSlideRoute(
+                                      page: const CreateBandScreen()),
+                                );
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: Spacing.space16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    Spacing.buttonRadius,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                'Create a Band',
+                                style:
+                                    AppTextStyles.button.copyWith(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
