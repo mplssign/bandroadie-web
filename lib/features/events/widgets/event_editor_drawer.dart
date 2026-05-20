@@ -2375,7 +2375,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     if (picked != null) {
       setState(() {
-        _untilDate = picked;
+        // Normalize to noon to match recurring date generation time
+        _untilDate = DateTime(picked.year, picked.month, picked.day, 12);
       });
       _markDirty();
     }
