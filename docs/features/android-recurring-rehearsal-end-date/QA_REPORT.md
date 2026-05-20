@@ -60,9 +60,11 @@ git status
 **Expected Fix:** Normalize the until date to noon (12:00) when the user selects it, ensuring consistent time-of-day for date comparisons.
 
 **Files Expected to Change:**
+
 - ✅ `lib/features/events/widgets/event_editor_drawer.dart`
 
 **Files Off-Limits:**
+
 - ✅ `lib/features/events/events_repository.dart` (not modified)
 - ✅ `lib/features/events/models/event_form_data.dart` (not modified)
 - ✅ `lib/app/models/rehearsal.dart` (not modified)
@@ -71,6 +73,7 @@ git status
 **Database Impact:** Not applicable (client-side fix only)
 
 **System Impact Map:**
+
 - Gigs: `unaffected`
 - Rehearsals: `affected` (fix corrects last occurrence inclusion)
 - Setlists/Catalog: `unaffected`
@@ -81,6 +84,7 @@ git status
 - Platform: `affected` (all platforms benefit)
 
 **QA Regression Areas (from Architect plan):**
+
 - Weekly recurring rehearsal with until date exactly 1 week later
 - Multi-week recurrence
 - Multiple days selected in one week
@@ -109,7 +113,7 @@ git diff main --stat
 --- a/lib/features/events/widgets/event_editor_drawer.dart
 +++ b/lib/features/events/widgets/event_editor_drawer.dart
 @@ -2375,7 +2375,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
- 
+
      if (picked != null) {
        setState(() {
 -        _untilDate = picked;
@@ -130,6 +134,7 @@ git diff main --stat
 **Code Path Verification:**
 
 Confirmed in `lib/features/events/events_repository.dart`:
+
 - **Weekly/Biweekly generation (line 231):** `DateTime(..., 12)` ← noon
 - **Monthly generation (line 279):** `DateTime(..., 12)` ← noon
 - **Comparison logic (line 239):** `!dateForDay.isAfter(untilDate)`
@@ -137,11 +142,13 @@ Confirmed in `lib/features/events/events_repository.dart`:
 **Root Cause Analysis Validation:**
 
 Before fix:
+
 - Until date: `2026-06-11T00:00:00` (midnight)
 - Last occurrence: `2026-06-11T12:00:00` (noon)
 - Comparison: `12:00 > 00:00` → excluded ❌
 
 After fix:
+
 - Until date: `2026-06-11T12:00:00` (noon)
 - Last occurrence: `2026-06-11T12:00:00` (noon)
 - Comparison: `12:00 > 12:00` is false → included ✅
@@ -163,6 +170,7 @@ After fix:
 ✅ **No skipped requirements**
 
 **Engineer Report Claims:**
+
 - ✅ File modified: `event_editor_drawer.dart` — confirmed
 - ✅ Analyzer: 0 errors — confirmed (Phase 9)
 - ✅ Tests not run — stated clearly (manual testing deferred to QA)
@@ -210,16 +218,16 @@ The implementation correctly addresses the root cause by ensuring the until date
 
 **Regression Analysis (System Impact Map):**
 
-| System              | Risk    | Analysis                                                                    |
-| ------------------- | ------- | --------------------------------------------------------------------------- |
-| Gigs                | `NONE`  | Gigs do not support recurrence yet                                          |
-| Rehearsals          | `LOW`   | Fix improves behavior; existing broken rehearsals unaffected                |
-| Setlists / Catalog  | `NONE`  | No interaction with recurring events                                        |
-| Members / RBAC      | `NONE`  | No permission or role changes                                               |
-| Auth / Session      | `NONE`  | No auth flow changes                                                        |
-| Routing             | `NONE`  | No navigation changes                                                       |
-| Notifications       | `NONE`  | Notification triggers unchanged                                             |
-| Platform (all)      | `LOW`   | All platforms benefit; no platform-specific code paths affected             |
+| System             | Risk   | Analysis                                                        |
+| ------------------ | ------ | --------------------------------------------------------------- |
+| Gigs               | `NONE` | Gigs do not support recurrence yet                              |
+| Rehearsals         | `LOW`  | Fix improves behavior; existing broken rehearsals unaffected    |
+| Setlists / Catalog | `NONE` | No interaction with recurring events                            |
+| Members / RBAC     | `NONE` | No permission or role changes                                   |
+| Auth / Session     | `NONE` | No auth flow changes                                            |
+| Routing            | `NONE` | No navigation changes                                           |
+| Notifications      | `NONE` | Notification triggers unchanged                                 |
+| Platform (all)     | `LOW`  | All platforms benefit; no platform-specific code paths affected |
 
 **Specific Regression Checks:**
 
@@ -233,6 +241,7 @@ The implementation correctly addresses the root cause by ensuring the until date
 **QA Regression Test Plan Coverage:**
 
 The Architect plan specifies 7 manual test scenarios covering:
+
 1. Basic weekly recurrence with inclusive end date ← **primary fix validation**
 2. Multi-week recurrence
 3. Multiple days selected (edge case)
@@ -286,17 +295,17 @@ Not run per Engineer Report. Manual testing required per Architect verification 
 
 ## Verification Against Architect Plan
 
-| Requirement                                         | Status     | Evidence                                                                 |
-| --------------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
-| Normalize until date to noon in `_showUntilDatePicker()` | ✅ Met | Line 2378-2379 in `event_editor_drawer.dart`                           |
-| Add inline comment explaining normalization         | ✅ Met | Comment: "Normalize to noon to match recurring date generation time"    |
-| Modify only approved files                          | ✅ Met | Only `event_editor_drawer.dart` changed                                |
-| No off-limits files touched                         | ✅ Met | `events_repository.dart`, `event_form_data.dart`, `rehearsal.dart`, `main.dart` untouched |
-| No database changes                                 | ✅ Met | No migrations, no RPC changes                                           |
-| No breaking changes                                 | ✅ Met | Existing rehearsals unaffected; fix forward-looking only               |
-| Platform-agnostic fix                               | ✅ Met | No platform-specific code; fix applies uniformly                        |
-| Pattern consistency (noon normalization)            | ✅ Met | Matches existing noon usage in `_generateRecurringDates()` (lines 231, 279) |
-| Minimal change surface                              | ✅ Met | Single-line change + comment                                           |
+| Requirement                                              | Status | Evidence                                                                                  |
+| -------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------- |
+| Normalize until date to noon in `_showUntilDatePicker()` | ✅ Met | Line 2378-2379 in `event_editor_drawer.dart`                                              |
+| Add inline comment explaining normalization              | ✅ Met | Comment: "Normalize to noon to match recurring date generation time"                      |
+| Modify only approved files                               | ✅ Met | Only `event_editor_drawer.dart` changed                                                   |
+| No off-limits files touched                              | ✅ Met | `events_repository.dart`, `event_form_data.dart`, `rehearsal.dart`, `main.dart` untouched |
+| No database changes                                      | ✅ Met | No migrations, no RPC changes                                                             |
+| No breaking changes                                      | ✅ Met | Existing rehearsals unaffected; fix forward-looking only                                  |
+| Platform-agnostic fix                                    | ✅ Met | No platform-specific code; fix applies uniformly                                          |
+| Pattern consistency (noon normalization)                 | ✅ Met | Matches existing noon usage in `_generateRecurringDates()` (lines 231, 279)               |
+| Minimal change surface                                   | ✅ Met | Single-line change + comment                                                              |
 
 ---
 
@@ -307,19 +316,21 @@ Not run per Engineer Report. Manual testing required per Architect verification 
 ✅ **Solution implemented as specified:** Normalize to noon in `_showUntilDatePicker()`  
 ✅ **No scope creep:** Only the approved change was made  
 ✅ **No architectural deviations:** Follows existing patterns and conventions  
-✅ **GUARDRAILS.md compliance:** No initialization order changes, no config changes, no RLS policy changes  
+✅ **GUARDRAILS.md compliance:** No initialization order changes, no config changes, no RLS policy changes
 
 ---
 
 ## Additional Observations
 
 **Positive:**
+
 - The fix is extremely focused and low-risk
 - The comment clearly documents the intent for future maintainers
 - The noon normalization pattern is now consistently applied from UI to data generation
 - The Engineer Report accurately describes the work completed
 
 **Notes:**
+
 - Untracked files in workspace (`rehearsal_date.dart`, migration SQL, other feature docs) are unrelated to this fix and do not affect review
 - The branch name includes a `v2` suffix, indicating this is a clean rebuild (consistent with context in user prompt)
 - The fix is platform-agnostic despite the branch name including "android" (Architect plan correctly identified this in Problem Summary)

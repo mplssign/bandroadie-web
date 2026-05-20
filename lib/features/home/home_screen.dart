@@ -758,7 +758,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           const SizedBox(height: Spacing.space24),
         ],
 
-        // Next rehearsal card (no section header per Figma)
+        // Upcoming rehearsals section
+        const SectionHeader(title: 'Upcoming Rehearsals'),
+        const SizedBox(height: Spacing.space12),
         _AnimatedCardEntrance(
           delay: const Duration(milliseconds: 100),
           child: nextRehearsal != null
