@@ -360,14 +360,12 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // Any change to auth state will trigger a rebuild
     final authState = ref.watch(authStateProvider);
 
-    // Build the real auth content first so it sits in the tree as the
-    // splash wipes away — the wipe reveals this content underneath.
-    final authContent = _buildAuthContent(context, authState);
-
     debugPrint(
         '[AuthGate] build() - _showSplash=$_showSplash, authenticated=${authState.isAuthenticated}');
 
+    // Show splash screen with auth content underneath
     if (_showSplash) {
+      final authContent = _buildAuthContent(context, authState);
       return Stack(
         children: [
           authContent,
@@ -383,7 +381,40 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
     }
 
-    return authContent;
+    // CRITICAL FIX: Explicit fallback for unauthenticated state after splash completes.
+    // This ensures login screen is always visible for logged-out users.
+    // Added after splash-screen-video regression (bug/auth-gate-blank-screen-after-splash).
+    if (!authState.isAuthenticated) {
+      // Double-check Supabase directly to prevent showing login to authenticated users
+      final directSession = supabase.auth.currentSession;
+      if (directSession != null) {
+        debugPrint(
+          '[AuthGate] SAFEGUARD: Provider says no session, but Supabase has one!',
+        );
+        AuthDebugLogger.error(
+          step: 'AuthGate.build',
+          message: 'State mismatch - forcing refresh',
+        );
+        // Force sync and show loading while we sync
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref.read(authStateProvider.notifier).refreshSession();
+          }
+        });
+        return Scaffold(
+          backgroundColor: context.colors.background,
+          body: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        );
+      }
+
+      debugPrint('[AuthGate] No session after splash - showing login screen');
+      return const LoginScreen();
+    }
+
+    // User is authenticated - delegate to full auth content logic
+    return _buildAuthContent(context, authState);
   }
 
   Widget _buildAuthContent(BuildContext context, AppAuthState authState) {
