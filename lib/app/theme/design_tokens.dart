@@ -47,7 +47,10 @@ class Spacing {
   static const double bottomNavHeight = 68.0;
 
   /// Rehearsal card height (increased for spacing)
-  static const double rehearsalCardHeight = 130.0;
+  static const double rehearsalCardHeight = 160.0;
+
+  /// Confirmed rehearsal card width for horizontal scroll row
+  static const double rehearsalCardWidth = 300.0;
 
   /// Figma: gig card height 126px
   static const double gigCardHeight = 126.0;

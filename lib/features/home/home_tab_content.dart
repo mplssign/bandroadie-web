@@ -25,6 +25,8 @@ import '../members/permissions/band_permissions_provider.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../rehearsals/rehearsal_response_repository.dart';
 import '../rehearsals/potential_rehearsal_prompt_service.dart';
+import '../rehearsals/rehearsal_pagination_controller.dart';
+import '../rehearsals/rehearsal_display_helper.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
 import '../shell/overlay_state.dart';
@@ -63,12 +65,21 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   /// Subscription for band ID changes - must be stored to prevent memory leaks
   ProviderSubscription<String?>? _bandIdSubscription;
 
+  /// ScrollController for rehearsals horizontal list (enables infinite scroll)
+  late ScrollController _rehearsalScrollController;
+
   @override
   void initState() {
     super.initState();
 
     // Register lifecycle observer
     WidgetsBinding.instance.addObserver(this);
+
+    // Initialize rehearsal scroll controller
+    _rehearsalScrollController = ScrollController();
+
+    // Add scroll listener for infinite scroll on rehearsals list
+    _rehearsalScrollController.addListener(_onRehearsalScroll);
 
     // Entrance animation controller
     _entranceController = AnimationController(
@@ -156,6 +167,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
           '[HomeTabContent] Band became available: $next, checking prompts',
         );
         _lastCheckedBandId = next;
+
+        // Reset pagination state when band changes
+        ref.read(rehearsalPaginationProvider.notifier).reset();
+
         _checkPendingGigPrompts();
         _checkPendingRehearsalPrompts();
       }
@@ -268,11 +283,52 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     // which watches rehearsalProvider and activeBandIdProvider. No manual load needed.
   }
 
+  /// Scroll listener for rehearsals horizontal list
+  void _onRehearsalScroll() {
+    if (!_rehearsalScrollController.hasClients) return;
+
+    final position = _rehearsalScrollController.position;
+    const threshold = 200.0; // pixels from end
+
+    // When user scrolls within threshold of the end, auto-load more
+    if (position.pixels >= position.maxScrollExtent - threshold) {
+      _loadMoreRehearsalsIfNeeded();
+    }
+  }
+
+  /// Auto-load more rehearsals when scroll threshold is reached
+  void _loadMoreRehearsalsIfNeeded() {
+    // Get current rehearsal state
+    final rehearsalState = ref.read(rehearsalProvider);
+    if (rehearsalState.confirmedRehearsals.isEmpty) return;
+
+    // Get current pagination state
+    final paginationState = ref.read(rehearsalPaginationProvider);
+
+    // Group rehearsals into series
+    final series = RehearsalDisplayHelper.groupIntoSeries(
+      rehearsalState.confirmedRehearsals,
+    );
+
+    // Find the first series that has more to load
+    for (final s in series) {
+      final visibleCount =
+          paginationState.visibleCountBySeriesId[s.seriesId] ?? 10;
+      if (s.hasMore(visibleCount)) {
+        // Trigger load more for this series
+        ref.read(rehearsalPaginationProvider.notifier).loadMore(s.seriesId);
+        // Only load one series at a time to avoid rapid multiple loads
+        break;
+      }
+    }
+  }
+
   @override
   void dispose() {
     // Close the band ID subscription to prevent memory leaks
     _bandIdSubscription?.close();
     WidgetsBinding.instance.removeObserver(this);
+    _rehearsalScrollController.dispose();
     _entranceController.dispose();
     super.dispose();
   }
@@ -685,7 +741,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   }) {
     final activeBand = bandState.activeBand;
     final upcomingGig = gigState.nextConfirmedGig;
-    final nextRehearsal = rehearsalState.nextRehearsal;
 
     // Content WITHOUT Scaffold - just the body content
     return Container(
@@ -759,41 +814,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                   const SizedBox(height: Spacing.space24),
                                 ],
 
-                                // Next rehearsal card (confirmed only)
+                                // Upcoming rehearsals section
+                                const SectionHeader(
+                                    title: 'Upcoming Rehearsals'),
+                                const SizedBox(height: Spacing.space12),
                                 _AnimatedCardEntrance(
                                   delay: const Duration(milliseconds: 80),
-                                  child: nextRehearsal != null
-                                      ? Builder(
-                                          builder: (context) {
-                                            // Look up setlist name from setlistId
-                                            String? setlistName;
-                                            if (nextRehearsal.setlistId !=
-                                                null) {
-                                              final setlist = setlistsState
-                                                  .setlists
-                                                  .where(
-                                                    (s) =>
-                                                        s.id ==
-                                                        nextRehearsal.setlistId,
-                                                  )
-                                                  .firstOrNull;
-                                              setlistName = setlist?.name;
-                                            }
-                                            return RehearsalCard(
-                                              rehearsal: nextRehearsal,
-                                              setlistName: setlistName,
-                                              bandTimezone: ref
-                                                      .watch(activeBandProvider)
-                                                      .activeBand
-                                                      ?.timezone ??
-                                                  'America/Chicago',
-                                              onTap: () =>
-                                                  _openEditRehearsalSheet(
-                                                nextRehearsal,
-                                              ),
-                                            );
-                                          },
-                                        )
+                                  child: rehearsalState
+                                          .confirmedRehearsals.isNotEmpty
+                                      ? _buildHorizontalRehearsalsList(
+                                          rehearsalState)
                                       : rehearsalState
                                               .potentialRehearsals.isNotEmpty
                                           ? const SizedBox.shrink()
@@ -1061,6 +1091,62 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
             bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
                 'America/Chicago',
             onTap: () => _openEditGigSheet(gig),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHorizontalRehearsalsList(RehearsalState rehearsalState) {
+    final confirmedRehearsals = rehearsalState.confirmedRehearsals;
+    if (confirmedRehearsals.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final setlistsState = ref.watch(setlistsProvider);
+    final paginationState = ref.watch(rehearsalPaginationProvider);
+
+    // Group rehearsals into series and apply pagination
+    final series = RehearsalDisplayHelper.groupIntoSeries(confirmedRehearsals);
+    final displayItems = RehearsalDisplayHelper.flattenForDisplay(
+      series,
+      paginationState.visibleCountBySeriesId,
+    );
+
+    // Filter out load-more markers for infinite scroll
+    final rehearsalItems =
+        displayItems.where((item) => item.isRehearsal).toList();
+
+    return SizedBox(
+      height: Spacing.rehearsalCardHeight,
+      child: ListView.separated(
+        controller: _rehearsalScrollController,
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: rehearsalItems.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final item = rehearsalItems[index];
+
+          // All items are now rehearsals (load-more markers filtered out)
+          final rehearsal = item.rehearsal!;
+          String? setlistName;
+          if (rehearsal.setlistId != null) {
+            final setlist = setlistsState.setlists
+                .where((s) => s.id == rehearsal.setlistId)
+                .firstOrNull;
+            setlistName = setlist?.name;
+          }
+          return SizedBox(
+            width: Spacing.rehearsalCardWidth,
+            child: RehearsalCard(
+              rehearsal: rehearsal,
+              setlistName: setlistName,
+              bandTimezone:
+                  ref.watch(activeBandProvider).activeBand?.timezone ??
+                      'America/Chicago',
+              onTap: () => _openEditRehearsalSheet(rehearsal),
+            ),
           );
         },
       ),

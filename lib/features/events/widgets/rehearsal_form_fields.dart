@@ -23,6 +23,9 @@ class RehearsalFormFields extends ConsumerWidget {
     required this.locationController,
     required this.locationHintController,
     required this.locationSuggestions,
+    // Field validation
+    required this.locationKey,
+    required this.fieldErrors,
     // Potential rehearsal toggle
     required this.isPotential,
     required this.onPotentialToggled,
@@ -57,6 +60,10 @@ class RehearsalFormFields extends ConsumerWidget {
   final TextEditingController locationController;
   final FieldHintController locationHintController;
   final List<String> locationSuggestions;
+
+  // --- Field validation ---
+  final GlobalKey locationKey;
+  final Map<String, String> fieldErrors;
 
   // --- Potential rehearsal toggle ---
   final bool isPotential;
@@ -130,6 +137,9 @@ class RehearsalFormFields extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildLocationAutocomplete(BuildContext context) {
+    final hasError = fieldErrors.containsKey('location');
+    final errorText = hasError ? fieldErrors['location'] : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -141,6 +151,7 @@ class RehearsalFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Autocomplete<String>(
+          key: locationKey,
           initialValue: TextEditingValue(text: locationController.text),
           optionsBuilder: (TextEditingValue textEditingValue) {
             if (textEditingValue.text.isEmpty) {
@@ -187,16 +198,27 @@ class RehearsalFormFields extends ConsumerWidget {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.error : context.colors.border,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.error : context.colors.border,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.error : AppColors.primary,
+                  ),
                 ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.error),
+                ),
+                errorText: null, // We'll show error below the field instead
               ),
             );
           },
@@ -240,6 +262,15 @@ class RehearsalFormFields extends ConsumerWidget {
             );
           },
         ),
+        if (hasError && errorText != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText,
+            style: AppTextStyles.footnote.copyWith(
+              color: AppColors.error,
+            ),
+          ),
+        ],
         FieldHint(
           text: "We'll remember locations you've used before.",
           controller: locationHintController,

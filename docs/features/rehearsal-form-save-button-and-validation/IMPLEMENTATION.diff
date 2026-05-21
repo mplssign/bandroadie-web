@@ -1,0 +1,461 @@
+diff --git a/lib/features/events/widgets/event_editor_drawer.dart b/lib/features/events/widgets/event_editor_drawer.dart
+index b6def6b..2a46505 100644
+--- a/lib/features/events/widgets/event_editor_drawer.dart
++++ b/lib/features/events/widgets/event_editor_drawer.dart
+@@ -189,6 +189,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+   final _gigCityFocusNode = FocusNode();
+   final _gigLocationFocusNode = FocusNode();
+ 
++  // GlobalKeys for validation scroll-to-error
++  final _locationKey = GlobalKey();
++  final _gigNameKey = GlobalKey();
++  final _gigLocationKey = GlobalKey();
++
++  // ScrollController for form scrolling
++  final _scrollController = ScrollController();
++
+   // Animation for recurring section
+   late AnimationController _recurringAnimController;
+   late Animation<double> _recurringFadeAnimation;
+@@ -213,14 +221,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+     }
+   }
+ 
+-  /// Trigger rebuild in create mode so _isFormValid is re-evaluated
+-  /// as the user types in required fields.
+-  void _onFormFieldChanged() {
+-    if (widget.mode == EventEditorMode.create) {
+-      setState(() {});
+-    }
+-  }
+-
+   @override
+   void initState() {
+     super.initState();
+@@ -368,15 +368,27 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+       hasInitialValue: isEdit && _notesController.text.isNotEmpty,
+     );
+ 
+-    // Add text controller listeners to track changes
+-    _locationController.addListener(_markDirty);
+-    _nameController.addListener(_markDirty);
++    // Add text controller listeners to track changes and clear field errors
++    _locationController.addListener(() {
++      _markDirty();
++      // Clear field errors when user types
++      if (_eventType == EventType.rehearsal &&
++          _fieldErrors.containsKey('location')) {
++        setState(() => _fieldErrors.remove('location'));
++      } else if (_eventType == EventType.gig &&
++          _fieldErrors.containsKey('city')) {
++        setState(() => _fieldErrors.remove('city'));
++      }
++    });
++    _nameController.addListener(() {
++      _markDirty();
++      // Clear gig name error when user types
++      if (_fieldErrors.containsKey('name')) {
++        setState(() => _fieldErrors.remove('name'));
++      }
++    });
+     _notesController.addListener(_markDirty);
+     _gigPayController.addListener(_markDirty);
+-
+-    // Re-evaluate form validity in create mode on required field changes
+-    _nameController.addListener(_onFormFieldChanged);
+-    _locationController.addListener(_onFormFieldChanged);
+   }
+ 
+   @override
+@@ -395,6 +407,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+     _gigNameFocusNode.dispose();
+     _gigCityFocusNode.dispose();
+     _gigLocationFocusNode.dispose();
++    _scrollController.dispose();
+     super.dispose();
+   }
+ 
+@@ -865,22 +878,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+     );
+   }
+ 
+-  /// Check if required fields are filled for gigs in create mode.
+-  /// For gigs: name and location are required.
+-  /// For rehearsals: no required text fields.
+-  bool get _isFormValid {
+-    if (_eventType == EventType.blockOut) {
+-      return true; // Block outs have no required text fields
+-    }
+-    if (_eventType == EventType.gig) {
+-      final hasName = _nameController.text.trim().isNotEmpty;
+-      final hasLocation = _locationController.text.trim().isNotEmpty;
+-      return hasName && hasLocation;
+-    }
+-    // Rehearsals have no required text fields
+-    return true;
+-  }
+-
+   /// Convert duration in minutes to the closest EventDuration enum value.
+   /// If exact match not found, returns the closest higher value or max.
+   EventDuration _durationMinutesToEnum(int minutes) {
+@@ -1193,16 +1190,63 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+     // Clear previous errors
+     setState(() {
+       _errorMessage = null;
++      _fieldErrors.clear();
+     });
+ 
+-    // Validate
++    // Client-side validation: check rehearsal location before building form data
++    if (_eventType == EventType.rehearsal &&
++        _locationController.text.trim().isEmpty) {
++      setState(() {
++        _fieldErrors['location'] = 'Location is required';
++        _errorMessage = 'Location is required';
++      });
++      // Scroll to location field
++      if (_locationKey.currentContext != null) {
++        await Scrollable.ensureVisible(
++          _locationKey.currentContext!,
++          duration: const Duration(milliseconds: 300),
++          curve: Curves.easeInOut,
++          alignment: 0.15,
++        );
++      }
++      return;
++    }
++
++    // Validate via form data model
+     var formData = _buildFormData();
+     final errors = formData.validate();
+ 
+     if (errors.isNotEmpty) {
++      // Populate field-level errors from validation messages
++      for (final errorMsg in errors) {
++        if (errorMsg.contains('Gig name is required')) {
++          _fieldErrors['name'] = 'Gig name is required';
++        } else if (errorMsg.contains('City is required')) {
++          _fieldErrors['city'] = 'City is required';
++        }
++      }
++
+       setState(() {
+         _errorMessage = errors.first;
+       });
++
++      // Scroll to first failing field
++      GlobalKey? firstFailingKey;
++      if (_fieldErrors.containsKey('name')) {
++        firstFailingKey = _gigNameKey;
++      } else if (_fieldErrors.containsKey('city')) {
++        firstFailingKey = _gigLocationKey;
++      }
++
++      if (firstFailingKey?.currentContext != null) {
++        await Scrollable.ensureVisible(
++          firstFailingKey!.currentContext!,
++          duration: const Duration(milliseconds: 300),
++          curve: Curves.easeInOut,
++          alignment: 0.15,
++        );
++      }
++
+       return;
+     }
+ 
+@@ -1627,12 +1671,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+       gigNameFocusNode: _gigNameFocusNode,
+       gigNameSuggestions: _gigNameSuggestions,
+       onGigNameChanged: _fetchGigNameSuggestions,
++      gigNameKey: _gigNameKey,
+       fieldErrors: _fieldErrors,
+       locationController: _locationController,
+       cityHintController: _cityHintController,
+       gigCityFocusNode: _gigCityFocusNode,
+       gigCitySuggestions: _gigCitySuggestions,
+       onGigCityChanged: _fetchGigCitySuggestions,
++      gigLocationKey: _gigLocationKey,
+       isPotentialGig: _isPotentialGig,
+       forcePotentialOnly: _forcePotentialOnly,
+       onPotentialGigToggled: _togglePotentialGig,
+@@ -1836,6 +1882,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+               child: Opacity(
+                 opacity: widget.viewOnly ? 0.7 : 1.0,
+                 child: SingleChildScrollView(
++                  controller: _scrollController,
+                   padding: EdgeInsets.only(
+                     left: Spacing.pagePadding,
+                     right: Spacing.pagePadding,
+@@ -1889,6 +1936,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+                             locationController: _locationController,
+                             locationHintController: _locationHintController,
+                             locationSuggestions: _locationSuggestions,
++                            locationKey: _locationKey,
++                            fieldErrors: _fieldErrors,
+                             isPotential: _isPotentialGig,
+                             onPotentialToggled: _togglePotentialGig,
+                             isRecurring: _isRecurring,
+@@ -1986,7 +2035,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
+                 : EventEditorBottomActions(
+                     canSave: !_isSaving &&
+                         !_isDeleting &&
+-                        _isFormValid &&
+                         (widget.mode == EventEditorMode.create || _isDirty),
+                     isSaving: _isSaving,
+                     isDeleting: _isDeleting,
+diff --git a/lib/features/events/widgets/gig_form_fields.dart b/lib/features/events/widgets/gig_form_fields.dart
+index 4832895..dd051b4 100644
+--- a/lib/features/events/widgets/gig_form_fields.dart
++++ b/lib/features/events/widgets/gig_form_fields.dart
+@@ -25,6 +25,7 @@ class GigFormFields extends ConsumerWidget {
+     required this.gigNameFocusNode,
+     required this.gigNameSuggestions,
+     required this.onGigNameChanged,
++    required this.gigNameKey,
+     required this.fieldErrors,
+     // City autocomplete
+     required this.locationController,
+@@ -32,6 +33,7 @@ class GigFormFields extends ConsumerWidget {
+     required this.gigCityFocusNode,
+     required this.gigCitySuggestions,
+     required this.onGigCityChanged,
++    required this.gigLocationKey,
+     // Potential gig
+     required this.isPotentialGig,
+     required this.forcePotentialOnly,
+@@ -77,6 +79,7 @@ class GigFormFields extends ConsumerWidget {
+   final FocusNode gigNameFocusNode;
+   final List<String> gigNameSuggestions;
+   final ValueChanged<String> onGigNameChanged;
++  final GlobalKey gigNameKey;
+   final Map<String, String> fieldErrors;
+ 
+   // --- City autocomplete ---
+@@ -85,6 +88,7 @@ class GigFormFields extends ConsumerWidget {
+   final FocusNode gigCityFocusNode;
+   final List<String> gigCitySuggestions;
+   final ValueChanged<String> onGigCityChanged;
++  final GlobalKey gigLocationKey;
+ 
+   // --- Potential gig ---
+   final bool isPotentialGig;
+@@ -169,6 +173,9 @@ class GigFormFields extends ConsumerWidget {
+   // ---------------------------------------------------------------------------
+ 
+   Widget _buildGigNameAutocomplete(BuildContext context) {
++    final hasError = fieldErrors.containsKey('name');
++    final errorText = hasError ? fieldErrors['name'] : null;
++
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+@@ -180,6 +187,7 @@ class GigFormFields extends ConsumerWidget {
+         ),
+         const SizedBox(height: 6),
+         RawAutocomplete<String>(
++          key: gigNameKey,
+           textEditingController: nameController,
+           focusNode: gigNameFocusNode,
+           optionsBuilder: (TextEditingValue textEditingValue) {
+@@ -225,27 +233,25 @@ class GigFormFields extends ConsumerWidget {
+                 border: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                   borderSide: BorderSide(
+-                    color: fieldErrors['name'] != null
+-                        ? AppColors.error
+-                        : context.colors.border,
++                    color: hasError ? AppColors.error : context.colors.border,
+                   ),
+                 ),
+                 enabledBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                   borderSide: BorderSide(
+-                    color: fieldErrors['name'] != null
+-                        ? AppColors.error
+-                        : context.colors.border,
++                    color: hasError ? AppColors.error : context.colors.border,
+                   ),
+                 ),
+                 focusedBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                   borderSide: BorderSide(
+-                    color: fieldErrors['name'] != null
+-                        ? AppColors.error
+-                        : AppColors.primary,
++                    color: hasError ? AppColors.error : AppColors.primary,
+                   ),
+                 ),
++                errorBorder: OutlineInputBorder(
++                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
++                  borderSide: const BorderSide(color: AppColors.error),
++                ),
+               ),
+             );
+           },
+@@ -292,10 +298,10 @@ class GigFormFields extends ConsumerWidget {
+             );
+           },
+         ),
+-        if (fieldErrors['name'] != null) ...[
++        if (hasError && errorText != null) ...[
+           const SizedBox(height: 4),
+           Text(
+-            fieldErrors['name']!,
++            errorText,
+             style: AppTextStyles.footnote.copyWith(color: AppColors.error),
+           ),
+         ],
+@@ -312,6 +318,9 @@ class GigFormFields extends ConsumerWidget {
+   // ---------------------------------------------------------------------------
+ 
+   Widget _buildGigCityAutocomplete(BuildContext context) {
++    final hasError = fieldErrors.containsKey('city');
++    final errorText = hasError ? fieldErrors['city'] : null;
++
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+@@ -323,9 +332,7 @@ class GigFormFields extends ConsumerWidget {
+         ),
+         const SizedBox(height: 6),
+         RawAutocomplete<String>(
+-          key: ValueKey(
+-            'gigCity_${gigCitySuggestions.length}_${gigCitySuggestions.hashCode}',
+-          ),
++          key: gigLocationKey,
+           textEditingController: locationController,
+           focusNode: gigCityFocusNode,
+           optionsBuilder: (TextEditingValue textEditingValue) {
+@@ -370,15 +377,25 @@ class GigFormFields extends ConsumerWidget {
+                 ),
+                 border: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+-                  borderSide: BorderSide(color: context.colors.border),
++                  borderSide: BorderSide(
++                    color: hasError ? AppColors.error : context.colors.border,
++                  ),
+                 ),
+                 enabledBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+-                  borderSide: BorderSide(color: context.colors.border),
++                  borderSide: BorderSide(
++                    color: hasError ? AppColors.error : context.colors.border,
++                  ),
+                 ),
+                 focusedBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+-                  borderSide: const BorderSide(color: AppColors.primary),
++                  borderSide: BorderSide(
++                    color: hasError ? AppColors.error : AppColors.primary,
++                  ),
++                ),
++                errorBorder: OutlineInputBorder(
++                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
++                  borderSide: const BorderSide(color: AppColors.error),
+                 ),
+               ),
+             );
+@@ -426,6 +443,13 @@ class GigFormFields extends ConsumerWidget {
+             );
+           },
+         ),
++        if (hasError && errorText != null) ...[
++          const SizedBox(height: 4),
++          Text(
++            errorText,
++            style: AppTextStyles.footnote.copyWith(color: AppColors.error),
++          ),
++        ],
+         FieldHint(
+           text: "Auto-fills based on past gigs.",
+           controller: cityHintController,
+diff --git a/lib/features/events/widgets/rehearsal_form_fields.dart b/lib/features/events/widgets/rehearsal_form_fields.dart
+index ed24473..df6d9a1 100644
+--- a/lib/features/events/widgets/rehearsal_form_fields.dart
++++ b/lib/features/events/widgets/rehearsal_form_fields.dart
+@@ -23,6 +23,9 @@ class RehearsalFormFields extends ConsumerWidget {
+     required this.locationController,
+     required this.locationHintController,
+     required this.locationSuggestions,
++    // Field validation
++    required this.locationKey,
++    required this.fieldErrors,
+     // Potential rehearsal toggle
+     required this.isPotential,
+     required this.onPotentialToggled,
+@@ -58,6 +61,10 @@ class RehearsalFormFields extends ConsumerWidget {
+   final FieldHintController locationHintController;
+   final List<String> locationSuggestions;
+ 
++  // --- Field validation ---
++  final GlobalKey locationKey;
++  final Map<String, String> fieldErrors;
++
+   // --- Potential rehearsal toggle ---
+   final bool isPotential;
+   final ValueChanged<bool> onPotentialToggled;
+@@ -130,6 +137,9 @@ class RehearsalFormFields extends ConsumerWidget {
+   // ---------------------------------------------------------------------------
+ 
+   Widget _buildLocationAutocomplete(BuildContext context) {
++    final hasError = fieldErrors.containsKey('location');
++    final errorText = hasError ? fieldErrors['location'] : null;
++
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+@@ -141,6 +151,7 @@ class RehearsalFormFields extends ConsumerWidget {
+         ),
+         const SizedBox(height: 6),
+         Autocomplete<String>(
++          key: locationKey,
+           initialValue: TextEditingValue(text: locationController.text),
+           optionsBuilder: (TextEditingValue textEditingValue) {
+             if (textEditingValue.text.isEmpty) {
+@@ -187,16 +198,27 @@ class RehearsalFormFields extends ConsumerWidget {
+                 ),
+                 border: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+-                  borderSide: BorderSide(color: context.colors.border),
++                  borderSide: BorderSide(
++                    color: hasError ? AppColors.error : context.colors.border,
++                  ),
+                 ),
+                 enabledBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+-                  borderSide: BorderSide(color: context.colors.border),
++                  borderSide: BorderSide(
++                    color: hasError ? AppColors.error : context.colors.border,
++                  ),
+                 ),
+                 focusedBorder: OutlineInputBorder(
+                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+-                  borderSide: const BorderSide(color: AppColors.primary),
++                  borderSide: BorderSide(
++                    color: hasError ? AppColors.error : AppColors.primary,
++                  ),
++                ),
++                errorBorder: OutlineInputBorder(
++                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
++                  borderSide: const BorderSide(color: AppColors.error),
+                 ),
++                errorText: null, // We'll show error below the field instead
+               ),
+             );
+           },
+@@ -240,6 +262,15 @@ class RehearsalFormFields extends ConsumerWidget {
+             );
+           },
+         ),
++        if (hasError && errorText != null) ...[
++          const SizedBox(height: 4),
++          Text(
++            errorText,
++            style: AppTextStyles.footnote.copyWith(
++              color: AppColors.error,
++            ),
++          ),
++        ],
+         FieldHint(
+           text: "We'll remember locations you've used before.",
+           controller: locationHintController,

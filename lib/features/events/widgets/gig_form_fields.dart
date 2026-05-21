@@ -25,6 +25,7 @@ class GigFormFields extends ConsumerWidget {
     required this.gigNameFocusNode,
     required this.gigNameSuggestions,
     required this.onGigNameChanged,
+    required this.gigNameKey,
     required this.fieldErrors,
     // City autocomplete
     required this.locationController,
@@ -32,6 +33,7 @@ class GigFormFields extends ConsumerWidget {
     required this.gigCityFocusNode,
     required this.gigCitySuggestions,
     required this.onGigCityChanged,
+    required this.gigLocationKey,
     // Potential gig
     required this.isPotentialGig,
     required this.forcePotentialOnly,
@@ -77,6 +79,7 @@ class GigFormFields extends ConsumerWidget {
   final FocusNode gigNameFocusNode;
   final List<String> gigNameSuggestions;
   final ValueChanged<String> onGigNameChanged;
+  final GlobalKey gigNameKey;
   final Map<String, String> fieldErrors;
 
   // --- City autocomplete ---
@@ -85,6 +88,7 @@ class GigFormFields extends ConsumerWidget {
   final FocusNode gigCityFocusNode;
   final List<String> gigCitySuggestions;
   final ValueChanged<String> onGigCityChanged;
+  final GlobalKey gigLocationKey;
 
   // --- Potential gig ---
   final bool isPotentialGig;
@@ -169,6 +173,9 @@ class GigFormFields extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildGigNameAutocomplete(BuildContext context) {
+    final hasError = fieldErrors.containsKey('name');
+    final errorText = hasError ? fieldErrors['name'] : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -180,6 +187,7 @@ class GigFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         RawAutocomplete<String>(
+          key: gigNameKey,
           textEditingController: nameController,
           focusNode: gigNameFocusNode,
           optionsBuilder: (TextEditingValue textEditingValue) {
@@ -225,26 +233,24 @@ class GigFormFields extends ConsumerWidget {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   borderSide: BorderSide(
-                    color: fieldErrors['name'] != null
-                        ? AppColors.error
-                        : context.colors.border,
+                    color: hasError ? AppColors.error : context.colors.border,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   borderSide: BorderSide(
-                    color: fieldErrors['name'] != null
-                        ? AppColors.error
-                        : context.colors.border,
+                    color: hasError ? AppColors.error : context.colors.border,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   borderSide: BorderSide(
-                    color: fieldErrors['name'] != null
-                        ? AppColors.error
-                        : AppColors.primary,
+                    color: hasError ? AppColors.error : AppColors.primary,
                   ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.error),
                 ),
               ),
             );
@@ -292,10 +298,10 @@ class GigFormFields extends ConsumerWidget {
             );
           },
         ),
-        if (fieldErrors['name'] != null) ...[
+        if (hasError && errorText != null) ...[
           const SizedBox(height: 4),
           Text(
-            fieldErrors['name']!,
+            errorText,
             style: AppTextStyles.footnote.copyWith(color: AppColors.error),
           ),
         ],
@@ -312,6 +318,9 @@ class GigFormFields extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildGigCityAutocomplete(BuildContext context) {
+    final hasError = fieldErrors.containsKey('city');
+    final errorText = hasError ? fieldErrors['city'] : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -323,9 +332,7 @@ class GigFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         RawAutocomplete<String>(
-          key: ValueKey(
-            'gigCity_${gigCitySuggestions.length}_${gigCitySuggestions.hashCode}',
-          ),
+          key: gigLocationKey,
           textEditingController: locationController,
           focusNode: gigCityFocusNode,
           optionsBuilder: (TextEditingValue textEditingValue) {
@@ -370,15 +377,25 @@ class GigFormFields extends ConsumerWidget {
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.error : context.colors.border,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.error : context.colors.border,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.primary),
+                  borderSide: BorderSide(
+                    color: hasError ? AppColors.error : AppColors.primary,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.error),
                 ),
               ),
             );
@@ -426,6 +443,13 @@ class GigFormFields extends ConsumerWidget {
             );
           },
         ),
+        if (hasError && errorText != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText,
+            style: AppTextStyles.footnote.copyWith(color: AppColors.error),
+          ),
+        ],
         FieldHint(
           text: "Auto-fills based on past gigs.",
           controller: cityHintController,

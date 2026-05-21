@@ -115,14 +115,6 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
       },
       loading: () => const RehearsalState(isLoading: true),
       error: (e, stackTrace) {
-        debugPrint(
-            '═══════════════════════════════════════════════════════════');
-        debugPrint('[RehearsalController] Error from RPC:');
-        debugPrint('  Error: $e');
-        debugPrint('  Type: ${e.runtimeType}');
-        debugPrint('  Stack: $stackTrace');
-        debugPrint(
-            '═══════════════════════════════════════════════════════════');
         return RehearsalState(error: e.toString());
       },
     );
@@ -216,24 +208,12 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
       );
       state = const RehearsalState();
     } catch (e, stackTrace) {
-      // Log detailed error for debugging
-      debugPrint('═══════════════════════════════════════════════════════════');
-      debugPrint('[RehearsalController] Error loading rehearsals:');
-      debugPrint('  Error: $e');
-      debugPrint('  Type: ${e.runtimeType}');
-      debugPrint('  Stack: $stackTrace');
-      debugPrint('═══════════════════════════════════════════════════════════');
-
       state = state.copyWith(isLoading: false, error: e.toString());
-      debugPrint(
-        '[RehearsalController] refresh for band $bandId -> 0 rehearsals, error=${e.toString()}',
-      );
     }
   }
 
   /// Reset state for band change — clears error and lists, sets loading
   void resetForBandChange() {
-    debugPrint('[RehearsalController] resetForBandChange');
     state = const RehearsalState(isLoading: true);
   }
 

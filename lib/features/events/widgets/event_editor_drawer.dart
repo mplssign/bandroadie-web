@@ -189,6 +189,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   final _gigCityFocusNode = FocusNode();
   final _gigLocationFocusNode = FocusNode();
 
+  // GlobalKeys for validation scroll-to-error
+  final _locationKey = GlobalKey();
+  final _gigNameKey = GlobalKey();
+  final _gigLocationKey = GlobalKey();
+
+  // ScrollController for form scrolling
+  final _scrollController = ScrollController();
+
   // Animation for recurring section
   late AnimationController _recurringAnimController;
   late Animation<double> _recurringFadeAnimation;
@@ -210,14 +218,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   void _markDirty() {
     if (widget.mode == EventEditorMode.edit && !_isDirty) {
       setState(() => _isDirty = true);
-    }
-  }
-
-  /// Trigger rebuild in create mode so _isFormValid is re-evaluated
-  /// as the user types in required fields.
-  void _onFormFieldChanged() {
-    if (widget.mode == EventEditorMode.create) {
-      setState(() {});
     }
   }
 
@@ -368,15 +368,27 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       hasInitialValue: isEdit && _notesController.text.isNotEmpty,
     );
 
-    // Add text controller listeners to track changes
-    _locationController.addListener(_markDirty);
-    _nameController.addListener(_markDirty);
+    // Add text controller listeners to track changes and clear field errors
+    _locationController.addListener(() {
+      _markDirty();
+      // Clear field errors when user types
+      if (_eventType == EventType.rehearsal &&
+          _fieldErrors.containsKey('location')) {
+        setState(() => _fieldErrors.remove('location'));
+      } else if (_eventType == EventType.gig &&
+          _fieldErrors.containsKey('city')) {
+        setState(() => _fieldErrors.remove('city'));
+      }
+    });
+    _nameController.addListener(() {
+      _markDirty();
+      // Clear gig name error when user types
+      if (_fieldErrors.containsKey('name')) {
+        setState(() => _fieldErrors.remove('name'));
+      }
+    });
     _notesController.addListener(_markDirty);
     _gigPayController.addListener(_markDirty);
-
-    // Re-evaluate form validity in create mode on required field changes
-    _nameController.addListener(_onFormFieldChanged);
-    _locationController.addListener(_onFormFieldChanged);
   }
 
   @override
@@ -395,6 +407,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _gigNameFocusNode.dispose();
     _gigCityFocusNode.dispose();
     _gigLocationFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -865,22 +878,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
-  /// Check if required fields are filled for gigs in create mode.
-  /// For gigs: name and location are required.
-  /// For rehearsals: no required text fields.
-  bool get _isFormValid {
-    if (_eventType == EventType.blockOut) {
-      return true; // Block outs have no required text fields
-    }
-    if (_eventType == EventType.gig) {
-      final hasName = _nameController.text.trim().isNotEmpty;
-      final hasLocation = _locationController.text.trim().isNotEmpty;
-      return hasName && hasLocation;
-    }
-    // Rehearsals have no required text fields
-    return true;
-  }
-
   /// Convert duration in minutes to the closest EventDuration enum value.
   /// If exact match not found, returns the closest higher value or max.
   EventDuration _durationMinutesToEnum(int minutes) {
@@ -1193,16 +1190,63 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     // Clear previous errors
     setState(() {
       _errorMessage = null;
+      _fieldErrors.clear();
     });
 
-    // Validate
+    // Client-side validation: check rehearsal location before building form data
+    if (_eventType == EventType.rehearsal &&
+        _locationController.text.trim().isEmpty) {
+      setState(() {
+        _fieldErrors['location'] = 'Location is required';
+        _errorMessage = 'Location is required';
+      });
+      // Scroll to location field
+      if (_locationKey.currentContext != null) {
+        await Scrollable.ensureVisible(
+          _locationKey.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.15,
+        );
+      }
+      return;
+    }
+
+    // Validate via form data model
     var formData = _buildFormData();
     final errors = formData.validate();
 
     if (errors.isNotEmpty) {
+      // Populate field-level errors from validation messages
+      for (final errorMsg in errors) {
+        if (errorMsg.contains('Gig name is required')) {
+          _fieldErrors['name'] = 'Gig name is required';
+        } else if (errorMsg.contains('City is required')) {
+          _fieldErrors['city'] = 'City is required';
+        }
+      }
+
       setState(() {
         _errorMessage = errors.first;
       });
+
+      // Scroll to first failing field
+      GlobalKey? firstFailingKey;
+      if (_fieldErrors.containsKey('name')) {
+        firstFailingKey = _gigNameKey;
+      } else if (_fieldErrors.containsKey('city')) {
+        firstFailingKey = _gigLocationKey;
+      }
+
+      if (firstFailingKey?.currentContext != null) {
+        await Scrollable.ensureVisible(
+          firstFailingKey!.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.15,
+        );
+      }
+
       return;
     }
 
@@ -1627,12 +1671,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       gigNameFocusNode: _gigNameFocusNode,
       gigNameSuggestions: _gigNameSuggestions,
       onGigNameChanged: _fetchGigNameSuggestions,
+      gigNameKey: _gigNameKey,
       fieldErrors: _fieldErrors,
       locationController: _locationController,
       cityHintController: _cityHintController,
       gigCityFocusNode: _gigCityFocusNode,
       gigCitySuggestions: _gigCitySuggestions,
       onGigCityChanged: _fetchGigCitySuggestions,
+      gigLocationKey: _gigLocationKey,
       isPotentialGig: _isPotentialGig,
       forcePotentialOnly: _forcePotentialOnly,
       onPotentialGigToggled: _togglePotentialGig,
@@ -1836,6 +1882,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               child: Opacity(
                 opacity: widget.viewOnly ? 0.7 : 1.0,
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   padding: EdgeInsets.only(
                     left: Spacing.pagePadding,
                     right: Spacing.pagePadding,
@@ -1889,6 +1936,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                             locationController: _locationController,
                             locationHintController: _locationHintController,
                             locationSuggestions: _locationSuggestions,
+                            locationKey: _locationKey,
+                            fieldErrors: _fieldErrors,
                             isPotential: _isPotentialGig,
                             onPotentialToggled: _togglePotentialGig,
                             isRecurring: _isRecurring,
@@ -1986,7 +2035,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                 : EventEditorBottomActions(
                     canSave: !_isSaving &&
                         !_isDeleting &&
-                        _isFormValid &&
                         (widget.mode == EventEditorMode.create || _isDirty),
                     isSaving: _isSaving,
                     isDeleting: _isDeleting,

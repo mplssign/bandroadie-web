@@ -349,44 +349,30 @@ class _RehearsalCardState extends State<RehearsalCard>
             );
           },
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: Title + Date/Time
-              Row(
+              // Top section: Date + Time
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Next Rehearsal',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                  Text(
+                    _formatDateLine(widget.rehearsal.date),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.2,
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _formatDateLine(widget.rehearsal.date),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          height: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _formatTimeLine(widget.rehearsal),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          height: 1.2,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatTimeLine(widget.rehearsal),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.75),
+                      height: 1.2,
+                    ),
                   ),
                 ],
               ),
@@ -394,41 +380,47 @@ class _RehearsalCardState extends State<RehearsalCard>
               const SizedBox(height: Spacing.space16),
 
               // Bottom: Location + Setlist
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Icon(
-                          AppIcons.location,
-                          size: 14,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            widget.rehearsal.location,
-                            style: AppTextStyles.footnote.copyWith(
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Icon(
+                        AppIcons.location,
+                        size: 14,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          widget.rehearsal.location.isNotEmpty
+                              ? widget.rehearsal.location
+                              : 'TBD',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.75),
+                            height: 1.2,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   if (widget.rehearsal.setlistId != null &&
-                      widget.setlistName != null)
-                    Container(
-                      height: 32,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(Spacing.chipRadius),
-                      ),
-                      child: Center(
+                      widget.setlistName != null) ...[
+                    const SizedBox(height: 8),
+                    IntrinsicWidth(
+                      child: Container(
+                        height: 32,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius:
+                              BorderRadius.circular(Spacing.chipRadius),
+                        ),
+                        alignment: Alignment.centerLeft,
                         child: Text(
                           widget.setlistName!,
                           style: AppTextStyles.footnote.copyWith(
@@ -440,6 +432,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
             ],
@@ -455,39 +448,47 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   String _formatFullDate(DateTime date) {
     const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   String _formatDateLine(DateTime date) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    const days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
-    return '${days[date.weekday - 1]} ${months[date.month - 1]} ${date.day}, ${date.year}';
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    return '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   String _formatTimeLine(Rehearsal rehearsal) {

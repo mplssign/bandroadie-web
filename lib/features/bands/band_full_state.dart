@@ -116,8 +116,6 @@ final bandFullStateProvider = FutureProvider<BandFullState?>((ref) async {
   final bandId = ref.watch(activeBandIdProvider);
   if (bandId == null) return null;
 
-  debugPrint('[BandFullState] Fetching full state for band $bandId');
-
   final repo = ref.read(bandFullStateRepositoryProvider);
   return repo.fetchBandFullState(bandId);
 });
