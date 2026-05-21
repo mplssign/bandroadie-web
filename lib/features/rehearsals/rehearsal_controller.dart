@@ -207,7 +207,7 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
         '[RehearsalController] No band selected, returning empty state',
       );
       state = const RehearsalState();
-    } catch (e, stackTrace) {
+    } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
