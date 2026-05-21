@@ -1289,6 +1289,24 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             // Pass original recurrence state to detect transition to recurring
             wasRecurring: _initialFormData?.isRecurring,
           );
+
+          // Save user availability response if set (potential rehearsals only)
+          if (_isPotentialGig && _currentUserResponse != null) {
+            final userId = supabase.auth.currentUser?.id;
+            if (userId != null) {
+              await ref
+                  .read(rehearsalResponseRepositoryProvider)
+                  .upsertResponse(
+                    rehearsalId: widget.existingEventId!,
+                    bandId: widget.bandId,
+                    userId: userId,
+                    response: _currentUserResponse!,
+                  );
+
+              // Invalidate summaries so dashboard card reflects the updated response immediately.
+              ref.invalidate(potentialRehearsalResponseSummariesProvider);
+            }
+          }
         } else {
           await repository.updateGig(
             gigId: widget.existingEventId!,
@@ -1661,6 +1679,58 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     HapticFeedback.selectionClick();
   }
 
+  RehearsalFormFields _createRehearsalFormFields() {
+    return RehearsalFormFields(
+      isSaving: _isSaving,
+      locationController: _locationController,
+      locationHintController: _locationHintController,
+      locationSuggestions: _locationSuggestions,
+      locationKey: _locationKey,
+      fieldErrors: _fieldErrors,
+      isPotential: _isPotentialGig,
+      onPotentialToggled: _togglePotentialGig,
+      isRecurring: _isRecurring,
+      onRecurringToggled: _toggleRecurring,
+      recurringSlideAnimation: _recurringSlideAnimation,
+      recurringFadeAnimation: _recurringFadeAnimation,
+      selectedDays: _selectedDays,
+      onDayToggled: (day) {
+        setState(() {
+          if (_selectedDays.contains(day)) {
+            _selectedDays.remove(day);
+          } else {
+            _selectedDays.add(day);
+          }
+        });
+        _markDirty();
+      },
+      frequency: _frequency,
+      onFrequencyChanged: (freq) {
+        setState(() => _frequency = freq);
+        _markDirty();
+      },
+      untilDate: _untilDate,
+      onUntilDateTap: _showUntilDatePicker,
+      onUntilDateCleared: () {
+        setState(() => _untilDate = null);
+        _markDirty();
+      },
+      selectedDate: _selectedDate,
+      onMarkDirty: _markDirty,
+      memberAvailability: _memberAvailability,
+      isLoadingMemberAvailability: _isLoadingMemberAvailability,
+      isLoadingUserResponse: _isLoadingUserResponse,
+      currentUserResponse: _currentUserResponse,
+      onUserResponseChanged: (response) {
+        setState(() => _currentUserResponse = response);
+        _markDirty();
+        HapticFeedback.selectionClick();
+      },
+      isEditMode: widget.mode == EventEditorMode.edit,
+      existingEventId: widget.existingEventId,
+    );
+  }
+
   GigFormFields _createGigFormFields() {
     return GigFormFields(
       isSaving: _isSaving,
@@ -1804,6 +1874,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final eventFormFields = _createEventFormFields(context);
     final gigFormFields =
         _eventType == EventType.gig ? _createGigFormFields() : null;
+    final rehearsalFormFields =
+        _eventType == EventType.rehearsal ? _createRehearsalFormFields() : null;
 
     return Container(
       constraints: BoxConstraints(
@@ -1914,6 +1986,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         const SizedBox(height: Spacing.space12),
                       ],
 
+                      // Potential Rehearsal toggle (rehearsal only, before date/time)
+                      if (_eventType == EventType.rehearsal) ...[
+                        rehearsalFormFields!.buildPotentialSection(context, ref),
+                        const SizedBox(height: Spacing.space16),
+                      ],
+
                       // Block out form
                       if (_eventType == EventType.blockOut) ...[
                         _buildBlockOutForm(),
@@ -1926,61 +2004,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                           ),
                         ],
                       ] else ...[
-                        // Shared: date, time, duration
+                        // Shared: date (+add date when potential), time, duration
                         eventFormFields,
 
                         // Location/City (type-specific)
                         if (_eventType == EventType.rehearsal) ...[
-                          RehearsalFormFields(
-                            isSaving: _isSaving,
-                            locationController: _locationController,
-                            locationHintController: _locationHintController,
-                            locationSuggestions: _locationSuggestions,
-                            locationKey: _locationKey,
-                            fieldErrors: _fieldErrors,
-                            isPotential: _isPotentialGig,
-                            onPotentialToggled: _togglePotentialGig,
-                            isRecurring: _isRecurring,
-                            onRecurringToggled: _toggleRecurring,
-                            recurringSlideAnimation: _recurringSlideAnimation,
-                            recurringFadeAnimation: _recurringFadeAnimation,
-                            selectedDays: _selectedDays,
-                            onDayToggled: (day) {
-                              setState(() {
-                                if (_selectedDays.contains(day)) {
-                                  _selectedDays.remove(day);
-                                } else {
-                                  _selectedDays.add(day);
-                                }
-                              });
-                              _markDirty();
-                            },
-                            frequency: _frequency,
-                            onFrequencyChanged: (freq) {
-                              setState(() => _frequency = freq);
-                              _markDirty();
-                            },
-                            untilDate: _untilDate,
-                            onUntilDateTap: _showUntilDatePicker,
-                            onUntilDateCleared: () {
-                              setState(() => _untilDate = null);
-                              _markDirty();
-                            },
-                            selectedDate: _selectedDate,
-                            onMarkDirty: _markDirty,
-                            memberAvailability: _memberAvailability,
-                            isLoadingMemberAvailability:
-                                _isLoadingMemberAvailability,
-                            isLoadingUserResponse: _isLoadingUserResponse,
-                            currentUserResponse: _currentUserResponse,
-                            onUserResponseChanged: (response) {
-                              setState(() => _currentUserResponse = response);
-                              _markDirty();
-                              HapticFeedback.selectionClick();
-                            },
-                            isEditMode: widget.mode == EventEditorMode.edit,
-                            existingEventId: widget.existingEventId,
-                          ),
+                          // Location + recurring toggle (recurring hidden when isPotential)
+                          rehearsalFormFields!,
                         ] else ...[
                           gigFormFields!.buildCityAutocomplete(context),
                           const SizedBox(height: Spacing.space16),

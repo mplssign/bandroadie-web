@@ -750,6 +750,71 @@ class GigResponseRepository {
     }
     return result;
   }
+
+  /// Fetch the current user's own responses for ALL dates of multiple potential gigs.
+  /// Returns gigId → (gigDateId? → response).
+  /// gigDateId? is null for the primary date, a string ID for additional dates.
+  Future<Map<String, Map<String?, String?>>> fetchCurrentUserGigAllDateResponses({
+    required List<String> gigIds,
+    required String userId,
+  }) async {
+    if (gigIds.isEmpty) return {};
+
+    final responses = await supabase
+        .from('gig_responses')
+        .select('gig_id, gig_date_id, response')
+        .eq('user_id', userId)
+        .inFilter('gig_id', gigIds);
+
+    // Seed result with empty maps for each gig
+    final result = <String, Map<String?, String?>>{
+      for (final id in gigIds) id: {},
+    };
+    for (final r in responses) {
+      final gigId = r['gig_id'] as String;
+      final gigDateId = r['gig_date_id'] as String?; // null = primary date
+      final response = r['response'] as String?;
+      result[gigId]![gigDateId] = response;
+    }
+    return result;
+  }
+
+  /// Delete the user's response for a specific date of a gig.
+  /// Pass gigDateId = null to delete the primary-date response.
+  Future<void> deleteResponseForDate({
+    required String gigId,
+    required String userId,
+    required String? gigDateId,
+  }) async {
+    debugPrint(
+      '[GigResponseRepository] deleteResponseForDate: gigId=$gigId, gigDateId=$gigDateId, userId=$userId',
+    );
+
+    try {
+      if (gigDateId != null) {
+        await supabase
+            .from('gig_responses')
+            .delete()
+            .eq('gig_id', gigId)
+            .eq('user_id', userId)
+            .eq('gig_date_id', gigDateId);
+      } else {
+        await supabase
+            .from('gig_responses')
+            .delete()
+            .eq('gig_id', gigId)
+            .eq('user_id', userId)
+            .isFilter('gig_date_id', null);
+      }
+      debugPrint('[GigResponseRepository] deleteResponseForDate successful');
+    } catch (e, stackTrace) {
+      debugPrint('[GigResponseRepository] deleteResponseForDate failed: $e');
+      debugPrint('[GigResponseRepository] Stack trace: $stackTrace');
+      throw GigResponseError.fromException(
+        e is Exception ? e : Exception(e.toString()),
+      );
+    }
+  }
 }
 
 /// Provider for the repository
@@ -834,6 +899,34 @@ final currentUserGigResponsesProvider =
     );
   } catch (e) {
     debugPrint('[currentUserGigResponsesProvider] Error: $e');
+    return {};
+  }
+});
+
+/// Async provider for the current user's responses across ALL dates of all potential gigs.
+/// Returns gigId → (gigDateId? → response). gigDateId? null = primary date.
+/// Invalidated after the user submits a response for any date.
+final currentUserGigAllDateResponsesProvider =
+    FutureProvider<Map<String, Map<String?, String?>>>((ref) async {
+  final gigState = ref.watch(gigProvider);
+  final bandId = ref.watch(activeBandIdProvider);
+  final userId = supabase.auth.currentUser?.id;
+
+  if (bandId == null || userId == null || gigState.potentialGigs.isEmpty) {
+    return {};
+  }
+  if (gigState.isLoading) return {};
+
+  final repository = ref.read(gigResponseRepositoryProvider);
+  final gigIds = gigState.potentialGigs.map((g) => g.id).toList();
+
+  try {
+    return await repository.fetchCurrentUserGigAllDateResponses(
+      gigIds: gigIds,
+      userId: userId,
+    );
+  } catch (e) {
+    debugPrint('[currentUserGigAllDateResponsesProvider] Error: $e');
     return {};
   }
 });

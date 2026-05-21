@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/models/gig.dart';
+import '../../../app/models/gig_date.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -10,8 +11,9 @@ import '../../../app/utils/time_formatter.dart';
 
 // ============================================================================
 // POTENTIAL GIG CARD
-// Chip label + day/date/time + location + inline YES/NO availability buttons.
-// Orange→rose animated gradient, 300px wide in horizontal scroll.
+// Chip label + day/date/time + venue+city + inline YES/NO availability buttons.
+// Multi-date gigs: left/right chevrons to navigate between dates.
+// Orange→rose animated gradient, 340px wide in horizontal scroll.
 // ============================================================================
 
 class PotentialGigCard extends StatefulWidget {
@@ -19,11 +21,12 @@ class PotentialGigCard extends StatefulWidget {
   final String bandTimezone;
   final VoidCallback? onTap;
 
-  /// The current user's own response: 'yes', 'no', or null (not responded).
-  final String? currentUserResponse;
+  /// Current user's responses keyed by gigDateId (null = primary date).
+  final Map<String?, String?>? perDateUserResponses;
 
-  /// Called with 'yes', 'no', or null (for unselect) when the user taps a response button.
-  final Future<void> Function(String? response)? onRespond;
+  /// Called with response ('yes'/'no') or null (unselect), and the gigDateId
+  /// (null = primary date) for the currently displayed date.
+  final Future<void> Function(String? response, String? gigDateId)? onRespondForDate;
 
   /// Optional fixed width for horizontal scroll mode.
   final double? width;
@@ -33,8 +36,8 @@ class PotentialGigCard extends StatefulWidget {
     required this.gig,
     required this.bandTimezone,
     this.onTap,
-    this.currentUserResponse,
-    this.onRespond,
+    this.perDateUserResponses,
+    this.onRespondForDate,
     this.width,
   });
 
@@ -50,13 +53,41 @@ class _PotentialGigCardState extends State<PotentialGigCard>
   bool _isPressed = false;
   bool _isSubmitting = false;
 
-  // Optimistic local state — updated instantly on tap
-  String? _localResponse;
+  /// Current date index within _sortedDates.
+  int _currentDateIndex = 0;
+
+  /// Optimistic per-date response map: gigDateId? → 'yes'/'no'/null.
+  Map<String?, String?> _localResponses = {};
+
+  // ---------------------------------------------------------------------------
+  // Date helpers
+  // ---------------------------------------------------------------------------
+
+  /// All dates (primary + additional) sorted chronologically.
+  /// Each entry is (date, gigDateId?): gigDateId is null for the primary date.
+  List<(DateTime, String?)> get _sortedDates {
+    final primary = (widget.gig.date, null as String?);
+    final additional = widget.gig.additionalDates
+        .map<(DateTime, String?)>((GigDate d) => (d.date, d.id))
+        .toList();
+    final all = [primary, ...additional];
+    all.sort((a, b) => a.$1.compareTo(b.$1));
+    return all;
+  }
+
+  DateTime get _currentDate => _sortedDates[_currentDateIndex].$1;
+  String? get _currentGigDateId => _sortedDates[_currentDateIndex].$2;
+  String? get _currentDateResponse => _localResponses[_currentGigDateId];
+  bool get _isMultiDate => widget.gig.isMultiDate;
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
 
   @override
   void initState() {
     super.initState();
-    _localResponse = widget.currentUserResponse;
+    _localResponses = Map.from(widget.perDateUserResponses ?? {});
 
     _gradientController = AnimationController(
       duration: const Duration(seconds: 5),
@@ -93,8 +124,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
   @override
   void didUpdateWidget(PotentialGigCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentUserResponse != widget.currentUserResponse) {
-      _localResponse = widget.currentUserResponse;
+    if (oldWidget.perDateUserResponses != widget.perDateUserResponses) {
+      _localResponses = Map.from(widget.perDateUserResponses ?? {});
     }
   }
 
@@ -104,21 +135,32 @@ class _PotentialGigCardState extends State<PotentialGigCard>
     super.dispose();
   }
 
-  Future<void> _handleResponse(String response) async {
-    if (_isSubmitting || widget.onRespond == null) return;
+  // ---------------------------------------------------------------------------
+  // Response handling
+  // ---------------------------------------------------------------------------
 
-    // If tapping the same button that's already selected, unselect (delete)
-    if (_localResponse == response) {
+  Future<void> _handleResponse(String response) async {
+    final gigDateId = _currentGigDateId;
+    final currentResponse = _localResponses[gigDateId];
+    if (_isSubmitting || widget.onRespondForDate == null) return;
+
+    if (currentResponse == response) {
+      // Tapping selected button → unselect (delete)
       HapticFeedback.selectionClick();
       setState(() {
         _isSubmitting = true;
-        _localResponse = null; // optimistic clear
+        _localResponses = {..._localResponses, gigDateId: null};
       });
       try {
-        await widget.onRespond!(null); // null means delete
+        await widget.onRespondForDate!(null, gigDateId);
       } catch (_) {
         if (mounted) {
-          setState(() => _localResponse = widget.currentUserResponse);
+          setState(() {
+            _localResponses = {
+              ..._localResponses,
+              gigDateId: widget.perDateUserResponses?[gigDateId],
+            };
+          });
         }
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
@@ -126,25 +168,39 @@ class _PotentialGigCardState extends State<PotentialGigCard>
       return;
     }
 
-    // Normal selection flow
+    // Normal selection
     HapticFeedback.selectionClick();
     setState(() {
       _isSubmitting = true;
-      _localResponse = response; // optimistic
+      _localResponses = {..._localResponses, gigDateId: response};
     });
     try {
-      await widget.onRespond!(response);
+      await widget.onRespondForDate!(response, gigDateId);
     } catch (_) {
-      if (mounted) setState(() => _localResponse = widget.currentUserResponse);
+      if (mounted) {
+        setState(() {
+          _localResponses = {
+            ..._localResponses,
+            gigDateId: widget.perDateUserResponses?[gigDateId],
+          };
+        });
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     final gradientAlpha =
         Theme.of(context).brightness == Brightness.light ? 1.0 : 0.60;
+    final dates = _sortedDates;
+    final canGoPrev = _currentDateIndex > 0;
+    final canGoNext = _currentDateIndex < dates.length - 1;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -186,7 +242,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Chip label with cream background - full width
+                // Chip label — cream background, full width
                 Container(
                   width: double.infinity,
                   padding:
@@ -209,9 +265,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
                 const SizedBox(height: 16),
 
-                // Large Date
+                // Current date
                 Text(
-                  _formatFullDate(widget.gig.date),
+                  _formatFullDate(_currentDate),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.dmSans(
                     fontSize: 21,
@@ -223,16 +279,14 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
                 const SizedBox(height: 8),
 
-                // Time
+                // Time (always actual time regardless of multi-date)
                 Text(
-                  widget.gig.isMultiDate
-                      ? 'Multiple dates'
-                      : TimeFormatter.formatRangeLocal(
-                          widget.gig.startTime,
-                          widget.gig.endTime,
-                          widget.gig.date,
-                          widget.bandTimezone,
-                        ),
+                  TimeFormatter.formatRangeLocal(
+                    widget.gig.startTime,
+                    widget.gig.endTime,
+                    widget.gig.date,
+                    widget.bandTimezone,
+                  ),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.dmSans(
                     fontSize: 18,
@@ -244,48 +298,122 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
                 const SizedBox(height: 12),
 
-                // Venue/Location
-                Text(
-                  widget.gig.location.isNotEmpty
-                      ? widget.gig.location
-                      : 'No venue specified',
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    height: 1.3,
-                  ),
+                // Venue name + city: "First Avenue - Minneapolis"
+                // Name truncates; city is never truncated.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (widget.gig.name.isNotEmpty) ...[
+                      Flexible(
+                        child: Text(
+                          widget.gig.name,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                      if (widget.gig.location.isNotEmpty)
+                        Text(
+                          ' - ${widget.gig.location}',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.3,
+                          ),
+                        ),
+                    ] else
+                      Flexible(
+                        child: Text(
+                          widget.gig.location.isNotEmpty
+                              ? widget.gig.location
+                              : 'No venue specified',
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
 
                 const Spacer(),
 
-                // Full-width YES/NO buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FullWidthAvailabilityButton(
-                        label: 'NO',
-                        isSelected: _localResponse == 'no',
-                        isPositive: false,
-                        isSubmitting: _isSubmitting,
-                        onTap: () => _handleResponse('no'),
+                // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
+                // else just [NO] [YES].
+                if (_isMultiDate)
+                  Row(
+                    children: [
+                      _DateNavButton(
+                        icon: Icons.chevron_left,
+                        enabled: canGoPrev,
+                        onTap: () =>
+                            setState(() => _currentDateIndex--),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _FullWidthAvailabilityButton(
-                        label: 'YES',
-                        isSelected: _localResponse == 'yes',
-                        isPositive: true,
-                        isSubmitting: _isSubmitting,
-                        onTap: () => _handleResponse('yes'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FullWidthAvailabilityButton(
+                          label: 'NO',
+                          isSelected: _currentDateResponse == 'no',
+                          isPositive: false,
+                          isSubmitting: _isSubmitting,
+                          onTap: () => _handleResponse('no'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FullWidthAvailabilityButton(
+                          label: 'YES',
+                          isSelected: _currentDateResponse == 'yes',
+                          isPositive: true,
+                          isSubmitting: _isSubmitting,
+                          onTap: () => _handleResponse('yes'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _DateNavButton(
+                        icon: Icons.chevron_right,
+                        enabled: canGoNext,
+                        onTap: () =>
+                            setState(() => _currentDateIndex++),
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FullWidthAvailabilityButton(
+                          label: 'NO',
+                          isSelected: _currentDateResponse == 'no',
+                          isPositive: false,
+                          isSubmitting: _isSubmitting,
+                          onTap: () => _handleResponse('no'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FullWidthAvailabilityButton(
+                          label: 'YES',
+                          isSelected: _currentDateResponse == 'yes',
+                          isPositive: true,
+                          isSubmitting: _isSubmitting,
+                          onTap: () => _handleResponse('yes'),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -310,6 +438,48 @@ class _PotentialGigCardState extends State<PotentialGigCard>
       'December',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+}
+
+// ============================================================================
+// Date navigation chevron button
+// ============================================================================
+
+class _DateNavButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _DateNavButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedContainer(
+        duration: AppDurations.fast,
+        width: 36,
+        height: 48,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: enabled ? 0.5 : 0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.3),
+            size: 18,
+          ),
+        ),
+      ),
+    );
   }
 }
 

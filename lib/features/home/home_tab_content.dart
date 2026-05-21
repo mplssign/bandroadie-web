@@ -519,6 +519,15 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               loading: () => {},
               error: (__, _) => {},
             );
+
+    // Watch per-date responses for multi-date potential gig cards
+    final Map<String, Map<String?, String?>> gigAllDateResponses =
+        ref.watch(currentUserGigAllDateResponsesProvider).when(
+              data: (r) => r,
+              loading: () => {},
+              error: (__, _) => {},
+            );
+
     final Map<String, String?> rehearsalUserResponses =
         ref.watch(currentUserRehearsalResponsesProvider).when(
               data: (r) => r,
@@ -598,6 +607,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         responseSummaries,
         rehearsalResponseSummaries,
         gigUserResponses: gigUserResponses,
+        gigAllDateResponses: gigAllDateResponses,
         rehearsalUserResponses: rehearsalUserResponses,
         canCreateGig: canCreateGig,
         canCreateSetlist: canCreateSetlist,
@@ -734,6 +744,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     Map<String, GigResponseSummary> responseSummaries,
     Map<String, RehearsalResponseSummary> rehearsalResponseSummaries, {
     required Map<String, String?> gigUserResponses,
+    required Map<String, Map<String?, String?>> gigAllDateResponses,
     required Map<String, String?> rehearsalUserResponses,
     required bool canCreateGig,
     required bool canCreateSetlist,
@@ -806,7 +817,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                     child: _buildHorizontalPotentialEvents(
                                       gigState.potentialGigs,
                                       rehearsalState.potentialRehearsals,
-                                      gigUserResponses,
+                                      gigAllDateResponses,
                                       rehearsalUserResponses,
                                       setlistsState,
                                     ),
@@ -943,7 +954,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   Widget _buildHorizontalPotentialEvents(
     List<Gig> potentialGigs,
     List<Rehearsal> potentialRehearsals,
-    Map<String, String?> gigUserResponses,
+    Map<String, Map<String?, String?>> gigAllDateResponses,
     Map<String, String?> rehearsalUserResponses,
     SetlistsState setlistsState,
   ) {
@@ -991,29 +1002,31 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               gig: gig,
               width: Spacing.potentialGigCardWidth,
               bandTimezone: bandTimezone,
-              currentUserResponse: gigUserResponses[gig.id],
-              onRespond: (bandId == null || userId == null)
+              perDateUserResponses: gigAllDateResponses[gig.id],
+              onRespondForDate: (bandId == null || userId == null)
                   ? null
-                  : (response) async {
+                  : (response, gigDateId) async {
                       if (response == null) {
-                        // Delete response (unselect)
+                        // Delete response for this specific date
                         await ref
                             .read(gigResponseRepositoryProvider)
-                            .deleteResponse(
+                            .deleteResponseForDate(
                               gigId: gig.id,
                               userId: userId,
+                              gigDateId: gigDateId,
                             );
                       } else {
-                        // Upsert response
+                        // Upsert response for this specific date
                         await ref
                             .read(gigResponseRepositoryProvider)
-                            .upsertResponse(
+                            .upsertResponseForDate(
                               gigId: gig.id,
-                              bandId: bandId,
+                              gigDateId: gigDateId,
                               userId: userId,
                               response: response,
                             );
                       }
+                      ref.invalidate(currentUserGigAllDateResponsesProvider);
                       ref.invalidate(currentUserGigResponsesProvider);
                       ref.invalidate(potentialGigResponseSummariesProvider);
                     },
@@ -1034,12 +1047,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 rehearsal: rehearsal,
                 setlistName: setlistName,
                 bandTimezone: bandTimezone,
-                currentUserResponse: rehearsalUserResponses[rehearsal.id],
-                onRespond: (bandId == null || userId == null)
+                // additionalDates defaults to [] until Rehearsal model is extended
+                perDateUserResponses: {
+                  null: rehearsalUserResponses[rehearsal.id],
+                },
+                onRespondForDate: (bandId == null || userId == null)
                     ? null
-                    : (response) async {
+                    : (response, rehearsalDateId) async {
                         if (response == null) {
-                          // Delete response (unselect)
+                          // Delete response (unselect) — rehearsals only have
+                          // a primary date for now, so rehearsalDateId is always null
                           await ref
                               .read(rehearsalResponseRepositoryProvider)
                               .deleteResponse(
@@ -1138,7 +1155,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
             setlistName = setlist?.name;
           }
           return SizedBox(
-            width: Spacing.rehearsalCardWidth,
+            width: Spacing.potentialGigCardWidth,
             child: RehearsalCard(
               rehearsal: rehearsal,
               setlistName: setlistName,

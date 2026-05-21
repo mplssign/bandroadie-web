@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/models/rehearsal.dart';
+import '../../../app/models/rehearsal_date.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -27,11 +28,17 @@ class RehearsalCard extends StatefulWidget {
   final String? setlistName;
 
   // Potential-only props
-  /// Current user's own response: 'yes', 'no', or null.
-  final String? currentUserResponse;
 
-  /// Called with 'yes', 'no', or null (for unselect) when the user taps a response button.
-  final Future<void> Function(String? response)? onRespond;
+  /// Additional dates for multi-date potential rehearsals.
+  /// Currently always empty until the Rehearsal model is extended.
+  final List<RehearsalDate> additionalDates;
+
+  /// Current user's responses keyed by rehearsalDateId (null = primary date).
+  final Map<String?, String?>? perDateUserResponses;
+
+  /// Called with response ('yes'/'no') or null (unselect), and the rehearsalDateId
+  /// (null = primary date) for the currently displayed date.
+  final Future<void> Function(String? response, String? rehearsalDateId)? onRespondForDate;
 
   const RehearsalCard({
     super.key,
@@ -39,8 +46,9 @@ class RehearsalCard extends StatefulWidget {
     required this.bandTimezone,
     this.onTap,
     this.setlistName,
-    this.currentUserResponse,
-    this.onRespond,
+    this.additionalDates = const [],
+    this.perDateUserResponses,
+    this.onRespondForDate,
   });
 
   @override
@@ -54,12 +62,40 @@ class _RehearsalCardState extends State<RehearsalCard>
   late Animation<Alignment> _endAlignment;
   bool _isPressed = false;
   bool _isSubmitting = false;
-  String? _localResponse;
+
+  /// Current date index within _sortedDates.
+  int _currentDateIndex = 0;
+
+  /// Optimistic per-date response map: rehearsalDateId? → 'yes'/'no'/null.
+  Map<String?, String?> _localResponses = {};
+
+  // ---------------------------------------------------------------------------
+  // Date helpers
+  // ---------------------------------------------------------------------------
+
+  /// All dates (primary + additional) sorted chronologically.
+  /// Each entry is (date, rehearsalDateId?): null id = primary date.
+  List<(DateTime, String?)> get _sortedDates {
+    final primary = (widget.rehearsal.date, null as String?);
+    final additional = widget.additionalDates
+        .map<(DateTime, String?)>((RehearsalDate d) => (d.date, d.id))
+        .toList();
+    final all = [primary, ...additional];
+    all.sort((a, b) => a.$1.compareTo(b.$1));
+    return all;
+  }
+
+  DateTime get _currentDate => _sortedDates[_currentDateIndex].$1;
+  String? get _currentRehearsalDateId => _sortedDates[_currentDateIndex].$2;
+  String? get _currentDateResponse => _localResponses[_currentRehearsalDateId];
+  bool get _isMultiDate => widget.additionalDates.isNotEmpty;
+
+  // ---------------------------------------------------------------------------
 
   @override
   void initState() {
     super.initState();
-    _localResponse = widget.currentUserResponse;
+    _localResponses = Map.from(widget.perDateUserResponses ?? {});
 
     _gradientController = AnimationController(
       duration: const Duration(seconds: 6),
@@ -96,8 +132,8 @@ class _RehearsalCardState extends State<RehearsalCard>
   @override
   void didUpdateWidget(RehearsalCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentUserResponse != widget.currentUserResponse) {
-      _localResponse = widget.currentUserResponse;
+    if (oldWidget.perDateUserResponses != widget.perDateUserResponses) {
+      _localResponses = Map.from(widget.perDateUserResponses ?? {});
     }
   }
 
@@ -108,20 +144,27 @@ class _RehearsalCardState extends State<RehearsalCard>
   }
 
   Future<void> _handleResponse(String response) async {
-    if (_isSubmitting || widget.onRespond == null) return;
+    final rehearsalDateId = _currentRehearsalDateId;
+    final currentResponse = _localResponses[rehearsalDateId];
+    if (_isSubmitting || widget.onRespondForDate == null) return;
 
     // If tapping the same button that's already selected, unselect (delete)
-    if (_localResponse == response) {
+    if (currentResponse == response) {
       HapticFeedback.selectionClick();
       setState(() {
         _isSubmitting = true;
-        _localResponse = null; // optimistic clear
+        _localResponses = {..._localResponses, rehearsalDateId: null};
       });
       try {
-        await widget.onRespond!(null); // null means delete
+        await widget.onRespondForDate!(null, rehearsalDateId);
       } catch (_) {
         if (mounted) {
-          setState(() => _localResponse = widget.currentUserResponse);
+          setState(() {
+            _localResponses = {
+              ..._localResponses,
+              rehearsalDateId: widget.perDateUserResponses?[rehearsalDateId],
+            };
+          });
         }
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
@@ -133,12 +176,19 @@ class _RehearsalCardState extends State<RehearsalCard>
     HapticFeedback.selectionClick();
     setState(() {
       _isSubmitting = true;
-      _localResponse = response;
+      _localResponses = {..._localResponses, rehearsalDateId: response};
     });
     try {
-      await widget.onRespond!(response);
+      await widget.onRespondForDate!(response, rehearsalDateId);
     } catch (_) {
-      if (mounted) setState(() => _localResponse = widget.currentUserResponse);
+      if (mounted) {
+        setState(() {
+          _localResponses = {
+            ..._localResponses,
+            rehearsalDateId: widget.perDateUserResponses?[rehearsalDateId],
+          };
+        });
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -272,30 +322,75 @@ class _RehearsalCardState extends State<RehearsalCard>
 
                 const Spacer(),
 
-                // Full-width YES/NO buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FullWidthAvailabilityButton(
-                        label: 'NO',
-                        isSelected: _localResponse == 'no',
-                        isPositive: false,
-                        isSubmitting: _isSubmitting,
-                        onTap: () => _handleResponse('no'),
+                // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
+                // else just [NO] [YES].
+                if (_isMultiDate)
+                  Builder(builder: (context) {
+                    final dates = _sortedDates;
+                    final canGoPrev = _currentDateIndex > 0;
+                    final canGoNext = _currentDateIndex < dates.length - 1;
+                    return Row(
+                      children: [
+                        _RehearsalDateNavButton(
+                          icon: Icons.chevron_left,
+                          enabled: canGoPrev,
+                          onTap: () =>
+                              setState(() => _currentDateIndex--),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _FullWidthAvailabilityButton(
+                            label: 'NO',
+                            isSelected: _currentDateResponse == 'no',
+                            isPositive: false,
+                            isSubmitting: _isSubmitting,
+                            onTap: () => _handleResponse('no'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _FullWidthAvailabilityButton(
+                            label: 'YES',
+                            isSelected: _currentDateResponse == 'yes',
+                            isPositive: true,
+                            isSubmitting: _isSubmitting,
+                            onTap: () => _handleResponse('yes'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _RehearsalDateNavButton(
+                          icon: Icons.chevron_right,
+                          enabled: canGoNext,
+                          onTap: () =>
+                              setState(() => _currentDateIndex++),
+                        ),
+                      ],
+                    );
+                  })
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FullWidthAvailabilityButton(
+                          label: 'NO',
+                          isSelected: _currentDateResponse == 'no',
+                          isPositive: false,
+                          isSubmitting: _isSubmitting,
+                          onTap: () => _handleResponse('no'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _FullWidthAvailabilityButton(
-                        label: 'YES',
-                        isSelected: _localResponse == 'yes',
-                        isPositive: true,
-                        isSubmitting: _isSubmitting,
-                        onTap: () => _handleResponse('yes'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FullWidthAvailabilityButton(
+                          label: 'YES',
+                          isSelected: _currentDateResponse == 'yes',
+                          isPositive: true,
+                          isSubmitting: _isSubmitting,
+                          onTap: () => _handleResponse('yes'),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -448,18 +543,18 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   String _formatFullDate(DateTime date) {
     const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -475,18 +570,18 @@ class _RehearsalCardState extends State<RehearsalCard>
       'Sunday',
     ];
     const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -509,6 +604,48 @@ class _RehearsalCardState extends State<RehearsalCard>
       return '$frequencyText starting ${_formatFullDate(widget.rehearsal.date)}';
     }
     return _formatFullDate(widget.rehearsal.date);
+  }
+}
+
+// ============================================================================
+// DATE NAVIGATION CHEVRON BUTTON (rehearsal variant)
+// ============================================================================
+
+class _RehearsalDateNavButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _RehearsalDateNavButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: AnimatedContainer(
+        duration: AppDurations.fast,
+        width: 36,
+        height: 48,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: enabled ? 0.5 : 0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.3),
+            size: 18,
+          ),
+        ),
+      ),
+    );
   }
 }
 

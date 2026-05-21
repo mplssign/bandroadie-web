@@ -187,8 +187,8 @@ class EventFormFields extends ConsumerWidget {
             ),
           ],
         ],
-        // Always show "+ Add Another Date" when potential gig
-        if (eventType == EventType.gig && isPotentialGig) ...[
+        // Always show "+ Add Another Date" when potential gig or potential rehearsal
+        if (isPotentialGig) ...[
           const SizedBox(height: 8),
           GestureDetector(
             onTap: isSaving ? null : onAdditionalDateAdded,

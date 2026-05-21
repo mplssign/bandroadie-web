@@ -95,6 +95,12 @@ class RehearsalFormFields extends ConsumerWidget {
   final String? existingEventId;
   final bool isLoadingUserResponse;
 
+  /// Builds the Potential Rehearsal toggle + member availability grid.
+  /// Called from the parent drawer so it renders BEFORE the date/time fields.
+  Widget buildPotentialSection(BuildContext context, WidgetRef ref) {
+    return _buildPotentialToggle(context, ref);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
@@ -103,31 +109,29 @@ class RehearsalFormFields extends ConsumerWidget {
         // Location autocomplete
         _buildLocationAutocomplete(context),
 
-        const SizedBox(height: Spacing.space16),
+        // Recurring Toggle + Section — hidden when Potential Rehearsal is ON
+        if (!isPotential) ...[
+          const SizedBox(height: Spacing.space16),
 
-        // Potential Rehearsal Toggle + Member Grid
-        _buildPotentialToggle(context, ref),
+          // Recurring Toggle
+          _buildRecurringToggle(context),
 
-        const SizedBox(height: Spacing.space16),
-
-        // Recurring Toggle
-        _buildRecurringToggle(context),
-
-        // Recurring Section (animated with slide + fade)
-        AnimatedSize(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-          alignment: Alignment.topCenter,
-          child: isRecurring
-              ? SlideTransition(
-                  position: recurringSlideAnimation,
-                  child: FadeTransition(
-                    opacity: recurringFadeAnimation,
-                    child: _buildRecurringSection(context),
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
+          // Recurring Section (animated with slide + fade)
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: isRecurring
+                ? SlideTransition(
+                    position: recurringSlideAnimation,
+                    child: FadeTransition(
+                      opacity: recurringFadeAnimation,
+                      child: _buildRecurringSection(context),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
       ],
     );
   }
