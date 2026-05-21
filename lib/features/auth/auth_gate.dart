@@ -32,7 +32,7 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate>
     with WidgetsBindingObserver {
-  bool _showSplash = true;
+  bool _showSplash = !kIsWeb; // Skip video splash on web — browser pauses video on lifecycle.inactive, causing onComplete to never fire
   bool _initialized = false;
   bool _checkingProfile = false;
   bool? _profileComplete;
