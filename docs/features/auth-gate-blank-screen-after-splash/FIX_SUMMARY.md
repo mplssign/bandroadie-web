@@ -27,6 +27,7 @@ When `_showSplash` flipped to `false` with `authenticated=false`, the AuthGate r
 The `build()` method in [auth_gate.dart](../../../lib/features/auth/auth_gate.dart) had implicit control flow that relied on `_buildAuthContent()` to handle all states. Under certain timing conditions (related to lifecycle state transitions), the unauthenticated state after splash completion wasn't reliably rendering the LoginScreen.
 
 **Previous Structure:**
+
 ```dart
 final authContent = _buildAuthContent(context, authState);  // Build once
 
@@ -43,6 +44,7 @@ This created a regression when the splash-screen-video feature was introduced (~
 Restructured the `build()` method to have **explicit control flow** for the critical unauthenticated state:
 
 **New Structure:**
+
 ```dart
 if (_showSplash) {
   final authContent = _buildAuthContent(context, authState);
@@ -115,6 +117,7 @@ return _buildAuthContent(context, authState);
 ## Regression Risk
 
 **LOW** — Scoped to AuthGate control flow only. No changes to:
+
 - Authentication logic
 - Session management
 - Profile checking
