@@ -57,6 +57,12 @@ class _AuthGateState extends ConsumerState<AuthGate>
     WidgetsBinding.instance.addObserver(this);
     _initializeAuth();
     _startSessionSyncTimer();
+    // Splash is skipped on web — mark complete immediately so dashboard doesn't wait
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(splashCompleteProvider.notifier).markComplete();
+      });
+    }
   }
 
   /// SAFEGUARD: Periodically verify session state is in sync.
