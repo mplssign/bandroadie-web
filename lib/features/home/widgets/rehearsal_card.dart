@@ -58,8 +58,6 @@ class RehearsalCard extends StatefulWidget {
 class _RehearsalCardState extends State<RehearsalCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _gradientController;
-  late Animation<Alignment> _beginAlignment;
-  late Animation<Alignment> _endAlignment;
   bool _isPressed = false;
   bool _isSubmitting = false;
 
@@ -85,7 +83,6 @@ class _RehearsalCardState extends State<RehearsalCard>
     return all;
   }
 
-  DateTime get _currentDate => _sortedDates[_currentDateIndex].$1;
   String? get _currentRehearsalDateId => _sortedDates[_currentDateIndex].$2;
   String? get _currentDateResponse => _localResponses[_currentRehearsalDateId];
   bool get _isMultiDate => widget.additionalDates.isNotEmpty;
@@ -101,32 +98,6 @@ class _RehearsalCardState extends State<RehearsalCard>
       duration: const Duration(seconds: 6),
       vsync: this,
     )..repeat(reverse: true);
-
-    _beginAlignment = TweenSequence<Alignment>([
-      TweenSequenceItem(
-        tween: Tween(begin: Alignment.centerLeft, end: Alignment.topLeft),
-        weight: 1,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: Alignment.topLeft, end: Alignment.topCenter),
-        weight: 1,
-      ),
-    ]).animate(
-      CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
-    );
-
-    _endAlignment = TweenSequence<Alignment>([
-      TweenSequenceItem(
-        tween: Tween(begin: Alignment.centerRight, end: Alignment.bottomRight),
-        weight: 1,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: Alignment.bottomRight, end: Alignment.bottomCenter),
-        weight: 1,
-      ),
-    ]).animate(
-      CurvedAnimation(parent: _gradientController, curve: Curves.easeInOut),
-    );
   }
 
   @override
