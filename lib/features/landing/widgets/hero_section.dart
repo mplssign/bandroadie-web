@@ -52,8 +52,8 @@ class _HeroMobile extends StatelessWidget {
                 child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
               );
             },
-            child: SvgPicture.asset(
-              'assets/images/band_roadie_logo_tagline.svg',
+            child: Image.asset(
+              'assets/images/bandroadie_logo_stacked.png',
               height: 80,
             ),
           ),
@@ -148,8 +148,8 @@ class _HeroDesktop extends StatelessWidget {
                       ),
                     );
                   },
-                  child: SvgPicture.asset(
-                    'assets/images/band_roadie_logo_tagline.svg',
+                  child: Image.asset(
+                    'assets/images/bandroadie_logo_stacked.png',
                     height: 120,
                   ),
                 ),

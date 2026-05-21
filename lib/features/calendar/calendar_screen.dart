@@ -166,7 +166,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (__, _) => null,
+      error: (_, _) => null,
     );
     if (perms == null) return;
     if (perms.isContributor && !perms.canCreateGigs) return;
@@ -234,7 +234,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     final editPerms = editPermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (__, _) => null,
+      error: (_, _) => null,
     );
     // Allow contributors to edit potential gigs they can create
     final canEditEvent = editPerms != null &&
@@ -263,12 +263,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     final isContributor = permissionsAsync.when(
       data: (p) => p.isContributor,
       loading: () => true, // Fail-closed while loading
-      error: (__, _) => true,
+      error: (_, _) => true,
     );
     final canCreateGig = permissionsAsync.when(
       data: (p) => p.canCreateGigs,
       loading: () => false,
-      error: (__, _) => false,
+      error: (_, _) => false,
     );
 
     // Watch display band for header avatar (shows draft during editing)

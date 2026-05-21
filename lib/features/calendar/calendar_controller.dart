@@ -217,9 +217,9 @@ class CalendarNotifier extends Notifier<CalendarState> {
       // Race guard: discard if the active band changed while loading
       if (ref.read(activeBandIdProvider) != bandId) return;
 
-      final gigs = results[0] as List<Gig>;
-      final rehearsals = results[1] as List<Rehearsal>;
-      final blockOuts = results[2] as List<BlockOut>;
+      final gigs = results[0];
+      final rehearsals = results[1];
+      final blockOuts = results[2];
 
       final userNames = await _fetchUserNames(blockOuts);
 

@@ -374,7 +374,7 @@ class _PauseScreenState extends State<PauseScreen> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: kPredefinedPurposes.length,
-                    separatorBuilder: (__, _) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final purpose = kPredefinedPurposes[index];
                       return _PurposeChip(
