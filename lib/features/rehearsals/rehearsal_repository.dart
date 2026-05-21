@@ -11,7 +11,23 @@ import '../gigs/gig_repository.dart';
 // - Every query REQUIRES a non-null bandId
 // - If bandId is null, we throw an error — NEVER query all rehearsals
 // - Supabase RLS should also enforce this, but we add client-side checks
+//
+// Multi-date support:
+// - Rehearsals are joined with rehearsal_dates to include additional dates
+// - The primary date is in rehearsals.date, additional dates in rehearsal_dates
 // ============================================================================
+
+/// Select clause that includes the rehearsal_dates join for multi-date support.
+const _rehearsalSelectClause = '''
+  *,
+  rehearsal_dates (
+    id,
+    rehearsal_id,
+    date,
+    created_at,
+    updated_at
+  )
+''';
 
 class RehearsalRepository {
   /// Fetches all rehearsals for the specified band.
@@ -29,7 +45,7 @@ class RehearsalRepository {
 
     final response = await supabase
         .from('rehearsals')
-        .select()
+        .select(_rehearsalSelectClause)
         .eq('band_id', bandId)
         .order('date', ascending: true);
 
@@ -50,7 +66,7 @@ class RehearsalRepository {
 
     final response = await supabase
         .from('rehearsals')
-        .select()
+        .select(_rehearsalSelectClause)
         .eq('band_id', bandId)
         .gte('date', today)
         .order('date', ascending: true);
@@ -92,7 +108,7 @@ class RehearsalRepository {
 
     final response = await supabase
         .from('rehearsals')
-        .select()
+        .select(_rehearsalSelectClause)
         .eq('band_id', bandId)
         .gte('date', today)
         .order('date', ascending: true);

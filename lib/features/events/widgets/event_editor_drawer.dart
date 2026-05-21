@@ -821,10 +821,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   void _removeAdditionalDate(int index) {
     setState(() {
-      final entryToRemove = _additionalDates[index];
       _additionalDates.removeAt(index);
-      // Also remove from existingGigDateIds if present
-      _existingGigDateIds.remove(entryToRemove.date);
+      // NOTE: do NOT remove from _existingGigDateIds here.
+      // _existingGigDateIds tracks the original DB state so _syncGigDates can
+      // diff it against the current additionalDates list and issue the DELETE.
+      // Removing it here would cause the diff to find nothing to delete and the
+      // Supabase row would persist.
       if (_additionalDates.isEmpty) _isMultiDate = false;
     });
     _markDirty();

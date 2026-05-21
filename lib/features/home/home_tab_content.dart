@@ -1047,7 +1047,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 rehearsal: rehearsal,
                 setlistName: setlistName,
                 bandTimezone: bandTimezone,
-                // additionalDates defaults to [] until Rehearsal model is extended
+                additionalDates: rehearsal.additionalDates,
                 perDateUserResponses: {
                   null: rehearsalUserResponses[rehearsal.id],
                 },

@@ -35,7 +35,6 @@ import '../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
-import '../../shared/widgets/animated_logo.dart';
 import 'auth_gate.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -444,9 +443,10 @@ class _LoginScreenState extends State<LoginScreen>
           animation: _logoShrinkScale,
           builder: (context, child) =>
               Transform.scale(scale: _logoShrinkScale.value, child: child),
-          child: BandRoadieLogo(
+          child: Image.asset(
+            'assets/images/bandroadie_logo_stacked.png',
             width: logoWidth,
-            asset: 'assets/images/bandroadie_logo_rose_tag.svg',
+            fit: BoxFit.contain,
           ),
         ),
       ),

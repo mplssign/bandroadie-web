@@ -178,7 +178,7 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   Widget _buildPotentialCard(BuildContext context) {
     final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.50;
+        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.85;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -196,7 +196,14 @@ class _RehearsalCardState extends State<RehearsalCard>
               constraints:
                   BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
               decoration: BoxDecoration(
-                color: const Color(0xFFF54900).withValues(alpha: gradientAlpha),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFFEA580C).withValues(alpha: gradientAlpha), // orange-600 (light)
+                    const Color(0xFF7C2D12).withValues(alpha: gradientAlpha), // orange-900 (dark)
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 border: Border.all(
                   color: context.colors.textSecondary,
@@ -238,10 +245,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                           TextSpan(
                             text: ': Multiple Dates',
                             style: GoogleFonts.dmSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                               color: const Color(0xFF4A1F0F),
-                              letterSpacing: 0.5,
+                              letterSpacing: 0.3,
                             ),
                           ),
                       ],
