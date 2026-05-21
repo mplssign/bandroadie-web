@@ -22,13 +22,16 @@ class EventFormFields extends ConsumerWidget {
     // Date state
     required this.selectedDate,
     required this.onDateTap,
-    // Multi-date state (potential gigs only)
+    // Multi-date state (potential gigs/rehearsals only)
     required this.isPotentialGig,
-    required this.isMultiDate,
     required this.additionalDates,
     required this.onAdditionalDateTap,
     required this.onAdditionalDateRemoved,
     required this.onAdditionalDateAdded,
+    // Per-additional-date time callbacks
+    required this.onAdditionalHourChanged,
+    required this.onAdditionalMinutesChanged,
+    required this.onAdditionalAmPmChanged,
     // Time state
     required this.selectedHour,
     required this.selectedMinutes,
@@ -57,13 +60,17 @@ class EventFormFields extends ConsumerWidget {
   final DateTime selectedDate;
   final VoidCallback onDateTap;
 
-  // --- Multi-date (potential gigs only) ---
+  // --- Multi-date (potential gigs/rehearsals only) ---
   final bool isPotentialGig;
-  final bool isMultiDate;
-  final List<DateTime> additionalDates;
+  final List<AdditionalDateEntry> additionalDates;
   final ValueChanged<int> onAdditionalDateTap;
   final ValueChanged<int> onAdditionalDateRemoved;
   final VoidCallback onAdditionalDateAdded;
+
+  // --- Per-additional-date time ---
+  final void Function(int index, int hour) onAdditionalHourChanged;
+  final void Function(int index, int minutes) onAdditionalMinutesChanged;
+  final void Function(int index, bool isPM) onAdditionalAmPmChanged;
 
   // --- Time ---
   final int selectedHour;
@@ -98,8 +105,8 @@ class EventFormFields extends ConsumerWidget {
           const SizedBox(height: Spacing.space16),
         ],
 
-        // Date Picker
-        _buildDatePicker(context),
+        // Primary date picker (label + single date row)
+        _buildPrimaryDatePicker(context),
 
         const SizedBox(height: Spacing.space16),
 
@@ -107,6 +114,26 @@ class EventFormFields extends ConsumerWidget {
         _buildTimeSelector(context),
 
         const SizedBox(height: Spacing.space16),
+
+        // Additional date+time rows (each preceded by a divider)
+        if (additionalDates.isNotEmpty) ...[
+          for (int i = 0; i < additionalDates.length; i++) ...[
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: context.colors.border,
+            ),
+            const SizedBox(height: Spacing.space16),
+            _buildAdditionalDateTimeRow(context, i, additionalDates[i]),
+            const SizedBox(height: Spacing.space16),
+          ],
+        ],
+
+        // "+ Add another date/time" button (only for potential gigs/rehearsals)
+        if (isPotentialGig) ...[
+          _buildAddAnotherButton(context),
+          const SizedBox(height: Spacing.space16),
+        ],
 
         // Duration Selector
         _buildDurationSelector(context),
@@ -149,79 +176,26 @@ class EventFormFields extends ConsumerWidget {
   }
 
   // ---------------------------------------------------------------------------
-  // Date Picker
+  // Primary Date Picker
   // ---------------------------------------------------------------------------
 
-  Widget _buildDatePicker(BuildContext context) {
+  Widget _buildPrimaryDatePicker(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'Date',
-              style: AppTextStyles.footnote.copyWith(
-                color: context.colors.textSecondary,
-              ),
-            ),
-          ],
+        Text(
+          'Date',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+          ),
         ),
         const SizedBox(height: 6),
-        // Primary date picker
         _buildSingleDatePicker(
           context: context,
           date: selectedDate,
           onTap: isSaving ? null : onDateTap,
           showRemoveButton: false,
         ),
-        // Additional date pickers (shown if any additional dates exist)
-        if (additionalDates.isNotEmpty) ...[
-          for (int i = 0; i < additionalDates.length; i++) ...[
-            const SizedBox(height: 8),
-            _buildSingleDatePicker(
-              context: context,
-              date: additionalDates[i],
-              onTap: isSaving ? null : () => onAdditionalDateTap(i),
-              showRemoveButton: true,
-              onRemove: () => onAdditionalDateRemoved(i),
-            ),
-          ],
-        ],
-        // Always show "+ Add Another Date" when potential gig or potential rehearsal
-        if (isPotentialGig) ...[
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: isSaving ? null : onAdditionalDateAdded,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-              decoration: BoxDecoration(
-                color: context.colors.background,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(
-                  color: context.colors.border,
-                  style: BorderStyle.solid,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(AppIcons.add, size: 18, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Add another date',
-                    style: AppTextStyles.callout.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -231,9 +205,7 @@ class EventFormFields extends ConsumerWidget {
     required DateTime date,
     required VoidCallback? onTap,
     required bool showRemoveButton,
-    bool showAddButton = false,
     VoidCallback? onRemove,
-    VoidCallback? onAdd,
   }) {
     return Row(
       children: [
@@ -266,47 +238,143 @@ class EventFormFields extends ConsumerWidget {
             ),
           ),
         ),
-        if (showRemoveButton || showAddButton) ...[
+        if (showRemoveButton) ...[
           const SizedBox(width: 8),
-          if (showRemoveButton)
-            GestureDetector(
-              onTap: isSaving ? null : onRemove,
-              child: Container(
-                width: 36,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: context.colors.background,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: context.colors.border),
-                ),
-                child: Icon(
-                  AppIcons.remove,
-                  size: 20,
-                  color: context.colors.textSecondary,
-                ),
+          GestureDetector(
+            onTap: isSaving ? null : onRemove,
+            child: Container(
+              width: 36,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: context.colors.border),
+              ),
+              child: Icon(
+                AppIcons.delete,
+                size: 18,
+                color: context.colors.textSecondary,
               ),
             ),
-          if (showRemoveButton && showAddButton) const SizedBox(width: 4),
-          if (showAddButton)
-            GestureDetector(
-              onTap: isSaving ? null : onAdd,
-              child: Container(
-                width: 36,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: context.colors.background,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: context.colors.border),
-                ),
-                child: const Icon(
-                  AppIcons.add,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
+          ),
         ],
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Additional Date+Time Row
+  // ---------------------------------------------------------------------------
+
+  Widget _buildAdditionalDateTimeRow(
+    BuildContext context,
+    int index,
+    AdditionalDateEntry entry,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Date picker row with remove button
+        _buildSingleDatePicker(
+          context: context,
+          date: entry.date,
+          onTap: isSaving ? null : () => onAdditionalDateTap(index),
+          showRemoveButton: true,
+          onRemove: () => onAdditionalDateRemoved(index),
+        ),
+        const SizedBox(height: 8),
+        // Time selector row for this additional date
+        Row(
+          children: [
+            Expanded(
+              child: EventDropdown<int>(
+                value: entry.hour,
+                items: List.generate(12, (i) => i + 1),
+                onChanged: (v) {
+                  if (v != null) onAdditionalHourChanged(index, v);
+                },
+                labelBuilder: (v) => v.toString(),
+                isSaving: isSaving,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: EventDropdown<int>(
+                value: entry.minutes,
+                items: const [0, 15, 30, 45],
+                onChanged: (v) {
+                  if (v != null) onAdditionalMinutesChanged(index, v);
+                },
+                labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
+                isSaving: isSaving,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AmPmToggleButton(
+                    label: 'AM',
+                    isSelected: !entry.isPM,
+                    isSaving: isSaving,
+                    onTap: () => onAdditionalAmPmChanged(index, false),
+                  ),
+                  AmPmToggleButton(
+                    label: 'PM',
+                    isSelected: entry.isPM,
+                    isSaving: isSaving,
+                    onTap: () => onAdditionalAmPmChanged(index, true),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Add Another Date/Time Button
+  // ---------------------------------------------------------------------------
+
+  Widget _buildAddAnotherButton(BuildContext context) {
+    return GestureDetector(
+      onTap: isSaving ? null : onAdditionalDateAdded,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        decoration: BoxDecoration(
+          color: context.colors.background,
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          border: Border.all(
+            color: context.colors.border,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(AppIcons.add, size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Text(
+              '+ Add another date/time',
+              style: AppTextStyles.callout.copyWith(
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

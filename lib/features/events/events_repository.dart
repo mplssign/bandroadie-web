@@ -128,6 +128,14 @@ class EventsRepository {
         if (isFirst) {
           firstRehearsal = Rehearsal.fromJson(response);
           parentId = firstRehearsal.id;
+
+          // Create additional dates for multi-date potential rehearsals
+          // (only on the first/primary rehearsal instance)
+          if (formData.isPotentialGig &&
+              formData.additionalDates.isNotEmpty) {
+            await _createRehearsalDates(
+                firstRehearsal.id, formData.additionalDates);
+          }
         }
       }
 
@@ -365,6 +373,9 @@ class EventsRepository {
         .select()
         .single();
 
+    // Sync additional dates for multi-date potential rehearsals
+    await _syncRehearsalDates(rehearsalId, formData);
+
     invalidateCache(bandId);
     return Rehearsal.fromJson(response);
   }
@@ -498,7 +509,7 @@ class EventsRepository {
 
     final response = await supabase
         .from('rehearsals')
-        .select()
+        .select('*, rehearsal_dates(id, rehearsal_id, date, start_time, created_at, updated_at)')
         .eq('band_id', bandId)
         .gte('date', startOfMonth.toIso8601String().split('T')[0])
         .lte('date', endOfMonth.toIso8601String().split('T')[0])
@@ -583,7 +594,7 @@ class EventsRepository {
     // Fetch the gig with its dates to return complete data
     final gigWithDates = await supabase
         .from('gigs')
-        .select('*, gig_dates(*)')
+        .select('*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
         .eq('id', gigId)
         .single();
 
@@ -639,30 +650,31 @@ class EventsRepository {
     // Fetch the gig with its dates to return complete data
     final gigWithDates = await supabase
         .from('gigs')
-        .select('*, gig_dates(*)')
+        .select('*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
         .eq('id', gigId)
         .single();
 
     return Gig.fromJson(gigWithDates);
   }
 
-  /// Create additional dates for a gig
-  Future<void> _createGigDates(String gigId, List<DateTime> dates) async {
-    if (dates.isEmpty) return;
+  /// Create additional dates for a gig (with per-date start times)
+  Future<void> _createGigDates(
+      String gigId, List<AdditionalDateEntry> entries) async {
+    if (entries.isEmpty) return;
 
-    final rows = dates
-        .map(
-          (date) => {
-            'gig_id': gigId,
-            'date': date.toIso8601String().split('T')[0],
-          },
-        )
+    final rows = entries
+        .map((e) => {
+              'gig_id': gigId,
+              'date': e.date.toIso8601String().split('T')[0],
+              'start_time': e.startTimeDisplay,
+            })
         .toList();
 
     await supabase.from('gig_dates').insert(rows);
   }
 
-  /// Sync gig dates - add new ones, remove deleted ones
+  /// Sync gig dates — add new ones, remove deleted ones, update start_time on
+  /// existing rows whose time changed.
   Future<void> _syncGigDates(String gigId, EventFormData formData) async {
     // If not a potential gig, remove all additional dates
     if (!formData.isPotentialGig) {
@@ -670,35 +682,118 @@ class EventsRepository {
       return;
     }
 
-    final newDates = formData.additionalDates.toSet();
+    final newEntries = {
+      for (final e in formData.additionalDates) e.date: e
+    };
     final existingDateIds = formData.existingGigDateIds;
 
-    // Find dates to add (in newDates but not in existingDateIds)
-    final datesToAdd = <DateTime>[];
-    for (final date in newDates) {
-      if (!existingDateIds.containsKey(date)) {
-        datesToAdd.add(date);
+    // Dates to add: in newEntries but have no existing ID
+    final entriesToAdd = <AdditionalDateEntry>[];
+    for (final entry in newEntries.entries) {
+      if (!existingDateIds.containsKey(entry.key)) {
+        entriesToAdd.add(entry.value);
       }
     }
 
-    // Find dates to remove (in existingDateIds but not in newDates)
+    // IDs to remove: in existingDateIds but not in newEntries
     final idsToRemove = <String>[];
     for (final entry in existingDateIds.entries) {
-      if (!newDates.contains(entry.key)) {
+      if (!newEntries.containsKey(entry.key)) {
         idsToRemove.add(entry.value);
       }
     }
 
-    // Perform additions
-    if (datesToAdd.isNotEmpty) {
-      debugPrint('[EventsRepository] Adding ${datesToAdd.length} new dates');
-      await _createGigDates(gigId, datesToAdd);
+    // Existing rows to update (start_time may have changed)
+    for (final entry in newEntries.entries) {
+      final existingId = existingDateIds[entry.key];
+      if (existingId != null) {
+        await supabase.from('gig_dates').update({
+          'start_time': entry.value.startTimeDisplay,
+        }).eq('id', existingId);
+      }
     }
 
-    // Perform deletions
+    if (entriesToAdd.isNotEmpty) {
+      debugPrint(
+          '[EventsRepository] Adding ${entriesToAdd.length} new gig dates');
+      await _createGigDates(gigId, entriesToAdd);
+    }
+
     if (idsToRemove.isNotEmpty) {
-      debugPrint('[EventsRepository] Removing ${idsToRemove.length} dates');
+      debugPrint(
+          '[EventsRepository] Removing ${idsToRemove.length} gig dates');
       await supabase.from('gig_dates').delete().inFilter('id', idsToRemove);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rehearsal date helpers
+  // ---------------------------------------------------------------------------
+
+  /// Create additional dates for a rehearsal (with per-date start times)
+  Future<void> _createRehearsalDates(
+      String rehearsalId, List<AdditionalDateEntry> entries) async {
+    if (entries.isEmpty) return;
+
+    final rows = entries
+        .map((e) => {
+              'rehearsal_id': rehearsalId,
+              'date': e.date.toIso8601String().split('T')[0],
+              'start_time': e.startTimeDisplay,
+            })
+        .toList();
+
+    await supabase.from('rehearsal_dates').insert(rows);
+  }
+
+  /// Sync rehearsal dates — mirrors _syncGigDates logic.
+  Future<void> _syncRehearsalDates(
+      String rehearsalId, EventFormData formData) async {
+    if (!formData.isPotentialGig) {
+      await supabase
+          .from('rehearsal_dates')
+          .delete()
+          .eq('rehearsal_id', rehearsalId);
+      return;
+    }
+
+    final newEntries = {
+      for (final e in formData.additionalDates) e.date: e
+    };
+    final existingDateIds = formData.existingGigDateIds;
+
+    final entriesToAdd = <AdditionalDateEntry>[];
+    for (final entry in newEntries.entries) {
+      if (!existingDateIds.containsKey(entry.key)) {
+        entriesToAdd.add(entry.value);
+      }
+    }
+
+    final idsToRemove = <String>[];
+    for (final entry in existingDateIds.entries) {
+      if (!newEntries.containsKey(entry.key)) {
+        idsToRemove.add(entry.value);
+      }
+    }
+
+    for (final entry in newEntries.entries) {
+      final existingId = existingDateIds[entry.key];
+      if (existingId != null) {
+        await supabase.from('rehearsal_dates').update({
+          'start_time': entry.value.startTimeDisplay,
+        }).eq('id', existingId);
+      }
+    }
+
+    if (entriesToAdd.isNotEmpty) {
+      await _createRehearsalDates(rehearsalId, entriesToAdd);
+    }
+
+    if (idsToRemove.isNotEmpty) {
+      await supabase
+          .from('rehearsal_dates')
+          .delete()
+          .inFilter('id', idsToRemove);
     }
   }
 

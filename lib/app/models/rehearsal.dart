@@ -5,10 +5,11 @@
 // IMPORTANT: Every rehearsal MUST have a bandId.
 // Rehearsals are always fetched in the context of a specific band.
 //
-// Schema: public.rehearsals
+// Schema: public.rehearsals, public.rehearsal_dates
 // ============================================================================
 
 import '../utils/time_formatter.dart';
+import 'rehearsal_date.dart';
 
 class Rehearsal {
   final String id;
@@ -30,6 +31,10 @@ class Rehearsal {
   final DateTime? recurrenceUntil;
   final String? parentRehearsalId; // Links child instances to parent
 
+  /// Additional dates for multi-date potential rehearsals.
+  /// Empty list for single-date rehearsals.
+  final List<RehearsalDate> additionalDates;
+
   const Rehearsal({
     required this.id,
     required this.bandId,
@@ -47,6 +52,7 @@ class Rehearsal {
     this.recurrenceDays,
     this.recurrenceUntil,
     this.parentRehearsalId,
+    this.additionalDates = const [],
   });
 
   /// Create a Rehearsal from Supabase row data
@@ -72,7 +78,19 @@ class Rehearsal {
           ? DateTime.parse(json['recurrence_until'] as String)
           : null,
       parentRehearsalId: json['parent_rehearsal_id'] as String?,
+      additionalDates: _parseAdditionalDates(json['rehearsal_dates']),
     );
+  }
+
+  /// Parse rehearsal_dates from join (can be null or List)
+  static List<RehearsalDate> _parseAdditionalDates(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value
+          .map((e) => RehearsalDate.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
   }
 
   /// Convert to JSON for Supabase insert/update
@@ -92,6 +110,18 @@ class Rehearsal {
       'recurrence_until': recurrenceUntil?.toIso8601String().split('T')[0],
       'parent_rehearsal_id': parentRehearsalId,
     };
+  }
+
+  /// Returns true if this potential rehearsal has multiple dates
+  bool get isMultiDate => isPotential && additionalDates.isNotEmpty;
+
+  /// Returns a map of date -> RehearsalDate.id for additional dates.
+  Map<DateTime, String> get additionalDateIds {
+    final map = <DateTime, String>{};
+    for (final rd in additionalDates) {
+      map[rd.date] = rd.id;
+    }
+    return map;
   }
 
   /// Whether this rehearsal is part of a recurring series (either parent or child)

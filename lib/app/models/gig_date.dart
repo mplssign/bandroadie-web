@@ -12,6 +12,11 @@ class GigDate {
   final String id;
   final String gigId;
   final DateTime date;
+
+  /// Optional start time for this specific candidate date (e.g. "7:00 PM").
+  /// Null means the parent gig's start_time should be used as a fallback.
+  final String? startTime;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +24,7 @@ class GigDate {
     required this.id,
     required this.gigId,
     required this.date,
+    this.startTime,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -29,6 +35,7 @@ class GigDate {
       id: json['id'] as String,
       gigId: json['gig_id'] as String,
       date: DateTime.parse(json['date'] as String),
+      startTime: json['start_time'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -39,6 +46,7 @@ class GigDate {
     return {
       'gig_id': gigId,
       'date': date.toIso8601String().split('T')[0], // date only
+      if (startTime != null) 'start_time': startTime,
     };
   }
 
@@ -52,5 +60,5 @@ class GigDate {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'GigDate(id: $id, date: $date)';
+  String toString() => 'GigDate(id: $id, date: $date, startTime: $startTime)';
 }

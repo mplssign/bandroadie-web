@@ -29,6 +29,9 @@ class RehearsalFormFields extends ConsumerWidget {
     // Potential rehearsal toggle
     required this.isPotential,
     required this.onPotentialToggled,
+    // Multi-date (potential rehearsals)
+    required this.additionalDates,
+    required this.primaryStartTime,
     // Recurring state
     required this.isRecurring,
     required this.onRecurringToggled,
@@ -68,6 +71,10 @@ class RehearsalFormFields extends ConsumerWidget {
   // --- Potential rehearsal toggle ---
   final bool isPotential;
   final ValueChanged<bool> onPotentialToggled;
+
+  // --- Multi-date ---
+  final List<AdditionalDateEntry> additionalDates;
+  final String primaryStartTime;
 
   // --- Recurring toggle ---
   final bool isRecurring;
@@ -341,6 +348,11 @@ class RehearsalFormFields extends ConsumerWidget {
           // Member grid — shown when potential is ON
           if (isPotential) ...[
             const SizedBox(height: Spacing.space12),
+            // Multi-date: show proposed dates+times before the availability grid
+            if (additionalDates.isNotEmpty) ...[
+              _buildProposedDatesSection(context),
+              const SizedBox(height: Spacing.space12),
+            ],
             if (membersState.isLoading || isLoadingMemberAvailability)
               Center(
                 child: Padding(
@@ -373,6 +385,52 @@ class RehearsalFormFields extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Proposed Dates Section (multi-date potential rehearsals)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildProposedDatesSection(BuildContext context) {
+    // Build (date, timeDisplay) pairs sorted by date
+    final allEntries = <(DateTime, String)>[
+      (selectedDate, primaryStartTime),
+      ...additionalDates.map((e) => (e.date, e.startTimeDisplay)),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Proposed Dates',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: Spacing.space8),
+        for (final entry in allEntries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Icon(
+                  AppIcons.calendar,
+                  size: 14,
+                  color: context.colors.textSecondary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${_formatDateDisplay(entry.$1)} · ${entry.$2}',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: context.colors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

@@ -35,6 +35,7 @@ const _gigSelectClause = '''
     id,
     gig_id,
     date,
+    start_time,
     created_at,
     updated_at
   )

@@ -822,12 +822,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                       setlistsState,
                                     ),
                                   ),
-                                  const SizedBox(height: Spacing.space24),
                                 ],
 
                                 // Upcoming rehearsals section
                                 const SectionHeader(
-                                    title: 'Upcoming Rehearsals'),
+                                    title: 'Upcoming Rehearsals',
+                                    topSpacing: Spacing.space24),
                                 const SizedBox(height: Spacing.space12),
                                 _AnimatedCardEntrance(
                                   delay: const Duration(milliseconds: 80),
@@ -852,7 +852,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 ),
 
                                 // Upcoming gigs section
-                                const SectionHeader(title: 'Upcoming Gigs'),
+                                const SectionHeader(title: 'Upcoming Gigs', topSpacing: Spacing.space24),
                                 const SizedBox(height: Spacing.space12),
                                 _AnimatedCardEntrance(
                                   delay: const Duration(milliseconds: 160),
@@ -885,7 +885,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                         CrossAxisAlignment.start,
                                     children: [
                                       const SectionHeader(
-                                          title: 'Quick Actions'),
+                                          title: 'Quick Actions', topSpacing: Spacing.space24),
                                       const SizedBox(height: Spacing.space16),
                                       _AnimatedCardEntrance(
                                         delay:

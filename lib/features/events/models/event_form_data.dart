@@ -8,6 +8,61 @@ import '../../../app/models/gig.dart';
 import '../../../app/models/rehearsal.dart';
 import '../../../app/utils/time_formatter.dart';
 
+// ============================================================================
+// ADDITIONAL DATE ENTRY
+// Represents one candidate date + its own start time for multi-date potential
+// gigs/rehearsals.  The primary date lives in EventFormData.date / .hour / etc.
+// ============================================================================
+
+/// A candidate date with its own start time for multi-date potential events.
+class AdditionalDateEntry {
+  final DateTime date;
+  final int hour; // 1-12
+  final int minutes; // 0, 15, 30, 45
+  final bool isPM;
+
+  const AdditionalDateEntry({
+    required this.date,
+    required this.hour,
+    required this.minutes,
+    required this.isPM,
+  });
+
+  /// Returns "H:MM AM/PM" — matches the format EventFormData.startTimeDisplay uses.
+  String get startTimeDisplay {
+    final minStr = minutes.toString().padLeft(2, '0');
+    return '$hour:$minStr ${isPM ? 'PM' : 'AM'}';
+  }
+
+  AdditionalDateEntry copyWith({
+    DateTime? date,
+    int? hour,
+    int? minutes,
+    bool? isPM,
+  }) {
+    return AdditionalDateEntry(
+      date: date ?? this.date,
+      hour: hour ?? this.hour,
+      minutes: minutes ?? this.minutes,
+      isPM: isPM ?? this.isPM,
+    );
+  }
+
+  /// Equality is date-only so set/map operations keyed by date work correctly.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AdditionalDateEntry && other.date == date;
+  }
+
+  @override
+  int get hashCode => date.hashCode;
+
+  @override
+  String toString() =>
+      'AdditionalDateEntry(date: $date, time: $startTimeDisplay)';
+}
+
 /// The type of event being created/edited
 enum EventType {
   rehearsal,
@@ -220,13 +275,13 @@ class EventFormData {
   final bool isPotentialGig;
   final Set<String> selectedMemberIds; // User IDs of members to notify
 
-  // Multi-date potential gig fields
-  /// Additional dates for multi-date potential gigs.
+  // Multi-date potential gig/rehearsal fields
+  /// Additional candidate dates (each with its own start time).
   /// The primary date is `date`; these are extra options.
-  final List<DateTime> additionalDates;
+  final List<AdditionalDateEntry> additionalDates;
 
-  /// IDs of existing GigDate records (for edit mode).
-  /// Maps DateTime -> GigDate.id for additional dates that already exist in DB.
+  /// IDs of existing GigDate / RehearsalDate records (for edit mode).
+  /// Maps DateTime -> record.id for additional dates that already exist in DB.
   final Map<DateTime, String> existingGigDateIds;
 
   // Setlist fields (optional for both gigs and rehearsals)
@@ -264,7 +319,7 @@ class EventFormData {
     this.loadInIsPM,
     this.isPotentialGig = false,
     this.selectedMemberIds = const {},
-    this.additionalDates = const [],
+    this.additionalDates = const <AdditionalDateEntry>[],
     this.existingGigDateIds = const {},
     this.setlistId,
     this.setlistName,
@@ -278,7 +333,7 @@ class EventFormData {
 
   /// All dates for this event (primary + additional), sorted chronologically
   List<DateTime> get allDates {
-    final dates = [date, ...additionalDates];
+    final dates = [date, ...additionalDates.map((e) => e.date)];
     dates.sort();
     return dates;
   }
@@ -403,7 +458,7 @@ class EventFormData {
     RecurrenceConfig? recurrence,
     bool? isPotentialGig,
     Set<String>? selectedMemberIds,
-    List<DateTime>? additionalDates,
+    List<AdditionalDateEntry>? additionalDates,
     Map<DateTime, String>? existingGigDateIds,
     String? setlistId,
     String? setlistName,
@@ -506,7 +561,17 @@ class EventFormData {
       loadInIsPM: loadInIsPM,
       isPotentialGig: gig.isPotential,
       selectedMemberIds: gig.requiredMemberIds,
-      additionalDates: gig.additionalDates.map((d) => d.date).toList(),
+      additionalDates: gig.additionalDates.map((d) {
+        // Use the date's own start time if stored; fall back to parent gig time.
+        final timeStr = d.startTime ?? gig.startTime;
+        final t = _parseTime(timeStr);
+        return AdditionalDateEntry(
+          date: d.date,
+          hour: t.hour,
+          minutes: t.minutes,
+          isPM: t.isPM,
+        );
+      }).toList(),
       existingGigDateIds: gig.additionalDateIds,
       setlistId: gig.setlistId,
       setlistName: gig.setlistName,
@@ -550,6 +615,17 @@ class EventFormData {
       recurrence: recurrence,
       isPotentialGig: rehearsal.isPotential,
       selectedMemberIds: const {},
+      additionalDates: rehearsal.additionalDates.map((d) {
+        final timeStr = d.startTime ?? rehearsal.startTime;
+        final t = _parseTime(timeStr);
+        return AdditionalDateEntry(
+          date: d.date,
+          hour: t.hour,
+          minutes: t.minutes,
+          isPM: t.isPM,
+        );
+      }).toList(),
+      existingGigDateIds: rehearsal.additionalDateIds,
       setlistId: rehearsal.setlistId,
       setlistName: null, // Rehearsals don't store setlist name
       parentRehearsalId: rehearsal.parentRehearsalId,

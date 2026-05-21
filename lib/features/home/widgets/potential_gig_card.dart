@@ -197,7 +197,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
   @override
   Widget build(BuildContext context) {
     final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.60;
+        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.50;
     final dates = _sortedDates;
     final canGoPrev = _currentDateIndex > 0;
     final canGoNext = _currentDateIndex < dates.length - 1;
@@ -219,14 +219,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
               constraints:
                   BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: _beginAlignment.value,
-                  end: _endAlignment.value,
-                  colors: [
-                    const Color(0xFFF77800).withValues(alpha: gradientAlpha),
-                    const Color(0xFFE11D48).withValues(alpha: gradientAlpha),
-                  ],
-                ),
+                color: const Color(0xFFF54900).withValues(alpha: gradientAlpha),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 border: Border.all(
                   color: context.colors.textSecondary,
@@ -251,14 +244,30 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                     color: const Color(0xFFFAF8F5),
                     borderRadius: BorderRadius.circular(Spacing.cardRadius),
                   ),
-                  child: Text(
-                    'POTENTIAL GIG',
+                  child: RichText(
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF4A1F0F),
-                      letterSpacing: 0.5,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'POTENTIAL GIG',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF4A1F0F),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        if (_isMultiDate)
+                          TextSpan(
+                            text: ': Multiple Dates',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF4A1F0F),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -540,13 +549,13 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
       // Filled state when selected
       if (isPositive) {
         // YES - filled green
-        backgroundColor = const Color(0xFF10B981);
-        borderColor = const Color(0xFF10B981);
+        backgroundColor = const Color(0xFF00A63E);
+        borderColor = const Color(0xFF00A63E);
         textColor = Colors.white;
       } else {
         // NO - filled red
-        backgroundColor = const Color(0xFFEF4444);
-        borderColor = const Color(0xFFEF4444);
+        backgroundColor = const Color(0xFFE7000B);
+        borderColor = const Color(0xFFE7000B);
         textColor = Colors.white;
       }
     } else {

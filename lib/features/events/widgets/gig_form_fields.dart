@@ -7,6 +7,7 @@ import '../../../components/ui/field_hint.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../../members/member_vm.dart';
 import '../../members/members_controller.dart';
+import '../models/event_form_data.dart';
 import 'button_group_grid.dart';
 import 'event_editor_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -48,8 +49,8 @@ class GigFormFields extends ConsumerWidget {
     required this.isLoadingUserResponse,
     required this.onUserResponseChanged,
     // Multi-date (potential gig)
-    required this.isMultiDate,
     required this.additionalDates,
+    required this.primaryStartTime,
     required this.selectedDate,
     required this.existingGigDateIds,
     required this.onPerDateResponseChanged,
@@ -107,8 +108,8 @@ class GigFormFields extends ConsumerWidget {
   final ValueChanged<String> onUserResponseChanged;
 
   // --- Multi-date ---
-  final bool isMultiDate;
-  final List<DateTime> additionalDates;
+  final List<AdditionalDateEntry> additionalDates;
+  final String primaryStartTime;
   final DateTime selectedDate;
   final Map<DateTime, String> existingGigDateIds;
   final void Function(DateTime date, bool isPrimaryDate, String response)
@@ -468,7 +469,6 @@ class GigFormFields extends ConsumerWidget {
 
     final isMultiDateEditMode = isEditMode &&
         existingEventId != null &&
-        isMultiDate &&
         additionalDates.isNotEmpty;
 
     return AnimatedContainer(
@@ -556,21 +556,25 @@ class GigFormFields extends ConsumerWidget {
     List<MemberVM> members,
     bool isLoading,
   ) {
-    final allDates = [selectedDate, ...additionalDates];
-    allDates.sort();
+    // Build (date, timeDisplay) pairs sorted by date
+    final allEntries = <(DateTime, String)>[
+      (selectedDate, primaryStartTime),
+      ...additionalDates.map((e) => (e.date, e.startTimeDisplay)),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: Spacing.space12),
-        for (int i = 0; i < allDates.length; i++) ...[
+        for (int i = 0; i < allEntries.length; i++) ...[
           if (i > 0) const SizedBox(height: Spacing.space16),
           _buildPerDateSection(
             context: context,
-            date: allDates[i],
+            date: allEntries[i].$1,
+            timeDisplay: allEntries[i].$2,
             members: members,
             isLoading: isLoading,
-            isPrimaryDate: allDates[i] == selectedDate,
+            isPrimaryDate: allEntries[i].$1 == selectedDate,
           ),
         ],
       ],
@@ -580,6 +584,7 @@ class GigFormFields extends ConsumerWidget {
   Widget _buildPerDateSection({
     required BuildContext context,
     required DateTime date,
+    required String timeDisplay,
     required List<MemberVM> members,
     required bool isLoading,
     required bool isPrimaryDate,
@@ -594,11 +599,11 @@ class GigFormFields extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Date header
+        // Date + time header
         Container(
           padding: const EdgeInsets.symmetric(vertical: Spacing.space8),
           child: Text(
-            _formatDateDisplay(date),
+            '${_formatDateDisplay(date)} · $timeDisplay',
             style: AppTextStyles.calloutEmphasized.copyWith(
               color: context.colors.textPrimary,
             ),

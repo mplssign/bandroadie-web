@@ -207,7 +207,7 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   Widget _buildPotentialCard(BuildContext context) {
     final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.60;
+        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.50;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -225,14 +225,7 @@ class _RehearsalCardState extends State<RehearsalCard>
               constraints:
                   BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: _beginAlignment.value,
-                  end: _endAlignment.value,
-                  colors: [
-                    const Color(0xFFF77800).withValues(alpha: gradientAlpha),
-                    const Color(0xFFE11D48).withValues(alpha: gradientAlpha),
-                  ],
-                ),
+                color: const Color(0xFFF54900).withValues(alpha: gradientAlpha),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 border: Border.all(
                   color: context.colors.textSecondary,
@@ -257,14 +250,30 @@ class _RehearsalCardState extends State<RehearsalCard>
                     color: const Color(0xFFFAF8F5),
                     borderRadius: BorderRadius.circular(Spacing.cardRadius),
                   ),
-                  child: Text(
-                    'POTENTIAL REHEARSAL',
+                  child: RichText(
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF4A1F0F),
-                      letterSpacing: 0.5,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'POTENTIAL REHEARSAL',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF4A1F0F),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        if (_isMultiDate)
+                          TextSpan(
+                            text: ': Multiple Dates',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF4A1F0F),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -405,7 +414,7 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   Widget _buildConfirmedCard(BuildContext context) {
     final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.60;
+        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.50;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -425,14 +434,7 @@ class _RehearsalCardState extends State<RehearsalCard>
               ),
               clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: _beginAlignment.value,
-                  end: _endAlignment.value,
-                  colors: [
-                    const Color(0xFF2563EB).withValues(alpha: gradientAlpha),
-                    const Color(0xFF9333EA).withValues(alpha: gradientAlpha),
-                  ],
-                ),
+                color: const Color(0xFF155DFC).withValues(alpha: gradientAlpha),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 border: Border.all(
                   color: context.colors.textSecondary,
@@ -511,9 +513,13 @@ class _RehearsalCardState extends State<RehearsalCard>
                         height: 32,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: Colors.transparent,
                           borderRadius:
                               BorderRadius.circular(Spacing.chipRadius),
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                         ),
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -675,13 +681,13 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
       // Filled state when selected
       if (isPositive) {
         // YES - filled green
-        backgroundColor = const Color(0xFF10B981);
-        borderColor = const Color(0xFF10B981);
+        backgroundColor = const Color(0xFF00A63E);
+        borderColor = const Color(0xFF00A63E);
         textColor = Colors.white;
       } else {
         // NO - filled red
-        backgroundColor = const Color(0xFFEF4444);
-        borderColor = const Color(0xFFEF4444);
+        backgroundColor = const Color(0xFFE7000B);
+        borderColor = const Color(0xFFE7000B);
         textColor = Colors.white;
       }
     } else {

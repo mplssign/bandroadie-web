@@ -146,9 +146,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   // RBAC: If true, contributor can only create potential gigs (toggle locked on)
   bool _forcePotentialOnly = false;
 
-  // Multi-date state for potential gigs
+  // Multi-date state for potential gigs/rehearsals
   bool _isMultiDate = false;
-  List<DateTime> _additionalDates = [];
+  List<AdditionalDateEntry> _additionalDates = [];
   Map<DateTime, String> _existingGigDateIds = {}; // For edit mode
 
   // Member availability responses for potential gigs (edit mode only).
@@ -262,7 +262,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _selectedMemberIds = Set.from(data.selectedMemberIds);
       // Populate multi-date state for edit mode
       _isMultiDate = data.additionalDates.isNotEmpty;
-      _additionalDates = List.from(data.additionalDates);
+      _additionalDates = List<AdditionalDateEntry>.from(data.additionalDates);
       _existingGigDateIds = Map.from(data.existingGigDateIds);
       // Populate setlist state for edit mode
       _selectedSetlistId = data.setlistId;
@@ -796,7 +796,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       // When disabling potential gig, reset multi-date state
       if (!value) {
         _isMultiDate = false;
-        _additionalDates = [];
+        _additionalDates = <AdditionalDateEntry>[];
       }
     });
     _markDirty();
@@ -805,20 +805,26 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   void _addAdditionalDate() {
     setState(() {
       _isMultiDate = true;
-      // Add a new date, default to one week after the last date
-      final lastDate =
-          _additionalDates.isNotEmpty ? _additionalDates.last : _selectedDate;
-      _additionalDates.add(lastDate.add(const Duration(days: 7)));
+      // Default to one week after the last entry's date, same time as primary
+      final lastDate = _additionalDates.isNotEmpty
+          ? _additionalDates.last.date
+          : _selectedDate;
+      _additionalDates.add(AdditionalDateEntry(
+        date: lastDate.add(const Duration(days: 7)),
+        hour: _selectedHour,
+        minutes: _selectedMinutes,
+        isPM: _isPM,
+      ));
     });
     _markDirty();
   }
 
   void _removeAdditionalDate(int index) {
     setState(() {
-      final dateToRemove = _additionalDates[index];
+      final entryToRemove = _additionalDates[index];
       _additionalDates.removeAt(index);
       // Also remove from existingGigDateIds if present
-      _existingGigDateIds.remove(dateToRemove);
+      _existingGigDateIds.remove(entryToRemove.date);
       if (_additionalDates.isEmpty) _isMultiDate = false;
     });
     _markDirty();
@@ -826,8 +832,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   void _updateAdditionalDate(int index, DateTime newDate) {
     setState(() {
-      final oldDate = _additionalDates[index];
-      _additionalDates[index] = newDate;
+      final entry = _additionalDates[index];
+      final oldDate = entry.date;
+      _additionalDates[index] = entry.copyWith(date: newDate);
       // Update existingGigDateIds if the old date had an ID
       if (_existingGigDateIds.containsKey(oldDate)) {
         final id = _existingGigDateIds.remove(oldDate);
@@ -835,6 +842,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           _existingGigDateIds[newDate] = id;
         }
       }
+    });
+    _markDirty();
+  }
+
+  void _updateAdditionalDateTime(int index,
+      {int? hour, int? minutes, bool? isPM}) {
+    setState(() {
+      _additionalDates[index] = _additionalDates[index].copyWith(
+        hour: hour,
+        minutes: minutes,
+        isPM: isPM,
+      );
     });
     _markDirty();
   }
@@ -867,7 +886,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       loadInIsPM: _loadInIsPM,
       isPotentialGig: _isPotentialGig,
       selectedMemberIds: _selectedMemberIds,
-      additionalDates: _isMultiDate ? _additionalDates : [],
+      additionalDates: _isMultiDate ? _additionalDates : const <AdditionalDateEntry>[],
       existingGigDateIds: _existingGigDateIds,
       setlistId: _selectedSetlistId,
       setlistName: _selectedSetlistName,
@@ -1728,6 +1747,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       },
       isEditMode: widget.mode == EventEditorMode.edit,
       existingEventId: widget.existingEventId,
+      additionalDates: _additionalDates,
+      primaryStartTime: _buildFormData().startTimeDisplay,
     );
   }
 
@@ -1763,8 +1784,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _markDirty();
         HapticFeedback.selectionClick();
       },
-      isMultiDate: _isMultiDate,
       additionalDates: _additionalDates,
+      primaryStartTime: _buildFormData().startTimeDisplay,
       selectedDate: _selectedDate,
       existingGigDateIds: _existingGigDateIds,
       onPerDateResponseChanged: _updatePerDateResponse,
@@ -1814,11 +1835,16 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       selectedDate: _selectedDate,
       onDateTap: _showDatePicker,
       isPotentialGig: _isPotentialGig,
-      isMultiDate: _isMultiDate,
       additionalDates: _additionalDates,
       onAdditionalDateTap: (i) => _showAdditionalDatePicker(i),
       onAdditionalDateRemoved: _removeAdditionalDate,
       onAdditionalDateAdded: _addAdditionalDate,
+      onAdditionalHourChanged: (i, v) =>
+          _updateAdditionalDateTime(i, hour: v),
+      onAdditionalMinutesChanged: (i, v) =>
+          _updateAdditionalDateTime(i, minutes: v),
+      onAdditionalAmPmChanged: (i, v) =>
+          _updateAdditionalDateTime(i, isPM: v),
       selectedHour: _selectedHour,
       selectedMinutes: _selectedMinutes,
       isPM: _isPM,
@@ -2292,7 +2318,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _additionalDates[index],
+      initialDate: _additionalDates[index].date,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
       builder: (context, child) {
