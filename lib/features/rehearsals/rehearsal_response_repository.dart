@@ -215,6 +215,7 @@ class RehearsalResponseRepository {
         .select('response')
         .eq('rehearsal_id', rehearsalId)
         .eq('user_id', userId)
+        .isFilter('rehearsal_date_id', null)
         .maybeSingle();
 
     if (response == null) return null;
@@ -290,6 +291,7 @@ class RehearsalResponseRepository {
         .select('id')
         .eq('rehearsal_id', rehearsalId)
         .eq('user_id', userId)
+        .isFilter('rehearsal_date_id', null)
         .maybeSingle();
 
     final now = DateTime.now().toUtc().toIso8601String();
@@ -301,7 +303,8 @@ class RehearsalResponseRepository {
           .from('rehearsal_responses')
           .update({'response': response, 'updated_at': now})
           .eq('rehearsal_id', rehearsalId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .isFilter('rehearsal_date_id', null);
       debugPrint('[RehearsalResponseRepository] Update successful');
     } else {
       // Insert new response
@@ -310,6 +313,7 @@ class RehearsalResponseRepository {
       debugPrint('[RehearsalResponseRepository] Inserting new response');
       await supabase.from('rehearsal_responses').insert({
         'rehearsal_id': rehearsalId,
+        'rehearsal_date_id': null,
         'user_id': userId,
         'response': response,
       });
@@ -428,7 +432,8 @@ class RehearsalResponseRepository {
     final responsesResponse = await supabase
         .from('rehearsal_responses')
         .select('user_id, response')
-        .eq('rehearsal_id', rehearsalId);
+        .eq('rehearsal_id', rehearsalId)
+        .isFilter('rehearsal_date_id', null);
 
     // Populate responses
     for (final r in responsesResponse) {
@@ -702,6 +707,54 @@ class RehearsalResponseRepository {
       final response = r['response'] as String?;
       result[rehearsalId]![rehearsalDateId] = response;
     }
+    return result;
+  }
+
+  /// Fetch member availability for ALL dates of a multi-date potential rehearsal.
+  /// Returns map keyed by 'primary' (primary date) or rehearsalDateId (additional dates).
+  /// Each value is a map of userId → response ('yes', 'no', or null = not responded).
+  Future<Map<String, Map<String, String?>>> fetchAllDateResponses({
+    required String rehearsalId,
+    required String bandId,
+    required List<String> rehearsalDateIds,
+  }) async {
+    debugPrint(
+      '[RehearsalResponseRepository] fetchAllDateResponses: rehearsalId=$rehearsalId, dates=${rehearsalDateIds.length}',
+    );
+
+    final membersResponse = await supabase
+        .from('band_members')
+        .select('user_id')
+        .eq('band_id', bandId)
+        .eq('status', 'active');
+
+    final memberIds =
+        (membersResponse as List).map((m) => m['user_id'] as String).toList();
+
+    final result = <String, Map<String, String?>>{};
+    result['primary'] = {for (var id in memberIds) id: null};
+    for (final dateId in rehearsalDateIds) {
+      result[dateId] = {for (var id in memberIds) id: null};
+    }
+
+    final responsesResponse = await supabase
+        .from('rehearsal_responses')
+        .select('user_id, response, rehearsal_date_id')
+        .eq('rehearsal_id', rehearsalId);
+
+    for (final r in responsesResponse as List) {
+      final userId = r['user_id'] as String;
+      final response = r['response'] as String?;
+      final rehearsalDateId = r['rehearsal_date_id'] as String?;
+      final dateKey = rehearsalDateId ?? 'primary';
+      if (result.containsKey(dateKey) && memberIds.contains(userId)) {
+        result[dateKey]![userId] = response;
+      }
+    }
+
+    debugPrint(
+      '[RehearsalResponseRepository] Loaded responses for ${result.length} dates',
+    );
     return result;
   }
 }
