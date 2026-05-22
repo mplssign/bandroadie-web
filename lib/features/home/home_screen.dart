@@ -194,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, _) => null,
+      error: (_, __) => null,
     );
     if (perms == null) return;
     if (perms.isContributor && !perms.canCreateGigs) return;
@@ -209,7 +209,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, _) => null,
+      error: (_, __) => null,
     );
     // Allow contributors to edit potential gigs they can create
     final canEdit = perms != null &&
@@ -245,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final perms = permsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, _) => null,
+      error: (_, __) => null,
     );
     if (perms == null || !perms.canEditGigs) return;
 
@@ -286,19 +286,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final canCreateGig = permissionsAsync.when(
       data: (perms) => perms.canCreateGigs,
       loading: () => false,
-      error: (_, _) => false,
+      error: (_, __) => false,
     );
     final canCreateSetlist = permissionsAsync.when(
       data: (perms) => perms.canCreateSetlists,
       loading: () => false,
-      error: (_, _) => false,
+      error: (_, __) => false,
     );
     // NOTE: canCreateGig/canCreateSetlist are passed to _buildContentScreen below
 
     final isContributor = permissionsAsync.when(
       data: (perms) => perms.isContributor,
       loading: () => false,
-      error: (_, _) => false,
+      error: (_, __) => false,
     );
 
     // Watch display band for header avatar (shows draft during editing)

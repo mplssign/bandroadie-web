@@ -538,7 +538,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final canRestore = permissionsAsync.when(
       data: (perms) => perms.canDeleteBand,
       loading: () => false,
-      error: (_, _) => false,
+      error: (_, __) => false,
     );
 
     showModalBottomSheet(
@@ -1941,7 +1941,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       canEdit = permissionsAsync.when(
         data: (p) => p.canEditBandSettings,
         loading: () => false,
-        error: (_, _) => false,
+        error: (_, __) => false,
       );
     }
 
@@ -2174,12 +2174,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             final canExport = permissionsAsync.when(
               data: (perms) => perms.canExportBandData,
               loading: () => false,
-              error: (_, _) => false,
+              error: (_, __) => false,
             );
             final canDelete = permissionsAsync.when(
               data: (perms) => perms.canDeleteBand,
               loading: () => false,
-              error: (_, _) => false,
+              error: (_, __) => false,
             );
             if (!canExport) return const SizedBox.shrink();
             final isBusy =

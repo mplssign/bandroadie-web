@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/models/block_out.dart';
-import 'package:bandroadie/app/models/gig.dart';
-import 'package:bandroadie/app/models/rehearsal.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/utils/time_formatter.dart';
 import '../bands/active_band_controller.dart';
@@ -208,18 +206,17 @@ class CalendarNotifier extends Notifier<CalendarState> {
   /// If the active band changes during any await, results are discarded.
   Future<void> _loadEventsForBand(String bandId) async {
     try {
-      final results = await Future.wait([
-        _gigRepository.fetchGigsForBand(bandId),
-        _rehearsalRepository.fetchRehearsalsForBand(bandId),
-        _blockOutRepository.fetchBlockOutsForBand(bandId),
-      ]);
+      final gigsFuture = _gigRepository.fetchGigsForBand(bandId);
+      final rehearsalsFuture =
+          _rehearsalRepository.fetchRehearsalsForBand(bandId);
+      final blockOutsFuture = _blockOutRepository.fetchBlockOutsForBand(bandId);
+
+      final gigs = await gigsFuture;
+      final rehearsals = await rehearsalsFuture;
+      final blockOuts = await blockOutsFuture;
 
       // Race guard: discard if the active band changed while loading
       if (ref.read(activeBandIdProvider) != bandId) return;
-
-      final gigs = results[0];
-      final rehearsals = results[1];
-      final blockOuts = results[2];
 
       final userNames = await _fetchUserNames(blockOuts);
 

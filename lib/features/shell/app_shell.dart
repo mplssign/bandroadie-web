@@ -79,7 +79,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       loading: () => BandPermissions.fromRole('contributor',
           subPerms:
               ContributorPermissions.allDisabled), // Fail-closed while loading
-      error: (_, _) => BandPermissions.fromRole('contributor',
+      error: (_, __) => BandPermissions.fromRole('contributor',
           subPerms: ContributorPermissions.allDisabled), // Fail-closed on error
     );
 
@@ -124,7 +124,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         return [first, last].where((s) => s.isNotEmpty).join(' ');
       },
       loading: () => '',
-      error: (_, _) => '',
+      error: (_, __) => '',
     );
 
     return Scaffold(
@@ -327,7 +327,7 @@ class _BandSwitcherLayer extends ConsumerWidget {
       onEditBand: ref.watch(currentUserPermissionsProvider).when(
                 data: (p) => p.canEditBandSettings,
                 loading: () => false,
-                error: (_, _) => false,
+                error: (_, __) => false,
               )
           ? () {
               final activeBand = ref.read(activeBandProvider).activeBand;

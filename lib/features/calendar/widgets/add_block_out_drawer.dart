@@ -159,7 +159,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     final blockOutPerms = blockOutPermsAsync.when(
       data: (p) => p,
       loading: () => null,
-      error: (_, _) => null,
+      error: (_, __) => null,
     );
     if (blockOutPerms?.isContributor == true) {
       if (mounted) {

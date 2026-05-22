@@ -797,7 +797,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     final canCreate = permissionsAsync.when(
       data: (p) => p.canCreateSetlists,
       loading: () => false,
-      error: (_, _) => false,
+      error: (_, __) => false,
     );
     if (!canCreate) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

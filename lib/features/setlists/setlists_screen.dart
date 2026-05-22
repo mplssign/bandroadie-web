@@ -554,7 +554,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     final canEdit = permissionsAsync.when(
       data: (p) => p.canEditSetlists,
       loading: () => false, // Fail closed — no mutation flicker
-      error: (_, _) => false, // Fail closed on error
+      error: (_, __) => false, // Fail closed on error
     );
 
     // Watch setlists provider (automatically reloads when band changes)
@@ -725,7 +725,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
         onEditBand: permissionsAsync.when(
           data: (p) => p.canEditBandSettings,
           loading: () => false,
-          error: (_, _) => false,
+          error: (_, __) => false,
         )
             ? () {
                 final activeBand = bandState.activeBand;

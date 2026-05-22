@@ -52,7 +52,7 @@ class NoBandShell extends ConsumerWidget {
         return [first, last].where((s) => s.isNotEmpty).join(' ');
       },
       loading: () => '',
-      error: (_, _) => '',
+      error: (_, __) => '',
     );
 
     return Scaffold(
