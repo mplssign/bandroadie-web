@@ -26,7 +26,8 @@ class PotentialGigCard extends StatefulWidget {
 
   /// Called with response ('yes'/'no') or null (unselect), and the gigDateId
   /// (null = primary date) for the currently displayed date.
-  final Future<void> Function(String? response, String? gigDateId)? onRespondForDate;
+  final Future<void> Function(String? response, String? gigDateId)?
+      onRespondForDate;
 
   /// Optional fixed width for horizontal scroll mode.
   final double? width;
@@ -195,8 +196,10 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFEA580C).withValues(alpha: gradientAlpha), // orange-600 (light)
-                    const Color(0xFF7C2D12).withValues(alpha: gradientAlpha), // orange-900 (dark)
+                    const Color(0xFFEA580C)
+                        .withValues(alpha: gradientAlpha), // orange-600 (light)
+                    const Color(0xFF7C2D12)
+                        .withValues(alpha: gradientAlpha), // orange-900 (dark)
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -346,10 +349,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       _DateNavButton(
                         icon: Icons.chevron_left,
                         enabled: canGoPrev,
-                        onTap: () =>
-                            setState(() => _currentDateIndex--),
+                        onTap: () => setState(() => _currentDateIndex--),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _FullWidthAvailabilityButton(
                           label: 'NO',
@@ -369,12 +371,11 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           onTap: () => _handleResponse('yes'),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
                       _DateNavButton(
                         icon: Icons.chevron_right,
                         enabled: canGoNext,
-                        onTap: () =>
-                            setState(() => _currentDateIndex++),
+                        onTap: () => setState(() => _currentDateIndex++),
                       ),
                     ],
                   )
@@ -450,7 +451,7 @@ class _DateNavButton extends StatelessWidget {
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: AppDurations.fast,
-        width: 36,
+        width: 48,
         height: 48,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),

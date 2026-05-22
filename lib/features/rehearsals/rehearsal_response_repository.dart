@@ -532,6 +532,178 @@ class RehearsalResponseRepository {
     }
     return result;
   }
+
+  /// Submit or update the user's response for a specific date of a rehearsal.
+  /// Has automatic retry logic for transient failures.
+  Future<void> upsertResponseForDate({
+    required String rehearsalId,
+    required String? rehearsalDateId, // null for primary date
+    required String userId,
+    required String response, // 'yes' or 'no'
+  }) async {
+    debugPrint(
+      '[RehearsalResponseRepository] upsertResponseForDate: rehearsalId=$rehearsalId, rehearsalDateId=$rehearsalDateId, response=$response',
+    );
+
+    // Retry up to 3 times with exponential backoff for transient errors
+    const maxRetries = 3;
+    Exception? lastError;
+
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await _performUpsertForDate(
+          rehearsalId: rehearsalId,
+          rehearsalDateId: rehearsalDateId,
+          userId: userId,
+          response: response,
+        );
+        debugPrint(
+          '[RehearsalResponseRepository] upsertResponseForDate succeeded on attempt $attempt',
+        );
+        return; // Success!
+      } catch (e, stackTrace) {
+        lastError = e is Exception ? e : Exception(e.toString());
+        debugPrint(
+          '[RehearsalResponseRepository] upsertResponseForDate attempt $attempt failed: $e',
+        );
+        debugPrint('[RehearsalResponseRepository] Stack trace: $stackTrace');
+
+        // Don't retry on non-transient errors
+        if (_isNonRetryableError(e)) {
+          debugPrint(
+              '[RehearsalResponseRepository] Non-retryable error, stopping');
+          break;
+        }
+
+        // Wait before retry
+        if (attempt < maxRetries) {
+          final delay = Duration(milliseconds: 100 * (1 << (attempt - 1)));
+          await Future.delayed(delay);
+        }
+      }
+    }
+
+    throw RehearsalResponseError.fromException(lastError!);
+  }
+
+  /// Internal method to perform the actual upsert for date
+  Future<void> _performUpsertForDate({
+    required String rehearsalId,
+    required String? rehearsalDateId,
+    required String userId,
+    required String response,
+  }) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    // Build the query for finding existing response
+    var query = supabase
+        .from('rehearsal_responses')
+        .select('id')
+        .eq('rehearsal_id', rehearsalId)
+        .eq('user_id', userId);
+
+    if (rehearsalDateId != null) {
+      query = query.eq('rehearsal_date_id', rehearsalDateId);
+    } else {
+      query = query.isFilter('rehearsal_date_id', null);
+    }
+
+    final existing = await query.maybeSingle();
+
+    if (existing != null) {
+      // Update existing response
+      var updateQuery = supabase
+          .from('rehearsal_responses')
+          .update({'response': response, 'updated_at': now})
+          .eq('rehearsal_id', rehearsalId)
+          .eq('user_id', userId);
+
+      if (rehearsalDateId != null) {
+        updateQuery = updateQuery.eq('rehearsal_date_id', rehearsalDateId);
+      } else {
+        updateQuery = updateQuery.isFilter('rehearsal_date_id', null);
+      }
+
+      await updateQuery;
+      debugPrint('[RehearsalResponseRepository] Updated response for date');
+    } else {
+      // Insert new response
+      await supabase.from('rehearsal_responses').insert({
+        'rehearsal_id': rehearsalId,
+        'rehearsal_date_id': rehearsalDateId,
+        'user_id': userId,
+        'response': response,
+      });
+      debugPrint('[RehearsalResponseRepository] Inserted response for date');
+    }
+  }
+
+  /// Delete the user's response for a specific date of a rehearsal.
+  /// Pass rehearsalDateId = null to delete the primary-date response.
+  Future<void> deleteResponseForDate({
+    required String rehearsalId,
+    required String userId,
+    required String? rehearsalDateId,
+  }) async {
+    debugPrint(
+      '[RehearsalResponseRepository] deleteResponseForDate: rehearsalId=$rehearsalId, rehearsalDateId=$rehearsalDateId, userId=$userId',
+    );
+
+    try {
+      if (rehearsalDateId != null) {
+        await supabase
+            .from('rehearsal_responses')
+            .delete()
+            .eq('rehearsal_id', rehearsalId)
+            .eq('user_id', userId)
+            .eq('rehearsal_date_id', rehearsalDateId);
+      } else {
+        await supabase
+            .from('rehearsal_responses')
+            .delete()
+            .eq('rehearsal_id', rehearsalId)
+            .eq('user_id', userId)
+            .isFilter('rehearsal_date_id', null);
+      }
+      debugPrint('[RehearsalResponseRepository] Delete successful for date');
+    } catch (e, stackTrace) {
+      debugPrint('[RehearsalResponseRepository] Delete failed: $e');
+      debugPrint('[RehearsalResponseRepository] Stack trace: $stackTrace');
+      throw RehearsalResponseError.fromException(
+        e is Exception ? e : Exception(e.toString()),
+      );
+    }
+  }
+
+  /// Fetch the current user's responses across ALL dates of all potential rehearsals.
+  /// Returns rehearsalId → (rehearsalDateId? → response).
+  /// rehearsalDateId? is null for the primary date, a string ID for additional dates.
+  Future<Map<String, Map<String?, String?>>>
+      fetchCurrentUserRehearsalAllDateResponses({
+    required List<String> rehearsalIds,
+    required String userId,
+  }) async {
+    if (rehearsalIds.isEmpty) return {};
+
+    final responses = await supabase
+        .from('rehearsal_responses')
+        .select('rehearsal_id, rehearsal_date_id, response')
+        .eq('user_id', userId)
+        .inFilter('rehearsal_id', rehearsalIds);
+
+    // Seed result with empty maps for each rehearsal
+    final result = <String, Map<String?, String?>>{
+      for (final id in rehearsalIds) id: {},
+    };
+    for (final r in responses) {
+      final rehearsalId = r['rehearsal_id'] as String;
+      final rehearsalDateId =
+          r['rehearsal_date_id'] as String?; // null = primary date
+      final response = r['response'] as String?;
+      result[rehearsalId]![rehearsalDateId] = response;
+    }
+    return result;
+  }
 }
 
 /// Provider for the repository
@@ -616,6 +788,37 @@ final currentUserRehearsalResponsesProvider =
     );
   } catch (e) {
     debugPrint('[currentUserRehearsalResponsesProvider] Error: $e');
+    return {};
+  }
+});
+
+/// Async provider for the current user's responses across ALL dates of all potential rehearsals.
+/// Returns rehearsalId → (rehearsalDateId? → response). rehearsalDateId? null = primary date.
+/// Invalidated after the user submits a response for any date.
+final currentUserRehearsalAllDateResponsesProvider =
+    FutureProvider<Map<String, Map<String?, String?>>>((ref) async {
+  final rehearsalState = ref.watch(rehearsalProvider);
+  final bandId = ref.watch(activeBandIdProvider);
+  final userId = supabase.auth.currentUser?.id;
+
+  if (bandId == null ||
+      userId == null ||
+      rehearsalState.potentialRehearsals.isEmpty) {
+    return {};
+  }
+  if (rehearsalState.isLoading) return {};
+
+  final repository = ref.read(rehearsalResponseRepositoryProvider);
+  final rehearsalIds =
+      rehearsalState.potentialRehearsals.map((r) => r.id).toList();
+
+  try {
+    return await repository.fetchCurrentUserRehearsalAllDateResponses(
+      rehearsalIds: rehearsalIds,
+      userId: userId,
+    );
+  } catch (e) {
+    debugPrint('[currentUserRehearsalAllDateResponsesProvider] Error: $e');
     return {};
   }
 });

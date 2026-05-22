@@ -535,6 +535,14 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               error: (__, _) => {},
             );
 
+    // Watch per-date responses for multi-date potential rehearsal cards
+    final Map<String, Map<String?, String?>> rehearsalAllDateResponses =
+        ref.watch(currentUserRehearsalAllDateResponsesProvider).when(
+              data: (r) => r,
+              loading: () => {},
+              error: (_, __) => {},
+            );
+
     // Watch display band for header avatar (shows draft during editing)
     final displayBand = ref.watch(displayBandProvider);
     final draftLocalImage = ref.watch(draftLocalImageProvider);
@@ -609,6 +617,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         gigUserResponses: gigUserResponses,
         gigAllDateResponses: gigAllDateResponses,
         rehearsalUserResponses: rehearsalUserResponses,
+        rehearsalAllDateResponses: rehearsalAllDateResponses,
         canCreateGig: canCreateGig,
         canCreateSetlist: canCreateSetlist,
         isContributor: isContributor,
@@ -746,6 +755,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     required Map<String, String?> gigUserResponses,
     required Map<String, Map<String?, String?>> gigAllDateResponses,
     required Map<String, String?> rehearsalUserResponses,
+    required Map<String, Map<String?, String?>> rehearsalAllDateResponses,
     required bool canCreateGig,
     required bool canCreateSetlist,
     required bool isContributor,
@@ -819,6 +829,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                       rehearsalState.potentialRehearsals,
                                       gigAllDateResponses,
                                       rehearsalUserResponses,
+                                      rehearsalAllDateResponses,
                                       setlistsState,
                                     ),
                                   ),
@@ -956,6 +967,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     List<Rehearsal> potentialRehearsals,
     Map<String, Map<String?, String?>> gigAllDateResponses,
     Map<String, String?> rehearsalUserResponses,
+    Map<String, Map<String?, String?>> rehearsalAllDateResponses,
     SetlistsState setlistsState,
   ) {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
@@ -1048,33 +1060,35 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 setlistName: setlistName,
                 bandTimezone: bandTimezone,
                 additionalDates: rehearsal.additionalDates,
-                perDateUserResponses: {
-                  null: rehearsalUserResponses[rehearsal.id],
-                },
+                perDateUserResponses:
+                    rehearsalAllDateResponses[rehearsal.id] ?? {},
                 onRespondForDate: (bandId == null || userId == null)
                     ? null
                     : (response, rehearsalDateId) async {
                         if (response == null) {
-                          // Delete response (unselect) — rehearsals only have
-                          // a primary date for now, so rehearsalDateId is always null
+                          // Delete response for this specific date
                           await ref
                               .read(rehearsalResponseRepositoryProvider)
-                              .deleteResponse(
+                              .deleteResponseForDate(
                                 rehearsalId: rehearsal.id,
                                 userId: userId,
+                                rehearsalDateId: rehearsalDateId,
                               );
                         } else {
-                          // Upsert response
+                          // Upsert response for this specific date
                           await ref
                               .read(rehearsalResponseRepositoryProvider)
-                              .upsertResponse(
+                              .upsertResponseForDate(
                                 rehearsalId: rehearsal.id,
-                                bandId: bandId,
+                                rehearsalDateId: rehearsalDateId,
                                 userId: userId,
                                 response: response,
                               );
                         }
-                        ref.invalidate(currentUserRehearsalResponsesProvider);
+                        ref.invalidate(
+                            currentUserRehearsalAllDateResponsesProvider);
+                        ref.invalidate(
+                            currentUserRehearsalResponsesProvider);
                         ref.invalidate(
                             potentialRehearsalResponseSummariesProvider);
                       },
