@@ -54,7 +54,8 @@ class _HeroMobile extends StatelessWidget {
             },
             child: Image.asset(
               'assets/images/bandroadie_logo_stacked.png',
-              height: 80,
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
             ),
           ),
           const SizedBox(height: 32),
@@ -150,7 +151,8 @@ class _HeroDesktop extends StatelessWidget {
                   },
                   child: Image.asset(
                     'assets/images/bandroadie_logo_stacked.png',
-                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
                   ),
                 ),
                 const SizedBox(height: 32),
