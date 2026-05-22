@@ -467,9 +467,8 @@ class GigFormFields extends ConsumerWidget {
     final membersState = ref.watch(membersProvider);
     final members = membersState.members;
 
-    final isMultiDateEditMode = isEditMode &&
-        existingEventId != null &&
-        additionalDates.isNotEmpty;
+    final isMultiDateEditMode =
+        isEditMode && existingEventId != null && additionalDates.isNotEmpty;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -499,7 +498,7 @@ class GigFormFields extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Requires member confirmation before gig is official.',
+                      'Toggle off once confirmed to make it official.',
                       style: AppTextStyles.footnote.copyWith(
                         color: context.colors.textSecondary,
                       ),

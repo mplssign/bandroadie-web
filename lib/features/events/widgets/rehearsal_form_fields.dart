@@ -324,7 +324,7 @@ class RehearsalFormFields extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Requires member confirmation before rehearsal is official.',
+                      'Toggle off once confirmed to make it official.',
                       style: AppTextStyles.footnote.copyWith(
                         color: context.colors.textSecondary,
                       ),
