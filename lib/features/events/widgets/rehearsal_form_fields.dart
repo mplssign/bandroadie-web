@@ -55,6 +55,12 @@ class RehearsalFormFields extends ConsumerWidget {
     this.onUserResponseChanged,
     this.isEditMode = false,
     this.existingEventId,
+    // Per-date availability (multi-date potential rehearsals in edit mode)
+    this.perDateAvailability = const {},
+    this.isLoadingPerDateAvailability = false,
+    this.existingDateIds = const {},
+    this.onPerDateResponseChanged,
+    this.currentUserId,
   });
 
   final bool isSaving;
@@ -101,6 +107,14 @@ class RehearsalFormFields extends ConsumerWidget {
   final bool isEditMode;
   final String? existingEventId;
   final bool isLoadingUserResponse;
+
+  // Per-date availability
+  final Map<String, Map<String, String?>> perDateAvailability;
+  final bool isLoadingPerDateAvailability;
+  final Map<DateTime, String> existingDateIds;
+  final void Function(DateTime date, bool isPrimaryDate, String response)?
+      onPerDateResponseChanged;
+  final String? currentUserId;
 
   /// Builds the Potential Rehearsal toggle + member availability grid.
   /// Called from the parent drawer so it renders BEFORE the date/time fields.
@@ -348,40 +362,58 @@ class RehearsalFormFields extends ConsumerWidget {
           // Member grid — shown when potential is ON
           if (isPotential) ...[
             const SizedBox(height: Spacing.space12),
-            // Multi-date: show proposed dates+times before the availability grid
-            if (additionalDates.isNotEmpty) ...[
-              _buildProposedDatesSection(context),
-              const SizedBox(height: Spacing.space12),
-            ],
-            if (membersState.isLoading || isLoadingMemberAvailability)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
-                ),
-              )
-            else ...[
-              ButtonGroupGrid<MemberVM>(
-                items: members,
-                labelBuilder: (member) => _getMemberLabel(member, members),
-                labelWidgetBuilder: (member) => _buildMemberLabelWidget(
-                    context, member, members, memberAvailability),
-                isSelected: (_) => false,
-                availabilityMode: true,
-                availabilityState: (member) {
-                  final response = memberAvailability[member.userId];
-                  if (response == 'yes') return AvailabilityState.available;
-                  if (response == 'no') return AvailabilityState.notAvailable;
-                  return AvailabilityState.notResponded;
-                },
-                onTap: null,
-              ),
-              if (isEditMode && existingEventId != null)
-                _buildUserAvailabilitySection(context),
-            ],
+            Builder(builder: (context) {
+              final isMultiDateEditMode = isEditMode &&
+                  existingEventId != null &&
+                  additionalDates.isNotEmpty;
+              if (isMultiDateEditMode) {
+                return _buildMultiDateAvailabilitySection(
+                    context, members, membersState.isLoading);
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (additionalDates.isNotEmpty) ...[
+                    _buildProposedDatesSection(context),
+                    const SizedBox(height: Spacing.space12),
+                  ],
+                  if (membersState.isLoading || isLoadingMemberAvailability)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    )
+                  else ...[
+                    ButtonGroupGrid<MemberVM>(
+                      items: members,
+                      labelBuilder: (member) =>
+                          _getMemberLabel(member, members),
+                      labelWidgetBuilder: (member) => _buildMemberLabelWidget(
+                          context, member, members, memberAvailability),
+                      isSelected: (_) => false,
+                      availabilityMode: true,
+                      availabilityState: (member) {
+                        final response = memberAvailability[member.userId];
+                        if (response == 'yes') {
+                          return AvailabilityState.available;
+                        }
+                        if (response == 'no') {
+                          return AvailabilityState.notAvailable;
+                        }
+                        return AvailabilityState.notResponded;
+                      },
+                      onTap: null,
+                    ),
+                    if (isEditMode && existingEventId != null)
+                      _buildUserAvailabilitySection(context),
+                  ],
+                ],
+              );
+            }),
           ],
         ],
       ),
@@ -430,6 +462,119 @@ class RehearsalFormFields extends ConsumerWidget {
               ],
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildMultiDateAvailabilitySection(
+    BuildContext context,
+    List<MemberVM> members,
+    bool isLoading,
+  ) {
+    final allEntries = <(DateTime, String)>[
+      (selectedDate, primaryStartTime),
+      ...additionalDates.map((e) => (e.date, e.startTimeDisplay)),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < allEntries.length; i++) ...[
+          if (i > 0) const SizedBox(height: Spacing.space16),
+          _buildPerDateSection(
+            context: context,
+            date: allEntries[i].$1,
+            timeDisplay: allEntries[i].$2,
+            members: members,
+            isLoading: isLoading,
+            isPrimaryDate: allEntries[i].$1 == selectedDate,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPerDateSection({
+    required BuildContext context,
+    required DateTime date,
+    required String timeDisplay,
+    required List<MemberVM> members,
+    required bool isLoading,
+    required bool isPrimaryDate,
+  }) {
+    final dateKey = isPrimaryDate ? 'primary' : existingDateIds[date];
+    final availability = dateKey != null
+        ? (perDateAvailability[dateKey] ?? {})
+        : <String, String?>{};
+    final userResponse =
+        currentUserId != null ? availability[currentUserId] : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${_formatDateDisplay(date)} · $timeDisplay',
+          style: AppTextStyles.calloutEmphasized.copyWith(
+            color: context.colors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: Spacing.space8),
+        if (isLoading || isLoadingPerDateAvailability)
+          const Center(child: CircularProgressIndicator(strokeWidth: 2))
+        else if (members.isEmpty)
+          Text('No members', style: AppTextStyles.footnote)
+        else
+          ButtonGroupGrid<MemberVM>(
+            items: members,
+            labelBuilder: (member) => _getMemberLabel(member, members),
+            labelWidgetBuilder: (member) =>
+                _buildMemberLabelWidget(context, member, members, availability),
+            isSelected: (_) => false,
+            availabilityMode: true,
+            availabilityState: (member) {
+              final r = availability[member.userId];
+              if (r == 'yes') return AvailabilityState.available;
+              if (r == 'no') return AvailabilityState.notAvailable;
+              return AvailabilityState.notResponded;
+            },
+            onTap: null,
+          ),
+        const SizedBox(height: Spacing.space8),
+        Text(
+          'Your Availability',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: Spacing.space8),
+        Row(
+          children: [
+            Expanded(
+              child: AvailabilityButton(
+                label: 'NO',
+                icon: AppIcons.close,
+                isSelected: userResponse == 'no',
+                isPositive: false,
+                isLoading: false,
+                onPressed: () =>
+                    onPerDateResponseChanged?.call(date, isPrimaryDate, 'no'),
+              ),
+            ),
+            const SizedBox(width: Spacing.space12),
+            Expanded(
+              child: AvailabilityButton(
+                label: 'YES',
+                icon: AppIcons.check,
+                isSelected: userResponse == 'yes',
+                isPositive: true,
+                isLoading: false,
+                onPressed: () =>
+                    onPerDateResponseChanged?.call(date, isPrimaryDate, 'yes'),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

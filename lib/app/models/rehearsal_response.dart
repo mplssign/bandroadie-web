@@ -11,6 +11,7 @@ class RehearsalResponse {
   final String id;
   final String rehearsalId;
   final String userId;
+  final String? rehearsalDateId;
   final RehearsalResponseType response;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -19,6 +20,7 @@ class RehearsalResponse {
     required this.id,
     required this.rehearsalId,
     required this.userId,
+    this.rehearsalDateId,
     required this.response,
     required this.createdAt,
     required this.updatedAt,
@@ -30,6 +32,7 @@ class RehearsalResponse {
       id: json['id'] as String,
       rehearsalId: json['rehearsal_id'] as String,
       userId: json['user_id'] as String,
+      rehearsalDateId: json['rehearsal_date_id'] as String?,
       response: _parseResponse(json['response'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -52,6 +55,7 @@ class RehearsalResponse {
     return {
       'rehearsal_id': rehearsalId,
       'user_id': userId,
+      if (rehearsalDateId != null) 'rehearsal_date_id': rehearsalDateId,
       'response': response.name,
     };
   }

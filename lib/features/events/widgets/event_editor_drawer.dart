@@ -888,7 +888,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       loadInIsPM: _loadInIsPM,
       isPotentialGig: _isPotentialGig,
       selectedMemberIds: _selectedMemberIds,
-      additionalDates: _isMultiDate ? _additionalDates : const <AdditionalDateEntry>[],
+      additionalDates:
+          _isMultiDate ? _additionalDates : const <AdditionalDateEntry>[],
       existingGigDateIds: _existingGigDateIds,
       setlistId: _selectedSetlistId,
       setlistName: _selectedSetlistName,
@@ -1328,6 +1329,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               ref.invalidate(potentialRehearsalResponseSummariesProvider);
             }
           }
+
+          // Save per-date availability for multi-date potential rehearsals
+          if (_isPotentialGig &&
+              _isMultiDate &&
+              _perDateAvailability.isNotEmpty) {
+            await _savePerDateResponses();
+          }
         } else {
           await repository.updateGig(
             gigId: widget.existingEventId!,
@@ -1751,6 +1759,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       existingEventId: widget.existingEventId,
       additionalDates: _additionalDates,
       primaryStartTime: _buildFormData().startTimeDisplay,
+      perDateAvailability: _perDateAvailability,
+      isLoadingPerDateAvailability: _isLoadingPerDateAvailability,
+      existingDateIds: _existingGigDateIds,
+      onPerDateResponseChanged: _updatePerDateResponse,
+      currentUserId: supabase.auth.currentUser?.id,
     );
   }
 
@@ -1841,12 +1854,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       onAdditionalDateTap: (i) => _showAdditionalDatePicker(i),
       onAdditionalDateRemoved: _removeAdditionalDate,
       onAdditionalDateAdded: _addAdditionalDate,
-      onAdditionalHourChanged: (i, v) =>
-          _updateAdditionalDateTime(i, hour: v),
+      onAdditionalHourChanged: (i, v) => _updateAdditionalDateTime(i, hour: v),
       onAdditionalMinutesChanged: (i, v) =>
           _updateAdditionalDateTime(i, minutes: v),
-      onAdditionalAmPmChanged: (i, v) =>
-          _updateAdditionalDateTime(i, isPM: v),
+      onAdditionalAmPmChanged: (i, v) => _updateAdditionalDateTime(i, isPM: v),
       selectedHour: _selectedHour,
       selectedMinutes: _selectedMinutes,
       isPM: _isPM,
@@ -2016,7 +2027,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
                       // Potential Rehearsal toggle (rehearsal only, before date/time)
                       if (_eventType == EventType.rehearsal) ...[
-                        rehearsalFormFields!.buildPotentialSection(context, ref),
+                        rehearsalFormFields!
+                            .buildPotentialSection(context, ref),
                         const SizedBox(height: Spacing.space16),
                       ],
 
@@ -2404,25 +2416,47 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   /// Load per-date availability for multi-date potential gigs
   Future<void> _loadPerDateAvailability() async {
-    final gigId = widget.existingEventId;
-    if (gigId == null || !_isMultiDate) return;
+    final eventId = widget.existingEventId;
+    if (eventId == null || !_isMultiDate) return;
 
     setState(() => _isLoadingPerDateAvailability = true);
 
     try {
-      final gigDateIds = _existingGigDateIds.values.toList();
-      final responses =
-          await ref.read(gigResponseRepositoryProvider).fetchAllDateResponses(
-                gigId: gigId,
-                bandId: widget.bandId,
-                gigDateIds: gigDateIds,
-              );
+      if (_eventType == EventType.gig) {
+        final gigDateIds = _existingGigDateIds.values.toList();
+        final responses =
+            await ref.read(gigResponseRepositoryProvider).fetchAllDateResponses(
+                  gigId: eventId,
+                  bandId: widget.bandId,
+                  gigDateIds: gigDateIds,
+                );
 
-      if (mounted) {
-        setState(() {
-          _perDateAvailability = responses;
-          _isLoadingPerDateAvailability = false;
-        });
+        if (mounted) {
+          setState(() {
+            _perDateAvailability = responses;
+            _isLoadingPerDateAvailability = false;
+          });
+        }
+      } else if (_eventType == EventType.rehearsal) {
+        final rehearsalDateIds = _existingGigDateIds.values.toList();
+        final responses = await ref
+            .read(rehearsalResponseRepositoryProvider)
+            .fetchAllDateResponses(
+              rehearsalId: eventId,
+              bandId: widget.bandId,
+              rehearsalDateIds: rehearsalDateIds,
+            );
+
+        if (mounted) {
+          setState(() {
+            _perDateAvailability = responses;
+            _isLoadingPerDateAvailability = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() => _isLoadingPerDateAvailability = false);
+        }
       }
     } catch (e) {
       debugPrint('[EventEditorDrawer] Error loading per-date availability: $e');
@@ -2432,13 +2466,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
   }
 
-  /// Save per-date availability responses for multi-date potential gigs
+  /// Save per-date availability responses for multi-date potential gigs/rehearsals
   Future<void> _savePerDateResponses() async {
-    final gigId = widget.existingEventId;
+    final eventId = widget.existingEventId;
     final userId = supabase.auth.currentUser?.id;
-    if (gigId == null || userId == null) return;
-
-    final repo = ref.read(gigResponseRepositoryProvider);
+    if (eventId == null || userId == null) return;
 
     for (final entry in _perDateAvailability.entries) {
       final dateKey = entry.key;
@@ -2446,15 +2478,25 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       final userResponse = responses[userId];
 
       if (userResponse != null) {
-        // Determine gigDateId (null for primary date)
-        final gigDateId = dateKey == 'primary' ? null : dateKey;
+        final dateId = dateKey == 'primary' ? null : dateKey;
 
-        await repo.upsertResponseForDate(
-          gigId: gigId,
-          gigDateId: gigDateId,
-          userId: userId,
-          response: userResponse,
-        );
+        if (_eventType == EventType.rehearsal) {
+          await ref
+              .read(rehearsalResponseRepositoryProvider)
+              .upsertResponseForDate(
+                rehearsalId: eventId,
+                rehearsalDateId: dateId,
+                userId: userId,
+                response: userResponse,
+              );
+        } else {
+          await ref.read(gigResponseRepositoryProvider).upsertResponseForDate(
+                gigId: eventId,
+                gigDateId: dateId,
+                userId: userId,
+                response: userResponse,
+              );
+        }
       }
     }
   }
