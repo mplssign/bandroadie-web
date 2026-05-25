@@ -196,10 +196,10 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFEA580C)
-                        .withValues(alpha: gradientAlpha), // orange-600 (light)
-                    const Color(0xFF7C2D12)
-                        .withValues(alpha: gradientAlpha), // orange-900 (dark)
+                    const Color(0xFFFF6900)
+                        .withValues(alpha: gradientAlpha), // orange-500
+                    const Color(0xFFCA3500)
+                        .withValues(alpha: gradientAlpha), // orange-700
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),

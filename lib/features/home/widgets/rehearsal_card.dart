@@ -201,10 +201,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFFEA580C)
-                        .withValues(alpha: gradientAlpha), // orange-600 (light)
-                    const Color(0xFF7C2D12)
-                        .withValues(alpha: gradientAlpha), // orange-900 (dark)
+                    const Color(0xFFFF6900)
+                        .withValues(alpha: gradientAlpha), // orange-500
+                    const Color(0xFFCA3500)
+                        .withValues(alpha: gradientAlpha), // orange-700
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -413,7 +413,14 @@ class _RehearsalCardState extends State<RehearsalCard>
               ),
               clipBehavior: Clip.hardEdge,
               decoration: BoxDecoration(
-                color: const Color(0xFF155DFC).withValues(alpha: gradientAlpha),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF2B7FFF).withValues(alpha: gradientAlpha), // blue-500
+                    const Color(0xFF1447E6).withValues(alpha: gradientAlpha), // blue-700
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 border: Border.all(
                   color: context.colors.textSecondary,
