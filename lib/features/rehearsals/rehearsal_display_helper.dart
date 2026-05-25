@@ -111,8 +111,18 @@ class RehearsalDisplayHelper {
     return series;
   }
 
-  /// Flatten series into a displayable list with pagination applied
-  /// Returns a list of items that can be rehearsals or "load more" markers
+  /// Flatten series into a displayable list with pagination applied.
+  /// Returns a list of items that can be rehearsals or "load more" markers.
+  ///
+  /// Rehearsal items are globally sorted by date after flattening so that
+  /// occurrences from different series are interleaved in chronological order.
+  /// Without this sort, all occurrences of Series A would appear before any
+  /// occurrences of Series B, causing later dates from Series A to display
+  /// ahead of earlier dates from Series B in the horizontal scroll.
+  ///
+  /// Note: the current caller (home_tab_content.dart) filters out load-more
+  /// markers and uses the infinite-scroll listener instead; markers are
+  /// retained here for forward compatibility.
   static List<DisplayItem> flattenForDisplay(
     List<RehearsalSeries> series,
     Map<String, int> visibleCountBySeriesId,
@@ -137,6 +147,20 @@ class RehearsalDisplayHelper {
         ));
       }
     }
+
+    // Sort rehearsal items globally by date so that occurrences from different
+    // series are shown in chronological order. Load-more markers are left in
+    // place at the end of their series block (they are filtered out by the
+    // current caller anyway).
+    items.sort((a, b) {
+      if (a.isRehearsal && b.isRehearsal) {
+        return a.rehearsal!.date.compareTo(b.rehearsal!.date);
+      }
+      // Keep load-more markers after rehearsal items
+      if (a.isLoadMore) return 1;
+      if (b.isLoadMore) return -1;
+      return 0;
+    });
 
     return items;
   }
