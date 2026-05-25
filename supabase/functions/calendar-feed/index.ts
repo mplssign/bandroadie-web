@@ -632,7 +632,8 @@ Deno.serve(async (req) => {
 
         if (gigsError) throw gigsError;
 
-        // Fetch all rehearsals for user's bands
+        // Fetch confirmed rehearsals only — potential rehearsals are excluded
+        // from the feed for consistency with how potential gigs are handled.
         const { data: rehearsals, error: rehearsalsError } = await supabase
             .from('rehearsals')
             .select(`
@@ -642,6 +643,7 @@ Deno.serve(async (req) => {
                 bands(name)
             `)
             .in('band_id', bandIds)
+            .eq('is_potential', false)
             .gte('date', pastYearDate)
             .order('date', { ascending: true });
 
@@ -837,16 +839,13 @@ function generateCalendar(
         const isRecurring = rehearsal.is_recurring === true;
         const isChild = !!rehearsal.parent_rehearsal_id;
 
-        // Recurring parent: if any child rows exist, the children represent
-        // the (possibly edited/deleted) series — skip the parent and let the
-        // children emit individually below. Only emit RRULE when no children
-        // have been materialized yet.
-        if (isRecurring && !isChild) {
-            const children = childRowsByParent.get(rehearsal.id) ?? [];
-            if (children.length > 0) {
-                continue;
-            }
-        }
+        // Recurring parent: if children exist, they cover occurrence 2 onwards.
+        // The parent row IS occurrence 1 — do NOT skip it. Instead, fall through
+        // and emit it as a flat VEVENT (no RRULE) so the first date isn't dropped.
+        // Only emit RRULE when no children have been materialized yet.
+        const parentHasChildren =
+            isRecurring && !isChild &&
+            (childRowsByParent.get(rehearsal.id) ?? []).length > 0;
 
         const uid = generateUid('rehearsal', rehearsal.id, domain);
         const summary = `Rehearsal - ${rehearsal.band_name}`;
@@ -857,9 +856,10 @@ function generateCalendar(
 
         // For monthly recurring parent rows with recurrence_days, DTSTART must
         // land on the first actual occurrence of the series, not the parent date.
+        // When the parent has children, use the parent's own date (it IS occurrence 1).
         const freq = rehearsal.recurrence_frequency;
         const effectiveDate =
-            isRecurring && !isChild &&
+            isRecurring && !isChild && !parentHasChildren &&
             freq === 'monthly' &&
             rehearsal.recurrence_days && rehearsal.recurrence_days.length > 0
                 ? computeFirstOccurrenceDate(rehearsal.date, rehearsal.recurrence_days[0])
@@ -874,9 +874,11 @@ function generateCalendar(
         // For recurring parent rows, build an RRULE. If the metadata is
         // incomplete or the frequency is unsupported, fall back to a flat
         // VEVENT so the series is not silently dropped.
+        // When the parent has materialized children, skip the RRULE entirely —
+        // children emit their own flat VEVENTs covering the remaining occurrences.
         let rrule: string | null = null;
         let recurrenceIncomplete = false;
-        if (isRecurring && !isChild && rehearsal.recurrence_frequency === 'monthly') {
+        if (isRecurring && !isChild && !parentHasChildren && rehearsal.recurrence_frequency === 'monthly') {
             rrule = buildRehearsalRrule(rehearsal);
             if (rrule === null) {
                 recurrenceIncomplete = true;
