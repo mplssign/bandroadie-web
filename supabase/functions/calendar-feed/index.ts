@@ -509,11 +509,13 @@ Deno.serve(async (req) => {
         let includeGigs = true;
         let includeRehearsal = true;
         let includeBlockouts = false;
+        let includePotentialGigs = false;
+        let includePotentialRehearsal = false;
 
         // 1. Try band_calendar_subscriptions token
         const { data: bandSub, error: bandSubError } = await supabase
             .from('band_calendar_subscriptions')
-            .select('user_id, band_id, include_gigs, include_rehearsals, include_blockouts')
+            .select('user_id, band_id, include_gigs, include_rehearsals, include_blockouts, include_potential_gigs, include_potential_rehearsals')
             .eq('token', token)
             .single();
 
@@ -522,9 +524,11 @@ Deno.serve(async (req) => {
             bandScopedBandId = bandSub.band_id;
 
             // Read per-subscriber preferences (nullish fallback to defaults)
-            includeGigs      = bandSub.include_gigs      ?? true;
-            includeRehearsal = bandSub.include_rehearsals ?? true;
-            includeBlockouts = bandSub.include_blockouts  ?? false;
+            includeGigs              = bandSub.include_gigs               ?? true;
+            includeRehearsal         = bandSub.include_rehearsals          ?? true;
+            includeBlockouts         = bandSub.include_blockouts           ?? false;
+            includePotentialGigs     = bandSub.include_potential_gigs      ?? false;
+            includePotentialRehearsal = bandSub.include_potential_rehearsals ?? false;
 
             // Verify user is still a member of the band
             const { data: membership } = await supabase
@@ -595,12 +599,12 @@ Deno.serve(async (req) => {
 
         if (bandIds.length === 0) {
             // Return empty calendar
-            const etag = await computeEtag([], [], [], calendarName, bandTimezone);
+            const etag = await computeEtag([], [], [], calendarName, bandTimezone ?? 'America/Chicago');
             const ifNoneMatch = req.headers.get("if-none-match");
             if (ifNoneMatch === etag) {
                 return new Response(null, { status: 304, headers: corsHeaders });
             }
-            const emptyCalendar = generateCalendar([], [], [], calendarName, bandTimezone);
+            const emptyCalendar = generateCalendar([], [], [], calendarName, bandTimezone ?? 'America/Chicago');
             return new Response(emptyCalendar, {
                 headers: {
                     "Content-Type": "text/calendar; charset=utf-8",
@@ -710,19 +714,77 @@ Deno.serve(async (req) => {
             reason: b.reason || '',
         }));
 
+        // Fetch potential gigs (only when subscriber has opted in)
+        let potentialGigEvents: GigEvent[] = [];
+        if (includePotentialGigs) {
+            const { data: potentialGigs, error: potentialGigsError } = await supabase
+                .from('gigs')
+                .select(`id, name, location, date, load_in_time, start_time, end_time, notes, band_id, bands(name)`)
+                .in('band_id', bandIds)
+                .eq('is_potential', true)
+                .gte('date', pastYearDate)
+                .order('date', { ascending: true });
+            if (potentialGigsError) throw potentialGigsError;
+            potentialGigEvents = (potentialGigs || []).map(g => ({
+                id: g.id,
+                name: `(Potential) ${g.name || 'Gig'}`,
+                location: g.location,
+                date: g.date,
+                load_in_time: g.load_in_time,
+                start_time: g.start_time,
+                end_time: g.end_time,
+                band_name: (g.bands as any)?.name || 'Band',
+                notes: g.notes,
+            }));
+        }
+
+        // Fetch potential rehearsals (only when subscriber has opted in)
+        let potentialRehearsalEvents: RehearsalEvent[] = [];
+        if (includePotentialRehearsal) {
+            const { data: potentialRehearsals, error: potentialRehearsalsError } = await supabase
+                .from('rehearsals')
+                .select(`id, date, location, start_time, end_time, notes, band_id, is_recurring, recurrence_frequency, recurrence_days, recurrence_until, parent_rehearsal_id, bands(name)`)
+                .in('band_id', bandIds)
+                .eq('is_potential', true)
+                .gte('date', pastYearDate)
+                .order('date', { ascending: true });
+            if (potentialRehearsalsError) throw potentialRehearsalsError;
+            potentialRehearsalEvents = (potentialRehearsals || []).map(r => ({
+                id: r.id,
+                date: r.date,
+                location: r.location,
+                start_time: r.start_time,
+                end_time: r.end_time,
+                band_name: (r.bands as any)?.name || 'Band',
+                notes: r.notes,
+                is_recurring: (r as any).is_recurring ?? null,
+                recurrence_frequency: (r as any).recurrence_frequency ?? null,
+                recurrence_days: (r as any).recurrence_days ?? null,
+                recurrence_until: (r as any).recurrence_until ?? null,
+                parent_rehearsal_id: (r as any).parent_rehearsal_id ?? null,
+                isPotential: true,
+            }));
+        }
+
         // Apply feed preferences — filter event arrays before generating the calendar
         const filteredGigs       = includeGigs      ? gigEvents      : [];
         const filteredRehearsal  = includeRehearsal ? rehearsalEvents : [];
         const filteredBlockOuts  = includeBlockouts ? blockOutEvents  : [];
 
-        const etag = await computeEtag(filteredGigs, filteredRehearsal, filteredBlockOuts, calendarName, bandTimezone);
+        // Merge potential events into their respective arrays for feed generation.
+        // Potential events are always emitted as flat VEVENTs (no RRULE) regardless
+        // of recurrence metadata, and their titles are already prefixed with "(Potential)".
+        const allGigEvents         = [...filteredGigs, ...potentialGigEvents];
+        const allRehearsalEvents   = [...filteredRehearsal, ...potentialRehearsalEvents];
+
+        const etag = await computeEtag(allGigEvents, allRehearsalEvents, filteredBlockOuts, calendarName, bandTimezone);
         const ifNoneMatch = req.headers.get("if-none-match");
 
         if (ifNoneMatch === etag) {
             return new Response(null, { status: 304, headers: corsHeaders });
         }
 
-        const calendar = generateCalendar(filteredGigs, filteredRehearsal, filteredBlockOuts, calendarName, bandTimezone);
+        const calendar = generateCalendar(allGigEvents, allRehearsalEvents, filteredBlockOuts, calendarName, bandTimezone);
 
         return new Response(calendar, {
             headers: {

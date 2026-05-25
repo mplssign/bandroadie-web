@@ -267,10 +267,26 @@ class _CalendarSubscriptionDialogState
             ),
             const SizedBox(height: Spacing.space4),
             AppToggleTile(
+              title: 'Potential gigs',
+              value: _prefs.includePotentialGigs,
+              onChanged: (v) =>
+                  _updatePref(_prefs.copyWith(includePotentialGigs: v)),
+              compact: true,
+            ),
+            const SizedBox(height: Spacing.space4),
+            AppToggleTile(
               title: 'Rehearsals',
               value: _prefs.includeRehearsal,
               onChanged: (v) =>
                   _updatePref(_prefs.copyWith(includeRehearsal: v)),
+              compact: true,
+            ),
+            const SizedBox(height: Spacing.space4),
+            AppToggleTile(
+              title: 'Potential rehearsals',
+              value: _prefs.includePotentialRehearsal,
+              onChanged: (v) =>
+                  _updatePref(_prefs.copyWith(includePotentialRehearsal: v)),
               compact: true,
             ),
             const SizedBox(height: Spacing.space4),

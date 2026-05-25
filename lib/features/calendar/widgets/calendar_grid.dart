@@ -23,14 +23,18 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 class CalendarColors {
   CalendarColors._();
 
-  /// Blue indicator for rehearsals (#2563EB)
+  /// Blue indicator for confirmed rehearsals (#2563EB)
   static const Color rehearsalIndicator = Color(MarkerColors.rehearsalColor);
 
-  /// Green indicator for gigs (#65A30D)
+  /// Green indicator for confirmed gigs (#65A30D)
   static const Color gigIndicator = Color(MarkerColors.gigColor);
 
   /// Rose indicator for block outs (#F43F5E)
   static const Color blockOutIndicator = Color(MarkerColors.blockOutColor);
+
+  /// Orange indicator for potential gigs and rehearsals (#EA580C)
+  /// Matches the lighter gradient color on potential event cards.
+  static const Color potentialIndicator = Color(MarkerColors.potentialColor);
 }
 
 class CalendarGrid extends StatefulWidget {
@@ -391,6 +395,8 @@ class _CalendarDaysGrid extends StatelessWidget {
           blockOutCount: markers.blockOutCount,
           hasGig: markers.gig,
           hasRehearsal: markers.rehearsal,
+          hasPotentialGig: markers.potentialGig,
+          hasPotentialRehearsal: markers.potentialRehearsal,
           sortedEventTypes: sortedEventTypes,
           onTap: hasAnyMarker
               ? () => onDayTap?.call(date)
@@ -480,6 +486,8 @@ class _DayCell extends StatelessWidget {
   final int blockOutCount;
   final bool hasGig;
   final bool hasRehearsal;
+  final bool hasPotentialGig;
+  final bool hasPotentialRehearsal;
   final List<CalendarEventType> sortedEventTypes;
   final VoidCallback? onTap;
 
@@ -491,13 +499,16 @@ class _DayCell extends StatelessWidget {
     this.blockOutCount = 0,
     required this.hasGig,
     required this.hasRehearsal,
+    this.hasPotentialGig = false,
+    this.hasPotentialRehearsal = false,
     this.sortedEventTypes = const [],
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasAnyMarker = hasBlockOut || hasGig || hasRehearsal;
+    final hasAnyMarker =
+        hasBlockOut || hasGig || hasRehearsal || hasPotentialGig || hasPotentialRehearsal;
 
     return GestureDetector(
       onTap: onTap,
@@ -579,6 +590,20 @@ class _DayCell extends StatelessWidget {
       }
     }
 
+    // Potential markers always append after confirmed — orange, one per type.
+    if (hasPotentialGig && !hasGig) {
+      activeMarkers.add(_buildPotentialMarker());
+    }
+    if (hasPotentialRehearsal && !hasRehearsal) {
+      activeMarkers.add(_buildPotentialMarker());
+    }
+    // If both potential types are on the same day and neither confirmed type
+    // is present, only show one orange line (they share a color).
+    if (hasPotentialGig && hasPotentialRehearsal && !hasGig && !hasRehearsal) {
+      // The two adds above already added two entries — remove the duplicate.
+      if (activeMarkers.length >= 2) activeMarkers.removeLast();
+    }
+
     if (activeMarkers.isEmpty) {
       return const SizedBox(height: 14);
     }
@@ -616,6 +641,19 @@ class _DayCell extends StatelessWidget {
       height: 3,
       decoration: BoxDecoration(
         color: CalendarColors.rehearsalIndicator,
+        borderRadius: BorderRadius.circular(1.5),
+      ),
+    );
+  }
+
+  /// Build the potential event marker (orange — shared by potential gigs and
+  /// potential rehearsals, matching the lighter gradient on potential cards).
+  Widget _buildPotentialMarker() {
+    return Container(
+      width: 35,
+      height: 3,
+      decoration: BoxDecoration(
+        color: CalendarColors.potentialIndicator,
         borderRadius: BorderRadius.circular(1.5),
       ),
     );

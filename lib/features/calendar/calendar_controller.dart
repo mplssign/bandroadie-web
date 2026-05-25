@@ -211,14 +211,15 @@ class CalendarNotifier extends Notifier<CalendarState> {
           _rehearsalRepository.fetchRehearsalsForBand(bandId);
       final blockOutsFuture = _blockOutRepository.fetchBlockOutsForBand(bandId);
 
-      // Only confirmed (non-potential) events belong on the calendar.
-      // Potential gigs and rehearsals are handled separately on the dashboard.
+      // Load all gigs and rehearsals — confirmed and potential.
+      // buildCalendarMarkers splits by isPotential to assign the correct
+      // marker color (green/blue for confirmed, orange for potential).
       final allGigs = await gigsFuture;
       final allRehearsals = await rehearsalsFuture;
       final blockOuts = await blockOutsFuture;
 
-      final gigs = allGigs.where((g) => !g.isPotential).toList();
-      final rehearsals = allRehearsals.where((r) => !r.isPotential).toList();
+      final gigs = allGigs;
+      final rehearsals = allRehearsals;
 
       // Race guard: discard if the active band changed while loading
       if (ref.read(activeBandIdProvider) != bandId) return;

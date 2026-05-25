@@ -15,22 +15,31 @@ class CalendarFeedPreferences {
   final bool includeGigs;
   final bool includeRehearsal;
   final bool includeBlockouts;
+  final bool includePotentialGigs;
+  final bool includePotentialRehearsal;
 
   const CalendarFeedPreferences({
     this.includeGigs = true,
     this.includeRehearsal = true,
     this.includeBlockouts = false,
+    this.includePotentialGigs = false,
+    this.includePotentialRehearsal = false,
   });
 
   CalendarFeedPreferences copyWith({
     bool? includeGigs,
     bool? includeRehearsal,
     bool? includeBlockouts,
+    bool? includePotentialGigs,
+    bool? includePotentialRehearsal,
   }) =>
       CalendarFeedPreferences(
         includeGigs: includeGigs ?? this.includeGigs,
         includeRehearsal: includeRehearsal ?? this.includeRehearsal,
         includeBlockouts: includeBlockouts ?? this.includeBlockouts,
+        includePotentialGigs: includePotentialGigs ?? this.includePotentialGigs,
+        includePotentialRehearsal:
+            includePotentialRehearsal ?? this.includePotentialRehearsal,
       );
 
   factory CalendarFeedPreferences.fromJson(Map<String, dynamic> json) =>
@@ -38,6 +47,9 @@ class CalendarFeedPreferences {
         includeGigs: json['include_gigs'] as bool? ?? true,
         includeRehearsal: json['include_rehearsals'] as bool? ?? true,
         includeBlockouts: json['include_blockouts'] as bool? ?? false,
+        includePotentialGigs: json['include_potential_gigs'] as bool? ?? false,
+        includePotentialRehearsal:
+            json['include_potential_rehearsals'] as bool? ?? false,
       );
 }
 
@@ -146,7 +158,10 @@ class CalendarSubscriptionService {
     try {
       final data = await _client
           .from('band_calendar_subscriptions')
-          .select('include_gigs, include_rehearsals, include_blockouts')
+          .select(
+            'include_gigs, include_rehearsals, include_blockouts, '
+            'include_potential_gigs, include_potential_rehearsals',
+          )
           .eq('user_id', user.id)
           .eq('band_id', bandId)
           .maybeSingle();
@@ -174,6 +189,8 @@ class CalendarSubscriptionService {
           'p_include_gigs': prefs.includeGigs,
           'p_include_rehearsals': prefs.includeRehearsal,
           'p_include_blockouts': prefs.includeBlockouts,
+          'p_include_potential_gigs': prefs.includePotentialGigs,
+          'p_include_potential_rehearsals': prefs.includePotentialRehearsal,
         },
       );
     } catch (e) {

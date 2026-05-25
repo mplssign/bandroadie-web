@@ -13,14 +13,18 @@ import 'package:bandroadie/app/models/rehearsal.dart';
 class MarkerColors {
   MarkerColors._();
 
-  /// Green indicator for gigs (#65A30D)
+  /// Green indicator for confirmed gigs (#65A30D)
   static const int gigColor = 0xFF65A30D;
 
-  /// Blue indicator for rehearsals (#2563EB)
+  /// Blue indicator for confirmed rehearsals (#2563EB)
   static const int rehearsalColor = 0xFF2563EB;
 
   /// Rose indicator for block outs (#F43F5E)
   static const int blockOutColor = 0xFFF43F5E;
+
+  /// Orange indicator for potential gigs and rehearsals (#EA580C)
+  /// Matches the lighter gradient color used on potential event cards.
+  static const int potentialColor = 0xFFEA580C;
 }
 
 /// Markers for a single calendar day
@@ -28,6 +32,8 @@ class CalendarDayMarkers {
   bool gig;
   bool rehearsal;
   bool blockOut;
+  bool potentialGig;
+  bool potentialRehearsal;
 
   /// Number of band members with block outs on this day
   int blockOutCount;
@@ -36,18 +42,28 @@ class CalendarDayMarkers {
     this.gig = false,
     this.rehearsal = false,
     this.blockOut = false,
+    this.potentialGig = false,
+    this.potentialRehearsal = false,
     this.blockOutCount = 0,
   });
 
   /// Returns true if any marker is set
-  bool get hasAny => gig || rehearsal || blockOut;
+  bool get hasAny =>
+      gig || rehearsal || blockOut || potentialGig || potentialRehearsal;
 
   /// Returns the count of active markers
-  int get count => (gig ? 1 : 0) + (rehearsal ? 1 : 0) + (blockOut ? 1 : 0);
+  int get count =>
+      (gig ? 1 : 0) +
+      (rehearsal ? 1 : 0) +
+      (blockOut ? 1 : 0) +
+      (potentialGig ? 1 : 0) +
+      (potentialRehearsal ? 1 : 0);
 
   @override
   String toString() =>
-      'CalendarDayMarkers(gig: $gig, rehearsal: $rehearsal, blockOut: $blockOut, blockOutCount: $blockOutCount)';
+      'CalendarDayMarkers(gig: $gig, rehearsal: $rehearsal, blockOut: $blockOut, '
+      'potentialGig: $potentialGig, potentialRehearsal: $potentialRehearsal, '
+      'blockOutCount: $blockOutCount)';
 }
 
 /// Type alias for day key in format yyyy-mm-dd
@@ -106,6 +122,10 @@ class BlockOutRange {
 ///
 /// This is the single source of truth for determining which markers
 /// should display on each calendar day.
+///
+/// Confirmed gigs → green, confirmed rehearsals → blue, block outs → rose.
+/// Potential gigs and potential rehearsals → orange (both use the same color,
+/// matching the lighter gradient on potential event cards).
 Map<DayKey, CalendarDayMarkers> buildCalendarMarkers({
   required List<Gig> gigs,
   required List<Rehearsal> rehearsals,
@@ -118,16 +138,24 @@ Map<DayKey, CalendarDayMarkers> buildCalendarMarkers({
     return markers.putIfAbsent(key, () => CalendarDayMarkers());
   }
 
-  // Add gig markers
+  // Add gig markers — confirmed = green, potential = orange
   for (final gig in gigs) {
     final key = dayKey(gig.date);
-    markersFor(key).gig = true;
+    if (gig.isPotential) {
+      markersFor(key).potentialGig = true;
+    } else {
+      markersFor(key).gig = true;
+    }
   }
 
-  // Add rehearsal markers
+  // Add rehearsal markers — confirmed = blue, potential = orange
   for (final rehearsal in rehearsals) {
     final key = dayKey(rehearsal.date);
-    markersFor(key).rehearsal = true;
+    if (rehearsal.isPotential) {
+      markersFor(key).potentialRehearsal = true;
+    } else {
+      markersFor(key).rehearsal = true;
+    }
   }
 
   // Add block out markers (expanding ranges) and count per day
