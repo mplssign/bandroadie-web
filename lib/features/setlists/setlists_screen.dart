@@ -102,8 +102,12 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     final bandId = _bandId;
     if (bandId == null || bandId.isEmpty) return;
 
-    // Update state to loading
-    state = state.copyWith(isLoading: true, clearError: true);
+    // Only set loading explicitly if the notifier is already initialized.
+    // When called directly from build(), state is uninitialized and reading it
+    // throws StateError. build() already returns isLoading: true for that path.
+    if (stateOrNull != null) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
 
     try {
       final setlists = await _repository.fetchSetlistsForBand(bandId);
