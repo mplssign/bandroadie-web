@@ -70,14 +70,19 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
   /// Sets both current and initial state so dirty-detection works correctly.
   Future<void> _loadExistingPermissions() async {
     final repo = ref.read(membersRepositoryProvider);
-    final existing = await repo.fetchContributorPermissions(
-      bandMemberId: widget.member.memberId,
-    );
-    if (mounted && existing != null) {
-      setState(() {
-        _subPermissions = existing;
-        _initialSubPermissions = existing;
-      });
+    try {
+      final existing = await repo.fetchContributorPermissions(
+        bandMemberId: widget.member.memberId,
+      );
+      if (mounted && existing != null) {
+        setState(() {
+          _subPermissions = existing;
+          _initialSubPermissions = existing;
+        });
+      }
+    } catch (e) {
+      debugPrint('[RoleManagement] Failed to load contributor permissions: $e');
+      // Permissions fail silently — sheet still opens with defaults
     }
   }
 

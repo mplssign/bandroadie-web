@@ -355,7 +355,7 @@ class MembersRepository {
     } catch (e) {
       // ignore: avoid_print
       print('[MembersRepository] Failed to remove member: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -379,7 +379,7 @@ class MembersRepository {
     } catch (e) {
       // ignore: avoid_print
       print('[MembersRepository] Failed to fetch contributor permissions: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -466,7 +466,7 @@ class MembersRepository {
       final role = response['role'] as String?;
       return role == 'admin' || role == 'owner';
     } catch (e) {
-      return false;
+      rethrow;
     }
   }
 }
