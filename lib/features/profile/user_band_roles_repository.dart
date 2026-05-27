@@ -99,10 +99,10 @@ class UserBandRolesRepository {
       _cache[cacheKey] = _CacheEntry(roles: roles);
       return roles;
     } catch (e) {
-      // On error, return empty list and don't cache
+      // On error, don't cache — rethrow so caller can handle
       // ignore: avoid_print
       print('[UserBandRolesRepository] Error fetching roles: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -176,7 +176,7 @@ class UserBandRolesRepository {
     } catch (e) {
       // ignore: avoid_print
       print('[UserBandRolesRepository] Error batch fetching roles: $e');
-      return {};
+      rethrow;
     }
   }
 
@@ -220,7 +220,7 @@ class UserBandRolesRepository {
     } catch (e) {
       // ignore: avoid_print
       print('[UserBandRolesRepository] Error fetching roles for users: $e');
-      return {};
+      rethrow;
     }
   }
 
@@ -253,7 +253,7 @@ class UserBandRolesRepository {
 
       return response != null;
     } catch (e) {
-      return false;
+      rethrow;
     }
   }
 

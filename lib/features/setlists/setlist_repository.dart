@@ -3903,13 +3903,12 @@ class SetlistRepository {
   }
 
   // ==========================================================================
-  // HYBRID BPM ENRICHMENT (SPOTIFY → ACOUSTICBRAINZ FALLBACK)
+  // BPM ENRICHMENT (SPOTIFY)
   // ==========================================================================
 
   /// Optional BPM enrichment using hybrid strategy:
   /// 1. Try Spotify Audio Features (if spotifyId available)
-  /// 2. Fallback to AcousticBrainz
-  /// 3. Give up if both fail
+  /// 2. Give up if Spotify fails
   ///
   /// CRITICAL RULES:
   /// - Fire-and-forget ONLY - never awaited by callers
@@ -3950,19 +3949,7 @@ class SetlistRepository {
         }
       }
 
-      // Strategy 2: Fallback to AcousticBrainz if Spotify failed
-      if (bpm == null) {
-        bpm = await _fetchAcousticBrainzBpm(title, artist);
-        if (bpm != null) {
-          if (kDebugMode) {
-            debugPrint(
-              '[SetlistRepository] ✓ AcousticBrainz BPM=$bpm for "$title"',
-            );
-          }
-        }
-      }
-
-      // Give up if both strategies failed
+      // Give up if Spotify failed
       if (bpm == null) {
         if (kDebugMode) {
           debugPrint(
@@ -4039,34 +4026,6 @@ class SetlistRepository {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[SetlistRepository] Spotify BPM fetch failed: $e');
-      }
-      return null;
-    }
-  }
-
-  /// Fetch BPM from AcousticBrainz API via Edge Function.
-  /// Returns null on any failure (never throws).
-  Future<int?> _fetchAcousticBrainzBpm(String title, String artist) async {
-    try {
-      final response = await supabase.functions.invoke(
-        'acousticbrainz_bpm',
-        body: {'title': title, 'artist': artist},
-      );
-
-      final data = response.data;
-      if (data is! Map || data['bpm'] == null) {
-        return null;
-      }
-
-      final bpm = data['bpm'];
-      if (bpm is int) {
-        return bpm;
-      }
-
-      return null;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[SetlistRepository] AcousticBrainz BPM fetch failed: $e');
       }
       return null;
     }

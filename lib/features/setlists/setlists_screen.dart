@@ -78,39 +78,20 @@ class SetlistsState {
 
 /// Notifier for setlists
 class SetlistsNotifier extends Notifier<SetlistsState> {
-  /// Track the last band ID we loaded for to prevent duplicate loads
-  String? _lastLoadedBandId;
-
-  /// Cache the last successfully loaded state
-  SetlistsState? _cachedState;
-
   @override
   SetlistsState build() {
-    // Watch the active band - when it changes, refetch setlists
+    // Watch the active band — Riverpod re-executes build() only when
+    // activeBandIdProvider changes, so a direct call is safe and correct.
+    // This replaces the old manual band-change tracking and deferred scheduling.
     final bandId = ref.watch(activeBandIdProvider);
 
     if (bandId == null || bandId.isEmpty) {
-      _lastLoadedBandId = null;
-      _cachedState = null;
       return const SetlistsState(error: 'No band selected');
     }
 
-    // Only trigger load if band actually changed
-    if (bandId != _lastLoadedBandId) {
-      _lastLoadedBandId = bandId;
-      _cachedState = null;
-      Future.microtask(() => loadSetlists());
-      return const SetlistsState(isLoading: true);
-    }
-
-    // Band hasn't changed - return cached state if available
-    // This handles provider invalidation without triggering a reload
-    if (_cachedState != null) {
-      return _cachedState!;
-    }
-
-    // Fallback: trigger a load (shouldn't normally reach here)
-    Future.microtask(() => loadSetlists());
+    // Direct async call — no microtask deferral needed.
+    // Band-id guard inside loadSetlists() discards stale results on rapid switching.
+    loadSetlists();
     return const SetlistsState(isLoading: true);
   }
 
@@ -121,10 +102,8 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     final bandId = _bandId;
     if (bandId == null || bandId.isEmpty) return;
 
-    // Update both state and cache to loading so build() never returns stale data
-    final loadingState = state.copyWith(isLoading: true, clearError: true);
-    state = loadingState;
-    _cachedState = loadingState;
+    // Update state to loading
+    state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       final setlists = await _repository.fetchSetlistsForBand(bandId);
@@ -149,18 +128,15 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
 
       final newState = state.copyWith(setlists: setlists, isLoading: false);
       state = newState;
-      _cachedState = newState; // Cache for rebuild resilience
     } on SetlistQueryError catch (e) {
       final newState = state.copyWith(isLoading: false, error: e.userMessage);
       state = newState;
-      _cachedState = newState;
     } on NoBandSelectedError {
       final newState = state.copyWith(
         isLoading: false,
         error: 'No band selected',
       );
       state = newState;
-      _cachedState = newState;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[SetlistsNotifier] Error loading setlists: $e');
@@ -170,7 +146,6 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
         error: 'Failed to load setlists. Please try again.',
       );
       state = newState;
-      _cachedState = newState;
     }
   }
 
@@ -188,12 +163,11 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     try {
       await _repository.deleteSetlist(bandId: bandId, setlistId: setlistId);
 
-      // Remove from local state AND update cache so build() stays consistent
+      // Remove from local state
       final updatedSetlists =
           state.setlists.where((s) => s.id != setlistId).toList();
       final newState = state.copyWith(setlists: updatedSetlists);
       state = newState;
-      _cachedState = newState;
 
       if (kDebugMode) {
         debugPrint('[SetlistsScreen] Deleted setlist $setlistId');
@@ -283,7 +257,6 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
 
     final newState = state.copyWith(setlists: [...catalog, ...updated]);
     state = newState;
-    _cachedState = newState;
   }
 
   /// Persist the current setlist order to Supabase.
@@ -310,7 +283,6 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
       if (_preReorderSnapshot != null) {
         final revertState = state.copyWith(setlists: _preReorderSnapshot);
         state = revertState;
-        _cachedState = revertState;
         _preReorderSnapshot = null;
       }
       return false;
