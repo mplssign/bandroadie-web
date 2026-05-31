@@ -503,9 +503,14 @@ section.hero-section .mobile-image{width:100%!important;height:auto!important;ma
     var els = document.querySelectorAll('[data-w-id]');
     var toAnimate = [];
     els.forEach(function(el){
+      if(el.style.transform || el.style.webkitTransform){
+        el.style.transition='opacity 0.7s ease, transform 0.7s ease';
+        el.style.transform='none';
+        el.style.webkitTransform='none';
+      }
       var op = el.style.opacity;
       if(op==='0' || op===0){
-        el.style.transition='opacity 0.7s ease, transform 0.7s ease';
+        el.style.opacity='0';
         toAnimate.push(el);
       }
     });
@@ -513,8 +518,6 @@ section.hero-section .mobile-image{width:100%!important;height:auto!important;ma
       entries.forEach(function(e){
         if(e.isIntersecting){
           e.target.style.opacity='1';
-          e.target.style.transform='none';
-          e.target.style.webkitTransform='none';
           obs.unobserve(e.target);
         }
       });
