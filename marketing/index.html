@@ -498,34 +498,29 @@ section.hero-section .mobile-image{width:100%!important;height:auto!important;ma
 </style><style>:root{--rose:#f43f5e}.setlist-section,.feature-section,[class*="setlist"],[class*="pink"],[class*="rose"]{background-color:#f43f5e!important}.setlist-section *,[class*="setlist"] *{color:#fff!important}</style><style>:root{--color--primary:#f43f5e!important}</style>
 <script>
 (function(){
-  function initFallback(){
-    if(document.documentElement.classList.contains('w-mod-ix')) return;
-    var els = document.querySelectorAll('[data-w-id]');
-    var toAnimate = [];
-    els.forEach(function(el){
-      if(el.style.transform || el.style.webkitTransform){
-        el.style.transition='opacity 0.7s ease, transform 0.7s ease';
-        el.style.transform='none';
-        el.style.webkitTransform='none';
-      }
-      var op = el.style.opacity;
-      if(op==='0' || op===0){
-        el.style.opacity='0';
-        toAnimate.push(el);
+  // Add w-mod-ix immediately to disable CSS initial-state transform rules
+  document.documentElement.classList.add('w-mod-ix');
+  var toAnimate = [];
+  document.querySelectorAll('[data-w-id]').forEach(function(el){
+    // Collect opacity:0 elements for scroll reveal
+    var op = el.style.opacity;
+    if(op==='0' || parseFloat(op)===0){ toAnimate.push(el); }
+    // Reset all inline transforms
+    el.style.transform='none';
+    el.style.webkitTransform='none';
+    el.style.msTransform='none';
+  });
+  // Scroll reveal
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.style.transition='opacity 0.6s ease';
+        e.target.style.opacity='1';
+        obs.unobserve(e.target);
       }
     });
-    var obs = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if(e.isIntersecting){
-          e.target.style.opacity='1';
-          obs.unobserve(e.target);
-        }
-      });
-    },{threshold:0.1});
-    toAnimate.forEach(function(el){ obs.observe(el); });
-  }
-  // Give Webflow JS 800ms to initialize IX2 first
-  setTimeout(initFallback, 800);
+  },{threshold:0.1});
+  toAnimate.forEach(function(el){ obs.observe(el); });
 })();
 </script></head><body class="body"><section data-w-id="aa2fa9d1-1c16-97dd-4a42-292b7c345b3a" class="hero-section"><div class="w-layout-blockcontainer container w-container"><div class="hero-section-wrapper"><div class="hero-section-title"><div class="hero-sticky"><div class="sticky-holder"><div class="hero-big-heading">
 <div class="hero-logo-lockup" style="margin-bottom:0;">
