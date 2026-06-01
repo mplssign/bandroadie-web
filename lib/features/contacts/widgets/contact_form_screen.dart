@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/email_domain_shortcut_bar.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
 import '../contacts_controller.dart';
@@ -293,6 +294,8 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             decoration: _inputDecoration('Email'),
             keyboardType: TextInputType.emailAddress,
           ),
+          const SizedBox(height: 8),
+          EmailDomainShortcutBar(controller: _emailController),
           const SizedBox(height: 16),
 
           // Notes

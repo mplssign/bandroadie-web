@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/email_domain_shortcut_bar.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import 'title_pill_selector.dart';
 
@@ -207,6 +208,8 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
             decoration: _inputDecoration('Email'),
             keyboardType: TextInputType.emailAddress,
           ),
+          const SizedBox(height: 8),
+          EmailDomainShortcutBar(controller: _emailController),
           const SizedBox(height: 12),
 
           // Notes

@@ -33,6 +33,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/services/auth_debug_logger.dart';
 import '../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../components/ui/domain_chip.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import 'auth_gate.dart';
@@ -569,7 +570,7 @@ class _LoginScreenState extends State<LoginScreen>
                   padding: EdgeInsets.only(
                     right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
                   ),
-                  child: _DomainChip(
+                  child: DomainChip(
                     domain: domain,
                     isSelected: isSelected,
                     isEnabled: !_isLoading,
@@ -647,51 +648,3 @@ class _LoginScreenState extends State<LoginScreen>
 // DOMAIN CHIP
 // Individual tappable pill-shaped domain shortcut with selection state.
 // ============================================================================
-
-class _DomainChip extends StatelessWidget {
-  final String domain;
-  final bool isSelected;
-  final bool isEnabled;
-  final VoidCallback onTap;
-
-  const _DomainChip({
-    required this.domain,
-    required this.isSelected,
-    required this.isEnabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isEnabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : context.colors.surface,
-          borderRadius: BorderRadius.circular(100), // Pill shape
-          border: Border.all(
-            color:
-                isSelected ? AppColors.primary : context.colors.surfaceOverlay,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          domain,
-          style: TextStyle(
-            color: isEnabled
-                ? (isSelected
-                    ? context.colors.primaryLight
-                    : context.colors.textSecondary)
-                : context.colors.textMuted,
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-}
