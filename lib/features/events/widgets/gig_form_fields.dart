@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
-import '../../../shared/widgets/currency_input_field.dart';
+import '../../financials/models/financial_entry.dart';
 import '../../members/member_vm.dart';
 import '../../members/members_controller.dart';
 import '../models/event_form_data.dart';
@@ -64,7 +64,8 @@ class GigFormFields extends ConsumerWidget {
     required this.onLoadInMinutesChanged,
     required this.onLoadInAmPmChanged,
     // Gig pay
-    required this.gigPayController,
+    required this.gigPayDetails,
+    required this.onGigPayTap,
     // General
     required this.onMarkDirty,
     required this.currentUserId,
@@ -126,7 +127,8 @@ class GigFormFields extends ConsumerWidget {
   final ValueChanged<bool> onLoadInAmPmChanged;
 
   // --- Gig pay ---
-  final CurrencyInputController gigPayController;
+  final GigPayDetails? gigPayDetails;
+  final VoidCallback onGigPayTap;
 
   // --- General ---
   final VoidCallback onMarkDirty;
@@ -158,14 +160,47 @@ class GigFormFields extends ConsumerWidget {
     return _buildLoadInTimeSelector(context);
   }
 
-  /// Builds the gig pay field (called from parent build method).
-  Widget buildGigPayField() {
-    return CurrencyTextField(
-      controller: gigPayController,
-      label: 'Gig Pay (optional)',
-      hint: '\$0.00',
-      enabled: !isSaving,
-      onChanged: onMarkDirty,
+  /// Builds the gig pay button (called from parent build method).
+  Widget buildGigPayButton(BuildContext context) {
+    final hasDetails = gigPayDetails != null && gigPayDetails!.amountCents > 0;
+    final label = hasDetails
+        ? '${gigPayDetails!.formattedAmount}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}'
+        : 'Set Gig Pay';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Gig Pay (optional)',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: isSaving ? null : onGigPayTap,
+            icon: Icon(
+              hasDetails ? AppIcons.edit : AppIcons.dollar,
+              size: 16,
+            ),
+            label: Text(label),
+            style: OutlinedButton.styleFrom(
+              foregroundColor:
+                  hasDetails ? AppColors.primary : context.colors.textSecondary,
+              side: BorderSide(
+                color: hasDetails ? AppColors.primary : context.colors.border,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              alignment: Alignment.centerLeft,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

@@ -32,7 +32,8 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate>
     with WidgetsBindingObserver {
-  bool _showSplash = !kIsWeb; // Skip video splash on web — browser pauses video on lifecycle.inactive, causing onComplete to never fire
+  bool _showSplash =
+      !kIsWeb; // Skip video splash on web — browser pauses video on lifecycle.inactive, causing onComplete to never fire
   bool _initialized = false;
   bool _checkingProfile = false;
   bool? _profileComplete;
@@ -267,10 +268,14 @@ class _AuthGateState extends ConsumerState<AuthGate>
       debugPrint('[AuthGate] Error checking profile: $e');
       if (mounted) {
         setState(() {
-          // On error, assume incomplete to be safe
-          _profileComplete = false;
+          // On error, assume complete so transient network failures don't
+          // force existing users through the profile gate.
+          _profileComplete = true;
           _checkingProfile = false;
         });
+        // Still try to load bands so the app is functional
+        await _checkAndProcessPendingInvite();
+        await ref.read(activeBandProvider.notifier).loadUserBands();
       }
     }
   }

@@ -7,6 +7,7 @@ import '../../calendar/models/calendar_event.dart';
 import '../../../app/models/gig.dart';
 import '../../../app/models/rehearsal.dart';
 import '../../../app/utils/time_formatter.dart';
+import '../../financials/models/financial_entry.dart';
 
 // ============================================================================
 // ADDITIONAL DATE ENTRY
@@ -293,6 +294,10 @@ class EventFormData {
   /// Null means no pay specified. 0 means explicitly unpaid.
   final int? gigPayCents;
 
+  /// Structured gig pay details captured via GigPayBottomSheet.
+  /// Null until user opens the bottom sheet and saves.
+  final GigPayDetails? gigPayDetails;
+
   // Linked venue (gigs only, optional)
   /// Venue ID if the gig is linked to an existing venue.
   final String? venueId;
@@ -324,6 +329,7 @@ class EventFormData {
     this.setlistId,
     this.setlistName,
     this.gigPayCents,
+    this.gigPayDetails,
     this.venueId,
     this.parentRehearsalId,
   });
@@ -463,6 +469,8 @@ class EventFormData {
     String? setlistId,
     String? setlistName,
     int? gigPayCents,
+    GigPayDetails? gigPayDetails,
+    bool clearGigPayDetails = false,
     String? venueId,
     String? parentRehearsalId,
     bool clearSetlist = false,
@@ -487,6 +495,8 @@ class EventFormData {
       setlistId: clearSetlist ? null : (setlistId ?? this.setlistId),
       setlistName: clearSetlist ? null : (setlistName ?? this.setlistName),
       gigPayCents: clearGigPay ? null : (gigPayCents ?? this.gigPayCents),
+      gigPayDetails:
+          clearGigPayDetails ? null : (gigPayDetails ?? this.gigPayDetails),
       venueId: venueId ?? this.venueId,
       parentRehearsalId: parentRehearsalId ?? this.parentRehearsalId,
     );
@@ -576,6 +586,7 @@ class EventFormData {
       setlistId: gig.setlistId,
       setlistName: gig.setlistName,
       gigPayCents: gig.gigPayCents,
+      gigPayDetails: null, // lazily fetched when user taps Gig Pay button
       venueId: gig.venueId,
     );
   }

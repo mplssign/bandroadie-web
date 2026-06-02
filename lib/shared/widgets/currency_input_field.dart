@@ -255,6 +255,7 @@ class CurrencyTextField extends StatefulWidget {
     this.hint = '\$0.00',
     this.enabled = true,
     this.onChanged,
+    this.clearOnFocus = false,
   });
 
   final CurrencyInputController controller;
@@ -263,16 +264,24 @@ class CurrencyTextField extends StatefulWidget {
   final bool enabled;
   final VoidCallback? onChanged;
 
+  /// When true, tapping the field resets the value to 0 and shows \$0.00
+  /// so the user starts POS digit-entry from a clean slate.
+  final bool clearOnFocus;
+
   @override
   State<CurrencyTextField> createState() => _CurrencyTextFieldState();
 }
 
 class _CurrencyTextFieldState extends State<CurrencyTextField> {
   late final TextEditingController _textController;
+  late final FocusNode _focusNode;
+  bool _isFocused = false;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
     _textController = TextEditingController(
       text: widget.controller.isEmpty ? '' : widget.controller.formattedValue,
     );
@@ -281,14 +290,28 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     widget.controller.removeListener(_syncFromController);
     _textController.dispose();
     super.dispose();
   }
 
+  void _onFocusChange() {
+    if (_focusNode.hasFocus && widget.clearOnFocus) {
+      _isFocused = true;
+      // Setting cents to 0 triggers _syncFromController which will
+      // display '\$0.00' because _isFocused is now true.
+      widget.controller.cents = 0;
+    } else if (!_focusNode.hasFocus) {
+      _isFocused = false;
+      _syncFromController();
+    }
+  }
+
   void _syncFromController() {
     final display = widget.controller.isEmpty
-        ? ''
+        ? (_isFocused && widget.clearOnFocus ? r'$0.00' : '')
         : widget.controller.formattedValue;
     if (_textController.text != display) {
       _textController.text = display;
@@ -311,14 +334,19 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
       widget.controller.cents = cents.clamp(0, 99999999);
     }
 
-    // Update display
-    final display = widget.controller.isEmpty
-        ? ''
-        : widget.controller.formattedValue;
-    _textController.text = display;
-    _textController.selection = TextSelection.fromPosition(
-      TextPosition(offset: display.length),
-    );
+    // Update display — when focused+clearOnFocus and zero, keep showing $0.00
+    final display =
+        (widget.controller.isEmpty && widget.clearOnFocus && _isFocused)
+            ? r'$0.00'
+            : widget.controller.isEmpty
+                ? ''
+                : widget.controller.formattedValue;
+    if (_textController.text != display) {
+      _textController.text = display;
+      _textController.selection = TextSelection.fromPosition(
+        TextPosition(offset: display.length),
+      );
+    }
 
     widget.onChanged?.call();
   }
@@ -328,22 +356,26 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: AppTextStyles.footnote.copyWith(
-            color: context.colors.textSecondary,
+        if (widget.label.isNotEmpty) ...[
+          Text(
+            widget.label,
+            style: AppTextStyles.footnote.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
+          const SizedBox(height: 6),
+        ],
         TextField(
           controller: _textController,
+          focusNode: _focusNode,
           enabled: widget.enabled,
           keyboardType: TextInputType.number,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             _CurrencyInputFormatter(widget.controller),
           ],
-          style: AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
           onChanged: _onChanged,
           decoration: InputDecoration(
             hintText: widget.hint,
