@@ -254,239 +254,277 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(Spacing.pagePadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ─── Member name heading ───
-              Text(
-                widget.member.name,
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w700,
-                  color: context.colors.textPrimary,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _roleDisplayName(widget.member.bandRole),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: context.colors.textSecondary,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // ─── Change role section ───
-              Text(
-                'Change role',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Role toggle buttons
-              _buildRoleButton(
-                role: 'admin',
-                label: 'Admin',
-                description: 'Full access to everything',
-                enabled: !(_isLastAdmin && _selectedRole == 'admin'),
-              ),
-              const SizedBox(height: 8),
-              _buildRoleButton(
-                role: 'member',
-                label: 'Band Member',
-                description: 'Can manage gigs and setlists',
-                enabled: !_isSelfAndLastAdmin,
-              ),
-              const SizedBox(height: 8),
-              _buildRoleButton(
-                role: 'contributor',
-                label: 'Contributor',
-                description: 'Limited access with custom permissions',
-                enabled: !_isSelfAndLastAdmin,
-              ),
-
-              // ─── Contributor sub-permissions ───
-              if (_selectedRole == 'contributor') ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Contributor permissions',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildPermissionToggle(
-                  label: 'Can create gigs',
-                  value: _subPermissions.canCreateGigs,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canCreateGigs: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Potential gigs only',
-                  value: _subPermissions.canCreatePotentialGigsOnly,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canCreatePotentialGigsOnly: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view setlists',
-                  value: _subPermissions.canViewSetlists,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewSetlists: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view calendar',
-                  value: _subPermissions.canViewCalendar,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewCalendar: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view members',
-                  value: _subPermissions.canViewMembers,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewMembers: v);
-                  }),
-                ),
-              ],
-
-              // ─── Last admin warning ───
-              if (_isSelfAndLastAdmin) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: context.colors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: context.colors.warning.withValues(alpha: 0.3),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(Spacing.pagePadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ─── Member name heading ───
+                    Text(
+                      widget.member.name,
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        color: context.colors.textPrimary,
+                        height: 1.3,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(AppIcons.warning,
-                          color: context.colors.warning, size: 20),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'You are the only admin. You cannot change your own role.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: context.colors.warning,
-                            height: 1.4,
+                    const SizedBox(height: 4),
+                    Text(
+                      _roleDisplayName(widget.member.bandRole),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ─── Change role section ───
+                    Text(
+                      'Change role',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Role toggle buttons
+                    _buildRoleButton(
+                      role: 'admin',
+                      label: 'Admin',
+                      description: 'Full access to everything',
+                      enabled: !(_isLastAdmin && _selectedRole == 'admin'),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRoleButton(
+                      role: 'member',
+                      label: 'Band Member',
+                      description: 'Can manage gigs and setlists',
+                      enabled: !_isSelfAndLastAdmin,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRoleButton(
+                      role: 'contributor',
+                      label: 'Contributor',
+                      description: 'Limited access with custom permissions',
+                      enabled: !_isSelfAndLastAdmin,
+                    ),
+
+                    // ─── Contributor sub-permissions ───
+                    if (_selectedRole == 'contributor') ...[
+                      const SizedBox(height: 24),
+                      Text(
+                        'Contributor permissions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: context.colors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPermissionToggle(
+                        label: 'Can create gigs',
+                        value: _subPermissions.canCreateGigs,
+                        onChanged: (v) => setState(() {
+                          _subPermissions =
+                              _subPermissions.copyWith(canCreateGigs: v);
+                        }),
+                      ),
+                      _buildPermissionToggle(
+                        label: 'Potential gigs only',
+                        value: _subPermissions.canCreatePotentialGigsOnly,
+                        onChanged: (v) => setState(() {
+                          _subPermissions = _subPermissions.copyWith(
+                              canCreatePotentialGigsOnly: v);
+                        }),
+                      ),
+                      _buildPermissionToggle(
+                        label: 'Can view setlists',
+                        value: _subPermissions.canViewSetlists,
+                        onChanged: (v) => setState(() {
+                          _subPermissions =
+                              _subPermissions.copyWith(canViewSetlists: v);
+                        }),
+                      ),
+                      _buildPermissionToggle(
+                        label: 'Can view calendar',
+                        value: _subPermissions.canViewCalendar,
+                        onChanged: (v) => setState(() {
+                          _subPermissions =
+                              _subPermissions.copyWith(canViewCalendar: v);
+                        }),
+                      ),
+                      _buildPermissionToggle(
+                        label: 'Can view members',
+                        value: _subPermissions.canViewMembers,
+                        onChanged: (v) => setState(() {
+                          _subPermissions =
+                              _subPermissions.copyWith(canViewMembers: v);
+                        }),
+                      ),
+                    ],
+
+                    // ─── Last admin warning ───
+                    if (_isSelfAndLastAdmin) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: context.colors.warning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color:
+                                context.colors.warning.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(AppIcons.warning,
+                                color: context.colors.warning, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'You are the only admin. You cannot change your own role.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: context.colors.warning,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // ─── Remove from band button ───
+                    if (!_isLastAdmin) ...[
+                      const SizedBox(height: 24),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _isRemoving ? null : _removeMember,
+                          icon: _isRemoving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.error),
+                                  ),
+                                )
+                              : const Icon(AppIcons.userRemove,
+                                  color: AppColors.error, size: 20),
+                          label: Text(
+                            _isRemoving ? 'Removing...' : 'Remove from band',
+                            style: const TextStyle(
+                              color: AppColors.error,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ],
 
-              const SizedBox(height: 32),
-
-              // ─── Save button ───
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor:
-                        AppColors.primary.withValues(alpha: 0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
+            ),
+            _buildFixedBottomActions(),
+          ],
+        ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 12),
+  Widget _buildFixedBottomActions() {
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-              // ─── Cancel button ───
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-
-              // ─── Remove from band button ───
-              if (!_isLastAdmin) ...[
-                const SizedBox(height: 24),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: _isRemoving ? null : _removeMember,
-                    icon: _isRemoving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.error),
-                            ),
-                          )
-                        : const Icon(AppIcons.userRemove,
-                            color: AppColors.error, size: 20),
-                    label: Text(
-                      _isRemoving ? 'Removing...' : 'Remove from band',
-                      style: const TextStyle(
-                        color: AppColors.error,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 16),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(
+          top: BorderSide(
+            color: context.colors.border.withValues(alpha: 0.5),
           ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        left: Spacing.space16,
+        right: Spacing.space16,
+        top: 12,
+        bottom: bottomSafe + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: (_hasChanges && !_isSaving)
+                    ? AppColors.primary
+                    : context.colors.border.withValues(alpha: 0.3),
+                disabledBackgroundColor:
+                    context.colors.border.withValues(alpha: 0.3),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      'Save',
+                      style: AppTextStyles.body.copyWith(
+                        color: (_hasChanges && !_isSaving)
+                            ? Colors.white
+                            : context.colors.textMuted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+            ),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

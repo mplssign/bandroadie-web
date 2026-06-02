@@ -136,6 +136,10 @@ class SetlistDetailState {
   /// Sort mode for Catalog setlist only.
   final CatalogSortMode catalogSortMode;
 
+  /// Starting tuning for tuning-group sort (non-Catalog setlists only).
+  /// null = original position order.
+  final String? startingTuningId;
+
   /// Mixed items list (songs + set breaks + pauses) for non-Catalog setlists.
   final List<SetlistItem> items;
 
@@ -155,6 +159,7 @@ class SetlistDetailState {
     this.error,
     this.lastKnownGoodSongs,
     this.catalogSortMode = CatalogSortMode.title,
+    this.startingTuningId,
     this.items = const [],
     this.lastKnownGoodItems,
     this.newlyInsertedItemId,
@@ -245,6 +250,8 @@ class SetlistDetailState {
     List<SetlistSong>? lastKnownGoodSongs,
     bool clearLastKnownGood = false,
     CatalogSortMode? catalogSortMode,
+    String? startingTuningId,
+    bool clearStartingTuningId = false,
     List<SetlistItem>? items,
     List<SetlistItem>? lastKnownGoodItems,
     bool clearLastKnownGoodItems = false,
@@ -263,6 +270,9 @@ class SetlistDetailState {
           ? null
           : (lastKnownGoodSongs ?? this.lastKnownGoodSongs),
       catalogSortMode: catalogSortMode ?? this.catalogSortMode,
+      startingTuningId: clearStartingTuningId
+          ? null
+          : (startingTuningId ?? this.startingTuningId),
       items: items ?? this.items,
       lastKnownGoodItems: clearLastKnownGoodItems
           ? null
@@ -286,6 +296,10 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   /// Set to true when a local reorder happens while a persist is in-flight,
   /// signaling that we need to persist again after the current call completes.
   bool _itemReorderPendingAfterFlight = false;
+
+  /// Original item order before any tuning-group sort is applied.
+  /// Restored when starting tuning is cleared.
+  List<SetlistItem>? _originalItems;
 
   @override
   SetlistDetailState build() {
@@ -507,9 +521,24 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
             .map((i) => i.song!)
             .toList();
 
+        // Reset original-order snapshot so stale data isn't used after reload
+        _originalItems = null;
+
+        // Re-apply tuning sort if one was active
+        final activeTuning = state.startingTuningId;
+        final displayItems = activeTuning != null
+            ? _applyTuningGroupSort(
+                List<SetlistItem>.from(mixedItems),
+                activeTuning,
+              )
+            : mixedItems;
+        if (activeTuning != null) {
+          _originalItems = List<SetlistItem>.from(mixedItems);
+        }
+
         state = state.copyWith(
           songs: songs,
-          items: mixedItems,
+          items: displayItems,
           isLoading: false,
           clearLastKnownGood: true,
           clearLastKnownGoodItems: true,
@@ -671,6 +700,91 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     if (kDebugMode) {
       debugPrint('[SetlistDetail] Changed catalog sort to: ${newMode.label}');
     }
+  }
+
+  // ── Tuning-group sort (non-Catalog setlists) ─────────────────────────────
+
+  /// Returns the unique tuning IDs present in the current setlist's songs,
+  /// sorted in musical proximity order.
+  List<String> get availableTunings {
+    final songItems = state.items.where((i) => i.isSong && i.song != null);
+    final rawTunings = songItems.map((i) => i.song!.tuning);
+    return TuningSortService.sortedUniqueTunings(rawTunings);
+  }
+
+  /// Cycle to the next starting tuning (or clear if wrapping past last).
+  /// Persists the selection via SharedPreferences.
+  void cycleStartingTuning() {
+    if (state.isCatalog) return;
+    final available = availableTunings;
+    if (available.length < 2) return; // Nothing to cycle through
+
+    final next = TuningSortService.nextStartingTuning(
+      state.startingTuningId,
+      available,
+    );
+    _applyStartingTuning(next);
+
+    // Persist
+    final bandId = _bandId;
+    if (bandId != null) {
+      TuningSortService.setStartingTuningId(
+        bandId: bandId,
+        setlistId: state.setlistId,
+        tuningId: next,
+      );
+    }
+  }
+
+  /// Apply tuning-group sort with [tuningId] as the leading group.
+  /// Passing null restores the original position order.
+  void _applyStartingTuning(String? tuningId) {
+    if (tuningId == null) {
+      // Restore original order
+      final original = _originalItems;
+      _originalItems = null;
+      state = state.copyWith(
+        clearStartingTuningId: true,
+        items: original ?? state.items,
+      );
+      return;
+    }
+
+    // Snapshot original order on first sort
+    _originalItems ??= List<SetlistItem>.from(state.items);
+
+    final sorted = _applyTuningGroupSort(
+      List<SetlistItem>.from(_originalItems!),
+      tuningId,
+    );
+    state = state.copyWith(startingTuningId: tuningId, items: sorted);
+  }
+
+  /// Sort [items] so songs are grouped by tuning (starting with [startingTuningId]),
+  /// preserving relative order within each tuning group.
+  /// Non-song items (set breaks, pauses) are pushed to the end.
+  List<SetlistItem> _applyTuningGroupSort(
+    List<SetlistItem> items,
+    String startingTuningId,
+  ) {
+    final songItems = items.where((i) => i.isSong).toList();
+    final nonSongItems = items.where((i) => !i.isSong).toList();
+
+    songItems.sort((a, b) {
+      final aTuning = a.song?.tuning;
+      final bTuning = b.song?.tuning;
+      final aPriority = TuningSortService.getTuningGroupPriority(
+        aTuning,
+        startingTuningId,
+      );
+      final bPriority = TuningSortService.getTuningGroupPriority(
+        bTuning,
+        startingTuningId,
+      );
+      return aPriority.compareTo(bPriority);
+    });
+
+    return [...songItems, ...nonSongItems];
   }
 
   /// Debug: Run smoke test for songs query

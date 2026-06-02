@@ -308,8 +308,17 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
   TuningOption? _selectedOption;
   int? _selectedCapoFret;
 
+  // Initial values — used to determine if anything has changed
+  TuningOption? _initialOption;
+  int? _initialCapoFret;
+
   List<TuningOption> _customTunings = [];
   bool _isLoadingCustom = true;
+
+  bool get _hasChanges =>
+      _selectedOption != null &&
+      (_selectedOption?.id != _initialOption?.id ||
+          _selectedCapoFret != _initialCapoFret);
 
   @override
   void initState() {
@@ -323,6 +332,10 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     _selectedOption = findTuningByIdOrName(baseTuningId);
     // Explicit param takes priority, then parsed value from the string
     _selectedCapoFret = widget.selectedCapoFret ?? parsed.capoFret;
+
+    // Snapshot initial values for change detection
+    _initialOption = _selectedOption;
+    _initialCapoFret = _selectedCapoFret;
 
     // Load custom tunings
     _loadCustomTunings();
@@ -531,7 +544,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                   thickness: 1,
                 ),
 
-                // Scrollable tuning list + capo + buttons
+                // Scrollable tuning list + capo
                 Expanded(
                   child: ListView(
                     controller: scrollController,
@@ -568,14 +581,13 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                       _buildCapoSubtext(),
                       _buildCapoFretSelector(),
 
-                      // Save / Cancel buttons
-                      _buildSaveButton(),
-                      _buildCancelButton(),
-
-                      const SizedBox(height: Spacing.space32),
+                      const SizedBox(height: Spacing.space16),
                     ],
                   ),
                 ),
+
+                // Fixed footer: Save / Cancel
+                _buildFixedBottomActions(),
               ],
             ),
           );
@@ -734,67 +746,74 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
     );
   }
 
-  Widget _buildSaveButton() {
-    final hasSelection = _selectedOption != null;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.pagePadding,
-        Spacing.space24,
-        Spacing.pagePadding,
-        Spacing.space8,
-      ),
-      child: GestureDetector(
-        onTap: hasSelection ? _handleSave : null,
-        child: Container(
-          width: double.infinity,
-          height: 48,
-          decoration: BoxDecoration(
-            color: hasSelection
-                ? AppColors.primary
-                : AppColors.primary.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            'Save',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: hasSelection
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.5),
-              height: 1.3,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildFixedBottomActions() {
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-  Widget _buildCancelButton() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.pagePadding,
-        0,
-        Spacing.pagePadding,
-        Spacing.space8,
-      ),
-      child: GestureDetector(
-        onTap: _handleCancel,
-        child: Container(
-          width: double.infinity,
-          height: 44,
-          alignment: Alignment.center,
-          child: Text(
-            'Cancel',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: context.colors.textSecondary,
-              height: 1.3,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(
+          top: BorderSide(
+            color: context.colors.border.withValues(alpha: 0.5),
           ),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        left: Spacing.space16,
+        right: Spacing.space16,
+        top: 12,
+        bottom: bottomSafe + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _hasChanges ? _handleSave : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: _hasChanges
+                    ? AppColors.primary
+                    : context.colors.border.withValues(alpha: 0.3),
+                disabledBackgroundColor:
+                    context.colors.border.withValues(alpha: 0.3),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                ),
+              ),
+              child: Text(
+                'Save',
+                style: AppTextStyles.body.copyWith(
+                  color: _hasChanges ? Colors.white : context.colors.textMuted,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _handleCancel,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+            ),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

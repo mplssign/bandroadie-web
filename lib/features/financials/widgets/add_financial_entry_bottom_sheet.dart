@@ -350,9 +350,90 @@ class _AddFinancialEntryBottomSheetState
     }
   }
 
+  Widget _buildFixedBottomActions() {
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+    final enabled = _amountController.cents > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(
+          top: BorderSide(
+            color: context.colors.border.withValues(alpha: 0.5),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        left: Spacing.space16,
+        right: Spacing.space16,
+        top: 12,
+        bottom: bottomSafe + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: enabled ? _save : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: enabled
+                    ? AppColors.primary
+                    : context.colors.border.withValues(alpha: 0.3),
+                disabledBackgroundColor:
+                    context.colors.border.withValues(alpha: 0.3),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                ),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      'Save',
+                      style: AppTextStyles.body.copyWith(
+                        color: enabled ? Colors.white : context.colors.textMuted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+            ),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(
+                color: context.colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final dateStr = DateFormat('MMM d, yyyy').format(_entryDate);
 
     return Container(
@@ -362,17 +443,22 @@ class _AddFinancialEntryBottomSheetState
           top: Radius.circular(Spacing.cardRadius),
         ),
       ),
-      padding: EdgeInsets.only(
-        left: Spacing.pagePadding,
-        right: Spacing.pagePadding,
-        top: Spacing.space24,
-        bottom: Spacing.space24 + bottomInset,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Scrollable form content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: Spacing.pagePadding,
+                right: Spacing.pagePadding,
+                top: Spacing.space24,
+                bottom: Spacing.space8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Drag handle
             Center(
               child: Container(
@@ -622,7 +708,7 @@ class _AddFinancialEntryBottomSheetState
               style: AppTextStyles.callout
                   .copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'e.g., T-shirt sales at Roseland',
+                hintText: 'e.g. Purchased P.A. System',
                 hintStyle: AppTextStyles.callout
                     .copyWith(color: context.colors.textMuted),
                 filled: true,
@@ -740,56 +826,13 @@ class _AddFinancialEntryBottomSheetState
               const SizedBox(height: Spacing.space16),
             ],
 
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed:
-                        _isSaving ? null : () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.colors.textSecondary,
-                      side: BorderSide(color: context.colors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                      ),
-                      minimumSize: const Size(0, 48),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: Spacing.space12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          AppColors.primary.withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                      ),
-                      minimumSize: const Size(0, 48),
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save'),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          _buildFixedBottomActions(),
+        ],
       ),
     );
   }

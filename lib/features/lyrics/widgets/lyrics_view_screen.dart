@@ -327,16 +327,16 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _miniSpeedButton(
+              _speedButton(
                 icon: AppIcons.add,
                 onTap: () => _changeScrollSpeed(10),
               ),
               const SizedBox(height: 8),
-              _miniSpeedButton(
+              _speedButton(
                 icon: AppIcons.remove,
                 onTap: () => _changeScrollSpeed(-10),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 32),
             ],
           ),
 
@@ -349,19 +349,19 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
               height: 56,
               decoration: BoxDecoration(
                 color: _isAutoScrolling
-                    ? AppColors.primary
+                    ? AppColors.primary.withValues(alpha: 0.65)
                     : context.colors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: _isAutoScrolling
-                      ? AppColors.primary
+                      ? AppColors.primary.withValues(alpha: 0.65)
                       : context.colors.border,
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: _isAutoScrolling
-                        ? AppColors.primary.withValues(alpha: 0.35)
+                        ? AppColors.primary.withValues(alpha: 0.25)
                         : Colors.black.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
@@ -380,24 +380,24 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
     );
   }
 
-  Widget _miniSpeedButton({
+  Widget _speedButton({
     required IconData icon,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Opacity(
-        opacity: 0.7,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            shape: BoxShape.circle,
-            border: Border.all(color: context.colors.border),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.25),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.45),
+            width: 1.5,
           ),
-          child: Icon(icon, color: context.colors.textSecondary, size: 18),
         ),
+        child: Icon(icon, color: AppColors.primary, size: 24),
       ),
     );
   }

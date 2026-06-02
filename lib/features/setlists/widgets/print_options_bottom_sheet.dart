@@ -876,10 +876,29 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
   // ---------------------------------------------------------------------------
 
   Widget _buildBottomBar() {
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
+        color: context.colors.surface,
+        border: Border(
+          top: BorderSide(
+            color: context.colors.border.withValues(alpha: 0.5),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(
+        left: Spacing.space16,
+        right: Spacing.space16,
+        top: 12,
+        bottom: bottomSafe + 12,
       ),
       child: Row(
         children: [
@@ -904,17 +923,20 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
           Expanded(
             child: SizedBox(
               height: 48,
-              child: OutlinedButton(
+              child: FilledButton(
                 onPressed: _handlePreview,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.colors.borderStrong),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   ),
                 ),
                 child: Text('Preview',
-                    style: AppTextStyles.button
-                        .copyWith(color: context.colors.textPrimary)),
+                    style: AppTextStyles.button.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    )),
               ),
             ),
           ),

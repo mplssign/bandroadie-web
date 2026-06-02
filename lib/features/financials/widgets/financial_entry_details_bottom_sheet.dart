@@ -43,8 +43,6 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '+' : '−';
     final dateStr = DateFormat('MMMM d, yyyy').format(entry.entryDate);
-    final fromLabel = entry.isIncome ? 'Payer' : 'Paid To';
-    final fromValue = entry.payerName;
 
     return Container(
       decoration: BoxDecoration(
@@ -106,14 +104,22 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
 
           // Details rows
           _DetailRow(icon: AppIcons.calendar, label: 'Date', value: dateStr),
-          if (fromValue != null && fromValue.isNotEmpty) ...[
-            const SizedBox(height: Spacing.space12),
-            _DetailRow(
-              icon: AppIcons.user,
-              label: fromLabel,
-              value: fromValue,
-            ),
-          ],
+          const SizedBox(height: Spacing.space12),
+          _DetailRow(
+            icon: AppIcons.user,
+            label: 'Payer',
+            value: (entry.payerName != null && entry.payerName!.isNotEmpty)
+                ? entry.payerName!
+                : '—',
+          ),
+          const SizedBox(height: Spacing.space12),
+          _DetailRow(
+            icon: AppIcons.user,
+            label: 'Paid To',
+            value: (entry.paidToName != null && entry.paidToName!.isNotEmpty)
+                ? entry.paidToName!
+                : '—',
+          ),
           if (entry.description != null && entry.description!.isNotEmpty) ...[
             const SizedBox(height: Spacing.space12),
             _DetailRow(

@@ -14,6 +14,7 @@ import 'financials_pdf_preview_screen.dart';
 import 'models/financial_entry.dart';
 import 'widgets/add_financial_entry_bottom_sheet.dart';
 import 'widgets/financial_entry_details_bottom_sheet.dart';
+import '../setlists/widgets/back_only_app_bar.dart';
 
 // ============================================================================
 // FINANCIALS SCREEN
@@ -40,77 +41,105 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
-        backgroundColor: context.colors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(AppIcons.back),
-          color: context.colors.textPrimary,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Financials',
-          style: AppTextStyles.displayMedium
-              .copyWith(color: context.colors.textPrimary),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(AppIcons.download,
-                size: 20, color: AppColors.primary),
-            tooltip: 'Export PDF',
-            onPressed: state.isLoading
-                ? null
-                : () {
-                    final bandName =
-                        ref.read(activeBandProvider).activeBand?.name ?? 'Band';
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => FinancialsPdfPreviewScreen(
-                          entries: state.filteredEntries,
-                          bandName: bandName,
-                          dateFilter: state.dateFilter,
-                          customStartDate: state.customStartDate,
-                          customEndDate: state.customEndDate,
-                          viewMode: state.viewMode,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // Back bar (matches setlist detail)
+                BackOnlyAppBar(
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+                // Page content below app bar
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Page title + download action
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          Spacing.pagePadding,
+                          Spacing.space20,
+                          Spacing.pagePadding,
+                          0,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Financials',
+                                style: AppTextStyles.pageTitle
+                                    .copyWith(color: context.colors.textPrimary),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: state.isLoading
+                                  ? null
+                                  : () {
+                                      final bandName = ref
+                                              .read(activeBandProvider)
+                                              .activeBand
+                                              ?.name ??
+                                          'Band';
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              FinancialsPdfPreviewScreen(
+                                            entries: state.filteredEntries,
+                                            bandName: bandName,
+                                            dateFilter: state.dateFilter,
+                                            customStartDate:
+                                                state.customStartDate,
+                                            customEndDate: state.customEndDate,
+                                            viewMode: state.viewMode,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                              child: const Icon(AppIcons.download,
+                                  size: 20, color: AppColors.primary),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Income / Expenses toggle
-          _ViewModeToggle(
-            current: state.viewMode,
-            onChanged: (m) =>
-                ref.read(financialsProvider.notifier).setViewMode(m),
-          ),
-          const SizedBox(height: Spacing.space12),
-          // Date filter row
-          _DateFilterRow(
-            current: state.dateFilter,
-            customStartDate: state.customStartDate,
-            customEndDate: state.customEndDate,
-            onChanged: (f) =>
-                ref.read(financialsProvider.notifier).setDateFilter(f),
-            onCustomRange: (start, end) => ref
-                .read(financialsProvider.notifier)
-                .setCustomDateRange(start, end),
-          ),
-          const SizedBox(height: Spacing.space16),
-          // Entries list
-          Expanded(
-            child: state.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : state.error != null
-                    ? _ErrorState(message: state.error!)
-                    : _EntriesList(entries: state.filteredEntries),
-          ),
-        ],
+                      const SizedBox(height: Spacing.space16),
+                      // Income / Expenses toggle
+                      _ViewModeToggle(
+                        current: state.viewMode,
+                        onChanged: (m) =>
+                            ref.read(financialsProvider.notifier).setViewMode(m),
+                      ),
+                      const SizedBox(height: Spacing.space12),
+                      // Date filter row
+                      _DateFilterRow(
+                        current: state.dateFilter,
+                        customStartDate: state.customStartDate,
+                        customEndDate: state.customEndDate,
+                        onChanged: (f) =>
+                            ref.read(financialsProvider.notifier).setDateFilter(f),
+                        onCustomRange: (start, end) => ref
+                            .read(financialsProvider.notifier)
+                            .setCustomDateRange(start, end),
+                      ),
+                      const SizedBox(height: Spacing.space16),
+                      // Entries list
+                      Expanded(
+                        child: state.isLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                    color: AppColors.primary),
+                              )
+                            : state.error != null
+                                ? _ErrorState(message: state.error!)
+                                : _EntriesList(entries: state.filteredEntries),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,
