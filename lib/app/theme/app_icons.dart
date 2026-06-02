@@ -143,5 +143,7 @@ class AppIcons {
   static const IconData globe = LucideIcons.globe;
 
   static const IconData sparkles = LucideIcons.sparkles;
+
+  static const IconData dollar = LucideIcons.dollarSign;
   static const IconData message = LucideIcons.messageSquare;
 }

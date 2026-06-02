@@ -15,6 +15,7 @@ import '../../../components/ui/brand_action_button.dart';
 class QuickActionsRow extends StatelessWidget {
   final VoidCallback? onAddEvent;
   final VoidCallback? onCreateSetlist;
+  final VoidCallback? onFinancials;
 
   /// Whether the "+ Add Event" button should be shown (permission-gated)
   final bool showAddEvent;
@@ -22,17 +23,23 @@ class QuickActionsRow extends StatelessWidget {
   /// Whether the "Create Setlist" button should be shown (permission-gated)
   final bool showCreateSetlist;
 
+  /// Whether the "Financials" button should be shown (role-gated)
+  final bool showFinancials;
+
   const QuickActionsRow({
     super.key,
     this.onAddEvent,
     this.onCreateSetlist,
+    this.onFinancials,
     this.showAddEvent = true,
     this.showCreateSetlist = true,
+    this.showFinancials = true,
   });
 
   /// Whether at least one button is visible.
   /// Use this to conditionally show the section header.
-  bool get hasVisibleButtons => showAddEvent || showCreateSetlist;
+  bool get hasVisibleButtons =>
+      showAddEvent || showCreateSetlist || showFinancials;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +60,16 @@ class QuickActionsRow extends StatelessWidget {
         BrandActionButton(
           label: '+ Create Setlist',
           onPressed: onCreateSetlist,
+        ),
+      );
+    }
+
+    if (showFinancials) {
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
+      buttons.add(
+        BrandActionButton(
+          label: 'Financials',
+          onPressed: onFinancials,
         ),
       );
     }

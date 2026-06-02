@@ -1,0 +1,1080 @@
+// ignore_for_file: library_private_types_in_public_api
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+
+import '../../../app/theme/app_icons.dart';
+import '../../../app/theme/brand_colors.dart';
+import '../../../app/theme/design_tokens.dart';
+import '../../../features/members/member_vm.dart';
+import '../../../shared/utils/snackbar_helper.dart';
+import '../../../shared/widgets/currency_input_field.dart';
+import '../models/financial_entry.dart';
+
+// ============================================================================
+// ADD FINANCIAL ENTRY BOTTOM SHEET
+// Allows band members to manually record income or expenses.
+// onSave is called with the form values; throws on failure.
+// ============================================================================
+
+typedef _SaveCallback = Future<void> Function({
+  required FinancialEntryType entryType,
+  required String category,
+  required int amountCents,
+  required DateTime entryDate,
+  String? description,
+  bool? is1099Expected,
+  String? payerName,
+  String? paidToName,
+  String? paidToUserId,
+  Map<String, int>? disbursements,
+});
+
+const _kDefaultIncomeTypes = ['Gig Pay', 'Merch Sale', 'Equipment Sale'];
+const _kDefaultExpenseTypes = [
+  'Rent',
+  'Marketing',
+  'Equipment',
+  'Website',
+  'Domain name'
+];
+
+/// Maps a display label back to the nearest [FinancialEntryType].
+FinancialEntryType _labelToEntryType(String label, {required bool isIncome}) {
+  switch (label) {
+    case 'Gig Pay':
+      return FinancialEntryType.gigPay;
+    case 'Merch Sale':
+      return FinancialEntryType.merchSale;
+    case 'Equipment Sale':
+      return FinancialEntryType.equipmentSale;
+    case 'Expense':
+      return FinancialEntryType.expense;
+    default:
+      return isIncome
+          ? FinancialEntryType.miscIncome
+          : FinancialEntryType.expense;
+  }
+}
+
+/// Shows the bottom sheet and wires up [onSave].
+/// Pass [initialEntry] to pre-fill the form for editing.
+Future<void> showAddFinancialEntrySheet(
+  BuildContext context, {
+  required _SaveCallback onSave,
+  bool initialIsIncome = true,
+  FinancialEntry? initialEntry,
+  List<MemberVM> members = const [],
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _AddFinancialEntryBottomSheet(
+      onSave: onSave,
+      initialIsIncome: initialEntry?.isIncome ?? initialIsIncome,
+      initialEntry: initialEntry,
+      members: members,
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Private sheet widget
+// ---------------------------------------------------------------------------
+
+class _AddFinancialEntryBottomSheet extends StatefulWidget {
+  const _AddFinancialEntryBottomSheet({
+    required this.onSave,
+    this.initialIsIncome = true,
+    this.initialEntry,
+    this.members = const [],
+  });
+
+  final _SaveCallback onSave;
+  final bool initialIsIncome;
+  final FinancialEntry? initialEntry;
+  final List<MemberVM> members;
+
+  @override
+  State<_AddFinancialEntryBottomSheet> createState() =>
+      _AddFinancialEntryBottomSheetState();
+}
+
+class _AddFinancialEntryBottomSheetState
+    extends State<_AddFinancialEntryBottomSheet> {
+  late bool _isIncome;
+  late List<String> _incomeTypeLabels;
+  late List<String> _expenseTypeLabels;
+  late String _selectedTypeName;
+  bool _isDeleteTypeMode = false;
+  late DateTime _entryDate;
+  bool _is1099Expected = false;
+  bool _isSaving = false;
+  bool _disburse = false;
+  final Map<String, CurrencyInputController> _splitControllers = {};
+
+  late final CurrencyInputController _amountController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _payerController;
+  late final TextEditingController _paidToOtherController;
+
+  String? _paidToUserId;
+  static const String _kOther = '__other__';
+  bool get _isOtherPaidToSelected => _paidToUserId == _kOther;
+
+  @override
+  void initState() {
+    super.initState();
+    final entry = widget.initialEntry;
+    _isIncome = entry?.isIncome ?? widget.initialIsIncome;
+    _incomeTypeLabels = List.from(_kDefaultIncomeTypes);
+    _expenseTypeLabels = List.from(_kDefaultExpenseTypes);
+
+    if (entry != null) {
+      // Pre-fill from existing entry — use saved category label, not generic displayName
+      final typeName = entry.category;
+      if (_isIncome && !_incomeTypeLabels.contains(typeName)) {
+        _incomeTypeLabels.add(typeName);
+      } else if (!_isIncome && !_expenseTypeLabels.contains(typeName)) {
+        _expenseTypeLabels.add(typeName);
+      }
+      _selectedTypeName = typeName;
+      _entryDate = entry.entryDate;
+      _is1099Expected = entry.is1099Expected ?? false;
+      _amountController = CurrencyInputController(entry.amountCents);
+      _descriptionController =
+          TextEditingController(text: entry.description ?? '');
+      _payerController = TextEditingController(text: entry.payerName ?? '');
+      _paidToOtherController = TextEditingController();
+      // Pre-fill paid-to: member userId takes priority; free-text name => Other
+      if (entry.paidToUserId != null) {
+        _paidToUserId = entry.paidToUserId;
+      } else if (entry.paidToName != null) {
+        _paidToUserId = _kOther;
+        _paidToOtherController.text = entry.paidToName!;
+      }
+    } else {
+      _selectedTypeName =
+          _isIncome ? _kDefaultIncomeTypes.first : _kDefaultExpenseTypes.first;
+      _entryDate = DateTime.now();
+      _amountController = CurrencyInputController();
+      _descriptionController = TextEditingController();
+      _payerController = TextEditingController();
+      _paidToOtherController = TextEditingController();
+    }
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    _payerController.dispose();
+    _paidToOtherController.dispose();
+    for (final c in _splitControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _setIsIncome(bool isIncome) {
+    setState(() {
+      _isIncome = isIncome;
+      _isDeleteTypeMode = false;
+      final labels = isIncome ? _incomeTypeLabels : _expenseTypeLabels;
+      _selectedTypeName = labels.isNotEmpty ? labels.first : '';
+      if (!isIncome && _disburse) {
+        _disburse = false;
+      }
+    });
+  }
+
+  void _onDisburseToggle(bool value) {
+    setState(() {
+      _disburse = value;
+      if (value) {
+        _populateSplits();
+      } else {
+        for (final c in _splitControllers.values) {
+          c.cents = 0;
+        }
+      }
+    });
+  }
+
+  void _populateSplits() {
+    final members = widget.members;
+    if (members.isEmpty) return;
+    final total = _amountController.cents;
+    final count = members.length;
+    final perMember = total ~/ count;
+    final remainder = total - perMember * count;
+    for (var i = 0; i < members.length; i++) {
+      final m = members[i];
+      _splitControllers.putIfAbsent(m.userId, () => CurrencyInputController());
+      _splitControllers[m.userId]!.cents =
+          i == 0 ? perMember + remainder : perMember;
+    }
+  }
+
+  String _shortName(MemberVM member) {
+    final first = member.firstName;
+    final last = member.lastName;
+    if (first != null && first.isNotEmpty) {
+      if (last != null && last.isNotEmpty) {
+        return '$first ${last[0]}.';
+      }
+      return first;
+    }
+    return member.name;
+  }
+
+  Future<void> _showAddTypeDialog() async {
+    final controller = TextEditingController();
+    String? errorText;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            void submit() {
+              final trimmed = controller.text.trim();
+              if (trimmed.isEmpty) {
+                setDialogState(() => errorText = 'Enter a type name');
+                return;
+              }
+              final list = _isIncome ? _incomeTypeLabels : _expenseTypeLabels;
+              if (list.contains(trimmed)) {
+                setDialogState(() => errorText = 'Type already exists');
+                return;
+              }
+              Navigator.of(ctx).pop(trimmed);
+            }
+
+            return AlertDialog(
+              backgroundColor: Theme.of(ctx).colorScheme.surface,
+              title: const Text('Add Type'),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                onSubmitted: (_) => submit(),
+                decoration: InputDecoration(
+                  hintText: 'e.g., Streaming Revenue',
+                  errorText: errorText,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: submit,
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+    setState(() {
+      final list = _isIncome ? _incomeTypeLabels : _expenseTypeLabels;
+      list.add(result);
+      _selectedTypeName = result;
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _entryDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
+    );
+    if (!mounted || picked == null) return;
+    setState(() => _entryDate = picked);
+  }
+
+  Future<void> _save() async {
+    if (_amountController.cents <= 0) return;
+    setState(() => _isSaving = true);
+
+    Map<String, int>? disbursements;
+    if (_disburse && widget.members.isNotEmpty) {
+      disbursements = {
+        for (final m in widget.members)
+          m.userId: _splitControllers[m.userId]?.cents ?? 0,
+      };
+    }
+
+    try {
+      await widget.onSave(
+        entryType: _labelToEntryType(_selectedTypeName, isIncome: _isIncome),
+        category: _selectedTypeName,
+        amountCents: _amountController.cents,
+        entryDate: _entryDate,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        is1099Expected: _isIncome ? _is1099Expected : null,
+        payerName: _payerController.text.trim().isEmpty
+            ? null
+            : _payerController.text.trim(),
+        paidToUserId: _paidToUserId == _kOther ? null : _paidToUserId,
+        paidToName: () {
+          if (_paidToUserId == _kOther) {
+            final t = _paidToOtherController.text.trim();
+            return t.isEmpty ? null : t;
+          } else if (_paidToUserId != null) {
+            return widget.members
+                .where((m) => m.userId == _paidToUserId)
+                .firstOrNull
+                ?.name;
+          }
+          return null;
+        }(),
+        disbursements: disbursements,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      showErrorSnackBar(context, message: e.toString());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final dateStr = DateFormat('MMM d, yyyy').format(_entryDate);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(Spacing.cardRadius),
+        ),
+      ),
+      padding: EdgeInsets.only(
+        left: Spacing.pagePadding,
+        right: Spacing.pagePadding,
+        top: Spacing.space24,
+        bottom: Spacing.space24 + bottomInset,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.colors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: Spacing.space20),
+
+            // Title
+            Text(
+              widget.initialEntry != null ? 'Edit Entry' : 'Add Entry',
+              style: AppTextStyles.displayMedium
+                  .copyWith(color: context.colors.textPrimary),
+            ),
+            const SizedBox(height: Spacing.space20),
+
+            // Income / Expense segmented toggle
+            _SegmentedToggle(
+              isIncome: _isIncome,
+              onChanged: _setIsIncome,
+            ),
+            const SizedBox(height: Spacing.space20),
+
+            // Entry type pills
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Type',
+                  style: AppTextStyles.footnote
+                      .copyWith(color: context.colors.textSecondary),
+                ),
+                const SizedBox(height: 6),
+                _TypePillRow(
+                  labels: _isIncome ? _incomeTypeLabels : _expenseTypeLabels,
+                  selected: _selectedTypeName,
+                  isDeleteMode: _isDeleteTypeMode,
+                  onSelect: (label) {
+                    if (!_isDeleteTypeMode) {
+                      setState(() => _selectedTypeName = label);
+                    }
+                  },
+                  onAdd: () {
+                    if (_isDeleteTypeMode) {
+                      setState(() => _isDeleteTypeMode = false);
+                    }
+                    _showAddTypeDialog();
+                  },
+                  onToggleDelete: () =>
+                      setState(() => _isDeleteTypeMode = !_isDeleteTypeMode),
+                  onRemove: (label) => setState(() {
+                    final list =
+                        _isIncome ? _incomeTypeLabels : _expenseTypeLabels;
+                    list.remove(label);
+                    if (_selectedTypeName == label) {
+                      _selectedTypeName = list.isNotEmpty ? list.first : '';
+                    }
+                  }),
+                ),
+                const SizedBox(height: Spacing.space16),
+              ],
+            ),
+
+            CurrencyTextField(
+              controller: _amountController,
+              label: 'Amount',
+              hint: r'$0.00',
+              enabled: true,
+            ),
+            const SizedBox(height: Spacing.space16),
+
+            // Date
+            Text(
+              'Date',
+              style: AppTextStyles.footnote
+                  .copyWith(color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            OutlinedButton.icon(
+              onPressed: _pickDate,
+              icon: const Icon(AppIcons.calendar, size: 16),
+              label: Text(dateStr),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.textPrimary,
+                side: BorderSide(color: context.colors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                ),
+                minimumSize: const Size(double.infinity, 48),
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+            const SizedBox(height: Spacing.space16),
+
+            // Payer (income) / Paid To (expense)
+            Text(
+              _isIncome ? 'Payer (optional)' : 'Paid To (optional)',
+              style: AppTextStyles.footnote
+                  .copyWith(color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _payerController,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              style: AppTextStyles.callout
+                  .copyWith(color: context.colors.textPrimary),
+              decoration: InputDecoration(
+                hintText:
+                    _isIncome ? 'e.g., Bowery Electric' : 'e.g., Drum World',
+                hintStyle: AppTextStyles.callout
+                    .copyWith(color: context.colors.textMuted),
+                filled: true,
+                fillColor: context.colors.background,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: Spacing.space16),
+
+            // Paid To (income) / Paid By (expense)
+            Text(
+              _isIncome ? 'Paid To (optional)' : 'Paid By (optional)',
+              style: AppTextStyles.footnote
+                  .copyWith(color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                border: Border.all(color: context.colors.border),
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String?>(
+                  value: _paidToUserId,
+                  isExpanded: true,
+                  dropdownColor: context.colors.surfaceElevated,
+                  style: AppTextStyles.callout
+                      .copyWith(color: context.colors.textPrimary),
+                  hint: Text(
+                    'No member selected',
+                    style: AppTextStyles.callout
+                        .copyWith(color: context.colors.textMuted),
+                  ),
+                  onChanged: (value) {
+                    setState(() => _paidToUserId = value);
+                  },
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        'No member selected',
+                        style: AppTextStyles.callout
+                            .copyWith(color: context.colors.textMuted),
+                      ),
+                    ),
+                    ...widget.members.map(
+                      (member) => DropdownMenuItem<String?>(
+                        value: member.userId,
+                        child: Text(member.name),
+                      ),
+                    ),
+                    DropdownMenuItem<String?>(
+                      value: _kOther,
+                      child: Text(
+                        'Other',
+                        style: AppTextStyles.callout
+                            .copyWith(color: context.colors.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: Spacing.space12),
+            if (_isOtherPaidToSelected) ...[
+              TextField(
+                controller: _paidToOtherController,
+                textCapitalization: TextCapitalization.none,
+                textInputAction: TextInputAction.next,
+                style: AppTextStyles.callout
+                    .copyWith(color: context.colors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Enter name',
+                  hintStyle: AppTextStyles.callout
+                      .copyWith(color: context.colors.textMuted),
+                  filled: true,
+                  fillColor: context.colors.background,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    borderSide: BorderSide(color: context.colors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    borderSide: BorderSide(color: context.colors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: Spacing.space16),
+            ] else
+              const SizedBox(height: Spacing.space4),
+
+            // Description
+            Text(
+              'Description (optional)',
+              style: AppTextStyles.footnote
+                  .copyWith(color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _descriptionController,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              style: AppTextStyles.callout
+                  .copyWith(color: context.colors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'e.g., T-shirt sales at Roseland',
+                hintStyle: AppTextStyles.callout
+                    .copyWith(color: context.colors.textMuted),
+                filled: true,
+                fillColor: context.colors.background,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: BorderSide(color: context.colors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: Spacing.space16),
+
+            // 1099 toggle (income only)
+            Visibility(
+              visible: _isIncome,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '1099 Expected',
+                        style: AppTextStyles.callout
+                            .copyWith(color: context.colors.textPrimary),
+                      ),
+                      Switch(
+                        value: _is1099Expected,
+                        activeTrackColor: AppColors.primary,
+                        inactiveTrackColor: context.colors.surfaceOverlay,
+                        inactiveThumbColor: context.colors.textSecondary,
+                        onChanged: (v) => setState(() => _is1099Expected = v),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.space16),
+                ],
+              ),
+            ),
+
+            // Disburse to Band toggle (income only, when members available)
+            if (_isIncome && widget.members.isNotEmpty) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Disburse to Band',
+                    style: AppTextStyles.callout
+                        .copyWith(color: context.colors.textPrimary),
+                  ),
+                  Switch(
+                    value: _disburse,
+                    activeTrackColor: AppColors.primary,
+                    inactiveTrackColor: context.colors.surfaceOverlay,
+                    inactiveThumbColor: context.colors.textSecondary,
+                    onChanged: _onDisburseToggle,
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                child: _disburse
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: Spacing.space12),
+                        child: Column(
+                          children: widget.members.map((member) {
+                            final ctrl = _splitControllers[member.userId];
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: Spacing.space12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _shortName(member),
+                                      style: AppTextStyles.callout.copyWith(
+                                          color: context.colors.textPrimary),
+                                    ),
+                                  ),
+                                  const SizedBox(width: Spacing.space12),
+                                  Expanded(
+                                    child: ctrl != null
+                                        ? CurrencyTextField(
+                                            controller: ctrl,
+                                            label: '',
+                                            hint: r'$0.00',
+                                            clearOnFocus: true,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              const SizedBox(height: Spacing.space16),
+            ],
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed:
+                        _isSaving ? null : () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: context.colors.textSecondary,
+                      side: BorderSide(color: context.colors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                      ),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: Spacing.space12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                      ),
+                      minimumSize: const Size(0, 48),
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Save'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SEGMENTED TOGGLE  (Income / Expense)
+// ---------------------------------------------------------------------------
+
+class _SegmentedToggle extends StatelessWidget {
+  const _SegmentedToggle({required this.isIncome, required this.onChanged});
+
+  final bool isIncome;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentIndex = isIncome ? 0 : 1;
+
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final segmentWidth = constraints.maxWidth / 2;
+          return Stack(
+            children: [
+              AnimatedAlign(
+                alignment: Alignment(-1.0 + (2.0 * currentIndex), 0.0),
+                duration: AppDurations.fast,
+                curve: AppCurves.ease,
+                child: Container(
+                  width: segmentWidth,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        onChanged(true);
+                        HapticFeedback.selectionClick();
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: AppDurations.fast,
+                          curve: AppCurves.ease,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isIncome
+                                ? Colors.white
+                                : context.colors.textPrimary,
+                          ),
+                          child: const Text('Income'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        onChanged(false);
+                        HapticFeedback.selectionClick();
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: AppDurations.fast,
+                          curve: AppCurves.ease,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: !isIncome
+                                ? Colors.white
+                                : context.colors.textPrimary,
+                          ),
+                          child: const Text('Expense'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TYPE PILL ROW  (+ Add | Remove  label1  label2  …)
+// ---------------------------------------------------------------------------
+
+class _TypePillRow extends StatelessWidget {
+  const _TypePillRow({
+    required this.labels,
+    required this.selected,
+    required this.isDeleteMode,
+    required this.onSelect,
+    required this.onAdd,
+    required this.onToggleDelete,
+    required this.onRemove,
+  });
+
+  final List<String> labels;
+  final String selected;
+  final bool isDeleteMode;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onAdd;
+  final VoidCallback onToggleDelete;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // + Add button
+          _TypePill(
+            label: '+ Add',
+            isSelected: false,
+            isAddButton: true,
+            onTap: onAdd,
+          ),
+          const SizedBox(width: 8),
+          // Remove / Done toggle button
+          _TypePill(
+            label: isDeleteMode ? 'Done' : 'Remove',
+            isSelected: isDeleteMode,
+            isRemoveButton: true,
+            onTap: onToggleDelete,
+          ),
+          const SizedBox(width: 16),
+          // Type labels
+          ...labels.expand(
+            (label) => [
+              _TypePill(
+                label: label,
+                isSelected: !isDeleteMode && selected == label,
+                showDeleteIcon: isDeleteMode,
+                onTap: isDeleteMode
+                    ? () => onRemove(label)
+                    : () => onSelect(label),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// TYPE PILL  (individual chip, mirrors _RolePill from my_profile_screen)
+// ---------------------------------------------------------------------------
+
+class _TypePill extends StatefulWidget {
+  const _TypePill({
+    required this.label,
+    required this.isSelected,
+    this.isAddButton = false,
+    this.isRemoveButton = false,
+    this.showDeleteIcon = false,
+    this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final bool isAddButton;
+  final bool isRemoveButton;
+  final bool showDeleteIcon;
+  final VoidCallback? onTap;
+
+  @override
+  State<_TypePill> createState() => _TypePillState();
+}
+
+class _TypePillState extends State<_TypePill>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const rose600 = AppColors.primary;
+
+    Color borderColor;
+    if (widget.isAddButton || widget.isRemoveButton) {
+      borderColor = rose600;
+    } else if (widget.isSelected) {
+      borderColor = context.colors.primaryDim;
+    } else {
+      borderColor = context.colors.surfaceOverlay;
+    }
+
+    Color textColor;
+    if (widget.isAddButton || widget.isRemoveButton) {
+      textColor = widget.isSelected ? Colors.white : rose600;
+    } else if (widget.isSelected) {
+      textColor = Colors.white;
+    } else {
+      textColor = context.colors.textSecondary;
+    }
+
+    Color bgColor;
+    if (widget.isRemoveButton && widget.isSelected) {
+      bgColor = rose600;
+    } else if (widget.isSelected && !widget.isAddButton) {
+      bgColor = context.colors.primaryDim;
+    } else {
+      bgColor = Colors.transparent;
+    }
+
+    return GestureDetector(
+      onTapDown: (_) => _scaleController.forward(),
+      onTapUp: (_) {
+        _scaleController.reverse();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => _scaleController.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: borderColor),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.showDeleteIcon) ...[
+                  const Icon(AppIcons.close, size: 14, color: AppColors.error),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ).copyWith(color: textColor),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

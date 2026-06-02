@@ -12,12 +12,15 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
-import '../../../shared/widgets/currency_input_field.dart';
 import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
 import '../../calendar/models/calendar_event.dart';
 import '../../contacts/models/venue.dart';
 import '../../contacts/venues_controller.dart';
+import '../../financials/financial_entry_repository.dart';
+import '../../financials/financials_controller.dart';
+import '../../financials/models/financial_entry.dart';
+import '../../financials/widgets/gig_pay_bottom_sheet.dart';
 import '../../gigs/gig_controller.dart';
 import '../../gigs/gig_response_repository.dart';
 import '../../members/members_controller.dart';
@@ -169,8 +172,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   String? _selectedSetlistId;
   String? _selectedSetlistName;
 
-  // Gig pay controller (gigs only)
-  final _gigPayController = CurrencyInputController();
+  // Gig pay details (gigs only)
+  GigPayDetails? _gigPayDetails;
 
   // Location autocomplete suggestions (loaded once from past rehearsals)
   List<String> _locationSuggestions = [];
@@ -270,7 +273,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
       // Populate gig pay for edit mode
       if (data.gigPayCents != null) {
-        _gigPayController.cents = data.gigPayCents!;
+        _gigPayDetails = GigPayDetails.fromAmountOnly(
+          amountCents: data.gigPayCents!,
+          gigDate: data.date,
+        );
       }
 
       // Populate linked venue for edit mode
@@ -388,7 +394,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       }
     });
     _notesController.addListener(_markDirty);
-    _gigPayController.addListener(_markDirty);
   }
 
   @override
@@ -398,7 +403,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _locationController.dispose();
     _nameController.dispose();
     _notesController.dispose();
-    _gigPayController.dispose();
     _venueHintController.dispose();
     _cityHintController.dispose();
     _locationHintController.dispose();
@@ -893,9 +897,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       existingGigDateIds: _existingGigDateIds,
       setlistId: _selectedSetlistId,
       setlistName: _selectedSetlistName,
-      gigPayCents: _eventType == EventType.gig && _gigPayController.isNotEmpty
-          ? _gigPayController.cents
-          : null,
+      gigPayCents:
+          _eventType == EventType.gig ? _gigPayDetails?.amountCents : null,
+      gigPayDetails: _eventType == EventType.gig ? _gigPayDetails : null,
       venueId: _selectedVenueId,
     );
   }
@@ -1366,6 +1370,19 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               _perDateAvailability.isNotEmpty) {
             await _savePerDateResponses();
           }
+
+          // Upsert financial entry for gig pay (if details were provided)
+          if (_gigPayDetails != null) {
+            if (!mounted) return;
+            final financialRepo = ref.read(financialEntryRepositoryProvider);
+            await financialRepo.upsertGigPayEntry(
+              bandId: widget.bandId,
+              gigId: widget.existingEventId!,
+              gigDate: _selectedDate,
+              details: _gigPayDetails!,
+            );
+            if (mounted) ref.invalidate(financialsProvider);
+          }
         }
       } else {
         // Create new event
@@ -1375,7 +1392,21 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             formData: formData,
           );
         } else {
-          await repository.createGig(bandId: widget.bandId, formData: formData);
+          final savedGig = await repository.createGig(
+              bandId: widget.bandId, formData: formData);
+
+          // Upsert financial entry for gig pay (if details were provided)
+          if (_gigPayDetails != null) {
+            if (!mounted) return;
+            final financialRepo = ref.read(financialEntryRepositoryProvider);
+            await financialRepo.upsertGigPayEntry(
+              bandId: widget.bandId,
+              gigId: savedGig.id,
+              gigDate: savedGig.date,
+              details: _gigPayDetails!,
+            );
+            if (mounted) ref.invalidate(financialsProvider);
+          }
         }
       }
 
@@ -1836,10 +1867,49 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _markDirty();
         HapticFeedback.selectionClick();
       },
-      gigPayController: _gigPayController,
+      gigPayDetails: _gigPayDetails,
+      onGigPayTap: _handleGigPayTap,
       onMarkDirty: _markDirty,
       currentUserId: supabase.auth.currentUser?.id,
     );
+  }
+
+  Future<void> _handleGigPayTap() async {
+    // In edit mode, lazily fetch the full financial entry to pre-populate the sheet.
+    GigPayDetails? initialDetails = _gigPayDetails;
+    if (widget.mode == EventEditorMode.edit && widget.existingEventId != null) {
+      final repo = ref.read(financialEntryRepositoryProvider);
+      final existing = await repo.fetchGigPayEntry(widget.existingEventId!);
+      if (!mounted) return;
+      if (existing != null) {
+        initialDetails = GigPayDetails.fromEntry(existing);
+      }
+    }
+
+    final members = ref.read(membersProvider).members;
+    final result = await showModalBottomSheet<GigPayDetails>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => GigPayBottomSheet(
+        defaultPaymentDate: _selectedDate,
+        bandId: widget.bandId,
+        members: members,
+        defaultPayerName: _nameController.text.trim().isEmpty
+            ? null
+            : _nameController.text.trim(),
+        initialDetails: initialDetails,
+        viewOnly: widget.viewOnly,
+      ),
+    );
+    if (!mounted) return;
+
+    if (result != null) {
+      setState(() {
+        _gigPayDetails = result;
+        _isDirty = true;
+      });
+    }
   }
 
   EventFormFields _createEventFormFields(BuildContext context) {
@@ -2065,7 +2135,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         // Gig Pay (gigs only)
                         if (_eventType == EventType.gig) ...[
                           const SizedBox(height: Spacing.space16),
-                          gigFormFields!.buildGigPayField(),
+                          gigFormFields!.buildGigPayButton(context),
                         ],
 
                         const SizedBox(height: Spacing.space16),

@@ -27,6 +27,7 @@ import '../rehearsals/rehearsal_response_repository.dart';
 import '../rehearsals/potential_rehearsal_prompt_service.dart';
 import '../rehearsals/rehearsal_pagination_controller.dart';
 import '../rehearsals/rehearsal_display_helper.dart';
+import '../financials/financials_screen.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
 import '../shell/overlay_state.dart';
@@ -378,6 +379,15 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final eventType =
         (perms?.isContributor == true) ? EventType.gig : EventType.rehearsal;
     _openAddEventSheet(eventType);
+  }
+
+  void _handleOpenFinancials() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FinancialsScreen(),
+        fullscreenDialog: false,
+      ),
+    );
   }
 
   /// Open the Edit Event drawer for an existing gig
@@ -863,7 +873,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 ),
 
                                 // Upcoming gigs section
-                                const SectionHeader(title: 'Upcoming Gigs', topSpacing: Spacing.space24),
+                                const SectionHeader(
+                                    title: 'Upcoming Gigs',
+                                    topSpacing: Spacing.space24),
                                 const SizedBox(height: Spacing.space12),
                                 _AnimatedCardEntrance(
                                   delay: const Duration(milliseconds: 160),
@@ -887,7 +899,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                   final showAddEvent =
                                       !isContributor || canCreateGig;
                                   final hasAnyButton =
-                                      showAddEvent || canCreateSetlist;
+                                      showAddEvent || canCreateSetlist || !isContributor;
                                   if (!hasAnyButton) {
                                     return const SizedBox.shrink();
                                   }
@@ -896,7 +908,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                         CrossAxisAlignment.start,
                                     children: [
                                       const SectionHeader(
-                                          title: 'Quick Actions', topSpacing: Spacing.space24),
+                                          title: 'Quick Actions',
+                                          topSpacing: Spacing.space24),
                                       const SizedBox(height: Spacing.space16),
                                       _AnimatedCardEntrance(
                                         delay:
@@ -916,8 +929,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                                   );
                                                 }
                                               : null,
+                                          onFinancials: !isContributor
+                                              ? _handleOpenFinancials
+                                              : null,
                                           showAddEvent: showAddEvent,
                                           showCreateSetlist: canCreateSetlist,
+                                          showFinancials: !isContributor,
                                         ),
                                       ),
                                     ],
@@ -1087,8 +1104,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                         }
                         ref.invalidate(
                             currentUserRehearsalAllDateResponsesProvider);
-                        ref.invalidate(
-                            currentUserRehearsalResponsesProvider);
+                        ref.invalidate(currentUserRehearsalResponsesProvider);
                         ref.invalidate(
                             potentialRehearsalResponseSummariesProvider);
                       },
