@@ -1510,8 +1510,21 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ),
             const SizedBox(width: 8),
           ],
+          // Tuning sort toggle (non-Catalog only) — cycles starting tuning group
+          if (!state.isCatalog &&
+              ref.read(setlistDetailProvider.notifier).availableTunings.length >
+                  1) ...[
+            _TuningSortButton(
+              startingTuningId: state.startingTuningId,
+              onTap: () {
+                ref.read(setlistDetailProvider.notifier).cycleStartingTuning();
+                _sortAnimController.forward(from: 0);
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
           // Search filter button (icon only) — read-only action
-          _ActionButton(icon: Icons.filter_list_rounded, onTap: _startSearch),
+          _ActionButton(icon: Icons.search_rounded, onTap: _startSearch),
         ],
       ),
     );
@@ -2791,6 +2804,75 @@ class _ActionButtonState extends State<_ActionButton>
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// TUNING SORT BUTTON
+// Cycles through starting tuning groups for non-Catalog setlists.
+// Shows a colored badge with the current starting tuning, or a neutral
+// "Tuning" label when no sort is active.
+// ============================================================================
+
+class _TuningSortButton extends StatelessWidget {
+  final String? startingTuningId;
+  final VoidCallback onTap;
+
+  const _TuningSortButton({
+    required this.startingTuningId,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = startingTuningId != null;
+    final badgeColor =
+        isActive ? tuningBadgeColor(startingTuningId) : AppColors.primary;
+    final label = isActive
+        ? tuningShortLabel(startingTuningId)
+        : 'Sort by';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.space12,
+          vertical: Spacing.space8,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? badgeColor : Colors.transparent,
+          border: Border.all(
+            color: isActive ? badgeColor : AppColors.primary,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.sort_rounded,
+              size: 16,
+              color: isActive
+                  ? tuningBadgeTextColor(badgeColor)
+                  : AppColors.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isActive
+                    ? tuningBadgeTextColor(badgeColor)
+                    : AppColors.primary,
+                height: 1,
+              ),
+            ),
+          ],
         ),
       ),
     );
