@@ -406,7 +406,8 @@ class _AddFinancialEntryBottomSheetState
                   : Text(
                       'Save',
                       style: AppTextStyles.body.copyWith(
-                        color: enabled ? Colors.white : context.colors.textMuted,
+                        color:
+                            enabled ? Colors.white : context.colors.textMuted,
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
                       ),
@@ -435,8 +436,11 @@ class _AddFinancialEntryBottomSheetState
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM d, yyyy').format(_entryDate);
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
 
     return Container(
+      // Push the sheet above the software keyboard when it is visible.
+      padding: EdgeInsets.only(bottom: keyboardHeight),
       decoration: BoxDecoration(
         color: context.colors.surface,
         borderRadius: const BorderRadius.vertical(
@@ -459,373 +463,392 @@ class _AddFinancialEntryBottomSheetState
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            // Drag handle
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.colors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: Spacing.space20),
-
-            // Title
-            Text(
-              widget.initialEntry != null ? 'Edit Entry' : 'Add Entry',
-              style: AppTextStyles.displayMedium
-                  .copyWith(color: context.colors.textPrimary),
-            ),
-            const SizedBox(height: Spacing.space20),
-
-            // Income / Expense segmented toggle
-            _SegmentedToggle(
-              isIncome: _isIncome,
-              onChanged: _setIsIncome,
-            ),
-            const SizedBox(height: Spacing.space20),
-
-            // Entry type pills
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Type',
-                  style: AppTextStyles.footnote
-                      .copyWith(color: context.colors.textSecondary),
-                ),
-                const SizedBox(height: 6),
-                _TypePillRow(
-                  labels: _isIncome ? _incomeTypeLabels : _expenseTypeLabels,
-                  selected: _selectedTypeName,
-                  isDeleteMode: _isDeleteTypeMode,
-                  onSelect: (label) {
-                    if (!_isDeleteTypeMode) {
-                      setState(() => _selectedTypeName = label);
-                    }
-                  },
-                  onAdd: () {
-                    if (_isDeleteTypeMode) {
-                      setState(() => _isDeleteTypeMode = false);
-                    }
-                    _showAddTypeDialog();
-                  },
-                  onToggleDelete: () =>
-                      setState(() => _isDeleteTypeMode = !_isDeleteTypeMode),
-                  onRemove: (label) => setState(() {
-                    final list =
-                        _isIncome ? _incomeTypeLabels : _expenseTypeLabels;
-                    list.remove(label);
-                    if (_selectedTypeName == label) {
-                      _selectedTypeName = list.isNotEmpty ? list.first : '';
-                    }
-                  }),
-                ),
-                const SizedBox(height: Spacing.space16),
-              ],
-            ),
-
-            CurrencyTextField(
-              controller: _amountController,
-              label: 'Amount',
-              hint: r'$0.00',
-              enabled: true,
-            ),
-            const SizedBox(height: Spacing.space16),
-
-            // Date
-            Text(
-              'Date',
-              style: AppTextStyles.footnote
-                  .copyWith(color: context.colors.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            OutlinedButton.icon(
-              onPressed: _pickDate,
-              icon: const Icon(AppIcons.calendar, size: 16),
-              label: Text(dateStr),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.textPrimary,
-                side: BorderSide(color: context.colors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-                minimumSize: const Size(double.infinity, 48),
-                alignment: Alignment.centerLeft,
-              ),
-            ),
-            const SizedBox(height: Spacing.space16),
-
-            // Payer (income) / Paid To (expense)
-            Text(
-              _isIncome ? 'Payer (optional)' : 'Paid To (optional)',
-              style: AppTextStyles.footnote
-                  .copyWith(color: context.colors.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _payerController,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.next,
-              style: AppTextStyles.callout
-                  .copyWith(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                hintText:
-                    _isIncome ? 'e.g., Bowery Electric' : 'e.g., Drum World',
-                hintStyle: AppTextStyles.callout
-                    .copyWith(color: context.colors.textMuted),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(height: Spacing.space16),
-
-            // Paid To (income) / Paid By (expense)
-            Text(
-              _isIncome ? 'Paid To (optional)' : 'Paid By (optional)',
-              style: AppTextStyles.footnote
-                  .copyWith(color: context.colors.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: context.colors.background,
-                border: Border.all(color: context.colors.border),
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String?>(
-                  value: _paidToUserId,
-                  isExpanded: true,
-                  dropdownColor: context.colors.surfaceElevated,
-                  style: AppTextStyles.callout
-                      .copyWith(color: context.colors.textPrimary),
-                  hint: Text(
-                    'No member selected',
-                    style: AppTextStyles.callout
-                        .copyWith(color: context.colors.textMuted),
-                  ),
-                  onChanged: (value) {
-                    setState(() => _paidToUserId = value);
-                  },
-                  items: [
-                    DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text(
-                        'No member selected',
-                        style: AppTextStyles.callout
-                            .copyWith(color: context.colors.textMuted),
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: context.colors.border,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    ...widget.members.map(
-                      (member) => DropdownMenuItem<String?>(
-                        value: member.userId,
-                        child: Text(member.name),
-                      ),
-                    ),
-                    DropdownMenuItem<String?>(
-                      value: _kOther,
-                      child: Text(
-                        'Other',
-                        style: AppTextStyles.callout
-                            .copyWith(color: context.colors.textPrimary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: Spacing.space12),
-            if (_isOtherPaidToSelected) ...[
-              TextField(
-                controller: _paidToOtherController,
-                textCapitalization: TextCapitalization.none,
-                textInputAction: TextInputAction.next,
-                style: AppTextStyles.callout
-                    .copyWith(color: context.colors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Enter name',
-                  hintStyle: AppTextStyles.callout
-                      .copyWith(color: context.colors.textMuted),
-                  filled: true,
-                  fillColor: context.colors.background,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-              const SizedBox(height: Spacing.space16),
-            ] else
-              const SizedBox(height: Spacing.space4),
+                  const SizedBox(height: Spacing.space20),
 
-            // Description
-            Text(
-              'Description (optional)',
-              style: AppTextStyles.footnote
-                  .copyWith(color: context.colors.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _descriptionController,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.done,
-              style: AppTextStyles.callout
-                  .copyWith(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'e.g. Purchased P.A. System',
-                hintStyle: AppTextStyles.callout
-                    .copyWith(color: context.colors.textMuted),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(height: Spacing.space16),
-
-            // 1099 toggle (income only)
-            Visibility(
-              visible: _isIncome,
-              maintainSize: true,
-              maintainAnimation: true,
-              maintainState: true,
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '1099 Expected',
-                        style: AppTextStyles.callout
-                            .copyWith(color: context.colors.textPrimary),
-                      ),
-                      Switch(
-                        value: _is1099Expected,
-                        activeTrackColor: AppColors.primary,
-                        inactiveTrackColor: context.colors.surfaceOverlay,
-                        inactiveThumbColor: context.colors.textSecondary,
-                        onChanged: (v) => setState(() => _is1099Expected = v),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.space16),
-                ],
-              ),
-            ),
-
-            // Disburse to Band toggle (income only, when members available)
-            if (_isIncome && widget.members.isNotEmpty) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                  // Title
                   Text(
-                    'Disburse to Band',
-                    style: AppTextStyles.callout
+                    widget.initialEntry != null ? 'Edit Entry' : 'Add Entry',
+                    style: AppTextStyles.displayMedium
                         .copyWith(color: context.colors.textPrimary),
                   ),
-                  Switch(
-                    value: _disburse,
-                    activeTrackColor: AppColors.primary,
-                    inactiveTrackColor: context.colors.surfaceOverlay,
-                    inactiveThumbColor: context.colors.textSecondary,
-                    onChanged: _onDisburseToggle,
-                  ),
-                ],
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                child: _disburse
-                    ? Padding(
-                        padding: const EdgeInsets.only(top: Spacing.space12),
-                        child: Column(
-                          children: widget.members.map((member) {
-                            final ctrl = _splitControllers[member.userId];
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: Spacing.space12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _shortName(member),
-                                      style: AppTextStyles.callout.copyWith(
-                                          color: context.colors.textPrimary),
-                                    ),
-                                  ),
-                                  const SizedBox(width: Spacing.space12),
-                                  Expanded(
-                                    child: ctrl != null
-                                        ? CurrencyTextField(
-                                            controller: ctrl,
-                                            label: '',
-                                            hint: r'$0.00',
-                                            clearOnFocus: true,
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              const SizedBox(height: Spacing.space16),
-            ],
+                  const SizedBox(height: Spacing.space20),
 
+                  // Income / Expense segmented toggle
+                  _SegmentedToggle(
+                    isIncome: _isIncome,
+                    onChanged: _setIsIncome,
+                  ),
+                  const SizedBox(height: Spacing.space20),
+
+                  // Entry type pills
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Type',
+                        style: AppTextStyles.footnote
+                            .copyWith(color: context.colors.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      _TypePillRow(
+                        labels:
+                            _isIncome ? _incomeTypeLabels : _expenseTypeLabels,
+                        selected: _selectedTypeName,
+                        isDeleteMode: _isDeleteTypeMode,
+                        onSelect: (label) {
+                          if (!_isDeleteTypeMode) {
+                            setState(() => _selectedTypeName = label);
+                          }
+                        },
+                        onAdd: () {
+                          if (_isDeleteTypeMode) {
+                            setState(() => _isDeleteTypeMode = false);
+                          }
+                          _showAddTypeDialog();
+                        },
+                        onToggleDelete: () => setState(
+                            () => _isDeleteTypeMode = !_isDeleteTypeMode),
+                        onRemove: (label) => setState(() {
+                          final list = _isIncome
+                              ? _incomeTypeLabels
+                              : _expenseTypeLabels;
+                          list.remove(label);
+                          if (_selectedTypeName == label) {
+                            _selectedTypeName =
+                                list.isNotEmpty ? list.first : '';
+                          }
+                        }),
+                      ),
+                      const SizedBox(height: Spacing.space16),
+                    ],
+                  ),
+
+                  CurrencyTextField(
+                    controller: _amountController,
+                    label: 'Amount',
+                    hint: r'$0.00',
+                    enabled: true,
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // Date
+                  Text(
+                    'Date',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(AppIcons.calendar, size: 16),
+                    label: Text(dateStr),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: context.colors.textPrimary,
+                      side: BorderSide(color: context.colors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                      ),
+                      minimumSize: const Size(double.infinity, 48),
+                      alignment: Alignment.centerLeft,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // Payer (income) / Paid To (expense)
+                  Text(
+                    _isIncome ? 'Payer (optional)' : 'Paid To (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _payerController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    style: AppTextStyles.callout
+                        .copyWith(color: context.colors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: _isIncome
+                          ? 'e.g., Bowery Electric'
+                          : 'e.g., Drum World',
+                      hintStyle: AppTextStyles.callout
+                          .copyWith(color: context.colors.textMuted),
+                      filled: true,
+                      fillColor: context.colors.background,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        borderSide: BorderSide(color: context.colors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        borderSide: BorderSide(color: context.colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // Paid To (income) / Paid By (expense)
+                  Text(
+                    _isIncome ? 'Paid To (optional)' : 'Paid By (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.colors.background,
+                      border: Border.all(color: context.colors.border),
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        value: _paidToUserId,
+                        isExpanded: true,
+                        dropdownColor: context.colors.surfaceElevated,
+                        style: AppTextStyles.callout
+                            .copyWith(color: context.colors.textPrimary),
+                        hint: Text(
+                          'No member selected',
+                          style: AppTextStyles.callout
+                              .copyWith(color: context.colors.textMuted),
+                        ),
+                        onChanged: (value) {
+                          setState(() => _paidToUserId = value);
+                        },
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text(
+                              'No member selected',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textMuted),
+                            ),
+                          ),
+                          ...widget.members.map(
+                            (member) => DropdownMenuItem<String?>(
+                              value: member.userId,
+                              child: Text(member.name),
+                            ),
+                          ),
+                          DropdownMenuItem<String?>(
+                            value: _kOther,
+                            child: Text(
+                              'Other',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textPrimary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space12),
+                  if (_isOtherPaidToSelected) ...[
+                    TextField(
+                      controller: _paidToOtherController,
+                      textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.next,
+                      style: AppTextStyles.callout
+                          .copyWith(color: context.colors.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'Enter name',
+                        hintStyle: AppTextStyles.callout
+                            .copyWith(color: context.colors.textMuted),
+                        filled: true,
+                        fillColor: context.colors.background,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(Spacing.buttonRadius),
+                          borderSide: BorderSide(color: context.colors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(Spacing.buttonRadius),
+                          borderSide: BorderSide(color: context.colors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(Spacing.buttonRadius),
+                          borderSide:
+                              const BorderSide(color: AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Spacing.space16),
+                  ] else
+                    const SizedBox(height: Spacing.space4),
+
+                  // Description
+                  Text(
+                    'Description (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _descriptionController,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    style: AppTextStyles.callout
+                        .copyWith(color: context.colors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Purchased P.A. System',
+                      hintStyle: AppTextStyles.callout
+                          .copyWith(color: context.colors.textMuted),
+                      filled: true,
+                      fillColor: context.colors.background,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        borderSide: BorderSide(color: context.colors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        borderSide: BorderSide(color: context.colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        borderSide: const BorderSide(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // 1099 toggle (income only)
+                  Visibility(
+                    visible: _isIncome,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '1099 Expected',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textPrimary),
+                            ),
+                            Switch(
+                              value: _is1099Expected,
+                              activeTrackColor: AppColors.primary,
+                              inactiveTrackColor: context.colors.surfaceOverlay,
+                              inactiveThumbColor: context.colors.textSecondary,
+                              onChanged: (v) =>
+                                  setState(() => _is1099Expected = v),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                      ],
+                    ),
+                  ),
+
+                  // Disburse to Band toggle (income only, when members available)
+                  if (_isIncome && widget.members.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Disburse to Band',
+                          style: AppTextStyles.callout
+                              .copyWith(color: context.colors.textPrimary),
+                        ),
+                        Switch(
+                          value: _disburse,
+                          activeTrackColor: AppColors.primary,
+                          inactiveTrackColor: context.colors.surfaceOverlay,
+                          inactiveThumbColor: context.colors.textSecondary,
+                          onChanged: _onDisburseToggle,
+                        ),
+                      ],
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      child: _disburse
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.only(top: Spacing.space12),
+                              child: Column(
+                                children: widget.members.map((member) {
+                                  final ctrl = _splitControllers[member.userId];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                        bottom: Spacing.space12),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _shortName(member),
+                                            style: AppTextStyles.callout
+                                                .copyWith(
+                                                    color: context
+                                                        .colors.textPrimary),
+                                          ),
+                                        ),
+                                        const SizedBox(width: Spacing.space12),
+                                        Expanded(
+                                          child: ctrl != null
+                                              ? CurrencyTextField(
+                                                  controller: ctrl,
+                                                  label: '',
+                                                  hint: r'$0.00',
+                                                  clearOnFocus: true,
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: Spacing.space16),
+                  ],
                 ],
               ),
             ),

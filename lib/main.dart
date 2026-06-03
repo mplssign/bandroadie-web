@@ -25,6 +25,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/utils/timezone_helper.dart';
+import 'shared/widgets/keyboard_aware_wrapper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -129,13 +130,14 @@ class BandRoadieApp extends ConsumerWidget {
       themeMode: ref.watch(themeModeProvider),
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      // Disable device text scaling - use fixed font sizes
+      // Disable device text scaling - use fixed font sizes.
+      // KeyboardAwareWrapper ensures focused fields scroll above the keyboard.
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(
             context,
           ).copyWith(textScaler: TextScaler.noScaling),
-          child: child!,
+          child: KeyboardAwareWrapper(child: child!),
         );
       },
       onGenerateRoute: (settings) {

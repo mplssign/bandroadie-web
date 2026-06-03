@@ -363,10 +363,12 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
   // ── Build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
     return SlideTransition(
       position: _slideAnim,
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.92,
+        // Subtract keyboard height so the editor is never hidden behind it.
+        height: MediaQuery.of(context).size.height * 0.92 - keyboardHeight,
         decoration: BoxDecoration(
           color: context.colors.surfaceElevated,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
