@@ -24,6 +24,7 @@
 // - If MediaQuery.disableAnimations is true, skip to final state instantly.
 // ============================================================================
 
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
@@ -37,6 +38,7 @@ import '../../components/ui/domain_chip.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import 'auth_gate.dart';
+import '../../app/constants/demo_credentials.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -78,6 +80,13 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool _reduceMotion = false;
 
+  // === DEMO LOGIN (Play Store easter egg) ===
+  /// Number of times the logo has been tapped in the current sequence.
+  int _logoTapCount = 0;
+
+  /// Auto-reset timer — clears tap count after 3 seconds of inactivity.
+  Timer? _logoTapResetTimer;
+
   @override
   void initState() {
     super.initState();
@@ -111,6 +120,69 @@ class _LoginScreenState extends State<LoginScreen>
     _emailHintController.initialize(hasInitialValue: false);
     _focusNode.addListener(_onEmailFocusChange);
     _emailController.addListener(_onEmailTextChange);
+  }
+
+  /// Easter egg: 7 taps on the logo triggers Play Store demo login.
+  /// Shows a subtle "X more..." hint from tap 3 onwards.
+  /// Auto-resets after 3 seconds of inactivity.
+  void _handleLogoTap() {
+    // Cancel any pending reset
+    _logoTapResetTimer?.cancel();
+
+    setState(() {
+      _logoTapCount++;
+    });
+
+    if (_logoTapCount >= 7) {
+      setState(() {
+        _logoTapCount = 0;
+      });
+      _triggerDemoLogin();
+      return;
+    }
+
+    // Schedule reset after 3 seconds of inactivity
+    _logoTapResetTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _logoTapCount = 0;
+        });
+      }
+    });
+  }
+
+  /// Performs email+password sign-in with the Play Store demo account.
+  /// Called after 7 logo taps. AuthGate handles routing on success.
+  Future<void> _triggerDemoLogin() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _message = null;
+    });
+
+    try {
+      await supabase.auth.signInWithPassword(
+        email: kDemoEmail,
+        password: kDemoPassword,
+      );
+      // On success, authStateProvider fires signedIn and AuthGate routes
+      // to AppShell. No further action needed here.
+    } on AuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _message = 'Demo login failed: ${e.message}';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _message = 'Demo login failed. Please try again.';
+        });
+      }
+    }
   }
 
   void _onEmailFocusChange() {
@@ -232,6 +304,7 @@ class _LoginScreenState extends State<LoginScreen>
     _emailHintController.dispose();
     _animController.dispose();
     _logoShrinkController.dispose();
+    _logoTapResetTimer?.cancel();
     super.dispose();
   }
 
@@ -407,7 +480,24 @@ class _LoginScreenState extends State<LoginScreen>
         // === LOGO — centered in upper half ===
         SizedBox(
           height: availableHeight / 2,
-          child: Center(child: _buildLogo(logoWidth: logoWidth)),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(child: _buildLogo(logoWidth: logoWidth)),
+              if (_logoTapCount >= 3 && _logoTapCount < 7)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Text(
+                    '${7 - _logoTapCount} more...',
+                    style: TextStyle(
+                      color: AppColors.primary.withValues(alpha: 0.6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
 
         // === EMAIL FIELD ===
@@ -435,19 +525,22 @@ class _LoginScreenState extends State<LoginScreen>
   ///
   /// [logoWidth] is 90% of the email field width, passed from _buildContentCluster.
   Widget _buildLogo({required double logoWidth}) {
-
-    return FadeTransition(
-      opacity: _titleOpacity,
-      child: ScaleTransition(
-        scale: _titleScale,
-        child: AnimatedBuilder(
-          animation: _logoShrinkScale,
-          builder: (context, child) =>
-              Transform.scale(scale: _logoShrinkScale.value, child: child),
-          child: Image.asset(
-            'assets/images/bandroadie_logo_stacked.png',
-            width: logoWidth,
-            fit: BoxFit.contain,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _handleLogoTap,
+      child: FadeTransition(
+        opacity: _titleOpacity,
+        child: ScaleTransition(
+          scale: _titleScale,
+          child: AnimatedBuilder(
+            animation: _logoShrinkScale,
+            builder: (context, child) =>
+                Transform.scale(scale: _logoShrinkScale.value, child: child),
+            child: Image.asset(
+              'assets/images/bandroadie_logo_stacked.png',
+              width: logoWidth,
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),
