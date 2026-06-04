@@ -12,10 +12,9 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
-import '../../components/ui/domain_chip.dart';
-import '../../shared/utils/email_domain_helper.dart';
 import '../../shared/utils/initials.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -123,7 +122,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   File? _selectedImage;
   String? _uploadedImageUrl;
   final ImagePicker _imagePicker = ImagePicker();
-  String? _selectedDomain;
 
   // Initial values for dirty state detection (edit mode)
   String _initialName = '';
@@ -1466,27 +1464,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     }
   }
 
-  void _applyDomainShortcut(String domain) {
-    final current = _emailController.text;
-    final result = applyEmailDomainShortcut(current, domain);
-
-    if (result.isEmpty) {
-      showAppSnackBar(
-        context,
-        message: 'Please enter a username first',
-        backgroundColor: context.colors.warning,
-      );
-      return;
-    }
-
-    _emailController.text = result;
-    _emailController.selection = TextSelection.fromPosition(
-      TextPosition(offset: result.length),
-    );
-    setState(() => _selectedDomain = domain);
-    HapticFeedback.selectionClick();
-  }
-
   @override
   Widget build(BuildContext context) {
     final title = _isEditMode ? 'Edit Band' : 'Create New Band';
@@ -1588,7 +1565,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                                 const SizedBox(height: Spacing.space12),
                                 _buildEmailInput(),
                                 const SizedBox(height: Spacing.space8),
-                                _buildEmailDomainShortcuts(),
+                                EmailDomainShortcutBar(
+                                    controller: _emailController),
                                 if (_inviteEmails.isNotEmpty) ...[
                                   const SizedBox(height: Spacing.space24),
                                   _buildSectionLabel('Invites sent'),
@@ -2108,31 +2086,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildEmailDomainShortcuts() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: emailDomainShortcuts.asMap().entries.map((entry) {
-          final index = entry.key;
-          final domain = entry.value;
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
-            ),
-            child: DomainChip(
-              domain: domain,
-              isSelected: _selectedDomain == domain,
-              isEnabled: true, // Always enabled in create mode
-              onTap: () => _applyDomainShortcut(domain),
-            ),
-          );
-        }).toList(),
-      ),
     );
   }
 

@@ -31,7 +31,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
   final _inviteEmailController = TextEditingController();
   List<Map<String, dynamic>> _pendingInvites = [];
   bool _isSendingInvite = false;
-  String? _selectedDomain;
+  String? _selectedInviteDomain;
 
   @override
   void initState() {
@@ -47,6 +47,26 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
 
   void _showErrorSnackBar(String message) {
     showErrorSnackBar(context, message: message);
+  }
+
+  void _applyInviteDomainShortcut(String domain) {
+    if (_isSendingInvite) return;
+
+    final current = _inviteEmailController.text;
+    final result = applyEmailDomainShortcut(current, domain);
+
+    if (result.isEmpty) {
+      return;
+    }
+
+    _inviteEmailController.text = result;
+    _inviteEmailController.selection = TextSelection.fromPosition(
+      TextPosition(offset: result.length),
+    );
+
+    setState(() {
+      _selectedInviteDomain = domain;
+    });
   }
 
   Future<void> _loadPendingInvites() async {
@@ -328,23 +348,6 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     }
   }
 
-  void _applyDomainShortcut(String domain) {
-    if (_isSendingInvite) return;
-
-    final current = _inviteEmailController.text;
-    final result = applyEmailDomainShortcut(current, domain);
-
-    if (result.isEmpty) {
-      return;
-    }
-
-    _inviteEmailController.text = result;
-    _inviteEmailController.selection = TextSelection.fromPosition(
-      TextPosition(offset: result.length),
-    );
-    setState(() => _selectedDomain = domain);
-  }
-
   Widget _buildInviteEmailInput() {
     return Row(
       children: [
@@ -497,15 +500,14 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
                     ),
                     child: DomainChip(
                       domain: domain,
-                      isSelected: _selectedDomain == domain,
+                      isSelected: _selectedInviteDomain == domain,
                       isEnabled: !_isSendingInvite,
-                      onTap: () => _applyDomainShortcut(domain),
+                      onTap: () => _applyInviteDomainShortcut(domain),
                     ),
                   );
                 }).toList(),
               ),
             ),
-            const SizedBox(height: 16),
             if (_pendingInvites.isNotEmpty) ...[
               const SizedBox(height: Spacing.space24),
               Text(
