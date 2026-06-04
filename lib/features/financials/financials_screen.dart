@@ -112,36 +112,17 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                             .setViewMode(m),
                       ),
                       const SizedBox(height: Spacing.space12),
-                      // Date filter row + View Savings button
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DateFilterRow(
-                              current: state.dateFilter,
-                              customStartDate: state.customStartDate,
-                              customEndDate: state.customEndDate,
-                              onChanged: (f) => ref
-                                  .read(financialsProvider.notifier)
-                                  .setDateFilter(f),
-                              onCustomRange: (start, end) => ref
-                                  .read(financialsProvider.notifier)
-                                  .setCustomDateRange(start, end),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () =>
-                                _showSavingsSheet(context, state.allEntries),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: Spacing.space12),
-                              foregroundColor: context.colors.success,
-                              textStyle: AppTextStyles.footnote.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            child: const Text('View Savings'),
-                          ),
-                        ],
+                      // Date filter row
+                      _DateFilterRow(
+                        current: state.dateFilter,
+                        customStartDate: state.customStartDate,
+                        customEndDate: state.customEndDate,
+                        onChanged: (f) => ref
+                            .read(financialsProvider.notifier)
+                            .setDateFilter(f),
+                        onCustomRange: (start, end) => ref
+                            .read(financialsProvider.notifier)
+                            .setCustomDateRange(start, end),
                       ),
                       const SizedBox(height: Spacing.space16),
                       // Entries list
@@ -763,7 +744,10 @@ class _EntriesList extends ConsumerWidget {
               ),
             ),
             // Total row — pinned outside the horizontal scroll view
-            _TotalRow(entries: entries),
+            _TotalRow(
+              entries: entries,
+              allEntries: ref.watch(financialsProvider).allEntries,
+            ),
           ],
         );
       },
@@ -1082,9 +1066,10 @@ class _EntryTableRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _TotalRow extends StatelessWidget {
-  const _TotalRow({required this.entries});
+  const _TotalRow({required this.entries, required this.allEntries});
 
   final List<FinancialEntry> entries;
+  final List<FinancialEntry> allEntries;
 
   @override
   Widget build(BuildContext context) {
@@ -1096,8 +1081,6 @@ class _TotalRow extends StatelessWidget {
 
     final isIncome = entries.isNotEmpty && entries.first.isIncome;
     final amountColor = isIncome ? context.colors.success : AppColors.error;
-    final entryLabel =
-        entries.length == 1 ? '1 entry' : '${entries.length} entries';
 
     return Column(
       children: [
@@ -1119,16 +1102,18 @@ class _TotalRow extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: Spacing.space12),
-              Expanded(
-                child: Text(
-                  'Total ($entryLabel)',
-                  textAlign: TextAlign.right,
-                  style: AppTextStyles.callout.copyWith(
-                    color: context.colors.textMuted,
+              const Spacer(),
+              TextButton(
+                onPressed: () => _showSavingsSheet(context, allEntries),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: Spacing.space12),
+                  foregroundColor: context.colors.success,
+                  textStyle: AppTextStyles.footnote.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                child: const Text('View Savings'),
               ),
               SizedBox(width: _kDisbursedWidth + _kSavingsWidth + _k1099Width),
             ],
