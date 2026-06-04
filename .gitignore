@@ -118,3 +118,4 @@ run.sh
 android/app/src/main/assets/public/assets/.env
 .mcp.json
 dart_defines.json
+dart_defines.json
