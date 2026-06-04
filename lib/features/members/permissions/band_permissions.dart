@@ -152,6 +152,16 @@ class BandPermissions {
     return false;
   }
 
+  /// Whether this user can view the financials screen.
+  /// Admin & member: always. Contributor: only if canViewFinancials sub-permission is set.
+  bool get canViewFinancials {
+    if (isAdmin || isMember) return true;
+    if (isContributor) {
+      return subPermissions?.canViewFinancials ?? false;
+    }
+    return false;
+  }
+
   @override
   String toString() =>
       'BandPermissions(role=$role, isAdmin=$isAdmin, canCreateGigs=$canCreateGigs)';

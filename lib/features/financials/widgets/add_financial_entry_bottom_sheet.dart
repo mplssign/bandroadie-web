@@ -28,6 +28,8 @@ typedef _SaveCallback = Future<void> Function({
   String? paidToName,
   String? paidToUserId,
   Map<String, int>? disbursements,
+  bool? depositToSavings,
+  int? depositToSavingsCents,
 });
 
 const _kDefaultIncomeTypes = ['Gig Pay', 'Merch Sale', 'Equipment Sale'];
@@ -59,12 +61,15 @@ FinancialEntryType _labelToEntryType(String label, {required bool isIncome}) {
 
 /// Shows the bottom sheet and wires up [onSave].
 /// Pass [initialEntry] to pre-fill the form for editing.
+/// Pass [savingsTotalCents] to display the band's running savings balance next
+/// to the "Deposit to Savings" toggle label. If null, no balance is shown.
 Future<void> showAddFinancialEntrySheet(
   BuildContext context, {
   required _SaveCallback onSave,
   bool initialIsIncome = true,
   FinancialEntry? initialEntry,
   List<MemberVM> members = const [],
+  int? savingsTotalCents,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -75,8 +80,18 @@ Future<void> showAddFinancialEntrySheet(
       initialIsIncome: initialEntry?.isIncome ?? initialIsIncome,
       initialEntry: initialEntry,
       members: members,
+      savingsTotalCents: savingsTotalCents,
     ),
   );
+}
+
+/// Formats an integer cents value as a dollar string, matching the
+/// [FinancialEntry.formattedAmount] pattern (e.g. 52354 → "\$523.54").
+String _formatSavingsCents(int cents) {
+  final dollars = cents ~/ 100;
+  final remainder = cents % 100;
+  final dollarsFormatted = NumberFormat('#,##0').format(dollars);
+  return '\$$dollarsFormatted.${remainder.toString().padLeft(2, '0')}';
 }
 
 // ---------------------------------------------------------------------------
@@ -89,12 +104,14 @@ class _AddFinancialEntryBottomSheet extends StatefulWidget {
     this.initialIsIncome = true,
     this.initialEntry,
     this.members = const [],
+    this.savingsTotalCents,
   });
 
   final _SaveCallback onSave;
   final bool initialIsIncome;
   final FinancialEntry? initialEntry;
   final List<MemberVM> members;
+  final int? savingsTotalCents;
 
   @override
   State<_AddFinancialEntryBottomSheet> createState() =>
@@ -112,7 +129,10 @@ class _AddFinancialEntryBottomSheetState
   bool _is1099Expected = false;
   bool _isSaving = false;
   bool _disburse = false;
+  bool _depositToSavings = false;
   final Map<String, CurrencyInputController> _splitControllers = {};
+
+  late final CurrencyInputController _depositToSavingsController;
 
   late final CurrencyInputController _amountController;
   late final TextEditingController _descriptionController;
@@ -142,6 +162,10 @@ class _AddFinancialEntryBottomSheetState
       _selectedTypeName = typeName;
       _entryDate = entry.entryDate;
       _is1099Expected = entry.is1099Expected ?? false;
+      _depositToSavings = entry.depositToSavings ?? false;
+      _depositToSavingsController = CurrencyInputController(
+        entry.depositToSavingsCents ?? 0,
+      );
       _amountController = CurrencyInputController(entry.amountCents);
       _descriptionController =
           TextEditingController(text: entry.description ?? '');
@@ -159,21 +183,26 @@ class _AddFinancialEntryBottomSheetState
           _isIncome ? _kDefaultIncomeTypes.first : _kDefaultExpenseTypes.first;
       _entryDate = DateTime.now();
       _amountController = CurrencyInputController();
+      _depositToSavingsController = CurrencyInputController();
       _descriptionController = TextEditingController();
       _payerController = TextEditingController();
       _paidToOtherController = TextEditingController();
     }
+    _amountController.addListener(_onDisbursementChanged);
   }
 
   @override
   void dispose() {
+    _amountController.removeListener(_onDisbursementChanged);
     _amountController.dispose();
     _descriptionController.dispose();
     _payerController.dispose();
     _paidToOtherController.dispose();
     for (final c in _splitControllers.values) {
+      c.removeListener(_onDisbursementChanged);
       c.dispose();
     }
+    _depositToSavingsController.dispose();
     super.dispose();
   }
 
@@ -185,6 +214,10 @@ class _AddFinancialEntryBottomSheetState
       _selectedTypeName = labels.isNotEmpty ? labels.first : '';
       if (!isIncome && _disburse) {
         _disburse = false;
+      }
+      if (!isIncome && _depositToSavings) {
+        _depositToSavings = false;
+        _depositToSavingsController.cents = 0;
       }
     });
   }
@@ -211,10 +244,24 @@ class _AddFinancialEntryBottomSheetState
     final remainder = total - perMember * count;
     for (var i = 0; i < members.length; i++) {
       final m = members[i];
+      final isNew = !_splitControllers.containsKey(m.userId);
       _splitControllers.putIfAbsent(m.userId, () => CurrencyInputController());
+      if (isNew) {
+        _splitControllers[m.userId]!.addListener(_onDisbursementChanged);
+      }
       _splitControllers[m.userId]!.cents =
           i == 0 ? perMember + remainder : perMember;
     }
+  }
+
+  /// Called whenever the total amount or any split value changes.
+  /// Keeps the savings field in sync with the undisbursed remainder.
+  void _onDisbursementChanged() {
+    if (!_depositToSavings || !_disburse) return;
+    final totalDisbursed =
+        _splitControllers.values.fold<int>(0, (sum, c) => sum + c.cents);
+    final remaining = _amountController.cents - totalDisbursed;
+    _depositToSavingsController.cents = remaining > 0 ? remaining : 0;
   }
 
   String _shortName(MemberVM member) {
@@ -313,6 +360,12 @@ class _AddFinancialEntryBottomSheetState
       };
     }
 
+    final depositToSavingsCents = (_isIncome &&
+            _depositToSavings &&
+            _depositToSavingsController.cents > 0)
+        ? _depositToSavingsController.cents
+        : null;
+
     try {
       await widget.onSave(
         entryType: _labelToEntryType(_selectedTypeName, isIncome: _isIncome),
@@ -340,6 +393,8 @@ class _AddFinancialEntryBottomSheetState
           return null;
         }(),
         disbursements: disbursements,
+        depositToSavings: _isIncome ? _depositToSavings : null,
+        depositToSavingsCents: depositToSavingsCents,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -843,6 +898,69 @@ class _AddFinancialEntryBottomSheetState
                                     ),
                                   );
                                 }).toList(),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: Spacing.space16),
+                  ],
+
+                  // Deposit to Savings toggle (income only)
+                  if (_isIncome) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Deposit to Savings',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textPrimary),
+                            ),
+                            if (widget.savingsTotalCents != null) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${_formatSavingsCents(widget.savingsTotalCents!)})',
+                                style: AppTextStyles.callout
+                                    .copyWith(color: context.colors.success),
+                              ),
+                            ],
+                          ],
+                        ),
+                        Switch(
+                          value: _depositToSavings,
+                          activeTrackColor: AppColors.primary,
+                          inactiveTrackColor: context.colors.surfaceOverlay,
+                          inactiveThumbColor: context.colors.textSecondary,
+                          onChanged: (v) {
+                            setState(() {
+                              _depositToSavings = v;
+                              if (v && _disburse) {
+                                final totalDisbursed = _splitControllers.values
+                                    .fold<int>(0, (sum, c) => sum + c.cents);
+                                final remaining =
+                                    _amountController.cents - totalDisbursed;
+                                if (remaining > 0) {
+                                  _depositToSavingsController.cents = remaining;
+                                }
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      child: _depositToSavings
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.only(top: Spacing.space12),
+                              child: CurrencyTextField(
+                                controller: _depositToSavingsController,
+                                label: 'Savings Amount',
+                                hint: r'$0.00',
+                                clearOnFocus: true,
                               ),
                             )
                           : const SizedBox.shrink(),

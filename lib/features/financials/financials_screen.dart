@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,8 +69,8 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                             Expanded(
                               child: Text(
                                 'Financials',
-                                style: AppTextStyles.pageTitle
-                                    .copyWith(color: context.colors.textPrimary),
+                                style: AppTextStyles.pageTitle.copyWith(
+                                    color: context.colors.textPrimary),
                               ),
                             ),
                             GestureDetector(
@@ -106,20 +107,41 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                       // Income / Expenses toggle
                       _ViewModeToggle(
                         current: state.viewMode,
-                        onChanged: (m) =>
-                            ref.read(financialsProvider.notifier).setViewMode(m),
+                        onChanged: (m) => ref
+                            .read(financialsProvider.notifier)
+                            .setViewMode(m),
                       ),
                       const SizedBox(height: Spacing.space12),
-                      // Date filter row
-                      _DateFilterRow(
-                        current: state.dateFilter,
-                        customStartDate: state.customStartDate,
-                        customEndDate: state.customEndDate,
-                        onChanged: (f) =>
-                            ref.read(financialsProvider.notifier).setDateFilter(f),
-                        onCustomRange: (start, end) => ref
-                            .read(financialsProvider.notifier)
-                            .setCustomDateRange(start, end),
+                      // Date filter row + View Savings button
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _DateFilterRow(
+                              current: state.dateFilter,
+                              customStartDate: state.customStartDate,
+                              customEndDate: state.customEndDate,
+                              onChanged: (f) => ref
+                                  .read(financialsProvider.notifier)
+                                  .setDateFilter(f),
+                              onCustomRange: (start, end) => ref
+                                  .read(financialsProvider.notifier)
+                                  .setCustomDateRange(start, end),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () =>
+                                _showSavingsSheet(context, state.allEntries),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: Spacing.space12),
+                              foregroundColor: context.colors.success,
+                              textStyle: AppTextStyles.footnote.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: const Text('View Savings'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: Spacing.space16),
                       // Entries list
@@ -151,10 +173,15 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                 final notifier = ref.read(financialsProvider.notifier);
                 final isIncome = state.viewMode == FinancialViewMode.income;
                 final members = ref.read(membersProvider).members;
+                final savingsTotalCents = state.allEntries
+                    .where((e) => e.depositToSavings == true)
+                    .fold<int>(
+                        0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
                 await showAddFinancialEntrySheet(
                   context,
                   initialIsIncome: isIncome,
                   members: members,
+                  savingsTotalCents: savingsTotalCents,
                   onSave: ({
                     required entryType,
                     required category,
@@ -166,6 +193,8 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                     paidToName,
                     paidToUserId,
                     disbursements,
+                    depositToSavings,
+                    depositToSavingsCents,
                   }) async {
                     await notifier.addEntry(
                       entryType: entryType,
@@ -178,12 +207,247 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                       paidToName: paidToName,
                       paidToUserId: paidToUserId,
                       disbursements: disbursements,
+                      depositToSavings: depositToSavings,
+                      depositToSavingsCents: depositToSavingsCents,
                     );
                   },
                 );
               },
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SAVINGS SHEET
+// ---------------------------------------------------------------------------
+
+void _showSavingsSheet(BuildContext context, List<FinancialEntry> allEntries) {
+  final entries = allEntries.where((e) => e.depositToSavings == true).toList()
+    ..sort((a, b) => b.entryDate.compareTo(a.entryDate));
+  final totalCents =
+      entries.fold<int>(0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _SavingsSheet(entries: entries, totalCents: totalCents),
+  );
+}
+
+class _SavingsSheet extends StatefulWidget {
+  const _SavingsSheet({
+    required this.entries,
+    required this.totalCents,
+  });
+
+  final List<FinancialEntry> entries;
+  final int totalCents;
+
+  @override
+  State<_SavingsSheet> createState() => _SavingsSheetState();
+}
+
+class _SavingsSheetState extends State<_SavingsSheet>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _countController;
+  late final Animation<double> _countAnim;
+  late final ConfettiController _confettiController;
+
+  static const _countDuration = Duration(milliseconds: 1400);
+
+  String _fmt(int cents) {
+    final dollars = cents ~/ 100;
+    final remainder = cents % 100;
+    final formatted = NumberFormat('#,##0').format(dollars);
+    return '\$$formatted.${remainder.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(milliseconds: 1800));
+    _countController = AnimationController(
+      vsync: this,
+      duration: _countDuration,
+    );
+    _countAnim = CurvedAnimation(
+      parent: _countController,
+      curve: Curves.easeOut,
+    );
+    // Delay slightly so the sheet has finished sliding in
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      _countController.forward();
+      if (widget.totalCents > 0) _confettiController.play();
+    });
+  }
+
+  @override
+  void dispose() {
+    _countController.dispose();
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.55,
+      minChildSize: 0.35,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (_, scrollController) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(Spacing.cardRadius),
+                ),
+              ),
+              child: Column(
+                children: [
+                  // Drag handle
+                  Padding(
+                    padding: const EdgeInsets.only(top: Spacing.space16),
+                    child: Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: context.colors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space24),
+                  // "Total Savings" label
+                  Text(
+                    'Total Savings',
+                    style: AppTextStyles.callout.copyWith(
+                      color: context.colors.textMuted,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space8),
+                  // Animated balance
+                  AnimatedBuilder(
+                    animation: _countAnim,
+                    builder: (_, __) {
+                      final displayed =
+                          (widget.totalCents * _countAnim.value).round();
+                      return Text(
+                        _fmt(displayed),
+                        style: AppTextStyles.displayLarge.copyWith(
+                          color: context.colors.success,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 48,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: Spacing.space4),
+                  Text(
+                    'Running total across all deposits to savings',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textMuted),
+                  ),
+                  const SizedBox(height: Spacing.space20),
+                  Divider(height: 1, color: context.colors.border),
+                  // List
+                  Expanded(
+                    child: widget.entries.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No savings entries yet',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textMuted),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: Spacing.space8),
+                            itemCount: widget.entries.length,
+                            separatorBuilder: (_, __) => Divider(
+                                height: 1, color: context.colors.border),
+                            itemBuilder: (_, i) {
+                              final e = widget.entries[i];
+                              final dateStr =
+                                  DateFormat('MMM d, yyyy').format(e.entryDate);
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: Spacing.pagePadding,
+                                  vertical: Spacing.space12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            e.category,
+                                            style: AppTextStyles.callout
+                                                .copyWith(
+                                                    color: context
+                                                        .colors.textPrimary),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            dateStr,
+                                            style: AppTextStyles.footnote
+                                                .copyWith(
+                                                    color: context
+                                                        .colors.textMuted),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      e.depositToSavingsCents != null
+                                          ? _fmt(e.depositToSavingsCents!)
+                                          : '—',
+                                      style: AppTextStyles.callout.copyWith(
+                                        color: context.colors.success,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            // Confetti fires from the top-centre
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: 30,
+              gravity: 0.25,
+              emissionFrequency: 0.05,
+              colors: const [
+                AppColors.success,
+                Color(0xFF86EFAC), // green-300
+                Colors.white,
+                AppColors.primary,
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -513,12 +777,14 @@ const _kTypeWidth = 110.0;
 const _kFromWidth = 110.0;
 const _kPaidToWidth = 110.0;
 const _kDisbursedWidth = 96.0;
+const _kSavingsWidth = 80.0;
 const _k1099Width = 50.0;
 const _kFixedColumnsWidth = _kDateWidth +
     _kTypeWidth +
     _kFromWidth +
     _kPaidToWidth +
     _kDisbursedWidth +
+    _kSavingsWidth +
     _k1099Width;
 
 double _measureText(String text, TextStyle style) {
@@ -565,6 +831,11 @@ class _TableHeader extends StatelessWidget {
           SizedBox(
             width: _kDisbursedWidth,
             child: _HeaderCell('Disbursed',
+                textAlign: TextAlign.center, borderSide: borderSide),
+          ),
+          SizedBox(
+            width: _kSavingsWidth,
+            child: _HeaderCell('Savings',
                 textAlign: TextAlign.center, borderSide: borderSide),
           ),
           SizedBox(
@@ -752,6 +1023,39 @@ class _EntryTableRow extends StatelessWidget {
                   ),
                 ),
               ),
+              // Savings
+              SizedBox(
+                width: _kSavingsWidth,
+                child: Container(
+                  decoration: BoxDecoration(
+                      border: Border(
+                          right: BorderSide(
+                              color: context.colors.border, width: 0.5))),
+                  child: Center(
+                    child: entry.depositToSavings == true
+                        ? entry.depositToSavingsCents != null
+                            ? Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                child: Text(
+                                  entry.formattedDepositToSavings!,
+                                  style: AppTextStyles.footnote.copyWith(
+                                    color: context.colors.success,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )
+                            : Icon(
+                                AppIcons.dollar,
+                                size: 16,
+                                color: context.colors.success,
+                              )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
               // 1099
               SizedBox(
                 width: _k1099Width,
@@ -826,7 +1130,7 @@ class _TotalRow extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: _kDisbursedWidth + _k1099Width),
+              SizedBox(width: _kDisbursedWidth + _kSavingsWidth + _k1099Width),
             ],
           ),
         ),

@@ -495,6 +495,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       loading: () => false,
       error: (__, _) => false,
     );
+    final canViewFinancials = permissionsAsync.when(
+      data: (perms) => perms.canViewFinancials,
+      loading: () => false,
+      error: (_, __) => false,
+    );
 
     // Watch response summaries for potential gigs - this is the source of truth
     // for availability counts displayed on the PotentialGigCard.
@@ -631,6 +636,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         canCreateGig: canCreateGig,
         canCreateSetlist: canCreateSetlist,
         isContributor: isContributor,
+        canViewFinancials: canViewFinancials,
       );
     }
 
@@ -769,6 +775,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     required bool canCreateGig,
     required bool canCreateSetlist,
     required bool isContributor,
+    required bool canViewFinancials,
   }) {
     final activeBand = bandState.activeBand;
     final upcomingGig = gigState.nextConfirmedGig;
@@ -898,8 +905,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 Builder(builder: (context) {
                                   final showAddEvent =
                                       !isContributor || canCreateGig;
-                                  final hasAnyButton =
-                                      showAddEvent || canCreateSetlist || !isContributor;
+                                  final hasAnyButton = showAddEvent ||
+                                      canCreateSetlist ||
+                                      !isContributor;
                                   if (!hasAnyButton) {
                                     return const SizedBox.shrink();
                                   }
@@ -929,12 +937,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                                   );
                                                 }
                                               : null,
-                                          onFinancials: !isContributor
+                                          onFinancials: canViewFinancials
                                               ? _handleOpenFinancials
                                               : null,
                                           showAddEvent: showAddEvent,
                                           showCreateSetlist: canCreateSetlist,
-                                          showFinancials: !isContributor,
+                                          showFinancials: canViewFinancials,
                                         ),
                                       ),
                                     ],

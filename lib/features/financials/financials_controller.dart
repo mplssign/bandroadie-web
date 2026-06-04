@@ -153,6 +153,8 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
     String? paidToName,
     String? paidToUserId,
     Map<String, int>? disbursements,
+    bool? depositToSavings,
+    int? depositToSavingsCents,
   }) async {
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) throw StateError('No band selected');
@@ -171,6 +173,8 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
         paidToName: paidToName,
         paidToUserId: paidToUserId,
         disbursements: disbursements,
+        depositToSavings: depositToSavings,
+        depositToSavingsCents: depositToSavingsCents,
       );
       state = state.copyWith(
         allEntries: [entry, ...state.allEntries],
@@ -194,6 +198,8 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
     String? paidToName,
     String? paidToUserId,
     Map<String, int>? disbursements,
+    bool? depositToSavings,
+    int? depositToSavingsCents,
   }) async {
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) throw StateError('No band selected');
@@ -213,6 +219,8 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
         paidToName: paidToName,
         paidToUserId: paidToUserId,
         disbursements: disbursements,
+        depositToSavings: depositToSavings,
+        depositToSavingsCents: depositToSavingsCents,
       );
       state = state.copyWith(
         allEntries:
