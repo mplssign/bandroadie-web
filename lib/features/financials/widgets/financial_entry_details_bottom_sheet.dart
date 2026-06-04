@@ -128,6 +128,16 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
               value: entry.description!,
             ),
           ],
+          if (entry.depositToSavings == true) ...[
+            const SizedBox(height: Spacing.space12),
+            _DetailRow(
+              icon: AppIcons.dollar,
+              label: 'Deposit to Savings',
+              value: entry.depositToSavingsCents != null
+                  ? entry.formattedDepositToSavings!
+                  : 'Yes',
+            ),
+          ],
 
           const SizedBox(height: Spacing.space24),
 
@@ -140,10 +150,17 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                 Navigator.of(context).pop();
                 final notifier = ref.read(financialsProvider.notifier);
                 final members = ref.read(membersProvider).members;
+                final savingsTotalCents = ref
+                    .read(financialsProvider)
+                    .allEntries
+                    .where((e) => e.depositToSavings == true)
+                    .fold<int>(
+                        0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
                 await showAddFinancialEntrySheet(
                   context,
                   initialEntry: entry,
                   members: members,
+                  savingsTotalCents: savingsTotalCents,
                   onSave: ({
                     required entryType,
                     required category,
@@ -155,6 +172,8 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                     paidToName,
                     paidToUserId,
                     disbursements,
+                    depositToSavings,
+                    depositToSavingsCents,
                   }) async {
                     await notifier.updateEntry(
                       entryId: entry.id,
@@ -168,6 +187,8 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                       paidToName: paidToName,
                       paidToUserId: paidToUserId,
                       disbursements: disbursements,
+                      depositToSavings: depositToSavings,
+                      depositToSavingsCents: depositToSavingsCents,
                     );
                   },
                 );

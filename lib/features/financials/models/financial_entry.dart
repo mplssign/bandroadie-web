@@ -68,6 +68,8 @@ class FinancialEntry {
   final String? paidToName;
   final String? paidToUserId;
   final Map<String, int>? disbursements;
+  final bool? depositToSavings;
+  final int? depositToSavingsCents;
   final String? gigId;
   final String createdBy;
   final DateTime createdAt;
@@ -87,6 +89,8 @@ class FinancialEntry {
     this.paidToName,
     this.paidToUserId,
     this.disbursements,
+    this.depositToSavings,
+    this.depositToSavingsCents,
     this.gigId,
     required this.createdBy,
     required this.createdAt,
@@ -109,6 +113,8 @@ class FinancialEntry {
       paidToUserId: json['paid_to_user_id'] as String?,
       disbursements: (json['disbursements'] as Map<String, dynamic>?)
           ?.map((k, v) => MapEntry(k, (v as num).toInt())),
+      depositToSavings: json['deposit_to_savings'] as bool?,
+      depositToSavingsCents: json['deposit_to_savings_cents'] as int?,
       gigId: json['gig_id'] as String?,
       createdBy: json['created_by'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -131,6 +137,8 @@ class FinancialEntry {
       'paid_to_name': paidToName,
       'paid_to_user_id': paidToUserId,
       'disbursements': disbursements,
+      'deposit_to_savings': depositToSavings,
+      'deposit_to_savings_cents': depositToSavingsCents,
       'gig_id': gigId,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
@@ -142,6 +150,16 @@ class FinancialEntry {
   String get formattedAmount {
     final dollars = amountCents ~/ 100;
     final cents = amountCents % 100;
+    final dollarsFormatted = NumberFormat('#,##0').format(dollars);
+    return '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
+  }
+
+  /// Formatted savings amount (e.g., "$250.00"). Returns null if cents is null.
+  String? get formattedDepositToSavings {
+    final c = depositToSavingsCents;
+    if (c == null) return null;
+    final dollars = c ~/ 100;
+    final cents = c % 100;
     final dollarsFormatted = NumberFormat('#,##0').format(dollars);
     return '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
   }

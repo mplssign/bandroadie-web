@@ -116,6 +116,8 @@ class FinancialEntryRepository {
     String? paidToName,
     String? paidToUserId,
     Map<String, int>? disbursements,
+    bool? depositToSavings,
+    int? depositToSavingsCents,
   }) async {
     if (bandId.isEmpty) throw NoBandSelectedError();
 
@@ -135,6 +137,8 @@ class FinancialEntryRepository {
       'paid_to_name': paidToName?.isEmpty == true ? null : paidToName,
       'paid_to_user_id': paidToUserId,
       'disbursements': disbursements,
+      'deposit_to_savings': depositToSavings,
+      'deposit_to_savings_cents': depositToSavingsCents,
       'created_by': createdBy,
     };
 
@@ -161,6 +165,8 @@ class FinancialEntryRepository {
     String? paidToName,
     String? paidToUserId,
     Map<String, int>? disbursements,
+    bool? depositToSavings,
+    int? depositToSavingsCents,
   }) async {
     if (bandId.isEmpty) throw NoBandSelectedError();
 
@@ -178,6 +184,8 @@ class FinancialEntryRepository {
           'paid_to_name': paidToName?.isEmpty == true ? null : paidToName,
           'paid_to_user_id': paidToUserId,
           'disbursements': disbursements,
+          'deposit_to_savings': depositToSavings,
+          'deposit_to_savings_cents': depositToSavingsCents,
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', entryId)

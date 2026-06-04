@@ -117,7 +117,8 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         a.canCreatePotentialGigsOnly == b.canCreatePotentialGigsOnly &&
         a.canViewSetlists == b.canViewSetlists &&
         a.canViewCalendar == b.canViewCalendar &&
-        a.canViewMembers == b.canViewMembers;
+        a.canViewMembers == b.canViewMembers &&
+        a.canViewFinancials == b.canViewFinancials;
   }
 
   Future<void> _saveRole() async {
@@ -368,6 +369,14 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                               _subPermissions.copyWith(canViewMembers: v);
                         }),
                       ),
+                      _buildPermissionToggle(
+                        label: 'Can view financials',
+                        value: _subPermissions.canViewFinancials,
+                        onChanged: (v) => setState(() {
+                          _subPermissions =
+                              _subPermissions.copyWith(canViewFinancials: v);
+                        }),
+                      ),
                     ],
 
                     // ─── Last admin warning ───
@@ -494,8 +503,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : Text(
