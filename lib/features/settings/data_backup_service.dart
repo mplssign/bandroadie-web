@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../app/services/app_version_service.dart';
 import '../../app/services/supabase_client.dart';
@@ -147,7 +149,19 @@ class DataBackupService {
     final backup = _parseAndValidate(jsonContent);
     final bandEntry = backup['band_data'] as Map<String, dynamic>;
 
-    await _restoreBandData(bandEntry, targetBandId, userId);
+    final backupBandId =
+        (bandEntry['band'] as Map<String, dynamic>?)?['id'] as String?;
+    bool bandExists = false;
+    if (backupBandId != null) {
+      final result = await supabase
+          .from('bands')
+          .select('id')
+          .eq('id', backupBandId)
+          .maybeSingle();
+      bandExists = result != null;
+    }
+
+    await _restoreBandData(bandEntry, targetBandId, userId, bandExists);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -159,16 +173,11 @@ class DataBackupService {
     String bandName,
     String userId,
   ) async {
-    final band = await supabase
-        .from('bands')
-        .select()
-        .eq('id', bandId)
-        .maybeSingle();
+    final band =
+        await supabase.from('bands').select().eq('id', bandId).maybeSingle();
 
-    final bandMembers = await supabase
-        .from('band_members')
-        .select()
-        .eq('band_id', bandId);
+    final bandMembers =
+        await supabase.from('band_members').select().eq('band_id', bandId);
 
     final memberIds =
         (bandMembers as List).map((m) => m['id'] as String).toList();
@@ -206,10 +215,8 @@ class DataBackupService {
     List<dynamic> gigDates = [];
     List<dynamic> gigResponses = [];
     if (gigIds.isNotEmpty) {
-      gigDates = await supabase
-          .from('gig_dates')
-          .select()
-          .inFilter('gig_id', gigIds);
+      gigDates =
+          await supabase.from('gig_dates').select().inFilter('gig_id', gigIds);
       gigResponses = await supabase
           .from('gig_responses')
           .select()
@@ -288,52 +295,165 @@ class DataBackupService {
     Map<String, dynamic> entry,
     String targetBandId,
     String userId,
+    bool bandExists,
   ) async {
-    // 1. Band
-    final band = entry['band'] as Map<String, dynamic>?;
-    if (band != null) await _upsertRows('bands', [band]);
+    try {
+      if (bandExists) {
+        // ── Existing-band path ── behaviour unchanged ──────────────────────
+        // 1. Band
+        final band = entry['band'] as Map<String, dynamic>?;
+        if (band != null) await _upsertRows('bands', [band]);
 
-    // 2. Band members
-    await _upsertRows('band_members', entry['band_members'] as List? ?? []);
+        // 2. Band members
+        await _upsertRows('band_members', entry['band_members'] as List? ?? []);
 
-    // 3. Contributor permissions
-    await _upsertRows(
-      'contributor_permissions',
-      entry['contributor_permissions'] as List? ?? [],
-    );
+        // 3. Contributor permissions
+        await _upsertRows(
+          'contributor_permissions',
+          entry['contributor_permissions'] as List? ?? [],
+        );
 
-    // 4. Songs
-    await _upsertRows('songs', entry['songs'] as List? ?? []);
+        // 4. Songs
+        await _upsertRows('songs', entry['songs'] as List? ?? []);
 
-    // 5. Setlists
-    await _upsertRows('setlists', entry['setlists'] as List? ?? []);
+        // 5. Setlists
+        await _upsertRows('setlists', entry['setlists'] as List? ?? []);
 
-    // 6. Setlist special items (set breaks / pauses)
-    await _upsertRows(
-      'setlist_special_items',
-      entry['setlist_special_items'] as List? ?? [],
-    );
+        // 6. Setlist special items (set breaks / pauses)
+        await _upsertRows(
+          'setlist_special_items',
+          entry['setlist_special_items'] as List? ?? [],
+        );
 
-    // 7. Setlist songs (depends on songs + setlists + special items)
-    await _upsertRows('setlist_songs', entry['setlist_songs'] as List? ?? []);
+        // 7. Setlist songs (depends on songs + setlists + special items)
+        await _upsertRows(
+            'setlist_songs', entry['setlist_songs'] as List? ?? []);
 
-    // 8. Gigs
-    await _upsertRows('gigs', entry['gigs'] as List? ?? []);
+        // 8. Gigs
+        await _upsertRows('gigs', entry['gigs'] as List? ?? []);
 
-    // 9. Gig dates
-    await _upsertRows('gig_dates', entry['gig_dates'] as List? ?? []);
+        // 9. Gig dates
+        await _upsertRows('gig_dates', entry['gig_dates'] as List? ?? []);
 
-    // 10. Gig responses
-    await _upsertRows('gig_responses', entry['gig_responses'] as List? ?? []);
+        // 10. Gig responses
+        await _upsertRows(
+            'gig_responses', entry['gig_responses'] as List? ?? []);
 
-    // 11. Rehearsals
-    await _upsertRows('rehearsals', entry['rehearsals'] as List? ?? []);
+        // 11. Rehearsals
+        await _upsertRows('rehearsals', entry['rehearsals'] as List? ?? []);
 
-    // 12. Block-out dates
-    await _upsertRows(
-      'block_dates',
-      entry['block_dates'] as List? ?? [],
-    );
+        // 12. Block-out dates
+        await _upsertRows(
+          'block_dates',
+          entry['block_dates'] as List? ?? [],
+        );
+      } else {
+        // ── Missing-band path ── band was deleted; recreate via RPC ─────────
+
+        // a. Create the band via create_band RPC (atomic: inserts band + admin row)
+        final bandMap = entry['band'] as Map<String, dynamic>? ?? {};
+        final bandName = bandMap['name'] as String? ?? 'Restored Band';
+        final avatarColor = bandMap['avatar_color'] as String?;
+        final imageUrl = bandMap['image_url'] as String?;
+
+        final newBandId = await supabase.rpc(
+          'create_band',
+          params: {
+            'p_name': bandName,
+            'p_avatar_color': avatarColor,
+            'p_image_url': imageUrl,
+          },
+        ) as String;
+
+        // b. Remap band_id to newBandId in all child tables that carry it.
+        List<Map<String, dynamic>> remapBandId(List<dynamic> rows) => rows
+            .map((r) =>
+                Map<String, dynamic>.from(r as Map)..['band_id'] = newBandId)
+            .toList();
+
+        // c–d. Band members: remap band_id, filter out current user (already
+        //      inserted as admin by create_band).
+        final rawMembers =
+            (entry['band_members'] as List? ?? []).cast<Map<String, dynamic>>();
+        final remappedMembers = rawMembers
+            .map((r) => Map<String, dynamic>.from(r)..['band_id'] = newBandId)
+            .where((r) => r['user_id'] != userId)
+            .toList();
+
+        // e. Rehearsals: generate fresh UUIDs to avoid conflict on orphaned rows.
+        final rawRehearsals =
+            (entry['rehearsals'] as List? ?? []).cast<Map<String, dynamic>>();
+        final oldToNewRehearsal = <String, String>{
+          for (final r in rawRehearsals) (r['id'] as String): _generateUuid(),
+        };
+        final remappedRehearsals = rawRehearsals.map((r) {
+          final updated = Map<String, dynamic>.from(r)
+            ..['id'] = oldToNewRehearsal[r['id'] as String]
+            ..['band_id'] = newBandId;
+          final oldParentId = r['parent_rehearsal_id'] as String?;
+          if (oldParentId != null) {
+            updated['parent_rehearsal_id'] = oldToNewRehearsal[oldParentId];
+          }
+          return updated;
+        }).toList();
+
+        // f. Block-out dates: generate fresh UUIDs to avoid conflict on orphaned rows.
+        final rawBlockDates =
+            (entry['block_dates'] as List? ?? []).cast<Map<String, dynamic>>();
+        final remappedBlockDates = rawBlockDates
+            .map((r) => Map<String, dynamic>.from(r)
+              ..['id'] = _generateUuid()
+              ..['band_id'] = newBandId)
+            .toList();
+
+        // g. Upsert in the same FK-safe order.
+        // 1. Band — already created by create_band RPC; skip.
+
+        // 2. Band members (filtered, remapped)
+        await _upsertRows('band_members', remappedMembers);
+
+        // 3. Contributor permissions (no band_id field)
+        await _upsertRows(
+          'contributor_permissions',
+          entry['contributor_permissions'] as List? ?? [],
+        );
+
+        // 4. Songs
+        await _upsertRows('songs', remapBandId(entry['songs'] as List? ?? []));
+
+        // 5. Setlists
+        await _upsertRows(
+            'setlists', remapBandId(entry['setlists'] as List? ?? []));
+
+        // 6. Setlist special items
+        await _upsertRows(
+          'setlist_special_items',
+          remapBandId(entry['setlist_special_items'] as List? ?? []),
+        );
+
+        // 7. Setlist songs (no band_id)
+        await _upsertRows(
+            'setlist_songs', entry['setlist_songs'] as List? ?? []);
+
+        // 8. Gigs
+        await _upsertRows('gigs', remapBandId(entry['gigs'] as List? ?? []));
+
+        // 9. Gig dates (no band_id)
+        await _upsertRows('gig_dates', entry['gig_dates'] as List? ?? []);
+
+        // 10. Gig responses (no band_id)
+        await _upsertRows(
+            'gig_responses', entry['gig_responses'] as List? ?? []);
+
+        // 11. Rehearsals (fresh UUIDs, remapped band_id)
+        await _upsertRows('rehearsals', remappedRehearsals);
+
+        // 12. Block-out dates (fresh UUIDs, remapped band_id)
+        await _upsertRows('block_dates', remappedBlockDates);
+      }
+    } on PostgrestException catch (e) {
+      throw DataBackupException('Database error during restore: ${e.message}');
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -342,12 +462,22 @@ class DataBackupService {
 
   static Future<void> _upsertRows(String table, List<dynamic> rows) async {
     if (rows.isEmpty) return;
-    final data =
-        rows.map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    final data = rows.map((r) => Map<String, dynamic>.from(r as Map)).toList();
     await supabase
         .from(table)
         .upsert(data, onConflict: 'id', ignoreDuplicates: false);
   }
 
   static String _pad(int n) => n.toString().padLeft(2, '0');
+
+  static String _generateUuid() {
+    final rng = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant bits
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+        '${hex.substring(20, 32)}';
+  }
 }
