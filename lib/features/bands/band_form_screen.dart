@@ -955,7 +955,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       if (mounted) _showErrorSnackBar(e.message);
     } catch (e) {
       debugPrint('[Restore] Unexpected error: $e');
-      if (mounted) _showErrorSnackBar('Restore failed. Please try again.');
+      if (mounted) {
+        final msg = e is Exception
+            ? e.toString().replaceFirst('Exception: ', '')
+            : e.toString();
+        _showErrorSnackBar('Restore failed: $msg');
+      }
     } finally {
       if (mounted) setState(() => _isImporting = false);
     }
