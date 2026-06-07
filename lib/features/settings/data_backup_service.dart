@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/services/app_version_service.dart';
 import '../../app/services/supabase_client.dart';
@@ -299,7 +299,7 @@ class DataBackupService {
   ) async {
     try {
       if (bandExists) {
-        // ── Existing-band path ── behaviour unchanged ──────────────────────
+        // ── Existing-band path ────────────────────────────────────────────
         // 1. Band
         final band = entry['band'] as Map<String, dynamic>?;
         if (band != null) await _upsertRows('bands', [band]);
@@ -335,18 +335,27 @@ class DataBackupService {
         // 9. Gig dates
         await _upsertRows('gig_dates', entry['gig_dates'] as List? ?? []);
 
-        // 10. Gig responses
-        await _upsertRows(
-            'gig_responses', entry['gig_responses'] as List? ?? []);
+        // 10. Gig responses — filter to own-user rows only.
+        // INSERT RLS (gig_responses_insert_own) requires user_id = auth.uid().
+        // Other members' responses cannot be inserted by the restoring admin.
+        final allGigResponses = entry['gig_responses'] as List? ?? [];
+        final ownGigResponses = allGigResponses
+            .where((r) => (r as Map<String, dynamic>)['user_id'] == userId)
+            .toList();
+        await _upsertRows('gig_responses', ownGigResponses);
 
         // 11. Rehearsals
         await _upsertRows('rehearsals', entry['rehearsals'] as List? ?? []);
 
-        // 12. Block-out dates
-        await _upsertRows(
-          'block_dates',
-          entry['block_dates'] as List? ?? [],
-        );
+        // 12. Block-out dates — filter to own-user rows only (defensive).
+        // block_dates_insert_own requires user_id = auth.uid() on INSERT path.
+        // Rows still in the DB take the UPDATE path (admins can update all); this
+        // filter guards the edge case where a row was deleted after the export.
+        final allBlockDates = entry['block_dates'] as List? ?? [];
+        final ownBlockDates = allBlockDates
+            .where((r) => (r as Map<String, dynamic>)['user_id'] == userId)
+            .toList();
+        await _upsertRows('block_dates', ownBlockDates);
       } else {
         // ── Missing-band path ── band was deleted; recreate via RPC ─────────
 
@@ -428,10 +437,12 @@ class DataBackupService {
           return updated;
         }).toList();
 
-        // f. Block-out dates: generate fresh UUIDs to avoid conflict on orphaned rows.
+        // f. Block-out dates: generate fresh UUIDs to avoid conflict on orphaned rows,
+        //    remap band_id, and filter to own-user rows only.
         final rawBlockDates =
             (entry['block_dates'] as List? ?? []).cast<Map<String, dynamic>>();
         final remappedBlockDates = rawBlockDates
+            .where((r) => r['user_id'] == userId)
             .map((r) => Map<String, dynamic>.from(r)
               ..['id'] = _generateUuid()
               ..['band_id'] = newBandId)
@@ -503,14 +514,19 @@ class DataBackupService {
         // 9. Gig dates (no band_id)
         await _upsertRows('gig_dates', entry['gig_dates'] as List? ?? []);
 
-        // 10. Gig responses (no band_id)
-        await _upsertRows(
-            'gig_responses', entry['gig_responses'] as List? ?? []);
+        // 10. Gig responses — filter to own-user rows only (no band_id).
+        // INSERT RLS (gig_responses_insert_own) requires user_id = auth.uid().
+        // Other members' responses cannot be inserted by the restoring admin.
+        final allGigResponses = entry['gig_responses'] as List? ?? [];
+        final ownGigResponses = allGigResponses
+            .where((r) => (r as Map<String, dynamic>)['user_id'] == userId)
+            .toList();
+        await _upsertRows('gig_responses', ownGigResponses);
 
         // 11. Rehearsals (fresh UUIDs, remapped band_id)
         await _upsertRows('rehearsals', remappedRehearsals);
 
-        // 12. Block-out dates (fresh UUIDs, remapped band_id)
+        // 12. Block-out dates (fresh UUIDs, remapped band_id, filtered)
         await _upsertRows('block_dates', remappedBlockDates);
       }
     } on PostgrestException catch (e) {
