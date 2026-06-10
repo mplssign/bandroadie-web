@@ -1,6 +1,13 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/invite",
+      "destination": "https://app.bandroadie.com/invite",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/",
