@@ -479,7 +479,7 @@ class _InviteScreenState extends State<InviteScreen> {
                     ),
                   )
                 : const Text(
-                    'Send Magic Link',
+                    'Email login link',
                     style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
           ),
