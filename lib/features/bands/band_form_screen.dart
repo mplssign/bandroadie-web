@@ -1908,9 +1908,23 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     {'value': 'America/Halifax', 'label': 'Halifax (Atlantic)'},
     {'value': 'America/St_Johns', 'label': "St. John's (Newfoundland)"},
     {'value': 'America/Whitehorse', 'label': 'Whitehorse (Yukon – No DST)'},
-    // United Kingdom
-    {'value': null, 'label': 'United Kingdom', 'isHeader': true},
+    // Europe
+    {'value': null, 'label': 'Europe', 'isHeader': true},
     {'value': 'Europe/London', 'label': 'London'},
+    {'value': 'Europe/Lisbon', 'label': 'Lisbon'},
+    {'value': 'Europe/Paris', 'label': 'Paris'},
+    {'value': 'Europe/Berlin', 'label': 'Berlin'},
+    {'value': 'Europe/Rome', 'label': 'Rome'},
+    {'value': 'Europe/Madrid', 'label': 'Madrid'},
+    {'value': 'Europe/Amsterdam', 'label': 'Amsterdam'},
+    {'value': 'Europe/Stockholm', 'label': 'Stockholm'},
+    {'value': 'Europe/Warsaw', 'label': 'Warsaw'},
+    {'value': 'Europe/Athens', 'label': 'Athens'},
+    {'value': 'Europe/Helsinki', 'label': 'Helsinki'},
+    {'value': 'Europe/Bucharest', 'label': 'Bucharest'},
+    {'value': 'Europe/Kyiv', 'label': 'Kyiv'},
+    {'value': 'Europe/Moscow', 'label': 'Moscow'},
+    {'value': 'Europe/Istanbul', 'label': 'Istanbul'},
   ];
 
   Widget _buildTimezoneSection() {
@@ -1991,9 +2005,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                         Text(
                           tz['label'] as String,
                           style: TextStyle(
-                            color: context.colors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            color: context.colors.primaryLight,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
