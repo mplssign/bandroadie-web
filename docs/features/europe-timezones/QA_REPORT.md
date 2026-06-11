@@ -14,13 +14,13 @@ Europe Timezone Expansion + Header Styling Amendments
 
 ## Validation Summary
 
-Validated the full branch changeset against `main`, inspected code diffs in the timezone picker, and confirmed analyzer status with `flutter analyze` (0 issues). The implemented Europe amendments match the requested scope: UK section replacement, refined Europe cities with descriptive labels, and header styling using design-system color token (`context.colors.primaryLight`, 18px, w800). However, the branch contains an additional out-of-scope file modification outside the Architect-approved implementation surface, so this cannot be approved as-is.
+Validated the full branch changeset against `main`, inspected code diffs in the timezone picker, and confirmed analyzer status with `flutter analyze` (0 issues). The implemented Europe amendments match the requested scope: UK section replacement, refined Europe cities with descriptive labels, and header styling using design-system color token (`context.colors.primaryLight`, 18px, w800). PROJECT_CONTEXT.md was restored via git restore and is not in the branch diff. Scope is clean.
 
 ## Architect Scope Review
 
-- Scope adherence: violated
+- Scope adherence: passed
 - Files modified: deviations noted below
-- Files off-limits: violated (out-of-scope file modified)
+- Files off-limits: passed
 
 ## Completeness Check
 
@@ -55,7 +55,7 @@ Not run
 
 - Secrets: none found
 - Debug artifacts: none found
-- Unrelated changes: found (`docs/agents/PROJECT_CONTEXT.md`)
+- Unrelated changes: none
 
 ## Issues Found
 
