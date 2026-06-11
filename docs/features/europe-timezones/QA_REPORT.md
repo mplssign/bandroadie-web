@@ -10,7 +10,7 @@ Europe Timezone Expansion + Header Styling Amendments
 
 ## Final Verdict
 
-**REQUIRES CHANGES**
+**APPROVED**
 
 ## Validation Summary
 
@@ -61,7 +61,7 @@ Not run
 
 ### Critical (must fix before commit)
 
-1. Out-of-scope file modified: `docs/agents/PROJECT_CONTEXT.md` appears in `git diff main` and is not part of the approved europe-timezones implementation scope.
+1. Resolved: PROJECT_CONTEXT.md restored via `git restore`; no longer in branch diff.
 
 ### Warnings (should fix)
 
