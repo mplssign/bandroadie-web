@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 
 // App URL for deep links (production)
-const APP_URL = "https://bandroadie.com";
+const APP_URL = "https://app.bandroadie.com";
 
 interface InvitePayload {
     bandInvitationId: string;
@@ -124,10 +124,10 @@ Deno.serve(async (req) => {
           <!-- Header -->
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center;">
-              <h1 style="margin: 0; color: #F43F5E; font-size: 28px; font-weight: 700;">🎸 BandRoadie</h1>
+              <h1 style="margin: 0; color: #F43F5E; font-size: 28px; font-weight: 700;">BandRoadie</h1>
             </td>
           </tr>
-          
+
           <!-- Content -->
           <tr>
             <td style="padding: 0 32px 32px;">
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
               <p style="margin: 0 0 24px; color: #a0a0a0; font-size: 16px; line-height: 1.5; text-align: center;">
                 ${inviterName} has invited you to join their band on BandRoadie – the app for managing rehearsals, gigs, and setlists.
               </p>
-              
+
               <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -148,14 +148,14 @@ Deno.serve(async (req) => {
                   </td>
                 </tr>
               </table>
-              
+
               <p style="margin: 0; color: #666666; font-size: 14px; text-align: center;">
                 If the button doesn't work, copy and paste this link:<br>
                 <a href="${inviteLink}" style="color: #F43F5E; word-break: break-all;">${inviteLink}</a>
               </p>
             </td>
           </tr>
-          
+
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 32px; background-color: #222222; text-align: center;">
