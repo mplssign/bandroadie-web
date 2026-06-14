@@ -58,19 +58,42 @@ Future<void> main() async {
   // - App launched from link (cold start)
   // - App resumed from background via link
   // - App already open when link tapped
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-    authOptions: FlutterAuthClientOptions(
-      // All platforms use PKCE flow for secure token exchange
-      // Web: code_verifier stored in localStorage; scanners cannot complete exchange
-      // Native: code_verifier stored in device storage; handled via deep links
-      authFlowType: AuthFlowType.pkce,
-      // On web: enable auto-detection so Supabase handles session from URL
-      // On native: disable it - we handle deep links manually for iPad/background support
-      detectSessionInUri: kIsWeb,
-    ),
-  );
+  try {
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      authOptions: FlutterAuthClientOptions(
+        // All platforms use PKCE flow for secure token exchange
+        // Web: code_verifier stored in localStorage; scanners cannot complete exchange
+        // Native: code_verifier stored in device storage; handled via deep links
+        authFlowType: AuthFlowType.pkce,
+        // On web: enable auto-detection so Supabase handles session from URL
+        // On native: disable it - we handle deep links manually for iPad/background support
+        detectSessionInUri: kIsWeb,
+      ),
+    );
+  } on FormatException catch (e) {
+    debugPrint('[Main] Corrupt session data detected: $e');
+    debugPrint('[Main] Clearing local session and reinitializing...');
+
+    // Clear any corrupt session data (local only, doesn't call server)
+    // This handles cases where app downgrade or storage corruption breaks session schema
+    try {
+      await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {
+      // Ignore errors during cleanup — storage may be completely broken
+    }
+
+    // Retry initialization with clean state
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+      authOptions: FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+        detectSessionInUri: kIsWeb,
+      ),
+    );
+  }
 
   // Initialize Firebase for push notifications
   // Web uses explicit FirebaseOptions (no google-services.json on web)
