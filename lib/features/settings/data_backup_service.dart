@@ -141,7 +141,7 @@ class DataBackupService {
   /// Validate a backup file and restore data into [targetBandId].
   static Future<void> importBandData(
     String jsonContent,
-    String targetBandId,
+    String? targetBandId,
   ) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw const DataBackupException('Not logged in');
@@ -293,7 +293,7 @@ class DataBackupService {
 
   static Future<void> _restoreBandData(
     Map<String, dynamic> entry,
-    String targetBandId,
+    String? targetBandId,
     String userId,
     bool bandExists,
   ) async {
@@ -365,6 +365,37 @@ class DataBackupService {
           },
         ) as String;
 
+        // Query the trigger-created catalog setlist UUID.
+        // create_band fires auto_create_catalog_for_band() which inserts a catalog
+        // setlist for newBandId. Remap the backup's catalog UUID onto this row to
+        // avoid violating the setlists_one_catalog_per_band unique constraint.
+        final triggerCatalogRow = await supabase
+            .from('setlists')
+            .select('id')
+            .eq('band_id', newBandId)
+            .eq('is_catalog', true)
+            .maybeSingle();
+        final triggerCatalogId = triggerCatalogRow?['id'] as String?;
+
+        final rawSetlists =
+            (entry['setlists'] as List? ?? []).cast<Map<String, dynamic>>();
+
+        // Collect ALL backup catalog UUIDs — handles pre-existing duplicates.
+        final backupCatalogIds = rawSetlists
+            .where((s) => s['is_catalog'] == true)
+            .map((s) => s['id'] as String?)
+            .whereType<String>()
+            .toSet();
+
+        // Map ALL of them to the trigger-created catalog UUID.
+        // Empty when triggerCatalogId is null — safe no-op fallback.
+        final Map<String, String> setlistIdRemap = {};
+        if (triggerCatalogId != null) {
+          for (final id in backupCatalogIds) {
+            setlistIdRemap[id] = triggerCatalogId;
+          }
+        }
+
         // b. Remap band_id to newBandId in all child tables that carry it.
         List<Map<String, dynamic>> remapBandId(List<dynamic> rows) => rows
             .map((r) =>
@@ -421,9 +452,22 @@ class DataBackupService {
         // 4. Songs
         await _upsertRows('songs', remapBandId(entry['songs'] as List? ?? []));
 
-        // 5. Setlists
-        await _upsertRows(
-            'setlists', remapBandId(entry['setlists'] as List? ?? []));
+        // 5. Setlists — remap band_id; remap ALL catalog ids → trigger-uuid;
+        //    deduplicate so only one is_catalog=true row is upserted.
+        var catalogIncluded = false;
+        final remappedSetlists = rawSetlists.expand<Map<String, dynamic>>((s) {
+          final mapped = Map<String, dynamic>.from(s)..['band_id'] = newBandId;
+          final oldId = s['id'] as String?;
+          if (oldId != null && setlistIdRemap.containsKey(oldId)) {
+            mapped['id'] = setlistIdRemap[oldId];
+          }
+          if (mapped['is_catalog'] == true) {
+            if (catalogIncluded) return const []; // drop duplicate catalog rows
+            catalogIncluded = true;
+          }
+          return [mapped];
+        }).toList();
+        await _upsertRows('setlists', remappedSetlists);
 
         // 6. Setlist special items
         await _upsertRows(
@@ -431,9 +475,19 @@ class DataBackupService {
           remapBandId(entry['setlist_special_items'] as List? ?? []),
         );
 
-        // 7. Setlist songs (no band_id)
-        await _upsertRows(
-            'setlist_songs', entry['setlist_songs'] as List? ?? []);
+        // 7. Setlist songs — remap setlist_id for songs belonging to the catalog setlist
+        final rawSetlistSongs = (entry['setlist_songs'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
+        final remappedSetlistSongs = rawSetlistSongs.map((s) {
+          final mapped = Map<String, dynamic>.from(s);
+          final oldSetlistId = s['setlist_id'] as String?;
+          if (oldSetlistId != null &&
+              setlistIdRemap.containsKey(oldSetlistId)) {
+            mapped['setlist_id'] = setlistIdRemap[oldSetlistId];
+          }
+          return mapped;
+        }).toList();
+        await _upsertRows('setlist_songs', remappedSetlistSongs);
 
         // 8. Gigs
         await _upsertRows('gigs', remapBandId(entry['gigs'] as List? ?? []));

@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:confetti/confetti.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,6 +11,7 @@ import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/shared/widgets/animated_logo.dart';
+import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
 import '../feedback/bug_report_screen.dart';
@@ -15,6 +19,7 @@ import '../home/widgets/band_switcher.dart';
 import '../home/widgets/side_drawer.dart';
 import '../profile/my_profile_screen.dart';
 import '../profile/profile_screen.dart';
+import '../settings/data_backup_service.dart';
 import '../settings/settings_screen.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import 'overlay_state.dart';
@@ -67,6 +72,9 @@ class NoBandShell extends ConsumerWidget {
                   ? () => overlayNotifier.openBandSwitcher()
                   : null,
               isNewUser: isNewUser,
+              onRestoreSuccess: () {
+                ref.read(activeBandProvider.notifier).loadUserBands();
+              },
             ),
           ),
 
@@ -98,11 +106,13 @@ class _NoBandContent extends StatefulWidget {
   final VoidCallback onOpenMenu;
   final VoidCallback? onOpenBandSwitcher;
   final bool isNewUser;
+  final VoidCallback? onRestoreSuccess;
 
   const _NoBandContent({
     required this.onOpenMenu,
     this.onOpenBandSwitcher,
     this.isNewUser = false,
+    this.onRestoreSuccess,
   });
 
   @override
@@ -122,6 +132,8 @@ class _NoBandContentState extends State<_NoBandContent>
   late Animation<Offset> _titleSlide;
   late Animation<double> _bodyFade;
   late Animation<double> _createButtonScale;
+
+  bool _isImporting = false;
 
   @override
   void initState() {
@@ -211,6 +223,200 @@ class _NoBandContentState extends State<_NoBandContent>
     _buttonController.dispose();
     _confettiController?.dispose();
     super.dispose();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RESTORE FROM BACKUP
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildRestoreConfirmDialog(
+      BuildContext context, BandBackupStats stats) {
+    Widget statRow(String label, int count) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return AlertDialog(
+      backgroundColor: context.colors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded,
+              color: AppColors.primary, size: 24),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Restore from Backup?',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: TextStyle(
+                    color: context.colors.textSecondary, fontSize: 14),
+                children: [
+                  const TextSpan(text: 'A band named '),
+                  TextSpan(
+                    text: stats.bandName,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const TextSpan(
+                      text: ' will be recreated with the following data:'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            statRow('Members', stats.memberCount),
+            statRow('Songs', stats.songCount),
+            statRow('Setlists', stats.setlistCount),
+            statRow('Gigs', stats.gigCount),
+            statRow('Rehearsals', stats.rehearsalCount),
+            statRow('Block-out dates', stats.blockOutCount),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'This will create a new band and populate it with your '
+                'backup data. This cannot be undone.',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: context.colors.textSecondary),
+          ),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          child: const Text('Restore Band'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _performRestore() async {
+    // Step 1: File pick
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Could not open file picker.');
+      }
+      return;
+    }
+    if (result == null || result.files.single.bytes == null) return;
+
+    // Step 2: Decode bytes
+    final String jsonContent;
+    try {
+      jsonContent = utf8.decode(result.files.single.bytes!);
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context,
+            message: 'Could not read the selected file.');
+      }
+      return;
+    }
+
+    // Step 3: Validate and preview
+    final BandBackupStats stats;
+    try {
+      stats = DataBackupService.previewBackup(jsonContent);
+    } on DataBackupException catch (e) {
+      if (mounted) showErrorSnackBar(context, message: e.message);
+      return;
+    } catch (_) {
+      if (mounted) {
+        showErrorSnackBar(context,
+            message: 'This file does not appear to be a valid backup.');
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Step 4: Confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _buildRestoreConfirmDialog(context, stats),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // Step 5: Import
+    setState(() => _isImporting = true);
+    try {
+      await DataBackupService.importBandData(jsonContent, null);
+      if (mounted) {
+        showSuccessSnackBar(context, message: 'Band restored successfully!');
+        widget.onRestoreSuccess?.call();
+      }
+    } on DataBackupException catch (e) {
+      if (mounted) showErrorSnackBar(context, message: e.message);
+    } catch (e) {
+      if (mounted) {
+        final msg = e is Exception
+            ? e.toString().replaceFirst('Exception: ', '')
+            : e.toString();
+        showErrorSnackBar(context, message: 'Restore failed: $msg');
+      }
+    } finally {
+      if (mounted) setState(() => _isImporting = false);
+    }
   }
 
   @override
@@ -351,6 +557,39 @@ class _NoBandContentState extends State<_NoBandContent>
                                     AppTextStyles.button.copyWith(fontSize: 16),
                               ),
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(height: Spacing.space16),
+
+                        // Restore from backup — secondary action for users with no bands
+                        FadeTransition(
+                          opacity: _bodyFade,
+                          child: TextButton(
+                            onPressed: _isImporting ? null : _performRestore,
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: Spacing.space12,
+                                horizontal: Spacing.space16,
+                              ),
+                            ),
+                            child: _isImporting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.primary,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    'Restore from backup',
+                                    style: AppTextStyles.body.copyWith(
+                                      fontSize: 15,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
