@@ -1908,18 +1908,37 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     {'value': 'America/Halifax', 'label': 'Halifax (Atlantic)'},
     {'value': 'America/St_Johns', 'label': "St. John's (Newfoundland)"},
     {'value': 'America/Whitehorse', 'label': 'Whitehorse (Yukon – No DST)'},
+    // Mexico
+    {'value': null, 'label': 'Mexico', 'isHeader': true},
+    {'value': 'America/Mexico_City', 'label': 'Mexico City (GMT-6, -5 DST)'},
+    {'value': 'America/Cancun', 'label': 'Cancún (GMT-5)'},
+    {'value': 'America/Tijuana', 'label': 'Tijuana (GMT-8, -7 DST)'},
+    {'value': 'America/Hermosillo', 'label': 'Hermosillo (GMT-7)'},
+    {'value': 'America/Mazatlan', 'label': 'Mazatlán (GMT-7, -6 DST)'},
     // Europe
     {'value': null, 'label': 'Europe', 'isHeader': true},
-    {'value': 'Europe/London', 'label': 'London (Western European)'},
-    {'value': 'Europe/Dublin', 'label': 'Dublin (Western European)'},
-    {'value': 'Europe/Lisbon', 'label': 'Lisbon (Western European)'},
-    {'value': 'Europe/Madrid', 'label': 'Madrid (Central European)'},
-    {'value': 'Europe/Paris', 'label': 'Paris (Central European)'},
-    {'value': 'Europe/Amsterdam', 'label': 'Amsterdam (Central European)'},
-    {'value': 'Europe/Berlin', 'label': 'Berlin (Central European)'},
-    {'value': 'Europe/Zurich', 'label': 'Zurich (Central European)'},
-    {'value': 'Europe/Rome', 'label': 'Rome (Central European)'},
-    {'value': 'Europe/Stockholm', 'label': 'Stockholm (Central European)'},
+    {'value': 'Europe/London', 'label': 'London (GMT+0, +1 DST)'},
+    {'value': 'Europe/Dublin', 'label': 'Dublin (GMT+0, +1 DST)'},
+    {'value': 'Europe/Lisbon', 'label': 'Lisbon (GMT+0, +1 DST)'},
+    {'value': 'Europe/Madrid', 'label': 'Madrid (GMT+1, +2 DST)'},
+    {'value': 'Europe/Paris', 'label': 'Paris (GMT+1, +2 DST)'},
+    {'value': 'Europe/Amsterdam', 'label': 'Amsterdam (GMT+1, +2 DST)'},
+    {'value': 'Europe/Berlin', 'label': 'Berlin (GMT+1, +2 DST)'},
+    {'value': 'Europe/Zurich', 'label': 'Zurich (GMT+1, +2 DST)'},
+    {'value': 'Europe/Rome', 'label': 'Rome (GMT+1, +2 DST)'},
+    {'value': 'Europe/Stockholm', 'label': 'Stockholm (GMT+1, +2 DST)'},
+    // South America
+    {'value': null, 'label': 'South America', 'isHeader': true},
+    {'value': 'America/Sao_Paulo', 'label': 'São Paulo (GMT-3)'},
+    {
+      'value': 'America/Argentina/Buenos_Aires',
+      'label': 'Buenos Aires (GMT-3)'
+    },
+    {'value': 'America/Santiago', 'label': 'Santiago (GMT-4, -3 DST)'},
+    {'value': 'America/Lima', 'label': 'Lima (GMT-5)'},
+    {'value': 'America/Bogota', 'label': 'Bogotá (GMT-5)'},
+    {'value': 'America/Caracas', 'label': 'Caracas (GMT-4)'},
+    {'value': 'America/La_Paz', 'label': 'La Paz (GMT-4)'},
   ];
 
   Widget _buildTimezoneSection() {
