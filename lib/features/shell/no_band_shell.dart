@@ -60,6 +60,12 @@ class NoBandShell extends ConsumerWidget {
       error: (_, __) => '',
     );
 
+    // Add defensive guards for fresh account state
+    // userBands is non-nullable (defaults to empty list) so isNotEmpty check is safe
+    // activeBand can be null on fresh accounts - already handled with null-aware operator
+    final userBands = bandState.userBands;
+    final activeBandId = bandState.activeBand?.id;
+
     return Scaffold(
       backgroundColor: context.colors.background,
       body: Stack(
@@ -68,7 +74,7 @@ class NoBandShell extends ConsumerWidget {
           Positioned.fill(
             child: _NoBandContent(
               onOpenMenu: () => overlayNotifier.openMenuDrawer(),
-              onOpenBandSwitcher: bandState.userBands.isNotEmpty
+              onOpenBandSwitcher: userBands.isNotEmpty
                   ? () => overlayNotifier.openBandSwitcher()
                   : null,
               isNewUser: isNewUser,
@@ -92,8 +98,8 @@ class NoBandShell extends ConsumerWidget {
             _BandSwitcherLayer(
               isOpen: true,
               onClose: overlayNotifier.closeOverlay,
-              bands: bandState.userBands,
-              activeBandId: bandState.activeBand?.id,
+              bands: userBands,
+              activeBandId: activeBandId,
             ),
         ],
       ),
@@ -704,6 +710,9 @@ class _BandSwitcherLayer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // bands parameter is non-nullable List<Band> - no null check needed
+    // but add empty check for safety before accessing isEmpty
+
     return BandSwitcherOverlayContent(
       isOpen: isOpen,
       onClose: onClose,

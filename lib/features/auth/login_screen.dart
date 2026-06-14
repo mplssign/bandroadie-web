@@ -25,7 +25,7 @@
 // ============================================================================
 
 import 'dart:async';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, SocketException;
 
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
@@ -86,6 +86,16 @@ class _LoginScreenState extends State<LoginScreen>
 
   /// Auto-reset timer — clears tap count after 3 seconds of inactivity.
   Timer? _logoTapResetTimer;
+
+  // === MAGIC LINK COOLDOWN ===
+  /// Cooldown timer to prevent rapid-fire magic link requests
+  Timer? _cooldownTimer;
+
+  /// Remaining cooldown seconds (0 = no cooldown active)
+  int _cooldownSeconds = 0;
+
+  /// Cooldown duration in seconds
+  static const int _cooldownDuration = 60;
 
   @override
   void initState() {
@@ -305,6 +315,7 @@ class _LoginScreenState extends State<LoginScreen>
     _animController.dispose();
     _logoShrinkController.dispose();
     _logoTapResetTimer?.cancel();
+    _cooldownTimer?.cancel();
     super.dispose();
   }
 
@@ -349,11 +360,39 @@ class _LoginScreenState extends State<LoginScreen>
     _sendMagicLink();
   }
 
+  /// Starts the 60-second cooldown timer after sending a magic link
+  void _startCooldownTimer() {
+    setState(() {
+      _cooldownSeconds = _cooldownDuration;
+    });
+
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _cooldownSeconds--;
+        if (_cooldownSeconds <= 0) {
+          timer.cancel();
+          _cooldownTimer = null;
+        }
+      });
+    });
+  }
+
   Future<void> _sendMagicLink() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
       setState(() => _message = 'Please enter your email');
+      return;
+    }
+
+    // Don't allow sending if cooldown is active
+    if (_cooldownSeconds > 0) {
       return;
     }
 
@@ -380,8 +419,25 @@ class _LoginScreenState extends State<LoginScreen>
         emailRedirectTo: redirectUrl,
       );
 
+      // Start cooldown timer after successful send
+      _startCooldownTimer();
+
       setState(() {
         _message = 'Check your email for the login link';
+        _isLoading = false;
+      });
+    } on SocketException catch (e) {
+      debugPrint('SocketException: No internet connection - $e');
+      setState(() {
+        _message =
+            'No internet connection. Please check your connection and try again.';
+        _isLoading = false;
+      });
+    } on TimeoutException catch (e) {
+      debugPrint('TimeoutException: Request timed out - $e');
+      setState(() {
+        _message =
+            'No internet connection. Please check your connection and try again.';
         _isLoading = false;
       });
     } on AuthException catch (e) {
@@ -680,6 +736,12 @@ class _LoginScreenState extends State<LoginScreen>
 
   /// Login button with scale + fade animation.
   Widget _buildLoginButton({required bool hasValidEmail}) {
+    final bool isDisabled =
+        _isLoading || !hasValidEmail || _cooldownSeconds > 0;
+    final String buttonText = _cooldownSeconds > 0
+        ? 'Resend in ${_cooldownSeconds}s'
+        : 'Email Login Link';
+
     return FadeTransition(
       opacity: _buttonOpacity,
       child: ScaleTransition(
@@ -687,7 +749,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _isLoading || !hasValidEmail ? null : _sendMagicLink,
+            onPressed: isDisabled ? null : _sendMagicLink,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
@@ -705,9 +767,10 @@ class _LoginScreenState extends State<LoginScreen>
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Email Login Link',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                : Text(
+                    buttonText,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
           ),
         ),

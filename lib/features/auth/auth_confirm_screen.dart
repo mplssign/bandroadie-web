@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -176,12 +179,54 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           debugPrint('   Session expires: ${session.expiresAt}');
         } catch (e) {
           debugPrint('❌ PKCE exchange failed: $e');
+
+          // Detect network errors first
+          if (e is SocketException) {
+            debugPrint('   Classification: Network error (no connection)');
+            setState(() {
+              _error = 'network_error';
+              _loading = false;
+            });
+            return;
+          }
+          if (e is TimeoutException) {
+            debugPrint('   Classification: Network timeout');
+            setState(() {
+              _error = 'network_error';
+              _loading = false;
+            });
+            return;
+          }
+
           final errorMessage = e.toString().toLowerCase();
           // Detect specific error types
+
+          // PKCE code verifier issues (link expired or wrong browser)
+          if (errorMessage.contains('invalid_grant') ||
+              errorMessage.contains('code_verifier') ||
+              errorMessage.contains('code verifier')) {
+            debugPrint(
+                '   Classification: PKCE code verifier mismatch or expired');
+            setState(() {
+              _error = 'pkce_code_verifier_error';
+              _loading = false;
+            });
+            return;
+          }
+
+          // Email scanner consumed the link
+          if (errorMessage.contains('already been consumed')) {
+            debugPrint('   Classification: Link consumed by email scanner');
+            setState(() {
+              _error = 'email_scanner_consumed';
+              _loading = false;
+            });
+            return;
+          }
+
           final isExpired = errorMessage.contains('expired') ||
               errorMessage.contains('invalid');
-          final isBrowserMismatch = errorMessage.contains('code verifier') ||
-              errorMessage.contains('pkce');
+          final isBrowserMismatch = errorMessage.contains('pkce');
           setState(() {
             _error = isExpired
                 ? 'expired_link'
@@ -290,6 +335,20 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       setState(() {
         _loading = false;
       });
+    } on SocketException catch (e) {
+      debugPrint('❌ NETWORK ERROR: No internet connection');
+      debugPrint('   Details: $e');
+      setState(() {
+        _error = 'network_error';
+        _loading = false;
+      });
+    } on TimeoutException catch (e) {
+      debugPrint('❌ TIMEOUT ERROR: Request timed out');
+      debugPrint('   Details: $e');
+      setState(() {
+        _error = 'network_error';
+        _loading = false;
+      });
     } on AuthException catch (e) {
       debugPrint('❌ AUTH EXCEPTION: ${e.message}');
       debugPrint('   Status code: ${e.statusCode}');
@@ -298,16 +357,21 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       final errorMsg = e.message.toLowerCase();
       String errorType;
 
-      if (errorMsg.contains('expired') || errorMsg.contains('invalid grant')) {
+      // PKCE code verifier issues (link expired or wrong browser)
+      if (errorMsg.contains('invalid_grant') ||
+          errorMsg.contains('code_verifier') ||
+          errorMsg.contains('code verifier')) {
+        errorType = 'pkce_code_verifier_error';
+        debugPrint('   Classification: PKCE code verifier mismatch or expired');
+      } else if (errorMsg.contains('already been consumed')) {
+        errorType = 'email_scanner_consumed';
+        debugPrint('   Classification: Link consumed by email scanner');
+      } else if (errorMsg.contains('expired')) {
         errorType = 'expired_link';
         debugPrint('   Classification: Expired or reused link');
-      } else if (errorMsg.contains('code verifier') ||
-          errorMsg.contains('pkce')) {
+      } else if (errorMsg.contains('pkce')) {
         errorType = 'browser_mismatch';
         debugPrint('   Classification: Browser mismatch (PKCE)');
-      } else if (errorMsg.contains('already been consumed')) {
-        errorType = 'reused_link';
-        debugPrint('   Classification: Link already used');
       } else if (e.message.isEmpty) {
         errorType = 'unknown_error';
         debugPrint('   Classification: Unknown error (empty message)');
@@ -415,8 +479,36 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     String title;
     String message;
     Color iconColor;
+    bool showRetryButton = false;
+    bool navigateToLogin = false;
 
     switch (_error) {
+      case 'pkce_code_verifier_error':
+        icon = Icons.timer_off;
+        iconColor = Colors.orange;
+        title = 'Magic Link Expired';
+        message =
+            'This magic link has expired or was opened in the wrong browser. '
+            'Please go back and request a new one.';
+        navigateToLogin = true;
+        break;
+      case 'email_scanner_consumed':
+        icon = Icons.security;
+        iconColor = Colors.orange;
+        title = 'Link Already Used';
+        message =
+            'This link was already used. If you use Outlook or corporate email, '
+            'security scanners sometimes open links automatically. '
+            'Please request a new magic link.';
+        navigateToLogin = true;
+        break;
+      case 'network_error':
+        icon = Icons.wifi_off;
+        iconColor = Colors.orange;
+        title = 'No Internet Connection';
+        message = 'Please check your connection and try again.';
+        showRetryButton = true;
+        break;
       case 'expired_link':
       case 'reused_link':
         icon = Icons.timer_off;
@@ -476,16 +568,59 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
-            icon: const Icon(AppIcons.email),
-            label: const Text('Request New Magic Link'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          if (showRetryButton)
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _loading = true;
+                  _error = null;
+                });
+                _handleConfirm();
+              },
+              icon: const Icon(AppIcons.refresh),
+              label: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            )
+          else if (navigateToLogin)
+            ElevatedButton.icon(
+              onPressed: () {
+                // Navigate back to login screen
+                if (kIsWeb) {
+                  Navigator.of(context).pushReplacementNamed('/app');
+                } else {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const AuthGate()),
+                    (route) => false,
+                  );
+                }
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back to Login'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            )
+          else
+            ElevatedButton.icon(
+              onPressed: () =>
+                  Navigator.of(context).pushReplacementNamed('/app'),
+              icon: const Icon(AppIcons.email),
+              label: const Text('Request New Magic Link'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
             ),
-          ),
         ],
       ),
     );

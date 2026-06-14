@@ -294,15 +294,44 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         _loadPersistedBandId(),
       ]);
 
-      final bands = results[0] as List<Band>;
+      // Add defensive null/empty guards for band loading
+      final bandsResult = results[0];
+      if (bandsResult == null) {
+        debugPrint(
+            '[ActiveBand] ⚠️ Band fetch returned null, defaulting to empty list');
+        state = state.copyWith(
+          userBands: const [],
+          activeBand: null,
+          clearActiveBand: true,
+          isLoading: false,
+        );
+        return;
+      }
+
+      final bands = bandsResult as List<Band>;
+
+      // Explicit empty-array check before any operations
+      if (bands.isEmpty) {
+        debugPrint('[ActiveBand] No bands found for user');
+        state = state.copyWith(
+          userBands: const [],
+          activeBand: null,
+          clearActiveBand: true,
+          isLoading: false,
+        );
+        return;
+      }
+
       final persistedId = results[1] as String?;
       Band? selected;
 
-      if (persistedId != null) {
+      // Explicit null check before iterating userBands
+      if (persistedId != null && persistedId.isNotEmpty) {
         selected = bands.where((b) => b.id == persistedId).firstOrNull;
       }
 
       // If persisted band not found (or no persisted ID), use first band
+      // Additional empty check before accessing first (belt-and-suspenders)
       if (selected == null && bands.isNotEmpty) {
         selected = bands.first;
         await _persistBandId(selected.id);
@@ -314,6 +343,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         isLoading: false,
       );
     } catch (e) {
+      debugPrint('[ActiveBand] ❌ Failed to load bands: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load bands: $e',
@@ -367,6 +397,18 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     try {
       final bands = await _bandRepository.fetchUserBands();
 
+      // Add defensive null/empty guards
+      if (bands.isEmpty) {
+        debugPrint('[ActiveBand] ⚠️ loadAndSelectBand: No bands found');
+        state = state.copyWith(
+          userBands: const [],
+          activeBand: null,
+          clearActiveBand: true,
+          isLoading: false,
+        );
+        return;
+      }
+
       // Select the requested band, falling back to first
       Band? selected = bands.where((b) => b.id == bandId).firstOrNull;
       selected ??= bands.firstOrNull;
@@ -388,6 +430,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
       });
     } catch (e) {
+      debugPrint('[ActiveBand] ❌ loadAndSelectBand failed: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load bands: $e',
@@ -403,13 +446,24 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     try {
       final bands = await _bandRepository.fetchUserBands();
 
+      // Add defensive null/empty guards
+      if (bands.isEmpty) {
+        debugPrint('[ActiveBand] ⚠️ refreshBands: No bands found');
+        state = state.copyWith(
+          userBands: const [],
+          activeBand: null,
+          clearActiveBand: true,
+        );
+        return;
+      }
+
       // Find the current active band in the refreshed list
       Band? selected;
-      if (currentActiveId != null) {
+      if (currentActiveId != null && currentActiveId.isNotEmpty) {
         selected = bands.where((b) => b.id == currentActiveId).firstOrNull;
       }
 
-      // If not found, use first band
+      // If not found, use first band (with additional empty check)
       if (selected == null && bands.isNotEmpty) {
         selected = bands.first;
         await _persistBandId(selected.id);
@@ -417,6 +471,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
       state = state.copyWith(userBands: bands, activeBand: selected);
     } catch (e) {
+      debugPrint('[ActiveBand] ⚠️ refreshBands failed: $e');
       // Silently fail - keep current state
     }
   }
