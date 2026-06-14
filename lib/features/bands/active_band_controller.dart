@@ -334,6 +334,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
     await _persistBandId(band.id);
     state = state.copyWith(activeBand: band);
+    ref.invalidate(displayBandProvider);
 
     // Force permissions to re-fetch for the new band context
     ref.invalidate(currentUserPermissionsProvider);
