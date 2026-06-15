@@ -33,15 +33,14 @@ class AuthGate extends ConsumerStatefulWidget {
 class _AuthGateState extends ConsumerState<AuthGate>
     with WidgetsBindingObserver {
   bool _showSplash =
-      !kIsWeb; // Skip video splash on web — browser pauses video on lifecycle.inactive, causing onComplete to never fire
+      !kIsWeb;
   bool _initialized = false;
   bool _checkingProfile = false;
   bool? _profileComplete;
-  bool _profileSkipped = false; // User chose to skip profile completion
-  bool _isNewUser = false; // True when user just passed through profile gate
+  bool _profileSkipped = false;
+  bool _isNewUser = false;
   bool _processingPendingInvite = false;
-  bool _hasCheckedPendingInvites =
-      false; // Guard: only check invites once per session
+  bool _hasCheckedPendingInvites = false;
   String? _pendingInviteMessage;
 
   /// Track previous lifecycle state to detect meaningful transitions.
@@ -58,7 +57,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
     WidgetsBinding.instance.addObserver(this);
     _initializeAuth();
     _startSessionSyncTimer();
-    // Splash is skipped on web — mark complete immediately so dashboard doesn't wait
     if (kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) ref.read(splashCompleteProvider.notifier).markComplete();
@@ -113,7 +111,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
     // Refresh auth state when returning to active state
     // This handles: paused->resumed, inactive->resumed, hidden->resumed
     if (state == AppLifecycleState.resumed) {
-      debugPrint('[AuthGate] App resumed - refreshing auth state...');
       // Use post-frame callback to ensure Flutter has fully resumed
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -132,13 +129,10 @@ class _AuthGateState extends ConsumerState<AuthGate>
   void _initializeAuth() {
     _initialized = true;
 
-    // Check initial session from provider
     final authState = ref.read(authStateProvider);
     debugPrint(
       '[AuthGate] Initial session: ${authState.isAuthenticated ? "present" : "null"}',
     );
-
-    // Listen for auth state changes to trigger profile check
     ref.listenManual(authStateProvider, (previous, next) {
       debugPrint(
         '[AuthGate] Auth state changed: ${previous?.isAuthenticated} -> ${next.isAuthenticated}',
@@ -147,33 +141,27 @@ class _AuthGateState extends ConsumerState<AuthGate>
       // Session state changed
       if (previous?.isAuthenticated != next.isAuthenticated) {
         if (next.isAuthenticated) {
-          // New session - reset profile check, skip state, and invite check
           setState(() {
             _profileComplete = null;
             _profileSkipped = false;
-            _hasCheckedPendingInvites =
-                false; // Allow invite check for new session
+            _hasCheckedPendingInvites = false;
           });
           _checkProfileComplete();
-          // Register FCM token for push notifications (iOS, Android, and Web)
           if (kIsWeb || Platform.isIOS || Platform.isAndroid) {
             _registerPushToken();
           }
         } else {
-          // Signed out - reset all state
           setState(() {
             _profileComplete = null;
             _profileSkipped = false;
-            _hasCheckedPendingInvites = false; // Reset for next login
+            _hasCheckedPendingInvites = false;
           });
         }
       }
     });
 
-    // If we have a session, check profile completeness
     if (authState.isAuthenticated) {
       _checkProfileComplete();
-      // Also register push token for existing sessions (iOS, Android, and Web)
       if (kIsWeb || Platform.isIOS || Platform.isAndroid) {
         _registerPushToken();
       }
@@ -183,19 +171,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
   /// Register FCM token for push notifications
   Future<void> _registerPushToken() async {
     try {
-      debugPrint('[AuthGate] Starting push token registration...');
       final service = ref.read(pushNotificationServiceProvider);
       await service.initialize();
-      debugPrint('[AuthGate] Push service initialized');
 
-      // Check if permission already granted, if not request it
       var hasPermission = await service.hasPermission();
-      debugPrint('[AuthGate] Has permission: $hasPermission');
 
       if (!hasPermission) {
-        // Request permission if not already granted
         hasPermission = await service.requestPermission();
-        debugPrint('[AuthGate] Permission requested, result: $hasPermission');
       }
 
       if (hasPermission) {
@@ -231,8 +213,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
         return;
       }
 
-      debugPrint('[AuthGate] Checking profile completeness for user: $userId');
-
       final response = await supabase
           .from('users')
           .select('first_name, last_name')
@@ -247,20 +227,14 @@ class _AuthGateState extends ConsumerState<AuthGate>
           lastName != null &&
           lastName.trim().isNotEmpty;
 
-      debugPrint(
-        '[AuthGate] Profile complete: $isComplete (firstName: $firstName, lastName: $lastName)',
-      );
-
       if (mounted) {
         setState(() {
           _profileComplete = isComplete;
           _checkingProfile = false;
         });
 
-        // If profile is complete, check for pending invites then trigger band loading
         if (isComplete) {
           await _checkAndProcessPendingInvite();
-          // Await band loading to ensure bands are loaded after invites are processed
           await ref.read(activeBandProvider.notifier).loadUserBands();
         }
       }
@@ -268,12 +242,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
       debugPrint('[AuthGate] Error checking profile: $e');
       if (mounted) {
         setState(() {
-          // On error, assume complete so transient network failures don't
-          // force existing users through the profile gate.
           _profileComplete = true;
           _checkingProfile = false;
         });
-        // Still try to load bands so the app is functional
         await _checkAndProcessPendingInvite();
         await ref.read(activeBandProvider.notifier).loadUserBands();
       }
@@ -281,13 +252,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
   }
 
   /// Check for pending invitations by email and process them via edge function.
-  /// Only runs once per app session to prevent repeated snackbars.
   Future<void> _checkAndProcessPendingInvite() async {
-    // Guard: Only check pending invites once per session
     if (_hasCheckedPendingInvites) {
-      debugPrint(
-        '[AuthGate] Skipping pending invite check - already checked this session',
-      );
       return;
     }
 
@@ -297,17 +263,15 @@ class _AuthGateState extends ConsumerState<AuthGate>
         return;
       }
 
-      // Mark as checked immediately to prevent concurrent calls
       _hasCheckedPendingInvites = true;
 
       setState(() {
         _processingPendingInvite = true;
       });
 
-      // Call the edge function which has admin privileges to accept invites
       final response = await supabase.functions.invoke(
         'accept-invite',
-        body: {}, // No body needed, uses JWT for auth
+        body: {},
       );
 
       if (response.status != 200) {
@@ -316,9 +280,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
         });
         return;
       }
-
-      // Response data available if needed: response.data
-      // Don't show success message - user doesn't need notification
 
       if (mounted) {
         setState(() {
@@ -367,14 +328,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
   @override
   Widget build(BuildContext context) {
-    // Watch auth state from provider - this is reactive!
-    // Any change to auth state will trigger a rebuild
     final authState = ref.watch(authStateProvider);
 
-    debugPrint(
-        '[AuthGate] build() - _showSplash=$_showSplash, authenticated=${authState.isAuthenticated}');
-
-    // Show splash screen with auth content underneath
     if (_showSplash) {
       final authContent = _buildAuthContent(context, authState);
       return Stack(
@@ -382,19 +337,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
           authContent,
           SplashScreen(
             onComplete: () {
-              debugPrint('[AuthGate] Splash completed, hiding splash screen');
               setState(() => _showSplash = false);
-              // Signal that splash is complete so dashboard can start entrance animation
               ref.read(splashCompleteProvider.notifier).markComplete();
             },
           ),
         ],
       );
     }
-
-    // CRITICAL FIX: Explicit fallback for unauthenticated state after splash completes.
-    // This ensures login screen is always visible for logged-out users.
-    // Added after splash-screen-video regression (bug/auth-gate-blank-screen-after-splash).
     if (!authState.isAuthenticated) {
       // Double-check Supabase directly to prevent showing login to authenticated users
       final directSession = supabase.auth.currentSession;
@@ -406,7 +355,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
           step: 'AuthGate.build',
           message: 'State mismatch - forcing refresh',
         );
-        // Force sync and show loading while we sync
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             ref.read(authStateProvider.notifier).refreshSession();
@@ -424,12 +372,10 @@ class _AuthGateState extends ConsumerState<AuthGate>
       return const LoginScreen();
     }
 
-    // User is authenticated - delegate to full auth content logic
     return _buildAuthContent(context, authState);
   }
 
   Widget _buildAuthContent(BuildContext context, AppAuthState authState) {
-    // Show loading while initializing
     if (!_initialized) {
       return Scaffold(
         backgroundColor: context.colors.background,
@@ -439,8 +385,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
     }
 
-    // No session -> show login
-    // This check uses the reactive provider state
     if (!authState.isAuthenticated) {
       // SAFEGUARD: Double-check Supabase directly to prevent showing login
       // to authenticated users. This catches edge cases where provider state
@@ -454,13 +398,11 @@ class _AuthGateState extends ConsumerState<AuthGate>
           step: 'AuthGate.build',
           message: 'State mismatch - forcing refresh',
         );
-        // Force sync and skip showing login
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             ref.read(authStateProvider.notifier).refreshSession();
           }
         });
-        // Show loading while we sync instead of login screen
         return Scaffold(
           backgroundColor: context.colors.background,
           body: Center(
@@ -478,16 +420,12 @@ class _AuthGateState extends ConsumerState<AuthGate>
       return const LoginScreen();
     }
 
-    // Session exists - check if we need to verify profile
-    // Trigger profile check if not already done
     if (_profileComplete == null && !_checkingProfile) {
-      // Schedule profile check for next frame to avoid setState during build
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _checkProfileComplete();
       });
     }
 
-    // Session exists but still checking profile or processing pending invite
     if (_profileComplete == null ||
         _checkingProfile ||
         _processingPendingInvite) {
@@ -511,7 +449,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
     }
 
-    // Profile incomplete and not skipped -> show profile screen with skip option
     if (_profileComplete == false && !_profileSkipped) {
       AuthDebugLogger.routerTransition(
         from: 'login',
@@ -524,11 +461,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
     }
 
-    // Profile complete -> check if user has bands
-    // Watch the activeBandProvider to get user's bands
     final bandState = ref.watch(activeBandProvider);
-
-    // Still loading bands
     if (bandState.isLoading) {
       return Scaffold(
         backgroundColor: context.colors.background,
@@ -538,10 +471,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
     }
 
-    // Build the main content
     Widget mainContent;
-
-    // No bands -> show NoBandShell (welcome page with menu/band switcher, no footer)
     if (bandState.userBands.isEmpty) {
       AuthDebugLogger.routerTransition(
         from: 'profile_gate',
@@ -550,7 +480,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
       mainContent = NoBandShell(isNewUser: _isNewUser);
     } else {
-      // Has bands -> full app access
       AuthDebugLogger.routerTransition(
         from: 'profile_gate',
         to: 'app_shell',
@@ -559,7 +488,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
       mainContent = const AppShell();
     }
 
-    // Show success banner if pending invite was just accepted
     if (_pendingInviteMessage != null) {
       return Stack(
         children: [

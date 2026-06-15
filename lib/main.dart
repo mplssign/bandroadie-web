@@ -39,13 +39,10 @@ Future<void> main() async {
     usePathUrlStrategy();
   }
 
-  // Lock app to portrait mode only
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // Initialize app version service
   await AppVersionService.init();
 
-  // Validate credentials - returns error message if missing
   final configError = validateSupabaseConfig();
   if (configError != null) {
     // Show error UI instead of crashing
@@ -176,13 +173,11 @@ class BandRoadieApp extends ConsumerWidget {
         }
 
         if (uri.path == '/privacy') {
-          // Use custom fade+slide transition for all routes
           return fadeSlideRoute(
             page: const PrivacyPolicyScreen(),
             settings: settings,
           );
         }
-        // Invite route - handles band invitations with token
         if (uri.path == '/invite') {
           final token = uri.queryParameters['token'];
           return fadeSlideRoute(
@@ -203,7 +198,6 @@ class BandRoadieApp extends ConsumerWidget {
             settings: settings,
           );
         }
-        // Default: landing page on marketing host, AuthGate otherwise
         if (kIsWeb && _isMarketingHost()) {
           return fadeSlideRoute(page: const LandingPage(), settings: settings);
         }
@@ -212,7 +206,6 @@ class BandRoadieApp extends ConsumerWidget {
           settings: settings,
         );
       },
-      // Fallback for unknown routes
       onUnknownRoute: (settings) => fadeSlideRoute(
         page: kIsWeb && _isMarketingHost()
             ? const LandingPage()
@@ -225,7 +218,6 @@ class BandRoadieApp extends ConsumerWidget {
 
 // ============================================================================
 // CONFIG ERROR APP
-// Shown when Supabase credentials are missing. Friendly error UI.
 // ============================================================================
 
 class ConfigErrorApp extends StatelessWidget {
@@ -249,7 +241,6 @@ class ConfigErrorApp extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Error icon
                   Container(
                     width: 80,
                     height: 80,
@@ -280,7 +271,6 @@ class ConfigErrorApp extends StatelessWidget {
                         color: BrandColors.dark.textSecondary, fontSize: 16),
                   ),
                   const SizedBox(height: 32),
-                  // Technical details
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(

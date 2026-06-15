@@ -52,34 +52,11 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
 
   @override
   AppAuthState build() {
-    // Get initial session
     final session = supabase.Supabase.instance.client.auth.currentSession;
-    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    debugPrint('🔐 AUTH STATE PROVIDER: Initializing');
-    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    debugPrint('   Session: ${session != null ? "✅ Present" : "❌ None"}');
-    if (session != null) {
-      debugPrint('   User: ${session.user.email}');
-      debugPrint(
-        '   Expires: ${DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000)}',
-      );
-    }
-    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    // Listen for auth state changes
     _authSubscription?.cancel();
     _authSubscription = supabase.Supabase.instance.client.auth.onAuthStateChange
         .listen((data) {
-          debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          debugPrint('🔔 AUTH EVENT: ${data.event.name}');
-          debugPrint(
-            '   Session: ${data.session != null ? "✅ Present" : "❌ None"}',
-          );
-          if (data.session != null) {
-            debugPrint('   User: ${data.session!.user.email}');
-          }
-          debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
           AuthDebugLogger.authStateUpdated(
             isAuthenticated: data.session != null,
             trigger: 'onAuthStateChange:${data.event.name}',
@@ -87,38 +64,30 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
 
           switch (data.event) {
             case supabase.AuthChangeEvent.signedIn:
-              debugPrint('   ↳ Updating state: SIGNED_IN');
               state = AppAuthState(session: data.session);
               break;
             case supabase.AuthChangeEvent.tokenRefreshed:
-              debugPrint('   ↳ Updating state: TOKEN_REFRESHED');
               state = AppAuthState(session: data.session);
               break;
             case supabase.AuthChangeEvent.userUpdated:
-              debugPrint('   ↳ Updating state: USER_UPDATED');
               state = AppAuthState(session: data.session);
               break;
 
             case supabase.AuthChangeEvent.signedOut:
-              debugPrint('   ↳ Updating state: SIGNED_OUT');
               state = const AppAuthState(session: null);
               break;
 
             case supabase.AuthChangeEvent.initialSession:
-              debugPrint('   ↳ Updating state: INITIAL_SESSION');
               state = AppAuthState(session: data.session);
               break;
 
             default:
-              debugPrint('   ↳ Other event: ${data.event.name}');
-              // passwordRecovery, mfaChallengeVerified, etc.
               if (data.session != null) {
                 state = AppAuthState(session: data.session);
               }
           }
         });
 
-    // Clean up subscription when provider is disposed
     ref.onDispose(() {
       debugPrint('[AuthStateNotifier] Disposing auth subscription');
       _authSubscription?.cancel();
@@ -128,33 +97,23 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
   }
 
   /// Force refresh the current session state.
-  /// Useful when app resumes from background or after deep link auth.
-  /// Always updates state to ensure UI rebuilds - critical for iPad multitasking.
   void refreshSession() {
     final currentSession =
         supabase.Supabase.instance.client.auth.currentSession;
     final currentToken = currentSession?.accessToken;
     final stateToken = state.session?.accessToken;
 
-    debugPrint(
-      '[AuthStateNotifier] Refresh session: current=${currentToken != null}, state=${stateToken != null}',
-    );
-
-    // Compare by access token to detect actual session changes
-    // Also force update if session presence changed (null -> non-null or vice versa)
     final sessionPresenceChanged =
         (currentSession == null) != (state.session == null);
     final tokenChanged = currentToken != stateToken;
 
     if (sessionPresenceChanged || tokenChanged) {
-      debugPrint('[AuthStateNotifier] Session changed, updating state');
       AuthDebugLogger.authStateUpdated(
         isAuthenticated: currentSession != null,
         trigger: 'refreshSession',
       );
       state = AppAuthState(session: currentSession);
     } else {
-      debugPrint('[AuthStateNotifier] Session unchanged, no update needed');
       AuthDebugLogger.providerRefresh(
         provider: 'authStateProvider',
         hasSession: currentSession != null,
@@ -175,19 +134,13 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
   }
 
   /// Force an immediate state update regardless of current state.
-  /// Use this as a safeguard when session state might be out of sync.
-  /// This ALWAYS triggers a rebuild, even if session hasn't changed.
   void forceRefresh() {
     final currentSession =
         supabase.Supabase.instance.client.auth.currentSession;
-    debugPrint(
-      '[AuthStateNotifier] Force refresh: ${currentSession != null ? "authenticated" : "no session"}',
-    );
     AuthDebugLogger.authStateUpdated(
       isAuthenticated: currentSession != null,
       trigger: 'forceRefresh',
     );
-    // Always create new state object to guarantee rebuild
     state = AppAuthState(session: currentSession);
   }
 }

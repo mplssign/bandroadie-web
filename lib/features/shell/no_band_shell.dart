@@ -27,9 +27,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // NO BAND SHELL
-// Shown when user has completed profile but has no bands.
-// Has menu and band switcher access but NO footer tabs.
-// User can create a band or wait for an invite.
 // ============================================================================
 
 class NoBandShell extends ConsumerWidget {
@@ -43,11 +40,9 @@ class NoBandShell extends ConsumerWidget {
     final overlayNotifier = ref.read(overlayStateProvider.notifier);
     final bandState = ref.watch(activeBandProvider);
 
-    // Get user info for drawer
     final user = Supabase.instance.client.auth.currentUser;
     final userEmail = user?.email ?? '';
 
-    // Watch the user profile provider to get first_name and last_name from database
     final profileAsync = ref.watch(userProfileProvider);
     final userName = profileAsync.when(
       data: (profile) {
@@ -60,9 +55,6 @@ class NoBandShell extends ConsumerWidget {
       error: (_, __) => '',
     );
 
-    // Add defensive guards for fresh account state
-    // userBands is non-nullable (defaults to empty list) so isNotEmpty check is safe
-    // activeBand can be null on fresh accounts - already handled with null-aware operator
     final userBands = bandState.userBands;
     final activeBandId = bandState.activeBand?.id;
 
@@ -70,7 +62,6 @@ class NoBandShell extends ConsumerWidget {
       backgroundColor: context.colors.background,
       body: Stack(
         children: [
-          // Welcome content (no footer)
           Positioned.fill(
             child: _NoBandContent(
               onOpenMenu: () => overlayNotifier.openMenuDrawer(),
@@ -84,7 +75,6 @@ class NoBandShell extends ConsumerWidget {
             ),
           ),
 
-          // Menu drawer overlay
           if (overlayState == ActiveOverlay.menuDrawer)
             _MenuDrawerLayer(
               isOpen: true,
@@ -93,7 +83,6 @@ class NoBandShell extends ConsumerWidget {
               userEmail: userEmail,
             ),
 
-          // Band switcher overlay (for creating new band)
           if (overlayState == ActiveOverlay.bandSwitcher)
             _BandSwitcherLayer(
               isOpen: true,

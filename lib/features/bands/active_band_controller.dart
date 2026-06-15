@@ -14,37 +14,16 @@ import 'band_repository.dart';
 
 // ============================================================================
 // ACTIVE BAND CONTROLLER
-// Single source of truth for band state with persistence.
-//
-// ARCHITECTURE:
-// - Band list is fetched from Supabase (userBands)
-// - Active band ID is persisted to SharedPreferences
-// - Active band is derived from userBands + persisted ID
-// - Draft band state for real-time preview during editing
-//
-// ISOLATION RULES:
-// - Only one band can be active at a time
-// - Switching bands MUST reset all band-scoped state
-// - All features that need band context should read from this controller
 // ============================================================================
 
 /// Key for persisting active band ID
 const _activeBandIdKey = 'active_band_id';
 
-// ============================================================================
-// DRAFT BAND STATE - For real-time preview during editing
-// ============================================================================
-
-/// Draft band state for Edit Band screen
-/// Contains temporary changes that haven't been saved yet
 class DraftBandState {
-  /// The band being edited (null if not editing)
   final Band? band;
 
-  /// Local file path for picked image (before upload)
   final File? localImageFile;
 
-  /// Whether editing is in progress
   final bool isEditing;
 
   const DraftBandState({
@@ -103,13 +82,12 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
   }
 
   /// Update draft avatar color
-  /// Note: This clears the imageUrl since selecting a color means using initials-based avatar
   void updateAvatarColor(String avatarColor) {
     if (state.band == null) return;
     final updated = Band(
       id: state.band!.id,
       name: state.band!.name,
-      imageUrl: null, // Clear image to show color-based initials avatar
+      imageUrl: null,
       createdBy: state.band!.createdBy,
       avatarColor: avatarColor,
       timezone: state.band!.timezone,
@@ -168,16 +146,12 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
 
 /// State for the active band controller
 class ActiveBandState {
-  /// All bands the user belongs to
   final List<Band> userBands;
 
-  /// The currently selected band (null if none selected)
   final Band? activeBand;
 
-  /// Loading state
   final bool isLoading;
 
-  /// Error message if fetch failed
   final String? error;
 
   const ActiveBandState({
@@ -190,10 +164,8 @@ class ActiveBandState {
   /// Returns true if user has at least one band
   bool get hasBands => userBands.isNotEmpty;
 
-  /// Returns the active band ID (or null)
   String? get activeBandId => activeBand?.id;
 
-  /// Copy with new values
   ActiveBandState copyWith({
     List<Band>? userBands,
     Band? activeBand,
@@ -279,7 +251,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
       await prefs.remove(_activeBandIdKey);
     } catch (e) {
       debugPrint('[ActiveBand] ⚠️ Failed to clear persisted band ID: $e');
-      // Silent failure is acceptable for clear operations
     }
   }
 
@@ -288,13 +259,11 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      // Fetch bands and persisted ID in parallel (independent calls)
       final results = await Future.wait([
         _bandRepository.fetchUserBands(),
         _loadPersistedBandId(),
       ]);
 
-      // Add defensive null/empty guards for band loading
       final bandsResult = results[0];
       if (bandsResult == null) {
         debugPrint(
@@ -310,7 +279,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
       final bands = bandsResult as List<Band>;
 
-      // Explicit empty-array check before any operations
       if (bands.isEmpty) {
         debugPrint('[ActiveBand] No bands found for user');
         state = state.copyWith(
@@ -325,13 +293,10 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
       final persistedId = results[1] as String?;
       Band? selected;
 
-      // Explicit null check before iterating userBands
       if (persistedId != null && persistedId.isNotEmpty) {
         selected = bands.where((b) => b.id == persistedId).firstOrNull;
       }
 
-      // If persisted band not found (or no persisted ID), use first band
-      // Additional empty check before accessing first (belt-and-suspenders)
       if (selected == null && bands.isNotEmpty) {
         selected = bands.first;
         await _persistBandId(selected.id);
@@ -352,13 +317,8 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
   }
 
   /// Switch to a different band (persists selection)
-  ///
-  /// IMPORTANT: When switching bands, all band-scoped data should be reset.
-  /// Features listening to activeBandId will automatically refetch.
-  /// Also navigates to Dashboard to avoid stale data on other screens.
   Future<void> selectBand(Band band) async {
     if (!state.userBands.any((b) => b.id == band.id)) {
-      // Safety check: can't select a band user doesn't belong to
       return;
     }
 
@@ -366,14 +326,10 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     state = state.copyWith(activeBand: band);
     ref.invalidate(displayBandProvider);
 
-    // Force permissions to re-fetch for the new band context
     ref.invalidate(currentUserPermissionsProvider);
 
-    // Clear stale setlist selection so SetlistDetailNotifier doesn't attempt
-    // to load a previous band's setlist under the new band context
     ref.read(selectedSetlistProvider.notifier).clear();
 
-    // Navigate to Dashboard when switching bands
     ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
   }
 
@@ -386,11 +342,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
   }
 
   /// Load bands and then select a specific band by ID.
-  /// Used after creating a new band to ensure it becomes active.
-  ///
-  /// Performs a single atomic state update to avoid triggering
-  /// cascading provider rebuilds twice (which can cause
-  /// CircularDependencyError in Riverpod 3).
   Future<void> loadAndSelectBand(String bandId) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -409,7 +360,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         return;
       }
 
-      // Select the requested band, falling back to first
       Band? selected = bands.where((b) => b.id == bandId).firstOrNull;
       selected ??= bands.firstOrNull;
 
@@ -417,14 +367,12 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         await _persistBandId(selected.id);
       }
 
-      // Single state update — triggers one notification cascade
       state = state.copyWith(
         userBands: bands,
         activeBand: selected,
         isLoading: false,
       );
 
-      // Defer side-effects so they run after the cascade completes
       Future.microtask(() {
         ref.invalidate(currentUserPermissionsProvider);
         ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
@@ -439,7 +387,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
   }
 
   /// Refresh band list and update active band if it changed
-  /// Call this after updating a band to reflect changes in the header
   Future<void> refreshBands() async {
     final currentActiveId = state.activeBand?.id;
 
@@ -457,13 +404,11 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         return;
       }
 
-      // Find the current active band in the refreshed list
       Band? selected;
       if (currentActiveId != null && currentActiveId.isNotEmpty) {
         selected = bands.where((b) => b.id == currentActiveId).firstOrNull;
       }
 
-      // If not found, use first band (with additional empty check)
       if (selected == null && bands.isNotEmpty) {
         selected = bands.first;
         await _persistBandId(selected.id);
@@ -472,21 +417,15 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
       state = state.copyWith(userBands: bands, activeBand: selected);
     } catch (e) {
       debugPrint('[ActiveBand] ⚠️ refreshBands failed: $e');
-      // Silently fail - keep current state
     }
   }
 
   /// Update the active band in state (e.g., after editing)
-  ///
-  /// This updates both the active band and the band in the userBands list,
-  /// ensuring the UI reflects changes immediately without a full reload.
   void updateActiveBand(Band updatedBand) {
-    // Update the band in the userBands list
     final updatedList = state.userBands.map((b) {
       return b.id == updatedBand.id ? updatedBand : b;
     }).toList();
 
-    // Update state with the new list and active band
     state = state.copyWith(
       userBands: updatedList,
       activeBand: state.activeBand?.id == updatedBand.id
@@ -496,14 +435,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
   }
 
   /// Handle band deletion cleanup
-  ///
-  /// This method ensures proper state cleanup after a band is deleted:
-  /// 1. Clears the persisted band ID if the deleted band was active
-  /// 2. Reloads the band list from the database
-  /// 3. Selects a new active band (first available) or null if no bands remain
-  /// 4. Navigates to Dashboard to ensure fresh data
-  ///
-  /// Call this after successfully deleting a band via the RPC.
   Future<void> handleBandDeletion(String deletedBandId) async {
     if (kDebugMode) {
       debugPrint('[ActiveBand] Handling deletion of band: $deletedBandId');
@@ -517,12 +448,8 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
       }
     }
 
-    // Reload bands and auto-select a new one
     await loadUserBands();
 
-    // Always navigate to Dashboard after deletion to ensure fresh UI
-    // - If bands remain, shows the new active band's dashboard
-    // - If no bands remain, shows NoBandState (create/join prompt)
     ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
 
     if (kDebugMode) {
@@ -543,7 +470,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     await _clearPersistedBandId();
     state = const ActiveBandState();
 
-    // Clear cached permissions so they don't persist across accounts
     ref.invalidate(currentUserPermissionsProvider);
   }
 }
@@ -552,40 +478,32 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 // PROVIDERS
 // ============================================================================
 
-/// Provider for the band repository
 final bandRepositoryProvider = Provider<BandRepository>((ref) {
   return BandRepository();
 });
 
-/// Provider for the active band state
 final activeBandProvider =
     NotifierProvider<ActiveBandNotifier, ActiveBandState>(() {
   return ActiveBandNotifier();
 });
 
-/// Provider for draft band state (used during editing)
 final draftBandProvider = NotifierProvider<DraftBandNotifier, DraftBandState>(
   () {
     return DraftBandNotifier();
   },
 );
 
-/// Provider that returns the band to display in the header
-/// Returns draft band if editing, otherwise returns active band
 final displayBandProvider = Provider<Band?>((ref) {
   final draftState = ref.watch(draftBandProvider);
   final activeState = ref.watch(activeBandProvider);
 
-  // If editing, return the draft band for real-time preview
   if (draftState.isEditing && draftState.band != null) {
     return draftState.band;
   }
 
-  // Otherwise return the saved active band
   return activeState.activeBand;
 });
 
-/// Provider for the local image file being previewed (before upload)
 final draftLocalImageProvider = Provider<File?>((ref) {
   final draftState = ref.watch(draftBandProvider);
   if (draftState.isEditing) {
@@ -594,8 +512,6 @@ final draftLocalImageProvider = Provider<File?>((ref) {
   return null;
 });
 
-/// Convenience provider for just the active band ID
-/// Use this when you only need the ID for queries
 final activeBandIdProvider = Provider<String?>((ref) {
   return ref.watch(activeBandProvider).activeBandId;
 });

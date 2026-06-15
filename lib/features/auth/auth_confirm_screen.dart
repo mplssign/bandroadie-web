@@ -38,22 +38,11 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
   @override
   void initState() {
     super.initState();
-    _detectInAppBrowser();
     _handleConfirm();
-  }
-
-  /// Detect if user is in an in-app browser (Gmail, Instagram, etc.)
-  /// These browsers have restricted cookie/storage access
-  void _detectInAppBrowser() {
-    // Check user agent for common in-app browser patterns
-    // Note: This is a best-effort detection
-    // In Flutter web, we'd need to use dart:html, but for now
-    // we'll handle this in the error flow
   }
 
   /// Navigate to the main app after successful auth
   void _navigateToHome() {
-    debugPrint('🚀 Navigating to app from fragment auth');
     if (kIsWeb) {
       Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } else {
@@ -76,7 +65,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       final existingSession = Supabase.instance.client.auth.currentSession;
       if (existingSession != null) {
         debugPrint('✅ Session already established');
-        debugPrint('   User: ${existingSession.user.email}');
         await Future.delayed(const Duration(milliseconds: 500));
         if (!mounted) return;
         _navigateToHome();
@@ -85,12 +73,8 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
 
       // Try to get the auth fragment from sessionStorage (captured by JS in index.html)
       final fragment = getSupabaseAuthFragment();
-      debugPrint(
-        '🔍 Retrieved auth fragment from sessionStorage: ${fragment != null ? "found (${fragment.length} chars)" : "null"}',
-      );
 
       if (fragment != null && fragment.contains('access_token=')) {
-        debugPrint('📝 Found access_token in fragment, parsing...');
         try {
           // Parse fragment: access_token=...&refresh_token=...&expires_at=...
           final params = Uri.splitQueryString(fragment);
@@ -98,14 +82,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           final accessToken = params['access_token'];
           final refreshToken = params['refresh_token'];
 
-          debugPrint(
-            '   access_token: ${accessToken != null ? "${accessToken.substring(0, 20)}..." : "null"}',
-          );
-          debugPrint('   refresh_token: ${refreshToken ?? "null"}');
-
           if (accessToken != null && refreshToken != null) {
-            debugPrint('✅ Tokens found, setting session manually...');
-
             // Clear the stored fragment since we're using it
             clearSupabaseAuthFragment();
 
@@ -114,7 +91,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             );
             if (response.session != null) {
               debugPrint('✅ Session set successfully!');
-              debugPrint('   User: ${response.session!.user.email}');
               await Future.delayed(const Duration(milliseconds: 500));
               if (!mounted) return;
               _navigateToHome();
@@ -123,15 +99,11 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
               debugPrint('❌ setSession returned null session');
             }
           } else {
-            debugPrint(
-              '❌ Missing tokens - access: ${accessToken != null}, refresh: ${refreshToken != null}',
-            );
+            debugPrint('❌ Missing tokens in fragment');
           }
         } catch (e) {
           debugPrint('❌ Error parsing/setting session from fragment: $e');
         }
-      } else {
-        debugPrint('❌ No access_token in sessionStorage fragment');
       }
     }
 
@@ -140,13 +112,10 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         (code == null || code.isEmpty)) {
       // On web, wait a bit in case Supabase is still processing
       if (kIsWeb) {
-        debugPrint('⏳ No query params - waiting for session...');
-
         for (int i = 0; i < 10; i++) {
           await Future.delayed(const Duration(milliseconds: 250));
           final session = Supabase.instance.client.auth.currentSession;
           if (session != null) {
-            debugPrint('✅ Session established after ${(i + 1) * 250}ms');
             if (!mounted) return;
             _navigateToHome();
             return;
@@ -168,21 +137,16 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
 
       // PKCE flow - use code parameter with exchangeCodeForSession
       if (code != null && code.isNotEmpty) {
-        debugPrint('🔄 Using PKCE flow - exchanging code for session...');
         try {
           final pkceResponse =
               await Supabase.instance.client.auth.exchangeCodeForSession(code);
           session = pkceResponse.session;
           user = session.user;
-          debugPrint('✅ PKCE exchange successful');
-          debugPrint('   User: ${user.email}');
-          debugPrint('   Session expires: ${session.expiresAt}');
         } catch (e) {
           debugPrint('❌ PKCE exchange failed: $e');
 
           // Detect network errors first
           if (e is SocketException) {
-            debugPrint('   Classification: Network error (no connection)');
             setState(() {
               _error = 'network_error';
               _loading = false;
@@ -190,7 +154,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             return;
           }
           if (e is TimeoutException) {
-            debugPrint('   Classification: Network timeout');
             setState(() {
               _error = 'network_error';
               _loading = false;
@@ -205,8 +168,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           if (errorMessage.contains('invalid_grant') ||
               errorMessage.contains('code_verifier') ||
               errorMessage.contains('code verifier')) {
-            debugPrint(
-                '   Classification: PKCE code verifier mismatch or expired');
             setState(() {
               _error = 'pkce_code_verifier_error';
               _loading = false;
@@ -216,7 +177,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
 
           // Email scanner consumed the link
           if (errorMessage.contains('already been consumed')) {
-            debugPrint('   Classification: Link consumed by email scanner');
             setState(() {
               _error = 'email_scanner_consumed';
               _loading = false;
@@ -236,30 +196,20 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           return;
         }
       } else if (tokenHash != null && tokenHash.startsWith('pkce_')) {
-        debugPrint(
-          '🔄 PKCE token_hash detected, using verifyOTP with magiclink type...',
-        );
         final response = await Supabase.instance.client.auth.verifyOTP(
           tokenHash: tokenHash,
           type: OtpType.magiclink,
         );
         session = response.session;
         user = response.user;
-        debugPrint('✅ Token verification successful (magiclink)');
       } else {
-        debugPrint('🔄 Standard token, using verifyOTP with email type...');
         final response = await Supabase.instance.client.auth.verifyOTP(
           tokenHash: tokenHash!,
           type: OtpType.email,
         );
         session = response.session;
         user = response.user;
-        debugPrint('✅ Token verification successful (email)');
       }
-
-      debugPrint(
-        'AuthConfirmScreen: response: ${session != null ? "session exists" : "no session"}',
-      );
 
       if (session == null) {
         setState(() {
@@ -268,11 +218,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         });
         return;
       }
-
-      debugPrint('✅ Session verified successfully');
-      debugPrint('   User ID: ${user?.id}');
-      debugPrint('   Email: ${user?.email}');
-      debugPrint('   Access token: ${session.accessToken.substring(0, 20)}...');
 
       final userId = user?.id;
       if (userId == null) {
@@ -302,7 +247,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         }
         await Future.delayed(const Duration(milliseconds: 500));
         attempts++;
-        debugPrint('   Attempt $attempts/$maxAttempts...');
       }
 
       if (attempts >= maxAttempts) {
@@ -312,9 +256,6 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       }
 
       if (!mounted) return;
-
-      debugPrint('🚀 Navigating to app');
-      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       // On web, navigate to /app route explicitly to update URL
       // On mobile, just push AuthGate
@@ -335,23 +276,20 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       setState(() {
         _loading = false;
       });
-    } on SocketException catch (e) {
+    } on SocketException {
       debugPrint('❌ NETWORK ERROR: No internet connection');
-      debugPrint('   Details: $e');
       setState(() {
         _error = 'network_error';
         _loading = false;
       });
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       debugPrint('❌ TIMEOUT ERROR: Request timed out');
-      debugPrint('   Details: $e');
       setState(() {
         _error = 'network_error';
         _loading = false;
       });
     } on AuthException catch (e) {
       debugPrint('❌ AUTH EXCEPTION: ${e.message}');
-      debugPrint('   Status code: ${e.statusCode}');
 
       // Classify error types for better user messaging
       final errorMsg = e.message.toLowerCase();
@@ -362,22 +300,16 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           errorMsg.contains('code_verifier') ||
           errorMsg.contains('code verifier')) {
         errorType = 'pkce_code_verifier_error';
-        debugPrint('   Classification: PKCE code verifier mismatch or expired');
       } else if (errorMsg.contains('already been consumed')) {
         errorType = 'email_scanner_consumed';
-        debugPrint('   Classification: Link consumed by email scanner');
       } else if (errorMsg.contains('expired')) {
         errorType = 'expired_link';
-        debugPrint('   Classification: Expired or reused link');
       } else if (errorMsg.contains('pkce')) {
         errorType = 'browser_mismatch';
-        debugPrint('   Classification: Browser mismatch (PKCE)');
       } else if (e.message.isEmpty) {
         errorType = 'unknown_error';
-        debugPrint('   Classification: Unknown error (empty message)');
       } else {
         errorType = e.message;
-        debugPrint('   Classification: Other error');
       }
 
       setState(() {
