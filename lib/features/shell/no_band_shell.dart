@@ -74,7 +74,6 @@ class NoBandShell extends ConsumerWidget {
               },
             ),
           ),
-
           if (overlayState == ActiveOverlay.menuDrawer)
             _MenuDrawerLayer(
               isOpen: true,
@@ -82,7 +81,6 @@ class NoBandShell extends ConsumerWidget {
               userName: userName,
               userEmail: userEmail,
             ),
-
           if (overlayState == ActiveOverlay.bandSwitcher)
             _BandSwitcherLayer(
               isOpen: true,

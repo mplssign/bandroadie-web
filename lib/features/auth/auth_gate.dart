@@ -32,8 +32,7 @@ class AuthGate extends ConsumerStatefulWidget {
 
 class _AuthGateState extends ConsumerState<AuthGate>
     with WidgetsBindingObserver {
-  bool _showSplash =
-      !kIsWeb;
+  bool _showSplash = !kIsWeb;
   bool _initialized = false;
   bool _checkingProfile = false;
   bool? _profileComplete;

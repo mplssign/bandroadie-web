@@ -55,38 +55,38 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
     final session = supabase.Supabase.instance.client.auth.currentSession;
 
     _authSubscription?.cancel();
-    _authSubscription = supabase.Supabase.instance.client.auth.onAuthStateChange
-        .listen((data) {
-          AuthDebugLogger.authStateUpdated(
-            isAuthenticated: data.session != null,
-            trigger: 'onAuthStateChange:${data.event.name}',
-          );
+    _authSubscription =
+        supabase.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      AuthDebugLogger.authStateUpdated(
+        isAuthenticated: data.session != null,
+        trigger: 'onAuthStateChange:${data.event.name}',
+      );
 
-          switch (data.event) {
-            case supabase.AuthChangeEvent.signedIn:
-              state = AppAuthState(session: data.session);
-              break;
-            case supabase.AuthChangeEvent.tokenRefreshed:
-              state = AppAuthState(session: data.session);
-              break;
-            case supabase.AuthChangeEvent.userUpdated:
-              state = AppAuthState(session: data.session);
-              break;
+      switch (data.event) {
+        case supabase.AuthChangeEvent.signedIn:
+          state = AppAuthState(session: data.session);
+          break;
+        case supabase.AuthChangeEvent.tokenRefreshed:
+          state = AppAuthState(session: data.session);
+          break;
+        case supabase.AuthChangeEvent.userUpdated:
+          state = AppAuthState(session: data.session);
+          break;
 
-            case supabase.AuthChangeEvent.signedOut:
-              state = const AppAuthState(session: null);
-              break;
+        case supabase.AuthChangeEvent.signedOut:
+          state = const AppAuthState(session: null);
+          break;
 
-            case supabase.AuthChangeEvent.initialSession:
-              state = AppAuthState(session: data.session);
-              break;
+        case supabase.AuthChangeEvent.initialSession:
+          state = AppAuthState(session: data.session);
+          break;
 
-            default:
-              if (data.session != null) {
-                state = AppAuthState(session: data.session);
-              }
+        default:
+          if (data.session != null) {
+            state = AppAuthState(session: data.session);
           }
-        });
+      }
+    });
 
     ref.onDispose(() {
       debugPrint('[AuthStateNotifier] Disposing auth subscription');
