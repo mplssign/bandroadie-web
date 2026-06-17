@@ -127,6 +127,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fetch user email from auth.users
+    let userEmail: string | undefined = undefined;
+    if (userId) {
+      const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+      if (authUser?.user?.email) {
+        userEmail = authUser.user.email;
+      }
+    }
+
     // Build subject line
     const reportType = type === "bug" ? "Bug Report" : "Feature Request";
     const screen = screenName || "Report Bugs";
@@ -149,6 +158,7 @@ Deno.serve(async (req) => {
     <table style="width: 100%; font-size: 13px; color: #666;">
       <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Band:</td><td>${escapeHtml(bandNames)}</td></tr>
       <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">User:</td><td>${escapeHtml(userName)}</td></tr>
+      <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Email:</td><td>${escapeHtml(userEmail || "not available")}</td></tr>
       <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">Platform:</td><td>${platformName}</td></tr>
       <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">OS Version:</td><td>${osVersion || "unknown"}</td></tr>
       <tr><td style="padding: 4px 8px 4px 0; font-weight: 600;">App Version:</td><td>${appVersion || "unknown"} (${buildNumber || "?"})</td></tr>
@@ -168,6 +178,7 @@ ${description}
 --- Diagnostic Info ---
 Band: ${bandNames}
 User: ${userName}
+Email: ${userEmail || "not available"}
 Platform: ${platformName}
 OS Version: ${osVersion || "unknown"}
 App Version: ${appVersion || "unknown"} (${buildNumber || "?"})
@@ -184,7 +195,7 @@ Timestamp: ${timestamp}
       body: JSON.stringify({
         from: "BandRoadie <noreply@bandroadie.com>",
         to: [RECIPIENT_EMAIL],
-        reply_to: userId ? undefined : undefined, // Could add user email if available
+        reply_to: userEmail ? [userEmail] : undefined,
         subject: subject,
         html: emailBody,
         text: textBody,
