@@ -52,6 +52,12 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // BAND ISOLATION: Enforced via setlist_detail_controller + repository
 // ============================================================================
 
+/// Share output format options
+enum ShareFormat {
+  textEmail, // Rich plain-text format (existing)
+  spreadsheet, // Tab-delimited format
+}
+
 class SetlistDetailScreen extends ConsumerStatefulWidget {
   final String setlistId;
   final String setlistName;
@@ -1223,11 +1229,23 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   /// Another Artist                    - BPM • Drop D
   /// ```
   Future<void> _handleShare() async {
+    // Show format picker and get user selection
+    final format = await _showShareFormatPicker();
+    if (format == null) return; // User dismissed
+
     final state = ref.read(setlistDetailProvider);
-    final text = _generateShareText(
-      setlistName: _currentName,
-      songs: state.songs,
-    );
+
+    // Generate text based on selected format
+    final text = format == ShareFormat.textEmail
+        ? _generateShareText(
+            setlistName: _currentName,
+            songs: state.songs,
+          )
+        : _generateSpreadsheetText(
+            songs: state.songs,
+          );
+
+    if (!mounted) return;
 
     try {
       // On iOS/macOS, Share.share() needs sharePositionOrigin for the popover
@@ -1244,6 +1262,26 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         showErrorSnackBar(context, message: 'Failed to share setlist');
       }
     }
+  }
+
+  /// Show format picker bottom sheet and return selected format.
+  /// Returns null if user dismisses without selecting.
+  Future<ShareFormat?> _showShareFormatPicker() async {
+    if (!mounted) return null;
+
+    final result = await showModalBottomSheet<ShareFormat>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isDismissible: true,
+      enableDrag: true,
+      builder: (context) => const _ShareFormatSheet(),
+    );
+
+    if (!mounted) return null;
+    return result;
   }
 
   /// Handle print setlist action.
@@ -1349,6 +1387,30 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       if (i < songs.length - 1) {
         buffer.writeln(); // Blank line between songs
       }
+    }
+
+    return buffer.toString();
+  }
+
+  /// Generate tab-delimited spreadsheet text for the setlist.
+  /// Format: Title\tArtist\tBPM\tTuning
+  String _generateSpreadsheetText({
+    required List<SetlistSong> songs,
+  }) {
+    final buffer = StringBuffer();
+
+    // Header row
+    buffer.writeln('Title\tArtist\tBPM\tTuning');
+
+    // Data rows
+    for (final song in songs) {
+      final title = song.title;
+      final artist = song.artist;
+      final bpm =
+          (song.bpm != null && song.bpm! > 0) ? song.bpm.toString() : '';
+      final tuning = tuningShortLabel(song.tuning);
+
+      buffer.writeln('$title\t$artist\t$bpm\t$tuning');
     }
 
     return buffer.toString();
@@ -3017,6 +3079,97 @@ class _SlideInEntryState extends State<_SlideInEntry>
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Bottom sheet for selecting share output format
+class _ShareFormatSheet extends StatelessWidget {
+  const _ShareFormatSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Container(
+        padding: EdgeInsets.only(
+          left: Spacing.pagePadding,
+          right: Spacing.pagePadding,
+          top: Spacing.space24,
+          bottom: MediaQuery.of(context).viewPadding.bottom + Spacing.space24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Text('Share Format', style: AppTextStyles.headline),
+            const SizedBox(height: Spacing.space16),
+
+            // Text / Email option
+            _ShareFormatOption(
+              smallText: 'Share by',
+              largeText: 'Text / Email',
+              onTap: () => Navigator.of(context).pop(ShareFormat.textEmail),
+            ),
+
+            const SizedBox(height: Spacing.space12),
+
+            // Spreadsheet option
+            _ShareFormatOption(
+              smallText: '4-column',
+              largeText: 'Spreadsheet',
+              onTap: () => Navigator.of(context).pop(ShareFormat.spreadsheet),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Individual share format option tile
+class _ShareFormatOption extends StatelessWidget {
+  final String smallText;
+  final String largeText;
+  final VoidCallback onTap;
+
+  const _ShareFormatOption({
+    required this.smallText,
+    required this.largeText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+      child: Container(
+        padding: const EdgeInsets.all(Spacing.space16),
+        decoration: BoxDecoration(
+          color: context.colors.surfaceElevated,
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              smallText,
+              style: AppTextStyles.body.copyWith(
+                color: context.colors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: Spacing.space4),
+            Text(
+              largeText,
+              style: AppTextStyles.title3.copyWith(
+                color: context.colors.textPrimary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
