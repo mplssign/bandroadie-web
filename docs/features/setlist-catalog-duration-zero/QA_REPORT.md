@@ -19,7 +19,7 @@ Validated the database migration fix for duration display bug where setlist tota
 ## Architect Scope Review
 
 - **Scope adherence:** Compliant
-- **Files created:** 
+- **Files created:**
   - `supabase/migrations/20260621000000_songs_duration_not_null.sql` (initial migration)
   - `supabase/migrations/20260621000001_songs_duration_zero_correction.sql` (corrective migration)
 - **Files modified:** None (as expected — no code changes required)
@@ -65,6 +65,7 @@ Validated the database migration fix for duration display bug where setlist tota
 ### Database State Verification (Confirmed via SQL)
 
 **Schema verification:**
+
 ```json
 {
   "column_name": "duration_seconds",
@@ -73,9 +74,11 @@ Validated the database migration fix for duration display bug where setlist tota
   "column_default": "0"
 }
 ```
+
 ✓ Column is NOT NULL with default 0 (correct)
 
 **Data state verification:**
+
 ```json
 {
   "total_songs": 2247,
@@ -84,6 +87,7 @@ Validated the database migration fix for duration display bug where setlist tota
   "songs_with_180": 0
 }
 ```
+
 ✓ No fabricated 180-second values remain
 ✓ Songs without duration correctly have 0 (displays as "0:00")
 ✓ Songs with real durations preserved (1,319 songs)
@@ -104,6 +108,7 @@ Reviewed existing query and display logic (no changes were made):
 User confirmed that when songs have real duration values entered, setlist totals calculate and display correctly. This validates that the existing code logic works as designed once the database contains valid data.
 
 **Key test case outcomes:**
+
 1. ✓ Setlists containing songs without durations (0 seconds) correctly exclude them from totals
 2. ✓ Catalog view duration total displays correctly
 3. ✓ New songs created without duration entry default to 0 (displays as "0:00")
@@ -145,6 +150,7 @@ User confirmed that when songs have real duration values entered, setlist totals
 ### Migration 1: `20260621000000_songs_duration_not_null.sql`
 
 **Content review:**
+
 ```sql
 -- Step 1: Set default value (180 seconds)
 ALTER TABLE songs ALTER COLUMN duration_seconds SET DEFAULT 180;
@@ -157,6 +163,7 @@ ALTER TABLE songs ALTER COLUMN duration_seconds SET NOT NULL;
 ```
 
 **Safety assessment:**
+
 - ✓ Migration order is correct (default → backfill → constraint)
 - ✓ No risk of constraint violation (NULL values backfilled before constraint added)
 - ✓ No data loss (only NULL values updated, existing values preserved)
@@ -166,6 +173,7 @@ ALTER TABLE songs ALTER COLUMN duration_seconds SET NOT NULL;
 ### Migration 2: `20260621000001_songs_duration_zero_correction.sql`
 
 **Content review:**
+
 ```sql
 -- Step 1: Reset all duration_seconds = 180 to 0
 UPDATE songs SET duration_seconds = 0 WHERE duration_seconds = 180;
@@ -177,6 +185,7 @@ ALTER TABLE songs ALTER COLUMN duration_seconds SET DEFAULT 0;
 ```
 
 **Safety assessment:**
+
 - ✓ Corrects product error from Migration 1
 - ✓ Resets fabricated 180-second values to correct 0 value
 - ✓ Changes default to correct value (0 = "no duration set")
@@ -233,16 +242,18 @@ No automated tests exist for duration display logic. The Architect plan specifie
 ### File Changes
 
 **Files created:**
+
 - `supabase/migrations/20260621000000_songs_duration_not_null.sql` (47 lines)
 - `supabase/migrations/20260621000001_songs_duration_zero_correction.sql` (30 lines)
 - `docs/features/setlist-catalog-duration-zero/ARCHITECT_PLAN.md`
 - `docs/features/setlist-catalog-duration-zero/ENGINEER_REPORT.md`
 - `docs/features/setlist-catalog-duration-zero/QA_REPORT.md` (this file)
 
-**Files modified:** 
+**Files modified:**
 None (0 Dart files modified — this is correct for a database-only fix)
 
 **Git status:**
+
 - All changes are untracked (not yet committed) ✓
 - Working tree is clean except for expected feature files ✓
 
@@ -265,12 +276,14 @@ None (0 Dart files modified — this is correct for a database-only fix)
 ### Migration Content Safety
 
 **Migration 1:**
+
 - ✓ No hardcoded IDs or sensitive data
 - ✓ SQL syntax is valid PostgreSQL
 - ✓ No SQL injection risk (no dynamic values)
 - ✓ Comments are clear and accurate
 
 **Migration 2:**
+
 - ✓ No hardcoded IDs or sensitive data
 - ✓ SQL syntax is valid PostgreSQL
 - ✓ No SQL injection risk (no dynamic values)
@@ -307,6 +320,7 @@ The corrective migration reflects the correct product decision:
 - Songs with 0 duration correctly contribute nothing to setlist totals
 
 This is better UX than a fabricated 3:00 default, which would:
+
 - Store incorrect data in the database
 - Make it unclear which songs have real vs. placeholder durations
 - Inflate setlist totals with fake values
@@ -322,6 +336,7 @@ The two-migration approach is appropriate:
 ### Backward Compatibility
 
 ✓ **Fully preserved:**
+
 - Existing songs with actual duration values (1,319 songs) are unchanged
 - Song creation flow continues to work (new songs get default 0)
 - Inline editing continues to work (users can update durations)
@@ -330,6 +345,7 @@ The two-migration approach is appropriate:
 ### Forward Prevention
 
 With NOT NULL constraint and 0 default in place:
+
 - ✓ New songs cannot have NULL duration (constraint enforced)
 - ✓ Application code cannot INSERT NULL values (constraint enforced at database level)
 - ✓ Bulk import operations will use default 0 if duration not provided
