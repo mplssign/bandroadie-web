@@ -16,6 +16,7 @@ import 'venues_controller.dart';
 import 'widgets/band_members_view.dart';
 import 'widgets/contacts_view.dart';
 import 'widgets/invite_members_screen.dart';
+import 'widgets/venue_form_screen.dart';
 import 'widgets/venues_view.dart';
 
 // ============================================================================

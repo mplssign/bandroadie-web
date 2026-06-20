@@ -7,8 +7,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import 'package:bandroadie/components/ui/domain_chip.dart';
-import 'package:bandroadie/shared/utils/email_domain_helper.dart';
+import 'package:bandroadie/components/ui/email_domain_shortcut_bar.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 
 // ============================================================================
@@ -31,7 +30,6 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
   final _inviteEmailController = TextEditingController();
   List<Map<String, dynamic>> _pendingInvites = [];
   bool _isSendingInvite = false;
-  String? _selectedInviteDomain;
 
   @override
   void initState() {
@@ -47,26 +45,6 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
 
   void _showErrorSnackBar(String message) {
     showErrorSnackBar(context, message: message);
-  }
-
-  void _applyInviteDomainShortcut(String domain) {
-    if (_isSendingInvite) return;
-
-    final current = _inviteEmailController.text;
-    final result = applyEmailDomainShortcut(current, domain);
-
-    if (result.isEmpty) {
-      return;
-    }
-
-    _inviteEmailController.text = result;
-    _inviteEmailController.selection = TextSelection.fromPosition(
-      TextPosition(offset: result.length),
-    );
-
-    setState(() {
-      _selectedInviteDomain = domain;
-    });
   }
 
   Future<void> _loadPendingInvites() async {
@@ -486,28 +464,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             const SizedBox(height: Spacing.space24),
             _buildInviteEmailInput(),
             const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: emailDomainShortcuts.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final domain = entry.value;
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
-                    ),
-                    child: DomainChip(
-                      domain: domain,
-                      isSelected: _selectedInviteDomain == domain,
-                      isEnabled: !_isSendingInvite,
-                      onTap: () => _applyInviteDomainShortcut(domain),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
+            EmailDomainShortcutBar(controller: _inviteEmailController),
             if (_pendingInvites.isNotEmpty) ...[
               const SizedBox(height: Spacing.space24),
               Text(

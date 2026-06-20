@@ -1885,16 +1885,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
   // Timezone entries. isHeader: true entries are rendered as disabled group labels.
   static const List<Map<String, dynamic>> _timezoneOptions = [
-    // United States (first)
-    {'value': null, 'label': 'United States', 'isHeader': true},
-    {'value': 'America/New_York', 'label': 'New York (Eastern)'},
-    {'value': 'America/Chicago', 'label': 'Chicago (Central)'},
-    {'value': 'America/Denver', 'label': 'Denver (Mountain)'},
-    {'value': 'America/Phoenix', 'label': 'Phoenix (Mountain – No DST)'},
-    {'value': 'America/Los_Angeles', 'label': 'Los Angeles (Pacific)'},
-    {'value': 'America/Anchorage', 'label': 'Anchorage (Alaska)'},
-    {'value': 'Pacific/Honolulu', 'label': 'Honolulu (Hawaii-Aleutian)'},
-    // Canada
+    // Canada (first)
     {'value': null, 'label': 'Canada', 'isHeader': true},
     {'value': 'America/Vancouver', 'label': 'Vancouver (Pacific)'},
     {'value': 'America/Edmonton', 'label': 'Edmonton (Mountain)'},
@@ -1908,6 +1899,15 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     {'value': 'America/Halifax', 'label': 'Halifax (Atlantic)'},
     {'value': 'America/St_Johns', 'label': "St. John's (Newfoundland)"},
     {'value': 'America/Whitehorse', 'label': 'Whitehorse (Yukon – No DST)'},
+    // United States
+    {'value': null, 'label': 'United States', 'isHeader': true},
+    {'value': 'America/New_York', 'label': 'New York (Eastern)'},
+    {'value': 'America/Chicago', 'label': 'Chicago (Central)'},
+    {'value': 'America/Denver', 'label': 'Denver (Mountain)'},
+    {'value': 'America/Phoenix', 'label': 'Phoenix (Mountain – No DST)'},
+    {'value': 'America/Los_Angeles', 'label': 'Los Angeles (Pacific)'},
+    {'value': 'America/Anchorage', 'label': 'Anchorage (Alaska)'},
+    {'value': 'Pacific/Honolulu', 'label': 'Honolulu (Hawaii-Aleutian)'},
     // Mexico
     {'value': null, 'label': 'Mexico', 'isHeader': true},
     {'value': 'America/Mexico_City', 'label': 'Mexico City (GMT-6, -5 DST)'},
