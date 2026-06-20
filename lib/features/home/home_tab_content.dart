@@ -601,7 +601,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         localImageFile: draftLocalImage,
         onMenuTap: _openDrawer,
         onAvatarTap: _openBandSwitcher,
-        onAddEvent: (isContributor && !canCreateGig) ? null : _handleAddEvent,
+        onCreateRehearsal: isContributor
+            ? null
+            : () => _openAddEventSheet(EventType.rehearsal),
+        onCreateGig:
+            canCreateGig ? () => _openAddEventSheet(EventType.gig) : null,
         onCreateSetlist: canCreateSetlist
             ? () {
                 // Use custom fade+slide transition for smooth navigation
