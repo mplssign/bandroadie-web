@@ -135,7 +135,6 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                   0,
                   EmptySectionCard(
                     title: 'No Rehearsal Scheduled',
-                    subtitle: 'The stage is empty and the amps are cold.',
                     buttonLabel: 'Create Rehearsal',
                     onButtonPressed: widget.onCreateRehearsal,
                   ),
@@ -148,8 +147,6 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                   1,
                   EmptySectionCard(
                     title: 'No Upcoming Gigs',
-                    subtitle:
-                        'The spotlight awaits — time to book your next show.',
                     buttonLabel: 'Create Gig',
                     onButtonPressed: widget.onCreateGig,
                   ),
