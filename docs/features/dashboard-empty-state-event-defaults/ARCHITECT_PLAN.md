@@ -146,11 +146,13 @@ Replace the single generic `onAddEvent` callback in `EmptyHomeState` with two sp
 2. **`onCreateGig`** (`VoidCallback?`) — for the gig empty-state card
 
 Update the widget to:
+
 - Change the rehearsal button label from "Add Event" to "Create Rehearsal"
 - Bind the rehearsal button to `onCreateRehearsal`
 - Bind the gig button to `onCreateGig`
 
 Update both call sites (`home_screen.dart` and `home_tab_content.dart`) to pass:
+
 - `onCreateRehearsal: () => _openAddEventSheet(EventType.rehearsal)` (gated by `!isContributor`)
 - `onCreateGig: () => _openAddEventSheet(EventType.gig)` (gated by `canCreateGig`)
 
@@ -173,6 +175,7 @@ This mirrors the pattern used in the non-empty-state dashboard sections and ensu
 ### Widgets Modified
 
 **`EmptyHomeState` (`lib/features/home/widgets/empty_home_state.dart`)**
+
 - Remove constructor parameter: `onAddEvent` (`VoidCallback?`)
 - Add constructor parameters: `onCreateRehearsal` (`VoidCallback?`), `onCreateGig` (`VoidCallback?`)
 - Update rehearsal `EmptySectionCard`:
@@ -199,38 +202,38 @@ This mirrors the pattern used in the non-empty-state dashboard sections and ensu
 
 ## Files to Modify
 
-| File | What changes |
-|------|-------------|
+| File                                              | What changes                                                                                                                                       |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/features/home/widgets/empty_home_state.dart` | Replace `onAddEvent` parameter with `onCreateRehearsal` and `onCreateGig`; update button labels and bindings for both `EmptySectionCard` instances |
-| `lib/features/home/home_screen.dart` | Update `EmptyHomeState` instantiation to pass `onCreateRehearsal` and `onCreateGig` closures instead of `onAddEvent` |
-| `lib/features/home/home_tab_content.dart` | Update `EmptyHomeState` instantiation to pass `onCreateRehearsal` and `onCreateGig` closures instead of `onAddEvent` |
+| `lib/features/home/home_screen.dart`              | Update `EmptyHomeState` instantiation to pass `onCreateRehearsal` and `onCreateGig` closures instead of `onAddEvent`                               |
+| `lib/features/home/home_tab_content.dart`         | Update `EmptyHomeState` instantiation to pass `onCreateRehearsal` and `onCreateGig` closures instead of `onAddEvent`                               |
 
 ---
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/main.dart` | Initialization order must not change |
-| `lib/features/home/widgets/quick_actions_row.dart` | Quick Actions row behavior is correct (defaults to rehearsal for admin/member) |
-| `lib/features/events/models/event_form_data.dart` | `EventType` enum is correct as-is |
-| `lib/features/events/widgets/add_edit_event_bottom_sheet.dart` | Add Event sheet behavior is correct (accepts `initialType` parameter) |
-| All other files | Not required for this fix |
+| File                                                           | Reason                                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `lib/main.dart`                                                | Initialization order must not change                                           |
+| `lib/features/home/widgets/quick_actions_row.dart`             | Quick Actions row behavior is correct (defaults to rehearsal for admin/member) |
+| `lib/features/events/models/event_form_data.dart`              | `EventType` enum is correct as-is                                              |
+| `lib/features/events/widgets/add_edit_event_bottom_sheet.dart` | Add Event sheet behavior is correct (accepts `initialType` parameter)          |
+| All other files                                                | Not required for this fix                                                      |
 
 ---
 
 ## System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | **unaffected** — only button labels and callbacks change, no data flow or repository changes |
-| Rehearsals | **unaffected** — only button labels and callbacks change, no data flow or repository changes |
-| Setlists / Catalog | **unaffected** — no changes to setlist logic |
-| Members / RBAC | **unaffected** — permission gates remain unchanged (use existing `isContributor`, `canCreateGig`) |
-| Auth / Session | **unaffected** — no auth changes |
-| Routing | **unaffected** — no navigation changes |
-| Notifications | **unaffected** — no notification logic changes |
-| Platform (iOS / Android / Web / macOS) | **unaffected** — changes are platform-agnostic UI updates |
+| System                                 | Impact                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Gigs                                   | **unaffected** — only button labels and callbacks change, no data flow or repository changes      |
+| Rehearsals                             | **unaffected** — only button labels and callbacks change, no data flow or repository changes      |
+| Setlists / Catalog                     | **unaffected** — no changes to setlist logic                                                      |
+| Members / RBAC                         | **unaffected** — permission gates remain unchanged (use existing `isContributor`, `canCreateGig`) |
+| Auth / Session                         | **unaffected** — no auth changes                                                                  |
+| Routing                                | **unaffected** — no navigation changes                                                            |
+| Notifications                          | **unaffected** — no notification logic changes                                                    |
+| Platform (iOS / Android / Web / macOS) | **unaffected** — changes are platform-agnostic UI updates                                         |
 
 ---
 
@@ -239,6 +242,7 @@ This mirrors the pattern used in the non-empty-state dashboard sections and ensu
 **LOW**
 
 **Rationale:**
+
 - Change is localized to 3 files (1 widget + 2 call sites)
 - No state management, controller, or repository changes
 - No database or backend changes
@@ -248,6 +252,7 @@ This mirrors the pattern used in the non-empty-state dashboard sections and ensu
 - Change is purely cosmetic + parameter passing — worst-case failure mode is button remains non-functional (same as if permission check fails), not a crash or data corruption
 
 **Regression validation focus:**
+
 - Verify "+ Create Rehearsal" button opens Add Event sheet with Rehearsal selected
 - Verify "+ Create Gig" button opens Add Event sheet with Gig selected
 - Verify permission gating still works (contributors see only gig button, admin/member see both)
@@ -366,14 +371,14 @@ No database or backend changes — skip to Tier 2.
 
 **Manual test matrix:**
 
-| Test | User Role | Action | Expected Result |
-|------|-----------|--------|-----------------|
-| T1   | Admin/Member | Tap "Create Rehearsal" on empty dashboard | Add Event sheet opens with Rehearsal tab selected |
-| T2   | Admin/Member | Tap "Create Gig" on empty dashboard | Add Event sheet opens with Gig tab selected |
-| T3   | Admin/Member | Tap "+ Add Event" in Quick Actions | Add Event sheet opens with Rehearsal tab selected (unchanged) |
-| T4   | Contributor (no gig perm) | View empty dashboard | Both buttons disabled (grayed out) |
-| T5   | Contributor (with gig perm) | Tap "Create Gig" on empty dashboard | Add Event sheet opens with Gig tab selected |
-| T6   | Contributor (with gig perm) | View "Create Rehearsal" button | Button is disabled (contributor cannot create rehearsals) |
+| Test | User Role                   | Action                                    | Expected Result                                               |
+| ---- | --------------------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| T1   | Admin/Member                | Tap "Create Rehearsal" on empty dashboard | Add Event sheet opens with Rehearsal tab selected             |
+| T2   | Admin/Member                | Tap "Create Gig" on empty dashboard       | Add Event sheet opens with Gig tab selected                   |
+| T3   | Admin/Member                | Tap "+ Add Event" in Quick Actions        | Add Event sheet opens with Rehearsal tab selected (unchanged) |
+| T4   | Contributor (no gig perm)   | View empty dashboard                      | Both buttons disabled (grayed out)                            |
+| T5   | Contributor (with gig perm) | Tap "Create Gig" on empty dashboard       | Add Event sheet opens with Gig tab selected                   |
+| T6   | Contributor (with gig perm) | View "Create Rehearsal" button            | Button is disabled (contributor cannot create rehearsals)     |
 
 **Platform coverage:** iOS, Web (Android/macOS optional — behavior is platform-agnostic)
 
@@ -388,6 +393,7 @@ The proposed solution aligns the `EmptyHomeState` widget with the pattern used i
 
 **RBAC compliance:**
 Permission gating remains unchanged:
+
 - Contributors can only create gigs (if `canCreateGig` is true)
 - Admin/Member users can create both rehearsals and gigs
 - The disabled state is handled by passing `null` for the callback (button becomes non-interactive)
@@ -400,4 +406,4 @@ The rehearsal button label changes from "Add Event" to "Create Rehearsal" for co
 
 ---
 
-*Architect Plan Complete — Ready for Engineer Implementation*
+_Architect Plan Complete — Ready for Engineer Implementation_

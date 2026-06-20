@@ -21,7 +21,8 @@ class EmptyHomeState extends StatefulWidget {
   final File? localImageFile;
   final VoidCallback onMenuTap;
   final VoidCallback onAvatarTap;
-  final VoidCallback? onAddEvent;
+  final VoidCallback? onCreateRehearsal;
+  final VoidCallback? onCreateGig;
   final VoidCallback? onCreateSetlist;
 
   const EmptyHomeState({
@@ -32,7 +33,8 @@ class EmptyHomeState extends StatefulWidget {
     this.bandAvatarColor,
     this.bandImageUrl,
     this.localImageFile,
-    this.onAddEvent,
+    this.onCreateRehearsal,
+    this.onCreateGig,
     this.onCreateSetlist,
   });
 
@@ -134,8 +136,8 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                   EmptySectionCard(
                     title: 'No Rehearsal Scheduled',
                     subtitle: 'The stage is empty and the amps are cold.',
-                    buttonLabel: 'Add Event',
-                    onButtonPressed: widget.onAddEvent,
+                    buttonLabel: 'Create Rehearsal',
+                    onButtonPressed: widget.onCreateRehearsal,
                   ),
                 ),
 
@@ -149,14 +151,16 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                     subtitle:
                         'The spotlight awaits — time to book your next show.',
                     buttonLabel: 'Create Gig',
-                    onButtonPressed: widget.onAddEvent,
+                    onButtonPressed: widget.onCreateGig,
                   ),
                 ),
 
                 const SizedBox(height: 17),
 
                 // Quick actions (only shown when at least one action is available)
-                if (widget.onAddEvent != null || widget.onCreateSetlist != null)
+                if (widget.onCreateRehearsal != null ||
+                    widget.onCreateGig != null ||
+                    widget.onCreateSetlist != null)
                   _buildAnimatedSection(
                     2,
                     Column(
@@ -165,9 +169,11 @@ class _EmptyHomeStateState extends State<EmptyHomeState>
                         const SectionHeader(title: 'Quick Actions'),
                         const SizedBox(height: Spacing.space16),
                         QuickActionsRow(
-                          onAddEvent: widget.onAddEvent,
+                          onAddEvent:
+                              widget.onCreateRehearsal ?? widget.onCreateGig,
                           onCreateSetlist: widget.onCreateSetlist,
-                          showAddEvent: widget.onAddEvent != null,
+                          showAddEvent: widget.onCreateRehearsal != null ||
+                              widget.onCreateGig != null,
                           showCreateSetlist: widget.onCreateSetlist != null,
                         ),
                       ],
