@@ -14,7 +14,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 class EmptySectionCard extends StatefulWidget {
   final IconData? icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final String buttonLabel;
   final VoidCallback? onButtonPressed;
 
@@ -22,7 +22,7 @@ class EmptySectionCard extends StatefulWidget {
     super.key,
     this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.buttonLabel,
     this.onButtonPressed,
   });
@@ -90,7 +90,8 @@ class _EmptySectionCardState extends State<EmptySectionCard>
                 color: context.colors.surface,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(widget.icon, color: context.colors.textMuted, size: 28),
+              child:
+                  Icon(widget.icon, color: context.colors.textMuted, size: 28),
             ),
             const SizedBox(height: Spacing.space16),
           ],
@@ -108,19 +109,23 @@ class _EmptySectionCardState extends State<EmptySectionCard>
 
           const SizedBox(height: Spacing.space8),
 
-          // Subtitle
-          Text(
-            widget.subtitle,
-            textAlign: TextAlign.left,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: context.colors.textMuted,
-              height: 1.4,
+          // Subtitle (optional)
+          if (widget.subtitle != null) ...[
+            Text(
+              widget.subtitle!,
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: context.colors.textMuted,
+                height: 1.4,
+              ),
             ),
-          ),
+            const SizedBox(height: Spacing.space20),
+          ],
 
-          const SizedBox(height: Spacing.space20),
+          // Spacing after title (when no subtitle)
+          if (widget.subtitle == null) const SizedBox(height: Spacing.space20),
 
           // CTA button with scale animation
           ScaleTransition(
