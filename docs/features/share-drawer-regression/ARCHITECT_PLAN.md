@@ -141,15 +141,18 @@ Add the share format picker functionality from `feature/share-format-picker` to 
 ## Flutter Architecture Changes
 
 **State:**
+
 - No state changes
 - No new Riverpod providers
 - No controller modifications
 
 **Widgets:**
+
 - Two new private widgets added to `SetlistDetailScreen`: `_ShareFormatSheet`, `_ShareFormatOption`
 - These are leaf widgets scoped to this screen only
 
 **Repositories:**
+
 - No repository changes
 
 ---
@@ -162,34 +165,34 @@ Add the share format picker functionality from `feature/share-format-picker` to 
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
+| File                                               | Changes                                                                                                                                                                             |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/features/setlists/setlist_detail_screen.dart` | Add `ShareFormat` enum, replace `_handleShare()`, add `_showShareFormatPicker()`, add `_generateSpreadsheetText()`, add `_ShareFormatSheet` widget, add `_ShareFormatOption` widget |
 
 ---
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/main.dart` | Init order must not change |
-| `lib/features/setlists/setlist_repository.dart` | No repository changes required |
+| File                                                   | Reason                               |
+| ------------------------------------------------------ | ------------------------------------ |
+| `lib/main.dart`                                        | Init order must not change           |
+| `lib/features/setlists/setlist_repository.dart`        | No repository changes required       |
 | `lib/features/setlists/setlist_detail_controller.dart` | No state management changes required |
-| All other files | Not part of approved scope |
+| All other files                                        | Not part of approved scope           |
 
 ---
 
 ## System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | unaffected |
-| Rehearsals | unaffected |
-| Setlists / Catalog | affected (share functionality enhanced) |
-| Members / RBAC | unaffected (no permission changes) |
-| Auth / Session | unaffected |
-| Routing | unaffected |
-| Notifications | unaffected |
+| System                                 | Impact                                             |
+| -------------------------------------- | -------------------------------------------------- |
+| Gigs                                   | unaffected                                         |
+| Rehearsals                             | unaffected                                         |
+| Setlists / Catalog                     | affected (share functionality enhanced)            |
+| Members / RBAC                         | unaffected (no permission changes)                 |
+| Auth / Session                         | unaffected                                         |
+| Routing                                | unaffected                                         |
+| Notifications                          | unaffected                                         |
 | Platform (iOS / Android / Web / macOS) | affected (share behavior changes on all platforms) |
 
 ---
@@ -418,6 +421,7 @@ Must pass with 0 errors, 0 warnings.
 Test on iOS and Web (minimum required platforms):
 
 **Test 1: Text/Email format**
+
 1. Open any setlist
 2. Tap share icon
 3. Verify format picker bottom sheet appears
@@ -426,6 +430,7 @@ Test on iOS and Web (minimum required platforms):
 6. Verify text format matches existing format (artist and metadata on separate lines)
 
 **Test 2: Spreadsheet format**
+
 1. Open any setlist
 2. Tap share icon
 3. Verify format picker bottom sheet appears
@@ -435,6 +440,7 @@ Test on iOS and Web (minimum required platforms):
 7. Verify four columns: Title, Artist, BPM, Tuning
 
 **Test 3: Dismiss format picker**
+
 1. Open any setlist
 2. Tap share icon
 3. Verify format picker appears
@@ -442,6 +448,7 @@ Test on iOS and Web (minimum required platforms):
 5. Verify sheet closes and no share sheet appears (cancelled)
 
 **Test 4: Empty setlist**
+
 1. Create new empty setlist
 2. Tap share icon
 3. Verify format picker appears
@@ -449,6 +456,7 @@ Test on iOS and Web (minimum required platforms):
 5. Verify share sheet appears with header only (no songs)
 
 **Test 5: Catalog share**
+
 1. Open Catalog
 2. Tap share icon
 3. Verify format picker appears
