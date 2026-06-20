@@ -196,16 +196,43 @@ class BulkSongParser {
   List<String> _parseColumns(String line) {
     // Try TAB-delimited first (spreadsheet paste)
     if (line.contains('\t')) {
-      return line.split('\t').map((c) => c.trim()).toList();
+      return line.split('\t').map(_unescapeField).toList();
     }
 
     // Try comma-delimited (manual entry)
     if (line.contains(',')) {
-      return line.split(',').map((c) => c.trim()).toList();
+      return line.split(',').map(_unescapeField).toList();
     }
 
     // Fall back to 2+ spaces (legacy support)
-    return line.split(RegExp(r'\s{2,}')).map((c) => c.trim()).toList();
+    return line.split(RegExp(r'\s{2,}')).map(_unescapeField).toList();
+  }
+
+  /// Un-escape a TSV/CSV field that may be wrapped in double quotes.
+  ///
+  /// Handles RFC 4180 quote wrapping and un-escaping:
+  /// - Strips outer double quotes if present: `"value"` → `value`
+  /// - Un-escapes doubled double-quotes: `""` → `"`
+  /// - Un-escapes doubled apostrophes (Google Sheets): `''` → `'`
+  ///
+  /// If the field is not quoted, returns it as-is (after trim).
+  String _unescapeField(String field) {
+    final trimmed = field.trim();
+
+    // Not wrapped in quotes — return as-is
+    if (!trimmed.startsWith('"') ||
+        !trimmed.endsWith('"') ||
+        trimmed.length < 2) {
+      return trimmed;
+    }
+
+    // Strip outer quotes
+    final inner = trimmed.substring(1, trimmed.length - 1);
+
+    // Un-escape doubled quotes and apostrophes
+    return inner
+        .replaceAll('""', '"') // RFC 4180: doubled double-quote
+        .replaceAll("''", "'"); // Google Sheets: doubled apostrophe
   }
 
   /// Normalize tuning input to our internal ID and label.
