@@ -909,9 +909,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 Builder(builder: (context) {
                                   final showAddEvent =
                                       !isContributor || canCreateGig;
-                                  final hasAnyButton = showAddEvent ||
-                                      canCreateSetlist ||
-                                      !isContributor;
+                                  final hasAnyButton =
+                                      showAddEvent || canCreateSetlist || !isContributor;
                                   if (!hasAnyButton) {
                                     return const SizedBox.shrink();
                                   }
@@ -941,12 +940,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                                   );
                                                 }
                                               : null,
-                                          onFinancials: canViewFinancials
+                                          onFinancials: !isContributor
                                               ? _handleOpenFinancials
                                               : null,
                                           showAddEvent: showAddEvent,
                                           showCreateSetlist: canCreateSetlist,
-                                          showFinancials: canViewFinancials,
+                                          showFinancials: !isContributor,
                                         ),
                                       ),
                                     ],
