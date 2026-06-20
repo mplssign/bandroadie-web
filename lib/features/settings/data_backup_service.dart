@@ -440,8 +440,16 @@ class DataBackupService {
         // g. Upsert in the same FK-safe order.
         // 1. Band — already created by create_band RPC; skip.
 
-        // 2. Band members (filtered, remapped)
-        await _upsertRows('band_members', remappedMembers);
+        // 2. Band members (filtered, remapped) — use RPC for atomic restore
+        if (remappedMembers.isNotEmpty) {
+          await supabase.rpc(
+            'restore_band_members',
+            params: {
+              'p_band_id': newBandId,
+              'p_members': remappedMembers,
+            },
+          );
+        }
 
         // 3. Contributor permissions (no band_id field)
         await _upsertRows(

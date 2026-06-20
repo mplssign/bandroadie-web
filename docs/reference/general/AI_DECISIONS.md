@@ -115,6 +115,44 @@ with its own edge function and decision log entry.
 
 ---
 
+## [DECISION-003] Restore Band Members RPC — SECURITY DEFINER for atomic multi-member restore
+
+**Date:** 2026-06-20
+**Feature:** bug/restore-fails-multi-member-band
+**Agent:** Architect
+**Status:** Active
+
+### Context
+
+Multi-member band restore fails during `band_members` batch upsert with RLS permission error (42501). The `is_band_member()` RLS helper is `STABLE`, causing snapshot visibility issues during batch INSERT. Serialized single-row inserts risk partial restore state and are inefficient. Broadening the RLS policy to allow band creators to insert members bypasses the invitation model and is a security risk.
+
+### Decision
+
+Introduce a narrow `SECURITY DEFINER` RPC `restore_band_members(p_band_id uuid, p_members jsonb)` that:
+
+- Validates caller created the band (`bands.created_by = auth.uid()`)
+- Validates caller is an active admin of the band
+- Atomically inserts/upserts all member rows in a single transaction
+- Bypasses RLS for the INSERT (since caller authority is validated server-side)
+
+### Rationale
+
+1. **Atomic:** Transaction rollback prevents partial member restore
+2. **Scoped:** Only affects restore flow, not normal member addition/invitation
+3. **Secure:** Explicit server-side validation of caller authority
+4. **Minimal:** No changes to existing RLS policies or helper functions
+5. **Efficient:** Single round-trip, no N+1 queries
+
+### Constraints Imposed
+
+- The RPC must only be called immediately after `create_band` during restore
+- Caller must be the band creator and an active admin
+- JSONB parameter must be validated (no SQL injection, role ENUM enforcement)
+- `SET search_path = public` is mandatory (per GUARDRAILS)
+- Any future changes to `band_members` schema must update this RPC
+
+---
+
 ## Categories Requiring a Logged Decision
 
 Any of the following changes **must** produce a new entry before implementation:
