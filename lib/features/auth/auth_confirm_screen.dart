@@ -524,6 +524,13 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         message =
             'We found your login tokens but couldn\'t establish a session. Please try again.';
         break;
+      case 'session_failed':
+        icon = Icons.link_off;
+        iconColor = Colors.orange;
+        title = 'Login Could Not Be Completed';
+        message =
+            'We found your login tokens but couldn\'t establish a session. Please try again.';
+        break;
       case 'no_user_id':
         icon = Icons.person_off;
         iconColor = Colors.red;
