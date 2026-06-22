@@ -892,3 +892,373 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                       ? _buildHorizontalGigsList(gigState)
                                       : EmptySectionCard(
                                           title: 'No Gigs Booked',
+                                          buttonLabel: 'Create Gig',
+                                          onButtonPressed: canCreateGig
+                                              ? () => _openAddEventSheet(
+                                                  EventType.gig)
+                                              : null,
+                                        ),
+                                ),
+
+                                // Quick actions (hidden for contributors)
+                                // Quick actions - show section if at least one action button is visible
+                                Builder(builder: (context) {
+                                  final showAddEvent =
+                                      !isContributor || canCreateGig;
+                                  final hasAnyButton =
+                                      showAddEvent || canCreateSetlist || !isContributor;
+                                  if (!hasAnyButton) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SectionHeader(
+                                          title: 'Quick Actions',
+                                          topSpacing: Spacing.space24),
+                                      const SizedBox(height: Spacing.space16),
+                                      _AnimatedCardEntrance(
+                                        delay:
+                                            const Duration(milliseconds: 240),
+                                        child: QuickActionsRow(
+                                          onAddEvent: showAddEvent
+                                              ? _handleAddEvent
+                                              : null,
+                                          onCreateSetlist: canCreateSetlist
+                                              ? () {
+                                                  // Use custom fade+slide transition
+                                                  Navigator.of(context).push(
+                                                    fadeSlideRoute(
+                                                      page:
+                                                          const NewSetlistScreen(),
+                                                    ),
+                                                  );
+                                                }
+                                              : null,
+                                          onFinancials: !isContributor
+                                              ? _handleOpenFinancials
+                                              : null,
+                                          showAddEvent: showAddEvent,
+                                          showCreateSetlist: canCreateSetlist,
+                                          showFinancials: !isContributor,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
+
+                                // Bottom padding for nav bar (extra space to scroll past)
+                                SizedBox(
+                                  height: Spacing.space48 +
+                                      Spacing.bottomNavHeight +
+                                      MediaQuery.of(context).padding.bottom +
+                                      32, // Extra scroll clearance
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: HomeAppBar(
+              bandName: displayBand?.name ?? activeBand?.name ?? 'BandRoadie',
+              onMenuTap: _openDrawer,
+              onAvatarTap: _openBandSwitcher,
+              bandAvatarColor:
+                  displayBand?.avatarColor ?? activeBand?.avatarColor,
+              bandImageUrl: displayBand?.imageUrl ?? activeBand?.imageUrl,
+              localImageFile: ref.watch(draftLocalImageProvider),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a horizontal scrolling list of potential events (gigs + rehearsals), sorted by date proximity.
+  Widget _buildHorizontalPotentialEvents(
+    List<Gig> potentialGigs,
+    List<Rehearsal> potentialRehearsals,
+    Map<String, Map<String?, String?>> gigAllDateResponses,
+    Map<String, String?> rehearsalUserResponses,
+    Map<String, Map<String?, String?>> rehearsalAllDateResponses,
+    SetlistsState setlistsState,
+  ) {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+
+    final upcomingGigs = potentialGigs
+        .where((g) => g.date.isAfter(yesterday))
+        .map((g) => {'type': 'gig', 'date': g.date, 'gig': g})
+        .toList();
+
+    // Filter potential rehearsals to only show parent rehearsals for recurring series
+    // (child instances with parentRehearsalId are excluded)
+    final upcomingRehearsals = potentialRehearsals
+        .where((r) => r.date.isAfter(yesterday) && r.parentRehearsalId == null)
+        .map((r) => {'type': 'rehearsal', 'date': r.date, 'rehearsal': r})
+        .toList();
+
+    final allPotentialEvents = [...upcomingGigs, ...upcomingRehearsals];
+    allPotentialEvents.sort(
+        (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+
+    if (allPotentialEvents.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final bandTimezone =
+        ref.watch(activeBandProvider).activeBand?.timezone ?? 'America/Chicago';
+    final bandId = ref.read(activeBandIdProvider);
+    final userId = supabase.auth.currentUser?.id;
+
+    return SizedBox(
+      height: Spacing.potentialGigCardHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: allPotentialEvents.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final event = allPotentialEvents[index];
+          final type = event['type'] as String;
+
+          if (type == 'gig') {
+            final gig = event['gig'] as Gig;
+            return PotentialGigCard(
+              gig: gig,
+              width: Spacing.potentialGigCardWidth,
+              bandTimezone: bandTimezone,
+              perDateUserResponses: gigAllDateResponses[gig.id],
+              onRespondForDate: (bandId == null || userId == null)
+                  ? null
+                  : (response, gigDateId) async {
+                      if (response == null) {
+                        // Delete response for this specific date
+                        await ref
+                            .read(gigResponseRepositoryProvider)
+                            .deleteResponseForDate(
+                              gigId: gig.id,
+                              userId: userId,
+                              gigDateId: gigDateId,
+                            );
+                      } else {
+                        // Upsert response for this specific date
+                        await ref
+                            .read(gigResponseRepositoryProvider)
+                            .upsertResponseForDate(
+                              gigId: gig.id,
+                              gigDateId: gigDateId,
+                              userId: userId,
+                              response: response,
+                            );
+                      }
+                      ref.invalidate(currentUserGigAllDateResponsesProvider);
+                      ref.invalidate(currentUserGigResponsesProvider);
+                      ref.invalidate(potentialGigResponseSummariesProvider);
+                    },
+              onTap: () => _openEditGigSheet(gig),
+            );
+          } else {
+            final rehearsal = event['rehearsal'] as Rehearsal;
+            String? setlistName;
+            if (rehearsal.setlistId != null) {
+              setlistName = setlistsState.setlists
+                  .where((s) => s.id == rehearsal.setlistId)
+                  .firstOrNull
+                  ?.name;
+            }
+            return SizedBox(
+              width: Spacing.potentialGigCardWidth,
+              child: RehearsalCard(
+                rehearsal: rehearsal,
+                setlistName: setlistName,
+                bandTimezone: bandTimezone,
+                additionalDates: rehearsal.additionalDates,
+                perDateUserResponses:
+                    rehearsalAllDateResponses[rehearsal.id] ?? {},
+                onRespondForDate: (bandId == null || userId == null)
+                    ? null
+                    : (response, rehearsalDateId) async {
+                        if (response == null) {
+                          // Delete response for this specific date
+                          await ref
+                              .read(rehearsalResponseRepositoryProvider)
+                              .deleteResponseForDate(
+                                rehearsalId: rehearsal.id,
+                                userId: userId,
+                                rehearsalDateId: rehearsalDateId,
+                              );
+                        } else {
+                          // Upsert response for this specific date
+                          await ref
+                              .read(rehearsalResponseRepositoryProvider)
+                              .upsertResponseForDate(
+                                rehearsalId: rehearsal.id,
+                                rehearsalDateId: rehearsalDateId,
+                                userId: userId,
+                                response: response,
+                              );
+                        }
+                        ref.invalidate(
+                            currentUserRehearsalAllDateResponsesProvider);
+                        ref.invalidate(currentUserRehearsalResponsesProvider);
+                        ref.invalidate(
+                            potentialRehearsalResponseSummariesProvider);
+                      },
+                onTap: () => _openEditRehearsalSheet(rehearsal),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildHorizontalGigsList(GigState gigState) {
+    final confirmedGigs = gigState.confirmedGigs;
+    if (confirmedGigs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      height: Spacing.gigCardHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: confirmedGigs.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final gig = confirmedGigs[index];
+          return ConfirmedGigCard(
+            gig: gig,
+            index: index,
+            bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
+                'America/Chicago',
+            onTap: () => _openEditGigSheet(gig),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHorizontalRehearsalsList(RehearsalState rehearsalState) {
+    final confirmedRehearsals = rehearsalState.confirmedRehearsals;
+    if (confirmedRehearsals.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final setlistsState = ref.watch(setlistsProvider);
+    final paginationState = ref.watch(rehearsalPaginationProvider);
+
+    // Group rehearsals into series and apply pagination
+    final series = RehearsalDisplayHelper.groupIntoSeries(confirmedRehearsals);
+    final displayItems = RehearsalDisplayHelper.flattenForDisplay(
+      series,
+      paginationState.visibleCountBySeriesId,
+    );
+
+    // Filter out load-more markers for infinite scroll
+    final rehearsalItems =
+        displayItems.where((item) => item.isRehearsal).toList();
+
+    return SizedBox(
+      height: Spacing.rehearsalCardHeight,
+      child: ListView.separated(
+        controller: _rehearsalScrollController,
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        itemCount: rehearsalItems.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final item = rehearsalItems[index];
+
+          // All items are now rehearsals (load-more markers filtered out)
+          final rehearsal = item.rehearsal!;
+          String? setlistName;
+          if (rehearsal.setlistId != null) {
+            final setlist = setlistsState.setlists
+                .where((s) => s.id == rehearsal.setlistId)
+                .firstOrNull;
+            setlistName = setlist?.name;
+          }
+          return SizedBox(
+            width: Spacing.potentialGigCardWidth,
+            child: RehearsalCard(
+              rehearsal: rehearsal,
+              setlistName: setlistName,
+              bandTimezone:
+                  ref.watch(activeBandProvider).activeBand?.timezone ??
+                      'America/Chicago',
+              onTap: () => _openEditRehearsalSheet(rehearsal),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Animated card entrance helper
+class _AnimatedCardEntrance extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+
+  const _AnimatedCardEntrance({required this.child, required this.delay});
+
+  @override
+  State<_AnimatedCardEntrance> createState() => _AnimatedCardEntranceState();
+}
+
+class _AnimatedCardEntranceState extends State<_AnimatedCardEntrance>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: AppDurations.medium,
+      vsync: this,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: AppCurves.ease,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: AppCurves.slideIn));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
+    );
+  }
+}
