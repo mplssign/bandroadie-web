@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
@@ -100,8 +101,9 @@ class UserBandRolesRepository {
       return roles;
     } catch (e) {
       // On error, don't cache — rethrow so caller can handle
-      // ignore: avoid_print
-      print('[UserBandRolesRepository] Error fetching roles: $e');
+      if (kDebugMode) {
+        debugPrint('[UserBandRolesRepository] Error fetching roles');
+      }
       rethrow;
     }
   }
@@ -174,8 +176,9 @@ class UserBandRolesRepository {
 
       return result;
     } catch (e) {
-      // ignore: avoid_print
-      print('[UserBandRolesRepository] Error batch fetching roles: $e');
+      if (kDebugMode) {
+        debugPrint('[UserBandRolesRepository] Error batch fetching roles');
+      }
       rethrow;
     }
   }
@@ -218,8 +221,9 @@ class UserBandRolesRepository {
 
       return result;
     } catch (e) {
-      // ignore: avoid_print
-      print('[UserBandRolesRepository] Error fetching roles for users: $e');
+      if (kDebugMode) {
+        debugPrint('[UserBandRolesRepository] Error fetching roles for users');
+      }
       rethrow;
     }
   }

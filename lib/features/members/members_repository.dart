@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
@@ -98,16 +99,9 @@ class MembersRepository {
     if (!forceRefresh) {
       final cached = _cache[bandId];
       if (cached != null && !cached.isExpired) {
-        // ignore: avoid_print
-        print(
-          '[MembersRepository] Returning cached: ${cached.data.members.length} members, ${cached.data.pendingInvites.length} invites',
-        );
         return cached.data;
       }
     }
-
-    // ignore: avoid_print
-    print('[MembersRepository] Fetching members for band: $bandId');
 
     // =========================================
     // QUERY A: band_members
@@ -121,10 +115,6 @@ class MembersRepository {
             ascending: true);
 
     final bandMemberRows = List<Map<String, dynamic>>.from(bandMembersResponse);
-    // ignore: avoid_print
-    print(
-      '[MembersRepository] Query A: ${bandMemberRows.length} band_members rows',
-    );
 
     // Collect user IDs for the profile query
     final userIds = bandMemberRows
@@ -140,11 +130,6 @@ class MembersRepository {
     Map<String, Map<String, dynamic>> usersById = {};
 
     if (userIds.isNotEmpty) {
-      // ignore: avoid_print
-      print(
-        '[MembersRepository] Query B: looking up ${userIds.length} userIds: ${userIds.take(3).toList()}',
-      );
-
       final usersResponse = await supabase
           .from('users')
           .select(
@@ -153,46 +138,24 @@ class MembersRepository {
           .inFilter('id', userIds);
 
       final userRows = List<Map<String, dynamic>>.from(usersResponse);
-      // ignore: avoid_print
-      print('[MembersRepository] Query B: ${userRows.length} users returned');
 
-      // Build lookup map and log first few (sanitized - no full emails)
-      for (int i = 0; i < userRows.length; i++) {
-        final user = userRows[i];
+      // Build lookup map
+      for (final user in userRows) {
         final id = user['id'] as String?;
         if (id != null) {
           usersById[id] = user;
-          if (i < 3) {
-            final firstName = user['first_name'] as String? ?? '';
-            final lastName = user['last_name'] as String? ?? '';
-            final hasEmail = (user['email'] as String?)?.isNotEmpty ?? false;
-            // ignore: avoid_print
-            print(
-              '[MembersRepository]   user[$i]: id=${id.substring(0, 8)}... name="$firstName $lastName" hasEmail=$hasEmail',
-            );
-          }
         }
       }
     }
 
-    // Debug: log missing users count and which IDs are missing
-    final missingUsersCount = userIds.length - usersById.length;
-    if (missingUsersCount > 0) {
-      // ignore: avoid_print
-      print(
-        '[MembersRepository] ⚠️ Missing users: $missingUsersCount/${userIds.length}',
-      );
-      // Log which user IDs are missing (truncated for privacy)
-      final missingIds =
-          userIds.where((id) => !usersById.containsKey(id)).toList();
-      // ignore: avoid_print
-      print(
-        '[MembersRepository]   Missing user ID prefixes: ${missingIds.take(5).map((id) => id.substring(0, 8)).toList()}',
-      );
-      // ignore: avoid_print
-      print(
-        '[MembersRepository]   Likely cause: RLS policy blocking bandmate reads. Run migration 056_users_rls_band_members.sql',
-      );
+    // Debug: check for missing users in debug mode only
+    if (kDebugMode) {
+      final missingUsersCount = userIds.length - usersById.length;
+      if (missingUsersCount > 0) {
+        debugPrint(
+          '[MembersRepository] ⚠️ Missing $missingUsersCount users. Likely RLS issue.',
+        );
+      }
     }
 
     // =========================================
@@ -206,10 +169,6 @@ class MembersRepository {
         .order('created_at', ascending: false);
 
     final inviteRows = List<Map<String, dynamic>>.from(invitesResponse);
-    // ignore: avoid_print
-    print(
-      '[MembersRepository] Query C: ${inviteRows.length} pending invitations',
-    );
 
     // =========================================
     // QUERY D: user_band_roles (band-specific roles)
@@ -222,14 +181,11 @@ class MembersRepository {
           bandId: bandId,
           userIds: userIds,
         );
-        // ignore: avoid_print
-        print(
-          '[MembersRepository] Query D: ${bandSpecificRoles.length} users have band-specific roles',
-        );
       } catch (e) {
         // If query fails, just use empty map (fall back to global roles)
-        // ignore: avoid_print
-        print('[MembersRepository] Query D failed (using global roles): $e');
+        if (kDebugMode) {
+          debugPrint('[MembersRepository] Query D failed (using global roles)');
+        }
       }
     }
 
@@ -237,16 +193,11 @@ class MembersRepository {
     // MERGE: Combine band_members + users + band_roles
     // =========================================
     final members = <MemberVM>[];
-    int resolvedCount = 0;
 
     for (final memberRow in bandMemberRows) {
       try {
         final odaId = memberRow['user_id'] as String;
         final userRow = usersById[odaId]; // May be null
-
-        if (userRow != null) {
-          resolvedCount++;
-        }
 
         // Check if this user has band-specific roles
         final bandRolesOverride = bandSpecificRoles[odaId];
@@ -260,16 +211,12 @@ class MembersRepository {
           ),
         );
       } catch (e) {
-        // Skip malformed rows but log the error
-        // ignore: avoid_print
-        print('[MembersRepository] Failed to parse member: $e');
+        // Skip malformed rows but log the error in debug mode
+        if (kDebugMode) {
+          debugPrint('[MembersRepository] Failed to parse member');
+        }
       }
     }
-
-    // ignore: avoid_print
-    print(
-      '[MembersRepository] Merged: $resolvedCount/${bandMemberRows.length} members have user rows',
-    );
 
     // =========================================
     // SORT: Alphabetically by last name, then first name
@@ -295,15 +242,12 @@ class MembersRepository {
       try {
         pendingInvites.add(PendingInviteVM.fromJson(inviteRow));
       } catch (e) {
-        // ignore: avoid_print
-        print('[MembersRepository] Failed to parse invite: $e');
+        // Skip malformed rows
+        if (kDebugMode) {
+          debugPrint('[MembersRepository] Failed to parse invite');
+        }
       }
     }
-
-    // ignore: avoid_print
-    print(
-      '[MembersRepository] Final: ${members.length} members, ${pendingInvites.length} pending invites',
-    );
 
     final result = MembersData(
       members: members,
@@ -353,8 +297,9 @@ class MembersRepository {
 
       return true;
     } catch (e) {
-      // ignore: avoid_print
-      print('[MembersRepository] Failed to remove member: $e');
+      if (kDebugMode) {
+        debugPrint('[MembersRepository] Failed to remove member');
+      }
       rethrow;
     }
   }
@@ -377,8 +322,10 @@ class MembersRepository {
       if (response == null) return null;
       return ContributorPermissions.fromJson(response);
     } catch (e) {
-      // ignore: avoid_print
-      print('[MembersRepository] Failed to fetch contributor permissions: $e');
+      if (kDebugMode) {
+        debugPrint(
+            '[MembersRepository] Failed to fetch contributor permissions');
+      }
       rethrow;
     }
   }
@@ -419,8 +366,9 @@ class MembersRepository {
 
       return true;
     } catch (e) {
-      // ignore: avoid_print
-      print('[MembersRepository] Failed to update member role: $e');
+      if (kDebugMode) {
+        debugPrint('[MembersRepository] Failed to update member role');
+      }
       rethrow;
     }
   }

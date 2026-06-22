@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bands/active_band_controller.dart';
@@ -179,9 +180,10 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
       state = state.copyWith(
         allEntries: [entry, ...state.allEntries],
       );
-    } catch (e, st) {
-      // ignore: avoid_print
-      print('addEntry failed: $e\n$st');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('addEntry failed');
+      }
       rethrow;
     }
   }
@@ -226,9 +228,10 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
         allEntries:
             state.allEntries.map((e) => e.id == entryId ? updated : e).toList(),
       );
-    } catch (e, st) {
-      // ignore: avoid_print
-      print('updateEntry failed: $e\n$st');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('updateEntry failed');
+      }
       rethrow;
     }
   }
