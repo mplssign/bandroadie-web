@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1271,12 +1272,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     final result = await showModalBottomSheet<ShareFormat>(
       context: context,
-      backgroundColor: context.colors.surface,
+      backgroundColor:
+          kIsWeb ? const Color(0xFF1a1a1a) : context.colors.surface,
+      barrierColor: kIsWeb ? Colors.black.withValues(alpha: 0.7) : null,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       isDismissible: true,
-      enableDrag: true,
+      enableDrag: !kIsWeb, // Disable drag on web (no touch gestures)
+      isScrollControlled: true, // Allow custom height
       builder: (context) => const _ShareFormatSheet(),
     );
 
@@ -3091,37 +3095,40 @@ class _ShareFormatSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Container(
-        padding: EdgeInsets.only(
-          left: Spacing.pagePadding,
-          right: Spacing.pagePadding,
-          top: Spacing.space24,
-          bottom: MediaQuery.of(context).viewPadding.bottom + Spacing.space24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Text('Share Format', style: AppTextStyles.headline),
-            const SizedBox(height: Spacing.space16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 200),
+        child: Container(
+          padding: EdgeInsets.only(
+            left: Spacing.pagePadding,
+            right: Spacing.pagePadding,
+            top: Spacing.space24,
+            bottom: MediaQuery.of(context).viewPadding.bottom + Spacing.space24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Text('Share Format', style: AppTextStyles.headline),
+              const SizedBox(height: Spacing.space16),
 
-            // Text / Email option
-            _ShareFormatOption(
-              smallText: 'Share by',
-              largeText: 'Text / Email',
-              onTap: () => Navigator.of(context).pop(ShareFormat.textEmail),
-            ),
+              // Text / Email option
+              _ShareFormatOption(
+                smallText: 'Share by',
+                largeText: 'Text / Email',
+                onTap: () => Navigator.of(context).pop(ShareFormat.textEmail),
+              ),
 
-            const SizedBox(height: Spacing.space12),
+              const SizedBox(height: Spacing.space12),
 
-            // Spreadsheet option
-            _ShareFormatOption(
-              smallText: '4-column',
-              largeText: 'Spreadsheet',
-              onTap: () => Navigator.of(context).pop(ShareFormat.spreadsheet),
-            ),
-          ],
+              // Spreadsheet option
+              _ShareFormatOption(
+                smallText: '4-column',
+                largeText: 'Spreadsheet',
+                onTap: () => Navigator.of(context).pop(ShareFormat.spreadsheet),
+              ),
+            ],
+          ),
         ),
       ),
     );
