@@ -792,7 +792,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 )
               : EmptySectionCard(
                   title: 'No Rehearsal Scheduled',
-                  subtitle: 'The stage is empty and the amps are cold.',
                   buttonLabel: 'Schedule Rehearsal',
                   onButtonPressed: isContributor
                       ? null
