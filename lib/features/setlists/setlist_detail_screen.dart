@@ -3149,9 +3149,8 @@ class _ShareFormatOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       child: Container(
         padding: const EdgeInsets.all(Spacing.space16),
         decoration: BoxDecoration(
