@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/models/band.dart';
@@ -50,6 +52,10 @@ class BandFullStateRepository {
     final data = await supabase.rpc(
       'get_band_full_state',
       params: {'p_band_id': bandId},
+    ).timeout(
+      const Duration(seconds: 15),
+      onTimeout: () =>
+          throw TimeoutException('Dashboard load timed out after 15 seconds'),
     );
 
     final result = data as Map<String, dynamic>;

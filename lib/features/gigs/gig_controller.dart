@@ -111,14 +111,20 @@ class GigNotifier extends Notifier<GigState> {
 
     return fullStateAsync.when(
       data: (fullState) {
-        if (fullState == null) return const GigState();
+        if (fullState == null) {
+          final activeBandId = ref.read(activeBandIdProvider);
+          return GigState(loadedBandId: activeBandId);
+        }
         final bandId = fullState.band.id;
         debugPrint(
           '[GigController] RPC data received for band $bandId -> ${fullState.gigs.length} gigs',
         );
         return _categorizeGigs(fullState.gigs, bandId, fullState.band.timezone);
       },
-      loading: () => const GigState(isLoading: true),
+      loading: () {
+        final activeBandId = ref.read(activeBandIdProvider);
+        return GigState(isLoading: true, loadedBandId: activeBandId);
+      },
       error: (e, stackTrace) {
         debugPrint(
             '═══════════════════════════════════════════════════════════');
@@ -128,7 +134,8 @@ class GigNotifier extends Notifier<GigState> {
         debugPrint('  Stack: $stackTrace');
         debugPrint(
             '═══════════════════════════════════════════════════════════');
-        return GigState(error: e.toString());
+        final activeBandId = ref.read(activeBandIdProvider);
+        return GigState(error: e.toString(), loadedBandId: activeBandId);
       },
     );
   }

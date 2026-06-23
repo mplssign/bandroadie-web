@@ -105,7 +105,10 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
 
     return fullStateAsync.when(
       data: (fullState) {
-        if (fullState == null) return const RehearsalState();
+        if (fullState == null) {
+          final activeBandId = ref.read(activeBandIdProvider);
+          return RehearsalState(loadedBandId: activeBandId);
+        }
         final bandId = fullState.band.id;
         debugPrint(
           '[RehearsalController] RPC data received for band $bandId -> ${fullState.rehearsals.length} rehearsals',
@@ -113,9 +116,13 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
         return _categorizeRehearsals(
             fullState.rehearsals, bandId, fullState.band.timezone);
       },
-      loading: () => const RehearsalState(isLoading: true),
+      loading: () {
+        final activeBandId = ref.read(activeBandIdProvider);
+        return RehearsalState(isLoading: true, loadedBandId: activeBandId);
+      },
       error: (e, stackTrace) {
-        return RehearsalState(error: e.toString());
+        final activeBandId = ref.read(activeBandIdProvider);
+        return RehearsalState(error: e.toString(), loadedBandId: activeBandId);
       },
     );
   }
