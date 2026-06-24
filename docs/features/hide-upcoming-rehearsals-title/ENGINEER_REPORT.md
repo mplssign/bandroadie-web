@@ -14,8 +14,8 @@ Conditionally render the "Upcoming Rehearsals" section (title + content) to hide
 
 ## Architect Tasks Completed
 
-- [x] Task 1 — Modify `home_tab_content.dart`: Wrap "Upcoming Rehearsals" section in conditional `if (rehearsalState.confirmedRehearsals.isNotEmpty)`
-- [x] Task 2 — Modify `home_screen.dart`: Wrap "Upcoming Rehearsals" section in conditional `if (nextRehearsal != null)`
+- [x] Task 1 — Modify `home_tab_content.dart`: Split title from content, hide title when no confirmed rehearsals, show empty state when no rehearsals at all
+- [x] Task 2 — Modify `home_screen.dart`: Split title from content, hide title when no confirmed rehearsals, show empty state when no potential gig
 - [x] Task 3 — Run `flutter analyze`: PASSED (0 errors, 0 warnings)
 - [x] Task 4 — Format changed files
 - [x] Task 5 — Generate ENGINEER_REPORT.md
@@ -43,27 +43,46 @@ Not run (manual QA verification required as per Architect plan Section 17)
 
 Manual static verification performed:
 
-- ✅ Conditional wrapping applied to `home_tab_content.dart` — simplified to `if (rehearsalState.confirmedRehearsals.isNotEmpty)`
-- ✅ Conditional wrapping applied to `home_screen.dart` — simplified to `if (nextRehearsal != null)`
-- ✅ Inner ternary in both files removed — section always shows content when condition is true
-- ✅ Empty state cards removed from both files — section hidden when no confirmed rehearsals
-- ✅ Comments updated to explain conditional logic
-- ✅ Spread operator syntax `...[...]` correctly applied to wrap multiple widgets
+- ✅ Title conditional applied to `home_tab_content.dart` — shows only when `confirmedRehearsals.isNotEmpty`
+- ✅ Content conditional applied to `home_tab_content.dart` — shows confirmed list OR empty state card when no rehearsals at all
+- ✅ Title conditional applied to `home_screen.dart` — shows only when `nextRehearsal != null`
+- ✅ Content conditional applied to `home_screen.dart` — shows rehearsal card OR empty state card when no potential gig
+- ✅ Empty state card preserved in both files — displays when no rehearsals at all
+- ✅ Comments updated to explain split conditional logic
 - ✅ No changes to unrelated code
 - ✅ Flutter analyze passed with no issues
 
 ## Deviations From Architect Plan
 
-**Scope correction applied after initial implementation:**
+**Second scope correction applied after initial implementation:**
 
-The original Architect plan specified hiding the section when there were no confirmed rehearsals AND only potential rehearsals existed, while keeping the section visible (with empty state) when there were no rehearsals at all.
+The first implementation (commit 1) hid the entire section (title + content) when there were no confirmed rehearsals. This was corrected to hide only the section when there were no confirmed rehearsals AND potential rehearsals existed.
 
-After implementation review, the requirement was clarified: the section must be hidden whenever there are no confirmed rehearsals — regardless of whether potential rehearsals exist or not. The section should only render when at least one confirmed rehearsal exists.
+After further review, the requirement was clarified again: **the title should hide when there are no confirmed rehearsals, but the empty state card must still appear when there are no rehearsals at all** (confirmed or potential).
 
-**Changes from original plan:**
-- `home_tab_content.dart`: Conditional simplified from `if (rehearsalState.confirmedRehearsals.isNotEmpty || rehearsalState.potentialRehearsals.isEmpty)` to `if (rehearsalState.confirmedRehearsals.isNotEmpty)`
-- `home_screen.dart`: Conditional simplified from `if (nextRehearsal != null || potentialGig == null)` to `if (nextRehearsal != null)`
-- Empty state cards removed from both conditional blocks (no longer reachable)
+**Final implementation (commit 2):**
+
+- `home_tab_content.dart`:
+  - Title renders only when `confirmedRehearsals.isNotEmpty`
+  - Content renders confirmed list when available, OR empty state card when `potentialRehearsals.isEmpty`
+  - Nothing renders when only potential rehearsals exist (they appear in "Potential Events" section)
+
+- `home_screen.dart`:
+  - Title renders only when `nextRehearsal != null`
+  - Content renders rehearsal card when available, OR empty state card when `potentialGig == null`
+  - Empty state provides context and action button for users with no events
+
+**Key behavioral changes from original plan:**
+
+- Original plan: Hide entire section when `confirmedRehearsals.isEmpty`
+- First correction: Hide section only when potential rehearsals exist
+- **Final correction: Split title from content — hide title when no confirmed rehearsals, preserve empty state when no rehearsals at all**
+
+This ensures:
+
+1. Users with only potential rehearsals don't see an orphaned title ✓
+2. Users with no rehearsals at all see empty state with action button ✓
+3. Users with confirmed rehearsals see title + content ✓
 
 ## Blockers Encountered
 
@@ -73,12 +92,30 @@ None
 
 **Yes**
 
-The implementation is complete and ready for QA verification with the updated scope. QA should test the following scenarios:
+The implementation is complete and ready for QA verification with the final corrected scope. QA should test the following scenarios:
 
-1. **User with only potential rehearsals:** "Upcoming Rehearsals" section should be hidden
-2. **User with at least one confirmed rehearsal:** "Upcoming Rehearsals" section should be visible with content
-3. **User with no rehearsals at all:** "Upcoming Rehearsals" section should be hidden (empty state removed from this section)
+**Test Case 1: User with only potential rehearsals**
 
-Note: The empty state for "no rehearsals at all" is now shown in other parts of the dashboard, not in the "Upcoming Rehearsals" section.
+- Expected: "Potential Events" section visible with potential rehearsals
+- Expected: "Upcoming Rehearsals" title NOT visible
+- Expected: "Upcoming Rehearsals" empty state NOT visible
+- Expected: No orphaned heading or empty space
+
+**Test Case 2: User with at least one confirmed rehearsal**
+
+- Expected: "Upcoming Rehearsals" title IS visible
+- Expected: "Upcoming Rehearsals" content IS visible with horizontal scroll list
+
+**Test Case 3: User with no rehearsals at all (confirmed or potential)**
+
+- Expected: "Upcoming Rehearsals" title NOT visible
+- Expected: "Upcoming Rehearsals" empty state card IS visible
+- Expected: Empty state shows "No Rehearsal Scheduled" + "Schedule Rehearsal" button
+
+**Test Case 4: Mixed scenario (both confirmed and potential rehearsals)**
+
+- Expected: "Potential Events" section shows potential rehearsals
+- Expected: "Upcoming Rehearsals" title IS visible
+- Expected: "Upcoming Rehearsals" content shows confirmed rehearsals only
 
 Both primary dashboard path (`HomeTabContent`) and secondary path (`HomeScreen`) have been updated for consistency.
