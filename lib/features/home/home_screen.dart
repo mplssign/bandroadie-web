@@ -763,43 +763,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ],
 
         // Upcoming rehearsals section
-        const SectionHeader(title: 'Upcoming Rehearsals'),
-        const SizedBox(height: Spacing.space12),
-        _AnimatedCardEntrance(
-          delay: const Duration(milliseconds: 100),
-          child: nextRehearsal != null
-              ? Builder(
-                  builder: (context) {
-                    // Look up setlist name from setlistId
-                    String? setlistName;
-                    if (nextRehearsal.setlistId != null) {
-                      final setlist = setlistsState.setlists
-                          .where(
-                            (s) => s.id == nextRehearsal.setlistId,
-                          )
-                          .firstOrNull;
-                      setlistName = setlist?.name;
-                    }
-                    return RehearsalCard(
-                      rehearsal: nextRehearsal,
-                      bandTimezone: bandTimezone,
-                      setlistName: setlistName,
-                      onTap: () => _openEditRehearsalSheet(
-                        nextRehearsal,
+        // Title — only when nextRehearsal exists
+        if (nextRehearsal != null) ...[
+          const SectionHeader(title: 'Upcoming Rehearsals'),
+          const SizedBox(height: Spacing.space12),
+        ],
+
+        // Content
+        if (nextRehearsal != null)
+          _AnimatedCardEntrance(
+            delay: const Duration(milliseconds: 100),
+            child: Builder(
+              builder: (context) {
+                // Look up setlist name from setlistId
+                String? setlistName;
+                if (nextRehearsal.setlistId != null) {
+                  final setlist = setlistsState.setlists
+                      .where(
+                        (s) => s.id == nextRehearsal.setlistId,
+                      )
+                      .firstOrNull;
+                  setlistName = setlist?.name;
+                }
+                return RehearsalCard(
+                  rehearsal: nextRehearsal,
+                  bandTimezone: bandTimezone,
+                  setlistName: setlistName,
+                  onTap: () => _openEditRehearsalSheet(
+                    nextRehearsal,
+                  ),
+                );
+              },
+            ),
+          )
+        else if (potentialGig == null)
+          _AnimatedCardEntrance(
+            delay: const Duration(milliseconds: 100),
+            child: EmptySectionCard(
+              title: 'No Rehearsal Scheduled',
+              subtitle: 'Time to get the band back together.',
+              buttonLabel: 'Schedule Rehearsal',
+              onButtonPressed: isContributor
+                  ? null
+                  : () => _openAddEventSheet(
+                        EventType.rehearsal,
                       ),
-                    );
-                  },
-                )
-              : EmptySectionCard(
-                  title: 'No Rehearsal Scheduled',
-                  buttonLabel: 'Schedule Rehearsal',
-                  onButtonPressed: isContributor
-                      ? null
-                      : () => _openAddEventSheet(
-                            EventType.rehearsal,
-                          ),
-                ),
-        ),
+            ),
+          ),
 
         // Upcoming gigs section - horizontal scroll
         const SectionHeader(title: 'Upcoming Gigs'),

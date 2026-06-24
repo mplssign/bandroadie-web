@@ -857,29 +857,37 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 ],
 
                                 // Upcoming rehearsals section
-                                const SectionHeader(
-                                    title: 'Upcoming Rehearsals',
-                                    topSpacing: Spacing.space24),
-                                const SizedBox(height: Spacing.space12),
-                                _AnimatedCardEntrance(
-                                  delay: const Duration(milliseconds: 80),
-                                  child: rehearsalState
-                                          .confirmedRehearsals.isNotEmpty
-                                      ? _buildHorizontalRehearsalsList(
-                                          rehearsalState)
-                                      : rehearsalState
-                                              .potentialRehearsals.isNotEmpty
-                                          ? const SizedBox.shrink()
-                                          : EmptySectionCard(
-                                              title: 'No Rehearsal Scheduled',
-                                              buttonLabel: 'Schedule Rehearsal',
-                                              onButtonPressed: isContributor
-                                                  ? null
-                                                  : () => _openAddEventSheet(
-                                                        EventType.rehearsal,
-                                                      ),
-                                            ),
-                                ),
+                                // Title — only when confirmed rehearsals exist
+                                if (rehearsalState
+                                    .confirmedRehearsals.isNotEmpty) ...[
+                                  const SectionHeader(
+                                      title: 'Upcoming Rehearsals',
+                                      topSpacing: Spacing.space24),
+                                  const SizedBox(height: Spacing.space12),
+                                ],
+
+                                // Content — always shown unless only potential rehearsals exist
+                                if (rehearsalState
+                                    .confirmedRehearsals.isNotEmpty)
+                                  _AnimatedCardEntrance(
+                                    delay: const Duration(milliseconds: 80),
+                                    child: _buildHorizontalRehearsalsList(
+                                        rehearsalState),
+                                  )
+                                else if (rehearsalState
+                                    .potentialRehearsals.isEmpty)
+                                  _AnimatedCardEntrance(
+                                    delay: const Duration(milliseconds: 80),
+                                    child: EmptySectionCard(
+                                      title: 'No Rehearsal Scheduled',
+                                      buttonLabel: 'Schedule Rehearsal',
+                                      onButtonPressed: isContributor
+                                          ? null
+                                          : () => _openAddEventSheet(
+                                                EventType.rehearsal,
+                                              ),
+                                    ),
+                                  ),
 
                                 // Upcoming gigs section
                                 const SectionHeader(
@@ -905,8 +913,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                 Builder(builder: (context) {
                                   final showAddEvent =
                                       !isContributor || canCreateGig;
-                                  final hasAnyButton =
-                                      showAddEvent || canCreateSetlist || !isContributor;
+                                  final hasAnyButton = showAddEvent ||
+                                      canCreateSetlist ||
+                                      !isContributor;
                                   if (!hasAnyButton) {
                                     return const SizedBox.shrink();
                                   }
