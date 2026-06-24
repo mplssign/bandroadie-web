@@ -47,9 +47,9 @@ enabled = true
 # Update this to your production site URL when testing locally
 site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = [
-  "https://app.bandroadie.com",
-  "https://bandroadie.com",
-  "com.bandroadie.app://callback"
+  "https://app.bandroadie.com/auth/confirm",
+  "https://app.bandroadie.com/auth/callback",
+  "bandroadie://login-callback/"
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true

@@ -137,6 +137,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
         '[AuthGate] Auth state changed: ${previous?.isAuthenticated} -> ${next.isAuthenticated}',
       );
 
+      // SAFEGUARD: If widget is disposed, do not attempt state changes
+      if (!mounted) return;
+
       // Session state changed
       if (previous?.isAuthenticated != next.isAuthenticated) {
         if (next.isAuthenticated) {

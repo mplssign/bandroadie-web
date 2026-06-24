@@ -854,6 +854,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                       setlistsState,
                                     ),
                                   ),
+                                  // Only add spacing when rehearsal section won't have title
+                                  // (title provides topSpacing when confirmed rehearsals exist)
+                                  if (rehearsalState
+                                      .confirmedRehearsals.isEmpty)
+                                    const SizedBox(height: Spacing.space24),
                                 ],
 
                                 // Upcoming rehearsals section

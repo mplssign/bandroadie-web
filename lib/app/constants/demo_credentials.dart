@@ -10,7 +10,7 @@
 // ============================================================================
 
 /// Email address for the Play Store demo account.
-const String kDemoEmail = 'bandroadie2026@gmail.com';
+const String kDemoEmail = 'hello@bandroadie.com';
 
 /// Password for the Play Store demo account.
 /// Injected at compile time via --dart-define=DEMO_PASSWORD.
