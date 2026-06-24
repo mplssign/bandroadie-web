@@ -68,6 +68,12 @@ class _RehearsalCardState extends State<RehearsalCard>
   /// Optimistic per-date response map: rehearsalDateId? → 'yes'/'no'/null.
   Map<String?, String?> _localResponses = {};
 
+  /// Tracks in-flight saves per date to prevent premature state sync.
+  Map<String?, bool> _savingInProgress = {};
+
+  /// Focus nodes for keyboard navigation: [left nav, NO, YES, right nav]
+  final List<FocusNode> _focusNodes = [];
+
   // ---------------------------------------------------------------------------
   // Date helpers
   // ---------------------------------------------------------------------------
@@ -84,6 +90,7 @@ class _RehearsalCardState extends State<RehearsalCard>
     return all;
   }
 
+  DateTime get _currentDate => _sortedDates[_currentDateIndex].$1;
   String? get _currentRehearsalDateId => _sortedDates[_currentDateIndex].$2;
   String? get _currentDateResponse => _localResponses[_currentRehearsalDateId];
   bool get _isMultiDate => widget.additionalDates.isNotEmpty;
@@ -95,6 +102,11 @@ class _RehearsalCardState extends State<RehearsalCard>
     super.initState();
     _localResponses = Map.from(widget.perDateUserResponses ?? {});
 
+    // Initialize focus nodes for keyboard navigation
+    for (int i = 0; i < 4; i++) {
+      _focusNodes.add(FocusNode());
+    }
+
     _gradientController = AnimationController(
       duration: const Duration(seconds: 6),
       vsync: this,
@@ -105,13 +117,23 @@ class _RehearsalCardState extends State<RehearsalCard>
   void didUpdateWidget(RehearsalCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.perDateUserResponses != widget.perDateUserResponses) {
-      _localResponses = Map.from(widget.perDateUserResponses ?? {});
+      // Sync from props, but skip dates currently being saved to preserve optimistic updates
+      final newResponses = Map<String?, String?>.from(_localResponses);
+      widget.perDateUserResponses?.forEach((dateId, response) {
+        if (_savingInProgress[dateId] != true) {
+          newResponses[dateId] = response;
+        }
+      });
+      _localResponses = newResponses;
     }
   }
 
   @override
   void dispose() {
     _gradientController.dispose();
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -125,11 +147,14 @@ class _RehearsalCardState extends State<RehearsalCard>
       HapticFeedback.selectionClick();
       setState(() {
         _isSubmitting = true;
+        _savingInProgress[rehearsalDateId] = true;
         _localResponses = {..._localResponses, rehearsalDateId: null};
       });
       try {
         await widget.onRespondForDate!(null, rehearsalDateId);
-      } catch (_) {
+      } catch (e) {
+        debugPrint(
+            '[RehearsalCard] Response save failed for date $rehearsalDateId: $e');
         if (mounted) {
           setState(() {
             _localResponses = {
@@ -137,9 +162,20 @@ class _RehearsalCardState extends State<RehearsalCard>
               rehearsalDateId: widget.perDateUserResponses?[rehearsalDateId],
             };
           });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not save response — please try again.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
         }
       } finally {
-        if (mounted) setState(() => _isSubmitting = false);
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+            _savingInProgress[rehearsalDateId] = false;
+          });
+        }
       }
       return;
     }
@@ -148,11 +184,14 @@ class _RehearsalCardState extends State<RehearsalCard>
     HapticFeedback.selectionClick();
     setState(() {
       _isSubmitting = true;
+      _savingInProgress[rehearsalDateId] = true;
       _localResponses = {..._localResponses, rehearsalDateId: response};
     });
     try {
       await widget.onRespondForDate!(response, rehearsalDateId);
-    } catch (_) {
+    } catch (e) {
+      debugPrint(
+          '[RehearsalCard] Response save failed for date $rehearsalDateId: $e');
       if (mounted) {
         setState(() {
           _localResponses = {
@@ -160,10 +199,64 @@ class _RehearsalCardState extends State<RehearsalCard>
             rehearsalDateId: widget.perDateUserResponses?[rehearsalDateId],
           };
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not save response — please try again.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _savingInProgress[rehearsalDateId] = false;
+        });
+      }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Keyboard navigation
+  // ---------------------------------------------------------------------------
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Handle Enter and Space for activation
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.space) {
+      final dates = _sortedDates;
+      final nodeIndex = _focusNodes.indexOf(node);
+
+      if (_isMultiDate) {
+        // Multi-date: [0]=left nav, [1]=NO, [2]=YES, [3]=right nav
+        if (nodeIndex == 0 && _currentDateIndex > 0) {
+          setState(() => _currentDateIndex--);
+          return KeyEventResult.handled;
+        } else if (nodeIndex == 1) {
+          _handleResponse('no');
+          return KeyEventResult.handled;
+        } else if (nodeIndex == 2) {
+          _handleResponse('yes');
+          return KeyEventResult.handled;
+        } else if (nodeIndex == 3 && _currentDateIndex < dates.length - 1) {
+          setState(() => _currentDateIndex++);
+          return KeyEventResult.handled;
+        }
+      } else {
+        // Single-date: [1]=NO, [2]=YES
+        if (nodeIndex == 1) {
+          _handleResponse('no');
+          return KeyEventResult.handled;
+        } else if (nodeIndex == 2) {
+          _handleResponse('yes');
+          return KeyEventResult.handled;
+        }
+      }
+    }
+
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -325,6 +418,8 @@ class _RehearsalCardState extends State<RehearsalCard>
                           icon: Icons.chevron_left,
                           enabled: canGoPrev,
                           onTap: () => setState(() => _currentDateIndex--),
+                          focusNode: _focusNodes[0],
+                          onKey: _handleKeyEvent,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -333,7 +428,12 @@ class _RehearsalCardState extends State<RehearsalCard>
                             isSelected: _currentDateResponse == 'no',
                             isPositive: false,
                             isSubmitting: _isSubmitting,
+                            isLoading:
+                                _savingInProgress[_currentRehearsalDateId] ??
+                                    false,
                             onTap: () => _handleResponse('no'),
+                            focusNode: _focusNodes[1],
+                            onKey: _handleKeyEvent,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -343,7 +443,12 @@ class _RehearsalCardState extends State<RehearsalCard>
                             isSelected: _currentDateResponse == 'yes',
                             isPositive: true,
                             isSubmitting: _isSubmitting,
+                            isLoading:
+                                _savingInProgress[_currentRehearsalDateId] ??
+                                    false,
                             onTap: () => _handleResponse('yes'),
+                            focusNode: _focusNodes[2],
+                            onKey: _handleKeyEvent,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -351,6 +456,8 @@ class _RehearsalCardState extends State<RehearsalCard>
                           icon: Icons.chevron_right,
                           enabled: canGoNext,
                           onTap: () => setState(() => _currentDateIndex++),
+                          focusNode: _focusNodes[3],
+                          onKey: _handleKeyEvent,
                         ),
                       ],
                     );
@@ -364,7 +471,12 @@ class _RehearsalCardState extends State<RehearsalCard>
                           isSelected: _currentDateResponse == 'no',
                           isPositive: false,
                           isSubmitting: _isSubmitting,
+                          isLoading:
+                              _savingInProgress[_currentRehearsalDateId] ??
+                                  false,
                           onTap: () => _handleResponse('no'),
+                          focusNode: _focusNodes[1],
+                          onKey: _handleKeyEvent,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -374,7 +486,12 @@ class _RehearsalCardState extends State<RehearsalCard>
                           isSelected: _currentDateResponse == 'yes',
                           isPositive: true,
                           isSubmitting: _isSubmitting,
+                          isLoading:
+                              _savingInProgress[_currentRehearsalDateId] ??
+                                  false,
                           onTap: () => _handleResponse('yes'),
+                          focusNode: _focusNodes[2],
+                          onKey: _handleKeyEvent,
                         ),
                       ),
                     ],
@@ -417,8 +534,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF2B7FFF).withValues(alpha: gradientAlpha), // blue-500
-                    const Color(0xFF1447E6).withValues(alpha: gradientAlpha), // blue-700
+                    const Color(0xFF2B7FFF)
+                        .withValues(alpha: gradientAlpha), // blue-500
+                    const Color(0xFF1447E6)
+                        .withValues(alpha: gradientAlpha), // blue-700
                   ],
                 ),
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -427,7 +546,12 @@ class _RehearsalCardState extends State<RehearsalCard>
                   width: 1,
                 ),
               ),
-              padding: const EdgeInsets.all(Spacing.space16),
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.space16, // left
+                Spacing.space16, // top
+                Spacing.space16, // right
+                Spacing.space8, // bottom
+              ),
               child: child,
             );
           },
@@ -439,7 +563,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _formatDateLine(widget.rehearsal.date),
+                    _formatDateLine(_currentDate),
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
@@ -593,9 +717,9 @@ class _RehearsalCardState extends State<RehearsalCard>
       final frequency = widget.rehearsal.recurrenceFrequency!;
       final frequencyText =
           frequency.substring(0, 1).toUpperCase() + frequency.substring(1);
-      return '$frequencyText starting ${_formatFullDate(widget.rehearsal.date)}';
+      return '$frequencyText starting ${_formatFullDate(_currentDate)}';
     }
-    return _formatFullDate(widget.rehearsal.date);
+    return _formatFullDate(_currentDate);
   }
 }
 
@@ -607,16 +731,20 @@ class _RehearsalDateNavButton extends StatelessWidget {
   final IconData icon;
   final bool enabled;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
+  final KeyEventResult Function(FocusNode, KeyEvent)? onKey;
 
   const _RehearsalDateNavButton({
     required this.icon,
     required this.enabled,
     required this.onTap,
+    this.focusNode,
+    this.onKey,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final button = GestureDetector(
       onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: AppDurations.fast,
@@ -638,6 +766,15 @@ class _RehearsalDateNavButton extends StatelessWidget {
         ),
       ),
     );
+
+    if (focusNode != null && onKey != null) {
+      return Focus(
+        focusNode: focusNode,
+        onKeyEvent: onKey,
+        child: button,
+      );
+    }
+    return button;
   }
 }
 
@@ -647,14 +784,20 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
   final bool isSelected;
   final bool isPositive;
   final bool isSubmitting;
+  final bool isLoading;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
+  final KeyEventResult Function(FocusNode, KeyEvent)? onKey;
 
   const _FullWidthAvailabilityButton({
     required this.label,
     required this.isSelected,
     required this.isPositive,
     required this.isSubmitting,
+    this.isLoading = false,
     required this.onTap,
+    this.focusNode,
+    this.onKey,
   });
 
   @override
@@ -683,8 +826,8 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
       textColor = Colors.white;
     }
 
-    return GestureDetector(
-      onTap: isSubmitting ? null : onTap,
+    final button = GestureDetector(
+      onTap: (isSubmitting || isLoading) ? null : onTap,
       child: AnimatedContainer(
         duration: AppDurations.fast,
         height: 48,
@@ -697,17 +840,35 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-              letterSpacing: 0.5,
-            ),
-          ),
+          child: isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  label,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    letterSpacing: 0.5,
+                  ),
+                ),
         ),
       ),
     );
+
+    if (focusNode != null && onKey != null) {
+      return Focus(
+        focusNode: focusNode,
+        onKeyEvent: onKey,
+        child: button,
+      );
+    }
+    return button;
   }
 }
