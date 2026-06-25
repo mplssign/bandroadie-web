@@ -70,7 +70,7 @@ class _RehearsalCardState extends State<RehearsalCard>
   Map<String?, String?> _localResponses = {};
 
   /// Tracks in-flight saves per date to prevent premature state sync.
-  Map<String?, bool> _savingInProgress = {};
+  final Map<String?, bool> _savingInProgress = {};
 
   /// Navigation direction: 1 = forward (right), -1 = backward (left)
   int _navigationDirection = 1;
