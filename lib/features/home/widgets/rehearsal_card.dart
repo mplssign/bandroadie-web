@@ -9,6 +9,7 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'potential_gig_card.dart' show AnimatedDateLabel;
 
 // ============================================================================
 // REHEARSAL CARD
@@ -71,6 +72,9 @@ class _RehearsalCardState extends State<RehearsalCard>
   /// Tracks in-flight saves per date to prevent premature state sync.
   Map<String?, bool> _savingInProgress = {};
 
+  /// Navigation direction: 1 = forward (right), -1 = backward (left)
+  int _navigationDirection = 1;
+
   /// Focus nodes for keyboard navigation: [left nav, NO, YES, right nav]
   final List<FocusNode> _focusNodes = [];
 
@@ -94,6 +98,21 @@ class _RehearsalCardState extends State<RehearsalCard>
   String? get _currentRehearsalDateId => _sortedDates[_currentDateIndex].$2;
   String? get _currentDateResponse => _localResponses[_currentRehearsalDateId];
   bool get _isMultiDate => widget.additionalDates.isNotEmpty;
+
+  /// Get the start time for the currently displayed date.
+  /// Falls back to primary rehearsal start time if the additional date has no specific time.
+  String get _currentStartTime {
+    final rehearsalDateId = _currentRehearsalDateId;
+    if (rehearsalDateId == null) {
+      // Primary date
+      return widget.rehearsal.startTime;
+    }
+    // Additional date - find the RehearsalDate object
+    final rehearsalDate = widget.additionalDates.firstWhere(
+      (d) => d.id == rehearsalDateId,
+    );
+    return rehearsalDate.startTime ?? widget.rehearsal.startTime;
+  }
 
   // ---------------------------------------------------------------------------
 
@@ -355,9 +374,9 @@ class _RehearsalCardState extends State<RehearsalCard>
                 const SizedBox(height: 16),
 
                 // Date (with recurring frequency prefix if applicable)
-                Text(
-                  _formatDateWithRecurrence(),
-                  textAlign: TextAlign.center,
+                AnimatedDateLabel(
+                  text: _formatDateWithRecurrence(),
+                  direction: _navigationDirection,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.dmSans(
@@ -374,9 +393,9 @@ class _RehearsalCardState extends State<RehearsalCard>
                 const SizedBox(height: 8),
 
                 // Time
-                Text(
-                  _formatTimeLine(widget.rehearsal),
-                  textAlign: TextAlign.center,
+                AnimatedDateLabel(
+                  text: _formatTimeLine(widget.rehearsal),
+                  direction: _navigationDirection,
                   style: GoogleFonts.dmSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -417,7 +436,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                         _RehearsalDateNavButton(
                           icon: Icons.chevron_left,
                           enabled: canGoPrev,
-                          onTap: () => setState(() => _currentDateIndex--),
+                          onTap: () => setState(() {
+                            _navigationDirection = -1;
+                            _currentDateIndex--;
+                          }),
                           focusNode: _focusNodes[0],
                           onKey: _handleKeyEvent,
                         ),
@@ -455,7 +477,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                         _RehearsalDateNavButton(
                           icon: Icons.chevron_right,
                           enabled: canGoNext,
-                          onTap: () => setState(() => _currentDateIndex++),
+                          onTap: () => setState(() {
+                            _navigationDirection = 1;
+                            _currentDateIndex++;
+                          }),
                           focusNode: _focusNodes[3],
                           onKey: _handleKeyEvent,
                         ),
@@ -704,9 +729,9 @@ class _RehearsalCardState extends State<RehearsalCard>
 
   String _formatTimeLine(Rehearsal rehearsal) {
     return TimeFormatter.formatRangeLocal(
-      rehearsal.startTime,
+      _currentStartTime,
       rehearsal.endTime,
-      rehearsal.date,
+      _currentDate,
       widget.bandTimezone,
     );
   }
@@ -745,7 +770,9 @@ class _RehearsalDateNavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final button = GestureDetector(
-      onTap: enabled ? onTap : null,
+      onTap: enabled
+          ? onTap
+          : () {}, // Empty callback prevents tap bubbling when disabled
       child: AnimatedContainer(
         duration: AppDurations.fast,
         width: 48,

@@ -61,6 +61,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
   /// Tracks in-flight saves per date to prevent premature state sync.
   Map<String?, bool> _savingInProgress = {};
 
+  /// Navigation direction: 1 = forward (right), -1 = backward (left)
+  int _navigationDirection = 1;
+
   /// Focus nodes for keyboard navigation: [left nav, NO, YES, right nav]
   final List<FocusNode> _focusNodes = [];
 
@@ -84,6 +87,21 @@ class _PotentialGigCardState extends State<PotentialGigCard>
   String? get _currentGigDateId => _sortedDates[_currentDateIndex].$2;
   String? get _currentDateResponse => _localResponses[_currentGigDateId];
   bool get _isMultiDate => widget.gig.isMultiDate;
+
+  /// Get the start time for the currently displayed date.
+  /// Falls back to primary gig start time if the additional date has no specific time.
+  String get _currentStartTime {
+    final gigDateId = _currentGigDateId;
+    if (gigDateId == null) {
+      // Primary date
+      return widget.gig.startTime;
+    }
+    // Additional date - find the GigDate object
+    final gigDate = widget.gig.additionalDates.firstWhere(
+      (d) => d.id == gigDateId,
+    );
+    return gigDate.startTime ?? widget.gig.startTime;
+  }
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -349,9 +367,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                 const SizedBox(height: 16),
 
                 // Current date
-                Text(
-                  _formatFullDate(_currentDate),
-                  textAlign: TextAlign.center,
+                AnimatedDateLabel(
+                  text: _formatFullDate(_currentDate),
+                  direction: _navigationDirection,
                   style: GoogleFonts.dmSans(
                     fontSize: 21,
                     fontWeight: FontWeight.w700,
@@ -362,15 +380,15 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
                 const SizedBox(height: 8),
 
-                // Time (always actual time regardless of multi-date)
-                Text(
-                  TimeFormatter.formatRangeLocal(
-                    widget.gig.startTime,
+                // Time (index-aware for multi-date)
+                AnimatedDateLabel(
+                  text: TimeFormatter.formatRangeLocal(
+                    _currentStartTime,
                     widget.gig.endTime,
-                    widget.gig.date,
+                    _currentDate,
                     widget.bandTimezone,
                   ),
-                  textAlign: TextAlign.center,
+                  direction: _navigationDirection,
                   style: GoogleFonts.dmSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -441,7 +459,10 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       _DateNavButton(
                         icon: Icons.chevron_left,
                         enabled: canGoPrev,
-                        onTap: () => setState(() => _currentDateIndex--),
+                        onTap: () => setState(() {
+                          _navigationDirection = -1;
+                          _currentDateIndex--;
+                        }),
                         focusNode: _focusNodes[0],
                         onKey: _handleKeyEvent,
                       ),
@@ -477,7 +498,10 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       _DateNavButton(
                         icon: Icons.chevron_right,
                         enabled: canGoNext,
-                        onTap: () => setState(() => _currentDateIndex++),
+                        onTap: () => setState(() {
+                          _navigationDirection = 1;
+                          _currentDateIndex++;
+                        }),
                         focusNode: _focusNodes[3],
                         onKey: _handleKeyEvent,
                       ),
@@ -564,7 +588,9 @@ class _DateNavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final button = GestureDetector(
-      onTap: enabled ? onTap : null,
+      onTap: enabled
+          ? onTap
+          : () {}, // Empty callback prevents tap bubbling when disabled
       child: AnimatedContainer(
         duration: AppDurations.fast,
         width: 48,
@@ -812,6 +838,120 @@ class AvailabilityButton extends StatelessWidget {
             fontWeight: FontWeight.w700,
             color: Colors.white,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated date label with horizontal slide transition.
+/// Slides out to the left when navigating forward, right when navigating backward.
+class AnimatedDateLabel extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  final TextAlign textAlign;
+  final int direction; // 1 = forward, -1 = backward
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  const AnimatedDateLabel({
+    super.key,
+    required this.text,
+    required this.style,
+    this.textAlign = TextAlign.center,
+    this.direction = 1,
+    this.maxLines,
+    this.overflow,
+  });
+
+  @override
+  State<AnimatedDateLabel> createState() => _AnimatedDateLabelState();
+}
+
+class _AnimatedDateLabelState extends State<AnimatedDateLabel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _curved;
+  String _previousText = '';
+  String _currentText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _currentText = widget.text;
+    _previousText = widget.text;
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 750),
+      vsync: this,
+    );
+
+    _curved = CurvedAnimation(
+      parent: _controller,
+      curve: AppCurves.ease,
+    );
+  }
+
+  @override
+  void didUpdateWidget(AnimatedDateLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text ||
+        oldWidget.direction != widget.direction) {
+      _previousText = _currentText;
+      _currentText = widget.text;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dir = widget.direction.toDouble();
+    return ClipRect(
+      child: SizedBox(
+        width: double.infinity,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth +
+                32; // Add card horizontal padding (16 * 2)
+            return AnimatedBuilder(
+              animation: _curved,
+              builder: (context, _) {
+                final t = _curved.value;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (t < 1.0)
+                      Transform.translate(
+                        offset: Offset(-dir * t * width, 0),
+                        child: Text(
+                          _previousText,
+                          textAlign: widget.textAlign,
+                          style: widget.style,
+                          maxLines: widget.maxLines,
+                          overflow: widget.overflow,
+                        ),
+                      ),
+                    Transform.translate(
+                      offset: Offset(dir * (1.0 - t) * width, 0),
+                      child: Text(
+                        _currentText,
+                        textAlign: widget.textAlign,
+                        style: widget.style,
+                        maxLines: widget.maxLines,
+                        overflow: widget.overflow,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
         ),
       ),
     );
