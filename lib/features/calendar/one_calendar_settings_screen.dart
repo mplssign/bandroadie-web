@@ -133,41 +133,39 @@ class OneCalendarSettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: Spacing.space12),
 
-          // Radio: All bands
-          _ApplyToRadioTile(
-            label: 'All bands',
-            value: ApplyToMode.allBands,
+          // Radio group for Apply To mode
+          RadioGroup<ApplyToMode>(
             groupValue: prefs.applyToMode,
             onChanged: (mode) async {
-              try {
-                await ref
-                    .read(oneCalendarPreferencesProvider.notifier)
-                    .setApplyToMode(mode!);
-              } catch (e) {
-                if (context.mounted) {
-                  showErrorSnackBar(context, message: 'Update failed');
+              if (mode != null) {
+                try {
+                  await ref
+                      .read(oneCalendarPreferencesProvider.notifier)
+                      .setApplyToMode(mode);
+                } catch (e) {
+                  if (context.mounted) {
+                    showErrorSnackBar(context, message: 'Update failed');
+                  }
                 }
               }
             },
-          ),
-          const SizedBox(height: Spacing.space8),
-
-          // Radio: Selected bands only
-          _ApplyToRadioTile(
-            label: 'Selected bands only',
-            value: ApplyToMode.selectedBands,
-            groupValue: prefs.applyToMode,
-            onChanged: (mode) async {
-              try {
-                await ref
-                    .read(oneCalendarPreferencesProvider.notifier)
-                    .setApplyToMode(mode!);
-              } catch (e) {
-                if (context.mounted) {
-                  showErrorSnackBar(context, message: 'Update failed');
-                }
-              }
-            },
+            child: Column(
+              children: [
+                // Radio: All bands
+                _ApplyToRadioTile(
+                  label: 'All bands',
+                  value: ApplyToMode.allBands,
+                  isSelected: prefs.applyToMode == ApplyToMode.allBands,
+                ),
+                const SizedBox(height: Spacing.space8),
+                // Radio: Selected bands only
+                _ApplyToRadioTile(
+                  label: 'Selected bands only',
+                  value: ApplyToMode.selectedBands,
+                  isSelected: prefs.applyToMode == ApplyToMode.selectedBands,
+                ),
+              ],
+            ),
           ),
 
           // Multi-select list (shown only when "Selected bands only" is active)
@@ -310,55 +308,46 @@ class _MasterToggleCard extends StatelessWidget {
 class _ApplyToRadioTile extends StatelessWidget {
   final String label;
   final ApplyToMode value;
-  final ApplyToMode groupValue;
-  final ValueChanged<ApplyToMode?> onChanged;
+  final bool isSelected;
 
   const _ApplyToRadioTile({
     required this.label,
     required this.value,
-    required this.groupValue,
-    required this.onChanged,
+    required this.isSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = value == groupValue;
-
-    return GestureDetector(
-      onTap: () => onChanged(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space16,
-          vertical: Spacing.space12,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space16,
+        vertical: Spacing.space12,
+      ),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border.all(
+          color: isSelected ? AppColors.primary : context.colors.border,
+          width: isSelected ? 2 : 1,
         ),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          border: Border.all(
-            color: isSelected ? AppColors.primary : context.colors.border,
-            width: isSelected ? 2 : 1,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Radio<ApplyToMode>(
+            value: value,
+            activeColor: AppColors.primary,
           ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Radio<ApplyToMode>(
-              value: value,
-              groupValue: groupValue,
-              onChanged: onChanged,
-              activeColor: AppColors.primary,
-            ),
-            const SizedBox(width: Spacing.space8),
-            Expanded(
-              child: Text(
-                label,
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
+          const SizedBox(width: Spacing.space8),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTextStyles.callout.copyWith(
+                color: context.colors.textPrimary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
