@@ -8,6 +8,8 @@ import '../../app/theme/design_tokens.dart';
 import '../../app/theme/theme_mode_controller.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../notifications/notification_settings_screen.dart';
+import '../calendar/one_calendar_settings_screen.dart';
+import '../bands/active_band_controller.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -56,6 +58,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     ];
 
+    // Conditionally add One Calendar (only if user has 2+ bands)
+    final bandCount = ref.watch(activeBandProvider).userBands.length;
+    if (bandCount >= 2) {
+      regularItems.add(
+        SettingsItem(
+          icon: AppIcons.calendar,
+          label: 'One Calendar',
+          subtitle: 'Share block-out dates across bands',
+          onTap: _openOneCalendar,
+        ),
+      );
+    }
+
     // Delete Account - always last (enforced here)
     final deleteAccountItem = SettingsItem(
       icon: AppIcons.delete,
@@ -73,6 +88,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const NotificationSettingsScreen(),
+      ),
+    );
+  }
+
+  /// Navigate to One Calendar settings
+  void _openOneCalendar() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const OneCalendarSettingsScreen(),
       ),
     );
   }

@@ -9,7 +9,9 @@ import '../../../components/ui/brand_action_button.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../members/permissions/band_permissions_provider.dart';
+import '../../bands/active_band_controller.dart';
 import '../block_out_repository.dart';
+import '../one_calendar_preferences_repository.dart';
 import '../models/calendar_event.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -220,6 +222,43 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         );
       }
 
+      // One Calendar propagation: Check if user has enabled cross-band sharing
+      try {
+        final prefsRepo = ref.read(oneCalendarPreferencesRepositoryProvider);
+        final activeBandState = ref.read(activeBandProvider);
+        final userBandIds = activeBandState.userBands.map((b) => b.id).toList();
+
+        // Get band IDs where block-out should be propagated
+        final bandIds = await prefsRepo.getBandIdsToApplyBlockOut(
+          userBandIds,
+        );
+
+        // Remove current band (already created above)
+        final otherBandIds =
+            bandIds.where((id) => id != widget.bandId).toList();
+
+        // Create block-out dates for other bands
+        for (final bandId in otherBandIds) {
+          try {
+            await repository.createBlockOut(
+              bandId: bandId,
+              userId: userId,
+              startDate: _startDate,
+              untilDate: _untilDate,
+              reason: _reasonController.text.trim(),
+            );
+          } catch (e) {
+            // Skip duplicates or errors for individual bands
+            debugPrint(
+              '[BlockOutDrawer] Failed to propagate to band $bandId: $e',
+            );
+          }
+        }
+      } catch (e) {
+        // Do not fail the primary save if propagation fails
+        debugPrint('[BlockOutDrawer] One Calendar propagation error: $e');
+      }
+
       // Success feedback
       HapticFeedback.mediumImpact();
       if (mounted) {
@@ -240,39 +279,122 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Future<void> _handleDelete() async {
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        title: Text('Delete Block Out?', style: AppTextStyles.title3),
-        content: Text(
-          'This will remove the block out dates. This action cannot be undone.',
-          style: AppTextStyles.callout
-              .copyWith(color: context.colors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textSecondary,
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() {
+        _errorMessage = 'Not logged in';
+      });
+      return;
+    }
+
+    // Check One Calendar preferences to determine if propagation is needed
+    List<String> bandIdsToDeleteFrom = [];
+    bool shouldShowChoice = false;
+
+    try {
+      final prefsRepo = ref.read(oneCalendarPreferencesRepositoryProvider);
+      final activeBandState = ref.read(activeBandProvider);
+      final userBandIds = activeBandState.userBands.map((b) => b.id).toList();
+
+      // Get band IDs where block-out should be propagated
+      final bandIds = await prefsRepo.getBandIdsToApplyBlockOut(
+        userBandIds,
+      );
+
+      // Only show choice if propagation applies to multiple bands (current + others)
+      if (bandIds.isNotEmpty && bandIds.length > 1) {
+        bandIdsToDeleteFrom = bandIds;
+        shouldShowChoice = true;
+      }
+    } catch (e) {
+      debugPrint(
+          '[BlockOutDrawer] Failed to check One Calendar preferences: $e');
+      // Continue with simple confirmation if preferences check fails
+    }
+
+    if (!mounted) return;
+
+    // Show appropriate confirmation dialog based on One Calendar status
+    String? deleteChoice; // null = cancel, 'this_band' or 'all_bands'
+
+    if (shouldShowChoice) {
+      // Show choice dialog: Delete from this band only OR all bands
+      deleteChoice = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: context.colors.surface,
+          title: Text('Delete Block Out?', style: AppTextStyles.title3),
+          content: Text(
+            'This block out is shared across multiple bands. Where would you like to delete it from?',
+            style: AppTextStyles.callout
+                .copyWith(color: context.colors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Delete',
-              style: AppTextStyles.callout.copyWith(color: AppColors.error),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'this_band'),
+              child: Text(
+                'This band only',
+                style: AppTextStyles.callout.copyWith(color: AppColors.error),
+              ),
             ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'all_bands'),
+              child: Text(
+                'All bands',
+                style: AppTextStyles.callout.copyWith(color: AppColors.error),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Show simple confirmation dialog (existing behavior)
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: context.colors.surface,
+          title: Text('Delete Block Out?', style: AppTextStyles.title3),
+          content: Text(
+            'This will remove the block out dates. This action cannot be undone.',
+            style: AppTextStyles.callout
+                .copyWith(color: context.colors.textSecondary),
           ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(
+                'Delete',
+                style: AppTextStyles.callout.copyWith(color: AppColors.error),
+              ),
+            ),
+          ],
+        ),
+      );
 
-    if (confirmed != true) return;
+      if (confirmed == true) {
+        deleteChoice = 'this_band';
+      }
+    }
+
+    if (deleteChoice == null) return; // User cancelled
 
     setState(() {
       _isDeleting = true;
@@ -282,15 +404,39 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     try {
       final repository = ref.read(blockOutRepositoryProvider);
 
-      debugPrint('[BlockOutDrawer] Deleting block out span...');
+      if (deleteChoice == 'all_bands') {
+        // Delete from all bands in the propagation list
+        debugPrint(
+          '[BlockOutDrawer] Deleting block out span from ${bandIdsToDeleteFrom.length} bands...',
+        );
 
-      // Delete all dates in the span
-      await repository.deleteBlockOutSpan(
-        userId: widget.existingBlockOut!.userId,
-        bandId: widget.bandId,
-        startDate: widget.existingBlockOut!.startDate,
-        endDate: widget.existingBlockOut!.endDate,
-      );
+        for (final bandId in bandIdsToDeleteFrom) {
+          try {
+            await repository.deleteBlockOutSpan(
+              userId: widget.existingBlockOut!.userId,
+              bandId: bandId,
+              startDate: widget.existingBlockOut!.startDate,
+              endDate: widget.existingBlockOut!.endDate,
+            );
+          } catch (e) {
+            // Log error but continue deleting from other bands
+            debugPrint(
+              '[BlockOutDrawer] Failed to delete from band $bandId: $e',
+            );
+          }
+        }
+      } else {
+        // Delete from current band only
+        debugPrint(
+            '[BlockOutDrawer] Deleting block out span from current band...');
+
+        await repository.deleteBlockOutSpan(
+          userId: widget.existingBlockOut!.userId,
+          bandId: widget.bandId,
+          startDate: widget.existingBlockOut!.startDate,
+          endDate: widget.existingBlockOut!.endDate,
+        );
+      }
 
       debugPrint('[BlockOutDrawer] Delete completed, calling onSaved...');
 
@@ -301,7 +447,12 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         widget.onSaved?.call();
         debugPrint('[BlockOutDrawer] onSaved called');
 
-        showSuccessSnackBar(context, message: 'Block out deleted');
+        showSuccessSnackBar(
+          context,
+          message: deleteChoice == 'all_bands'
+              ? 'Block out deleted from all bands'
+              : 'Block out deleted',
+        );
       }
     } catch (e) {
       setState(() {

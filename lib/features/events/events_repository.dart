@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/models/rehearsal.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
+import 'package:bandroadie/features/calendar/auto_conflict_blocking_service.dart';
 import 'models/event_form_data.dart';
 
 // ============================================================================
@@ -37,6 +38,10 @@ class _CacheEntry<T> {
 }
 
 class EventsRepository {
+  final AutoConflictBlockingService _autoConflictBlockingService;
+
+  EventsRepository(this._autoConflictBlockingService);
+
   // Cache: key = "$bandId:$yearMonth" for events lists
   final Map<String, _CacheEntry<List<Rehearsal>>> _rehearsalCache = {};
   final Map<String, _CacheEntry<List<Gig>>> _gigCache = {};
@@ -131,8 +136,7 @@ class EventsRepository {
 
           // Create additional dates for multi-date potential rehearsals
           // (only on the first/primary rehearsal instance)
-          if (formData.isPotentialGig &&
-              formData.additionalDates.isNotEmpty) {
+          if (formData.isPotentialGig && formData.additionalDates.isNotEmpty) {
             await _createRehearsalDates(
                 firstRehearsal.id, formData.additionalDates);
           }
@@ -140,6 +144,38 @@ class EventsRepository {
       }
 
       invalidateCache(bandId);
+
+      // Trigger automatic conflict blocking (if enabled)
+      if (firstRehearsal != null) {
+        try {
+          final userId = supabase.auth.currentUser?.id;
+          if (userId != null) {
+            // Fetch band name for auto-conflict blocking reason
+            final bandResponse = await supabase
+                .from('bands')
+                .select('name')
+                .eq('id', bandId)
+                .single();
+            final bandName = bandResponse['name'] as String;
+
+            await _autoConflictBlockingService.autoBlockConflictingDate(
+              userId: userId,
+              eventBandId: bandId,
+              eventDate: firstRehearsal.date,
+              eventStartTime: null,
+              eventEndTime: null,
+              eventName: 'Rehearsal',
+              bandName: bandName,
+            );
+          }
+        } catch (e) {
+          // Do not fail rehearsal creation if auto-blocking fails
+          debugPrint(
+            '[EventsRepository] Auto-conflict blocking failed: $e',
+          );
+        }
+      }
+
       return firstRehearsal!;
     } catch (e, st) {
       debugPrint('[EventsRepository] ERROR creating rehearsal:');
@@ -509,7 +545,8 @@ class EventsRepository {
 
     final response = await supabase
         .from('rehearsals')
-        .select('*, rehearsal_dates(id, rehearsal_id, date, start_time, created_at, updated_at)')
+        .select(
+            '*, rehearsal_dates(id, rehearsal_id, date, start_time, created_at, updated_at)')
         .eq('band_id', bandId)
         .gte('date', startOfMonth.toIso8601String().split('T')[0])
         .lte('date', endOfMonth.toIso8601String().split('T')[0])
@@ -591,10 +628,38 @@ class EventsRepository {
 
     invalidateCache(bandId);
 
+    // Trigger automatic conflict blocking (if enabled)
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
+        // Fetch band name for auto-conflict blocking reason
+        final bandResponse = await supabase
+            .from('bands')
+            .select('name')
+            .eq('id', bandId)
+            .single();
+        final bandName = bandResponse['name'] as String;
+
+        await _autoConflictBlockingService.autoBlockConflictingDate(
+          userId: userId,
+          eventBandId: bandId,
+          eventDate: formData.date,
+          eventStartTime: null,
+          eventEndTime: null,
+          eventName: formData.name ?? formData.displayName,
+          bandName: bandName,
+        );
+      }
+    } catch (e) {
+      // Do not fail gig creation if auto-blocking fails
+      debugPrint('[EventsRepository] Auto-conflict blocking failed: $e');
+    }
+
     // Fetch the gig with its dates to return complete data
     final gigWithDates = await supabase
         .from('gigs')
-        .select('*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
+        .select(
+            '*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
         .eq('id', gigId)
         .single();
 
@@ -650,7 +715,8 @@ class EventsRepository {
     // Fetch the gig with its dates to return complete data
     final gigWithDates = await supabase
         .from('gigs')
-        .select('*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
+        .select(
+            '*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
         .eq('id', gigId)
         .single();
 
@@ -682,9 +748,7 @@ class EventsRepository {
       return;
     }
 
-    final newEntries = {
-      for (final e in formData.additionalDates) e.date: e
-    };
+    final newEntries = {for (final e in formData.additionalDates) e.date: e};
     final existingDateIds = formData.existingGigDateIds;
 
     // Dates to add: in newEntries but have no existing ID
@@ -720,8 +784,7 @@ class EventsRepository {
     }
 
     if (idsToRemove.isNotEmpty) {
-      debugPrint(
-          '[EventsRepository] Removing ${idsToRemove.length} gig dates');
+      debugPrint('[EventsRepository] Removing ${idsToRemove.length} gig dates');
       await supabase.from('gig_dates').delete().inFilter('id', idsToRemove);
     }
   }
@@ -757,9 +820,7 @@ class EventsRepository {
       return;
     }
 
-    final newEntries = {
-      for (final e in formData.additionalDates) e.date: e
-    };
+    final newEntries = {for (final e in formData.additionalDates) e.date: e};
     final existingDateIds = formData.existingGigDateIds;
 
     final entriesToAdd = <AdditionalDateEntry>[];
@@ -1034,5 +1095,6 @@ class EventsRepository {
 // ============================================================================
 
 final eventsRepositoryProvider = Provider<EventsRepository>((ref) {
-  return EventsRepository();
+  final autoConflictService = ref.read(autoConflictBlockingServiceProvider);
+  return EventsRepository(autoConflictService);
 });
