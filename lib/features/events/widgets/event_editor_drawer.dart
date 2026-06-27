@@ -12,9 +12,11 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../bands/active_band_controller.dart';
 import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
 import '../../calendar/models/calendar_event.dart';
+import '../../calendar/one_calendar_preferences_repository.dart';
 import '../../contacts/models/venue.dart';
 import '../../contacts/venues_controller.dart';
 import '../../financials/financial_entry_repository.dart';
@@ -1083,6 +1085,34 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           untilDate: _blockOutUntilDate,
           reason: _notesController.text.trim(),
         );
+      }
+
+      // One Calendar propagation: if enabled, replicate blockout to other bands.
+      // Wrapped in try-catch — must not fail the primary save.
+      try {
+        final prefsRepo = ref.read(oneCalendarPreferencesRepositoryProvider);
+        final userBandIds =
+            ref.read(activeBandProvider).userBands.map((b) => b.id).toList();
+        final bandIds = await prefsRepo.getBandIdsToApplyBlockOut(userBandIds);
+        final otherBandIds =
+            bandIds.where((id) => id != widget.bandId).toList();
+        for (final bandId in otherBandIds) {
+          try {
+            await repository.createBlockOut(
+              bandId: bandId,
+              userId: userId,
+              startDate: _selectedDate,
+              untilDate: _blockOutUntilDate,
+              reason: _notesController.text.trim(),
+            );
+          } catch (e) {
+            debugPrint(
+              '[EventEditorDrawer] Propagation failed for band $bandId: $e',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('[EventEditorDrawer] One Calendar propagation error: $e');
       }
 
       // Refresh calendar
