@@ -1183,7 +1183,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   /// Check and request photo library permission
   /// Returns true if permission is granted, false otherwise
   Future<bool> _checkPhotoLibraryPermission() async {
-    if (Platform.isIOS || Platform.isAndroid) {
+    // Android: image_picker uses the system Photo Picker (API 33+, permission-free)
+    // or ACTION_GET_CONTENT (API ≤ 32, URI-based, no storage permission required).
+    // Requesting Permission.photos on Android does not trigger a system dialog and
+    // returns denied, blocking the picker. Let image_picker handle access natively.
+    // Denial surfaces as PlatformException(photo_access_denied) in _pickImage().
+    if (Platform.isAndroid) {
+      return true;
+    }
+
+    if (Platform.isIOS) {
       final status = await Permission.photos.status;
 
       if (status.isGranted || status.isLimited) {
@@ -1218,6 +1227,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       return false;
     }
 
+    // Other platforms (macOS, web): no permission required
     return true;
   }
 
