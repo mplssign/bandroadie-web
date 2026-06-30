@@ -2192,9 +2192,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
           ),
 
-          // Bottom action buttons — padded above keyboard when visible
+          // Bottom action buttons — padded above keyboard and system nav bar
           Padding(
-            padding: EdgeInsets.only(bottom: bottomPadding),
+            padding: EdgeInsets.only(bottom: bottomPadding + safeBottom),
             child: widget.viewOnly
                 ? EventEditorViewOnlyClose(
                     onClose: () {
