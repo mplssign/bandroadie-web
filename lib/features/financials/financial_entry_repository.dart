@@ -91,13 +91,36 @@ class FinancialEntryRepository {
           .single();
       result = updated;
     } else {
-      // INSERT new entry — rely on unique partial index to prevent duplicates
-      final inserted = await supabase
+      // No existingEntryId — query for an existing gig_pay row before inserting
+      // to avoid violating the uniq_gig_pay_entry unique partial index.
+      final existingRow = await supabase
           .from('financial_entries')
-          .insert(payload)
-          .select()
-          .single();
-      result = inserted;
+          .select('id')
+          .eq('gig_id', gigId)
+          .eq('entry_type', 'gig_pay')
+          .eq('band_id', bandId)
+          .maybeSingle();
+
+      if (existingRow != null) {
+        final updated = await supabase
+            .from('financial_entries')
+            .update({
+              ...payload,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', existingRow['id'] as String)
+            .eq('band_id', bandId)
+            .select()
+            .single();
+        result = updated;
+      } else {
+        final inserted = await supabase
+            .from('financial_entries')
+            .insert(payload)
+            .select()
+            .single();
+        result = inserted;
+      }
     }
 
     return FinancialEntry.fromJson(result);
