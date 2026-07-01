@@ -172,6 +172,15 @@ class ViewGigDrawer extends StatelessWidget {
                               iconSize: 20,
                               onPressed: () => _openNavigation(context),
                               tooltip: 'Navigate',
+                              style: IconButton.styleFrom(
+                                side: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: BrandButton.borderWidth,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                                ),
+                              ),
                             ),
                           ],
                         ),
