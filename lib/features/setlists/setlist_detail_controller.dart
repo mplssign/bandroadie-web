@@ -30,6 +30,7 @@ class SongUpdateEvent {
   final String? tuning;
   final String? youtubeLinks;
   final String? lyrics;
+  final String? musicalKey;
   final DateTime timestamp;
 
   /// Flags to indicate which fields should be cleared to null
@@ -38,6 +39,7 @@ class SongUpdateEvent {
   final bool clearNotes;
   final bool clearYoutubeLinks;
   final bool clearLyrics;
+  final bool clearMusicalKey;
 
   SongUpdateEvent({
     required this.songId,
@@ -49,10 +51,12 @@ class SongUpdateEvent {
     this.tuning,
     this.youtubeLinks,
     this.lyrics,
+    this.musicalKey,
     this.clearBpm = false,
     this.clearNotes = false,
     this.clearYoutubeLinks = false,
     this.clearLyrics = false,
+    this.clearMusicalKey = false,
   }) : timestamp = DateTime.now();
 }
 
@@ -372,10 +376,12 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       tuning: event.tuning ?? song.tuning,
       youtubeLinks: event.youtubeLinks ?? song.youtubeLinks,
       lyrics: event.lyrics ?? song.lyrics,
+      musicalKey: event.musicalKey ?? song.musicalKey,
       clearBpm: event.clearBpm,
       clearNotes: event.clearNotes,
       clearYoutubeLinks: event.clearYoutubeLinks,
       clearLyrics: event.clearLyrics,
+      clearMusicalKey: event.clearMusicalKey,
     );
 
     // RACE CONDITION FIX: Re-sort Catalog to maintain consistent ordering
@@ -1274,6 +1280,70 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         songs: originalSongs,
         items: originalItems,
         error: 'Couldn\'t save notes. Try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's musical key globally.
+  ///
+  /// Uses optimistic update pattern:
+  /// 1. Store original state
+  /// 2. Apply change immediately (UI feels instant)
+  /// 3. Persist to database
+  /// 4. On failure: revert to original and show error
+  Future<bool> updateSongMusicalKey(String songId, String? musicalKey) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    debugPrint(
+      '[SetlistDetail] updateSongMusicalKey: songId=$songId, musicalKey=$musicalKey',
+    );
+
+    // Store original state for rollback
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+
+    // Optimistic update - apply immediately so UI feels instant
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(
+          musicalKey: musicalKey,
+          clearMusicalKey: musicalKey == null || musicalKey.isEmpty,
+        );
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.updateSongMusicalKey(
+        bandId: bandId,
+        songId: songId,
+        musicalKey: musicalKey,
+      );
+      debugPrint(
+        '[SetlistDetail] Successfully updated musical key for song $songId',
+      );
+
+      // Broadcast the update to other setlists
+      ref
+          .read(songUpdateBroadcasterProvider.notifier)
+          .broadcast(SongUpdateEvent(songId: songId, musicalKey: musicalKey));
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('[SetlistDetail] Error updating musical key: $e');
+      debugPrint('[SetlistDetail] Stack trace: $stack');
+
+      // Revert optimistic update
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Couldn\'t save musical key. Try again.',
       );
       return false;
     }

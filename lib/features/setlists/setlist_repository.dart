@@ -618,7 +618,8 @@ class SetlistRepository {
               album_artwork,
               notes,
               youtube_links,
-              lyrics
+              lyrics,
+              musical_key
             )
           ''').eq('setlist_id', setlistId).order('position', ascending: true);
 
@@ -1496,6 +1497,7 @@ class SetlistRepository {
           'p_artist': null,
           'p_youtube_links': null,
           'p_lyrics': null,
+          'p_musical_key': null,
         },
       );
 
@@ -1661,6 +1663,7 @@ class SetlistRepository {
           'p_artist': null,
           'p_youtube_links': null,
           'p_lyrics': null,
+          'p_musical_key': null,
         },
       );
 
@@ -1761,6 +1764,7 @@ class SetlistRepository {
           'p_artist': null,
           'p_youtube_links': null,
           'p_lyrics': null,
+          'p_musical_key': null,
         },
       );
 
@@ -1857,7 +1861,7 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 10 parameters to avoid PGRST203 function overload ambiguity
+      // Must pass ALL 11 parameters to avoid PGRST203 function overload ambiguity
       final result = await supabase.rpc(
         'update_song_metadata',
         params: {
@@ -1871,6 +1875,7 @@ class SetlistRepository {
           'p_artist': null,
           'p_youtube_links': null,
           'p_lyrics': null,
+          'p_musical_key': null,
         },
       );
 
@@ -1978,6 +1983,7 @@ class SetlistRepository {
             'p_artist': null,
             'p_youtube_links': youtubeLinks,
             'p_lyrics': null,
+            'p_musical_key': null,
           },
         );
         debugPrint(
@@ -2046,6 +2052,7 @@ class SetlistRepository {
             'p_artist': null,
             'p_youtube_links': null,
             'p_lyrics': lyrics,
+            'p_musical_key': null,
           },
         );
 
@@ -2095,7 +2102,7 @@ class SetlistRepository {
 
     try {
       // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 10 parameters to avoid PGRST203 function overload ambiguity
+      // Must pass ALL 11 parameters to avoid PGRST203 function overload ambiguity
       final result = await supabase.rpc(
         'update_song_metadata',
         params: {
@@ -2109,6 +2116,7 @@ class SetlistRepository {
           'p_artist': artist,
           'p_youtube_links': null,
           'p_lyrics': null,
+          'p_musical_key': null,
         },
       );
 
@@ -2141,6 +2149,101 @@ class SetlistRepository {
       rethrow;
     } catch (e) {
       debugPrint('[SetlistRepository] ❌ Error updating title/artist: $e');
+      rethrow;
+    }
+  }
+
+  // ==========================================================================
+  // UPDATE SONG MUSICAL KEY
+  // ==========================================================================
+
+  /// Updates a song's musical key (stored on the songs table - global).
+  ///
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updateSongMusicalKey({
+    required String bandId,
+    required String songId,
+    required String? musicalKey,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSongMusicalKey: songId=$songId, musicalKey=$musicalKey',
+      );
+    }
+
+    try {
+      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
+      // Must pass ALL 11 parameters to avoid PGRST203 function overload ambiguity
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': musicalKey,
+        },
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Updated musical key to $musicalKey for song $songId (via RPC)',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist.',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
+        );
+        await supabase
+            .from('songs')
+            .update({'musical_key': musicalKey}).eq('id', songId);
+        debugPrint(
+          '[SetlistRepository] ✓ Updated musical key for song $songId (direct)',
+        );
+        return;
+      }
+
+      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
+      rethrow;
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error updating musical key: $e');
       rethrow;
     }
   }
@@ -3982,6 +4085,7 @@ class SetlistRepository {
           'p_artist': null,
           'p_youtube_links': null,
           'p_lyrics': null,
+          'p_musical_key': null,
         },
       );
 

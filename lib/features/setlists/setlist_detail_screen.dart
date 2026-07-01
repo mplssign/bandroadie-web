@@ -1213,6 +1213,14 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         final success = await notifier.updateSongLyrics(song.id, result.lyrics);
         debugPrint('[SetlistDetail] Lyrics save result: $success');
       }
+
+      // Update musical key if changed
+      if (result.musicalKeyChanged) {
+        debugPrint('[SetlistDetail] Saving musical key...');
+        final success =
+            await notifier.updateSongMusicalKey(song.id, result.musicalKey);
+        debugPrint('[SetlistDetail] Musical key save result: $success');
+      }
     }
   }
 
