@@ -302,6 +302,10 @@ class EventFormData {
   /// Venue ID if the gig is linked to an existing venue.
   final String? venueId;
 
+  // Street address (gigs only, optional)
+  /// Street address for the venue (e.g., "123 Main St"). Null means not set.
+  final String? address;
+
   // Recurring rehearsal series tracking (rehearsals only)
   /// Parent rehearsal ID if this is a child in a recurring series.
   /// Null for non-recurring or parent rehearsals.
@@ -332,6 +336,7 @@ class EventFormData {
     this.gigPayDetails,
     this.venueId,
     this.parentRehearsalId,
+    this.address,
   });
 
   /// Whether this is a multi-date potential gig
@@ -473,6 +478,7 @@ class EventFormData {
     bool clearGigPayDetails = false,
     String? venueId,
     String? parentRehearsalId,
+    String? address,
     bool clearSetlist = false,
     bool clearGigPay = false,
   }) {
@@ -499,6 +505,7 @@ class EventFormData {
           clearGigPayDetails ? null : (gigPayDetails ?? this.gigPayDetails),
       venueId: venueId ?? this.venueId,
       parentRehearsalId: parentRehearsalId ?? this.parentRehearsalId,
+      address: address ?? this.address,
     );
   }
 
@@ -588,6 +595,7 @@ class EventFormData {
       gigPayCents: gig.gigPayCents,
       gigPayDetails: null, // lazily fetched when user taps Gig Pay button
       venueId: gig.venueId,
+      address: gig.address,
     );
   }
 

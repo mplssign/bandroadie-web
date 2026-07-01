@@ -193,6 +193,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   final _gigNameFocusNode = FocusNode();
   final _gigCityFocusNode = FocusNode();
   final _gigLocationFocusNode = FocusNode();
+  final _addressController = TextEditingController();
+  final _addressHintController = FieldHintController();
+  final _gigAddressFocusNode = FocusNode();
 
   // GlobalKeys for validation scroll-to-error
   final _locationKey = GlobalKey();
@@ -254,6 +257,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _loadInIsPM = data.loadInIsPM;
       }
       _locationController.text = data.location;
+      _addressController.text = data.address ?? '';
       if (data.name != null) _nameController.text = data.name!;
       if (data.notes != null) _notesController.text = data.notes!;
       _isRecurring = data.isRecurring;
@@ -369,6 +373,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _cityHintController.initialize(
       hasInitialValue: isEdit && _locationController.text.isNotEmpty,
     );
+    _addressHintController.initialize(
+      hasInitialValue: isEdit && _addressController.text.isNotEmpty,
+    );
     _locationHintController.initialize(
       hasInitialValue: isEdit && _locationController.text.isNotEmpty,
     );
@@ -396,6 +403,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       }
     });
     _notesController.addListener(_markDirty);
+    _addressController.addListener(_markDirty);
   }
 
   @override
@@ -413,6 +421,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _gigNameFocusNode.dispose();
     _gigCityFocusNode.dispose();
     _gigLocationFocusNode.dispose();
+    _addressController.dispose();
+    _addressHintController.dispose();
+    _gigAddressFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -903,6 +914,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           _eventType == EventType.gig ? _gigPayDetails?.amountCents : null,
       gigPayDetails: _eventType == EventType.gig ? _gigPayDetails : null,
       venueId: _selectedVenueId,
+      address: _addressController.text.trim().isEmpty
+          ? null
+          : _addressController.text.trim(),
     );
   }
 
@@ -1901,6 +1915,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       onGigPayTap: _handleGigPayTap,
       onMarkDirty: _markDirty,
       currentUserId: supabase.auth.currentUser?.id,
+      addressController: _addressController,
+      addressHintController: _addressHintController,
+      gigAddressFocusNode: _gigAddressFocusNode,
     );
   }
 
@@ -2152,7 +2169,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                           // Location + recurring toggle (recurring hidden when isPotential)
                           rehearsalFormFields!,
                         ] else ...[
-                          gigFormFields!.buildCityAutocomplete(context),
+                          gigFormFields!.buildAddressCityRow(context),
                           const SizedBox(height: Spacing.space16),
                           gigFormFields.buildLoadInTimeSelector(context),
                         ],
