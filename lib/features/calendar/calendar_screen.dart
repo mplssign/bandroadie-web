@@ -16,6 +16,7 @@ import '../events/models/event_form_data.dart';
 import '../events/widgets/add_edit_event_bottom_sheet.dart';
 import '../feedback/bug_report_screen.dart';
 import '../gigs/gig_controller.dart';
+import '../gigs/widgets/view_gig_drawer.dart';
 import '../home/widgets/band_switcher.dart';
 import '../home/widgets/side_drawer.dart';
 import '../profile/my_profile_screen.dart';
@@ -236,6 +237,30 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       loading: () => null,
       error: (_, __) => null,
     );
+
+    // Confirmed gigs: show read-only view drawer first
+    if (event.isConfirmedGig && event.gig != null) {
+      final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago';
+      final canEdit = editPerms != null && editPerms.canEditGigs;
+      ViewGigDrawer.show(
+        context,
+        gig: event.gig!,
+        bandTimezone: bandTimezone,
+        canEdit: canEdit,
+        onEdit: () => AddEditEventBottomSheet.show(
+          context,
+          ref: ref,
+          mode: EventFormMode.edit,
+          initialType: EventType.gig,
+          existingEventId: event.id,
+          initialData: EventFormData.fromCalendarEvent(event),
+          onSaved: _refreshCalendarData,
+        ),
+      );
+      return;
+    }
+
     // Allow contributors to edit potential gigs they can create
     final canEditEvent = editPerms != null &&
         (editPerms.canEditGigs ||

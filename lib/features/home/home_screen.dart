@@ -21,6 +21,7 @@ import '../members/permissions/band_permissions_provider.dart';
 import '../profile/my_profile_screen.dart';
 import '../settings/settings_screen.dart';
 import '../gigs/gig_controller.dart';
+import '../gigs/widgets/view_gig_drawer.dart';
 import '../rehearsals/rehearsal_controller.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
@@ -235,6 +236,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               .invalidateAndRefresh(bandId: bandId);
         }
       },
+    );
+  }
+
+  void _openViewGigSheet(Gig gig) {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    final canEdit = perms != null &&
+        (perms.canEditGigs || (gig.isPotential && perms.canEditPotentialGigs));
+
+    final bandTimezone =
+        ref.read(activeBandProvider).activeBand?.timezone ?? 'America/Chicago';
+
+    ViewGigDrawer.show(
+      context,
+      gig: gig,
+      bandTimezone: bandTimezone,
+      canEdit: canEdit,
+      onEdit: () => _openEditGigSheet(gig),
     );
   }
 
@@ -893,7 +916,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             gig: gig,
             bandTimezone: bandTimezone,
             index: index,
-            onTap: () => _openEditGigSheet(gig),
+            onTap: () => _openViewGigSheet(gig),
           );
         },
       ),
