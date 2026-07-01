@@ -17,6 +17,7 @@ class Song {
   final String? notes;
   final String? youtubeLinks; // JSON string of YouTube links
   final String? lyrics; // JSON string of LyricsData
+  final String? musicalKey;
 
   const Song({
     required this.id,
@@ -32,6 +33,7 @@ class Song {
     this.notes,
     this.youtubeLinks,
     this.lyrics,
+    this.musicalKey,
   });
 
   /// Duration as Dart Duration object
@@ -67,6 +69,7 @@ class Song {
       notes: json['notes'] as String?,
       youtubeLinks: json['youtube_links'] as String?,
       lyrics: json['lyrics'] as String?,
+      musicalKey: json['musical_key'] as String?,
     );
   }
 }

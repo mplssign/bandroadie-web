@@ -21,6 +21,7 @@ import '../tuning/tuning_helpers.dart';
 /// - songs.notes -> notes
 /// - songs.youtube_links -> youtubeLinks
 /// - songs.lyrics -> lyrics
+/// - songs.musical_key -> musicalKey
 ///
 /// DATA MAPPING (from setlist_songs table):
 /// - setlist_songs.position -> position
@@ -35,6 +36,7 @@ class SetlistSong {
   final String? notes;
   final String? youtubeLinks; // JSON string of YouTube links
   final String? lyrics; // JSON string of LyricsData
+  final String? musicalKey;
   final int position;
 
   const SetlistSong({
@@ -48,6 +50,7 @@ class SetlistSong {
     this.notes,
     this.youtubeLinks,
     this.lyrics,
+    this.musicalKey,
     required this.position,
   });
 
@@ -103,6 +106,7 @@ class SetlistSong {
       notes: songData['notes'] as String?,
       youtubeLinks: songData['youtube_links'] as String?,
       lyrics: songData['lyrics'] as String?,
+      musicalKey: songData['musical_key'] as String?,
       position: json['position'] as int? ?? 0,
     );
   }
@@ -123,6 +127,8 @@ class SetlistSong {
     bool clearYoutubeLinks = false,
     String? lyrics,
     bool clearLyrics = false,
+    String? musicalKey,
+    bool clearMusicalKey = false,
   }) {
     return SetlistSong(
       id: id,
@@ -136,6 +142,7 @@ class SetlistSong {
       youtubeLinks:
           clearYoutubeLinks ? null : (youtubeLinks ?? this.youtubeLinks),
       lyrics: clearLyrics ? null : (lyrics ?? this.lyrics),
+      musicalKey: clearMusicalKey ? null : (musicalKey ?? this.musicalKey),
       position: position ?? this.position,
     );
   }
