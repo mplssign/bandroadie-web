@@ -38,6 +38,9 @@ class Gig {
   /// Optional linked venue ID from the venues table.
   final String? venueId;
 
+  /// Optional street address for the venue (e.g., "123 Main St").
+  final String? address;
+
   /// If true, this gig requires band member approval before it's confirmed.
   /// Potential gigs show RSVP UI. Confirmed gigs show as scheduled.
   final bool isPotential;
@@ -62,6 +65,7 @@ class Gig {
     required this.endTime,
     this.loadInTime,
     required this.location,
+    this.address,
     this.setlistId,
     this.setlistName,
     this.notes,
@@ -85,6 +89,7 @@ class Gig {
       endTime: json['end_time'] as String,
       loadInTime: json['load_in_time'] as String?,
       location: json['location'] as String,
+      address: json['address'] as String?,
       setlistId: json['setlist_id'] as String?,
       setlistName: json['setlist_name'] as String?,
       notes: json['notes'] as String?,
@@ -108,6 +113,7 @@ class Gig {
       'end_time': endTime,
       'load_in_time': loadInTime,
       'location': location,
+      'address': address,
       'setlist_id': setlistId,
       'setlist_name': setlistName,
       'notes': notes,

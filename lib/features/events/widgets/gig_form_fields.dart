@@ -35,6 +35,10 @@ class GigFormFields extends ConsumerWidget {
     required this.gigCitySuggestions,
     required this.onGigCityChanged,
     required this.gigLocationKey,
+    // Address field
+    required this.addressController,
+    required this.addressHintController,
+    required this.gigAddressFocusNode,
     // Potential gig
     required this.isPotentialGig,
     required this.forcePotentialOnly,
@@ -91,6 +95,11 @@ class GigFormFields extends ConsumerWidget {
   final List<String> gigCitySuggestions;
   final ValueChanged<String> onGigCityChanged;
   final GlobalKey gigLocationKey;
+
+  // --- Address field ---
+  final TextEditingController addressController;
+  final FieldHintController addressHintController;
+  final FocusNode gigAddressFocusNode;
 
   // --- Potential gig ---
   final bool isPotentialGig;
@@ -153,6 +162,78 @@ class GigFormFields extends ConsumerWidget {
   /// Builds the city autocomplete field (called from parent build method).
   Widget buildCityAutocomplete(BuildContext context) {
     return _buildGigCityAutocomplete(context);
+  }
+
+  /// Builds address (left, flex 6) + city (right, flex 4) in a single row.
+  Widget buildAddressCityRow(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 6,
+          child: _buildAddressField(context),
+        ),
+        const SizedBox(width: Spacing.space8),
+        Expanded(
+          flex: 4,
+          child: _buildGigCityAutocomplete(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddressField(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Address',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: addressController,
+          focusNode: gigAddressFocusNode,
+          enabled: !isSaving,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          style: AppTextStyles.callout.copyWith(
+            color: context.colors.textPrimary,
+          ),
+          onChanged: (_) => onMarkDirty(),
+          decoration: InputDecoration(
+            hintText: 'e.g., 123 Main St',
+            hintStyle: AppTextStyles.callout.copyWith(
+              color: context.colors.textMuted,
+            ),
+            filled: true,
+            fillColor: context.colors.background,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: BorderSide(color: context.colors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: BorderSide(color: context.colors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: const BorderSide(color: AppColors.primary),
+            ),
+          ),
+        ),
+        FieldHint(
+          text: 'Street address (optional)',
+          controller: addressHintController,
+        ),
+      ],
+    );
   }
 
   /// Builds the load-in time selector (called from parent build method).
