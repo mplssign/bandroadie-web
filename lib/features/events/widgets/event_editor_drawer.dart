@@ -2125,16 +2125,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                         const SizedBox(height: Spacing.space16),
                       ],
 
-                      // Event Type Toggle
-                      EventTypeSelector(
-                        selectedType: _eventType,
-                        availableTypes: _computeAvailableTypes(),
-                        isEditMode: _isEditMode,
-                        isSaving: _isSaving,
-                        onTypeChanged: _handleTypeChanged,
-                      ),
-
-                      const SizedBox(height: Spacing.space20),
+                      // Event Type Toggle (create mode only)
+                      if (!_isEditMode) ...[
+                        EventTypeSelector(
+                          selectedType: _eventType,
+                          availableTypes: _computeAvailableTypes(),
+                          isEditMode: _isEditMode,
+                          isSaving: _isSaving,
+                          onTypeChanged: _handleTypeChanged,
+                        ),
+                        const SizedBox(height: Spacing.space20),
+                      ],
 
                       // Gig name + potential gig (gig only)
                       if (_eventType == EventType.gig) ...[
