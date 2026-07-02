@@ -219,7 +219,7 @@ class SpecialItemRepository {
           position,
           songs(
             id, title, artist, bpm, duration_seconds, tuning,
-            album_artwork, notes, youtube_links, lyrics
+            album_artwork, notes, youtube_links, lyrics, musical_key
           ),
           setlist_special_items(
             id, band_id, type, duration_minutes, duration_seconds,

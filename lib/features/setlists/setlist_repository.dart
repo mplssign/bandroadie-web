@@ -3225,7 +3225,8 @@ class SetlistRepository {
             band_id,
             notes,
             youtube_links,
-            lyrics
+            lyrics,
+            musical_key
           ''').eq('band_id', bandId).order('title', ascending: true);
 
       if (kDebugMode) {
