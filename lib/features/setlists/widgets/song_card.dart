@@ -283,7 +283,7 @@ class _SongCardState extends State<SongCard>
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: AppColors.success, // Green #22C55E
+        color: const Color(0xFFF59E0B), // Amber-500
         borderRadius: BorderRadius.circular(100), // Pill shape
       ),
       child: Text(
