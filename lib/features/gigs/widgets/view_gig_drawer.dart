@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -52,16 +53,155 @@ class ViewGigDrawer extends StatelessWidget {
 
   Future<void> _openNavigation(BuildContext context) async {
     final hasAddress = gig.address != null && gig.address!.trim().isNotEmpty;
-    final query = Uri.encodeComponent(
-      hasAddress
-          ? '${gig.address} ${gig.location}'
-          : '${gig.name} ${gig.location}',
+    final query = hasAddress
+        ? '${gig.address} ${gig.location}'
+        : '${gig.name} ${gig.location}';
+
+    final defaultUri = _buildDefaultNavigationUri(query);
+    final openedDefault = await launchUrl(
+      defaultUri,
+      mode: LaunchMode.externalApplication,
     );
-    final uri = Uri.parse('https://maps.google.com/?q=$query');
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    if (openedDefault) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final provider = await _showNavigationAppPicker(context);
+    if (provider == null) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await _launchFallbackProvider(
+      context,
+      provider: provider,
+      query: query,
+    );
+  }
+
+  Uri _buildDefaultNavigationUri(String query) {
+    final encoded = Uri.encodeComponent(query);
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return Uri.parse('maps://?q=$encoded');
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return Uri.parse('geo:0,0?q=$encoded');
+    }
+
+    return Uri.parse('https://maps.google.com/?q=$encoded');
+  }
+
+  Future<_NavigationApp?> _showNavigationAppPicker(BuildContext context) {
+    return showModalBottomSheet<_NavigationApp>(
+      context: context,
+      backgroundColor: context.colors.surface,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.pagePadding,
+              Spacing.space16,
+              Spacing.pagePadding,
+              Spacing.space16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Open with',
+                  style: AppTextStyles.title3.copyWith(
+                    color: context.colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: Spacing.space12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Apple Maps'),
+                  onTap: () => Navigator.of(sheetContext).pop(
+                    _NavigationApp.appleMaps,
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Google Maps'),
+                  onTap: () => Navigator.of(sheetContext).pop(
+                    _NavigationApp.googleMaps,
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Waze'),
+                  onTap: () => Navigator.of(sheetContext).pop(
+                    _NavigationApp.waze,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _launchFallbackProvider(
+    BuildContext context, {
+    required _NavigationApp provider,
+    required String query,
+  }) async {
+    final appName = _appName(provider);
+    final uri = _providerUri(provider, query);
+
+    final canOpen = await canLaunchUrl(uri);
+    if (!canOpen) {
       if (context.mounted) {
-        showAppSnackBar(context, message: 'Could not open maps');
+        showAppSnackBar(
+          context,
+          message: '$appName is not available on this device',
+        );
       }
+      return;
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && context.mounted) {
+      showAppSnackBar(context, message: 'Could not open $appName');
+    }
+  }
+
+  Uri _providerUri(_NavigationApp app, String query) {
+    final encoded = Uri.encodeComponent(query);
+
+    switch (app) {
+      case _NavigationApp.appleMaps:
+        return Uri.parse('maps://?q=$encoded');
+      case _NavigationApp.googleMaps:
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+          return Uri.parse('comgooglemaps://?q=$encoded');
+        }
+        return Uri.parse('google.navigation:q=$encoded');
+      case _NavigationApp.waze:
+        return Uri.parse('waze://?q=$encoded&navigate=yes');
+    }
+  }
+
+  String _appName(_NavigationApp app) {
+    switch (app) {
+      case _NavigationApp.appleMaps:
+        return 'Apple Maps';
+      case _NavigationApp.googleMaps:
+        return 'Google Maps';
+      case _NavigationApp.waze:
+        return 'Waze';
     }
   }
 
@@ -300,6 +440,12 @@ class ViewGigDrawer extends StatelessWidget {
       ),
     );
   }
+}
+
+enum _NavigationApp {
+  appleMaps,
+  googleMaps,
+  waze,
 }
 
 class _DetailRow extends StatelessWidget {
