@@ -62,6 +62,7 @@ class AppIcons {
   // =============================
 
   static const IconData music = LucideIcons.music;
+  static const IconData noteFile = LucideIcons.fileText;
 
   // Lucide doesn't have musicOff
   static const IconData musicOff = LucideIcons.volumeOff;

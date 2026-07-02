@@ -15,6 +15,39 @@ import 'tuning_picker_bottom_sheet.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
+// MUSICAL KEY VALUE SETS
+// ============================================================================
+
+const _kMajorKeys = [
+  'C',
+  'C#',
+  'D',
+  'Eb',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'Ab',
+  'A',
+  'Bb',
+  'B'
+];
+const _kMinorKeys = [
+  'Cm',
+  'C#m',
+  'Dm',
+  'Ebm',
+  'Em',
+  'Fm',
+  'F#m',
+  'Gm',
+  'Abm',
+  'Am',
+  'Bbm',
+  'Bm'
+];
+
+// ============================================================================
 // YOUTUBE LINK MODEL
 // Simple model for storing YouTube video links with a custom title.
 // ============================================================================
@@ -82,7 +115,8 @@ class YouTubeLink {
 // Features:
 // - Editable song title and artist (tap to edit)
 // - Tuning selector (tap to change)
-// - Notes text field (multi-line, title case)
+// - Musical key selector (tap to change, 24 standard keys)
+// - Notes text field (button-triggered, in-drawer sub-view pattern)
 // - Save button
 // - Physics-based entrance/exit animation
 // ============================================================================
@@ -97,6 +131,7 @@ class SongDetailsResult {
   final int? duration;
   final List<YouTubeLink>? youtubeLinks;
   final String? lyrics;
+  final String? musicalKey;
   final bool hasChanges;
 
   // Flags to indicate which fields were changed (needed to distinguish
@@ -109,6 +144,7 @@ class SongDetailsResult {
   final bool durationChanged;
   final bool youtubeLinksChanged;
   final bool lyricsChanged;
+  final bool musicalKeyChanged;
 
   const SongDetailsResult({
     this.title,
@@ -119,6 +155,7 @@ class SongDetailsResult {
     this.duration,
     this.youtubeLinks,
     this.lyrics,
+    this.musicalKey,
     required this.hasChanges,
     this.titleChanged = false,
     this.artistChanged = false,
@@ -128,6 +165,7 @@ class SongDetailsResult {
     this.durationChanged = false,
     this.youtubeLinksChanged = false,
     this.lyricsChanged = false,
+    this.musicalKeyChanged = false,
   });
 }
 
@@ -185,8 +223,13 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   late String? _currentLyrics;
   late String? _originalLyrics;
 
+  // Musical key state
+  late String? _currentMusicalKey;
+  late String? _originalMusicalKey;
+
   bool _isEditingTitle = false;
   bool _isEditingArtist = false;
+  bool _isEditingNotes = false;
   bool _hasChanges = false;
 
   final FocusNode _titleFocus = FocusNode();
@@ -215,6 +258,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     // Initialize lyrics from song data
     _originalLyrics = widget.song.lyrics;
     _currentLyrics = widget.song.lyrics;
+
+    // Initialize musical key from song data
+    _originalMusicalKey = widget.song.musicalKey;
+    _currentMusicalKey = widget.song.musicalKey;
 
     _titleController.addListener(_checkForChanges);
     _artistController.addListener(_checkForChanges);
@@ -288,6 +335,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _originalYoutubeLinks,
     );
     final lyricsChanged = _currentLyrics != _originalLyrics;
+    final musicalKeyChanged = _currentMusicalKey != _originalMusicalKey;
 
     final anyChanged = titleChanged ||
         artistChanged ||
@@ -296,7 +344,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         bpmChanged ||
         durationChanged ||
         youtubeLinksChanged ||
-        lyricsChanged;
+        lyricsChanged ||
+        musicalKeyChanged;
 
     debugPrint(
       '[SongDetails] _checkForChanges: bpmChanged=$bpmChanged, anyChanged=$anyChanged',
@@ -379,6 +428,100 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     }
   }
 
+  Future<void> _showKeyPicker() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: context.colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+        ),
+        title: Text(
+          'Select Key',
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+                child: Text(
+                  'Major',
+                  style: AppTextStyles.callout.copyWith(
+                    color: context.colors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ..._kMajorKeys.map(
+                (key) => ListTile(
+                  title: Text(
+                    key,
+                    style: AppTextStyles.body.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                  trailing: _currentMusicalKey == key
+                      ? Icon(AppIcons.check, color: AppColors.primary, size: 18)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(key),
+                ),
+              ),
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+                child: Text(
+                  'Minor',
+                  style: AppTextStyles.callout.copyWith(
+                    color: context.colors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ..._kMinorKeys.map(
+                (key) => ListTile(
+                  title: Text(
+                    key,
+                    style: AppTextStyles.body.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                  trailing: _currentMusicalKey == key
+                      ? Icon(AppIcons.check, color: AppColors.primary, size: 18)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(key),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: AppTextStyles.body.copyWith(
+                color: context.colors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (selected != null && selected != _currentMusicalKey) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentMusicalKey = selected;
+      });
+      _checkForChanges();
+    }
+  }
+
   void _handleSave() {
     // RBAC self-defense: block save in read-only mode
     if (widget.isReadOnly) return;
@@ -407,11 +550,18 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _originalYoutubeLinks,
     );
     final lyricsChanged = _currentLyrics != _originalLyrics;
+    final musicalKeyChanged = _currentMusicalKey != _originalMusicalKey;
 
     debugPrint(
       '[SongDetails] bpmChanged: $bpmChanged (newBpm=$newBpm, original=${widget.song.bpm})',
     );
     debugPrint('[SongDetails] _hasChanges state: $_hasChanges');
+
+    // Treat empty string as null when saving musical key
+    final musicalKeyToSave =
+        (_currentMusicalKey != null && _currentMusicalKey!.isEmpty)
+            ? null
+            : _currentMusicalKey;
 
     final result = SongDetailsResult(
       title: titleChanged ? newTitle : null,
@@ -423,6 +573,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           _currentDurationSeconds, // Always include so handler can check durationChanged flag
       youtubeLinks: youtubeLinksChanged ? _youtubeLinks : null,
       lyrics: lyricsChanged ? _currentLyrics : null,
+      musicalKey: musicalKeyChanged ? musicalKeyToSave : null,
       hasChanges: _hasChanges,
       titleChanged: titleChanged,
       artistChanged: artistChanged,
@@ -432,6 +583,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       durationChanged: durationChanged,
       youtubeLinksChanged: youtubeLinksChanged,
       lyricsChanged: lyricsChanged,
+      musicalKeyChanged: musicalKeyChanged,
     );
 
     Navigator.of(context).pop(result);
@@ -684,14 +836,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                   padding: const EdgeInsets.all(Spacing.space16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSongInfo(),
-                      const SizedBox(height: Spacing.space24),
-                      _buildMetricsRow(),
-                      const SizedBox(height: Spacing.space24),
-                      _buildNotesSection(),
-                      const SizedBox(height: Spacing.space24),
-                    ],
+                    children: _isEditingNotes
+                        ? [_buildNotesSubView()]
+                        : [
+                            _buildSongInfo(),
+                            const SizedBox(height: Spacing.space24),
+                            _buildMetricsRow(),
+                            const SizedBox(height: Spacing.space24),
+                            _buildNotesSection(),
+                            const SizedBox(height: Spacing.space24),
+                          ],
                   ),
                 ),
               ),
@@ -915,7 +1069,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
   }
 
-  /// Builds the metrics row with BPM, Duration, and Tuning in a single row
+  /// 4-column metrics row: BPM | Duration | Tuning | Key
   Widget _buildMetricsRow() {
     // Parse capo suffix so findTuningByIdOrName sees the base tuning
     final baseTuning =
@@ -974,7 +1128,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
         ),
 
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
 
         // Duration field - uses masked input (currency-style MM:SS)
         Expanded(
@@ -1003,7 +1157,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
         ),
 
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
 
         // Tuning dropdown
         Expanded(
@@ -1022,7 +1176,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 onTap: widget.isReadOnly ? null : _selectTuning,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: 10,
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
@@ -1045,7 +1199,59 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                         Icon(
                           AppIcons.forward,
                           color: context.colors.textMuted,
-                          size: 18,
+                          size: 16,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // Key dropdown
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Key',
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: widget.isReadOnly ? null : _showKeyPicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.background,
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    border: Border.all(color: context.colors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _currentMusicalKey ?? '—',
+                          style: AppTextStyles.body.copyWith(
+                            color: context.colors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!widget.isReadOnly)
+                        Icon(
+                          AppIcons.forward,
+                          color: context.colors.textMuted,
+                          size: 16,
                         ),
                     ],
                   ),
@@ -1062,15 +1268,197 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Add Lyrics + Add YouTube on the same row (hidden in read-only)
+        // 3-button action row (hidden in read-only)
         if (!widget.isReadOnly) _buildAddButtonsRow(),
         if (!widget.isReadOnly) const SizedBox(height: 12),
         // Lyrics preview (if lyrics exist)
         _buildLyricsPreview(),
         // YouTube link buttons (if links exist)
         _buildYouTubeLinksList(),
+        // Notes preview (if notes exist and not editing)
+        _buildNotesPreview(),
+      ],
+    );
+  }
+
+  /// 3 equal-width outlined rose buttons: Add Lyrics | Add YouTube | Add Notes
+  Widget _buildAddButtonsRow() {
+    final hasLyrics = _currentLyrics != null && _currentLyrics!.isNotEmpty;
+    final hasNotes = _notesController.text.trim().isNotEmpty;
+
+    return Row(
+      children: [
+        // + Add Lyrics
+        Expanded(
+          child: GestureDetector(
+            onTap: _showLyricsEditor,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.primary, width: 1.5),
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    AppIcons.music,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hasLyrics ? 'Edit Lyrics' : 'Add Lyrics',
+                    style: AppTextStyles.footnote.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // + Add YouTube
+        Expanded(
+          child: GestureDetector(
+            onTap: _showAddYouTubeModal,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.primary, width: 1.5),
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    AppIcons.play,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Add YouTube',
+                    style: AppTextStyles.footnote.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(width: 8),
+
+        // + Add Notes
+        Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _isEditingNotes = true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.primary, width: 1.5),
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    AppIcons.noteFile,
+                    color: AppColors.primary,
+                    size: 16,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hasNotes ? 'Edit Notes' : 'Add Notes',
+                    style: AppTextStyles.footnote.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Notes preview card shown when notes are non-empty and not in edit mode.
+  Widget _buildNotesPreview() {
+    final notes = _notesController.text.trim();
+    if (notes.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: GestureDetector(
+        onTap: widget.isReadOnly
+            ? null
+            : () => setState(() => _isEditingNotes = true),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: context.colors.background,
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            border: Border.all(color: context.colors.border),
+          ),
+          child: Text(
+            notes.length > 120 ? '${notes.substring(0, 120)}…' : notes,
+            style: AppTextStyles.footnote.copyWith(
+              color: context.colors.textSecondary,
+              height: 1.4,
+            ),
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Notes in-drawer sub-view: back nav row + text field.
+  /// Shown when [_isEditingNotes] is true, replacing the main content area.
+  Widget _buildNotesSubView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Back navigation row
+        GestureDetector(
+          onTap: () => setState(() => _isEditingNotes = false),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                AppIcons.back,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Back',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
-        // Notes Section
         Text(
           'Notes',
           style: AppTextStyles.callout.copyWith(
@@ -1104,57 +1492,6 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Builds the horizontal row with + Add Lyrics and + Add YouTube buttons
-  Widget _buildAddButtonsRow() {
-    final hasLyrics = _currentLyrics != null && _currentLyrics!.isNotEmpty;
-
-    return Row(
-      children: [
-        // + Add Lyrics (first)
-        GestureDetector(
-          onTap: _showLyricsEditor,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                hasLyrics ? AppIcons.edit : AppIcons.add,
-                color: AppColors.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                hasLyrics ? 'Edit Lyrics' : 'Add Lyrics',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 20),
-        // + Add YouTube (second)
-        GestureDetector(
-          onTap: _showAddYouTubeModal,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(AppIcons.add, color: AppColors.primary, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                'Add YouTube',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
           ),
         ),
       ],
