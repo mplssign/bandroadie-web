@@ -310,6 +310,9 @@ class _BandSwitcherLayer extends ConsumerWidget {
       activeBandId: activeBandId,
       onBandSelected: (band) {
         onClose();
+
+        final currentBandId = ref.read(activeBandIdProvider);
+        if (band.id == currentBandId) return;
         ref.read(gigProvider.notifier).resetForBandChange();
         ref.read(rehearsalProvider.notifier).resetForBandChange();
         ref.read(activeBandProvider.notifier).selectBand(band);

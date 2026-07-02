@@ -159,6 +159,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Close the switcher immediately for better UX
     _closeBandSwitcher();
 
+    final currentBandId = ref.read(activeBandIdProvider);
+    if (band.id == currentBandId) return;
+
     // Reset gig/rehearsal state before band switch to clear stale errors
     debugPrint('[Dashboard] activeBand changed: ${band.id}');
     ref.read(gigProvider.notifier).resetForBandChange();

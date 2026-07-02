@@ -152,6 +152,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     // Close the switcher immediately for better UX
     _closeBandSwitcher();
 
+    final currentBandId = ref.read(activeBandIdProvider);
+    if (band.id == currentBandId) return;
+
     // Reset gig/rehearsal state before band switch
     debugPrint('[Dashboard] activeBand changed: ${band.id}');
     ref.read(gigProvider.notifier).resetForBandChange();
