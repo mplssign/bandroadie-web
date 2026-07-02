@@ -303,6 +303,8 @@ class _MasterToggleCard extends StatelessWidget {
             value: enabled,
             onChanged: onChanged,
             activeTrackColor: AppColors.primary,
+            inactiveTrackColor: context.colors.surfaceOverlay,
+            inactiveThumbColor: context.colors.textSecondary,
           ),
         ],
       ),
