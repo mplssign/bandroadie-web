@@ -25,7 +25,7 @@
 // ============================================================================
 
 import 'dart:async';
-import 'dart:io' show Platform, SocketException;
+import 'dart:io' show SocketException;
 
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
@@ -403,13 +403,10 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       // Web: Redirect to /auth/confirm on the app subdomain
-      // Android: Use verified App Link (https://app.bandroadie.com/auth/callback)
-      // iOS/macOS: Use custom scheme (bandroadie://login-callback/)
+      // Native (Android, iOS, macOS): Use custom scheme (bandroadie://login-callback/)
       final String redirectUrl;
       if (kIsWeb) {
         redirectUrl = 'https://app.bandroadie.com/auth/confirm';
-      } else if (!kIsWeb && Platform.isAndroid) {
-        redirectUrl = 'https://app.bandroadie.com/auth/callback';
       } else {
         redirectUrl = 'bandroadie://login-callback/';
       }
