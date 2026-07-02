@@ -232,6 +232,16 @@ class _SongCardState extends State<SongCard>
             ),
           ),
 
+          // Gutter before key badge (only if key exists)
+          if (widget.song.musicalKey != null &&
+              widget.song.musicalKey!.isNotEmpty)
+            const SizedBox(width: SongCardLayout.metricsGutter),
+
+          // Key badge column (only if key exists)
+          if (widget.song.musicalKey != null &&
+              widget.song.musicalKey!.isNotEmpty)
+            _buildKeyBadge(),
+
           // Flexible spacer + tuning (takes remaining space, right-aligned)
           Expanded(
             child: Align(
@@ -261,6 +271,30 @@ class _SongCardState extends State<SongCard>
       isPlaceholder: false,
       onTap: null, // Read-only card
       backgroundColor: context.colors.surfaceElevated,
+    );
+  }
+
+  /// Builds the key badge (read-only display)
+  /// Only shown when musicalKey is not null and not empty
+  Widget _buildKeyBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space12,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.success, // Green #22C55E
+        borderRadius: BorderRadius.circular(100), // Pill shape
+      ),
+      child: Text(
+        widget.song.musicalKey!,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1F1F1F), // Dark text for light background
+          height: 1,
+        ),
+      ),
     );
   }
 
