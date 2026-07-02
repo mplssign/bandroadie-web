@@ -414,6 +414,9 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
 
   void _handleBandSelected(Band band) {
     _closeBandSwitcher();
+
+    final currentBandId = ref.read(activeBandIdProvider);
+    if (band.id == currentBandId) return;
     debugPrint('[Dashboard] activeBand changed: ${band.id}');
     ref.read(gigProvider.notifier).resetForBandChange();
     ref.read(rehearsalProvider.notifier).resetForBandChange();
