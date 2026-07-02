@@ -628,11 +628,12 @@ class GigFormFields extends ConsumerWidget {
                     ? null
                     : onPotentialGigToggled,
                 activeTrackColor: AppColors.primary,
+                inactiveTrackColor: context.colors.surfaceOverlay,
                 thumbColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
                     return Colors.white;
                   }
-                  return null;
+                  return context.colors.textSecondary;
                 }),
               ),
             ],

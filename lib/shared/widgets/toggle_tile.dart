@@ -29,6 +29,7 @@ class AppToggleTile extends StatelessWidget {
   final bool value;
   final ValueChanged<bool>? onChanged;
   final bool enabled;
+
   /// Reduces vertical padding for use in grouped/compact lists (no subtitle).
   final bool compact;
 
@@ -94,6 +95,8 @@ class AppToggleTile extends StatelessWidget {
             value: value,
             onChanged: enabled ? onChanged : null,
             activeTrackColor: AppColors.primary,
+            inactiveTrackColor: context.colors.surfaceOverlay,
+            inactiveThumbColor: context.colors.textSecondary,
           ),
         ],
       ),
