@@ -28,6 +28,7 @@ import '../rehearsals/rehearsal_response_repository.dart';
 import '../rehearsals/potential_rehearsal_prompt_service.dart';
 import '../rehearsals/rehearsal_pagination_controller.dart';
 import '../rehearsals/rehearsal_display_helper.dart';
+import '../rehearsals/widgets/view_rehearsal_drawer.dart';
 import '../financials/financials_screen.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
@@ -451,6 +452,28 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       bandTimezone: bandTimezone,
       canEdit: canEdit,
       onEdit: () => _openEditGigSheet(gig),
+    );
+  }
+
+  /// Open the View Rehearsal drawer for a confirmed rehearsal
+  void _openViewRehearsalSheet(Rehearsal rehearsal) {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    final canEdit = perms != null && perms.canEditGigs;
+
+    final bandTimezone =
+        ref.read(activeBandProvider).activeBand?.timezone ?? 'America/Chicago';
+
+    ViewRehearsalDrawer.show(
+      context,
+      rehearsal: rehearsal,
+      bandTimezone: bandTimezone,
+      canEdit: canEdit,
+      onEdit: () => _openEditRehearsalSheet(rehearsal),
     );
   }
 
@@ -1236,7 +1259,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
               bandTimezone:
                   ref.watch(activeBandProvider).activeBand?.timezone ??
                       'America/Chicago',
-              onTap: () => _openEditRehearsalSheet(rehearsal),
+              onTap: () => _openViewRehearsalSheet(rehearsal),
             ),
           );
         },

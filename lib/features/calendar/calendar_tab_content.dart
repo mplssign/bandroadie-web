@@ -17,6 +17,7 @@ import '../gigs/widgets/view_gig_drawer.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import '../members/permissions/band_permissions.dart';
 import '../rehearsals/rehearsal_controller.dart';
+import '../rehearsals/widgets/view_rehearsal_drawer.dart';
 import '../shell/overlay_state.dart';
 import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
@@ -235,6 +236,31 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
           ref: ref,
           mode: EventFormMode.edit,
           initialType: EventType.gig,
+          existingEventId: event.id,
+          initialData: EventFormData.fromCalendarEvent(event),
+          onSaved: _refreshCalendarData,
+        ),
+      );
+      return;
+    }
+
+    // Confirmed rehearsals: show read-only view drawer first
+    if (event.isRehearsal &&
+        event.rehearsal != null &&
+        !event.rehearsal!.isPotential) {
+      final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago';
+      final canEdit = editPerms != null && editPerms.canEditGigs;
+      ViewRehearsalDrawer.show(
+        context,
+        rehearsal: event.rehearsal!,
+        bandTimezone: bandTimezone,
+        canEdit: canEdit,
+        onEdit: () => AddEditEventBottomSheet.show(
+          context,
+          ref: ref,
+          mode: EventFormMode.edit,
+          initialType: EventType.rehearsal,
           existingEventId: event.id,
           initialData: EventFormData.fromCalendarEvent(event),
           onSaved: _refreshCalendarData,

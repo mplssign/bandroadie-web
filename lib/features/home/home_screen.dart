@@ -23,6 +23,7 @@ import '../settings/settings_screen.dart';
 import '../gigs/gig_controller.dart';
 import '../gigs/widgets/view_gig_drawer.dart';
 import '../rehearsals/rehearsal_controller.dart';
+import '../rehearsals/widgets/view_rehearsal_drawer.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
 import 'widgets/bottom_nav_bar.dart';
@@ -261,6 +262,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       bandTimezone: bandTimezone,
       canEdit: canEdit,
       onEdit: () => _openEditGigSheet(gig),
+    );
+  }
+
+  /// Open the View Rehearsal drawer for a confirmed rehearsal
+  void _openViewRehearsalSheet(Rehearsal rehearsal) {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final perms = permsAsync.when(
+      data: (p) => p,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+    final canEdit = perms != null && perms.canEditGigs;
+
+    final bandTimezone =
+        ref.read(activeBandProvider).activeBand?.timezone ?? 'America/Chicago';
+
+    ViewRehearsalDrawer.show(
+      context,
+      rehearsal: rehearsal,
+      bandTimezone: bandTimezone,
+      canEdit: canEdit,
+      onEdit: () => _openEditRehearsalSheet(rehearsal),
     );
   }
 
@@ -815,7 +838,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   rehearsal: nextRehearsal,
                   bandTimezone: bandTimezone,
                   setlistName: setlistName,
-                  onTap: () => _openEditRehearsalSheet(
+                  onTap: () => _openViewRehearsalSheet(
                     nextRehearsal,
                   ),
                 );
