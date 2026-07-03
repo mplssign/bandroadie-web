@@ -319,12 +319,12 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
   /// Metrics row with equidistant spacing.
   ///
   /// LAYOUT STRUCTURE:
-  /// [BPM] ←--equal space--→ [Duration] ←--equal space--→ [Edit] ←--equal space--→ [Tuning]
+  /// [BPM] ←--equal space--→ [Duration] ←--equal space--→ [Key Badge] ←--equal space--→ [Tuning]
   ///
-  /// Uses MainAxisAlignment.spaceBetween to distribute 4 elements evenly:
+  /// Uses MainAxisAlignment.spaceBetween to distribute elements evenly:
   /// - BPM anchors to left edge (aligns with song title above)
   /// - Tuning anchors to right edge (aligns with delete icon above)
-  /// - Duration and Edit are distributed evenly in between
+  /// - Duration and Key Badge (when present) are distributed evenly in between
   /// - As screen width changes, spacing adjusts proportionally
   Widget _buildMetricsRow() {
     return SizedBox(
@@ -348,23 +348,11 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           _buildDurationValue(),
 
           // ================================================
-          // 3. EDIT ICON - third element, evenly spaced
-          //    Hidden when onEdit is null (read-only mode)
+          // 3. KEY BADGE - shown only when musical key is set
           // ================================================
-          if (widget.onEdit != null)
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                iconSize: 20,
-                onPressed: widget.onEdit,
-                icon: Icon(
-                  AppIcons.edit,
-                  color: context.colors.textSecondary.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
+          if (widget.song.musicalKey != null &&
+              widget.song.musicalKey!.isNotEmpty)
+            _buildKeyBadge(),
 
           // ================================================
           // 4. TUNING - anchors to right (aligns with delete)
@@ -400,6 +388,30 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
         fontWeight: FontWeight.w600,
         color: context.colors.textPrimary,
         height: 1,
+      ),
+    );
+  }
+
+  /// Builds the key badge (read-only display)
+  /// Only shown when musicalKey is not null and not empty
+  Widget _buildKeyBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space12,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF59E0B), // Amber-500
+        borderRadius: BorderRadius.circular(100), // Pill shape
+      ),
+      child: Text(
+        widget.song.musicalKey!,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1F1F1F), // Dark text for light background
+          height: 1,
+        ),
       ),
     );
   }
