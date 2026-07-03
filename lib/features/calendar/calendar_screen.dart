@@ -25,6 +25,7 @@ import '../settings/settings_screen.dart';
 import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
 import 'widgets/add_block_out_drawer.dart';
+import 'widgets/view_block_out_drawer.dart';
 import 'widgets/calendar_app_bar.dart';
 import 'widgets/calendar_subscription_dialog.dart';
 import 'widgets/calendar_bottom_nav_bar.dart';
@@ -225,13 +226,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
       if (activeBandId == null) return;
 
-      BlockOutDrawer.show(
+      ViewBlockOutDrawer.show(
         context,
-        ref: ref,
-        bandId: activeBandId,
-        mode: canEdit ? BlockOutDrawerMode.edit : BlockOutDrawerMode.viewOnly,
-        existingBlockOut: event.blockOutSpan,
-        onSaved: _refreshCalendarData,
+        existingBlockOut: event.blockOutSpan!,
+        canEdit: canEdit,
+        onEdit: () {
+          BlockOutDrawer.show(
+            context,
+            ref: ref,
+            bandId: activeBandId,
+            mode: BlockOutDrawerMode.edit,
+            existingBlockOut: event.blockOutSpan,
+            onSaved: _refreshCalendarData,
+          );
+        },
       );
       return;
     }

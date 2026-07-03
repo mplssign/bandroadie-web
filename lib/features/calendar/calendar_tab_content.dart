@@ -23,6 +23,7 @@ import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
 
 import 'widgets/add_block_out_drawer.dart';
+import 'widgets/view_block_out_drawer.dart';
 import 'widgets/calendar_app_bar.dart';
 import 'widgets/calendar_event_card.dart';
 import 'widgets/calendar_grid.dart';
@@ -193,7 +194,6 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
   /// Open the Edit Event drawer for an existing calendar event
   void _openEditEventSheet(CalendarEvent event) {
-    debugPrint('[CalendarTab] _openEditEventSheet called - isBlockOut: ${event.isBlockOut}, hasBlockOutSpan: ${event.blockOutSpan != null}');
     // Block outs: open the dedicated BlockOutDrawer with permission check
     // Only the creator can edit/delete their own block out dates
     if (event.isBlockOut && event.blockOutSpan != null) {
@@ -206,13 +206,20 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
       if (activeBandId == null) return;
 
-      BlockOutDrawer.show(
+      ViewBlockOutDrawer.show(
         context,
-        ref: ref,
-        bandId: activeBandId,
-        mode: canEdit ? BlockOutDrawerMode.edit : BlockOutDrawerMode.viewOnly,
-        existingBlockOut: event.blockOutSpan,
-        onSaved: _refreshCalendarData,
+        existingBlockOut: event.blockOutSpan!,
+        canEdit: canEdit,
+        onEdit: () {
+          BlockOutDrawer.show(
+            context,
+            ref: ref,
+            bandId: activeBandId,
+            mode: BlockOutDrawerMode.edit,
+            existingBlockOut: event.blockOutSpan,
+            onSaved: _refreshCalendarData,
+          );
+        },
       );
       return;
     }
