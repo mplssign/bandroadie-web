@@ -56,7 +56,7 @@ class LyricsBlock {
   const LyricsBlock({
     required this.text,
     this.highlight = LyricsHighlight.none,
-    this.fontSize = 16.0,
+    this.fontSize = 22.0,
     this.isBold = false,
   });
 
@@ -71,7 +71,7 @@ class LyricsBlock {
     return LyricsBlock(
       text: json['text'] as String? ?? '',
       highlight: LyricsHighlight.fromKey(json['highlight'] as String?),
-      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 16.0,
+      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 22.0,
       isBold: json['isBold'] as bool? ?? false,
     );
   }
@@ -100,7 +100,7 @@ class LyricsData {
 
   const LyricsData({
     required this.blocks,
-    this.defaultFontSize = 16.0,
+    this.defaultFontSize = 22.0,
     this.defaultBold = false,
   });
 
@@ -151,7 +151,7 @@ class LyricsData {
 
       return LyricsData(
         blocks: blocksList,
-        defaultFontSize: (data['defaultFontSize'] as num?)?.toDouble() ?? 16.0,
+        defaultFontSize: (data['defaultFontSize'] as num?)?.toDouble() ?? 22.0,
         defaultBold: data['defaultBold'] as bool? ?? false,
       );
     } catch (_) {

@@ -90,7 +90,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
   late final FocusNode _focusNode;
 
   // ── Formatting state ──────────────────────────────────────────────────────
-  double _fontSize = 16.0;
+  double _fontSize = 22.0;
   LyricsHighlight _activeHighlight = LyricsHighlight.none;
 
   /// Per-line highlight overrides.  Key = line index (0-based).
@@ -123,7 +123,8 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
     final data = widget.initialData;
     if (data != null && data.isNotEmpty) {
       _textController = _HighlightedLyricsController(text: data.plainText);
-      _fontSize = data.defaultFontSize;
+      // Treat the old default (16.0) as the new default (22.0)
+      _fontSize = data.defaultFontSize == 16.0 ? 22.0 : data.defaultFontSize;
       // Pre-populate per-line highlights from existing block data.
       // plainText joins blocks with '\n\n'.  When split by '\n' that
       // separator produces exactly ONE blank line between blocks.
@@ -367,10 +368,9 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
     return SlideTransition(
       position: _slideAnim,
       child: Container(
-        // Subtract keyboard height so the editor is never hidden behind it.
-        height: MediaQuery.of(context).size.height * 0.92 - keyboardHeight,
+        height: MediaQuery.of(context).size.height * 0.92,
         decoration: BoxDecoration(
-          color: context.colors.surfaceElevated,
+          color: context.colors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -378,7 +378,12 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             _buildHeader(),
             _buildFormattingToolbar(),
             Divider(color: context.colors.border, height: 1),
-            Expanded(child: _buildTextArea()),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: keyboardHeight),
+                child: _buildTextArea(),
+              ),
+            ),
           ],
         ),
       ),
@@ -439,6 +444,11 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             Container(width: 1, height: 28, color: context.colors.border),
             const SizedBox(width: 10),
             ..._buildColorPresets(),
+            const SizedBox(width: 10),
+            // Vertical divider
+            Container(width: 1, height: 28, color: context.colors.border),
+            const SizedBox(width: 10),
+            _buildKeyboardDismissButton(),
           ],
         ),
       ),
@@ -585,6 +595,35 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
         ),
       );
     }).toList();
+  }
+
+  // ── Keyboard Dismiss Button ───────────────────────────────────────────────
+  /// Small button to dismiss the keyboard and see more lyrics content.
+  Widget _buildKeyboardDismissButton() {
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.keyboard_hide,
+              size: 20,
+              color: context.colors.textSecondary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Done',
+              style: AppTextStyles.footnote.copyWith(
+                color: context.colors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Text Area ─────────────────────────────────────────────────────────────

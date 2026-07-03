@@ -6,46 +6,16 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/segmented_button_group.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
-import 'masked_duration_input.dart';
+import 'bpm_input_dialog.dart';
+import 'duration_input_dialog.dart';
+import 'key_picker_bottom_sheet.dart';
 import 'tuning_picker_bottom_sheet.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
-
-// ============================================================================
-// MUSICAL KEY VALUE SETS
-// ============================================================================
-
-const _kMajorKeys = [
-  'C',
-  'C#',
-  'D',
-  'Eb',
-  'E',
-  'F',
-  'F#',
-  'G',
-  'Ab',
-  'A',
-  'Bb',
-  'B'
-];
-const _kMinorKeys = [
-  'Cm',
-  'C#m',
-  'Dm',
-  'Ebm',
-  'Em',
-  'Fm',
-  'F#m',
-  'Gm',
-  'Abm',
-  'Am',
-  'Bbm',
-  'Bm'
-];
 
 // ============================================================================
 // YOUTUBE LINK MODEL
@@ -209,8 +179,10 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   late TextEditingController _titleController;
   late TextEditingController _artistController;
   late TextEditingController _notesController;
-  late TextEditingController _bpmController;
   late String _currentTuning;
+
+  // BPM is tracked as nullable int (dialog-based input)
+  late int? _currentBpm;
 
   // Duration is tracked as seconds (used by MaskedDurationInput)
   late int _currentDurationSeconds;
@@ -242,9 +214,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     _titleController = TextEditingController(text: widget.song.title);
     _artistController = TextEditingController(text: widget.song.artist);
     _notesController = TextEditingController(text: widget.song.notes ?? '');
-    _bpmController = TextEditingController(
-      text: widget.song.bpm != null ? widget.song.bpm.toString() : '',
-    );
+    _currentBpm = widget.song.bpm;
     _currentDurationSeconds = widget.song.durationSeconds;
     _currentTuning = widget.song.tuning ?? 'standard_e';
 
@@ -266,7 +236,6 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     _titleController.addListener(_checkForChanges);
     _artistController.addListener(_checkForChanges);
     _notesController.addListener(_checkForChanges);
-    _bpmController.addListener(_checkForChanges);
 
     _titleFocus.addListener(() {
       if (!_titleFocus.hasFocus) {
@@ -305,11 +274,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     _titleController.removeListener(_checkForChanges);
     _artistController.removeListener(_checkForChanges);
     _notesController.removeListener(_checkForChanges);
-    _bpmController.removeListener(_checkForChanges);
     _titleController.dispose();
     _artistController.dispose();
     _notesController.dispose();
-    _bpmController.dispose();
     _titleFocus.dispose();
     _artistFocus.dispose();
     _animController.dispose();
@@ -321,13 +288,12 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
     final originalTuning = widget.song.tuning ?? 'standard_e';
-    final newBpm = _parseBpm();
 
     final titleChanged = newTitle != widget.song.title;
     final artistChanged = newArtist != widget.song.artist;
     final notesChanged = newNotes != (widget.song.notes ?? '');
     final tuningChanged = _currentTuning != originalTuning;
-    final bpmChanged = newBpm != widget.song.bpm;
+    final bpmChanged = _currentBpm != widget.song.bpm;
     final durationChanged =
         _currentDurationSeconds != widget.song.durationSeconds;
     final youtubeLinksChanged = !_areYoutubeLinksEqual(
@@ -365,34 +331,6 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     return true;
   }
 
-  /// Parse BPM from text field, returns null if empty or invalid
-  int? _parseBpm() {
-    final text = _bpmController.text.trim();
-    debugPrint('[SongDetails] _parseBpm: text="$text"');
-    if (text.isEmpty) {
-      debugPrint('[SongDetails] _parseBpm: empty, returning null');
-      return null;
-    }
-    final bpm = int.tryParse(text);
-    debugPrint('[SongDetails] _parseBpm: parsed=$bpm');
-    if (bpm != null && bpm >= 20 && bpm <= 300) {
-      debugPrint('[SongDetails] _parseBpm: valid, returning $bpm');
-      return bpm;
-    }
-    debugPrint(
-      '[SongDetails] _parseBpm: out of range or invalid, returning null',
-    );
-    return null;
-  }
-
-  /// Called when duration changes via MaskedDurationInput
-  void _onDurationChanged(int seconds) {
-    setState(() {
-      _currentDurationSeconds = seconds;
-    });
-    _checkForChanges();
-  }
-
   void _startEditingTitle() {
     setState(() => _isEditingTitle = true);
     Future.delayed(const Duration(milliseconds: 50), () {
@@ -428,98 +366,76 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     }
   }
 
-  Future<void> _showKeyPicker() async {
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        ),
-        title: Text(
-          'Select Key',
-          style:
-              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
-                child: Text(
-                  'Major',
-                  style: AppTextStyles.callout.copyWith(
-                    color: context.colors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              ..._kMajorKeys.map(
-                (key) => ListTile(
-                  title: Text(
-                    key,
-                    style: AppTextStyles.body.copyWith(
-                      color: context.colors.textPrimary,
-                    ),
-                  ),
-                  trailing: _currentMusicalKey == key
-                      ? Icon(AppIcons.check, color: AppColors.primary, size: 18)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(key),
-                ),
-              ),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
-                child: Text(
-                  'Minor',
-                  style: AppTextStyles.callout.copyWith(
-                    color: context.colors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              ..._kMinorKeys.map(
-                (key) => ListTile(
-                  title: Text(
-                    key,
-                    style: AppTextStyles.body.copyWith(
-                      color: context.colors.textPrimary,
-                    ),
-                  ),
-                  trailing: _currentMusicalKey == key
-                      ? Icon(AppIcons.check, color: AppColors.primary, size: 18)
-                      : null,
-                  onTap: () => Navigator.of(context).pop(key),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _selectBpm() async {
+    final result = await showBpmInputDialog(
+      context,
+      initialBpm: _currentBpm,
     );
-
-    if (selected != null && selected != _currentMusicalKey) {
-      HapticFeedback.selectionClick();
+    if (result is DialogCleared<int>) {
       setState(() {
-        _currentMusicalKey = selected;
+        _currentBpm = null;
+      });
+      _checkForChanges();
+    } else if (result is DialogValue<int>) {
+      setState(() {
+        _currentBpm = result.value;
       });
       _checkForChanges();
     }
+    // DialogCancelled → no change
+  }
+
+  Future<void> _selectDuration() async {
+    final result = await showDurationInputDialog(
+      context,
+      initialSeconds: _currentDurationSeconds,
+    );
+    if (result is DialogCleared<int>) {
+      setState(() {
+        _currentDurationSeconds = 0;
+      });
+      _checkForChanges();
+    } else if (result is DialogValue<int>) {
+      setState(() {
+        _currentDurationSeconds = result.value;
+      });
+      _checkForChanges();
+    }
+    // DialogCancelled → no change
+  }
+
+  String _formatDuration(int seconds) {
+    if (seconds <= 0) return '—';
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '$minutes:${secs.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _selectKey() async {
+    final result = await showKeyPickerBottomSheet(
+      context,
+      selectedKey: _currentMusicalKey,
+    );
+    // Handle three cases:
+    // - result is null: user cancelled, do nothing
+    // - result is empty string: user tapped selected key to unselect, clear to null
+    // - result is a key string: user selected a different key, update
+    if (result == '') {
+      // Empty string means unselect (tap on already-selected key)
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentMusicalKey = null;
+      });
+      _checkForChanges();
+    } else if (result != null && result != _currentMusicalKey) {
+      // New key selected
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentMusicalKey = result;
+      });
+      _checkForChanges();
+    }
+    // If result is null (cancelled) or same as current, do nothing
   }
 
   void _handleSave() {
@@ -532,17 +448,16 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
     final originalTuning = widget.song.tuning ?? 'standard_e';
-    final newBpm = _parseBpm();
 
     debugPrint('[SongDetails] Original song.bpm: ${widget.song.bpm}');
-    debugPrint('[SongDetails] New BPM from input: $newBpm');
+    debugPrint('[SongDetails] New BPM from state: $_currentBpm');
 
     // Determine which fields changed
     final titleChanged = newTitle != widget.song.title;
     final artistChanged = newArtist != widget.song.artist;
     final notesChanged = newNotes != (widget.song.notes ?? '');
     final tuningChanged = _currentTuning != originalTuning;
-    final bpmChanged = newBpm != widget.song.bpm;
+    final bpmChanged = _currentBpm != widget.song.bpm;
     final durationChanged =
         _currentDurationSeconds != widget.song.durationSeconds;
     final youtubeLinksChanged = !_areYoutubeLinksEqual(
@@ -553,7 +468,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final musicalKeyChanged = _currentMusicalKey != _originalMusicalKey;
 
     debugPrint(
-      '[SongDetails] bpmChanged: $bpmChanged (newBpm=$newBpm, original=${widget.song.bpm})',
+      '[SongDetails] bpmChanged: $bpmChanged (newBpm=$_currentBpm, original=${widget.song.bpm})',
     );
     debugPrint('[SongDetails] _hasChanges state: $_hasChanges');
 
@@ -568,7 +483,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       artist: artistChanged ? newArtist : null,
       notes: notesChanged ? newNotes : null,
       tuning: tuningChanged ? _currentTuning : null,
-      bpm: newBpm, // Always include so handler can check bpmChanged flag
+      bpm: _currentBpm, // Always include so handler can check bpmChanged flag
       duration:
           _currentDurationSeconds, // Always include so handler can check durationChanged flag
       youtubeLinks: youtubeLinksChanged ? _youtubeLinks : null,
@@ -602,7 +517,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final discard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFD1D5DB),
+        backgroundColor: context.colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
@@ -616,28 +531,37 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           style:
               AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Discard',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                style:
+                    FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                child: Text(
+                  'Keep Editing',
+                  style: AppTextStyles.body.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text(
-              'Keep Editing',
-              style: AppTextStyles.body.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text(
+                    'Discard',
+                    style: AppTextStyles.body.copyWith(
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1078,187 +1002,27 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     final tuningDisplayName =
         tuningOption?.name ?? tuningShortLabel(_currentTuning);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // BPM field
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'BPM',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: context.colors.background,
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(color: context.colors.border),
-                ),
-                child: TextField(
-                  controller: _bpmController,
-                  readOnly: widget.isReadOnly,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(3),
-                  ],
-                  style: AppTextStyles.body.copyWith(
-                    color: context.colors.textPrimary,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '—',
-                    hintStyle: AppTextStyles.body.copyWith(
-                      color: context.colors.textMuted,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return SegmentedButtonGroup(
+      segments: [
+        SegmentData(
+          label: 'BPM',
+          value: _currentBpm?.toString() ?? '—',
+          onTap: widget.isReadOnly ? null : _selectBpm,
         ),
-
-        const SizedBox(width: 8),
-
-        // Duration field - uses masked input (currency-style MM:SS)
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Duration',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              MaskedDurationInput(
-                initialSeconds: _currentDurationSeconds,
-                onChanged: _onDurationChanged,
-                enabled: !widget.isReadOnly,
-                backgroundColor: context.colors.background,
-                borderColor: context.colors.border,
-                textStyle: AppTextStyles.body.copyWith(
-                  color: context.colors.textPrimary,
-                ),
-              ),
-            ],
-          ),
+        SegmentData(
+          label: 'Duration',
+          value: _formatDuration(_currentDurationSeconds),
+          onTap: widget.isReadOnly ? null : _selectDuration,
         ),
-
-        const SizedBox(width: 8),
-
-        // Tuning dropdown
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Tuning',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: widget.isReadOnly ? null : _selectTuning,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.colors.background,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: context.colors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tuningDisplayName,
-                          style: AppTextStyles.body.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (!widget.isReadOnly)
-                        Icon(
-                          AppIcons.forward,
-                          color: context.colors.textMuted,
-                          size: 16,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+        SegmentData(
+          label: 'Tuning',
+          value: tuningDisplayName,
+          onTap: widget.isReadOnly ? null : _selectTuning,
         ),
-
-        const SizedBox(width: 8),
-
-        // Key dropdown
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Key',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: widget.isReadOnly ? null : _showKeyPicker,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.colors.background,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: context.colors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _currentMusicalKey ?? '—',
-                          style: AppTextStyles.body.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (!widget.isReadOnly)
-                        Icon(
-                          AppIcons.forward,
-                          color: context.colors.textMuted,
-                          size: 16,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+        SegmentData(
+          label: 'Key',
+          value: _currentMusicalKey ?? '—',
+          onTap: widget.isReadOnly ? null : _selectKey,
         ),
       ],
     );
@@ -1271,8 +1035,6 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         // 3-button action row (hidden in read-only)
         if (!widget.isReadOnly) _buildAddButtonsRow(),
         if (!widget.isReadOnly) const SizedBox(height: 12),
-        // Lyrics preview (if lyrics exist)
-        _buildLyricsPreview(),
         // YouTube link buttons (if links exist)
         _buildYouTubeLinksList(),
         // Notes preview (if notes exist and not editing)
@@ -1499,41 +1261,6 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   }
 
   /// Builds the lyrics preview (shown below the add buttons row when lyrics exist)
-  Widget _buildLyricsPreview() {
-    final hasLyrics = _currentLyrics != null && _currentLyrics!.isNotEmpty;
-    if (!hasLyrics) return const SizedBox.shrink();
-
-    final lyricsData = LyricsData.fromJsonString(_currentLyrics);
-    if (lyricsData.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GestureDetector(
-        onTap: widget.isReadOnly ? null : _showLyricsEditor,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: context.colors.border),
-          ),
-          child: Text(
-            lyricsData.plainText.length > 120
-                ? '${lyricsData.plainText.substring(0, 120)}…'
-                : lyricsData.plainText,
-            style: AppTextStyles.footnote.copyWith(
-              color: context.colors.textSecondary,
-              height: 1.4,
-            ),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Builds the YouTube link buttons list (shown below the add buttons row)
   Widget _buildYouTubeLinksList() {
     if (_youtubeLinks.isEmpty) return const SizedBox.shrink();
