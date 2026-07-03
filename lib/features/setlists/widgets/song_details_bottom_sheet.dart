@@ -301,7 +301,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       _originalYoutubeLinks,
     );
     final lyricsChanged = _currentLyrics != _originalLyrics;
-    final musicalKeyChanged = _currentMusicalKey != _originalMusicalKey;
+    final musicalKeyChanged =
+        (_currentMusicalKey ?? '') != (_originalMusicalKey ?? '');
 
     final anyChanged = titleChanged ||
         artistChanged ||
@@ -424,7 +425,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       // Empty string means unselect (tap on already-selected key)
       HapticFeedback.selectionClick();
       setState(() {
-        _currentMusicalKey = null;
+        _currentMusicalKey = '';
       });
       _checkForChanges();
     } else if (result != null && result != _currentMusicalKey) {
@@ -472,12 +473,6 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     );
     debugPrint('[SongDetails] _hasChanges state: $_hasChanges');
 
-    // Treat empty string as null when saving musical key
-    final musicalKeyToSave =
-        (_currentMusicalKey != null && _currentMusicalKey!.isEmpty)
-            ? null
-            : _currentMusicalKey;
-
     final result = SongDetailsResult(
       title: titleChanged ? newTitle : null,
       artist: artistChanged ? newArtist : null,
@@ -488,7 +483,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           _currentDurationSeconds, // Always include so handler can check durationChanged flag
       youtubeLinks: youtubeLinksChanged ? _youtubeLinks : null,
       lyrics: lyricsChanged ? _currentLyrics : null,
-      musicalKey: musicalKeyChanged ? musicalKeyToSave : null,
+      musicalKey: musicalKeyChanged ? _currentMusicalKey : null,
       hasChanges: _hasChanges,
       titleChanged: titleChanged,
       artistChanged: artistChanged,
@@ -1021,7 +1016,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         ),
         SegmentData(
           label: 'Key',
-          value: _currentMusicalKey ?? '—',
+          value: (_currentMusicalKey == null || _currentMusicalKey!.isEmpty)
+              ? '—'
+              : _currentMusicalKey!,
           onTap: widget.isReadOnly ? null : _selectKey,
         ),
       ],
