@@ -23,7 +23,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // MODES:
 //   - create: New block out (default)
 //   - edit: Editing existing block out (can delete)
-//   - viewOnly: Read-only view (non-creator viewing someone else's block out)
 //
 // USAGE:
 //   BlockOutDrawer.show(
@@ -46,19 +45,19 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // ============================================================================
 
 /// Mode for the block out drawer
-enum BlockOutDrawerMode { create, edit, viewOnly }
+enum BlockOutDrawerMode { create, edit }
 
 class BlockOutDrawer extends ConsumerStatefulWidget {
   /// The band ID (required)
   final String bandId;
 
-  /// Mode: create, edit, or viewOnly
+  /// Mode: create or edit
   final BlockOutDrawerMode mode;
 
   /// Initial start date (from calendar day tap, or today) - for create mode
   final DateTime? initialDate;
 
-  /// Existing block out span data - for edit/viewOnly mode
+  /// Existing block out span data - for edit mode
   final BlockOutSpan? existingBlockOut;
 
   /// Callback when block out is saved/deleted successfully
@@ -114,29 +113,19 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   bool _isDeleting = false;
   String? _errorMessage;
 
-  /// Whether this drawer is in read-only mode (non-creator viewing)
-  bool get _isReadOnly => widget.mode == BlockOutDrawerMode.viewOnly;
-
   /// Whether this is edit mode (creator editing their own block out)
   bool get _isEditMode => widget.mode == BlockOutDrawerMode.edit;
 
   /// Drawer title based on mode
   String get _drawerTitle {
-    switch (widget.mode) {
-      case BlockOutDrawerMode.create:
-        return 'Add Block Out';
-      case BlockOutDrawerMode.edit:
-        return 'Edit Block Out';
-      case BlockOutDrawerMode.viewOnly:
-        return 'Block Out Details';
-    }
+    return _isEditMode ? 'Edit Block Out' : 'Add Block Out';
   }
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize from existing data in edit/viewOnly mode
+    // Initialize from existing data in edit mode
     if (widget.existingBlockOut != null) {
       _startDate = widget.existingBlockOut!.startDate;
       // Only set end date if it's a multi-day span
@@ -623,45 +612,6 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                 ),
               ),
 
-              // View-only banner (non-creator viewing someone else's block out)
-              if (_isReadOnly) ...[
-                const SizedBox(height: Spacing.space16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Spacing.pagePadding,
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          AppIcons.info,
-                          color: AppColors.primary,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Only the creator can edit or delete this block out.',
-                            style: AppTextStyles.footnote.copyWith(
-                              color: context.colors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-
               const SizedBox(height: Spacing.space16),
 
               // Scrollable content
@@ -808,14 +758,12 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         ),
         const SizedBox(height: 6),
         GestureDetector(
-          onTap: (_isSaving || _isDeleting || _isReadOnly) ? null : onTap,
+          onTap: (_isSaving || _isDeleting) ? null : onTap,
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: _isReadOnly
-                  ? context.colors.background.withValues(alpha: 0.5)
-                  : context.colors.background,
+              color: context.colors.background,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: context.colors.border),
             ),
@@ -828,19 +776,16 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                         : (placeholder ?? 'Select date'),
                     style: AppTextStyles.callout.copyWith(
                       color: value != null
-                          ? (_isReadOnly
-                              ? context.colors.textSecondary
-                              : context.colors.textPrimary)
+                          ? context.colors.textPrimary
                           : context.colors.textSecondary.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
-                if (!_isReadOnly)
-                  Icon(
-                    AppIcons.calendar,
-                    size: 18,
-                    color: context.colors.textSecondary.withValues(alpha: 0.7),
-                  ),
+                Icon(
+                  AppIcons.calendar,
+                  size: 18,
+                  color: context.colors.textSecondary.withValues(alpha: 0.7),
+                ),
               ],
             ),
           ),
@@ -867,12 +812,10 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
-          enabled: !_isSaving && !_isDeleting && !_isReadOnly,
+          enabled: !_isSaving && !_isDeleting,
           maxLines: maxLines,
           style: AppTextStyles.callout.copyWith(
-            color: _isReadOnly
-                ? context.colors.textSecondary
-                : context.colors.textPrimary,
+            color: context.colors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: hint,
@@ -880,9 +823,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
               color: context.colors.textSecondary.withValues(alpha: 0.6),
             ),
             filled: true,
-            fillColor: _isReadOnly
-                ? context.colors.background.withValues(alpha: 0.5)
-                : context.colors.background,
+            fillColor: context.colors.background,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 14,
@@ -911,46 +852,6 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
 
   Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
     final bottomPadding = safeBottom;
-
-    // Read-only mode: just show a Close button
-    if (_isReadOnly) {
-      return Container(
-        padding: EdgeInsets.only(
-          left: Spacing.pagePadding,
-          right: Spacing.pagePadding,
-          top: Spacing.space16,
-          bottom: bottomPadding + Spacing.space16,
-        ),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          border: Border(
-            top: BorderSide(
-              color: context.colors.border.withValues(alpha: 0.5),
-            ),
-          ),
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.textSecondary,
-              side: BorderSide(color: context.colors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-            ),
-            child: Text(
-              'Close',
-              style: AppTextStyles.calloutEmphasized.copyWith(
-                color: context.colors.textSecondary,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
 
     // Edit mode: Cancel + Update buttons (matching EventEditorDrawer)
     if (_isEditMode) {
