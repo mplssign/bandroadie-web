@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'notification_repository.dart';
@@ -151,6 +152,10 @@ class PushNotificationService {
   /// Register device token with Supabase
   Future<void> registerToken() async {
     try {
+      // Read last registered token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final lastToken = prefs.getString('last_fcm_token');
+
       // Web requires a VAPID key to obtain an FCM token
       // iOS/Android derive the token from the native config files
       final token = kIsWeb
@@ -165,21 +170,35 @@ class PushNotificationService {
       }
 
       final platform = _getPlatform();
+      // If token changed, pass old token for cleanup
+      final oldToken =
+          (lastToken != null && lastToken != token) ? lastToken : null;
       await _repository.upsertDeviceToken(
         fcmToken: token,
         platform: platform,
         deviceName: _getDeviceName(),
+        oldToken: oldToken,
       );
 
+      // Save current token to SharedPreferences
+      await prefs.setString('last_fcm_token', token);
       debugPrint('[PushNotificationService] Token registered for $platform');
 
       // Listen for token refresh
       _messaging.onTokenRefresh.listen((newToken) async {
+        final prefs = await SharedPreferences.getInstance();
+        final lastToken = prefs.getString('last_fcm_token');
+        final oldToken =
+            (lastToken != null && lastToken != newToken) ? lastToken : null;
+
         await _repository.upsertDeviceToken(
           fcmToken: newToken,
           platform: platform,
           deviceName: _getDeviceName(),
+          oldToken: oldToken,
         );
+
+        await prefs.setString('last_fcm_token', newToken);
         debugPrint('[PushNotificationService] Token refreshed');
       });
     } catch (e) {
@@ -235,7 +254,8 @@ class PushNotificationService {
             _onNotificationTap!(data);
           } catch (e) {
             // Stale notification with non-JSON payload (pre-upgrade app versions)
-            debugPrint('[PushNotificationService] Invalid notification payload: $e');
+            debugPrint(
+                '[PushNotificationService] Invalid notification payload: $e');
             return;
           }
         }

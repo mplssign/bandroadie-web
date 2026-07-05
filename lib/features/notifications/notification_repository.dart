@@ -48,8 +48,8 @@ class NotificationRepository {
   Future<void> markAsRead(String notificationId) async {
     await _supabase
         .from('notifications')
-        .update({'read_at': DateTime.now().toUtc().toIso8601String()})
-        .eq('id', notificationId);
+        .update({'read_at': DateTime.now().toUtc().toIso8601String()}).eq(
+            'id', notificationId);
   }
 
   /// Mark all notifications as read
@@ -67,6 +67,7 @@ class NotificationRepository {
     required String fcmToken,
     required String platform,
     String? deviceName,
+    String? oldToken,
   }) async {
     final response = await _supabase.rpc(
       'upsert_device_token',
@@ -74,6 +75,7 @@ class NotificationRepository {
         'p_fcm_token': fcmToken,
         'p_platform': platform,
         'p_device_name': deviceName,
+        'p_old_token': oldToken,
       },
     );
     return response as String?;
@@ -98,21 +100,18 @@ class NotificationRepository {
 
   /// Update notification preferences
   Future<void> updatePreferences(NotificationPreferences prefs) async {
-    await _supabase
-        .from('notification_preferences')
-        .update({
-          'notifications_enabled': prefs.notificationsEnabled,
-          'gigs_enabled': prefs.gigsEnabled,
-          'potential_gigs_enabled': prefs.potentialGigsEnabled,
-          'rehearsals_enabled': prefs.rehearsalsEnabled,
-          'blockouts_enabled': prefs.blockoutsEnabled,
-          // Keep legacy fields for backwards compatibility
-          'setlist_updates': prefs.setlistUpdates,
-          'availability_requests': prefs.availabilityRequests,
-          'member_updates': prefs.memberUpdates,
-          'push_enabled': prefs.pushEnabled,
-          'in_app_enabled': prefs.inAppEnabled,
-        })
-        .eq('user_id', prefs.userId);
+    await _supabase.from('notification_preferences').update({
+      'notifications_enabled': prefs.notificationsEnabled,
+      'gigs_enabled': prefs.gigsEnabled,
+      'potential_gigs_enabled': prefs.potentialGigsEnabled,
+      'rehearsals_enabled': prefs.rehearsalsEnabled,
+      'blockouts_enabled': prefs.blockoutsEnabled,
+      // Keep legacy fields for backwards compatibility
+      'setlist_updates': prefs.setlistUpdates,
+      'availability_requests': prefs.availabilityRequests,
+      'member_updates': prefs.memberUpdates,
+      'push_enabled': prefs.pushEnabled,
+      'in_app_enabled': prefs.inAppEnabled,
+    }).eq('user_id', prefs.userId);
   }
 }
