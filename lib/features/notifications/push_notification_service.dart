@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -43,8 +44,20 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  // Callback for handling notification taps
-  void Function(String? deepLink)? onNotificationTap;
+  // Backing field for notification tap callback
+  void Function(Map<String, dynamic>)? _onNotificationTap;
+
+  // Buffered initial message (for terminated state tap before callback is set)
+  Map<String, dynamic>? _pendingInitialMessage;
+
+  // Setter that flushes pending message when callback is assigned
+  set onNotificationTap(void Function(Map<String, dynamic>)? callback) {
+    _onNotificationTap = callback;
+    if (_pendingInitialMessage != null && callback != null) {
+      callback(_pendingInitialMessage!);
+      _pendingInitialMessage = null;
+    }
+  }
 
   // Callback for silent data refresh
   void Function(Map<String, dynamic> data)? onSilentRefresh;
@@ -84,10 +97,12 @@ class PushNotificationService {
     // Handle notification tap when app is in background
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
 
-    // Check if app was opened from a notification
+    // Check if app was opened from a notification (terminated state)
+    // Buffer the message instead of immediately handling it, since the callback
+    // is not yet assigned at this point in the lifecycle
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      _handleNotificationOpen(initialMessage);
+      _pendingInitialMessage = initialMessage.data;
     }
 
     _initialized = true;
@@ -214,8 +229,15 @@ class PushNotificationService {
       initSettings,
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
-        if (payload != null && onNotificationTap != null) {
-          onNotificationTap!(payload);
+        if (payload != null && _onNotificationTap != null) {
+          try {
+            final data = jsonDecode(payload) as Map<String, dynamic>;
+            _onNotificationTap!(data);
+          } catch (e) {
+            // Stale notification with non-JSON payload (pre-upgrade app versions)
+            debugPrint('[PushNotificationService] Invalid notification payload: $e');
+            return;
+          }
         }
       },
     );
@@ -256,8 +278,8 @@ class PushNotificationService {
     final notification = message.notification;
     if (notification == null) return;
 
-    // Extract deep link from data
-    final deepLink = message.data['deep_link'] as String?;
+    // JSON-encode the full data map to pass as payload
+    final dataJson = jsonEncode(message.data);
 
     const androidDetails = AndroidNotificationDetails(
       'band_roadie_notifications',
@@ -286,7 +308,7 @@ class PushNotificationService {
       notification.title,
       notification.body,
       notificationDetails,
-      payload: deepLink,
+      payload: dataJson,
     );
   }
 
@@ -295,8 +317,8 @@ class PushNotificationService {
       '[PushNotificationService] Notification opened: ${message.messageId}',
     );
 
-    final deepLink = message.data['deep_link'] as String?;
-    onNotificationTap?.call(deepLink);
+    final data = message.data;
+    _onNotificationTap?.call(data);
   }
 
   String _getPlatform() {

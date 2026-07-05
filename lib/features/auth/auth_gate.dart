@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/services/auth_debug_logger.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../bands/active_band_controller.dart';
+import '../notifications/notification_navigation_handler.dart';
 import '../notifications/push_notification_service.dart';
 import '../profile/my_profile_screen.dart';
 import '../shell/app_shell.dart';
@@ -175,6 +176,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
     try {
       final service = ref.read(pushNotificationServiceProvider);
       await service.initialize();
+
+      // Wire notification tap handler
+      service.onNotificationTap = (data) {
+        if (mounted) {
+          NotificationNavigationHandler.navigate(context, ref, data);
+        }
+      };
 
       var hasPermission = await service.hasPermission();
 
