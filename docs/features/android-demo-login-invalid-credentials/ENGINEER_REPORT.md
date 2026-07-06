@@ -99,6 +99,7 @@ PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -cF -- "${DEMO_PASSWORD}" || true)
 ```
 
 **Changes:**
+
 - Changed single quotes `'${DEMO_PASSWORD}'` to double quotes `"${DEMO_PASSWORD}"` to allow variable expansion
 - Added `-F` flag to treat pattern as **fixed string** (literal match, safe for special characters in password)
 - Added `--` to prevent `-` characters in password from being interpreted as flags
@@ -112,6 +113,7 @@ PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -cF -- "${DEMO_PASSWORD}" || true)
 **File:** `pubspec.yaml` line 5
 
 **Change:**
+
 ```yaml
 # Before
 version: 1.3.28+205
@@ -121,6 +123,7 @@ version: 1.3.29+206
 ```
 
 **Format:**
+
 - `1.3.29` = versionName (semantic version shown to users)
 - `206` = versionCode (monotonically increasing integer for Play Store)
 
@@ -275,11 +278,13 @@ Build complete: build/app/outputs/bundle/release/app-release.aab
 - Font tree-shaking reduced MaterialIcons by 99.6%, lucide by 97.6%
 
 **Build Time:**
+
 - Total: ~320s (~5.3 minutes)
 - Gradle bundleRelease: 43.2s
 - Clean operations (Xcode, build, dart_tool): ~277s
 
 **Artifact Created:**
+
 - Path: `build/app/outputs/bundle/release/app-release.aab`
 - Size: 97.0 MB (97,041,779 bytes)
 - Modified: Jul 6 08:35:11 2026
@@ -290,6 +295,7 @@ Build complete: build/app/outputs/bundle/release/app-release.aab
 ✅ **DEMO_PASSWORD:** 1 occurrence found in binary
 
 Both verification checks passed, indicating:
+
 1. Production environment configuration is compiled in (not dev/staging)
 2. DEMO_PASSWORD was successfully passed via `--dart-define` and compiled into the artifact
 
@@ -317,10 +323,10 @@ grep -cF -- 'BandRoadie-Demo-2026!' strings_output.txt
 
 **Results:**
 
-| Credential | Expected | Found | Status |
-|------------|----------|-------|--------|
-| `hello@bandroadie.com` | ≥1 | **4** | ✅ PASS |
-| `BandRoadie-Demo-2026!` | ≥1 | **1** | ✅ PASS |
+| Credential              | Expected | Found | Status  |
+| ----------------------- | -------- | ----- | ------- |
+| `hello@bandroadie.com`  | ≥1       | **4** | ✅ PASS |
+| `BandRoadie-Demo-2026!` | ≥1       | **1** | ✅ PASS |
 
 **Version Verification:**
 
@@ -336,6 +342,7 @@ strings base/manifest/AndroidManifest.xml | grep -E '(1\.3\.29|206)'
 ```
 
 **Confirmed:**
+
 - ✅ versionCode: **206**
 - ✅ versionName: **1.3.29**
 
@@ -361,6 +368,7 @@ Size: 97041779 bytes, Modified: Jul  6 08:35:11 2026
 **Summary:**
 
 ✅ All verification checks passed:
+
 - Production Supabase configuration present in binary
 - Demo email address (`hello@bandroadie.com`) present with 4 occurrences
 - Demo password (`BandRoadie-Demo-2026!`) present with 1 occurrence
@@ -456,21 +464,25 @@ Both were necessary corrections identified after the original Architect plan was
 5. ⏳ **Device Testing Required:** Install AAB on physical Android device, verify demo login succeeds
 
 **Artifact Location:**
+
 ```
 build/app/outputs/bundle/release/app-release.aab
 97.0 MB, Jul 6 08:35:11 2026
 ```
 
 **Test Credentials:**
+
 - Email: `hello@bandroadie.com`
 - Password: `BandRoadie-Demo-2026!`
 
 **Expected Behavior:**
+
 - Demo login button should successfully authenticate
 - User should be redirected to "The Banana Stand" band dashboard
 - No "Invalid login credentials" error
 
 **If QA Fails:**
+
 - Re-verify `.env` contains correct DEMO_PASSWORD
 - Re-run build script to ensure clean build
 - Check device logs for Supabase auth errors
@@ -510,7 +522,7 @@ After QA approval:
      Fixes bug/android-demo-login-invalid-credentials
      ```
 
-   - **DO NOT PUSH** — push is authorized only after QA approval
+- **DO NOT PUSH** — push is authorized only after QA approval
 
 ---
 
@@ -518,6 +530,7 @@ After QA approval:
 **Date:** 2026-07-06  
 **Branch:** `bug/android-demo-login-invalid-credentials`  
 **Commits:**
+
 - `f66d3b2` — Initial implementation (validation + BUILD_ARGS + verification)
 - `a6802a7` — fix(build): correct DEMO_PASSWORD verification quoting
 - `b0b7255` — chore: bump version to 1.3.29+206
