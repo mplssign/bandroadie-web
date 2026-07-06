@@ -94,11 +94,17 @@ if [[ -z "${SUPABASE_ANON_KEY:-}" ]]; then
   exit 1
 fi
 
+if [[ -z "${DEMO_PASSWORD:-}" ]]; then
+  echo "ERROR: DEMO_PASSWORD missing in .env"
+  exit 1
+fi
+
 BUILD_ARGS=(
   "--release"
   "--target=$TARGET"
   "--dart-define=SUPABASE_URL=${SUPABASE_URL}"
   "--dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}"
+  "--dart-define=DEMO_PASSWORD=${DEMO_PASSWORD}"
 )
 
 if [[ -n "$FLAVOR" ]]; then
@@ -181,13 +187,25 @@ case "$PLATFORM" in
     TMP_SO=$(mktemp)
     unzip -p "$ARTIFACT_PATH" 'base/lib/arm64-v8a/libapp.so' > "$TMP_SO"
     MATCHES=$(strings "$TMP_SO" | grep -c "$PROD_CONFIG_PATTERN" || true)
-    rm -f "$TMP_SO"
     if [[ "$MATCHES" -gt 0 ]]; then
       echo "✅ PASS: Production Supabase config found ($MATCHES occurrences)"
     else
       echo "❌ FAIL: Production Supabase config NOT found"
       echo "   Expected pattern: $PROD_CONFIG_PATTERN"
       echo "   Artifact: $ARTIFACT_PATH"
+      rm -f "$TMP_SO"
+      exit 1
+    fi
+
+    # Verify DEMO_PASSWORD is compiled in (defense against empty/missing password)
+    PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -cF -- "${DEMO_PASSWORD}" || true)
+    rm -f "$TMP_SO"
+    if [[ "$PASSWORD_MATCHES" -gt 0 ]]; then
+      echo "✅ PASS: DEMO_PASSWORD found in artifact ($PASSWORD_MATCHES occurrences)"
+    else
+      echo "❌ FAIL: DEMO_PASSWORD NOT found in artifact"
+      echo "   This usually means the --dart-define was not passed correctly."
+      echo "   Demo login will fail with 'Invalid login credentials'."
       exit 1
     fi
     ;;
