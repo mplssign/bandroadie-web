@@ -145,7 +145,7 @@ echo ""
 echo "Verifying artifact contains production configuration..."
 
 ARTIFACT_PATH=""
-PROD_CONFIG_PATTERN="https://FAKE_NONEXISTENT_REF.supabase.co"
+PROD_CONFIG_PATTERN="https://nekwjxvgbveheooyorjo.supabase.co"
 
 case "$PLATFORM" in
   ios)
