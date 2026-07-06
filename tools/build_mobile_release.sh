@@ -198,7 +198,7 @@ case "$PLATFORM" in
     fi
 
     # Verify DEMO_PASSWORD is compiled in (defense against empty/missing password)
-    PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -c '${DEMO_PASSWORD}' || true)
+    PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -cF -- "${DEMO_PASSWORD}" || true)
     rm -f "$TMP_SO"
     if [[ "$PASSWORD_MATCHES" -gt 0 ]]; then
       echo "✅ PASS: DEMO_PASSWORD found in artifact ($PASSWORD_MATCHES occurrences)"
