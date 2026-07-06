@@ -115,6 +115,14 @@ fi
 
 cd "$ROOT_DIR"
 
+# ── Clean build environment ──────────────────────────────────
+# Release builds are infrequent; correctness beats speed.
+# Always clean to prevent cached artifacts from contaminating the build.
+echo ""
+echo "Cleaning build environment..."
+flutter clean
+echo ""
+
 case "$PLATFORM" in
   ios)
     flutter build ipa "${BUILD_ARGS[@]}"
@@ -131,3 +139,79 @@ case "$PLATFORM" in
     exit 1
     ;;
 esac
+
+# ── Verify build artifact contains production config ──────────
+echo ""
+echo "Verifying artifact contains production configuration..."
+
+ARTIFACT_PATH=""
+PROD_CONFIG_PATTERN="https://FAKE_NONEXISTENT_REF.supabase.co"
+
+case "$PLATFORM" in
+  ios)
+    # iOS: .ipa is a zip, extract Payload/*.app/Frameworks/App.framework/App
+    ARTIFACT_PATH="build/ios/ipa/*.ipa"
+    if ! ls $ARTIFACT_PATH 1> /dev/null 2>&1; then
+      echo "ERROR: IPA artifact not found at $ARTIFACT_PATH"
+      exit 1
+    fi
+    # Extract and check the App binary
+    TEMP_DIR=$(mktemp -d)
+    unzip -q "$ROOT_DIR"/build/ios/ipa/*.ipa -d "$TEMP_DIR"
+    APP_BINARY=$(find "$TEMP_DIR/Payload" -name "App" -type f | head -1)
+    MATCHES=$(strings "$APP_BINARY" | grep -c "$PROD_CONFIG_PATTERN" || true)
+    rm -rf "$TEMP_DIR"
+    if [[ "$MATCHES" -gt 0 ]]; then
+      echo "✅ PASS: Production Supabase config found ($MATCHES occurrences)"
+    else
+      echo "❌ FAIL: Production Supabase config NOT found"
+      echo "   Expected pattern: $PROD_CONFIG_PATTERN"
+      echo "   Artifact: $ARTIFACT_PATH"
+      exit 1
+    fi
+    ;;
+
+  android-aab)
+    ARTIFACT_PATH="build/app/outputs/bundle/release/app-release.aab"
+    if [[ ! -f "$ARTIFACT_PATH" ]]; then
+      echo "ERROR: AAB artifact not found at $ARTIFACT_PATH"
+      exit 1
+    fi
+    # AAB: unzip and check base/lib/arm64-v8a/libapp.so
+    TMP_SO=$(mktemp)
+    unzip -p "$ARTIFACT_PATH" 'base/lib/arm64-v8a/libapp.so' > "$TMP_SO"
+    MATCHES=$(strings "$TMP_SO" | grep -c "$PROD_CONFIG_PATTERN" || true)
+    rm -f "$TMP_SO"
+    if [[ "$MATCHES" -gt 0 ]]; then
+      echo "✅ PASS: Production Supabase config found ($MATCHES occurrences)"
+    else
+      echo "❌ FAIL: Production Supabase config NOT found"
+      echo "   Expected pattern: $PROD_CONFIG_PATTERN"
+      echo "   Artifact: $ARTIFACT_PATH"
+      exit 1
+    fi
+    ;;
+
+  android-apk)
+    ARTIFACT_PATH="build/app/outputs/flutter-apk/app-release.apk"
+    if [[ ! -f "$ARTIFACT_PATH" ]]; then
+      echo "ERROR: APK artifact not found at $ARTIFACT_PATH"
+      exit 1
+    fi
+    # APK: unzip and check lib/arm64-v8a/libapp.so
+    TMP_SO=$(mktemp)
+    unzip -p "$ARTIFACT_PATH" 'lib/arm64-v8a/libapp.so' > "$TMP_SO"
+    MATCHES=$(strings "$TMP_SO" | grep -c "$PROD_CONFIG_PATTERN" || true)
+    rm -f "$TMP_SO"
+    if [[ "$MATCHES" -gt 0 ]]; then
+      echo "✅ PASS: Production Supabase config found ($MATCHES occurrences)"
+    else
+      echo "❌ FAIL: Production Supabase config NOT found"
+      echo "   Expected pattern: $PROD_CONFIG_PATTERN"
+      echo "   Artifact: $ARTIFACT_PATH"
+      exit 1
+    fi
+    ;;
+esac
+
+echo ""
