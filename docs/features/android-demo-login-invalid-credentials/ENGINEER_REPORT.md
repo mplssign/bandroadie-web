@@ -1,12 +1,15 @@
 # Engineer Report
 
 ## Feature Slug
+
 `bug/android-demo-login-invalid-credentials`
 
 ## Feature Title
+
 Android Demo Login Invalid Credentials Fix
 
 ## Goal
+
 Fix the demo login feature on Android by ensuring the DEMO_PASSWORD dart-define is passed to the Flutter compiler during the build process, matching the pattern used in the iOS build script.
 
 ## Architect Tasks Completed
@@ -16,29 +19,36 @@ Fix the demo login feature on Android by ensuring the DEMO_PASSWORD dart-define 
 - [x] **Task 3** — Update Build Script: Add DEMO_PASSWORD Validation
 - [x] **Task 4** — Update Build Script: Add DEMO_PASSWORD to BUILD_ARGS
 - [x] **Task 5** — Update Build Script: Add DEMO_PASSWORD Artifact Verification
-- [~] **Task 6** — Build and Verify Android AAB — **IN PROGRESS (BLOCKER)**
-- [ ] **Task 7** — Manual Artifact Inspection — **BLOCKED by Task 6**
-- [~] **Task 8** — Update ENGINEER_REPORT.md — **COMPLETE (this file)**
+- [x] **Task 5.1** — Fix Verification Bug: Correct DEMO_PASSWORD Quoting
+- [x] **Task 5.2** — Version Bump: 1.3.28+205 → 1.3.29+206
+- [x] **Task 6** — Build and Verify Android AAB — **COMPLETE**
+- [x] **Task 7** — Manual Artifact Inspection — **COMPLETE**
+- [x] **Task 8** — Update ENGINEER_REPORT.md — **COMPLETE (this file)**
 
 ## Files Created
+
 - `docs/features/android-demo-login-invalid-credentials/ENGINEER_REPORT.md`
 
 ## Files Modified
+
 - `tools/build_mobile_release.sh`
 
 ## Detailed Changes to build_mobile_release.sh
 
 ### Change 1: Added DEMO_PASSWORD Validation (Lines 96-99)
+
 ```bash
 if [[ -z "${DEMO_PASSWORD:-}" ]]; then
   echo "ERROR: DEMO_PASSWORD missing in .env"
   exit 1
 fi
 ```
+
 **Location:** After SUPABASE_ANON_KEY validation block (line 95)  
 **Purpose:** Fail-fast if DEMO_PASSWORD is not set in `.env` before build starts
 
 ### Change 2: Added DEMO_PASSWORD to BUILD_ARGS (Line 105)
+
 ```bash
 BUILD_ARGS=(
   "--release"
@@ -48,9 +58,11 @@ BUILD_ARGS=(
   "--dart-define=DEMO_PASSWORD=${DEMO_PASSWORD}"
 )
 ```
+
 **Purpose:** Pass DEMO_PASSWORD as a dart-define to the Flutter compiler, matching the iOS build script pattern
 
 ### Change 3: Added DEMO_PASSWORD Artifact Verification (android-aab case)
+
 ```bash
 # Verify DEMO_PASSWORD is compiled in (defense against empty/missing password)
 PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -c '${DEMO_PASSWORD}' || true)
@@ -64,8 +76,53 @@ else
   exit 1
 fi
 ```
+
 **Location:** android-aab case, after production Supabase config verification  
 **Purpose:** Defense-in-depth verification that the password string is present in the compiled binary
+
+### Change 4: Fixed Verification Bug in Line 201 (Commit a6802a7)
+
+**Problem:** During Implementation Gate review, discovered that the verification logic at line 201 used **single quotes** around `${DEMO_PASSWORD}`, preventing shell variable expansion:
+
+```bash
+# BROKEN (single quotes prevent expansion)
+PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -c '${DEMO_PASSWORD}' || true)
+```
+
+This caused `grep` to search for the **literal string** `"${DEMO_PASSWORD}"` instead of the actual password value, resulting in verification always failing even when the password was correctly compiled into the artifact.
+
+**Fix (Commit a6802a7):**
+
+```bash
+# FIXED (double quotes allow expansion, -F treats as fixed string)
+PASSWORD_MATCHES=$(strings "$TMP_SO" | grep -cF -- "${DEMO_PASSWORD}" || true)
+```
+
+**Changes:**
+- Changed single quotes `'${DEMO_PASSWORD}'` to double quotes `"${DEMO_PASSWORD}"` to allow variable expansion
+- Added `-F` flag to treat pattern as **fixed string** (literal match, safe for special characters in password)
+- Added `--` to prevent `-` characters in password from being interpreted as flags
+
+**Root Cause:** Shell quoting error — single quotes prevent variable expansion in all POSIX shells.
+
+### Change 5: Version Bump (Commit b0b7255)
+
+**Purpose:** Increment version for Play Console submission (previous build 1.3.28+205 would be rejected).
+
+**File:** `pubspec.yaml` line 5
+
+**Change:**
+```yaml
+# Before
+version: 1.3.28+205
+
+# After
+version: 1.3.29+206
+```
+
+**Format:**
+- `1.3.29` = versionName (semantic version shown to users)
+- `206` = versionCode (monotonically increasing integer for Play Store)
 
 ## Git Diff Summary
 
@@ -84,7 +141,7 @@ index abc1234..def5678 100755
 @@ -92,6 +92,11 @@ if [[ -z "${SUPABASE_ANON_KEY:-}" ]]; then
    exit 1
  fi
- 
+
 +if [[ -z "${DEMO_PASSWORD:-}" ]]; then
 +  echo "ERROR: DEMO_PASSWORD missing in .env"
 +  exit 1
@@ -97,7 +154,7 @@ index abc1234..def5678 100755
    "--dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}"
 +  "--dart-define=DEMO_PASSWORD=${DEMO_PASSWORD}"
  )
- 
+
 @@ -175,12 +180,22 @@ case "$PLATFORM" in
      TMP_SO=$(mktemp)
      unzip -p "$ARTIFACT_PATH" 'base/lib/arm64-v8a/libapp.so' > "$TMP_SO"
@@ -134,13 +191,16 @@ index abc1234..def5678 100755
 ### Pre-Build Verification
 
 **.env File Check:**
+
 ```bash
 $ grep "^DEMO_PASSWORD=" .env
 DEMO_PASSWORD=BandRoadie-Demo-2026!
 ```
+
 ✅ DEMO_PASSWORD is correctly set in `.env`
 
 **Build Script Changes Verified:**
+
 ```bash
 $ grep -A3 "DEMO_PASSWORD" tools/build_mobile_release.sh | head -20
 if [[ -z "${DEMO_PASSWORD:-}" ]]; then
@@ -164,22 +224,25 @@ if [[ -n "$FLAVOR" ]]; then
       echo "   This usually means the --dart-define was not passed correctly."
       echo "   Demo login will fail with 'Invalid login credentials'."
 ```
+
 ✅ All three changes are present in the build script
 
-### Build Execution (Task 6) — IN PROGRESS
+### Build Execution (Task 6) — COMPLETE
 
-**Build Command Initiated:**
+**Build Command:**
+
 ```bash
 $ ./tools/build_mobile_release.sh android-aab
 ```
 
-**Build Log (Partial):**
+**Build Log (Summary):**
+
 ```
 Cleaning build environment...
 Xcode is fetching Swift Package Manager dependencies. This may take several minutes...
-Cleaning Xcode workspace...                                       145.8s
+Cleaning Xcode workspace...                                       205.1s
 Xcode is fetching Swift Package Manager dependencies. This may take several minutes...
-Cleaning Xcode workspace...                                        71.8s
+Cleaning Xcode workspace...                                        64.2s
 Deleting build...                                                   7.0s
 Deleting .dart_tool...                                               6ms
 Deleting ephemeral...                                                1ms
@@ -190,43 +253,121 @@ Deleting ephemeral...                                                1ms
 Deleting ephemeral...                                                1ms
 Deleting .flutter-plugins-dependencies...                            0ms
 
-Resolving dependencies... 
+Resolving dependencies...
 Downloading packages...
 Got dependencies!
 86 packages have newer versions incompatible with dependency constraints.
 
-Running Gradle task 'bundleRelease'...                                 [STILL RUNNING]
+Running Gradle task 'bundleRelease'...                            43.2s
+✓ Built build/app/outputs/bundle/release/app-release.aab (97.0MB)
+
+Extracting libapp.so from AAB for verification...
+✅ PASS: Production Supabase config found (6 occurrences)
+✅ PASS: DEMO_PASSWORD found in artifact (1 occurrences)
+
+Build complete: build/app/outputs/bundle/release/app-release.aab
 ```
 
-**Status:** The Gradle `bundleRelease` task has been running for approximately 10+ minutes without completing. This is **longer than typical** for a clean build but **can occur** on slow machines or with network issues during the first build after `flutter clean`.
+**Build Warnings (Non-Blocking):**
 
-### BLOCKER Details
+- Kotlin 2.1.0 is deprecated, migration to 2.2.20+ recommended (Gradle 8.14)
+- 86 packages have newer versions (constrained by dependency resolution)
+- Font tree-shaking reduced MaterialIcons by 99.6%, lucide by 97.6%
 
-**Issue:** The Android AAB build (Task 6) is taking significantly longer than expected. The Gradle task `bundleRelease` has been running for over 10 minutes without visible progress.
+**Build Time:**
+- Total: ~320s (~5.3 minutes)
+- Gradle bundleRelease: 43.2s
+- Clean operations (Xcode, build, dart_tool): ~277s
 
-**Possible Causes:**
-1. **Legitimate long build time:** First clean build after `flutter clean` can take 10-15 minutes on slower machines
-2. **Network issues:** Gradle may be downloading dependencies slowly
-3. **Machine resource constraints:** Low memory or CPU contention
-4. **Gradle daemon hung:** Rare but possible
+**Artifact Created:**
+- Path: `build/app/outputs/bundle/release/app-release.aab`
+- Size: 97.0 MB (97,041,779 bytes)
+- Modified: Jul 6 08:35:11 2026
 
-**Recommended Actions:**
-1. **Wait:** Allow up to 15-20 minutes total for the build to complete (Gradle can be legitimately slow)
-2. **Cancel if needed:** If build doesn't progress after 20 minutes total, cancel with Ctrl+C and investigate
-3. **Investigate:** Check Gradle logs in `android/.gradle/` or run with `--verbose` flag
-4. **Retry:** After canceling, try `./gradlew clean` in `android/` directory, then rebuild
+**Automated Verification Results:**
 
-**What IS Verified:**
-- ✅ Build script changes are syntactically correct
-- ✅ DEMO_PASSWORD validation triggered (no error = validation passed)
-- ✅ SUPABASE_URL and SUPABASE_ANON_KEY validation passed
-- ✅ Flutter dependencies resolved successfully
-- ✅ Gradle task initiated without immediate errors
+✅ **Production Supabase Config:** 6 occurrences found in binary  
+✅ **DEMO_PASSWORD:** 1 occurrence found in binary
 
-**What CANNOT Be Verified Until Build Completes:**
-- Production Supabase config verification (post-build check)
-- DEMO_PASSWORD artifact verification (post-build check)
-- Manual artifact inspection (Task 7)
+Both verification checks passed, indicating:
+1. Production environment configuration is compiled in (not dev/staging)
+2. DEMO_PASSWORD was successfully passed via `--dart-define` and compiled into the artifact
+
+### Manual Artifact Inspection (Task 7) — COMPLETE
+
+**Verification Method:** Binary strings analysis using `strings` utility + grep
+
+**Steps Performed:**
+
+```bash
+# Extract binary from AAB
+cd /tmp && rm -rf aab_verify && mkdir aab_verify && cd aab_verify
+unzip -q /Users/tonyholmes/apps/bandroadie/build/app/outputs/bundle/release/app-release.aab base/lib/arm64-v8a/libapp.so
+
+# Extract all strings from binary
+strings base/lib/arm64-v8a/libapp.so > strings_output.txt
+
+# Count occurrences of demo credentials
+grep -cF 'hello@bandroadie.com' strings_output.txt
+# Output: 4
+
+grep -cF -- 'BandRoadie-Demo-2026!' strings_output.txt
+# Output: 1
+```
+
+**Results:**
+
+| Credential | Expected | Found | Status |
+|------------|----------|-------|--------|
+| `hello@bandroadie.com` | ≥1 | **4** | ✅ PASS |
+| `BandRoadie-Demo-2026!` | ≥1 | **1** | ✅ PASS |
+
+**Version Verification:**
+
+```bash
+# Extract manifest
+unzip -o /Users/tonyholmes/apps/bandroadie/build/app/outputs/bundle/release/app-release.aab base/manifest/AndroidManifest.xml
+
+# Search for version strings in binary manifest
+strings base/manifest/AndroidManifest.xml | grep -E '(1\.3\.29|206)'
+# Output:
+# 206"
+# 1.3.29(
+```
+
+**Confirmed:**
+- ✅ versionCode: **206**
+- ✅ versionName: **1.3.29**
+
+**Source Verification:**
+
+```bash
+$ grep '^version:' pubspec.yaml
+version: 1.3.29+206
+```
+
+✅ Matches pubspec.yaml specification
+
+**Artifact Integrity:**
+
+```bash
+$ shasum -a 256 build/app/outputs/bundle/release/app-release.aab
+69432ab63ac45028471dac4eace4ba61328ee0cf6677fafd224d4952a2646b65
+
+$ stat -f "Size: %z bytes, Modified: %Sm" build/app/outputs/bundle/release/app-release.aab
+Size: 97041779 bytes, Modified: Jul  6 08:35:11 2026
+```
+
+**Summary:**
+
+✅ All verification checks passed:
+- Production Supabase configuration present in binary
+- Demo email address (`hello@bandroadie.com`) present with 4 occurrences
+- Demo password (`BandRoadie-Demo-2026!`) present with 1 occurrence
+- Version correctly set to 1.3.29 (versionName) / 206 (versionCode)
+- AAB artifact is 97.0 MB, generated Jul 6 2026 08:35:11
+
+The artifact is ready for Play Console upload.
 
 ## Analyzer Results
 
@@ -254,6 +395,7 @@ As specified in the user's instructions, Tasks 1 and 2 require manual Supabase d
 **What Needs Verification (Tony):**
 
 ### Task 1: Confirm Demo Account Credentials
+
 - Log into Supabase dashboard: https://supabase.com/dashboard/project/nekwjxvgbveheooyorjo
 - Navigate to: Authentication → Users
 - Search for: `hello@bandroadie.com`
@@ -262,14 +404,17 @@ As specified in the user's instructions, Tasks 1 and 2 require manual Supabase d
 - Verify: Password is set to `BandRoadie-Demo-2026!`
 
 **SQL Alternative:**
+
 ```sql
 SELECT email, encrypted_password IS NOT NULL as has_password
 FROM auth.users
 WHERE email = 'hello@bandroadie.com';
 ```
+
 **Expected:** `has_password = true`
 
 ### Task 2: Confirm Demo Band Membership
+
 - Navigate to: Table Editor → `band_members`
 - Filter: `user_id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925'`
 - Verify: User is member of band `e89bea44-8dd4-4e3d-b527-c0f75e94aa7d` ("The Banana Stand")
@@ -277,57 +422,74 @@ WHERE email = 'hello@bandroadie.com';
 - Verify: User is in ONLY this band (count = 1 row)
 
 **SQL Alternative:**
+
 ```sql
 SELECT b.id, b.name, bm.role
 FROM band_members bm
 JOIN bands b ON b.id = bm.band_id
 WHERE bm.user_id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925';
 ```
+
 **Expected:** 1 row, band name = "The Banana Stand", role = `admin` or `member`
 
 **Note:** The Architect plan incorrectly listed `leader` as a possible role. The correct roles from the schema are: `admin`, `member`, `contributor`.
 
 ## Deviations From Architect Plan
 
-**None** for Tasks 3-5 (implemented exactly as specified).
+**Tasks 5.1-5.2 Added:**
 
-**Task 6 Incomplete:** Build initiated but not yet finished. This is a TIME/RESOURCE constraint, not a deviation from the plan.
+- **Task 5.1:** Fixed verification bug discovered during Implementation Gate review (quoting error at line 201)
+- **Task 5.2:** Version bump required for Play Console submission (1.3.28+205 → 1.3.29+206)
 
-## Blockers Encountered
-
-### BLOCKER 1: Gradle Build Time
-
-**Severity:** **HIGH** (blocks Tasks 7-8 completion)  
-**Description:** The Gradle `bundleRelease` task is taking longer than expected (10+ minutes without completion).  
-**Impact:** Cannot verify artifact contents (Task 7) until build completes.  
-**Workaround:** Wait for build to complete, or cancel and investigate.  
-**Action Required:** Tony should either wait for the build to finish or manually investigate Gradle performance.
+Both were necessary corrections identified after the original Architect plan was created.
 
 ## Ready For QA
 
-**No** — Build must complete first.
+**Yes** — All implementation tasks complete, artifact verified and ready for device testing.
 
-Once build completes successfully:
-1. ✅ Verify DEMO_PASSWORD is in artifact (manual `strings` inspection — Task 7)
-2. ✅ Run `flutter analyze` (sanity check)
-3. ✅ Update this report with build completion details
-4. ✅ Commit changes: `tools/build_mobile_release.sh` + this report
-5. ✅ Hand off to QA for device testing
+**QA Checklist:**
 
-**Current Status:** **BLOCKED** on Task 6 (build in progress).
+1. ✅ Demo login credentials compiled into artifact (verified via strings analysis)
+2. ✅ Production Supabase config present (verified in binary)
+3. ✅ Version set to 1.3.29+206 (verified in manifest)
+4. ✅ AAB artifact integrity confirmed (SHA-256: 69432ab63ac45028471dac4eace4ba61328ee0cf6677fafd224d4952a2646b65)
+5. ⏳ **Device Testing Required:** Install AAB on physical Android device, verify demo login succeeds
+
+**Artifact Location:**
+```
+build/app/outputs/bundle/release/app-release.aab
+97.0 MB, Jul 6 08:35:11 2026
+```
+
+**Test Credentials:**
+- Email: `hello@bandroadie.com`
+- Password: `BandRoadie-Demo-2026!`
+
+**Expected Behavior:**
+- Demo login button should successfully authenticate
+- User should be redirected to "The Banana Stand" band dashboard
+- No "Invalid login credentials" error
+
+**If QA Fails:**
+- Re-verify `.env` contains correct DEMO_PASSWORD
+- Re-run build script to ensure clean build
+- Check device logs for Supabase auth errors
 
 ---
 
-## Next Steps for Tony
+## Next Steps (Post-QA)
 
-1. **Monitor the build:** Check if `./tools/build_mobile_release.sh android-aab` completes in the next 5-10 minutes
-2. **If build hangs:** Cancel with Ctrl+C, run `cd android && ./gradlew clean`, then retry build
-3. **If build succeeds:**
-   - Complete Task 7: Manual artifact inspection
-   - Run `flutter analyze`
-   - Update sections 7-8 of this report with results
-   - Commit: `git add tools/build_mobile_release.sh docs/features/android-demo-login-invalid-credentials/`
-   - Commit message (from Architect plan Task 9):
+After QA approval:
+
+1. Push to remote: `git push origin bug/android-demo-login-invalid-credentials`
+2. Create PR against `main` branch
+3. Upload AAB to Play Console (Internal Testing track)
+4. Verify Play Console acceptance (version 206 must be > previous version 205)
+
+**DO NOT PUSH** until Release Gate approval.
+
+---
+
      ```
      fix(build): pass DEMO_PASSWORD to Android builds + verify in artifact
 
@@ -347,6 +509,7 @@ Once build completes successfully:
 
      Fixes bug/android-demo-login-invalid-credentials
      ```
+
    - **DO NOT PUSH** — push is authorized only after QA approval
 
 ---
@@ -354,4 +517,8 @@ Once build completes successfully:
 **Engineer:** AI Agent  
 **Date:** 2026-07-06  
 **Branch:** `bug/android-demo-login-invalid-credentials`  
-**Commit Status:** Not yet committed (changes staged, awaiting build completion)
+**Commits:**
+- `f66d3b2` — Initial implementation (validation + BUILD_ARGS + verification)
+- `a6802a7` — fix(build): correct DEMO_PASSWORD verification quoting
+- `b0b7255` — chore: bump version to 1.3.29+206
+- `[pending]` — docs: complete ENGINEER_REPORT with build + artifact verification evidence
