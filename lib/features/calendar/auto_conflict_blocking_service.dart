@@ -118,6 +118,108 @@ class AutoConflictBlockingService {
       debugPrint('[AutoConflictBlockingService] Auto-block error: $e');
     }
   }
+
+  /// Automatically block multiple dates on other bands when recurring events are created
+  ///
+  /// [userId] - The user who is confirming the event
+  /// [eventBandId] - The band where the event is being created
+  /// [eventDates] - List of event dates to block
+  /// [eventStartTime] - The start time of the event (for rehearsals)
+  /// [eventEndTime] - The end time of the event (for rehearsals, optional)
+  /// [eventName] - The name of the event (for display in block-out reason)
+  /// [bandName] - The name of the band (for display in block-out reason)
+  Future<void> autoBlockConflictingDates({
+    required String userId,
+    required String eventBandId,
+    required List<DateTime> eventDates,
+    DateTime? eventStartTime,
+    DateTime? eventEndTime,
+    required String eventName,
+    required String bandName,
+  }) async {
+    debugPrint(
+      '[AutoConflictBlockingService] Auto-blocking ${eventDates.length} date(s) for user: $userId, event: $eventName',
+    );
+
+    try {
+      // Check if user has auto-conflict blocking enabled
+      final prefs = await _prefsRepository.getPreferences();
+
+      if (!prefs.oneCalendarEnabled || !prefs.autoBlockConflictsEnabled) {
+        debugPrint(
+          '[AutoConflictBlockingService] Auto-block disabled, skipping',
+        );
+        return;
+      }
+
+      // Fetch user's bands from database
+      final bandsResponse = await supabase
+          .from('band_members')
+          .select('band_id')
+          .eq('user_id', userId);
+
+      final userBandIds = (bandsResponse as List)
+          .map((row) => row['band_id'] as String)
+          .toList();
+
+      // Get band IDs where block-out should be propagated
+      final bandIds = await _prefsRepository.getBandIdsToApplyBlockOut(
+        userBandIds,
+      );
+
+      // Remove the event band (user is already busy in that band)
+      final otherBandIds = bandIds.where((id) => id != eventBandId).toList();
+
+      if (otherBandIds.isEmpty) {
+        debugPrint(
+          '[AutoConflictBlockingService] No other bands to block, skipping',
+        );
+        return;
+      }
+
+      // Generate block-out reason
+      final reason = 'Unavailable (scheduled with $bandName)';
+
+      // Loop through all dates
+      for (final eventDate in eventDates) {
+        // Use only the date (not time) for block-out
+        final blockOutDate = DateTime(
+          eventDate.year,
+          eventDate.month,
+          eventDate.day,
+        );
+
+        // Loop through all other bands
+        for (final bandId in otherBandIds) {
+          try {
+            await _blockOutRepository.createBlockOut(
+              bandId: bandId,
+              userId: userId,
+              startDate: blockOutDate,
+              untilDate: null, // Single day
+              reason: reason,
+            );
+            debugPrint(
+              '[AutoConflictBlockingService] Auto-blocked date $blockOutDate for band: $bandId',
+            );
+          } catch (e) {
+            // Skip duplicates or errors for individual bands
+            // (user may have already manually blocked the date)
+            debugPrint(
+              '[AutoConflictBlockingService] Failed to auto-block for band $bandId date $blockOutDate: $e',
+            );
+          }
+        }
+      }
+
+      debugPrint(
+        '[AutoConflictBlockingService] Auto-block complete: ${eventDates.length} date(s) × ${otherBandIds.length} bands',
+      );
+    } catch (e) {
+      // Do not fail the primary operation if auto-blocking fails
+      debugPrint('[AutoConflictBlockingService] Auto-block error: $e');
+    }
+  }
 }
 
 // ============================================================================

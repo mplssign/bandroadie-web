@@ -158,10 +158,10 @@ class EventsRepository {
                 .single();
             final bandName = bandResponse['name'] as String;
 
-            await _autoConflictBlockingService.autoBlockConflictingDate(
+            await _autoConflictBlockingService.autoBlockConflictingDates(
               userId: userId,
               eventBandId: bandId,
-              eventDate: firstRehearsal.date,
+              eventDates: dates,
               eventStartTime: null,
               eventEndTime: null,
               eventName: 'Rehearsal',
@@ -641,10 +641,16 @@ class EventsRepository {
             .single();
         final bandName = bandResponse['name'] as String;
 
-        await _autoConflictBlockingService.autoBlockConflictingDate(
+        // Build date list: main date + additional dates
+        final allDates = [
+          formData.date,
+          ...formData.additionalDates.map((e) => e.date),
+        ];
+
+        await _autoConflictBlockingService.autoBlockConflictingDates(
           userId: userId,
           eventBandId: bandId,
-          eventDate: formData.date,
+          eventDates: allDates,
           eventStartTime: null,
           eventEndTime: null,
           eventName: formData.name ?? formData.displayName,
