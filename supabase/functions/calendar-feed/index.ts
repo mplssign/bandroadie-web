@@ -441,6 +441,7 @@ interface GigEvent {
     end_time: string | null;
     band_name: string;
     notes: string | null;
+    isPotential?: boolean;
 }
 
 interface RehearsalEvent {
@@ -456,6 +457,7 @@ interface RehearsalEvent {
     recurrence_days?: number[] | null;     // 0=Sun..6=Sat
     recurrence_until?: string | null;      // YYYY-MM-DD
     parent_rehearsal_id?: string | null;
+    isPotential?: boolean;
 }
 
 interface BlockOutEvent {
@@ -690,6 +692,7 @@ Deno.serve(async (req) => {
             end_time: g.end_time,
             band_name: (g.bands as any)?.name || 'Band',
             notes: g.notes,
+            isPotential: false,
         }));
 
         const rehearsalEvents: RehearsalEvent[] = (rehearsals || []).map(r => ({
@@ -705,6 +708,7 @@ Deno.serve(async (req) => {
             recurrence_days: (r as any).recurrence_days ?? null,
             recurrence_until: (r as any).recurrence_until ?? null,
             parent_rehearsal_id: (r as any).parent_rehearsal_id ?? null,
+            isPotential: false,
         }));
 
         const blockOutEvents: BlockOutEvent[] = (blockOuts || []).map(b => ({
@@ -735,6 +739,7 @@ Deno.serve(async (req) => {
                 end_time: g.end_time,
                 band_name: (g.bands as any)?.name || 'Band',
                 notes: g.notes,
+                isPotential: true,
             }));
         }
 
@@ -828,6 +833,7 @@ function generateCalendar(
         'PRODID:-//BandRoadie//Calendar//EN',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
+        'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
         `X-WR-CALNAME:${escapeIcsText(calendarName)}`,
         `X-WR-TIMEZONE:${timezone}`,
     ];
@@ -880,7 +886,7 @@ function generateCalendar(
         }
         lines.push(foldLine(`DESCRIPTION:${escapeIcsText(description)}`));
         lines.push('CATEGORIES:GIG');
-        lines.push('STATUS:CONFIRMED');
+        lines.push(`STATUS:${gig.isPotential ? 'TENTATIVE' : 'CONFIRMED'}`);
         lines.push('END:VEVENT');
     }
 
@@ -964,7 +970,7 @@ function generateCalendar(
         }
         lines.push(foldLine(`DESCRIPTION:${escapeIcsText(description)}`));
         lines.push('CATEGORIES:REHEARSAL');
-        lines.push('STATUS:CONFIRMED');
+        lines.push(`STATUS:${rehearsal.isPotential ? 'TENTATIVE' : 'CONFIRMED'}`);
         lines.push('END:VEVENT');
     }
 
