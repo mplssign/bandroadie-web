@@ -370,6 +370,7 @@ One Calendar was designed and QA'd using code-path analysis, not runtime testing
 **Database Verification:**
 
 **Query 1: Auto-conflict blocks in Tony's account**
+
 ```
 Total auto-conflict blocks (reason contains "Unavailable (scheduled with"): 4
 All created: 2026-07-07 09:03-09:04 AM
@@ -378,6 +379,7 @@ All for: Open Mic events blocking Toxic Crayon and The Second Summer
 
 **Query 2: Gig auto-conflict-blocking test**
 Sample of 5 recent gigs:
+
 - July 9 "The Little Owl Social Pub" (Open Mic, created July 7) → **NO blocks in other bands** ❌
 - July 9 "Gravity Studios hold" (The Second Summer, created May 15) → **NO blocks** ❌
 - July 8 gig (The Second Summer, created May 6) → **HAS block in Toxic Crayon** ✅ (but created July 7, 2 months later!)
@@ -385,6 +387,7 @@ Sample of 5 recent gigs:
 
 **Query 3: Rehearsal auto-conflict-blocking test**
 Sample of 5 recent rehearsals:
+
 - July 12 rehearsal (Toxic Crayon, created June 25) → **NO blocks** ❌
 - July 8 rehearsal (Open Mic, created July 7) → **HAS blocks in both other bands** ✅ (created within 1 second)
 - July 7 rehearsal (Toxic Crayon, created June 25) → **HAS block in The Second Summer** ✅ (created July 7, 12 days later!)
@@ -395,17 +398,20 @@ Sample of 5 recent rehearsals:
 The 4 auto-conflict blocks that exist correspond to **ONE rehearsal** (July 8, created July 7 at 9:03:20 AM). The blocks were created at 9:03:21 (within 1 second). This proves auto-conflict-blocking **works for rehearsals**.
 
 However:
+
 - **Gigs created after July 7 have NO auto-conflict blocks** (e.g., July 9 "The Little Owl Social Pub" gig)
 - Some blocks dated July 7-8 were created on July 7 but correspond to **events created in May/June** — these were likely manually backfilled or created via a different mechanism
 
 **Root Cause:**
 
 Auto-conflict-blocking is **BROKEN for gigs**. Code inspection shows:
+
 - File: `lib/features/events/events_repository.dart` line ~650 — calls `autoBlockConflictingDates()` after gig creation
 - File: `lib/features/calendar/auto_conflict_blocking_service.dart` — service implementation is correct
 - **But gigs are NOT triggering auto-conflict blocks in production**
 
 Possible causes:
+
 1. Gig creation uses a different code path (update? edit? import?) that bypasses auto-conflict-blocking
 2. Auto-conflict-blocking fails silently for gigs (try-catch swallows error, only logs to debugPrint)
 3. Some condition prevents auto-blocking for gigs but not rehearsals
@@ -418,16 +424,17 @@ Possible causes:
 
 **Query: Events created before One Calendar feature (2026-06-26)**
 
-| Category | Count |
-|----------|-------|
-| Gigs created before 2026-06-26 | 21 |
-| Rehearsals created before 2026-06-26 | 41 |
-| Manual block-outs created before 2026-06-26 | 155 |
-| **Total events without cross-band blocks** | **62** (21 gigs + 41 rehearsals) |
+| Category                                    | Count                            |
+| ------------------------------------------- | -------------------------------- |
+| Gigs created before 2026-06-26              | 21                               |
+| Rehearsals created before 2026-06-26        | 41                               |
+| Manual block-outs created before 2026-06-26 | 155                              |
+| **Total events without cross-band blocks**  | **62** (21 gigs + 41 rehearsals) |
 
 **Analysis:**
 
 One Calendar was deployed 2026-06-26 with propagation-on-create logic. Any event created **before** that date has:
+
 - ✅ A row in `gigs` or `rehearsals` or `block_dates` for the original band
 - ❌ NO corresponding `block_dates` rows in other bands
 
@@ -436,6 +443,7 @@ This is expected behavior — propagation only fires at creation time. There is 
 **Impact:**
 
 Tony has 62 historical events (21 gigs + 41 rehearsals) that will **never** appear as block-outs in his other bands' calendars unless:
+
 1. A one-time backfill job is run to populate missing `block_dates` rows
 2. Tony manually edits each event (triggering an update that may or may not re-run propagation)
 3. Tony manually creates duplicate block-outs for those dates
@@ -443,6 +451,7 @@ Tony has 62 historical events (21 gigs + 41 rehearsals) that will **never** appe
 **Design Question:**
 
 Should historical events be backfilled? This is a product decision:
+
 - **Option A: Backfill for all users** — Large blast radius, but ensures consistent experience
 - **Option B: Backfill for Tony only** — Test in production with real data before wider rollout
 - **Option C: No backfill** — Historical events remain per-band; only new events propagate
@@ -451,6 +460,7 @@ Should historical events be backfilled? This is a product decision:
 **Backfill Design (dry-run required before any writes):**
 
 A backfill job would need to:
+
 1. Query all users with `one_calendar_enabled = true`
 2. For each user, fetch all `gigs` and `rehearsals` in bands they belong to
 3. For each event, check if corresponding `block_dates` rows exist in other bands
@@ -679,12 +689,14 @@ Tony's expectation doesn't match the product design. The One Calendar feature al
 **Issue 1 (Cache Invalidation):** Ready for implementation. Low risk, clear fix.
 
 **Issue 2 (Auto-Conflict-Blocking for Gigs):** Requires runtime debugging with production data. Cannot proceed with Engineer tasks until root cause is identified. Recommend:
+
 1. Add temporary debug logging to gig creation path
 2. Create a test gig in production (Tony's account)
 3. Check Supabase logs / Flutter console for error messages
 4. Verify whether `autoBlockConflictingDates()` is being called for gigs
 
 **Issue 3 (Historical Gap):** Requires **Tony's decision on scope** before implementation:
+
 - Backfill only Tony's account? (safe, test in prod)
 - Backfill all users? (high impact, requires dry-run first)
 - No backfill, document as expected behavior? (simplest)
@@ -705,6 +717,7 @@ Tony's expectation doesn't match the product design. The One Calendar feature al
 **Issue 2:** None (fix will use existing `block_dates` table)
 
 **Issue 3:** HIGH if backfill is run
+
 - Inserts potentially hundreds of rows to `block_dates` table
 - Requires dry-run to quantify exact impact per user
 - Must respect unique constraint `(user_id, band_id, date)` to avoid errors
@@ -714,19 +727,19 @@ Tony's expectation doesn't match the product design. The One Calendar feature al
 
 ## Files Investigated
 
-| File                                                                   | Purpose                        | Finding                                                                        |
-| ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
-| `supabase/migrations/20260626005216_add_user_calendar_preferences.sql` | One Calendar migration         | Defaults: `one_calendar_enabled = true`, `auto_block_conflicts_enabled = true` |
+| File                                                                   | Purpose                        | Finding                                                                                     |
+| ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
+| `supabase/migrations/20260626005216_add_user_calendar_preferences.sql` | One Calendar migration         | Defaults: `one_calendar_enabled = true`, `auto_block_conflicts_enabled = true`              |
 | `lib/features/events/widgets/event_editor_drawer.dart`                 | Manual block-out creation      | Propagation logic present at lines 1104-1127 ✅ Cache invalidation only for current band ❌ |
-| `lib/features/calendar/calendar_controller.dart`                       | Calendar state management      | `invalidateAndRefresh()` only clears cache for one band at lines 433-443      |
-| `lib/features/calendar/auto_conflict_blocking_service.dart`            | Auto-conflict blocking         | Service implementation is correct ✅ BUT gigs are not triggering it ❌          |
-| `lib/features/events/events_repository.dart`                           | Event creation                 | Calls `autoBlockConflictingDates()` for both gigs and rehearsals, needs investigation |
-| `lib/features/calendar/block_out_repository.dart`                      | Block-out data layer           | Per-band by design; supports cross-band writes via multiple inserts            |
-| `lib/features/calendar/one_calendar_settings_screen.dart`              | One Calendar settings UI       | Exists; only visible for users with 2+ bands                                   |
-| `lib/features/settings/settings_screen.dart`                           | Main settings menu             | "One Calendar" item conditionally visible                                      |
-| `lib/features/calendar/one_calendar_preferences_repository.dart`       | Preferences data layer         | `getBandIdsToApplyBlockOut()` implements propagation logic                     |
-| `docs/features/one-calendar-shared-blockout/ARCHITECT_PLAN.md`         | Original feature design        | Feature was intentionally designed to solve this exact problem                 |
-| `docs/features/one-calendar-manual-blackout/ARCHITECT_PLAN.md`         | Bug fix for manual propagation | Propagation was broken initially; fix is present in current code               |
+| `lib/features/calendar/calendar_controller.dart`                       | Calendar state management      | `invalidateAndRefresh()` only clears cache for one band at lines 433-443                    |
+| `lib/features/calendar/auto_conflict_blocking_service.dart`            | Auto-conflict blocking         | Service implementation is correct ✅ BUT gigs are not triggering it ❌                      |
+| `lib/features/events/events_repository.dart`                           | Event creation                 | Calls `autoBlockConflictingDates()` for both gigs and rehearsals, needs investigation       |
+| `lib/features/calendar/block_out_repository.dart`                      | Block-out data layer           | Per-band by design; supports cross-band writes via multiple inserts                         |
+| `lib/features/calendar/one_calendar_settings_screen.dart`              | One Calendar settings UI       | Exists; only visible for users with 2+ bands                                                |
+| `lib/features/settings/settings_screen.dart`                           | Main settings menu             | "One Calendar" item conditionally visible                                                   |
+| `lib/features/calendar/one_calendar_preferences_repository.dart`       | Preferences data layer         | `getBandIdsToApplyBlockOut()` implements propagation logic                                  |
+| `docs/features/one-calendar-shared-blockout/ARCHITECT_PLAN.md`         | Original feature design        | Feature was intentionally designed to solve this exact problem                              |
+| `docs/features/one-calendar-manual-blackout/ARCHITECT_PLAN.md`         | Bug fix for manual propagation | Propagation was broken initially; fix is present in current code                            |
 
 ---
 
@@ -885,7 +898,7 @@ WHERE tablename = 'block_dates';
 -- Read-only query to quantify backfill impact for Tony
 WITH tony_events AS (
   -- Tony's gigs in his bands
-  SELECT 
+  SELECT
     g.band_id,
     g.date as event_date,
     b.name as band_name,
@@ -893,15 +906,15 @@ WITH tony_events AS (
   FROM gigs g
   JOIN bands b ON b.id = g.band_id
   WHERE g.band_id IN (
-    SELECT band_id FROM band_members 
+    SELECT band_id FROM band_members
     WHERE user_id = '671b32e8-60eb-448a-8167-106bf835297f' AND status = 'active'
   )
   AND g.is_potential = false
-  
+
   UNION ALL
-  
+
   -- Tony's rehearsals
-  SELECT 
+  SELECT
     r.band_id,
     r.date,
     b.name,
@@ -909,7 +922,7 @@ WITH tony_events AS (
   FROM rehearsals r
   JOIN bands b ON b.id = r.band_id
   WHERE r.band_id IN (
-    SELECT band_id FROM band_members 
+    SELECT band_id FROM band_members
     WHERE user_id = '671b32e8-60eb-448a-8167-106bf835297f' AND status = 'active'
   )
   AND r.is_potential = false
@@ -922,7 +935,7 @@ tony_bands AS (
 ),
 missing_blocks AS (
   -- For each event, check which bands are missing corresponding block_dates
-  SELECT 
+  SELECT
     te.event_date,
     te.band_name as event_band,
     tb.band_name as target_band,
@@ -938,7 +951,7 @@ missing_blocks AS (
       AND bd.date = te.event_date
   )
 )
-SELECT 
+SELECT
   COUNT(*) as rows_to_insert,
   COUNT(DISTINCT event_date) as unique_dates,
   COUNT(DISTINCT target_band) as bands_affected
@@ -947,14 +960,15 @@ FROM missing_blocks;
 
 **Backfill Options:**
 
-| Option | Scope | Effort | Risk | Decision Required |
-|--------|-------|--------|------|-------------------|
-| **A: Backfill Tony only** | 1 user | LOW | LOW | Tony approves dry-run count |
-| **B: Backfill all users** | All users with `one_calendar_enabled=true` | MEDIUM | MEDIUM | Tony reviews aggregate dry-run, approves blast radius |
-| **C: No backfill** | None | NONE | NONE | Tony accepts historical events remain per-band |
-| **D: "Sync Calendar" button** | Per-user on-demand | HIGH | LOW | Product decision, requires UI design |
+| Option                        | Scope                                      | Effort | Risk   | Decision Required                                     |
+| ----------------------------- | ------------------------------------------ | ------ | ------ | ----------------------------------------------------- |
+| **A: Backfill Tony only**     | 1 user                                     | LOW    | LOW    | Tony approves dry-run count                           |
+| **B: Backfill all users**     | All users with `one_calendar_enabled=true` | MEDIUM | MEDIUM | Tony reviews aggregate dry-run, approves blast radius |
+| **C: No backfill**            | None                                       | NONE   | NONE   | Tony accepts historical events remain per-band        |
+| **D: "Sync Calendar" button** | Per-user on-demand                         | HIGH   | LOW    | Product decision, requires UI design                  |
 
 **If Tony chooses Option A or B, Engineer must:**
+
 1. Run dry-run SQL first, report row counts
 2. Get explicit approval from Tony with row counts visible
 3. Implement as idempotent script (can be re-run safely)
