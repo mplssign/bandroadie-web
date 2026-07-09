@@ -1,9 +1,9 @@
 # ARCHITECT PLAN — Cross-Band Block-Out Visibility
 
 **Feature Identifier:** `bug/cross-band-blockout-visibility`  
-**Type:** Bug (Diagnosis Required — Path Undetermined)  
+**Type:** Bug  
 **Date:** 2026-07-08  
-**Status:** **AWAITING DECISION**
+**Status:** **ROOT CAUSE CONFIRMED — Ready for Implementation**
 
 ---
 
@@ -34,6 +34,7 @@ Git state is clean. No uncommitted changes to block investigation.
 **Table: `block_dates`**
 
 Schema (from `lib/app/models/block_out.dart` header comment and repository code):
+
 ```sql
 id          UUID PRIMARY KEY
 user_id     UUID NOT NULL REFERENCES auth.users(id)
@@ -50,11 +51,13 @@ The `block_dates` table is **inherently band-scoped**. Each row is explicitly ti
 
 **Calendar Display Query:**  
 `lib/features/calendar/calendar_notifier.dart` queries block-out dates filtered by `band_id`:
+
 ```dart
 supabase.from('block_dates').select().eq('band_id', bandId).order('date');
 ```
 
 This means:
+
 - Block-out created in Band A writes to `block_dates` with `band_id = Band A ID`
 - Band B's calendar queries `block_dates` with `band_id = Band B ID`
 - **Without additional propagation logic, Band B will never see Band A's block-out**
@@ -72,6 +75,7 @@ A feature called "One Calendar" was designed, implemented, QA'd, and deployed on
 **Migration:** `supabase/migrations/20260626005216_add_user_calendar_preferences.sql`
 
 **Table: `user_calendar_preferences`**
+
 ```sql
 CREATE TABLE user_calendar_preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -101,6 +105,7 @@ CREATE TABLE user_calendar_preferences (
 
 **Settings UI Visibility:**  
 `lib/features/settings/settings_screen.dart` lines 59-71:
+
 ```dart
 final bandCount = ref.watch(activeBandProvider).userBands.length;
 if (bandCount >= 2) {
@@ -193,14 +198,236 @@ The `block_dates` table is **designed to be per-band by default**. Cross-band vi
 
 Tony's issue can be caused by one of the following:
 
-| Root Cause | Likelihood | Evidence |
-|-----------|------------|----------|
-| **RC-1: One Calendar is disabled** | HIGH | Default is TRUE, but Tony may have toggled it OFF in settings, or preferences row may not exist / RPC may have failed to create defaults |
-| **RC-2: Tony is unaware of One Calendar feature** | HIGH | Settings item is only visible for users with 2+ bands; Tony may not have discovered it or may not know it needs to be enabled |
-| **RC-3: Tony has only 1 band** | MEDIUM | If Tony has only 1 band, the settings item is hidden AND cross-band propagation is irrelevant (no other bands to propagate to) |
-| **RC-4: Browser cache serving old code** | MEDIUM | Tony just deployed web to production; PWA service worker may be serving cached pre-One-Calendar code; requires hard refresh |
-| **RC-5: Preferences RPC is broken** | LOW | Migration deployed 11 days ago; if RPC was broken, other users would have reported it; manual SQL verification needed |
-| **RC-6: Propagation logic has a regression** | LOW | Code inspection shows logic is present and correct; would require runtime debugging to confirm |
+| Root Cause                                        | Likelihood | Evidence                                                                                                                                 |
+| ------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **RC-1: One Calendar is disabled**                | HIGH       | Default is TRUE, but Tony may have toggled it OFF in settings, or preferences row may not exist / RPC may have failed to create defaults |
+| **RC-2: Tony is unaware of One Calendar feature** | HIGH       | Settings item is only visible for users with 2+ bands; Tony may not have discovered it or may not know it needs to be enabled            |
+| **RC-3: Tony has only 1 band**                    | MEDIUM     | If Tony has only 1 band, the settings item is hidden AND cross-band propagation is irrelevant (no other bands to propagate to)           |
+| **RC-4: Browser cache serving old code**          | MEDIUM     | Tony just deployed web to production; PWA service worker may be serving cached pre-One-Calendar code; requires hard refresh              |
+| **RC-5: Preferences RPC is broken**               | LOW        | Migration deployed 11 days ago; if RPC was broken, other users would have reported it; manual SQL verification needed                    |
+| **RC-6: Propagation logic has a regression**      | LOW        | Code inspection shows logic is present and correct; would require runtime debugging to confirm                                           |
+
+---
+
+### Phase 6 — Tier 1 Verification (COMPLETE) ✅
+
+**Tony confirmed via settings UI:**
+- ✅ One Calendar is **ON**
+- ✅ Mode is set to **"All bands"**
+- ✅ Auto-conflict blocking is **ON**
+- ✅ Tony has **3 active bands** ("Open Mic", "The Second Summer", "Toxic Crayon")
+
+**SQL Verification (user_id: `671b32e8-60eb-448a-8167-106bf835297f`):**
+
+```sql
+-- Preferences state (confirmed)
+one_calendar_enabled: true
+apply_to_mode: all_bands
+auto_block_conflicts_enabled: true
+created_at: 2026-06-26 21:55:31 (11 days ago — correct migration date)
+
+-- Band membership (confirmed)
+3 active bands:
+- "Open Mic" (6740246d-ba9b-493e-936d-ba733ce2101d)
+- "The Second Summer" (6d71a662-f1a4-4fb9-a611-9b2c8e7716d3)
+- "Toxic Crayon" (003be463-e63a-4ec5-b152-4f64c60afcbf)
+```
+
+**RC-1, RC-2, RC-3 ruled out.** Tier 1 checks passed. Moving to Tier 2.
+
+---
+
+### Phase 7 — Tier 2 Database Verification (COMPLETE) ✅
+
+**Reproduction Test:**  
+Tony created a block-out in an incognito window, then checked his regular (already-open) browser window showing a different band — the block-out did not appear.
+
+**Database Query Results:**
+
+**Test 1 — Recent block-out with "Test" reason (2026-10-01):**
+```
+Created: 2026-07-09 03:26:20 (all within 200ms)
+✅ Open Mic:         03:26:20.990461
+✅ The Second Summer: 03:26:20.935362  
+✅ Toxic Crayon:     03:26:20.822075
+```
+**Verdict:** Propagation **WORKED** — all 3 bands received the block-out.
+
+**Test 2 — Earlier block-out (2026-08-04):**
+```
+Created: 2026-07-09 03:25:23
+✅ Open Mic:         03:25:23.990926
+❌ The Second Summer: (pre-existing from 2026-05-24 22:41:30)
+✅ Toxic Crayon:     03:25:23.616281
+```
+**Verdict:** Propagation **PARTIAL** — skipped "The Second Summer" due to unique constraint violation (block-out for that date already existed from May 24th). This is **correct behavior** — propagation code has try-catch that gracefully skips duplicates.
+
+**RLS Policy Check:**
+```sql
+INSERT policy: is_band_member(band_id) AND (user_id = auth.uid())
+```
+This is correct. Tony is a member of all 3 bands, so cross-band writes are permitted.
+
+**Unique Constraint:**
+```sql
+UNIQUE (user_id, band_id, date)
+```
+Prevents duplicate block-outs for the same user/band/date. Working as designed.
+
+---
+
+### Phase 8 — Git History Verification ✅
+
+**Deployed Code Verification:**
+
+All three critical commits are present in `main` branch:
+- ✅ `bb3e9d0` — Manual block-out propagation fix (deployed)
+- ✅ `25c2b57` — DB-only propagation fix documentation (2026-07-07)
+- ✅ `e3e60ec` — Recurring rehearsal auto-block fix (deployed)
+
+**Verdict:** Propagation logic is present and correct in deployed code.
+
+---
+
+### Phase 9 — Root Cause Confirmed ✅
+
+**Confidence: HIGH (confirmed by database + code evidence)**
+
+**The propagation logic works correctly** — block-outs DO propagate to all other bands at the database level. The issue Tony experienced is a **stale cache / no realtime sync** problem:
+
+**How the bug manifests:**
+
+1. Tony creates a block-out in **Browser Window A** (incognito, viewing Band A)
+2. Propagation writes rows to all 3 bands in the database ✅ (confirmed by SQL)
+3. `event_editor_drawer.dart` calls `ref.read(calendarProvider.notifier).invalidateAndRefresh(bandId: widget.bandId)` at line 1134
+4. This invalidates the cache **ONLY** for Band A in Window A's Riverpod state
+5. Tony switches to **Browser Window B** (already-open regular browser, viewing Band B)
+6. Window B's `calendarProvider` state is **NOT invalidated** because:
+   - Riverpod state is **not shared across browser tabs/windows**
+   - There is **no realtime subscription** to database changes
+   - Window B's calendar is using **cached data** from its last load
+7. Tony refreshes the view or switches months → still shows cached data
+8. Tony must **manually reload the page** (Cmd+R) or navigate away and back to trigger a fresh database query
+
+**The same issue occurs within a single tab:**  
+If Tony creates a block-out while viewing Band A, then switches to Band B's calendar view in the same tab, Band B's calendar will use cached data unless the cache TTL (5 minutes) has expired or a manual refresh is triggered.
+
+**File: `lib/features/calendar/calendar_controller.dart` lines 433-443:**
+
+```dart
+Future<void> invalidateAndRefresh({required String bandId}) async {
+  final keysToRemove =
+      _cache.keys.where((key) => key.startsWith('$bandId-')).toList();
+
+  for (final key in keysToRemove) {
+    _cache.remove(key);
+  }
+
+  await loadEvents(forceRefresh: true);
+}
+```
+
+This method only invalidates cache keys for the **specified bandId**. Other bands' caches remain untouched.
+
+**Root Cause Summary:**
+
+| Component | Behavior | Issue |
+|-----------|----------|-------|
+| **Propagation logic** | ✅ CORRECT | Writes to all bands successfully |
+| **Database writes** | ✅ CORRECT | Rows exist for all target bands |
+| **RLS policies** | ✅ CORRECT | Cross-band writes permitted |
+| **Cache invalidation** | ❌ **INCOMPLETE** | Only invalidates current band's cache |
+| **Realtime sync** | ❌ **MISSING** | No Supabase Realtime subscription for `block_dates` changes |
+
+**Why this wasn't caught earlier:**
+
+One Calendar was designed and QA'd using code-path analysis, not runtime testing with multiple browser tabs open simultaneously. The QA report explicitly states: "Validation Method: Code-path analysis only (runtime testing blocked by migration deployment failure)."
+
+---
+
+## Proposed Solution
+
+### Path: Multi-Band Cache Invalidation
+
+**Approach:**  
+When a block-out is created with One Calendar enabled, invalidate the calendar cache for **all bands** the user belongs to, not just the current band.
+
+**Implementation:**
+
+Modify `lib/features/events/widgets/event_editor_drawer.dart` at line 1134 (after propagation completes):
+
+**Current code:**
+```dart
+// Refresh calendar
+ref
+    .read(calendarProvider.notifier)
+    .invalidateAndRefresh(bandId: widget.bandId);
+```
+
+**Proposed code:**
+```dart
+// Refresh calendar for current band
+ref
+    .read(calendarProvider.notifier)
+    .invalidateAndRefresh(bandId: widget.bandId);
+
+// One Calendar cross-band cache invalidation: if One Calendar is enabled,
+// invalidate cache for all other bands so they pick up the propagated block-out
+// when user switches bands (within this tab/window)
+if (otherBandIds.isNotEmpty) {
+  for (final bandId in otherBandIds) {
+    // Invalidate only — don't await loadEvents() for other bands
+    // (user isn't viewing them right now)
+    final keysToRemove = CalendarNotifier._cache.keys
+        .where((key) => key.startsWith('$bandId-'))
+        .toList();
+    for (final key in keysToRemove) {
+      CalendarNotifier._cache.remove(key);
+    }
+  }
+}
+```
+
+**Alternative (cleaner):** Add a helper method to `CalendarNotifier`:
+
+```dart
+void invalidateCacheForBand(String bandId) {
+  final keysToRemove =
+      _cache.keys.where((key) => key.startsWith('$bandId-')).toList();
+  for (final key in keysToRemove) {
+    _cache.remove(key);
+  }
+}
+```
+
+Then call it from `event_editor_drawer.dart`:
+
+```dart
+// Refresh calendar for current band
+ref
+    .read(calendarProvider.notifier)
+    .invalidateAndRefresh(bandId: widget.bandId);
+
+// One Calendar: invalidate cache for other bands
+if (otherBandIds.isNotEmpty) {
+  final notifier = ref.read(calendarProvider.notifier);
+  for (final bandId in otherBandIds) {
+    notifier.invalidateCacheForBand(bandId);
+  }
+}
+```
+
+**What this fixes:**
+- ✅ Within the same browser tab: switching from Band A to Band B will show the new block-out
+- ❌ Across browser tabs/windows: still requires manual page reload (no cross-tab state sync)
+
+**What this doesn't fix:**
+- Cross-tab/window sync (requires Supabase Realtime subscription — separate feature)
+- Other users' calendars updating when you create a block-out (requires Realtime)
+
+**Blast Radius:** LOW  
+**Files Modified:** 2 (`calendar_controller.dart`, `event_editor_drawer.dart`)  
+**Regression Risk:** LOW (cache invalidation is safe; worst case = more database queries)
 
 ---
 
@@ -214,6 +441,7 @@ Tony's expectation is correct — musicians cannot be in two places at once. Blo
 **What This Means:**
 
 The One Calendar feature already solves this. The issue is:
+
 1. **User Awareness:** Tony may not know about One Calendar or that it needs to be checked in settings
 2. **Preferences State:** Tony's `user_calendar_preferences` row may have `one_calendar_enabled = false` (either manually toggled or RPC failed to create defaults)
 3. **Cache Issue:** Tony's browser may be serving old code from before One Calendar was deployed
@@ -221,31 +449,32 @@ The One Calendar feature already solves this. The issue is:
 **Required Actions (if this path is chosen):**
 
 1. **Tier 1 Verification (SQL):**
+
    ```sql
    -- Check if Tony has a preferences row and what the values are
-   SELECT 
-     one_calendar_enabled, 
-     apply_to_mode, 
+   SELECT
+     one_calendar_enabled,
+     apply_to_mode,
      auto_block_conflicts_enabled,
      created_at
    FROM user_calendar_preferences
    WHERE user_id = 'TONY_USER_ID';
    -- Expected: Row exists with one_calendar_enabled = true
-   
+
    -- Check Tony's band membership
-   SELECT 
-     bm.band_id, 
+   SELECT
+     bm.band_id,
      b.name as band_name,
      bm.role,
      bm.status
    FROM band_members bm
    JOIN bands b ON b.id = bm.band_id
-   WHERE bm.user_id = 'TONY_USER_ID' 
+   WHERE bm.user_id = 'TONY_USER_ID'
      AND bm.status = 'active';
    -- Expected: 2+ rows (Tony must have 2+ bands for cross-band to matter)
-   
+
    -- Check if block-outs exist in only one band
-   SELECT 
+   SELECT
      bd.band_id,
      b.name as band_name,
      bd.date,
@@ -282,6 +511,7 @@ The One Calendar feature already solves this. The issue is:
 
 **Assumption:**  
 The original per-band design was intentional. Block-outs are band-specific because:
+
 - Different bands may have different scheduling contexts
 - A user may want to mark unavailability for one band but not another
 - Cross-band sharing should be opt-in, not automatic
@@ -292,7 +522,7 @@ Tony's expectation doesn't match the product design. The One Calendar feature al
 
 **Required Actions (if this path is chosen):**
 
-1. **Confirm Intent:**  
+1. **Confirm Intent:**
    - Is cross-band sharing supposed to be opt-in or automatic?
    - Should new users have One Calendar ON or OFF by default?
    - Current default: ON (migration default is TRUE)
@@ -315,79 +545,44 @@ Tony's expectation doesn't match the product design. The One Calendar feature al
 
 ---
 
-## Tradeoffs
-
-| Aspect | Path A: Enforce One Calendar | Path B: Keep Opt-In |
-|--------|------------------------------|---------------------|
-| **User Expectation** | Matches musician's physical reality (can't be in two places) | Allows band-specific scheduling flexibility |
-| **Existing Users** | May surprise users who disabled One Calendar intentionally | No change — current behavior persists |
-| **Default Behavior** | Already defaults to ON (migration default TRUE) | Already defaults to ON (no change) |
-| **Settings Visibility** | Only visible for users with 2+ bands (correct) | Only visible for users with 2+ bands (correct) |
-| **Code Changes** | None — feature already exists | None — current design is intentional |
-| **Migration Required** | None | None |
-| **Tony's Issue** | Likely a settings/awareness issue, not a bug | Working as designed; Tony needs to enable One Calendar |
-| **Discoverability** | Settings item may not be obvious; could add onboarding hint | Same |
-
----
-
 ## Recommendation
 
-**Confidence: MEDIUM (awaiting Tony's preferences state confirmation)**
+**Confidence: HIGH (root cause confirmed)**
 
-This appears to be a **settings/awareness issue**, not a technical bug. The One Calendar feature was designed and deployed 11 days ago (2026-06-26) to solve exactly this problem. The code is correct and present in production.
+This is a **calendar cache invalidation bug**. The propagation logic works correctly and writes to all bands, but the calendar view doesn't refresh to show the new data unless the user:
+- Reloads the page (Cmd+R)
+- Waits 5 minutes for cache to expire
+- Navigates away from calendar and back
 
-**Recommended Next Steps:**
+**Recommended Implementation:**
 
-1. **Verify Tony's One Calendar preferences state** (SQL query above)
-2. **Verify Tony has 2+ bands** (Settings item won't appear for single-band users)
-3. **Check if Tony's browser is serving cached code** (deployed today — cache may be stale)
-4. **Ask Tony:**
-   - "Do you see a 'One Calendar' item in Settings?"
-   - "Have you enabled One Calendar sharing?"
-   - "Did you recently disable One Calendar after it was automatically enabled?"
+Add multi-band cache invalidation to `event_editor_drawer.dart` after block-out propagation completes. See "Proposed Solution" section above for code details.
 
-**Most Likely Scenario:**
-
-Tony either:
-- Has One Calendar disabled (manually or preferences never initialized)
-- Hasn't discovered the Settings item
-- Is seeing cached old code (deployed today — service worker may be serving pre-One-Calendar build)
-
-**If preferences are enabled and browser is not cached:**
-
-Then this is a **technical bug** (propagation logic not executing), and we should proceed to:
-- Add debug logging to propagation code path
-- Test in production with Tony's account
-- Check for RLS policy issues preventing cross-band writes
-- Verify RPC `get_or_create_calendar_preferences` is returning correct data
+**Effort:** LOW (2-file change)  
+**Risk:** LOW (cache invalidation is safe)  
+**Blast Radius:** LOW (only affects calendar after creating block-outs)
 
 ---
 
 ## Database Impact
 
-**Database: Not Applicable (assuming Path A settings/awareness issue)**
-
-If this is a technical bug requiring code changes:
-- No schema changes required
-- `user_calendar_preferences` table already exists
-- `get_or_create_calendar_preferences` RPC already exists
-- `block_dates` RLS policies already allow cross-band inserts (confirmed by gig propagation working)
+**None** — this is a frontend cache issue, not a database issue.
 
 ---
 
 ## Files Investigated
 
-| File | Purpose | Finding |
-|------|---------|---------|
-| `supabase/migrations/20260626005216_add_user_calendar_preferences.sql` | One Calendar migration | Defaults: `one_calendar_enabled = true`, `auto_block_conflicts_enabled = true` |
-| `lib/features/events/widgets/event_editor_drawer.dart` | Manual block-out creation | Propagation logic present at lines 1104-1127 ✅ |
-| `lib/features/calendar/auto_conflict_blocking_service.dart` | Auto-conflict blocking | Propagation logic present for gig/rehearsal creation ✅ |
-| `lib/features/calendar/block_out_repository.dart` | Block-out data layer | Per-band by design; supports cross-band writes via multiple inserts |
-| `lib/features/calendar/one_calendar_settings_screen.dart` | One Calendar settings UI | Exists; only visible for users with 2+ bands |
-| `lib/features/settings/settings_screen.dart` | Main settings menu | "One Calendar" item conditionally visible |
-| `lib/features/calendar/one_calendar_preferences_repository.dart` | Preferences data layer | `getBandIdsToApplyBlockOut()` implements propagation logic |
-| `docs/features/one-calendar-shared-blockout/ARCHITECT_PLAN.md` | Original feature design | Feature was intentionally designed to solve this exact problem |
-| `docs/features/one-calendar-manual-blackout/ARCHITECT_PLAN.md` | Bug fix for manual propagation | Propagation was broken initially; fix is present in current code |
+| File                                                                   | Purpose                        | Finding                                                                        |
+| ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| `supabase/migrations/20260626005216_add_user_calendar_preferences.sql` | One Calendar migration         | Defaults: `one_calendar_enabled = true`, `auto_block_conflicts_enabled = true` |
+| `lib/features/events/widgets/event_editor_drawer.dart`                 | Manual block-out creation      | Propagation logic present at lines 1104-1127 ✅                                |
+| `lib/features/calendar/auto_conflict_blocking_service.dart`            | Auto-conflict blocking         | Propagation logic present for gig/rehearsal creation ✅                        |
+| `lib/features/calendar/block_out_repository.dart`                      | Block-out data layer           | Per-band by design; supports cross-band writes via multiple inserts            |
+| `lib/features/calendar/one_calendar_settings_screen.dart`              | One Calendar settings UI       | Exists; only visible for users with 2+ bands                                   |
+| `lib/features/settings/settings_screen.dart`                           | Main settings menu             | "One Calendar" item conditionally visible                                      |
+| `lib/features/calendar/one_calendar_preferences_repository.dart`       | Preferences data layer         | `getBandIdsToApplyBlockOut()` implements propagation logic                     |
+| `docs/features/one-calendar-shared-blockout/ARCHITECT_PLAN.md`         | Original feature design        | Feature was intentionally designed to solve this exact problem                 |
+| `docs/features/one-calendar-manual-blackout/ARCHITECT_PLAN.md`         | Bug fix for manual propagation | Propagation was broken initially; fix is present in current code               |
 
 ---
 
@@ -403,7 +598,7 @@ If this is a technical bug requiring code changes:
 
 ```sql
 -- QUERY 1: Check Tony's One Calendar preferences
-SELECT 
+SELECT
   id,
   user_id,
   one_calendar_enabled,
@@ -418,8 +613,9 @@ WHERE user_id = 'TONY_USER_ID';
 -- If no row: RPC failed to create defaults
 -- If row exists with FALSE: Tony manually disabled it
 
--- QUERY 2: Check Tony's band membership
-SELECT 
+-- QUERY 2: Check Tony's band membershipCache invalidation only for current band ❌ |
+| `lib/features/calendar/calendar_controller.dart`                       | Calendar state management      | `invalidateAndRefresh()` only clears cache for one band at lines 433-443
+SELECT
   bm.id as membership_id,
   bm.band_id,
   b.name as band_name,
@@ -433,7 +629,7 @@ ORDER BY bm.joined_at;
 -- Expected: 2+ rows with status = 'active' (One Calendar requires 2+ bands)
 
 -- QUERY 3: Check Tony's existing block-out dates
-SELECT 
+SELECT
   bd.id,
   bd.band_id,
   b.name as band_name,
@@ -456,6 +652,7 @@ SELECT * FROM get_or_create_calendar_preferences('TONY_USER_ID');
 ### Tier 2 — Post-Decision (if technical bug confirmed)
 
 If Tier 1 shows:
+
 - Preferences exist and `one_calendar_enabled = true`
 - Tony has 2+ bands
 - Block-outs still don't propagate
@@ -473,6 +670,7 @@ Then proceed with:
 **Debug Logging:**
 
 Add temporary logging to `event_editor_drawer.dart` propagation block:
+
 ```dart
 debugPrint('[DEBUG] One Calendar check: bandIds=$bandIds, otherBandIds=$otherBandIds');
 ```
@@ -481,7 +679,7 @@ debugPrint('[DEBUG] One Calendar check: bandIds=$bandIds, otherBandIds=$otherBan
 
 ```sql
 -- Check if block_dates INSERT policy allows cross-band writes
-SELECT 
+SELECT
   schemaname,
   tablename,
   policyname,
@@ -499,31 +697,132 @@ WHERE tablename = 'block_dates';
 
 ## QA Regression Areas
 
-**If code changes are required (unlikely):**
+---
 
-1. **One Calendar propagation** — Verify manual block-outs propagate when enabled
-2. **One Calendar disabled** — Verify no propagation when disabled
-3. **Single-band users** — Verify no settings item visible, no errors
-4. **Multi-band users** — Verify settings item visible, propagation works
-5. **Auto-conflict blocking** — Verify gig/rehearsal creation still auto-blocks
-6. **Block-out deletion** — Verify deletion prompt shows cross-band choice when applicable
-7. **Calendar display** — Verify block-outs appear on all bands' calendars when propagated
+## Engineer Tasks
+
+**Task 1:** Add `invalidateCacheForBand()` helper method to `CalendarNotifier`
+
+**File:** `lib/features/calendar/calendar_controller.dart`
+
+Add after the existing `invalidateAndRefresh()` method (around line 444):
+
+```dart
+/// Invalidates cache for a specific band without triggering a reload.
+/// Used for cross-band cache invalidation when One Calendar propagates block-outs.
+void invalidateCacheForBand(String bandId) {
+  final keysToRemove =
+      _cache.keys.where((key) => key.startsWith('$bandId-')).toList();
+  for (final key in keysToRemove) {
+    _cache.remove(key);
+  }
+}
+```
+
+**Task 2:** Call `invalidateCacheForBand()` for all propagated bands
+
+**File:** `lib/features/events/widgets/event_editor_drawer.dart`
+
+Modify the block after One Calendar propagation (around line 1127, after the propagation try-catch closes):
+
+**Current:**
+```dart
+} catch (e) {
+  debugPrint('[EventEditorDrawer] One Calendar propagation error: $e');
+}
+
+// Close drawer, refresh, etc.
+if (mounted) {
+  Navigator.of(context).pop();
+}
+
+// Refresh calendar
+ref
+    .read(calendarProvider.notifier)
+    .invalidateAndRefresh(bandId: widget.bandId);
+```
+
+**Proposed:**
+```dart
+} catch (e) {
+  debugPrint('[EventEditorDrawer] One Calendar propagation error: $e');
+}
+
+// Close drawer, refresh, etc.
+if (mounted) {
+  Navigator.of(context).pop();
+}
+
+// Refresh calendar for current band
+ref
+    .read(calendarProvider.notifier)
+    .invalidateAndRefresh(bandId: widget.bandId);
+
+// One Calendar cross-band cache invalidation: if block-outs were propagated
+// to other bands, invalidate their calendar caches so they pick up the new
+// data when user switches bands (within this tab/window).
+if (otherBandIds.isNotEmpty) {
+  final notifier = ref.read(calendarProvider.notifier);
+  for (final bandId in otherBandIds) {
+    notifier.invalidateCacheForBand(bandId);
+  }
+}
+```
+
+**Note:** The variable `otherBandIds` is already available from the propagation logic above (line ~1112).
+
+---
+
+## Testing Instructions
+
+**Manual Test 1: Same-tab band switching**
+
+1. Navigate to Band A's calendar
+2. Create a block-out for a future date (e.g., tomorrow)
+3. Switch to Band B's calendar view (same browser tab)
+4. **Expected:** Block-out appears on Band B's calendar immediately (no page reload required)
+
+**Manual Test 2: Cross-tab sync (WILL NOT WORK — expected behavior)**
+
+1. Open Band A's calendar in Tab 1
+2. Open Band B's calendar in Tab 2
+3. Create a block-out in Tab 1
+4. Switch to Tab 2
+5. **Expected:** Block-out does NOT appear until user manually reloads page (Cmd+R)
+6. **Reason:** Riverpod state is not shared across tabs; would require Supabase Realtime subscription (separate feature)
+
+**Manual Test 3: One Calendar disabled**
+
+1. Settings → One Calendar → Turn OFF
+2. Create a block-out in Band A
+3. Switch to Band B's calendar
+4. **Expected:** Block-out does NOT appear on Band B (no propagation when disabled)
+
+**Manual Test 4: Cache expiration**
+
+1. Create a block-out in Band A
+2. Switch to Band B immediately
+3. **Expected:** Block-out appears (cache invalidated)
+4. Wait 5+ minutes
+5. Create another block-out in Band A
+6. Switch to Band B
+7. **Expected:** Block-out still appears (cache was already stale, forced refresh)
 
 ---
 
 ## Next Steps
 
-**STOP — Awaiting Decision:**
+**Status: READY FOR IMPLEMENTATION**
 
-1. **Tony:** Provide user ID for SQL verification
-2. **Manager:** Review Path A vs. Path B tradeoffs
-3. **Tony:** Confirm One Calendar settings state in app (Settings → One Calendar)
-4. **Tony:** Confirm browser is serving latest code (hard refresh: Cmd+Shift+R)
-
-Do not proceed to Engineer implementation until root cause is confirmed via Tier 1 verification.
+1. **Engineer:** Implement Task 1 and Task 2 above
+2. **Engineer:** Test per instructions above
+3. **Engineer:** Submit PR with test evidence
+4. **Architect:** Review PR, verify fix addresses root cause
+5. **Tony:** Deploy to production web, verify in production environment
 
 ---
 
 **Architect:** GitHub Copilot (Claude Sonnet 4.5)  
 **Date:** 2026-07-08  
-**Status:** AWAITING DECISION
+**Updated:** 2026-07-09 (root cause confirmed)  
+**Status:** ROOT CAUSE CONFIRMED — READY FOR IMPLEMENTATION
