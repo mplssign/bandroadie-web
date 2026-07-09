@@ -441,6 +441,16 @@ class CalendarNotifier extends Notifier<CalendarState> {
     await loadEvents(forceRefresh: true);
   }
 
+  /// Invalidates cache for a specific band without triggering a reload.
+  /// Used for cross-band cache invalidation when One Calendar propagates block-outs.
+  void invalidateCacheForBand(String bandId) {
+    final keysToRemove =
+        _cache.keys.where((key) => key.startsWith('$bandId-')).toList();
+    for (final key in keysToRemove) {
+      _cache.remove(key);
+    }
+  }
+
   void previousMonth() {
     final current = state.selectedMonth;
 

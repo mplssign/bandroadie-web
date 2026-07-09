@@ -1125,11 +1125,21 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             );
           }
         }
+
+        // One Calendar cross-band cache invalidation: if block-outs were propagated
+        // to other bands, invalidate their calendar caches so they pick up the new
+        // data when user switches bands (within this tab/window).
+        if (otherBandIds.isNotEmpty) {
+          final notifier = ref.read(calendarProvider.notifier);
+          for (final bandId in otherBandIds) {
+            notifier.invalidateCacheForBand(bandId);
+          }
+        }
       } catch (e) {
         debugPrint('[EventEditorDrawer] One Calendar propagation error: $e');
       }
 
-      // Refresh calendar
+      // Refresh calendar for current band
       ref
           .read(calendarProvider.notifier)
           .invalidateAndRefresh(bandId: widget.bandId);
