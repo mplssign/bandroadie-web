@@ -74,12 +74,14 @@ tony_historical_events AS (
   AND r.is_potential = false
 ),
 missing_blocks AS (
-  -- Cross-join events with bands to find missing block_dates
+  -- Cross-join events with bands, then aggregate to handle same-day collisions
   SELECT
     '671b32e8-60eb-448a-8167-106bf835297f'::uuid as user_id,
     tb.band_id as band_id,
     te.event_date as date,
-    'Unavailable (scheduled with ' || te.origin_band_name || ')' as reason
+    'Unavailable (scheduled with ' || 
+      string_agg(DISTINCT te.origin_band_name, ', ' ORDER BY te.origin_band_name) || 
+      ')' as reason
   FROM tony_historical_events te
   CROSS JOIN tony_bands tb
   WHERE tb.band_id != te.origin_band_id  -- Don't block the origin band
@@ -90,12 +92,14 @@ missing_blocks AS (
       AND bd.band_id = tb.band_id
       AND bd.date = te.event_date
   )
+  GROUP BY tb.band_id, te.event_date
 ),
 inserted AS (
   -- Insert missing block_dates and capture what was inserted
   INSERT INTO block_dates (user_id, band_id, date, reason)
   SELECT user_id, band_id, date, reason
   FROM missing_blocks
+  ON CONFLICT (user_id, band_id, date) DO NOTHING
   RETURNING *
 )
 -- Return summary of what was inserted

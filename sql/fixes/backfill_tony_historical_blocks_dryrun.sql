@@ -66,14 +66,16 @@ tony_historical_events AS (
   AND r.is_potential = false
 ),
 missing_blocks AS (
-  -- Cross-join events with bands to find missing block_dates
+  -- Cross-join events with bands, then aggregate to handle same-day collisions
   SELECT
     te.event_date,
-    te.event_description,
-    te.origin_band_name,
+    string_agg(DISTINCT te.event_description, '; ' ORDER BY te.event_description) as event_description,
+    string_agg(DISTINCT te.origin_band_name, ', ' ORDER BY te.origin_band_name) as origin_band_name,
     tb.band_name as target_band_name,
     tb.band_id as target_band_id,
-    'Unavailable (scheduled with ' || te.origin_band_name || ')' as reason
+    'Unavailable (scheduled with ' || 
+      string_agg(DISTINCT te.origin_band_name, ', ' ORDER BY te.origin_band_name) || 
+      ')' as reason
   FROM tony_historical_events te
   CROSS JOIN tony_bands tb
   WHERE tb.band_id != te.origin_band_id  -- Don't block the origin band
@@ -84,6 +86,7 @@ missing_blocks AS (
       AND bd.band_id = tb.band_id
       AND bd.date = te.event_date
   )
+  GROUP BY tb.band_id, tb.band_name, te.event_date
 )
 -- Show all rows that would be inserted
 SELECT
