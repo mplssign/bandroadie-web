@@ -967,13 +967,28 @@ FROM missing_blocks;
 | **C: No backfill**            | None                                       | NONE   | NONE   | Tony accepts historical events remain per-band        |
 | **D: "Sync Calendar" button** | Per-user on-demand                         | HIGH   | LOW    | Product decision, requires UI design                  |
 
+**Tony's Decision:** Option A (backfill his account only)
+
+**Dry-Run Status:** READY TO RUN — Supabase CLI experiencing authentication/connectivity issues. SQL files created for direct execution in Supabase Dashboard:
+
+1. **Dry-Run:** `sql/fixes/backfill_tony_historical_blocks_dryrun.sql`
+   - Shows exactly which rows would be inserted (event_date, event_description, origin_band, target_band, reason)
+   - No database modifications, safe to run anytime
+   - Tony should review full list and approve exact row count
+
+2. **Backfill:** `sql/fixes/backfill_tony_historical_blocks.sql`
+   - **⚠️ DO NOT RUN UNTIL Tony approves dry-run results**
+   - Idempotent (can be re-run safely, skips existing rows)
+   - Returns summary: rows_inserted, unique_dates, bands_affected
+   - Rollback SQL included in file header comments
+
 **If Tony chooses Option A or B, Engineer must:**
 
 1. Run dry-run SQL first, report row counts
 2. Get explicit approval from Tony with row counts visible
-3. Implement as idempotent script (can be re-run safely)
-4. Run on staging/test data first
-5. Provide rollback SQL (DELETE WHERE created_at > [backfill_timestamp])
+3. Implement as idempotent script (can be re-run safely) ✅ DONE
+4. Run on staging/test data first (optional for single-user backfill)
+5. Provide rollback SQL (DELETE WHERE created_at > [backfill_timestamp]) ✅ DONE
 
 ---
 
