@@ -1027,19 +1027,19 @@ Tony's expectation doesn't match the product design. The One Calendar feature al
 
 ## Files Investigated
 
-| File                                                                   | Purpose                        | Finding                                                                                     |
-| ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
-| `supabase/migrations/20260626005216_add_user_calendar_preferences.sql` | One Calendar migration         | Defaults: `one_calendar_enabled = true`, `auto_block_conflicts_enabled = true`              |
-| `lib/features/events/widgets/event_editor_drawer.dart`                 | Manual block-out creation      | Propagation logic present at lines 1104-1127 ✅ Cache invalidation only for current band ❌ |
-| `lib/features/calendar/calendar_controller.dart`                       | Calendar state management      | `invalidateAndRefresh()` only clears cache for one band at lines 433-443                    |
-| `lib/features/calendar/auto_conflict_blocking_service.dart`            | Auto-conflict blocking         | Service implementation is correct ✅ BUT gigs are not triggering it ❌                      |
+| File                                                                   | Purpose                        | Finding                                                                                                                        |
+| ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `supabase/migrations/20260626005216_add_user_calendar_preferences.sql` | One Calendar migration         | Defaults: `one_calendar_enabled = true`, `auto_block_conflicts_enabled = true`                                                 |
+| `lib/features/events/widgets/event_editor_drawer.dart`                 | Manual block-out creation      | Propagation logic present at lines 1104-1127 ✅ Cache invalidation only for current band ❌                                    |
+| `lib/features/calendar/calendar_controller.dart`                       | Calendar state management      | `invalidateAndRefresh()` only clears cache for one band at lines 433-443                                                       |
+| `lib/features/calendar/auto_conflict_blocking_service.dart`            | Auto-conflict blocking         | Service implementation is correct ✅ BUT gigs are not triggering it ❌                                                         |
 | `lib/features/events/events_repository.dart`                           | Event creation                 | Rehearsals call auto-blocking at lines 145-177 ✅ Gigs have code at lines 632-668 in Git ✅ BUT not executing in production ❌ |
-| `lib/features/calendar/block_out_repository.dart`                      | Block-out data layer           | Per-band by design; supports cross-band writes via multiple inserts                         |
-| `lib/features/calendar/one_calendar_settings_screen.dart`              | One Calendar settings UI       | Exists; only visible for users with 2+ bands                                                |
-| `lib/features/settings/settings_screen.dart`                           | Main settings menu             | "One Calendar" item conditionally visible                                                   |
-| `lib/features/calendar/one_calendar_preferences_repository.dart`       | Preferences data layer         | `getBandIdsToApplyBlockOut()` implements propagation logic                                  |
-| `docs/features/one-calendar-shared-blockout/ARCHITECT_PLAN.md`         | Original feature design        | Feature was intentionally designed to solve this exact problem                              |
-| `docs/features/one-calendar-manual-blackout/ARCHITECT_PLAN.md`         | Bug fix for manual propagation | Propagation was broken initially; fix is present in current code                            |
+| `lib/features/calendar/block_out_repository.dart`                      | Block-out data layer           | Per-band by design; supports cross-band writes via multiple inserts                                                            |
+| `lib/features/calendar/one_calendar_settings_screen.dart`              | One Calendar settings UI       | Exists; only visible for users with 2+ bands                                                                                   |
+| `lib/features/settings/settings_screen.dart`                           | Main settings menu             | "One Calendar" item conditionally visible                                                                                      |
+| `lib/features/calendar/one_calendar_preferences_repository.dart`       | Preferences data layer         | `getBandIdsToApplyBlockOut()` implements propagation logic                                                                     |
+| `docs/features/one-calendar-shared-blockout/ARCHITECT_PLAN.md`         | Original feature design        | Feature was intentionally designed to solve this exact problem                                                                 |
+| `docs/features/one-calendar-manual-blackout/ARCHITECT_PLAN.md`         | Bug fix for manual propagation | Propagation was broken initially; fix is present in current code                                                               |
 
 ---
 
@@ -1447,7 +1447,409 @@ if (otherBandIds.isNotEmpty) {
 
 ---
 
+## Issue 2 — Resolution
+
+**Status:** CLOSED — Root cause was stale browser cache, not a code defect  
+**Date:** 2026-07-09  
+**Confidence:** HIGH (controlled A/B test with same session, same gig-creation action)
+
+### Evidence Summary
+
+Tony conducted a controlled runtime test with two gig-creation attempts in the same browser session:
+
+**Attempt 1 — "Test Gig" (no browser refresh):**
+
+- Browser: regular session, no refresh since before commit `e3e60ec` deployment
+- Result: Zero `[AutoConflictBlockingService]` log lines in console
+- Database: No auto-conflict block_dates rows created
+- **Conclusion:** Service was never invoked
+
+**Attempt 2 — "Test Gig 2" (after hard refresh):**
+
+- Browser: same session, hard refresh performed (Cmd+Shift+R)
+- Result: Full successful trace in console:
+  ```
+  [AutoConflictBlockingService] Auto-blocking 1 date(s)
+  [OneCalendarPreferencesRepository] Preferences RPC confirmed: one_calendar_enabled: true, apply_to_mode: all_bands
+  [AutoConflictBlockingService] Apply to all bands: 2 bands
+  [AutoConflictBlockingService] Auto-block complete: 1 date(s) × 1 bands
+  ```
+- Database: block_dates row created in target band
+- **Conclusion:** Service worked as designed
+
+### Root Cause
+
+The browser was serving cached JavaScript bundle predating commit `e3e60ec` (2026-07-07 22:56:04), when gig auto-conflict-blocking support was added to `events_repository.dart`. Rehearsals have had this feature since commit `b6c833c` (2026-06-26 — One Calendar initial deployment), but gigs did not until commit `e3e60ec`.
+
+**Timeline:**
+
+- 2026-06-26: One Calendar deployed, auto-conflict-blocking implemented for **rehearsals only**
+- 2026-07-07 22:56:04: Commit `e3e60ec` added auto-conflict-blocking for **gigs and multi-date events**
+- 2026-07-09 (pre-refresh): Browser cache served pre-`e3e60ec` bundle → gig creation skipped auto-blocking
+- 2026-07-09 (post-refresh): Browser loaded post-`e3e60ec` bundle → gig creation successfully auto-blocked
+
+### No Code Changes Required
+
+The code is correct and present in `lib/features/events/events_repository.dart` at lines 632-668. Git history shows commit `e3e60ec` is on the `main` branch and deployed to production. The feature works when the browser loads the current bundle.
+
+**Resolution:** This was a browser cache artifact, not a missing feature or bug. Users experiencing this issue can resolve it with a hard refresh (Cmd+Shift+R / Ctrl+Shift+R). No code changes are needed.
+
+**Lessons Learned:**
+
+- Runtime testing with cache-busting (incognito mode or hard refresh) is critical after deployments that add new code paths
+- Console log absence (not just error logs) is a valid diagnostic signal — if a service is never invoked, it won't log anything, including success messages
+- A/B testing within the same session (before/after cache clear) isolates browser cache as the variable
+- **SQL CTE scope bug (recurring):** CTEs defined in a `WITH` clause are only valid for the single statement that immediately follows them. This issue occurred twice in this branch: (1) Issue 3 backfill dry-run script had a summary query referencing CTEs from a previous statement, (2) Task 2 and Task 3 diagnostic scripts repeated the same mistake. Each SQL statement must declare its own `WITH` clause, even if duplicating CTE definitions. Worth flagging explicitly for any future backfill scripts (e.g., if Task 3 gap analysis finds real rows requiring a backfill).
+
+---
+
+## Task 2 — Partial-Block Anomaly Investigation
+
+**Status:** DIAGNOSIS REQUIRED — SQL query corrected, awaiting execution  
+**Date:** 2026-07-09 (updated post-Architecture Gate review)
+
+### Context
+
+During the successful "Test Gig 2" run (post-refresh), the console logs showed:
+
+```
+[AutoConflictBlockingService] Apply to all bands: 2 bands
+[AutoConflictBlockingService] Auto-block complete: 1 date(s) × 1 bands
+```
+
+**ARCHITECTURE GATE CORRECTION — Wrong User Investigated:**
+
+"Test Gig 2" was created under a **non-admin test account** (`stubbymalone@gmail.com` / user_id `4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925`), NOT Tony's account. This was confirmed by:
+
+1. Console log from the successful run: `[AutoConflictBlockingService] Auto-blocking 1 date(s) for user: 4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925`
+2. Tony's confirmation of the email associated with that user_id
+
+**Why a test account was used:** Tony created the gig under a non-admin account to avoid spamming real band members with auto-conflict blocks during testing.
+
+**Impact:** All Task 2 diagnostic queries created in the first round (band list, summary counts, partial-block anomaly query) were checking Tony's `user_id` (`671b32e8-60eb-448a-8167-106bf835297f`) and are **invalid**. Those results have been discarded. New diagnostics have been created for the correct user.
+
+**Task 3 is unaffected** — it's correctly scoped to Tony's own account since it investigates historical gigs created by Tony.
+
+---
+
+**Critical Finding — Band Membership Discrepancy:**
+
+The gig that produced this anomaly was created in band **"The Banana Stand" (`e89bea44-8dd4-4e3d-b527-c0f75e94aa7d`)**. This band was NOT in the original hardcoded band list used earlier in this investigation (Open Mic, The Second Summer, Toxic Crayon), which revealed the need for dynamic band resolution in diagnostic queries.
+
+**Discrepancy to Investigate:** 2 target bands were resolved, but only 1 block row was written. This could be:
+
+1. **Expected behavior (benign):** One of the 2 target bands already had a pre-existing block for that date (2026-07-26). The auto-conflict-blocking code is idempotent and skips duplicates via try-catch around unique constraint violations.
+
+2. **Real bug:** One of the 2 target bands was genuinely missed despite not having a pre-existing block.
+
+### Corrected Diagnostic Approach
+
+**Prerequisite Query 1:** `sql/diagnostics/verify_stubbymalone_email_id_mapping.sql`
+
+**CRITICAL: Run this FIRST** to verify the email-to-ID mapping before running any other Task 2 diagnostics:
+
+```sql
+-- Check auth.users (canonical source for email)
+SELECT
+  id,
+  email,
+  created_at
+FROM auth.users
+WHERE email = 'stubbymalone@gmail.com';
+```
+
+**Expected Result:** `id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925'`
+
+**If the ID doesn't match or is NULL, STOP and flag the discrepancy.** Do NOT proceed with Task 2 diagnostics until this is resolved.
+
+**Note:** Query only checks `auth.users` (canonical email source) to avoid doc-vs-schema mismatches after hitting this issue twice (`gigs.city`, potentially `users.email`).
+
+---
+
+**Prerequisite Query 2:** `sql/diagnostics/verify_stubbymalone_current_bands.sql`
+
+After confirming the email/ID mapping, run this to confirm which bands stubbymalone is currently a member of:
+
+```sql
+SELECT
+  bm.band_id,
+  b.name as band_name,
+  bm.role,
+  bm.status,
+  bm.joined_at
+FROM band_members bm
+JOIN bands b ON b.id = bm.band_id
+WHERE bm.user_id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925'
+  AND bm.status = 'active'
+ORDER BY bm.joined_at;
+```
+
+**Expected Result:** Should show "The Banana Stand" (`e89bea44-8dd4-4e3d-b527-c0f75e94aa7d`) as an active band, plus however many other bands this user is a member of.
+
+---
+
+**Main Diagnostic Query:** `sql/diagnostics/investigate_partial_block_anomaly.sql`
+
+This query now **dynamically resolves stubbymalone's current active bands** and checks block_dates for this user:
+
+```sql
+WITH stubbymalone_bands AS (
+  -- Dynamically fetch stubbymalone's current active bands
+  SELECT
+    bm.band_id,
+    b.name as band_name
+  FROM band_members bm
+  JOIN bands b ON b.id = bm.band_id
+  WHERE bm.user_id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925'
+    AND bm.status = 'active'
+)
+SELECT
+  sb.band_name,
+  sb.band_id,
+  bd.id as block_id,
+  bd.date,
+  bd.reason,
+  bd.created_at,
+  CASE
+    WHEN sb.band_id = 'e89bea44-8dd4-4e3d-b527-c0f75e94aa7d' THEN 'ORIGIN (gig created here)'
+    WHEN bd.id IS NOT NULL THEN 'HAS BLOCK'
+    ELSE 'MISSING BLOCK'
+  END as status
+FROM stubbymalone_bands sb
+LEFT JOIN block_dates bd ON bd.band_id = sb.band_id
+  AND bd.user_id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925'
+  AND bd.date = '2026-07-26'
+ORDER BY sb.band_name;
+```
+
+**Expected Outcomes:**
+
+- **Outcome A (benign):** 2 target bands (excluding origin) both have block_dates for 2026-07-26. One was created earlier (pre-dating Test Gig 2), explaining why only 1 new row was written during the test.
+  - **Action:** Document as expected idempotency behavior, close investigation.
+
+- **Outcome B (genuine miss):** Only 1 target band has a block_dates row for 2026-07-26, created during Test Gig 2. The other target band is completely missing its block.
+  - **Action:** Flag as new scope item — auto-conflict-blocking may have a bug where one target band is skipped. Requires Manager decision on whether to investigate further.
+
+**Status:** Queries corrected and ready. **Run in sequence: (1) email/ID verification, (2) band membership verification, (3) partial-block anomaly diagnostic. Do not proceed to step 2 or 3 if step 1 fails.**
+
+---
+
+## Task 3 — Jun 26 → Jul 7 Gig Backfill Gap Investigation
+
+**Status:** DIAGNOSIS REQUIRED — SQL query created, awaiting execution  
+**Date:** 2026-07-09
+
+### Context
+
+The Issue 3 historical backfill (93 rows executed) only covered events with `created_at < '2026-06-26'` — before One Calendar was deployed. However:
+
+- **Rehearsal auto-conflict-blocking:** Deployed 2026-06-26 (commit `b6c833c`)
+- **Gig auto-conflict-blocking:** Deployed 2026-07-07 22:56:04 (commit `e3e60ec`)
+
+**Gap Period:** Gigs created between **2026-06-26 00:00:00** and **2026-07-07 22:56:04** would have:
+
+- ✅ One Calendar preferences enabled (defaults to true since migration)
+- ❌ No gig auto-conflict-blocking code in the deployed bundle (feature didn't exist yet)
+- ❌ No cross-band block_dates created at gig creation time
+
+This is a **systematic gap** distinct from the pre-One-Calendar historical events (Issue 3). Those events predated the feature entirely. These events were created **during** the One Calendar rollout but **before** gig support was added.
+
+### Diagnostic Query
+
+**File:** `sql/diagnostics/investigate_gig_backfill_gap.sql`
+
+**⚠️ Architecture Gate Correction:** This query now **dynamically resolves Tony's current active bands** instead of hardcoding the original 3 band IDs. This ensures correctness if Tony's band membership changed since the gap period (e.g., if "The Banana Stand" replaced one of the original bands).
+
+This query identifies:
+
+1. All gigs created by Tony during the gap period (2026-06-26 to 2026-07-07 22:56:04)
+2. For each gig, checks which target bands have existing block_dates rows (EXISTS) vs missing (MISSING)
+3. Provides both detailed breakdown and summary count
+
+**Query Structure:**
+
+```sql
+WITH tony_bands AS (
+  -- Dynamically fetch Tony's current active bands
+  SELECT
+    bm.band_id,
+    b.name as band_name
+  FROM band_members bm
+  JOIN bands b ON b.id = bm.band_id
+  WHERE bm.user_id = '671b32e8-60eb-448a-8167-106bf835297f'
+    AND bm.status = 'active'
+),
+gap_gigs AS (
+  -- Fetch gigs created during the gap period in Tony's current bands
+  SELECT
+    g.id,
+    g.band_id,
+    b.name as band_name,
+    g.name as gig_name,
+    g.date,
+    g.created_at,
+    g.is_potential
+  FROM gigs g
+  JOIN bands b ON b.id = g.band_id
+  WHERE g.band_id IN (SELECT band_id FROM tony_bands)
+  AND g.created_at >= '2026-06-26 00:00:00'
+  AND g.created_at < '2026-07-07 22:56:04'
+  AND g.is_potential = false
+  ORDER BY g.created_at
+),
+missing_blocks AS (
+  SELECT
+    gg.date as event_date,
+    gg.band_name as origin_band,
+    gg.gig_name as event_name,
+    gg.created_at as event_created_at,
+    tb.band_name as target_band,
+    tb.band_id as target_band_id,
+    CASE
+      WHEN EXISTS (
+        SELECT 1 FROM block_dates bd
+        WHERE bd.user_id = '671b32e8-60eb-448a-8167-106bf835297f'
+          AND bd.band_id = tb.band_id
+          AND bd.date = gg.date
+      ) THEN 'EXISTS'
+      ELSE 'MISSING'
+    END as block_status
+  FROM gap_gigs gg
+  CROSS JOIN tony_bands tb
+  WHERE tb.band_id != gg.band_id  -- Don't check origin band
+)
+SELECT
+  event_date,
+  event_name,
+  origin_band,
+  target_band,
+  block_status,
+  event_created_at
+FROM missing_blocks
+ORDER BY event_date, origin_band, target_band;
+```
+
+**Expected Outcomes:**
+
+- **Outcome A (gap is empty):** Zero gigs created during this window, or all gigs already have corresponding block_dates (perhaps manually created or via a different mechanism).
+  - **Action:** Document as clear, no backfill needed, close investigation.
+
+- **Outcome B (real gap exists):** One or more gigs created during this window are missing cross-band block_dates.
+  - **Action:** Produce a dry-run-only SQL script (same conventions as `backfill_tony_historical_blocks_dryrun.sql`) showing exactly which rows would be inserted. Use `GROUP BY` + `string_agg(DISTINCT ...)` to handle same-day collisions from multiple origin bands. Exclude rows already in `block_dates` to ensure idempotency.
+  - **Do NOT write or run the live insert script** — dry-run only, pending Manager/Tony review.
+
+**Status:** ~~Query corrected and ready. **Tony must run `verify_tony_current_bands.sql` FIRST to confirm membership, then run this diagnostic query.**~~ **✅ DIAGNOSIS COMPLETE — Gap confirmed**
+
+### Gap Analysis Results
+
+**Executed:** 2026-07-09
+
+**Finding:** Gap is **real but minimal** — exactly **one gig** with **one missing block row**.
+
+**Details:**
+
+- **Gig:** "The Little Owl Social Pub"
+- **Origin Band:** Open Mic
+- **Event Date:** 2026-07-09
+- **Created:** 2026-07-07 09:04:29 (before `e3e60ec` deployed at 22:56:04 same day)
+- **Missing Block:** The Second Summer (band_id `6d71a662-f1a4-4fb9-a611-9b2c8e7716d3`)
+- **Existing Block (requires investigation):** Toxic Crayon already has a block_dates row for 2026-07-09
+
+**Next Steps:**
+
+1. **Investigate Toxic Crayon block:** Run `sql/diagnostics/inspect_toxic_crayon_block_jul09.sql` to determine if the existing block was caused by this gig (partial propagation success) or by a different event (coincidental date overlap). Check if `created_at` is near 2026-07-07 09:04:29.
+
+2. **Supplemental Backfill (dry-run prepared):** `sql/fixes/backfill_open_mic_gig_jul09_dryrun.sql` shows exactly one row that would be inserted:
+   - `user_id`: `671b32e8-60eb-448a-8167-106bf835297f` (Tony)
+   - `band_id`: `6d71a662-f1a4-4fb9-a611-9b2c8e7716d3` (The Second Summer)
+   - `date`: `2026-07-09`
+   - `reason`: `'Unavailable (scheduled with Open Mic)'`
+   - Includes `ON CONFLICT (user_id, band_id, date) DO NOTHING` safety net
+
+**Status:** Dry-run prepared, **do NOT execute** until Toxic Crayon block origin is confirmed and Manager approves.
+
+**Note on Dry-Run Script:** If gap rows are found, the dry-run script will also use dynamic band resolution from `band_members` rather than hardcoded IDs, ensuring it remains correct regardless of membership changes.
+
+---
+
+## Summary of Findings
+
+### Task 1 — Issue 2 Resolution ✅ COMPLETE
+
+**Finding:** Root cause was stale browser cache serving pre-`e3e60ec` JavaScript bundle, not missing or broken code. Hard refresh resolved the issue immediately. No code changes required.
+
+### Task 2 — Partial-Block Anomaly ⏸️ AWAITING SQL EXECUTION (Architecture Gate correction applied)
+
+**Critical Finding:** The gig that triggered this anomaly was created in "The Banana Stand" (`e89bea44-8dd4-4e3d-b527-c0f75e94aa7d`), which was NOT in the original hardcoded band list. This revealed that Tony's band membership may have changed since the original investigation, invalidating both diagnostic queries.
+
+**Correction Applied:** Query now dynamically resolves Tony's current active bands via `band_members` table instead of hardcoding. This ensures correctness regardless of membership changes.
+
+**Finding (pending SQL execution):** Likely benign (idempotency skip due to pre-existing block on one target band), but requires SQL verification to confirm. If genuine miss is found, flag as new scope item for Manager decision.
+
+**Action Required:**
+
+1. Tony must run `sql/diagnostics/verify_tony_current_bands.sql` FIRST to confirm current band membership
+2. Then run `sql/diagnostics/investigate_partial_block_anomaly.sql` and report results
+
+### Task 3 — Jun 26 → Jul 7 Gig Backfill Gap ✅ DIAGNOSIS COMPLETE (Architecture Gate correction applied)
+
+**Critical Finding:** Original query hardcoded the same 3 band IDs, which would silently miss any gigs/blocks involving bands not in that stale list (e.g., "The Banana Stand").
+
+**Correction Applied:** Query now dynamically resolves Tony's current active bands via `band_members` table and filters gigs by `g.band_id IN (SELECT band_id FROM tony_bands)` instead of hardcoded IDs.
+
+**SQL Executed:** 2026-07-09 — Gap confirmed as real but minimal.
+
+**Findings:**
+
+- **Gap Scope:** Exactly **one gig** with **one missing block row**
+- **Gig:** "The Little Owl Social Pub" (Open Mic, event date 2026-07-09)
+- **Created:** 2026-07-07 09:04:29 (before `e3e60ec` deployed at 22:56:04)
+- **Missing Block:** The Second Summer (band_id `6d71a662-f1a4-4fb9-a611-9b2c8e7716d3`)
+- **Existing Block:** Toxic Crayon already has a block for 2026-07-09 (origin requires investigation)
+
+**Action Items:**
+
+1. **[PREREQUISITE]** Run `sql/diagnostics/inspect_toxic_crayon_block_jul09.sql` to determine if the existing Toxic Crayon block was caused by this gig (partial propagation) or by a different event. Check if `created_at` is near 2026-07-07 09:04:29.
+
+2. **[PREPARED]** Dry-run backfill script ready at `sql/fixes/backfill_open_mic_gig_jul09_dryrun.sql`:
+   - Shows exactly one row that would be inserted (The Second Summer, 2026-07-09)
+   - Uses `ON CONFLICT (user_id, band_id, date) DO NOTHING` safety net
+   - **Do NOT execute** until Toxic Crayon block origin confirmed and Manager approves
+
+**Status:** Diagnosis complete, dry-run prepared. Awaiting Toxic Crayon block investigation and Manager approval before execution.
+
+---
+
+## Branch Status
+
+**Current State:** Issue 2 formally closed (browser cache, no code fix needed). Task 2 awaiting SQL execution. Task 3 diagnosis complete, dry-run backfill prepared pending Manager approval.
+
+**Architecture Gate Corrections Applied:**
+
+- Task 2: Corrected user_id from Tony to stubbymalone (test account that created "Test Gig 2")
+- Task 2: Added email/ID verification prerequisite (`verify_stubbymalone_email_id_mapping.sql`)
+- Task 2: Fixed schema safety issue (dropped `users.email` query after doc-vs-schema mismatch pattern)
+- Task 3: Gap confirmed — exactly one gig ("The Little Owl Social Pub") with one missing block (The Second Summer, 2026-07-09)
+- Task 3: Dry-run backfill prepared (`backfill_open_mic_gig_jul09_dryrun.sql`)
+- Task 3: Toxic Crayon block investigation query created to determine if existing block was partial propagation or coincidental
+
+**Ready for Commit:** No — Task 2 awaiting SQL execution, Task 3 awaiting Toxic Crayon block investigation and Manager approval for backfill.
+
+**Blockers:** Supabase CLI connectivity issues prevent automated query execution. Tony must manually run diagnostic queries in Supabase Dashboard.
+
+**Next Steps:**
+
+1. **[TASK 2]** Tony runs email/ID verification: `sql/diagnostics/verify_stubbymalone_email_id_mapping.sql`
+2. **[TASK 2]** If verification passes, Tony runs: `sql/diagnostics/verify_stubbymalone_current_bands.sql`
+3. **[TASK 2]** Then Tony runs: `sql/diagnostics/investigate_partial_block_anomaly.sql` and reports results
+4. **[TASK 3]** Tony runs: `sql/diagnostics/inspect_toxic_crayon_block_jul09.sql` to determine origin of existing block
+5. **[TASK 3]** Based on finding, Manager approves or rejects dry-run backfill execution
+6. If Task 2 reveals genuine miss: Architect proposes new scope item for Manager
+7. Once both tasks clear: All issues documented, branch ready for merge
+
+---
+
 **Architect:** GitHub Copilot (Claude Sonnet 4.5)  
 **Date:** 2026-07-08  
-**Updated:** 2026-07-09 (Issue 2 root cause confirmed via console log analysis)  
-**Status:** ISSUES 1 & 2 READY FOR ENGINEER, ISSUE 3 AWAITING DECISION
+**Updated:** 2026-07-09 (Issue 2 closed, Task 2 corrected for stubbymalone user, Task 3 diagnosis complete with dry-run backfill prepared)  
+**Status:** ISSUE 1 READY FOR ENGINEER, ISSUE 2 CLOSED (NO FIX NEEDED), ISSUE 3 AWAITING DECISION, TASK 2 AWAITING SQL EXECUTION, TASK 3 AWAITING MANAGER APPROVAL
