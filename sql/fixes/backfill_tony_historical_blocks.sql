@@ -90,15 +90,17 @@ missing_blocks AS (
       AND bd.band_id = tb.band_id
       AND bd.date = te.event_date
   )
+),
+inserted AS (
+  -- Insert missing block_dates and capture what was inserted
+  INSERT INTO block_dates (user_id, band_id, date, reason)
+  SELECT user_id, band_id, date, reason
+  FROM missing_blocks
+  RETURNING *
 )
--- Insert missing block_dates
-INSERT INTO block_dates (user_id, band_id, date, reason)
-SELECT user_id, band_id, date, reason
-FROM missing_blocks;
-
 -- Return summary of what was inserted
 SELECT 
   COUNT(*) as rows_inserted,
   COUNT(DISTINCT date) as unique_dates,
   COUNT(DISTINCT band_id) as bands_affected
-FROM missing_blocks;
+FROM inserted;
