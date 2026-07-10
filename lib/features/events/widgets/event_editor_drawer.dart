@@ -196,6 +196,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   final _addressController = TextEditingController();
   final _addressHintController = FieldHintController();
   final _gigAddressFocusNode = FocusNode();
+  final _stateController = TextEditingController();
 
   // GlobalKeys for validation scroll-to-error
   final _locationKey = GlobalKey();
@@ -287,6 +288,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
       // Populate linked venue for edit mode
       _selectedVenueId = data.venueId;
+
+      // Populate state from linked venue (if any)
+      if (_selectedVenueId != null) {
+        final venues = ref.read(venuesProvider).venues;
+        final venue = venues.cast<Venue?>().firstWhere(
+              (v) => v!.id == _selectedVenueId,
+              orElse: () => null,
+            );
+        if (venue != null && venue.state != null && venue.state!.isNotEmpty) {
+          _stateController.text = venue.state!;
+        }
+      }
 
       // Store initial form data for change detection in edit mode
       _initialFormData = data;
@@ -404,6 +417,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     });
     _notesController.addListener(_markDirty);
     _addressController.addListener(_markDirty);
+    _stateController.addListener(_markDirty);
   }
 
   @override
@@ -424,6 +438,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _addressController.dispose();
     _addressHintController.dispose();
     _gigAddressFocusNode.dispose();
+    _stateController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -695,31 +710,77 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     final venues = ref.read(venuesProvider).venues;
     final queryLower = query.toLowerCase();
+
     final suggestions = venues
         .where((v) => v.name.toLowerCase().contains(queryLower))
         .map((v) => v.name)
         .take(15)
         .toList();
 
-    // Check if current text exactly matches a venue to auto-link
-    final exactMatch = venues.cast<Venue?>().firstWhere(
-          (v) => v!.name.toLowerCase() == queryLower,
-          orElse: () => null,
-        );
-    if (exactMatch != null) {
-      _selectedVenueId = exactMatch.id;
-      // Auto-fill city from venue if city is set and location field is empty
-      if (exactMatch.city != null &&
-          exactMatch.city!.isNotEmpty &&
+    // Smart matching: single-match auto-fills immediately, multi-match requires city to disambiguate
+    final nameMatches =
+        venues.where((v) => v.name.toLowerCase() == queryLower).toList();
+
+    if (nameMatches.length == 1) {
+      // Exactly one match — auto-link and auto-fill immediately
+      final venue = nameMatches.first;
+      _selectedVenueId = venue.id;
+
+      // Auto-fill city from venue if set and location field is empty
+      if (venue.city != null &&
+          venue.city!.isNotEmpty &&
           _locationController.text.trim().isEmpty) {
         final cityState = [
-          exactMatch.city,
-          if (exactMatch.state != null && exactMatch.state!.isNotEmpty)
-            exactMatch.state,
+          venue.city,
+          if (venue.state != null && venue.state!.isNotEmpty) venue.state,
         ].join(', ');
         _locationController.text = cityState;
       }
+
+      // Auto-fill address from venue if set and address field is empty
+      if (venue.address != null &&
+          venue.address!.isNotEmpty &&
+          _addressController.text.trim().isEmpty) {
+        _addressController.text = venue.address!;
+      }
+
+      // Auto-fill state from venue if set and state field is empty
+      if (venue.state != null &&
+          venue.state!.isNotEmpty &&
+          _stateController.text.trim().isEmpty) {
+        _stateController.text = venue.state!;
+      }
+    } else if (nameMatches.length > 1) {
+      // Multiple matches — require city field to disambiguate
+      final currentCity = _locationController.text.trim().toLowerCase();
+      final exactMatch = nameMatches.cast<Venue?>().firstWhere(
+            (v) => (v!.city?.toLowerCase() ?? '') == currentCity,
+            orElse: () => null,
+          );
+
+      if (exactMatch != null) {
+        // City disambiguated — auto-link and auto-fill address/state (city already typed)
+        _selectedVenueId = exactMatch.id;
+
+        // Auto-fill address from venue if set and address field is empty
+        if (exactMatch.address != null &&
+            exactMatch.address!.isNotEmpty &&
+            _addressController.text.trim().isEmpty) {
+          _addressController.text = exactMatch.address!;
+        }
+
+        // Auto-fill state from venue if set and state field is empty
+        if (exactMatch.state != null &&
+            exactMatch.state!.isNotEmpty &&
+            _stateController.text.trim().isEmpty) {
+          _stateController.text = exactMatch.state!;
+        }
+      } else {
+        // Multiple matches, city doesn't disambiguate yet — don't auto-link
+        _selectedVenueId = null;
+      }
     } else {
+      // No match — clear venue link
       _selectedVenueId = null;
     }
 
@@ -1348,13 +1409,44 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (_eventType == EventType.gig &&
           _selectedVenueId == null &&
           _nameController.text.trim().isNotEmpty) {
-        final newVenue = await ref.read(venuesProvider.notifier).create(
-          bandId: widget.bandId,
-          data: {'name': _nameController.text.trim()},
-        );
-        if (newVenue != null) {
-          _selectedVenueId = newVenue.id;
-          formData = formData.copyWith(venueId: newVenue.id);
+        // Check if venue already exists (band-scoped, case-insensitive name + city match)
+        final venueName = _nameController.text.trim();
+        final venueCity = _locationController.text.trim();
+
+        // Build null-safe query: when city is empty, match venues where city IS NULL
+        final query = supabase
+            .from('venues')
+            .select('id')
+            .eq('band_id', widget.bandId)
+            .ilike('name', venueName);
+
+        final existingVenue = venueCity.isEmpty
+            ? await query.isFilter('city', null).maybeSingle()
+            : await query.ilike('city', venueCity).maybeSingle();
+
+        if (existingVenue != null) {
+          // Use existing venue instead of creating duplicate
+          _selectedVenueId = existingVenue['id'] as String;
+          formData = formData.copyWith(venueId: _selectedVenueId);
+        } else {
+          // No match — create new venue with all available fields
+          final newVenue = await ref.read(venuesProvider.notifier).create(
+            bandId: widget.bandId,
+            data: {
+              'name': venueName,
+              'city': venueCity.isNotEmpty ? venueCity : null,
+              'address': _addressController.text.trim().isNotEmpty
+                  ? _addressController.text.trim()
+                  : null,
+              'state': _stateController.text.trim().isNotEmpty
+                  ? _stateController.text.trim()
+                  : null,
+            },
+          );
+          if (newVenue != null) {
+            _selectedVenueId = newVenue.id;
+            formData = formData.copyWith(venueId: newVenue.id);
+          }
         }
       }
 
@@ -1928,6 +2020,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       addressController: _addressController,
       addressHintController: _addressHintController,
       gigAddressFocusNode: _gigAddressFocusNode,
+      stateController: _stateController,
     );
   }
 
@@ -2180,7 +2273,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                           // Location + recurring toggle (recurring hidden when isPotential)
                           rehearsalFormFields!,
                         ] else ...[
-                          gigFormFields!.buildAddressCityRow(context),
+                          gigFormFields!.buildAddressField(context),
+                          const SizedBox(height: Spacing.space16),
+                          gigFormFields.buildCityStateRow(context),
                           const SizedBox(height: Spacing.space16),
                           gigFormFields.buildLoadInTimeSelector(context),
                         ],

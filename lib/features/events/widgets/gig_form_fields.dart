@@ -39,6 +39,7 @@ class GigFormFields extends ConsumerWidget {
     required this.addressController,
     required this.addressHintController,
     required this.gigAddressFocusNode,
+    required this.stateController,
     // Potential gig
     required this.isPotentialGig,
     required this.forcePotentialOnly,
@@ -100,6 +101,7 @@ class GigFormFields extends ConsumerWidget {
   final TextEditingController addressController;
   final FieldHintController addressHintController;
   final FocusNode gigAddressFocusNode;
+  final TextEditingController stateController;
 
   // --- Potential gig ---
   final bool isPotentialGig;
@@ -164,19 +166,24 @@ class GigFormFields extends ConsumerWidget {
     return _buildGigCityAutocomplete(context);
   }
 
-  /// Builds address (left, flex 6) + city (right, flex 4) in a single row.
-  Widget buildAddressCityRow(BuildContext context) {
+  /// Builds the address field (full width, called from parent build method).
+  Widget buildAddressField(BuildContext context) {
+    return _buildAddressField(context);
+  }
+
+  /// Builds city (left, flex 3) + state (right, flex 2) in a single row.
+  Widget buildCityStateRow(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          flex: 6,
-          child: _buildAddressField(context),
+          flex: 3,
+          child: _buildGigCityAutocomplete(context),
         ),
         const SizedBox(width: Spacing.space8),
         Expanded(
-          flex: 4,
-          child: _buildGigCityAutocomplete(context),
+          flex: 2,
+          child: _buildStateField(context),
         ),
       ],
     );
@@ -285,6 +292,69 @@ class GigFormFields extends ConsumerWidget {
     );
   }
 
+  /// Builds the state field (private, called from buildAddressCityRow).
+  Widget _buildStateField(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'State',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: stateController,
+          enabled: !isSaving,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.next,
+          maxLength: 2,
+          style: AppTextStyles.callout.copyWith(
+            color: context.colors.textPrimary,
+          ),
+          onChanged: (value) {
+            // Enforce uppercase formatting
+            final upperValue = value.toUpperCase();
+            if (value != upperValue) {
+              final cursorPosition = stateController.selection.baseOffset;
+              stateController.value = stateController.value.copyWith(
+                text: upperValue,
+                selection: TextSelection.collapsed(offset: cursorPosition),
+              );
+            }
+            onMarkDirty();
+          },
+          decoration: InputDecoration(
+            hintText: 'IL',
+            counterText: '', // Hide character counter
+            hintStyle: AppTextStyles.callout.copyWith(
+              color: context.colors.textMuted,
+            ),
+            filled: true,
+            fillColor: context.colors.background,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: BorderSide(color: context.colors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: BorderSide(color: context.colors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              borderSide: const BorderSide(color: AppColors.primary),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Gig Name Autocomplete
   // ---------------------------------------------------------------------------
@@ -319,6 +389,8 @@ class GigFormFields extends ConsumerWidget {
             nameController.selection = TextSelection.collapsed(
               offset: selection.length,
             );
+            // Trigger matching logic to set _selectedVenueId and auto-fill city/address/state
+            onGigNameChanged(selection);
           },
           fieldViewBuilder: (
             BuildContext context,
