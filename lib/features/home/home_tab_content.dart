@@ -996,12 +996,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                                   );
                                                 }
                                               : null,
-                                          onFinancials: !isContributor
+                                          onFinancials: canViewFinancials
                                               ? _handleOpenFinancials
                                               : null,
                                           showAddEvent: showAddEvent,
                                           showCreateSetlist: canCreateSetlist,
-                                          showFinancials: !isContributor,
+                                          showFinancials: canViewFinancials,
                                         ),
                                       ),
                                     ],
