@@ -162,6 +162,12 @@ class BandPermissions {
     return false;
   }
 
+  /// Whether this user can create financial entries (admin & member only)
+  bool get canCreateFinancials => isAdmin || isMember;
+
+  /// Whether this user can delete financial entries (admin & member only)
+  bool get canDeleteFinancials => isAdmin || isMember;
+
   @override
   String toString() =>
       'BandPermissions(role=$role, isAdmin=$isAdmin, canCreateGigs=$canCreateGigs)';

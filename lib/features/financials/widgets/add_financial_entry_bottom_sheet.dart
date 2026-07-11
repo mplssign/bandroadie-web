@@ -1,12 +1,15 @@
 // ignore_for_file: library_private_types_in_public_api
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../features/members/member_vm.dart';
+import '../../members/permissions/band_permissions_provider.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../models/financial_entry.dart';
@@ -63,9 +66,11 @@ FinancialEntryType _labelToEntryType(String label, {required bool isIncome}) {
 /// Pass [initialEntry] to pre-fill the form for editing.
 /// Pass [savingsTotalCents] to display the band's running savings balance next
 /// to the "Deposit to Savings" toggle label. If null, no balance is shown.
+/// Pass [onDelete] to enable the delete button (only shown when editing).
 Future<void> showAddFinancialEntrySheet(
   BuildContext context, {
   required _SaveCallback onSave,
+  VoidCallback? onDelete,
   bool initialIsIncome = true,
   FinancialEntry? initialEntry,
   List<MemberVM> members = const [],
@@ -77,6 +82,7 @@ Future<void> showAddFinancialEntrySheet(
     backgroundColor: Colors.transparent,
     builder: (_) => _AddFinancialEntryBottomSheet(
       onSave: onSave,
+      onDelete: onDelete,
       initialIsIncome: initialEntry?.isIncome ?? initialIsIncome,
       initialEntry: initialEntry,
       members: members,
@@ -101,6 +107,7 @@ String _formatSavingsCents(int cents) {
 class _AddFinancialEntryBottomSheet extends StatefulWidget {
   const _AddFinancialEntryBottomSheet({
     required this.onSave,
+    this.onDelete,
     this.initialIsIncome = true,
     this.initialEntry,
     this.members = const [],
@@ -108,6 +115,7 @@ class _AddFinancialEntryBottomSheet extends StatefulWidget {
   });
 
   final _SaveCallback onSave;
+  final VoidCallback? onDelete;
   final bool initialIsIncome;
   final FinancialEntry? initialEntry;
   final List<MemberVM> members;
@@ -405,6 +413,26 @@ class _AddFinancialEntryBottomSheetState
     }
   }
 
+  Future<void> _handleDelete() async {
+    final entry = widget.initialEntry;
+    if (entry == null) return;
+
+    final entryType = entry.isIncome ? 'income' : 'expense';
+    final confirmed = await showConfirmActionDialog(
+      context: context,
+      title: 'Delete Entry?',
+      message:
+          'Are you sure you want to delete this $entryType entry? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+    );
+
+    if (!confirmed || !mounted) return;
+
+    Navigator.of(context).pop();
+    widget.onDelete?.call();
+  }
+
   Widget _buildFixedBottomActions() {
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final enabled = _amountController.cents > 0;
@@ -434,55 +462,105 @@ class _AddFinancialEntryBottomSheetState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: enabled ? _save : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: enabled
-                    ? AppColors.primary
-                    : context.colors.border.withValues(alpha: 0.3),
-                disabledBackgroundColor:
-                    context.colors.border.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          // Save and Cancel side by side
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: context.colors.border),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    ),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: AppTextStyles.body.copyWith(
+                      color: context.colors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: enabled ? _save : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: enabled
+                        ? AppColors.primary
+                        : context.colors.border.withValues(alpha: 0.3),
+                    disabledBackgroundColor:
+                        context.colors.border.withValues(alpha: 0.3),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Save',
+                          style: AppTextStyles.body.copyWith(
+                            color: enabled
+                                ? Colors.white
+                                : context.colors.textMuted,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+          // Delete button (only when editing and user has permission)
+          if (widget.initialEntry != null && widget.onDelete != null)
+            Consumer(
+              builder: (context, ref, _) {
+                final permissionsAsync =
+                    ref.watch(currentUserPermissionsProvider);
+                final canDelete = permissionsAsync.when(
+                  data: (p) => p.canDeleteFinancials,
+                  loading: () => false,
+                  error: (_, __) => false,
+                );
+                if (!canDelete) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _handleDelete,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 24),
                       ),
-                    )
-                  : Text(
-                      'Save',
-                      style: AppTextStyles.body.copyWith(
-                        color:
-                            enabled ? Colors.white : context.colors.textMuted,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
+                      child: Text(
+                        widget.initialEntry!.isIncome
+                            ? 'Delete income'
+                            : 'Delete expense',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
+                  ],
+                );
+              },
             ),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
         ],
       ),
     );

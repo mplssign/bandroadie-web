@@ -191,6 +191,9 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                       depositToSavingsCents: depositToSavingsCents,
                     );
                   },
+                  onDelete: () async {
+                    await notifier.deleteEntry(entry.id);
+                  },
                 );
               },
               icon: const Icon(AppIcons.edit, size: 18),

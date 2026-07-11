@@ -10,6 +10,7 @@ import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
 import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
+import '../members/permissions/band_permissions_provider.dart';
 import 'financials_controller.dart';
 import 'financials_pdf_preview_screen.dart';
 import 'models/financial_entry.dart';
@@ -144,58 +145,69 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        tooltip: 'Add entry',
-        onPressed: state.isLoading
-            ? null
-            : () async {
-                final notifier = ref.read(financialsProvider.notifier);
-                final isIncome = state.viewMode == FinancialViewMode.income;
-                final members = ref.read(membersProvider).members;
-                final savingsTotalCents = state.allEntries
-                    .where((e) => e.depositToSavings == true)
-                    .fold<int>(
-                        0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
-                await showAddFinancialEntrySheet(
-                  context,
-                  initialIsIncome: isIncome,
-                  members: members,
-                  savingsTotalCents: savingsTotalCents,
-                  onSave: ({
-                    required entryType,
-                    required category,
-                    required amountCents,
-                    required entryDate,
-                    description,
-                    is1099Expected,
-                    payerName,
-                    paidToName,
-                    paidToUserId,
-                    disbursements,
-                    depositToSavings,
-                    depositToSavingsCents,
-                  }) async {
-                    await notifier.addEntry(
-                      entryType: entryType,
-                      category: category,
-                      amountCents: amountCents,
-                      entryDate: entryDate,
-                      description: description,
-                      is1099Expected: is1099Expected,
-                      payerName: payerName,
-                      paidToName: paidToName,
-                      paidToUserId: paidToUserId,
-                      disbursements: disbursements,
-                      depositToSavings: depositToSavings,
-                      depositToSavingsCents: depositToSavingsCents,
-                    );
-                  },
-                );
-              },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: () {
+        final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+        final canCreate = permissionsAsync.when(
+          data: (p) => p.canCreateFinancials,
+          loading: () => false,
+          error: (_, __) => false,
+        );
+        if (!canCreate) {
+          return null;
+        }
+        return FloatingActionButton(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          tooltip: 'Add entry',
+          onPressed: state.isLoading
+              ? null
+              : () async {
+                  final notifier = ref.read(financialsProvider.notifier);
+                  final isIncome = state.viewMode == FinancialViewMode.income;
+                  final members = ref.read(membersProvider).members;
+                  final savingsTotalCents = state.allEntries
+                      .where((e) => e.depositToSavings == true)
+                      .fold<int>(
+                          0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
+                  await showAddFinancialEntrySheet(
+                    context,
+                    initialIsIncome: isIncome,
+                    members: members,
+                    savingsTotalCents: savingsTotalCents,
+                    onSave: ({
+                      required entryType,
+                      required category,
+                      required amountCents,
+                      required entryDate,
+                      description,
+                      is1099Expected,
+                      payerName,
+                      paidToName,
+                      paidToUserId,
+                      disbursements,
+                      depositToSavings,
+                      depositToSavingsCents,
+                    }) async {
+                      await notifier.addEntry(
+                        entryType: entryType,
+                        category: category,
+                        amountCents: amountCents,
+                        entryDate: entryDate,
+                        description: description,
+                        is1099Expected: is1099Expected,
+                        payerName: payerName,
+                        paidToName: paidToName,
+                        paidToUserId: paidToUserId,
+                        disbursements: disbursements,
+                        depositToSavings: depositToSavings,
+                        depositToSavingsCents: depositToSavingsCents,
+                      );
+                    },
+                  );
+                },
+          child: const Icon(Icons.add),
+        );
+      }(),
     );
   }
 }
