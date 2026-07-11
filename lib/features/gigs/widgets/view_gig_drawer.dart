@@ -307,7 +307,7 @@ class ViewGigDrawer extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(LucideIcons.navigation2),
+                              icon: const Icon(LucideIcons.navigation2, color: AppColors.primary),
                               color: AppColors.primary,
                               iconSize: 20,
                               onPressed: () => _openNavigation(context),
