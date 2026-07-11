@@ -110,9 +110,7 @@ class _SongCardState extends State<SongCard>
           height: 121,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.white
-                : context.colors.background,
+            color: context.colors.surface,
             border: Border.all(
               color: AppColors.primary, // Rose/500 #F43F5E
               width: StandardCardBorder.width, // 1.5px - matches Setlist cards

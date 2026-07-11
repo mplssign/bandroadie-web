@@ -511,14 +511,13 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Widget _datePickerTheme(Widget? child) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
-          primary: AppColors.primary,
-          surface: context.colors.surface,
-          onSurface: context.colors.textPrimary,
-        ),
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.primary,
+              surface: context.colors.surface,
+              onSurface: context.colors.textPrimary,
+            ),
         dialogTheme: DialogThemeData(backgroundColor: context.colors.surface),
       ),
       child: child!,

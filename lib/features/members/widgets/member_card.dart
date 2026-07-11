@@ -85,9 +85,7 @@ class _MemberCardState extends State<MemberCard> {
     // No card-level tap handler - contact rows handle their own taps (phone, email)
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light
-            ? Colors.white
-            : context.colors.background,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(_MemberCardTokens.cardRadius),
         border: Border.all(
           color: _MemberCardTokens.borderRose,
