@@ -2511,9 +2511,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           height: 121,
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.white
-                : context.colors.background,
+            color: context.colors.surface,
             border: Border.all(
               // Highlight selected cards with accent border
               color: widget.isSelected

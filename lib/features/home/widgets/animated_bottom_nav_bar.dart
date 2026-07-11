@@ -3,7 +3,6 @@ import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -284,7 +283,6 @@ class _AnimatedNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
     return GestureDetector(
       onTap: onTap,
       onTapDown: (_) => onTapDown(),
@@ -306,22 +304,14 @@ class _AnimatedNavItem extends StatelessWidget {
                 children: [
                   Icon(
                     icon,
-                    color: isActive
-                        ? Colors.white
-                        : (isLight
-                            ? Colors.white
-                            : context.colors.textSecondary),
+                    color: Colors.white,
                     size: isActive ? 20.5 : 20,
                   ),
                   SizedBox(height: isActive ? 4 : 6),
                   Text(
                     label,
                     style: AppTextStyles.navLabel.copyWith(
-                      color: isActive
-                          ? Colors.white
-                          : (isLight
-                              ? Colors.white
-                              : context.colors.textSecondary),
+                      color: Colors.white,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),

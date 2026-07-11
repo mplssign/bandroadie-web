@@ -29,9 +29,7 @@ class ContactCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.light
-              ? Colors.white
-              : context.colors.background,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: AppColors.primary,

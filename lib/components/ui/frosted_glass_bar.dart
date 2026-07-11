@@ -78,10 +78,8 @@ class FrostedGlassBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    final effectiveOpacity = isLight ? 0.93 : backgroundOpacity;
     final bgColor = backgroundColor ??
-        context.colors.appBarBg.withValues(alpha: effectiveOpacity);
+        context.colors.appBarBg.withValues(alpha: backgroundOpacity);
 
     Widget container = Container(
       height: height,

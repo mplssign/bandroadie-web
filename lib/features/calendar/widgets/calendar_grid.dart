@@ -192,9 +192,7 @@ class _CalendarGridState extends State<CalendarGrid>
       child: Container(
         padding: const EdgeInsets.all(Spacing.space16),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.light
-              ? Colors.white
-              : context.colors.background,
+          color: context.colors.surface,
           border: Border.all(color: context.colors.surfaceOverlay),
           borderRadius: BorderRadius.circular(16),
         ),
@@ -507,8 +505,11 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasAnyMarker =
-        hasBlockOut || hasGig || hasRehearsal || hasPotentialGig || hasPotentialRehearsal;
+    final hasAnyMarker = hasBlockOut ||
+        hasGig ||
+        hasRehearsal ||
+        hasPotentialGig ||
+        hasPotentialRehearsal;
 
     return GestureDetector(
       onTap: onTap,

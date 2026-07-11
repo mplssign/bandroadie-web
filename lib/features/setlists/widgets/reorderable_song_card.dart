@@ -161,9 +161,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           width: double.infinity,
           height: 121,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.white
-                : context.colors.background,
+            color: context.colors.surface,
             border: Border.all(
               color: StandardCardBorder.color,
               width: StandardCardBorder.width,

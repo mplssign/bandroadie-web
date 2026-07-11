@@ -2518,14 +2518,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Widget _blockOutDatePickerTheme(Widget? child) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
-          primary: AppColors.primary,
-          surface: context.colors.surface,
-          onSurface: context.colors.textPrimary,
-        ),
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: AppColors.primary,
+              surface: context.colors.surface,
+              onSurface: context.colors.textPrimary,
+            ),
         dialogTheme: DialogThemeData(backgroundColor: context.colors.surface),
       ),
       child: child!,
@@ -2552,7 +2551,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showAdditionalDatePicker(int index) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _additionalDates[index].date,
@@ -2561,11 +2559,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
-              primary: AppColors.primary,
-              surface: context.colors.surface,
-              onSurface: context.colors.textPrimary,
-            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primary,
+                  surface: context.colors.surface,
+                  onSurface: context.colors.textPrimary,
+                ),
           ),
           child: child!,
         );
@@ -2579,7 +2577,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showDatePicker() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -2588,10 +2585,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
-              primary: AppColors.primary,
-              surface: context.colors.surface,
-            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primary,
+                  surface: context.colors.surface,
+                ),
           ),
           child: child!,
         );
@@ -2725,7 +2722,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showUntilDatePicker() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final picked = await showDatePicker(
       context: context,
       initialDate: _untilDate ?? _selectedDate.add(const Duration(days: 30)),
@@ -2734,10 +2730,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: (isDark ? ColorScheme.dark : ColorScheme.light)(
-              primary: AppColors.primary,
-              surface: context.colors.surface,
-            ),
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.primary,
+                  surface: context.colors.surface,
+                ),
           ),
           child: child!,
         );
