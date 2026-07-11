@@ -222,7 +222,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFD1D5DB),
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
           ),
           child: Column(
