@@ -236,6 +236,18 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
     }
   }
 
+  Future<void> deleteEntry(String entryId) async {
+    final bandId = ref.read(activeBandIdProvider);
+    if (bandId == null) throw StateError('No band selected');
+
+    final repo = ref.read(financialEntryRepositoryProvider);
+    await repo.deleteEntry(entryId, bandId);
+
+    state = state.copyWith(
+      allEntries: state.allEntries.where((e) => e.id != entryId).toList(),
+    );
+  }
+
   Future<void> refresh() async {
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
