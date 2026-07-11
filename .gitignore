@@ -110,7 +110,6 @@ web/manifest.json
 # ========================
 test/.dart_tool/
 .vercel
-tools/deploy_web.sh
 tools/build_ios.sh
 tools/build_android.sh
 tools/secrets.txt
