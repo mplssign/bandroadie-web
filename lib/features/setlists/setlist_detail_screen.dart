@@ -413,7 +413,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       if (mounted) {
         showErrorSnackBar(
           context,
-          message: '🎸 "$songTitle" already exists in $targetSetlistName',
+          message: '"$songTitle" already exists in $targetSetlistName',
         );
       }
       return false;
@@ -438,7 +438,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       final actionText = result.isMoveMode ? 'moved to' : 'copied to';
       showSuccessSnackBar(
         context,
-        message: '🎸 "$songTitle" $actionText $targetSetlistName',
+        message: '"$songTitle" $actionText $targetSetlistName',
       );
     } else if (mounted) {
       showErrorSnackBar(
@@ -657,7 +657,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       if (mounted) {
         showErrorSnackBar(
           context,
-          message: '🎸 "$songTitle" already exists in $targetSetlistName',
+          message: '"$songTitle" already exists in $targetSetlistName',
         );
       }
       return;
@@ -672,7 +672,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     if (mounted && success) {
       showSuccessSnackBar(
         context,
-        message: '🎸 "$songTitle" copied to $targetSetlistName',
+        message: '"$songTitle" copied to $targetSetlistName',
       );
     } else if (mounted) {
       showErrorSnackBar(context, message: 'Failed to copy song');
