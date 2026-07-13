@@ -3573,13 +3573,13 @@ class SetlistRepository {
           .limit(1);
 
       if ((existing as List).isNotEmpty) {
-        final existingId = existing[0]['id'] as String;
         if (kDebugMode) {
           debugPrint(
-            '[SetlistRepository] Song $songId already in setlist $setlistId',
+            '[SetlistRepository] Song $songId already in setlist $setlistId - returning null',
           );
         }
-        return existingId;
+        // Return null to indicate song already exists (not an error, but not added)
+        return null;
       }
 
       // Get the current max position
@@ -3642,6 +3642,67 @@ class SetlistRepository {
     } catch (e) {
       debugPrint('[SetlistRepository] Unexpected error adding song: $e');
       return null;
+    }
+  }
+
+  // ==========================================================================
+  // MOVE SONG BETWEEN SETLISTS (ATOMIC RPC)
+  // ==========================================================================
+
+  /// Atomically move a song from source setlist to target setlist.
+  /// Uses the `move_song_between_setlists` RPC to ensure insert + delete
+  /// happens in a single transaction.
+  ///
+  /// Returns true if successful, false if RPC reports failure.
+  /// Throws exception if RPC not found or network error.
+  Future<bool> moveSongBetweenSetlists({
+    required String sourceSetlistId,
+    required String targetSetlistId,
+    required String songId,
+    required String bandId,
+  }) async {
+    try {
+      final response = await supabase.rpc(
+        'move_song_between_setlists',
+        params: {
+          'p_source_setlist_id': sourceSetlistId,
+          'p_target_setlist_id': targetSetlistId,
+          'p_song_id': songId,
+          'p_band_id': bandId,
+        },
+      );
+
+      if (response is Map && response['success'] == true) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistRepository] ✓ Moved song $songId from $sourceSetlistId to $targetSetlistId via RPC',
+          );
+        }
+        return true;
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] Move RPC failed: ${response is Map ? response['error'] : response}',
+        );
+      }
+      return false;
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] move_song_between_setlists RPC not found',
+        );
+        throw Exception(
+          'Move operation requires database migration. Please update the app or contact support.',
+        );
+      }
+      debugPrint('[SetlistRepository] Error moving song: $e');
+      rethrow;
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] Unexpected error moving song: $e',
+      );
+      rethrow;
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -328,6 +329,401 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     // Always return false — the state update already removed the item
     // from the widget tree.
     return false;
+  }
+
+  /// Handle move or copy song to another setlist via swipe-right gesture.
+  /// Always returns false to prevent Dismissible from removing the widget.
+  Future<bool> _handleMoveOrCopySong(String songId, String songTitle) async {
+    final state = ref.read(setlistDetailProvider);
+
+    HapticFeedback.mediumImpact();
+
+    // Open setlist picker with source setlist context
+    final result = await showSetlistPickerBottomSheet(
+      context,
+      selectedSongCount: 1,
+      sourceSetlistId: state.setlistId,
+      sourceSetlistName: state.setlistName,
+    );
+
+    if (result == null || !mounted) return false;
+
+    final notifier = ref.read(setlistDetailProvider.notifier);
+    final repository = ref.read(setlistRepositoryProvider);
+    final bandId = ref.read(activeBandIdProvider);
+    String targetSetlistId;
+    String targetSetlistName;
+
+    // Handle create new setlist
+    if (result.createNew && result.newSetlistName != null) {
+      if (bandId == null || !mounted) {
+        showErrorSnackBar(context, message: 'No band selected');
+        return false;
+      }
+
+      try {
+        final newSetlist = await repository.createSetlist(
+          bandId: bandId,
+          name: result.newSetlistName!,
+        );
+        targetSetlistId = newSetlist.id;
+        targetSetlistName = newSetlist.name;
+      } catch (e) {
+        if (mounted) {
+          showErrorSnackBar(context, message: 'Failed to create setlist');
+        }
+        return false;
+      }
+    } else {
+      targetSetlistId = result.setlistId!;
+      targetSetlistName = result.setlistName!;
+    }
+
+    // Check if target is the same as current setlist
+    if (targetSetlistId == state.setlistId) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Same Setlist'),
+            content: Text(
+              '"$songTitle" is already in $targetSetlistName.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return false;
+    }
+
+    // Check if song already exists in target setlist
+    final existingCheck = await supabase
+        .from('setlist_songs')
+        .select('id')
+        .eq('setlist_id', targetSetlistId)
+        .eq('song_id', songId)
+        .limit(1);
+
+    if ((existingCheck as List).isNotEmpty) {
+      if (mounted) {
+        showErrorSnackBar(
+          context,
+          message: '🎸 "$songTitle" already exists in $targetSetlistName',
+        );
+      }
+      return false;
+    }
+
+    // Perform move or copy
+    bool success;
+    if (result.isMoveMode) {
+      success = await notifier.moveSongToSetlist(
+        songId: songId,
+        targetSetlistId: targetSetlistId,
+        sourceSetlistId: state.setlistId,
+      );
+    } else {
+      success = await notifier.copySongToSetlist(
+        songId: songId,
+        targetSetlistId: targetSetlistId,
+      );
+    }
+
+    if (mounted && success) {
+      final actionText = result.isMoveMode ? 'moved to' : 'copied to';
+      showSuccessSnackBar(
+        context,
+        message: '🎸 "$songTitle" $actionText $targetSetlistName',
+      );
+    } else if (mounted) {
+      showErrorSnackBar(
+        context,
+        message: 'Failed to ${result.isMoveMode ? 'move' : 'copy'} song',
+      );
+    }
+
+    // Always return false — state management handles the update
+    return false;
+  }
+
+  /// Build the background widget for swipe-right (Move/Copy)
+  Widget _buildMoveOrCopyBackground() {
+    return Container(
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(left: Spacing.space24),
+      decoration: BoxDecoration(
+        color: context.colors.success,
+        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.arrowRight, color: Colors.white, size: 22),
+          SizedBox(width: Spacing.space8),
+          Text(
+            'Move/Copy',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build the background widget for swipe-left (Delete/Remove)
+  Widget _buildDeleteBackground() {
+    final state = ref.read(setlistDetailProvider);
+    final label = state.isCatalog ? 'Delete' : 'Remove';
+
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: Spacing.space24),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(width: Spacing.space8),
+          const Icon(AppIcons.delete, color: Colors.white, size: 22),
+        ],
+      ),
+    );
+  }
+
+  /// Check if the current platform is pointer-only (web or macOS).
+  /// On these platforms, we show a three-dot menu instead of relying on swipe gestures.
+  bool get _isPointerOnlyPlatform {
+    if (kIsWeb) return true;
+    try {
+      return Platform.isMacOS;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Build the three-dot menu for web/macOS (pointer-only platforms).
+  /// Provides Move/Copy/Delete actions without requiring swipe gestures.
+  Widget _buildSongActionsMenu(String songId, String songTitle) {
+    return PopupMenuButton<String>(
+      icon: const Icon(
+        Icons.more_vert,
+        color: Colors.grey,
+        size: 20,
+      ),
+      onSelected: (value) {
+        if (value == 'copy') {
+          _handleCopySong(songId, songTitle);
+        } else if (value == 'move') {
+          _handleMoveOrCopySong(songId, songTitle);
+        } else if (value == 'delete') {
+          _handleDelete(songId, songTitle);
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'copy',
+          child: Row(
+            children: [
+              Icon(AppIcons.copy, size: 18, color: context.colors.textPrimary),
+              const SizedBox(width: Spacing.space12),
+              const Text('Copy to Setlist…'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'move',
+          child: Row(
+            children: [
+              Icon(AppIcons.arrowRight,
+                  size: 18, color: context.colors.textPrimary),
+              const SizedBox(width: Spacing.space12),
+              const Text('Move to Setlist…'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              const Icon(AppIcons.delete, size: 18, color: AppColors.error),
+              const SizedBox(width: Spacing.space12),
+              Text(
+                'Delete',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Handle copy song (forces Copy mode in the setlist picker).
+  /// Used by the web/macOS menu option.
+  Future<void> _handleCopySong(String songId, String songTitle) async {
+    final state = ref.read(setlistDetailProvider);
+
+    // Open setlist picker with source setlist context, but we'll only use Copy mode
+    final result = await showSetlistPickerBottomSheet(
+      context,
+      selectedSongCount: 1,
+      sourceSetlistId: state.setlistId,
+      sourceSetlistName: state.setlistName,
+    );
+
+    if (result == null || !mounted) return;
+
+    final notifier = ref.read(setlistDetailProvider.notifier);
+    final repository = ref.read(setlistRepositoryProvider);
+    final bandId = ref.read(activeBandIdProvider);
+    String targetSetlistId;
+    String targetSetlistName;
+
+    // Handle create new setlist
+    if (result.createNew && result.newSetlistName != null) {
+      if (bandId == null || !mounted) {
+        showErrorSnackBar(context, message: 'No band selected');
+        return;
+      }
+
+      try {
+        final newSetlist = await repository.createSetlist(
+          bandId: bandId,
+          name: result.newSetlistName!,
+        );
+        targetSetlistId = newSetlist.id;
+        targetSetlistName = newSetlist.name;
+      } catch (e) {
+        if (mounted) {
+          showErrorSnackBar(context, message: 'Failed to create setlist');
+        }
+        return;
+      }
+    } else {
+      targetSetlistId = result.setlistId!;
+      targetSetlistName = result.setlistName!;
+    }
+
+    // Check if target is the same as current setlist
+    if (targetSetlistId == state.setlistId) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Same Setlist'),
+            content: Text(
+              '"$songTitle" is already in $targetSetlistName.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    // Check if song already exists in target setlist
+    final existingCheck = await supabase
+        .from('setlist_songs')
+        .select('id')
+        .eq('setlist_id', targetSetlistId)
+        .eq('song_id', songId)
+        .limit(1);
+
+    if ((existingCheck as List).isNotEmpty) {
+      if (mounted) {
+        showErrorSnackBar(
+          context,
+          message: '🎸 "$songTitle" already exists in $targetSetlistName',
+        );
+      }
+      return;
+    }
+
+    // Always copy (ignore isMoveMode from result)
+    final success = await notifier.copySongToSetlist(
+      songId: songId,
+      targetSetlistId: targetSetlistId,
+    );
+
+    if (mounted && success) {
+      showSuccessSnackBar(
+        context,
+        message: '🎸 "$songTitle" copied to $targetSetlistName',
+      );
+    } else if (mounted) {
+      showErrorSnackBar(context, message: 'Failed to copy song');
+    }
+  }
+
+  /// Build a song card with optional menu overlay for web/macOS.
+  Widget _buildSongCardWithMenu({
+    required SetlistSong song,
+    required int index,
+    required bool isDraggable,
+    required bool canEdit,
+  }) {
+    final card = ReorderableSongCard(
+      song: song,
+      index: index,
+      isDraggable: isDraggable,
+      onTap: () => _handleSongTap(song, readOnly: !canEdit),
+      onLyricsView: () {
+        final lyrics = LyricsData.fromJsonString(song.lyrics);
+        showLyricsViewScreen(
+          context,
+          lyrics: lyrics,
+          songId: song.id,
+          songTitle: song.title,
+        );
+      },
+      onEdit: canEdit ? () => _handleSongTap(song) : null,
+      onDelete: canEdit ? () => _handleDelete(song.id, song.title) : null,
+      onTuningChanged: canEdit
+          ? (tuning) => ref
+              .read(setlistDetailProvider.notifier)
+              .updateSongTuning(song.id, tuning)
+          : null,
+    );
+
+    // On web/macOS, add a menu overlay for Move/Copy actions
+    if (_isPointerOnlyPlatform && canEdit) {
+      return Stack(
+        children: [
+          card,
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _buildSongActionsMenu(song.id, song.title),
+          ),
+        ],
+      );
+    }
+
+    return card;
   }
 
   /// Handle reorder with debouncing.
@@ -2007,65 +2403,27 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                       child: Dismissible(
                         key: Key('dismiss_song_${song.id}'),
                         direction: canEdit
-                            ? DismissDirection.endToStart
+                            ? DismissDirection.horizontal
                             : DismissDirection.none,
                         dismissThresholds: const {
                           DismissDirection.endToStart: 0.4,
+                          DismissDirection.startToEnd: 0.4,
                         },
-                        confirmDismiss: (_) =>
-                            _confirmDeleteSong(song.id, song.title),
+                        confirmDismiss: (direction) {
+                          if (direction == DismissDirection.endToStart) {
+                            return _confirmDeleteSong(song.id, song.title);
+                          } else {
+                            return _handleMoveOrCopySong(song.id, song.title);
+                          }
+                        },
                         movementDuration: AppDurations.medium,
-                        background: const SizedBox.shrink(),
-                        secondaryBackground: Container(
-                          alignment: Alignment.centerRight,
-                          padding:
-                              const EdgeInsets.only(right: Spacing.space24),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius:
-                                BorderRadius.circular(Spacing.buttonRadius),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Delete',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              SizedBox(width: Spacing.space8),
-                              Icon(AppIcons.delete,
-                                  color: Colors.white, size: 22),
-                            ],
-                          ),
-                        ),
-                        child: ReorderableSongCard(
+                        background: _buildMoveOrCopyBackground(),
+                        secondaryBackground: _buildDeleteBackground(),
+                        child: _buildSongCardWithMenu(
                           song: song,
                           index: index,
                           isDraggable: false,
-                          onTap: () => _handleSongTap(song, readOnly: !canEdit),
-                          onLyricsView: () {
-                            final lyrics =
-                                LyricsData.fromJsonString(song.lyrics);
-                            showLyricsViewScreen(
-                              context,
-                              lyrics: lyrics,
-                              songId: song.id,
-                              songTitle: song.title,
-                            );
-                          },
-                          onEdit: canEdit ? () => _handleSongTap(song) : null,
-                          onDelete: canEdit
-                              ? () => _handleDelete(song.id, song.title)
-                              : null,
-                          onTuningChanged: canEdit
-                              ? (tuning) => ref
-                                  .read(setlistDetailProvider.notifier)
-                                  .updateSongTuning(song.id, tuning)
-                              : null,
+                          canEdit: canEdit,
                         ),
                       ),
                     );
@@ -2101,29 +2459,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             confirmDismiss: (_) => _confirmDeleteSpecialItem(item),
             movementDuration: AppDurations.medium,
             background: const SizedBox.shrink(),
-            secondaryBackground: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: Spacing.space24),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Delete',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(width: Spacing.space8),
-                  Icon(AppIcons.delete, color: Colors.white, size: 22),
-                ],
-              ),
-            ),
+            secondaryBackground: _buildDeleteBackground(),
             child: SpecialItemCard(
               item: item,
               index: index,
@@ -2158,58 +2494,26 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           child: Dismissible(
             key: Key('dismiss_song_${song.id}'),
             direction:
-                canEdit ? DismissDirection.endToStart : DismissDirection.none,
+                canEdit ? DismissDirection.horizontal : DismissDirection.none,
             dismissThresholds: const {
               DismissDirection.endToStart: 0.4,
+              DismissDirection.startToEnd: 0.4,
             },
-            confirmDismiss: (_) => _confirmDeleteSong(song.id, song.title),
+            confirmDismiss: (direction) {
+              if (direction == DismissDirection.endToStart) {
+                return _confirmDeleteSong(song.id, song.title);
+              } else {
+                return _handleMoveOrCopySong(song.id, song.title);
+              }
+            },
             movementDuration: AppDurations.medium,
-            background: const SizedBox.shrink(),
-            secondaryBackground: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: Spacing.space24),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Delete',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(width: Spacing.space8),
-                  Icon(AppIcons.delete, color: Colors.white, size: 22),
-                ],
-              ),
-            ),
-            child: ReorderableSongCard(
+            background: _buildMoveOrCopyBackground(),
+            secondaryBackground: _buildDeleteBackground(),
+            child: _buildSongCardWithMenu(
               song: song,
               index: index,
               isDraggable: canEdit,
-              onTap: () => _handleSongTap(song, readOnly: !canEdit),
-              onLyricsView: () {
-                final lyrics = LyricsData.fromJsonString(song.lyrics);
-                showLyricsViewScreen(
-                  context,
-                  lyrics: lyrics,
-                  songId: song.id,
-                  songTitle: song.title,
-                );
-              },
-              onEdit: canEdit ? () => _handleSongTap(song) : null,
-              onDelete:
-                  canEdit ? () => _handleDelete(song.id, song.title) : null,
-              onTuningChanged: canEdit
-                  ? (tuning) => ref
-                      .read(setlistDetailProvider.notifier)
-                      .updateSongTuning(song.id, tuning)
-                  : null,
+              canEdit: canEdit,
             ),
           ),
         );
@@ -2223,57 +2527,26 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         child: Dismissible(
           key: Key('dismiss_song_${song.id}'),
           direction:
-              canEdit ? DismissDirection.endToStart : DismissDirection.none,
+              canEdit ? DismissDirection.horizontal : DismissDirection.none,
           dismissThresholds: const {
             DismissDirection.endToStart: 0.4,
+            DismissDirection.startToEnd: 0.4,
           },
-          confirmDismiss: (_) => _confirmDeleteSong(song.id, song.title),
+          confirmDismiss: (direction) {
+            if (direction == DismissDirection.endToStart) {
+              return _confirmDeleteSong(song.id, song.title);
+            } else {
+              return _handleMoveOrCopySong(song.id, song.title);
+            }
+          },
           movementDuration: AppDurations.medium,
-          background: const SizedBox.shrink(),
-          secondaryBackground: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: Spacing.space24),
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Delete',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                SizedBox(width: Spacing.space8),
-                Icon(AppIcons.delete, color: Colors.white, size: 22),
-              ],
-            ),
-          ),
-          child: ReorderableSongCard(
+          background: _buildMoveOrCopyBackground(),
+          secondaryBackground: _buildDeleteBackground(),
+          child: _buildSongCardWithMenu(
             song: song,
             index: index,
             isDraggable: canEdit,
-            onTap: () => _handleSongTap(song, readOnly: !canEdit),
-            onLyricsView: () {
-              final lyrics = LyricsData.fromJsonString(song.lyrics);
-              showLyricsViewScreen(
-                context,
-                lyrics: lyrics,
-                songId: song.id,
-                songTitle: song.title,
-              );
-            },
-            onEdit: canEdit ? () => _handleSongTap(song) : null,
-            onDelete: canEdit ? () => _handleDelete(song.id, song.title) : null,
-            onTuningChanged: canEdit
-                ? (tuning) => ref
-                    .read(setlistDetailProvider.notifier)
-                    .updateSongTuning(song.id, tuning)
-                : null,
+            canEdit: canEdit,
           ),
         ),
       );
