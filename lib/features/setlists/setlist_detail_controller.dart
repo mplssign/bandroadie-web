@@ -887,6 +887,108 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
+  /// Copy a song to another setlist.
+  /// The song remains in the current setlist.
+  ///
+  /// Returns true if successful, false on error.
+  Future<bool> copySongToSetlist({
+    required String songId,
+    required String targetSetlistId,
+  }) async {
+    try {
+      final result = await _repository.addSongToSetlist(
+        setlistId: targetSetlistId,
+        songId: songId,
+      );
+
+      if (result == null) return false;
+
+      // Refresh setlists list to update song count and duration stats
+      await ref.read(setlistsProvider.notifier).refresh();
+
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Copy failed: $e');
+      return false;
+    }
+  }
+
+  /// Move a song to another setlist atomically.
+  /// The song is removed from the current setlist and added to the target setlist
+  /// via an atomic RPC transaction.
+  ///
+  /// Returns true if successful, false on error.
+  Future<bool> moveSongToSetlist({
+    required String songId,
+    required String targetSetlistId,
+    required String sourceSetlistId,
+  }) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    try {
+      final success = await _repository.moveSongBetweenSetlists(
+        sourceSetlistId: sourceSetlistId,
+        targetSetlistId: targetSetlistId,
+        songId: songId,
+        bandId: bandId,
+      );
+
+      if (!success) return false;
+
+      // ASYNC SAFETY: Verify bandId hasn't changed during the await
+      final currentBandId = _bandId;
+      if (currentBandId != bandId) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistDetail] Discarding move result: '
+            'bandId changed from $bandId to $currentBandId',
+          );
+        }
+        return false;
+      }
+
+      // Update local state - remove song from current setlist
+      final updatedSongs = state.songs.where((s) => s.id != songId).toList();
+
+      // Re-index positions
+      final reindexedSongs = updatedSongs.asMap().entries.map((entry) {
+        return entry.value.copyWith(position: entry.key);
+      }).toList();
+
+      // Also update items list if it's populated (mixed items mode)
+      if (state.items.isNotEmpty) {
+        final updatedItems = state.items
+            .where((i) => !(i.isSong && i.song?.id == songId))
+            .toList()
+            .asMap()
+            .entries
+            .map((e) => e.value.copyWith(position: e.key))
+            .toList();
+
+        state = state.copyWith(
+          songs: reindexedSongs,
+          items: updatedItems,
+        );
+      } else {
+        state = state.copyWith(songs: reindexedSongs);
+      }
+
+      // Refresh setlists list to update song count and duration stats
+      await ref.read(setlistsProvider.notifier).refresh();
+
+      debugPrint(
+          '[SetlistDetail] Moved song $songId to setlist $targetSetlistId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Move failed: $e');
+      return false;
+    }
+  }
+
   /// Reorder songs locally (optimistic update).
   ///
   /// Saves the current order as "last known good" before applying changes,

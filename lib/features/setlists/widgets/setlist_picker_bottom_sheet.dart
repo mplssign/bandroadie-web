@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/constants/app_constants.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist.dart';
@@ -38,23 +39,30 @@ class SetlistPickerResult {
   /// The new setlist name (only if createNew is true)
   final String? newSetlistName;
 
+  /// True if Move mode was selected (only relevant when source setlist provided)
+  final bool isMoveMode;
+
   const SetlistPickerResult({
     this.setlistId,
     this.setlistName,
     this.createNew = false,
     this.newSetlistName,
+    this.isMoveMode = false,
   });
 
   /// Factory for selecting an existing setlist
-  const SetlistPickerResult.existing({
+  SetlistPickerResult.existing({
     required this.setlistId,
     required this.setlistName,
+    this.isMoveMode = false,
   })  : createNew = false,
         newSetlistName = null;
 
   /// Factory for creating a new setlist
-  const SetlistPickerResult.createNew({required String name})
-      : setlistId = null,
+  SetlistPickerResult.createNew({
+    required String name,
+    this.isMoveMode = false,
+  })  : setlistId = null,
         setlistName = null,
         createNew = true,
         newSetlistName = name;
@@ -63,12 +71,16 @@ class SetlistPickerResult {
 /// Show the setlist picker bottom sheet.
 ///
 /// [selectedSongCount] - Number of songs being added (for header text)
+/// [sourceSetlistId] - Optional source setlist ID (enables Move/Copy toggle)
+/// [sourceSetlistName] - Optional source setlist name (for Catalog detection)
 ///
 /// Returns a [SetlistPickerResult] with the selected setlist or new name,
 /// or null if cancelled.
 Future<SetlistPickerResult?> showSetlistPickerBottomSheet(
   BuildContext context, {
   required int selectedSongCount,
+  String? sourceSetlistId,
+  String? sourceSetlistName,
 }) async {
   HapticFeedback.lightImpact();
 
@@ -78,8 +90,11 @@ Future<SetlistPickerResult?> showSetlistPickerBottomSheet(
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black54,
     useSafeArea: true,
-    builder: (context) =>
-        _SetlistPickerSheet(selectedSongCount: selectedSongCount),
+    builder: (context) => _SetlistPickerSheet(
+      selectedSongCount: selectedSongCount,
+      sourceSetlistId: sourceSetlistId,
+      sourceSetlistName: sourceSetlistName,
+    ),
   );
 }
 
@@ -89,8 +104,14 @@ Future<SetlistPickerResult?> showSetlistPickerBottomSheet(
 
 class _SetlistPickerSheet extends ConsumerStatefulWidget {
   final int selectedSongCount;
+  final String? sourceSetlistId;
+  final String? sourceSetlistName;
 
-  const _SetlistPickerSheet({required this.selectedSongCount});
+  const _SetlistPickerSheet({
+    required this.selectedSongCount,
+    this.sourceSetlistId,
+    this.sourceSetlistName,
+  });
 
   @override
   ConsumerState<_SetlistPickerSheet> createState() =>
@@ -108,6 +129,9 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
   final TextEditingController _newNameController = TextEditingController();
   final FocusNode _newNameFocus = FocusNode();
   String? _validationError;
+
+  // Move/Copy mode (only shown when sourceSetlistId != null)
+  bool _isMoveMode = false;
 
   @override
   void initState() {
@@ -147,6 +171,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
       SetlistPickerResult.existing(
         setlistId: setlist.id,
         setlistName: setlist.name,
+        isMoveMode: _isMoveMode,
       ),
     );
   }
@@ -183,7 +208,9 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
     }
 
     HapticFeedback.mediumImpact();
-    Navigator.of(context).pop(SetlistPickerResult.createNew(name: name));
+    Navigator.of(context).pop(
+      SetlistPickerResult.createNew(name: name, isMoveMode: _isMoveMode),
+    );
   }
 
   void _handleCancelCreate() {
@@ -249,6 +276,13 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
         ? '1 song'
         : '${widget.selectedSongCount} songs';
 
+    // Check if source is Catalog (Move option should be disabled)
+    final isSourceCatalog = widget.sourceSetlistName != null &&
+        isCatalogName(widget.sourceSetlistName!);
+
+    // Show Move/Copy toggle only when source setlist is provided
+    final showToggle = widget.sourceSetlistId != null && !isSourceCatalog;
+
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
@@ -258,35 +292,117 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
           ),
         ),
       ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isCreatingNew ? 'Create New Setlist' : 'Add To Setlist',
+                      style: AppTextStyles.title3,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Adding $songsText',
+                      style: AppTextStyles.callout.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Close button
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: Icon(
+                  AppIcons.close,
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          // Move/Copy toggle (only shown when source setlist provided and not Catalog)
+          if (showToggle) ...[
+            const SizedBox(height: Spacing.space12),
+            _buildMoveCopyToggle(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoveCopyToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.colors.background,
+        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+        border: Border.all(
+          color: context.colors.textSecondary.withValues(alpha: 0.2),
+        ),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _isCreatingNew ? 'Create New Setlist' : 'Add To Setlist',
-                  style: AppTextStyles.title3,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Adding $songsText',
-                  style: AppTextStyles.callout.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ],
+            child: _buildToggleOption(
+              label: 'Copy',
+              isSelected: !_isMoveMode,
+              onTap: () {
+                setState(() {
+                  _isMoveMode = false;
+                });
+                HapticFeedback.lightImpact();
+              },
             ),
           ),
-          // Close button
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(
-              AppIcons.close,
-              color: context.colors.textSecondary,
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildToggleOption(
+              label: 'Move',
+              isSelected: _isMoveMode,
+              onTap: () {
+                setState(() {
+                  _isMoveMode = true;
+                });
+                HapticFeedback.lightImpact();
+              },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildToggleOption({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppDurations.fast,
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(
+          vertical: Spacing.space8,
+          horizontal: Spacing.space12,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius - 2),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: AppTextStyles.callout.copyWith(
+              color: isSelected ? Colors.white : context.colors.textSecondary,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
   }
