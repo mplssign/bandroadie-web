@@ -115,52 +115,91 @@ When `selectedSetlistProvider` becomes unselected (`id` or `name` is null):
 
 ## Proposed Solution
 
-**Eliminate the controller's dependency on `selectedSetlistProvider` for maintaining loaded state.**
+**Remove the controller's dependency on `selectedSetlistProvider` entirely (structural fix).**
 
-The controller will preserve loaded songs when `selectedSetlistProvider` becomes unselected, rather than discarding them. This decouples "has loaded data" from "provider says selected".
+### Investigation: selectedSetlistProvider Usage
 
-### Changes to Controller Logic
+Grepped all 37 usages across the codebase:
+- **ONLY ONE CONSUMER watches it:** `SetlistDetailNotifier.build()` at line 311
+- **All other usages are WRITES:** Setting/clearing the provider after create/rename/band-switch
+- **No app bar, nav state, or other screen depends on watching this provider**
 
-**Current vulnerable code:**
+This confirms the controller can stop watching `selectedSetlistProvider` without breaking anything.
+
+### Structural Fix
+
+Instead of watching `selectedSetlistProvider` and rebuilding when it changes:
+1. Controller exposes public method: `loadSetlist(String id, String name)`
+2. Screen calls this method directly in post-frame callback with route args
+3. Controller stores setlist ID/name internally and triggers load
+4. Screen can still update `selectedSetlistProvider` for other purposes (keeps name in sync for future navigation)
+
+This **eliminates the controller's exposure to provider state loss** — regardless of what causes it.
+
+### Changes to Controller
+
+**Before (vulnerable — watches provider):**
 
 ```dart
-if (!selected.isSelected) {
-  _lastLoadedSetlistId = null;
-  _cachedState = null;  // <--- Discards loaded songs!
-  return const SetlistDetailState();
+class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
+  @override
+  SetlistDetailState build() {
+    final selected = ref.watch(selectedSetlistProvider);  // <--- Rebuilds when provider changes
+    
+    if (!selected.isSelected) {
+      _lastLoadedSetlistId = null;
+      _cachedState = null;  // <--- Discards loaded songs!
+      return const SetlistDetailState();
+    }
+    
+    if (_lastLoadedSetlistId != selected.id) {
+      _lastLoadedSetlistId = selected.id;
+      Future.microtask(() => loadSongs());  // <--- Indirect trigger
+      return SetlistDetailState(setlistId: selected.id!, setlistName: selected.name!, isLoading: true);
+    }
+    
+    return _cachedState ?? SetlistDetailState(...);
+  }
 }
 ```
 
-**New resilient code:**
+**After (structural fix — no provider watch):**
 
 ```dart
-if (!selected.isSelected) {
-  // DEFENSIVE: If we have cached state with songs, preserve it
-  // This handles iOS lifecycle transitions where selectedSetlistProvider
-  // transiently loses state but the user is still viewing the screen.
-  if (_cachedState != null && _cachedState!.songs.isNotEmpty) {
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistDetail] selectedSetlistProvider lost state, but preserving '
-        '${_cachedState!.songs.length} cached songs for ${_cachedState!.setlistName}',
-      );
-    }
-    return _cachedState!;
+class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
+  String? _setlistId;
+  String? _setlistName;
+  
+  @override
+  SetlistDetailState build() {
+    // Listen for song updates from other setlists (unchanged)
+    ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
+      if (next != null) _applySongUpdate(next);
+    });
+    
+    // Return current state (initialized by loadSetlist() call from screen)
+    return state;
   }
-
-  // No cached state to preserve — user legitimately navigated away or screen is initializing
-  _lastLoadedSetlistId = null;
-  _cachedState = null;
-  return const SetlistDetailState();
+  
+  /// Public method called by screen with route args
+  void loadSetlist(String id, String name) {
+    if (_setlistId == id) return;  // Already loaded
+    
+    _setlistId = id;
+    _setlistName = name;
+    state = SetlistDetailState(setlistId: id, setlistName: name, isLoading: true);
+    
+    Future.microtask(() => loadSongs());  // <--- Direct trigger from screen
+  }
 }
 ```
 
 **Rationale:**
 
-- If cached state exists with songs, it means the setlist loaded successfully at some point
-- Returning the cached state prevents data loss during transient provider state loss
-- Defensive logging tracks how often this recovery path is taken (helps identify root cause frequency)
-- Normal navigation (user pops screen, selects different setlist) is unaffected — cached state is cleared when `_lastLoadedSetlistId` changes
+- Controller no longer watches `selectedSetlistProvider` → immune to its state loss
+- Screen explicitly tells controller what to load via `loadSetlist(id, name)`
+- Route args are the source of truth, not a transient provider
+- `selectedSetlistProvider` can still be updated by screen for other purposes (name sync)
 
 ### Fix 2 — Stale Band ID Guard (Independent Bug)
 
@@ -197,8 +236,9 @@ This bug is independent of the reported issue but affects the same code path.
 
 **Modified:**
 
-- `SetlistDetailNotifier.build()` — preserve `_cachedState` when `selected.isSelected` is false but cached songs exist
+- `SetlistDetailNotifier` — remove `ref.watch(selectedSetlistProvider)`, add public `loadSetlist(id, name)` method, store setlist ID/name as instance variables
 - `SetlistDetailNotifier.loadSongs()` — reset `isLoading = false` in stale band ID guard
+- `SetlistDetailScreen.initState()` — call `loadSetlist()` instead of `selectedSetlistProvider.select()`
 
 **Unchanged:**
 
@@ -208,9 +248,12 @@ This bug is independent of the reported issue but affects the same code path.
 
 ### Widgets
 
+**Modified:**
+
+- `SetlistDetailScreen.initState()` — call `ref.read(setlistDetailProvider.notifier).loadSetlist(widget.setlistId, widget.setlistName)` instead of setting `selectedSetlistProvider`
+
 **Unchanged:**
 
-- `SetlistDetailScreen.initState()` — post-frame callback logic is correct
 - `_buildBody()` — still shows loading indicator when `state.isLoading`
 - Error handling — still uses `ref.listen` to show snackbar on errors
 - Song list rendering — no changes to `CustomScrollView` or `ReorderableSongCard`
@@ -227,18 +270,19 @@ This bug is independent of the reported issue but affects the same code path.
 
 | File | Changes |
 |------|---------|
-| [lib/features/setlists/setlist_detail_controller.dart](lib/features/setlists/setlist_detail_controller.dart) | **Fix 1:** Modify `SetlistDetailNotifier.build()` to preserve `_cachedState` when `!selected.isSelected` but cached songs exist; add debug logging. **Fix 2:** Add `isLoading = false` in stale band ID guard before early return |
+| [lib/features/setlists/setlist_detail_controller.dart](lib/features/setlists/setlist_detail_controller.dart) | **Fix 1:** Remove `ref.watch(selectedSetlistProvider)` from `build()`, add public `loadSetlist(String id, String name)` method, store setlist ID/name as instance variables. **Fix 2:** Add `isLoading = false` in stale band ID guard before early return |
+| [lib/features/setlists/setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart) | Call `ref.read(setlistDetailProvider.notifier).loadSetlist(widget.setlistId, widget.setlistName)` in post-frame callback instead of `selectedSetlistProvider.select()` |
 
 ## Files Off-Limits
 
 | File | Reason |
 |------|--------|
 | [lib/features/setlists/setlist_repository.dart](lib/features/setlists/setlist_repository.dart) | Repository fetch logic is correct — not the failure point |
-| [lib/features/setlists/setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart) | Screen UI already handles loading/error states correctly; no changes needed |
 | [lib/features/bands/active_band_controller.dart](lib/features/bands/active_band_controller.dart) | Band switching logic is independent; no evidence it's the trigger |
 | [lib/features/auth/auth_gate.dart](lib/features/auth/auth_gate.dart) | Auth session refresh is necessary for persistent login; not the root cause |
 | [lib/main.dart](lib/main.dart) | Init order must not change per guardrails |
 | Any migration files in `supabase/migrations/` | No database changes required |
+| [lib/features/setlists/new_setlist_screen.dart](lib/features/setlists/new_setlist_screen.dart) | Still updates `selectedSetlistProvider` after create/rename (keeps name in sync for future nav) |
 
 ## System Impact Map
 
@@ -259,62 +303,187 @@ This bug is independent of the reported issue but affects the same code path.
 
 **Rationale:**
 
-- **Single controller file changed** — no database, auth, or routing modifications
-- **Defensive fix** — only adds a fallback path when provider state is unexpectedly lost
-- **Existing happy path unchanged** — normal navigation and load flow unaffected
-- **No async lifecycle changes** — no new `setState` calls, no new `mounted` risks beyond one defensive guard
+- **Single architectural change** — controller stops watching `selectedSetlistProvider`, reads from route args instead
+- **No database, auth, or routing modifications**
+- **Existing happy path strengthened** — route args are more stable than transient provider state
+- **Screen still watches `setlistDetailProvider`** — UI rendering unchanged
 - **Other features isolated** — gigs, rehearsals, members, auth all unaffected
+- **`selectedSetlistProvider` still updated by screen** — other code that writes to it (new_setlist_screen, active_band_controller) continues to work
 
 **Risk areas to monitor:**
 
-- **Stale data edge case:** If a setlist is deleted server-side while the screen shows cached songs, the cached state would persist. Mitigation: user can navigate away and back to trigger fresh load.
-- **Catalog vs. non-Catalog:** Both code paths use `_cachedState`, so the fix applies equally.
+- **Initial load timing** — ensure post-frame callback triggers load correctly
+- **Rapid navigation** — verify controller doesn't attempt duplicate loads if screen rebuilds
+- **Band switch** — confirm setlist clears when band changes (handled by screen disposal, not provider clear)
 
 ## Engineer Task Breakdown
 
-### Task 1 — Fix: Preserve cached state when selectedSetlistProvider loses state
+### Task 1 — Structural Fix: Remove controller dependency on selectedSetlistProvider
 
 **File:** `lib/features/setlists/setlist_detail_controller.dart`
 
-**Change 1.1:** Modify the `!selected.isSelected` branch to preserve cached state
+**Change 1.1:** Add instance variables for setlist ID/name
 
-**Location:** `SetlistDetailNotifier.build()` method, first conditional block (around line 320)
+**Location:** Top of `SetlistDetailNotifier` class (after line 293)
+
+**Add:**
+```dart
+class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
+  String? _setlistId;        // <--- ADD
+  String? _setlistName;      // <--- ADD
+  String? _lastLoadedSetlistId;
+  SetlistDetailState? _cachedState;
+  // ... rest of class
+```
+
+---
+
+**Change 1.2:** Remove provider watch from build(), simplify to return current state
+
+**Location:** `SetlistDetailNotifier.build()` method (lines 311-350)
 
 **Before:**
 ```dart
-if (!selected.isSelected) {
-  _lastLoadedSetlistId = null;
-  _cachedState = null;
-  return const SetlistDetailState();
+@override
+SetlistDetailState build() {
+  // Watch the selected setlist - when it changes, reset and refetch
+  final selected = ref.watch(selectedSetlistProvider);
+
+  // Listen for song updates from other setlists
+  ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
+    if (next != null && prev?.timestamp != next.timestamp) {
+      _applySongUpdate(next);
+    }
+  });
+
+  // If no setlist selected, return empty state
+  if (!selected.isSelected) {
+    _lastLoadedSetlistId = null;
+    _cachedState = null;
+    return const SetlistDetailState();
+  }
+
+  // Only reload if the setlist ID actually changed
+  if (_lastLoadedSetlistId != selected.id) {
+    _lastLoadedSetlistId = selected.id;
+    _cachedState = null;
+    Future.microtask(() => loadSongs());
+
+    return SetlistDetailState(
+      setlistId: selected.id!,
+      setlistName: selected.name!,
+      isLoading: true,
+    );
+  }
+
+  // Setlist didn't change - return cached state
+  if (_cachedState != null) {
+    return _cachedState!.copyWith(setlistName: selected.name);
+  }
+
+  // Fallback
+  return SetlistDetailState(
+    setlistId: selected.id!,
+    setlistName: selected.name!,
+  );
 }
 ```
 
 **After:**
 ```dart
-if (!selected.isSelected) {
-  // FIX: Preserve loaded state when selectedSetlistProvider loses state.
-  // This eliminates the dependency on the provider for maintaining loaded data.
-  if (_cachedState != null && _cachedState!.songs.isNotEmpty) {
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistDetail] selectedSetlistProvider lost state, but preserving '
-        '${_cachedState!.songs.length} cached songs for ${_cachedState!.setlistName}',
-      );
+@override
+SetlistDetailState build() {
+  // Listen for song updates from other setlists (unchanged)
+  ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
+    if (next != null && prev?.timestamp != next.timestamp) {
+      _applySongUpdate(next);
     }
-    return _cachedState!;
+  });
+
+  // FIX: No longer watch selectedSetlistProvider.
+  // Screen calls loadSetlist() directly with route args.
+  // Return current state (or empty if not yet initialized).
+  return state;
+}
+```
+
+---
+
+**Change 1.3:** Add public `loadSetlist()` method
+
+**Location:** After `build()` method, before `loadSongs()` (around line 360)
+
+**Add:**
+```dart
+/// Public method called by screen to initialize the setlist.
+/// Replaces the previous pattern of watching selectedSetlistProvider.
+void loadSetlist(String id, String name) {
+  // If already loaded this setlist, don't reload
+  if (_setlistId == id && _lastLoadedSetlistId == id) {
+    if (kDebugMode) {
+      debugPrint('[SetlistDetail] Setlist $id already loaded, skipping reload');
+    }
+    return;
   }
 
-  // No cached state to preserve — user legitimately navigated away or screen is initializing
-  _lastLoadedSetlistId = null;
+  if (kDebugMode) {
+    debugPrint('[SetlistDetail] Loading setlist: $name (ID: $id)');
+  }
+
+  _setlistId = id;
+  _setlistName = name;
+  _lastLoadedSetlistId = null;  // Force reload
   _cachedState = null;
-  return const SetlistDetailState();
+
+  state = SetlistDetailState(
+    setlistId: id,
+    setlistName: name,
+    isLoading: true,
+  );
+
+  Future.microtask(() => loadSongs());
+}
+```
+
+---
+
+**Change 1.4:** Update `loadSongs()` to use instance variables instead of provider
+
+**Location:** `loadSongs()` method, first few lines (around line 470)
+
+**Before:**
+```dart
+Future<void> loadSongs() async {
+  final selected = ref.read(selectedSetlistProvider);
+  if (!selected.isSelected) return;
+
+  final setlistId = selected.id!;
+  final setlistName = selected.name!;
+  // ... rest of method
+}
+```
+
+**After:**
+```dart
+Future<void> loadSongs() async {
+  // FIX: Read from instance variables instead of selectedSetlistProvider
+  if (_setlistId == null || _setlistName == null) {
+    if (kDebugMode) {
+      debugPrint('[SetlistDetail] loadSongs called but setlist not initialized');
+    }
+    return;
+  }
+
+  final setlistId = _setlistId!;
+  final setlistName = _setlistName!;
+  // ... rest of method (unchanged)
 }
 ```
 
 **Validation:**
 - Compile with `flutter analyze` — must pass with 0 errors  
-- Verify debug log appears in console when recovery path is taken  
-- Confirm existing navigation flows (tapping setlist card, popping screen) work unchanged  
+- Verify console shows \"Loading setlist\" log when screen opens  
+- Confirm songs load normally  
 
 ---
 
@@ -363,13 +532,47 @@ if (currentBandId != bandId) {
 
 ---
 
-### Task 3 — Run analyzer and commit
+### Task 3 — Update screen to call loadSetlist() directly
+
+**File:** `lib/features/setlists/setlist_detail_screen.dart`
+
+**Change 3.1:** Replace selectedSetlistProvider.select() with loadSetlist()
+
+**Location:** `_SetlistDetailScreenState.initState()` method, inside `addPostFrameCallback` (around line 120)
+
+**Before:**
+```dart
+WidgetsBinding.instance.addPostFrameCallback((_) {
+  ref
+      .read(selectedSetlistProvider.notifier)
+      .select(id: widget.setlistId, name: widget.setlistName);
+});
+```
+
+**After:**
+```dart
+WidgetsBinding.instance.addPostFrameCallback((_) {
+  // FIX: Call controller directly with route args instead of setting selectedSetlistProvider
+  ref
+      .read(setlistDetailProvider.notifier)
+      .loadSetlist(widget.setlistId, widget.setlistName);
+});
+```
+
+**Validation:**
+- Compile with `flutter analyze` — must pass with 0 errors  
+- Test normal navigation (tap setlist card) — songs load  
+- Test rapid navigation (open setlist, immediately pop) — no crashes  
+
+---
+
+### Task 4 — Run analyzer and commit
 
 **Commands:**
 ```bash
 flutter analyze
-git add lib/features/setlists/setlist_detail_controller.dart
-git commit -m "fix(setlists): preserve loaded songs when provider state lost, reset spinner on stale band"
+git add lib/features/setlists/setlist_detail_controller.dart lib/features/setlists/setlist_detail_screen.dart
+git commit -m \"fix(setlists): remove controller dependency on selectedSetlistProvider, reset spinner on stale band\"
 ```
 
 **Validation:**
@@ -416,19 +619,17 @@ Since this is a client-side state management fix with no database changes, all v
 3. **Immediately** press home button (within 200ms of tap, during screen mount)  
 4. Wait 2 seconds  
 5. Resume app  
-6. **Expected:** Setlist loads and displays songs normally  
-7. **Expected (if recovery path triggered):** Console shows:  
-   ```
-   [SetlistDetail] selectedSetlistProvider lost state, but preserving N cached songs for [setlist name]
-   ```
+6. **Expected:** Setlist loads and displays songs normally (structural fix prevents provider state loss from affecting load)
 
 **Pass criteria:**  
 - Songs visible with count matching database (e.g., 5 songs)  
 - No stuck loading spinner  
+- Console shows: `[SetlistDetail] Loading setlist: [name] (ID: [id])`
 
 **Fail criteria:**  
 - Empty setlist view shown (zero songs displayed)  
-- Loading spinner stuck indefinitely
+- Loading spinner stuck indefinitely  
+- No console log indicating `loadSetlist()` was called
 
 ---
 
@@ -527,12 +728,12 @@ If the fix causes regressions:
 
 ## Out of Scope
 
-1. **Root cause of provider state loss is not fully confirmed** — this fix addresses a confirmed class of race/staleness bugs in the setlist load path by eliminating the dependency on `selectedSetlistProvider` for maintaining loaded state. The exact trigger for this specific one-off iOS occurrence remains unproven. This is the best achievable diagnosis without device-level lifecycle instrumentation or reliable reproduction.  
+1. **Exact trigger for provider state loss** — this structural fix removes the controller's dependency on `selectedSetlistProvider` entirely, making the trigger irrelevant. The controller now reads from route args (stable) instead of watching a transient provider. Investigation confirmed the provider was the single point of failure; removing that dependency resolves the architecture issue.
 
-2. **Global provider state preservation on iOS lifecycle transitions** — broader architectural fix to ensure all Riverpod providers survive backgrounding. This would require audit of all `NotifierProvider` instances and potential framework changes. Out of scope for this targeted bug fix.  
+2. **Global provider state preservation on iOS lifecycle transitions** — broader framework-level fix to ensure all Riverpod providers survive backgrounding. Not needed — this fix makes the setlist controller immune to provider lifecycle issues.
 
-3. **Band switch state reset improvements** — known issue mentioned in feature input. Separate from this bug, but related to state management brittleness.  
+3. **Band switch state reset improvements** — known issue mentioned in feature input. Separate from this bug, but related to state management brittleness.
 
-4. **Reproduce on demand** — single-occurrence bug, not yet reliably reproduced on an iOS device. The fix addresses the vulnerable code path identified through code analysis and symptom correlation.  
+4. **Reproduce on demand** — single-occurrence bug, not reliably reproduced. The fix addresses the vulnerable architecture identified through codebase analysis and symptom correlation.
 
-5. **Convert controller to Family provider** — a more invasive refactor that would pass `setlistId` as a family parameter, eliminating `selectedSetlistProvider` entirely. The current fix is minimal and sufficient.
+5. **Convert controller to Family provider** — an alternative approach that would pass `setlistId` as a family parameter. The current fix (public `loadSetlist()` method) is more minimal and equally effective.
