@@ -1,8 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -16,67 +15,8 @@ import 'duration_input_dialog.dart';
 import 'key_picker_bottom_sheet.dart';
 import 'tuning_picker_bottom_sheet.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
-
-// ============================================================================
-// YOUTUBE LINK MODEL
-// Simple model for storing YouTube video links with a custom title.
-// ============================================================================
-
-/// A YouTube link with a custom display title.
-class YouTubeLink {
-  final String title;
-  final String url;
-
-  const YouTubeLink({required this.title, required this.url});
-
-  /// Create from JSON map
-  factory YouTubeLink.fromJson(Map<String, dynamic> json) {
-    return YouTubeLink(
-      title: json['title'] as String? ?? '',
-      url: json['url'] as String? ?? '',
-    );
-  }
-
-  /// Convert to JSON map
-  Map<String, dynamic> toJson() => {'title': title, 'url': url};
-
-  /// Parse a list of YouTube links from JSON string
-  static List<YouTubeLink> listFromJson(String? jsonString) {
-    if (jsonString == null || jsonString.isEmpty) return [];
-    try {
-      debugPrint('[YouTubeLink] Parsing JSON: $jsonString');
-      final List<dynamic> decoded = json.decode(jsonString) as List<dynamic>;
-      final links = decoded
-          .map((item) => YouTubeLink.fromJson(item as Map<String, dynamic>))
-          .toList();
-      for (final link in links) {
-        debugPrint(
-          '[YouTubeLink] Parsed: title="${link.title}", url="${link.url}"',
-        );
-      }
-      return links;
-    } catch (e) {
-      debugPrint('[YouTubeLink] Failed to parse JSON: $e');
-      return [];
-    }
-  }
-
-  /// Convert a list of YouTube links to JSON string
-  static String listToJson(List<YouTubeLink> links) {
-    return json.encode(links.map((link) => link.toJson()).toList());
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is YouTubeLink &&
-          runtimeType == other.runtimeType &&
-          title == other.title &&
-          url == other.url;
-
-  @override
-  int get hashCode => title.hashCode ^ url.hashCode;
-}
+import '../links/song_link.dart';
+import '../links/song_link_detector.dart';
 
 // ============================================================================
 // SONG DETAILS BOTTOM SHEET
@@ -99,7 +39,7 @@ class SongDetailsResult {
   final String? tuning;
   final int? bpm;
   final int? duration;
-  final List<YouTubeLink>? youtubeLinks;
+  final List<SongLink>? youtubeLinks;
   final String? lyrics;
   final String? musicalKey;
   final bool hasChanges;
@@ -188,8 +128,8 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   late int _currentDurationSeconds;
 
   // YouTube links list
-  late List<YouTubeLink> _youtubeLinks;
-  late List<YouTubeLink> _originalYoutubeLinks;
+  late List<SongLink> _youtubeLinks;
+  late List<SongLink> _originalYoutubeLinks;
 
   // Lyrics state
   late String? _currentLyrics;
@@ -222,7 +162,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     debugPrint(
       '[SongDetails] Raw youtubeLinks from song: ${widget.song.youtubeLinks}',
     );
-    _originalYoutubeLinks = YouTubeLink.listFromJson(widget.song.youtubeLinks);
+    _originalYoutubeLinks = SongLink.listFromJson(widget.song.youtubeLinks);
     _youtubeLinks = List.from(_originalYoutubeLinks);
 
     // Initialize lyrics from song data
@@ -324,7 +264,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   }
 
   /// Compare two lists of YouTube links for equality
-  bool _areYoutubeLinksEqual(List<YouTubeLink> a, List<YouTubeLink> b) {
+  bool _areYoutubeLinksEqual(List<SongLink> a, List<SongLink> b) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;
@@ -568,11 +508,11 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
   }
 
   /// Show modal to add a new YouTube link
-  Future<void> _showAddYouTubeModal() async {
+  Future<void> _showAddLinkModal() async {
     final urlController = TextEditingController();
     final titleController = TextEditingController();
 
-    final result = await showDialog<YouTubeLink>(
+    final result = await showDialog<SongLink>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: context.colors.surface,
@@ -580,7 +520,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
         title: Text(
-          'Add YouTube Link',
+          'Add Link',
           style:
               AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
@@ -623,7 +563,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               style: AppTextStyles.body
                   .copyWith(color: context.colors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'YouTube URL',
+                hintText: 'Link URL',
                 hintStyle: AppTextStyles.body.copyWith(
                   color: context.colors.textMuted,
                 ),
@@ -649,8 +589,9 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 final title = titleController.text.trim();
                 final url = urlController.text.trim();
                 if (title.isNotEmpty && url.isNotEmpty) {
-                  Navigator.of(context)
-                      .pop(YouTubeLink(title: title, url: url));
+                  final detectedType = detectLinkType(url);
+                  Navigator.of(context).pop(
+                      SongLink(title: title, url: url, type: detectedType));
                 }
               },
               style: FilledButton.styleFrom(
@@ -710,6 +651,54 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
       } catch (e) {
         debugPrint('[SongDetails] Failed to launch URL: $e');
       }
+    }
+  }
+
+  /// Returns the icon for a given link type.
+  IconData _getIconForLinkType(SongLinkType type) {
+    switch (type) {
+      case SongLinkType.youtube:
+        return Icons.play_circle_outline;
+      case SongLinkType.spotify:
+        return AppIcons.spotify;
+      case SongLinkType.appleMusic:
+        return AppIcons.appleMusic;
+      case SongLinkType.amazonMusic:
+        return AppIcons.amazonMusic;
+      case SongLinkType.soundcloud:
+        return LucideIcons.music;
+      case SongLinkType.googleDocs:
+        return LucideIcons.fileText;
+      case SongLinkType.pdf:
+        return AppIcons.pdf;
+      case SongLinkType.googleSheets:
+        return LucideIcons.table;
+      case SongLinkType.generic:
+        return AppIcons.globe;
+    }
+  }
+
+  /// Returns the color for a given link type.
+  Color _getColorForLinkType(SongLinkType type) {
+    switch (type) {
+      case SongLinkType.youtube:
+        return Colors.red; // YouTube red
+      case SongLinkType.spotify:
+        return const Color(0xFF1DB954); // Spotify green
+      case SongLinkType.appleMusic:
+        return const Color(0xFFFA243C); // Apple Music pink/red
+      case SongLinkType.amazonMusic:
+        return const Color(0xFF00A8E1); // Amazon Music blue
+      case SongLinkType.soundcloud:
+        return const Color(0xFFFF5500); // SoundCloud orange
+      case SongLinkType.googleDocs:
+        return Colors.blue; // Google Docs blue
+      case SongLinkType.googleSheets:
+        return Colors.green; // Google Sheets green
+      case SongLinkType.pdf:
+        return Colors.red; // PDF red
+      case SongLinkType.generic:
+        return context.colors.textSecondary; // Default text color
     }
   }
 
@@ -1086,7 +1075,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         // + Add YouTube
         Expanded(
           child: GestureDetector(
-            onTap: _showAddYouTubeModal,
+            onTap: _showAddLinkModal,
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
@@ -1097,13 +1086,13 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    AppIcons.play,
+                    AppIcons.link,
                     color: AppColors.primary,
                     size: 16,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Add YouTube',
+                    'Add a link',
                     style: AppTextStyles.footnote.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
@@ -1269,17 +1258,18 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         runSpacing: 8,
         children: List.generate(_youtubeLinks.length, (index) {
           final link = _youtubeLinks[index];
-          final displayTitle = link.title.length > 25
-              ? '${link.title.substring(0, 25)}...'
-              : link.title;
-          return _buildYouTubeLinkButton(displayTitle, link.url, index);
+          return _buildSongLinkButton(link, index);
         }),
       ),
     );
   }
 
   /// Builds a single YouTube link button with tap-to-open and X to delete
-  Widget _buildYouTubeLinkButton(String title, String url, int index) {
+  Widget _buildSongLinkButton(SongLink link, int index) {
+    final displayTitle = link.title.length > 25
+        ? '${link.title.substring(0, 25)}...'
+        : link.title;
+
     return Container(
       padding: const EdgeInsets.only(left: 12, top: 6, bottom: 6, right: 4),
       decoration: BoxDecoration(
@@ -1292,14 +1282,18 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
         children: [
           // Tap to open link
           GestureDetector(
-            onTap: () => _openYouTubeLink(url),
+            onTap: () => _openYouTubeLink(link.url),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.play_circle_outline, color: Colors.red, size: 18),
+                Icon(
+                  _getIconForLinkType(link.type),
+                  color: _getColorForLinkType(link.type),
+                  size: 18,
+                ),
                 const SizedBox(width: 6),
                 Text(
-                  title,
+                  displayTitle,
                   style: AppTextStyles.body.copyWith(
                     color: context.colors.textPrimary,
                   ),
