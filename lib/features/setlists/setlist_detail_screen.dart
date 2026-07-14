@@ -38,6 +38,7 @@ import 'widgets/song_lookup_overlay.dart';
 import 'widgets/special_item_card.dart';
 import 'special_item_repository.dart';
 import 'models/special_item.dart';
+import 'links/song_link.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -1595,7 +1596,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       if (result.youtubeLinksChanged && result.youtubeLinks != null) {
         debugPrint('[SetlistDetail] Saving YouTube links...');
         // Convert list to JSON string for storage
-        final jsonString = YouTubeLink.listToJson(result.youtubeLinks!);
+        final jsonString = SongLink.listToJson(result.youtubeLinks!);
         final success = await notifier.updateSongYoutubeLinks(
           song.id,
           jsonString,
