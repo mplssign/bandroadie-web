@@ -173,12 +173,12 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   String? _setlistId;
   String? _setlistName;
   String? _loadedForBandId;  // <--- NEW: Track which band this setlist belongs to
-  
+
   @override
   SetlistDetailState build() {
     // Watch active band ID - clear state if band changes while screen is mounted
     final currentBandId = ref.watch(activeBandIdProvider);
-    
+
     // SAFEGUARD: If band changed out from under a mounted screen, clear state
     // This replaces the protection that watching selectedSetlistProvider used to provide
     if (_loadedForBandId != null && _loadedForBandId != currentBandId) {
@@ -195,25 +195,25 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       _cachedState = null;
       return const SetlistDetailState();  // Return empty state
     }
-    
+
     // Listen for song updates from other setlists (unchanged)
     ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
       if (next != null) _applySongUpdate(next);
     });
-    
+
     // Return current state (initialized by loadSetlist() call from screen)
     return state;
   }
-  
+
   /// Public method called by screen with route args
   void loadSetlist(String id, String name) {
     if (_setlistId == id) return;  // Already loaded
-    
+
     _setlistId = id;
     _setlistName = name;
     _loadedForBandId = ref.read(activeBandIdProvider);  // <--- Track band ID at load time
     state = SetlistDetailState(setlistId: id, setlistName: name, isLoading: true);
-    
+
     Future.microtask(() => loadSongs());  // <--- Direct trigger from screen
   }
 }
@@ -304,10 +304,10 @@ This bug is independent of the reported issue but affects the same code path.
 
 ## Files to Modify
 
-| File                                                                                                         | Changes                                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File                                                                                                         | Changes                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [lib/features/setlists/setlist_detail_controller.dart](lib/features/setlists/setlist_detail_controller.dart) | **Fix 1:** Remove `ref.watch(selectedSetlistProvider)`, add `ref.watch(activeBandIdProvider)` with band change guard, add public `loadSetlist(String id, String name)` method, store setlist ID/name/bandId as instance variables. **Fix 2:** Add `isLoading = false` in stale band ID guard before early return |
-| [lib/features/setlists/setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart)         | Call `ref.read(setlistDetailProvider.notifier).loadSetlist(widget.setlistId, widget.setlistName)` in post-frame callback instead of `selectedSetlistProvider.select()`                                                                                     |
+| [lib/features/setlists/setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart)         | Call `ref.read(setlistDetailProvider.notifier).loadSetlist(widget.setlistId, widget.setlistName)` in post-frame callback instead of `selectedSetlistProvider.select()`                                                                                                                                           |
 
 ## Files Off-Limits
 
@@ -358,7 +358,7 @@ This bug is independent of the reported issue but affects the same code path.
 
 **File:** `lib/features/setlists/setlist_detail_controller.dart`
 
-**Change 1.1:** Add instance variables for setlist ID/name
+**Change 1.1:** Add instance variables for setlist ID/name/band tracking
 
 **Location:** Top of `SetlistDetailNotifier` class (after line 293)
 
@@ -368,6 +368,7 @@ This bug is independent of the reported issue but affects the same code path.
 class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   String? _setlistId;        // <--- ADD
   String? _setlistName;      // <--- ADD
+  String? _loadedForBandId;  // <--- ADD (tracks which band this setlist belongs to)
   String? _lastLoadedSetlistId;
   SetlistDetailState? _cachedState;
   // ... rest of class
@@ -375,7 +376,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
 ---
 
-**Change 1.2:** Remove provider watch from build(), simplify to return current state
+**Change 1.2:** Replace provider watch with band ID watch + guard, return current state
 
 **Location:** `SetlistDetailNotifier.build()` method (lines 311-350)
 
@@ -432,6 +433,25 @@ SetlistDetailState build() {
 ```dart
 @override
 SetlistDetailState build() {
+  // SAFEGUARD: Watch active band ID - clear state if band changes while screen is mounted
+  // This replaces the protection that watching selectedSetlistProvider used to provide
+  final currentBandId = ref.watch(activeBandIdProvider);
+  
+  if (_loadedForBandId != null && _loadedForBandId != currentBandId) {
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistDetail] Band changed from $_loadedForBandId to $currentBandId, '
+        'clearing stale setlist state',
+      );
+    }
+    _setlistId = null;
+    _setlistName = null;
+    _loadedForBandId = null;
+    _lastLoadedSetlistId = null;
+    _cachedState = null;
+    return const SetlistDetailState();  // Return empty state
+  }
+  
   // Listen for song updates from other setlists (unchanged)
   ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
     if (next != null && prev?.timestamp != next.timestamp) {
@@ -445,6 +465,8 @@ SetlistDetailState build() {
   return state;
 }
 ```
+
+**Decision on band mismatch:** Clear state and return empty, but do NOT pop the screen. Rationale: The screen is mounted but hidden behind tab switch. Forcefully popping would be disruptive and could interfere with navigation state. When user returns to setlists tab, they'll be in the correct band context and can navigate to a setlist normally.
 
 ---
 
@@ -472,6 +494,7 @@ void loadSetlist(String id, String name) {
 
   _setlistId = id;
   _setlistName = name;
+  _loadedForBandId = ref.read(activeBandIdProvider);  // <--- Track band at load time
   _lastLoadedSetlistId = null;  // Force reload
   _cachedState = null;
 
@@ -704,30 +727,40 @@ Since this is a client-side state management fix with no database changes, all v
 
 ---
 
-#### Test 4: Band Switch While Setlist Detail Screen Open
+#### Test 4: Band Switch While Setlist Detail Screen Open (Critical New Test)
 
-**Platform:** iOS  
-**Preconditions:** User belongs to multiple bands, Band A has setlist "Songs A" with 5 songs, Band B has setlist "Songs B" with 3 songs
+**Platform:** iOS physical device  
+**Preconditions:** User belongs to at least 2 bands (Band A and Band B), Band A has setlist "Rock Classics" with 5 songs  
 
 **Steps:**
-1. Select Band A
+
+1. Log in and confirm Band A is active
 2. Navigate to Setlists tab
-3. Open "Songs A" setlist (5 songs displayed)
-4. **Open band switcher** (via profile/settings)
-5. **Switch to Band B**
-6. Navigate back to Setlists tab
-7. **Expected:** Setlist list shows Band B's setlists, "Songs A" is NOT visible
-8. Tap back button (if SetlistDetailScreen is still in Navigator stack)
-9. **Expected:** Screen pops to Band B's setlist list (or shows empty state)
+3. Tap "Rock Classics" setlist
+4. **Verify:** 5 songs displayed, console shows: `[SetlistDetail] Loading setlist: Rock Classics (ID: <uuid>)`
+5. **Open band switcher** via profile menu
+6. **Switch to Band B**
+7. **Verify console output:** `[SetlistDetail] Band changed from <Band A UUID> to <Band B UUID>, clearing stale setlist state`
+8. Navigate to Setlists tab
+9. **Verify:** Band B's setlists displayed ("Rock Classics" is NOT in the list)
+10. Tap device back button/gesture
+11. **Expected:** One of two outcomes:
+    - Screen pops to Band B's setlist list (if still in Navigator stack)
+    - Already on Band B's setlist list (Navigator stack was cleared)
 
-**Pass criteria:**  
-- No Band A setlist data visible after switching to Band B
-- Console shows: `[SetlistDetail] Band changed from [Band A ID] to [Band B ID], clearing stale setlist state`
-- If screen pops, it returns to Band B's setlist list
+**Pass criteria:**
 
-**Fail criteria:**  
-- Band A's "Songs A" setlist still displayed after band switch (stale band data)
-- App crashes on band switch
+- Console shows band change debug log with both UUIDs
+- No Band A setlist data visible after band switch
+- When returning to setlists tab, only Band B's setlists are shown
+- No crash or stuck state
+
+**Fail criteria:**
+
+- Console does NOT show band change log (guard didn't trigger)
+- "Rock Classics" from Band A still displayed after switching to Band B (stale band isolation breach)
+- App crashes when switching bands
+- Empty white screen or stuck loading state
 
 ---
 
@@ -749,7 +782,7 @@ Since this is a client-side state management fix with no database changes, all v
 
 ---
 
-#### Test 5: Force-Quit Restart (Original Bug Reproduction)
+#### Test 6: Force-Quit Restart (Original Bug Reproduction)
 
 **Platform:** iOS physical device  
 **Preconditions:** Band with "New Songs" setlist containing 12 songs (or similar)
@@ -774,15 +807,15 @@ Since this is a client-side state management fix with no database changes, all v
 1. **Setlist detail load (iOS)** — normal navigation to setlist must show songs
 2. **iOS background/foreground cycle** — songs must not disappear when app resumes
 3. **Catalog vs. non-Catalog** — both setlist types must preserve songs after lifecycle events
-4. **Band switch while setlist screen open (NEW)** — must clear stale data and not crash
+4. **Band switch while setlist screen open** — must clear stale data, show correct console log, not crash (Test 4 above)
 
 ### Secondary Testing (Regression Checks)
 
-4. **Setlist reordering (drag & drop)** — ensure optimistic UI updates and persistence still work
-5. **Inline editing (BPM, duration, tuning)** — save-on-blur must still broadcast updates to other open setlists
-6. **Bulk add songs** — verify songs are added to both Catalog and target setlist correctly
-7. **Search filter** — client-side filtering must work on full song list
-8. **Android/Web/macOS** — verify setlist detail screen works on other platforms (regression)
+5. **Setlist reordering (drag & drop)** — ensure optimistic UI updates and persistence still work
+6. **Inline editing (BPM, duration, tuning)** — save-on-blur must still broadcast updates to other open setlists
+7. **Bulk add songs** — verify songs are added to both Catalog and target setlist correctly
+8. **Search filter** — client-side filtering must work on full song list
+9. **Android/Web/macOS** — verify setlist detail screen works on other platforms (regression)
 
 ### Platform-Specific Testing
 
