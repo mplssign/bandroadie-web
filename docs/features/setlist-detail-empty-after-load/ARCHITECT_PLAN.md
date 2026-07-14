@@ -26,31 +26,32 @@ When `selectedSetlistProvider` loses its state or becomes unselected (ID or name
 
 **Confirmed failure scenario:**
 
-1. User opens setlist detail screen  
-2. Screen's `initState` sets selected setlist via post-frame callback  
-3. Controller loads songs successfully from Supabase  
-4. Songs are displayed ✓ (user saw 12 songs initially)  
-5. **Unconfirmed trigger occurs** — potentially iOS lifecycle event, but exact mechanism not proven  
-6. `selectedSetlistProvider` loses state  
-7. Controller's `build()` detects `!selected.isSelected` and **discards cached songs**, returning empty state  
-8. UI shows zero songs despite successful prior load  
+1. User opens setlist detail screen
+2. Screen's `initState` sets selected setlist via post-frame callback
+3. Controller loads songs successfully from Supabase
+4. Songs are displayed ✓ (user saw 12 songs initially)
+5. **Unconfirmed trigger occurs** — potentially iOS lifecycle event, but exact mechanism not proven
+6. `selectedSetlistProvider` loses state
+7. Controller's `build()` detects `!selected.isSelected` and **discards cached songs**, returning empty state
+8. UI shows zero songs despite successful prior load
 
 **Evidence supporting this diagnosis:**
 
-- **Screen render logic:** Spinner shown ONLY when `state.isLoading` from controller (no separate branch for provider state) → confirms songs loaded successfully before being cleared  
-- **User report:** "loading completed, then showed empty" → matches step 4→8 sequence above  
-- **Single occurrence:** not systematic → transient state loss, not architectural flaw  
-- **Force-quit resolved it:** fresh app start bypasses the stale provider state  
-- **Provider architecture confirmed:** `selectedSetlistProvider` is NOT autoDispose (rules out zero-listener disposal)  
-- **Single `.clear()` call site:** only in `selectBand()` which user confirmed didn't occur  
-- **Auth refresh doesn't touch provider:** traced full `refreshSession()` path, no invalidation  
+- **Screen render logic:** Spinner shown ONLY when `state.isLoading` from controller (no separate branch for provider state) → confirms songs loaded successfully before being cleared
+- **User report:** "loading completed, then showed empty" → matches step 4→8 sequence above
+- **Single occurrence:** not systematic → transient state loss, not architectural flaw
+- **Force-quit resolved it:** fresh app start bypasses the stale provider state
+- **Provider architecture confirmed:** `selectedSetlistProvider` is NOT autoDispose (rules out zero-listener disposal)
+- **Single `.clear()` call site:** only in `selectBand()` which user confirmed didn't occur
+- **Auth refresh doesn't touch provider:** traced full `refreshSession()` path, no invalidation
 
 **What's NOT confirmed:**
 
 The exact trigger for `selectedSetlistProvider` losing state on this one iOS occurrence. Potential candidates include:
-- iOS lifecycle transition interrupting Riverpod rebuild cascade  
-- Widget tree disposal during backgrounding  
-- Undiscovered code path that resets provider state  
+
+- iOS lifecycle transition interrupting Riverpod rebuild cascade
+- Widget tree disposal during backgrounding
+- Undiscovered code path that resets provider state
 
 **Secondary bug confirmed (independent of this report):**
 
@@ -120,6 +121,7 @@ When `selectedSetlistProvider` becomes unselected (`id` or `name` is null):
 ### Investigation: selectedSetlistProvider Usage
 
 Grepped all 37 usages across the codebase:
+
 - **ONLY ONE CONSUMER watches it:** `SetlistDetailNotifier.build()` at line 311
 - **All other usages are WRITES:** Setting/clearing the provider after create/rename/band-switch
 - **No app bar, nav state, or other screen depends on watching this provider**
@@ -129,6 +131,7 @@ This confirms the controller can stop watching `selectedSetlistProvider` without
 ### Structural Fix
 
 Instead of watching `selectedSetlistProvider` and rebuilding when it changes:
+
 1. Controller exposes public method: `loadSetlist(String id, String name)`
 2. Screen calls this method directly in post-frame callback with route args
 3. Controller stores setlist ID/name internally and triggers load
@@ -145,33 +148,54 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   @override
   SetlistDetailState build() {
     final selected = ref.watch(selectedSetlistProvider);  // <--- Rebuilds when provider changes
-    
+
     if (!selected.isSelected) {
       _lastLoadedSetlistId = null;
       _cachedState = null;  // <--- Discards loaded songs!
       return const SetlistDetailState();
     }
-    
+
     if (_lastLoadedSetlistId != selected.id) {
       _lastLoadedSetlistId = selected.id;
       Future.microtask(() => loadSongs());  // <--- Indirect trigger
       return SetlistDetailState(setlistId: selected.id!, setlistName: selected.name!, isLoading: true);
     }
-    
+
     return _cachedState ?? SetlistDetailState(...);
   }
 }
 ```
 
-**After (structural fix — no provider watch):**
+**After (structural fix — no provider watch, adds band switch guard):**
 
 ```dart
 class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   String? _setlistId;
   String? _setlistName;
+  String? _loadedForBandId;  // <--- NEW: Track which band this setlist belongs to
   
   @override
   SetlistDetailState build() {
+    // Watch active band ID - clear state if band changes while screen is mounted
+    final currentBandId = ref.watch(activeBandIdProvider);
+    
+    // SAFEGUARD: If band changed out from under a mounted screen, clear state
+    // This replaces the protection that watching selectedSetlistProvider used to provide
+    if (_loadedForBandId != null && _loadedForBandId != currentBandId) {
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistDetail] Band changed from $_loadedForBandId to $currentBandId, '
+          'clearing stale setlist state',
+        );
+      }
+      _setlistId = null;
+      _setlistName = null;
+      _loadedForBandId = null;
+      _lastLoadedSetlistId = null;
+      _cachedState = null;
+      return const SetlistDetailState();  // Return empty state
+    }
+    
     // Listen for song updates from other setlists (unchanged)
     ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
       if (next != null) _applySongUpdate(next);
@@ -187,6 +211,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     
     _setlistId = id;
     _setlistName = name;
+    _loadedForBandId = ref.read(activeBandIdProvider);  // <--- Track band ID at load time
     state = SetlistDetailState(setlistId: id, setlistName: name, isLoading: true);
     
     Future.microtask(() => loadSongs());  // <--- Direct trigger from screen
@@ -197,15 +222,25 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 **Rationale:**
 
 - Controller no longer watches `selectedSetlistProvider` → immune to its state loss
+- **NEW: Watches `activeBandIdProvider`** → detects band switches while screen is mounted
 - Screen explicitly tells controller what to load via `loadSetlist(id, name)`
 - Route args are the source of truth, not a transient provider
 - `selectedSetlistProvider` can still be updated by screen for other purposes (name sync)
+
+**Why band switch guard is needed:**
+
+- AppShell uses `IndexedStack` (keeps all tab content mounted)
+- SetlistDetailScreen is pushed via `Navigator.push()` (not part of IndexedStack)
+- When user switches bands, `selectBand()` does NOT pop Navigator routes
+- **Screen stays mounted but hidden** when band switcher fires
+- Without this guard, controller would show stale setlist from previous band
 
 ### Fix 2 — Stale Band ID Guard (Independent Bug)
 
 The `loadSongs()` method has a guard that discards stale results when band switches mid-flight, but it fails to reset `isLoading`:
 
 **Current buggy code:**
+
 ```dart
 final currentBandId = _bandId;
 if (currentBandId != bandId) {
@@ -215,6 +250,7 @@ if (currentBandId != bandId) {
 ```
 
 **Fixed code:**
+
 ```dart
 final currentBandId = _bandId;
 if (currentBandId != bandId) {
@@ -236,7 +272,7 @@ This bug is independent of the reported issue but affects the same code path.
 
 **Modified:**
 
-- `SetlistDetailNotifier` — remove `ref.watch(selectedSetlistProvider)`, add public `loadSetlist(id, name)` method, store setlist ID/name as instance variables
+- `SetlistDetailNotifier` — remove `ref.watch(selectedSetlistProvider)`, **add `ref.watch(activeBandIdProvider)` with band change guard**, add public `loadSetlist(id, name)` method, store setlist ID/name/bandId as instance variables
 - `SetlistDetailNotifier.loadSongs()` — reset `isLoading = false` in stale band ID guard
 - `SetlistDetailScreen.initState()` — call `loadSetlist()` instead of `selectedSetlistProvider.select()`
 
@@ -268,21 +304,21 @@ This bug is independent of the reported issue but affects the same code path.
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| [lib/features/setlists/setlist_detail_controller.dart](lib/features/setlists/setlist_detail_controller.dart) | **Fix 1:** Remove `ref.watch(selectedSetlistProvider)` from `build()`, add public `loadSetlist(String id, String name)` method, store setlist ID/name as instance variables. **Fix 2:** Add `isLoading = false` in stale band ID guard before early return |
-| [lib/features/setlists/setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart) | Call `ref.read(setlistDetailProvider.notifier).loadSetlist(widget.setlistId, widget.setlistName)` in post-frame callback instead of `selectedSetlistProvider.select()` |
+| File                                                                                                         | Changes                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [lib/features/setlists/setlist_detail_controller.dart](lib/features/setlists/setlist_detail_controller.dart) | **Fix 1:** Remove `ref.watch(selectedSetlistProvider)`, add `ref.watch(activeBandIdProvider)` with band change guard, add public `loadSetlist(String id, String name)` method, store setlist ID/name/bandId as instance variables. **Fix 2:** Add `isLoading = false` in stale band ID guard before early return |
+| [lib/features/setlists/setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart)         | Call `ref.read(setlistDetailProvider.notifier).loadSetlist(widget.setlistId, widget.setlistName)` in post-frame callback instead of `selectedSetlistProvider.select()`                                                                                     |
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| [lib/features/setlists/setlist_repository.dart](lib/features/setlists/setlist_repository.dart) | Repository fetch logic is correct — not the failure point |
-| [lib/features/bands/active_band_controller.dart](lib/features/bands/active_band_controller.dart) | Band switching logic is independent; no evidence it's the trigger |
-| [lib/features/auth/auth_gate.dart](lib/features/auth/auth_gate.dart) | Auth session refresh is necessary for persistent login; not the root cause |
-| [lib/main.dart](lib/main.dart) | Init order must not change per guardrails |
-| Any migration files in `supabase/migrations/` | No database changes required |
-| [lib/features/setlists/new_setlist_screen.dart](lib/features/setlists/new_setlist_screen.dart) | Still updates `selectedSetlistProvider` after create/rename (keeps name in sync for future nav) |
+| File                                                                                             | Reason                                                                                          |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| [lib/features/setlists/setlist_repository.dart](lib/features/setlists/setlist_repository.dart)   | Repository fetch logic is correct — not the failure point                                       |
+| [lib/features/bands/active_band_controller.dart](lib/features/bands/active_band_controller.dart) | Band switching logic is independent; no evidence it's the trigger                               |
+| [lib/features/auth/auth_gate.dart](lib/features/auth/auth_gate.dart)                             | Auth session refresh is necessary for persistent login; not the root cause                      |
+| [lib/main.dart](lib/main.dart)                                                                   | Init order must not change per guardrails                                                       |
+| Any migration files in `supabase/migrations/`                                                    | No database changes required                                                                    |
+| [lib/features/setlists/new_setlist_screen.dart](lib/features/setlists/new_setlist_screen.dart)   | Still updates `selectedSetlistProvider` after create/rename (keeps name in sync for future nav) |
 
 ## System Impact Map
 
@@ -327,6 +363,7 @@ This bug is independent of the reported issue but affects the same code path.
 **Location:** Top of `SetlistDetailNotifier` class (after line 293)
 
 **Add:**
+
 ```dart
 class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   String? _setlistId;        // <--- ADD
@@ -343,6 +380,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 **Location:** `SetlistDetailNotifier.build()` method (lines 311-350)
 
 **Before:**
+
 ```dart
 @override
 SetlistDetailState build() {
@@ -390,6 +428,7 @@ SetlistDetailState build() {
 ```
 
 **After:**
+
 ```dart
 @override
 SetlistDetailState build() {
@@ -414,6 +453,7 @@ SetlistDetailState build() {
 **Location:** After `build()` method, before `loadSongs()` (around line 360)
 
 **Add:**
+
 ```dart
 /// Public method called by screen to initialize the setlist.
 /// Replaces the previous pattern of watching selectedSetlistProvider.
@@ -452,6 +492,7 @@ void loadSetlist(String id, String name) {
 **Location:** `loadSongs()` method, first few lines (around line 470)
 
 **Before:**
+
 ```dart
 Future<void> loadSongs() async {
   final selected = ref.read(selectedSetlistProvider);
@@ -464,6 +505,7 @@ Future<void> loadSongs() async {
 ```
 
 **After:**
+
 ```dart
 Future<void> loadSongs() async {
   // FIX: Read from instance variables instead of selectedSetlistProvider
@@ -481,9 +523,10 @@ Future<void> loadSongs() async {
 ```
 
 **Validation:**
-- Compile with `flutter analyze` — must pass with 0 errors  
-- Verify console shows \"Loading setlist\" log when screen opens  
-- Confirm songs load normally  
+
+- Compile with `flutter analyze` — must pass with 0 errors
+- Verify console shows \"Loading setlist\" log when screen opens
+- Confirm songs load normally
 
 ---
 
@@ -496,6 +539,7 @@ Future<void> loadSongs() async {
 **Location:** `loadSongs()` method, inside both Catalog and non-Catalog branches (appears twice, around lines 485 and 520)
 
 **Before (Catalog branch):**
+
 ```dart
 final currentBandId = _bandId;
 if (currentBandId != bandId) {
@@ -510,6 +554,7 @@ if (currentBandId != bandId) {
 ```
 
 **After (Catalog branch):**
+
 ```dart
 final currentBandId = _bandId;
 if (currentBandId != bandId) {
@@ -527,8 +572,9 @@ if (currentBandId != bandId) {
 **Repeat the same change in the non-Catalog branch** (search for the second occurrence of this guard).
 
 **Validation:**
-- Compile with `flutter analyze` — must pass with 0 errors  
-- Test band switch while setlist is loading — spinner should not get stuck  
+
+- Compile with `flutter analyze` — must pass with 0 errors
+- Test band switch while setlist is loading — spinner should not get stuck
 
 ---
 
@@ -541,6 +587,7 @@ if (currentBandId != bandId) {
 **Location:** `_SetlistDetailScreenState.initState()` method, inside `addPostFrameCallback` (around line 120)
 
 **Before:**
+
 ```dart
 WidgetsBinding.instance.addPostFrameCallback((_) {
   ref
@@ -550,6 +597,7 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 ```
 
 **After:**
+
 ```dart
 WidgetsBinding.instance.addPostFrameCallback((_) {
   // FIX: Call controller directly with route args instead of setting selectedSetlistProvider
@@ -560,15 +608,17 @@ WidgetsBinding.instance.addPostFrameCallback((_) {
 ```
 
 **Validation:**
-- Compile with `flutter analyze` — must pass with 0 errors  
-- Test normal navigation (tap setlist card) — songs load  
-- Test rapid navigation (open setlist, immediately pop) — no crashes  
+
+- Compile with `flutter analyze` — must pass with 0 errors
+- Test normal navigation (tap setlist card) — songs load
+- Test rapid navigation (open setlist, immediately pop) — no crashes
 
 ---
 
 ### Task 4 — Run analyzer and commit
 
 **Commands:**
+
 ```bash
 flutter analyze
 git add lib/features/setlists/setlist_detail_controller.dart lib/features/setlists/setlist_detail_screen.dart
@@ -576,7 +626,8 @@ git commit -m \"fix(setlists): remove controller dependency on selectedSetlistPr
 ```
 
 **Validation:**
-- `flutter analyze` returns 0 errors  
+
+- `flutter analyze` returns 0 errors
 - Commit message follows format: `fix(scope): description`
 
 ## Verification Plan
@@ -611,24 +662,27 @@ Since this is a client-side state management fix with no database changes, all v
 #### Test 2: iOS Background During Screen Mount (Race Condition)
 
 **Platform:** iOS physical device  
-**Preconditions:** Band with setlist containing 5+ songs  
+**Preconditions:** Band with setlist containing 5+ songs
 
 **Steps:**
-1. Navigate to Setlists tab  
-2. Tap a setlist card  
-3. **Immediately** press home button (within 200ms of tap, during screen mount)  
-4. Wait 2 seconds  
-5. Resume app  
+
+1. Navigate to Setlists tab
+2. Tap a setlist card
+3. **Immediately** press home button (within 200ms of tap, during screen mount)
+4. Wait 2 seconds
+5. Resume app
 6. **Expected:** Setlist loads and displays songs normally (structural fix prevents provider state loss from affecting load)
 
-**Pass criteria:**  
-- Songs visible with count matching database (e.g., 5 songs)  
-- No stuck loading spinner  
+**Pass criteria:**
+
+- Songs visible with count matching database (e.g., 5 songs)
+- No stuck loading spinner
 - Console shows: `[SetlistDetail] Loading setlist: [name] (ID: [id])`
 
-**Fail criteria:**  
-- Empty setlist view shown (zero songs displayed)  
-- Loading spinner stuck indefinitely  
+**Fail criteria:**
+
+- Empty setlist view shown (zero songs displayed)
+- Loading spinner stuck indefinitely
 - No console log indicating `loadSetlist()` was called
 
 ---
@@ -650,7 +704,34 @@ Since this is a client-side state management fix with no database changes, all v
 
 ---
 
-#### Test 4: Catalog vs. Non-Catalog (Regression)
+#### Test 4: Band Switch While Setlist Detail Screen Open
+
+**Platform:** iOS  
+**Preconditions:** User belongs to multiple bands, Band A has setlist "Songs A" with 5 songs, Band B has setlist "Songs B" with 3 songs
+
+**Steps:**
+1. Select Band A
+2. Navigate to Setlists tab
+3. Open "Songs A" setlist (5 songs displayed)
+4. **Open band switcher** (via profile/settings)
+5. **Switch to Band B**
+6. Navigate back to Setlists tab
+7. **Expected:** Setlist list shows Band B's setlists, "Songs A" is NOT visible
+8. Tap back button (if SetlistDetailScreen is still in Navigator stack)
+9. **Expected:** Screen pops to Band B's setlist list (or shows empty state)
+
+**Pass criteria:**  
+- No Band A setlist data visible after switching to Band B
+- Console shows: `[SetlistDetail] Band changed from [Band A ID] to [Band B ID], clearing stale setlist state`
+- If screen pops, it returns to Band B's setlist list
+
+**Fail criteria:**  
+- Band A's "Songs A" setlist still displayed after band switch (stale band data)
+- App crashes on band switch
+
+---
+
+#### Test 5: Catalog vs. Non-Catalog (Regression)
 
 **Platform:** iOS  
 **Preconditions:** Band with Catalog and at least one custom setlist
@@ -693,6 +774,7 @@ Since this is a client-side state management fix with no database changes, all v
 1. **Setlist detail load (iOS)** — normal navigation to setlist must show songs
 2. **iOS background/foreground cycle** — songs must not disappear when app resumes
 3. **Catalog vs. non-Catalog** — both setlist types must preserve songs after lifecycle events
+4. **Band switch while setlist screen open (NEW)** — must clear stale data and not crash
 
 ### Secondary Testing (Regression Checks)
 
