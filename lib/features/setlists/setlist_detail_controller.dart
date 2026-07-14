@@ -290,6 +290,9 @@ class SetlistDetailState {
 
 /// Notifier for setlist detail - watches selectedSetlistProvider
 class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
+  String? _setlistId;
+  String? _setlistName;
+  String? _loadedForBandId;
   String? _lastLoadedSetlistId;
   SetlistDetailState? _cachedState;
 
@@ -307,50 +310,69 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
   @override
   SetlistDetailState build() {
-    // Watch the selected setlist - when it changes, reset and refetch
-    final selected = ref.watch(selectedSetlistProvider);
-
-    // Listen for song updates from other setlists
+    // Listen for song updates from other setlists (unchanged)
+    // IMPORTANT: Must be registered unconditionally on every build() call,
+    // before any early returns, or Riverpod will tear it down
     ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
       if (next != null && prev?.timestamp != next.timestamp) {
         _applySongUpdate(next);
       }
     });
 
-    // If no setlist selected, return empty state
-    if (!selected.isSelected) {
+    // SAFEGUARD: Watch active band ID - clear state if band changes while screen is mounted
+    // This replaces the protection that watching selectedSetlistProvider used to provide
+    final currentBandId = ref.watch(activeBandIdProvider);
+
+    if (_loadedForBandId != null && _loadedForBandId != currentBandId) {
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistDetail] Band changed from $_loadedForBandId to $currentBandId, '
+          'clearing stale setlist state',
+        );
+      }
+      _setlistId = null;
+      _setlistName = null;
+      _loadedForBandId = null;
       _lastLoadedSetlistId = null;
       _cachedState = null;
-      return const SetlistDetailState();
+      return const SetlistDetailState(); // Return empty state
     }
 
-    // Only reload if the setlist ID actually changed
-    // This prevents losing optimistic updates when provider rebuilds
-    if (_lastLoadedSetlistId != selected.id) {
-      _lastLoadedSetlistId = selected.id;
-      _cachedState = null;
-      // Trigger async load
-      Future.microtask(() => loadSongs());
+    // FIX: No longer watch selectedSetlistProvider.
+    // Screen calls loadSetlist() directly with route args.
+    // Return current state (or empty if not yet initialized).
+    return state;
+  }
 
-      return SetlistDetailState(
-        setlistId: selected.id!,
-        setlistName: selected.name!,
-        isLoading: true,
-      );
+  /// Public method called by screen to initialize the setlist.
+  /// Replaces the previous pattern of watching selectedSetlistProvider.
+  void loadSetlist(String id, String name) {
+    // If already loaded this setlist, don't reload
+    if (_setlistId == id) {
+      if (kDebugMode) {
+        debugPrint(
+            '[SetlistDetail] Setlist $id already loaded, skipping reload');
+      }
+      return;
     }
 
-    // Setlist didn't change - return cached state (or create one if missing)
-    // This preserves optimistic updates like BPM changes
-    if (_cachedState != null) {
-      return _cachedState!.copyWith(setlistName: selected.name);
+    if (kDebugMode) {
+      debugPrint('[SetlistDetail] Loading setlist: $name (ID: $id)');
     }
 
-    // Fallback: shouldn't happen, but return loading state
-    return SetlistDetailState(
-      setlistId: selected.id!,
-      setlistName: selected.name!,
+    _setlistId = id;
+    _setlistName = name;
+    _loadedForBandId = ref.read(activeBandIdProvider);
+    _lastLoadedSetlistId = null; // Force reload
+    _cachedState = null;
+
+    state = SetlistDetailState(
+      setlistId: id,
+      setlistName: name,
       isLoading: true,
     );
+
+    Future.microtask(() => loadSongs());
   }
 
   /// Apply a song update from the broadcaster to our local state
@@ -448,7 +470,19 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   /// - Catalog: Songs only, sorted by active catalogSortMode
   /// - Non-Catalog: Mixed items (songs + specials), position order from DB
   Future<void> loadSongs() async {
-    if (state.setlistId.isEmpty) return;
+    // FIX: Read from instance variables instead of selectedSetlistProvider
+    if (_setlistId == null || _setlistName == null) {
+      if (kDebugMode) {
+        debugPrint(
+            '[SetlistDetail] loadSongs called but setlist not initialized');
+      }
+      return;
+    }
+
+    final setlistId = _setlistId!;
+    final setlistName = _setlistName!;
+
+    if (setlistId.isEmpty) return;
 
     final bandId = _bandId;
     if (bandId == null || bandId.isEmpty) {
@@ -465,8 +499,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     if (kDebugMode) {
       debugPrint('[SetlistDetail] Loading songs...');
       debugPrint('  bandId: $bandId');
-      debugPrint('  setlistId: ${state.setlistId}');
-      debugPrint('  setlistName: ${state.setlistName}');
+      debugPrint('  setlistId: $setlistId');
+      debugPrint('  setlistName: $setlistName');
     }
 
     try {
@@ -474,7 +508,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         // Catalog: only songs, no special items
         var songs = await _repository.fetchSongsForSetlist(
           bandId: bandId,
-          setlistId: state.setlistId,
+          setlistId: setlistId,
         );
 
         final currentBandId = _bandId;
@@ -485,12 +519,15 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
               'bandId changed from $bandId to $currentBandId',
             );
           }
+          state = state.copyWith(isLoading: false);
           return;
         }
 
         songs = _applySorting(songs, sortMode: state.catalogSortMode);
 
         state = state.copyWith(
+          setlistId: setlistId,
+          setlistName: setlistName,
           songs: songs,
           items: const [],
           isLoading: false,
@@ -507,7 +544,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         // Non-Catalog: fetch mixed items (songs + special items)
         final mixedItems = await _specialItemRepo.fetchSetlistItems(
           bandId: bandId,
-          setlistId: state.setlistId,
+          setlistId: setlistId,
         );
 
         final currentBandId = _bandId;
@@ -518,6 +555,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
               'bandId changed from $bandId to $currentBandId',
             );
           }
+          state = state.copyWith(isLoading: false);
           return;
         }
 
@@ -543,6 +581,8 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         }
 
         state = state.copyWith(
+          setlistId: setlistId,
+          setlistName: setlistName,
           songs: songs,
           items: displayItems,
           isLoading: false,
