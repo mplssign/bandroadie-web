@@ -176,6 +176,13 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
   @override
   SetlistDetailState build() {
+    // Listen for song updates from other setlists (unchanged)
+    // IMPORTANT: Must be registered unconditionally on every build() call,
+    // before any early returns, or Riverpod will tear it down
+    ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
+      if (next != null) _applySongUpdate(next);
+    });
+
     // Watch active band ID - clear state if band changes while screen is mounted
     final currentBandId = ref.watch(activeBandIdProvider);
 
@@ -195,11 +202,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       _cachedState = null;
       return const SetlistDetailState();  // Return empty state
     }
-
-    // Listen for song updates from other setlists (unchanged)
-    ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
-      if (next != null) _applySongUpdate(next);
-    });
 
     // Return current state (initialized by loadSetlist() call from screen)
     return state;
@@ -433,10 +435,19 @@ SetlistDetailState build() {
 ```dart
 @override
 SetlistDetailState build() {
+  // Listen for song updates from other setlists (unchanged)
+  // IMPORTANT: Must be registered unconditionally on every build() call,
+  // before any early returns, or Riverpod will tear it down
+  ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
+    if (next != null && prev?.timestamp != next.timestamp) {
+      _applySongUpdate(next);
+    }
+  });
+
   // SAFEGUARD: Watch active band ID - clear state if band changes while screen is mounted
   // This replaces the protection that watching selectedSetlistProvider used to provide
   final currentBandId = ref.watch(activeBandIdProvider);
-  
+
   if (_loadedForBandId != null && _loadedForBandId != currentBandId) {
     if (kDebugMode) {
       debugPrint(
@@ -451,13 +462,6 @@ SetlistDetailState build() {
     _cachedState = null;
     return const SetlistDetailState();  // Return empty state
   }
-  
-  // Listen for song updates from other setlists (unchanged)
-  ref.listen<SongUpdateEvent?>(songUpdateBroadcasterProvider, (prev, next) {
-    if (next != null && prev?.timestamp != next.timestamp) {
-      _applySongUpdate(next);
-    }
-  });
 
   // FIX: No longer watch selectedSetlistProvider.
   // Screen calls loadSetlist() directly with route args.
@@ -678,7 +682,7 @@ Since this is a client-side state management fix with no database changes, all v
 4. **Expected:** Loading indicator spins, then songs display
 5. **Expected:** Console shows: `[SetlistDetail] Loaded N songs for [setlist name]`
 
-**Pass criteria:** Songs load normally, no empty state, no extra debug logs about state preservation
+**Pass criteria:** Songs load normally, no empty state, no band-change-clear log logged (guard should not trigger)
 
 ---
 
@@ -730,7 +734,7 @@ Since this is a client-side state management fix with no database changes, all v
 #### Test 4: Band Switch While Setlist Detail Screen Open (Critical New Test)
 
 **Platform:** iOS physical device  
-**Preconditions:** User belongs to at least 2 bands (Band A and Band B), Band A has setlist "Rock Classics" with 5 songs  
+**Preconditions:** User belongs to at least 2 bands (Band A and Band B), Band A has setlist "Rock Classics" with 5 songs
 
 **Steps:**
 
