@@ -115,11 +115,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     _setupAnimations();
     _setupSortAnimation();
 
-    // Set the selected setlist for the provider
+    // FIX: Call controller directly with route args instead of setting selectedSetlistProvider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
-          .read(selectedSetlistProvider.notifier)
-          .select(id: widget.setlistId, name: widget.setlistName);
+          .read(setlistDetailProvider.notifier)
+          .loadSetlist(widget.setlistId, widget.setlistName);
     });
 
     Future.delayed(const Duration(milliseconds: 50), () {
