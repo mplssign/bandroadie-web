@@ -121,3 +121,4 @@ dart_defines.json
 build.nosync/
 !docs/features/**/EVIDENCE.log
 bandroadie_fresh/**/.gradle/
+bandroadie.code-workspace
