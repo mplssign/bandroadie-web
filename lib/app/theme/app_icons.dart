@@ -76,6 +76,13 @@ class AppIcons {
 
   static const IconData library = LucideIcons.library;
 
+  // Song link types
+  static const IconData amazonMusic = LucideIcons.radio;
+  static const IconData appleMusic = LucideIcons.music2;
+  static const IconData link = LucideIcons.link;
+  static const IconData pdf = LucideIcons.fileType;
+  static const IconData spotify = LucideIcons.disc3;
+
   // =============================
   // Calendar / Events
   // =============================
