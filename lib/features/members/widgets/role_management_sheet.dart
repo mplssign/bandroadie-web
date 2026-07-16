@@ -248,7 +248,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
           'Manage Role',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: AppFontSizes.title,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -267,7 +267,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                     Text(
                       widget.member.name,
                       style: TextStyle(
-                        fontSize: 21,
+                        fontSize: AppFontSizes.pageTitle,
                         fontWeight: FontWeight.w700,
                         color: context.colors.textPrimary,
                         height: 1.3,
@@ -277,7 +277,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                     Text(
                       _roleDisplayName(widget.member.bandRole),
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         color: context.colors.textSecondary,
                       ),
                     ),
@@ -288,7 +288,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                     Text(
                       'Change role',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSizes.body,
                         fontWeight: FontWeight.w600,
                         color: context.colors.textPrimary,
                       ),
@@ -323,7 +323,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                       Text(
                         'Contributor permissions',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppFontSizes.body,
                           fontWeight: FontWeight.w600,
                           color: context.colors.textPrimary,
                         ),
@@ -401,7 +401,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                               child: Text(
                                 'You are the only admin. You cannot change your own role.',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppFontSizes.caption,
                                   color: context.colors.warning,
                                   height: 1.4,
                                 ),
@@ -434,7 +434,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                             _isRemoving ? 'Removing...' : 'Remove from band',
                             style: const TextStyle(
                               color: AppColors.error,
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -513,7 +513,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                             ? Colors.white
                             : context.colors.textMuted,
                         fontWeight: FontWeight.w700,
-                        fontSize: 16,
+                        fontSize: AppFontSizes.body,
                       ),
                     ),
             ),
@@ -595,7 +595,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                   Text(
                     label,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w600,
                       color: enabled
                           ? context.colors.textPrimary
@@ -606,7 +606,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSizes.caption,
                       color: enabled
                           ? context.colors.textSecondary
                           : context.colors.textDisabled,
@@ -632,7 +632,7 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         title: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             color: onChanged != null
                 ? context.colors.textPrimary
                 : context.colors.textDisabled,

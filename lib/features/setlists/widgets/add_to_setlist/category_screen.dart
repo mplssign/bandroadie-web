@@ -76,7 +76,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                       'What would you like to add?',
                       style: AppTextStyles.body.copyWith(
                         color: context.colors.textSecondary,
-                        fontSize: 16,
+                        fontSize: AppFontSizes.body,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -150,7 +150,7 @@ class _CategoryScreenState extends State<CategoryScreen>
                               'BREAKS & PAUSES',
                               style: AppTextStyles.label.copyWith(
                                 color: context.colors.textMuted,
-                                fontSize: 11,
+                                fontSize: AppFontSizes.caption,
                                 letterSpacing: 1.0,
                               ),
                             ),

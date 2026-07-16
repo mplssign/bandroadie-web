@@ -471,7 +471,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
             ),
           ),
         ],
@@ -499,7 +499,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
             ),
           ),
           const SizedBox(width: Spacing.space8),
@@ -2110,7 +2110,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                           opacity: animation,
                           child: SizeTransition(
                             sizeFactor: animation,
-                            axisAlignment: -1,
+                            alignment: Alignment.topCenter,
                             child: child,
                           ),
                         );
@@ -2566,7 +2566,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               sliver: canEdit
                   ? SliverReorderableList(
                       itemCount: itemCount,
-                      onReorder: useItems ? _handleItemReorder : _handleReorder,
+                      onReorderItem:
+                          useItems ? _handleItemReorder : _handleReorder,
                       itemBuilder: itemBuilder,
                       proxyDecorator: (child, index, animation) {
                         return AnimatedBuilder(
@@ -2902,7 +2903,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           Text(
             song.isBpmPlaceholder ? '- BPM' : song.formattedBpm,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w600,
               color: context.colors.textPrimary,
               height: 1,
@@ -2915,7 +2916,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           Text(
             song.formattedDuration,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w600,
               color: context.colors.textPrimary,
               height: 1,
@@ -2937,7 +2938,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
             child: Text(
               shortLabel,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w600,
                 color: textColor,
                 height: 1,
@@ -3126,7 +3127,7 @@ class _ActionButtonState extends State<_ActionButton>
                 Text(
                   widget.label!,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
                     height: 1,
@@ -3193,7 +3194,7 @@ class _TuningSortButton extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w600,
                 color: isActive
                     ? tuningBadgeTextColor(badgeColor)
@@ -3444,7 +3445,7 @@ class _ShareFormatOption extends StatelessWidget {
               smallText,
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 12,
+                fontSize: AppFontSizes.caption,
               ),
             ),
             const SizedBox(height: Spacing.space4),

@@ -47,7 +47,7 @@ class CommunitySection extends StatelessWidget {
             'Connect with other bands, share ideas, and help shape the future of BandRoadie',
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               color: Colors.white.withValues(alpha: 0.9),
             ),
           ),

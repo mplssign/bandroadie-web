@@ -326,7 +326,6 @@ class GigFormFields extends ConsumerWidget {
             onMarkDirty();
           },
           decoration: InputDecoration(
-            hintText: 'IL',
             counterText: '', // Hide character counter
             hintStyle: AppTextStyles.callout.copyWith(
               color: context.colors.textMuted,
@@ -554,7 +553,7 @@ class GigFormFields extends ConsumerWidget {
               ),
               onChanged: (_) => onMarkDirty(),
               decoration: InputDecoration(
-                hintText: 'e.g., Chicago, IL',
+                hintText: 'e.g., Chicago',
                 hintStyle: AppTextStyles.callout.copyWith(
                   color: context.colors.textMuted,
                 ),
@@ -1167,7 +1166,7 @@ class GigFormFields extends ConsumerWidget {
           style: AppTextStyles.footnote.copyWith(
             color: textColor,
             fontWeight: FontWeight.w600,
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
           ),
           textAlign: TextAlign.center,
           overflow: TextOverflow.ellipsis,

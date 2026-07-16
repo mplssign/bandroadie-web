@@ -234,7 +234,7 @@ class _NoBandContentState extends State<_NoBandContent>
                 label,
                 style: TextStyle(
                   color: context.colors.textSecondary,
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                 ),
               ),
             ),
@@ -242,7 +242,7 @@ class _NoBandContentState extends State<_NoBandContent>
               '$count',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
               ),
             ),
           ],
@@ -261,7 +261,8 @@ class _NoBandContentState extends State<_NoBandContent>
           const Expanded(
             child: Text(
               'Restore from Backup?',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              style: TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: AppFontSizes.title),
             ),
           ),
         ],
@@ -274,7 +275,8 @@ class _NoBandContentState extends State<_NoBandContent>
             RichText(
               text: TextSpan(
                 style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 14),
+                    color: context.colors.textSecondary,
+                    fontSize: AppFontSizes.subhead),
                 children: [
                   const TextSpan(text: 'A band named '),
                   TextSpan(
@@ -305,7 +307,7 @@ class _NoBandContentState extends State<_NoBandContent>
                 'backup data. This cannot be undone.',
                 style: TextStyle(
                   color: AppColors.error,
-                  fontSize: 13,
+                  fontSize: AppFontSizes.caption,
                 ),
               ),
             ),
@@ -326,7 +328,7 @@ class _NoBandContentState extends State<_NoBandContent>
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             textStyle: const TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -495,7 +497,7 @@ class _NoBandContentState extends State<_NoBandContent>
                               'Welcome backstage!',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.displayLarge.copyWith(
-                                fontSize: 28,
+                                fontSize: AppFontSizes.display,
                               ),
                             ),
                           ),
@@ -510,7 +512,7 @@ class _NoBandContentState extends State<_NoBandContent>
                             'Create your band or ask a fellow\nbandmate to invite you.',
                             textAlign: TextAlign.center,
                             style: AppTextStyles.body.copyWith(
-                              fontSize: 16,
+                              fontSize: AppFontSizes.body,
                               height: 1.6,
                               color: context.colors.textSecondary,
                             ),
@@ -546,8 +548,8 @@ class _NoBandContentState extends State<_NoBandContent>
                               ),
                               child: Text(
                                 'Create a Band',
-                                style:
-                                    AppTextStyles.button.copyWith(fontSize: 16),
+                                style: AppTextStyles.button
+                                    .copyWith(fontSize: AppFontSizes.body),
                               ),
                             ),
                           ),
@@ -579,7 +581,7 @@ class _NoBandContentState extends State<_NoBandContent>
                                 : Text(
                                     'Restore from backup',
                                     style: AppTextStyles.body.copyWith(
-                                      fontSize: 15,
+                                      fontSize: AppFontSizes.subhead,
                                       color: AppColors.primary,
                                     ),
                                   ),

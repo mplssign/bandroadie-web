@@ -215,7 +215,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                       'Add original songs or hard to find covers',
                       style: AppTextStyles.body.copyWith(
                         color: context.colors.textSecondary,
-                        fontSize: 15,
+                        fontSize: AppFontSizes.subhead,
                       ),
                     ),
                   ),
@@ -260,7 +260,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                                       ? context.colors.textMuted
                                       : AppColors.primary,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                                  fontSize: AppFontSizes.subhead,
                                 ),
                               ),
                             ],
@@ -351,7 +351,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                           style: AppTextStyles.button.copyWith(
                             color:
                                 _hasValidEntry ? Colors.white : Colors.white60,
-                            fontSize: 16,
+                            fontSize: AppFontSizes.body,
                           ),
                         ),
                 ),
@@ -366,7 +366,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                   'Cancel',
                   style: AppTextStyles.body.copyWith(
                     color: context.colors.textSecondary,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                   ),
                 ),
               ),
@@ -535,7 +535,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                   'Song ${widget.index + 1}',
                   style: AppTextStyles.label.copyWith(
                     color: context.colors.textMuted,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.caption,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -618,7 +618,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
           label,
           style: AppTextStyles.label.copyWith(
             color: hasError ? AppColors.primary : context.colors.textSecondary,
-            fontSize: 13,
+            fontSize: AppFontSizes.caption,
           ),
         ),
         const SizedBox(height: 6),
@@ -633,7 +633,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
             onChanged: onChanged,
             style: AppTextStyles.body.copyWith(
               color: context.colors.textPrimary,
-              fontSize: 15,
+              fontSize: AppFontSizes.subhead,
             ),
             decoration: InputDecoration(
               hintText: label == 'Song Name'
@@ -641,7 +641,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
                   : 'Enter artist name',
               hintStyle: AppTextStyles.body.copyWith(
                 color: context.colors.textMuted,
-                fontSize: 15,
+                fontSize: AppFontSizes.subhead,
               ),
               filled: true,
               fillColor: context.colors.background,

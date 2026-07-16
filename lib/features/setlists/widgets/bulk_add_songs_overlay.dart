@@ -38,7 +38,7 @@ Future<void> showBulkAddSongsOverlay({
   required String bandId,
   required String setlistId,
   required void Function(int addedCount, List<String> setlistSongIds)
-  onComplete,
+      onComplete,
 }) {
   return showGeneralDialog(
     context: context,
@@ -147,10 +147,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
 
   Future<void> _parseInput(String input) async {
     // Count lines first to check limit (quick check)
-    final lineCount = input
-        .split('\n')
-        .where((l) => l.trim().isNotEmpty)
-        .length;
+    final lineCount =
+        input.split('\n').where((l) => l.trim().isNotEmpty).length;
     final exceedsLimit = lineCount > _kMaxRows;
 
     // For large pastes, parse async to avoid blocking UI
@@ -302,7 +300,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
           Expanded(
             child: Text(
               'Bulk Add Songs',
-              style: AppTextStyles.title3.copyWith(fontSize: 18),
+              style:
+                  AppTextStyles.title3.copyWith(fontSize: AppFontSizes.title),
             ),
           ),
 
@@ -348,7 +347,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               child: const Text(
                 'Done',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -377,7 +376,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               'COPY/PASTE:',
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -389,7 +388,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               'The columns in your spreadsheet should be in this order:',
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
               ),
             ),
 
@@ -397,7 +396,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               'ARTIST, SONG (Optional: BPM, TUNING)',
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
               ),
             ),
 
@@ -408,7 +407,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               'MANUALLY ENTER:',
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -420,7 +419,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
               'Enter song info by typing ARTIST, SONG, BPM, TUNING (separated by commas)',
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
               ),
             ),
 
@@ -449,7 +448,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                         'Maximum $_kMaxRows rows allowed. Only the first $_kMaxRows rows will be processed.',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.error,
-                          fontSize: 14,
+                          fontSize: AppFontSizes.subhead,
                         ),
                       ),
                     ),
@@ -492,7 +491,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         maxLines: null,
         minLines: 8,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontFamily: 'monospace',
           fontWeight: FontWeight.w400,
           color: context.colors.textPrimary,
@@ -501,7 +500,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         decoration: InputDecoration(
           hintText: 'Example: The Beatles, Come Together, 82, Standard',
           hintStyle: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontFamily: 'monospace',
             fontWeight: FontWeight.w400,
             color: context.colors.textMuted.withValues(alpha: 0.6),
@@ -518,9 +517,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
     final validCount = _parseResult.validRows.length;
     final invalidCount = _parseResult.invalidRows.length;
     final dupeCount = _parseResult.duplicatesRemoved;
-    final warningCount = _parseResult.validRows
-        .where((r) => r.hasWarning)
-        .length;
+    final warningCount =
+        _parseResult.validRows.where((r) => r.hasWarning).length;
 
     // Build summary parts
     final parts = <String>[];
@@ -551,7 +549,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
 
     // Determine color based on status
     final hasErrors = invalidCount > 0;
-    final textColor = hasErrors ? context.colors.warning : context.colors.textSecondary;
+    final textColor =
+        hasErrors ? context.colors.warning : context.colors.textSecondary;
 
     return Row(
       children: [
@@ -568,7 +567,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
             summaryText,
             style: AppTextStyles.label.copyWith(
               color: textColor,
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -623,9 +622,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         : AppColors.error.withValues(alpha: 0.1);
 
     // Get tuning badge color
-    final tuningColor = row.tuning != null
-        ? tuningBadgeColor(row.tuning)
-        : AppColors.primary;
+    final tuningColor =
+        row.tuning != null ? tuningBadgeColor(row.tuning) : AppColors.primary;
     final tuningTextColor = tuningBadgeTextColor(tuningColor);
 
     return Container(
@@ -646,7 +644,8 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                   row.title.isEmpty ? '(No title)' : row.title,
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: isValid ? context.colors.textPrimary : AppColors.error,
+                    color:
+                        isValid ? context.colors.textPrimary : AppColors.error,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -663,7 +662,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                 child: Text(
                   row.formattedBpm,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSizes.caption,
                     fontWeight: FontWeight.w500,
                     color: context.colors.textSecondary,
                   ),
@@ -682,7 +681,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                 child: Text(
                   row.formattedTuning,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: AppFontSizes.caption,
                     fontWeight: FontWeight.w600,
                     color: tuningTextColor,
                   ),
@@ -700,7 +699,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                 child: Text(
                   row.artist.isEmpty ? '(No artist)' : row.artist,
                   style: AppTextStyles.body.copyWith(
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                     color: context.colors.textSecondary,
                   ),
                   maxLines: 1,
@@ -722,7 +721,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                   child: Text(
                     row.errorMessage!,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSizes.caption,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
@@ -743,7 +742,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                   child: Text(
                     row.warningMessage!,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: AppFontSizes.caption,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
@@ -880,7 +879,7 @@ class _AddSongsButtonState extends State<_AddSongsButton>
                   Text(
                     widget.label,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                       color: isEnabled ? Colors.white : Colors.white60,
                     ),

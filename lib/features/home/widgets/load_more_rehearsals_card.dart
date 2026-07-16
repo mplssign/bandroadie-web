@@ -66,7 +66,7 @@ class _LoadMoreRehearsalsCardState extends State<LoadMoreRehearsalsCard> {
               Text(
                 'Load More',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: AppFontSizes.headline,
                   fontWeight: FontWeight.w600,
                   color: Theme.of(context).colorScheme.primary,
                 ),
@@ -75,7 +75,7 @@ class _LoadMoreRehearsalsCardState extends State<LoadMoreRehearsalsCard> {
               Text(
                 '+$nextBatch rehearsals',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                   fontWeight: FontWeight.w400,
                   color: Theme.of(context)
                       .colorScheme
@@ -87,7 +87,7 @@ class _LoadMoreRehearsalsCardState extends State<LoadMoreRehearsalsCard> {
               Text(
                 '($remaining more)',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSizes.caption,
                   fontWeight: FontWeight.w400,
                   color: Theme.of(context)
                       .colorScheme

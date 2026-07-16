@@ -322,7 +322,7 @@ class _DayHeaders extends StatelessWidget {
             child: Text(
               day,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSizes.caption,
                 fontWeight: FontWeight.w500,
                 color: context.colors.textPrimary.withValues(alpha: 0.7),
               ),
@@ -539,7 +539,7 @@ class _DayCell extends StatelessWidget {
                 child: Text(
                   '$day',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
                     color: isToday ? Colors.white : context.colors.textPrimary,
                   ),

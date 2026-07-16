@@ -164,7 +164,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                               widget.event.notes!,
                               style: AppTextStyles.callout.copyWith(
                                 color: context.colors.textSecondary,
-                                fontSize: 14,
+                                fontSize: AppFontSizes.subhead,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -180,7 +180,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                             ),
                             style: AppTextStyles.callout.copyWith(
                               color: context.colors.textSecondary,
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -266,7 +266,7 @@ class _DateBadge extends StatelessWidget {
           Text(
             _monthAbbreviation,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -277,7 +277,7 @@ class _DateBadge extends StatelessWidget {
           Text(
             '${date.day}',
             style: const TextStyle(
-              fontSize: 28,
+              fontSize: AppFontSizes.display,
               fontWeight: FontWeight.w800,
               color: Colors.white,
               height: 1.1,

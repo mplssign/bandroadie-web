@@ -344,7 +344,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
             child: Text(
               'Enter strings from low to high\nExample: E A D G B E',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: AppFontSizes.caption,
                 color: context.colors.textSecondary,
                 height: 1.4,
               ),
@@ -362,7 +362,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
         Text(
           'Guitar Strings (Low to High)',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
             color: context.colors.textPrimary,
           ),
@@ -403,7 +403,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
             ),
           ),
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             color: context.colors.textPrimary,
             letterSpacing: 1.2,
           ),
@@ -419,7 +419,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
         Text(
           'Tuning Name',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
             color: context.colors.textPrimary,
           ),
@@ -458,7 +458,8 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
               vertical: Spacing.space12,
             ),
           ),
-          style: TextStyle(fontSize: 16, color: context.colors.textPrimary),
+          style: TextStyle(
+              fontSize: AppFontSizes.body, color: context.colors.textPrimary),
         ),
       ],
     );
@@ -481,7 +482,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
             child: Text(
               'Cancel',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textSecondary,
               ),
@@ -516,7 +517,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
                 : Text(
                     'Save Tuning',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),

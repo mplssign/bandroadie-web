@@ -100,7 +100,7 @@ class _EmptySectionCardState extends State<EmptySectionCard>
           Text(
             widget.title,
             style: GoogleFonts.dmSans(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w700,
               color: context.colors.textPrimary,
               height: 1.25,
@@ -115,7 +115,7 @@ class _EmptySectionCardState extends State<EmptySectionCard>
               widget.subtitle!,
               textAlign: TextAlign.left,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w400,
                 color: context.colors.textMuted,
                 height: 1.4,

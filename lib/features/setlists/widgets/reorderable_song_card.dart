@@ -291,7 +291,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                               _editError!,
                               style: const TextStyle(
                                 color: AppColors.primary,
-                                fontSize: 11,
+                                fontSize: AppFontSizes.caption,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -368,7 +368,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
     return Text(
       widget.song.isBpmPlaceholder ? '- BPM' : widget.song.formattedBpm,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppFontSizes.subhead,
         fontWeight: FontWeight.w600,
         color: context.colors.textPrimary,
         height: 1,
@@ -382,7 +382,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
     return Text(
       widget.song.formattedDuration,
       style: TextStyle(
-        fontSize: 14,
+        fontSize: AppFontSizes.subhead,
         fontWeight: FontWeight.w600,
         color: context.colors.textPrimary,
         height: 1,
@@ -405,7 +405,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
       child: Text(
         widget.song.musicalKey!,
         style: const TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
           color: Color(0xFF1F1F1F), // Dark text for light background
           height: 1,
@@ -436,7 +436,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
       child: Text(
         shortLabel,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
           color: textColor,
           height: 1,

@@ -46,7 +46,7 @@ class ValueSection extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
-              fontSize: 20,
+              fontSize: AppFontSizes.title2,
               color: context.colors.textSecondary,
               height: 1.5,
             ),
@@ -128,7 +128,8 @@ class _ValuePoint extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: AppTextStyles.headline.copyWith(fontSize: 22),
+            style: AppTextStyles.headline
+                .copyWith(fontSize: AppFontSizes.sectionTitle),
           ),
           const SizedBox(height: 12),
 
@@ -138,7 +139,7 @@ class _ValuePoint extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
-              fontSize: 20,
+              fontSize: AppFontSizes.title2,
               color: context.colors.textSecondary,
               height: 1.5,
             ),

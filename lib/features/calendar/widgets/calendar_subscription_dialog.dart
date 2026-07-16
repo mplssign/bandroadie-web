@@ -211,14 +211,16 @@ class _CalendarSubscriptionDialogState
             'Unable to generate calendar link',
             style: TextStyle(
               color: context.colors.textPrimary,
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: Spacing.space8),
           Text(
             error,
-            style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
+            style: TextStyle(
+                color: context.colors.textSecondary,
+                fontSize: AppFontSizes.subhead),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: Spacing.space24),
@@ -247,7 +249,7 @@ class _CalendarSubscriptionDialogState
           'Events will stay in sync automatically.',
           style: TextStyle(
             color: context.colors.textSecondary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             height: 1.4,
           ),
         ),
@@ -269,7 +271,7 @@ class _CalendarSubscriptionDialogState
                   url,
                   style: TextStyle(
                     color: context.colors.textSecondary,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.caption,
                     fontFamily: 'monospace',
                   ),
                   maxLines: 2,
@@ -302,7 +304,7 @@ class _CalendarSubscriptionDialogState
           'Include in feed:',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -328,8 +330,7 @@ class _CalendarSubscriptionDialogState
           AppToggleTile(
             title: 'Rehearsals',
             value: _prefs.includeRehearsal,
-            onChanged: (v) =>
-                _updatePref(_prefs.copyWith(includeRehearsal: v)),
+            onChanged: (v) => _updatePref(_prefs.copyWith(includeRehearsal: v)),
             compact: true,
           ),
           const SizedBox(height: Spacing.space4),
@@ -344,8 +345,7 @@ class _CalendarSubscriptionDialogState
           AppToggleTile(
             title: 'Member block-out days',
             value: _prefs.includeBlockouts,
-            onChanged: (v) =>
-                _updatePref(_prefs.copyWith(includeBlockouts: v)),
+            onChanged: (v) => _updatePref(_prefs.copyWith(includeBlockouts: v)),
             compact: true,
           ),
         ] else
@@ -367,7 +367,7 @@ class _CalendarSubscriptionDialogState
           'How to subscribe:',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -467,7 +467,7 @@ class _CopyButton extends StatelessWidget {
                 copied ? 'Copied' : 'Copy',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 13,
+                  fontSize: AppFontSizes.caption,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -509,7 +509,7 @@ class _InstructionTile extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: context.colors.textPrimary,
-                  fontSize: 13,
+                  fontSize: AppFontSizes.caption,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -517,7 +517,7 @@ class _InstructionTile extends StatelessWidget {
                 instruction,
                 style: TextStyle(
                   color: context.colors.textSecondary,
-                  fontSize: 12,
+                  fontSize: AppFontSizes.caption,
                 ),
               ),
             ],
@@ -544,12 +544,15 @@ class _NoteBullet extends StatelessWidget {
       children: [
         Text(
           '•  ',
-          style: TextStyle(color: context.colors.textMuted, fontSize: 12),
+          style: TextStyle(
+              color: context.colors.textMuted, fontSize: AppFontSizes.caption),
         ),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(color: context.colors.textMuted, fontSize: 12),
+            style: TextStyle(
+                color: context.colors.textMuted,
+                fontSize: AppFontSizes.caption),
           ),
         ),
       ],

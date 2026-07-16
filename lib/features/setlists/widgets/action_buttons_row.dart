@@ -119,7 +119,7 @@ class _ActionButtonState extends State<_ActionButton>
                 Text(
                   widget.label!,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
                     height: 1,

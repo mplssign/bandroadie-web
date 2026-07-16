@@ -470,7 +470,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
                 color: Color(
                   block.highlight.accentColorValue,
                 ).withValues(alpha: 0.7),
-                fontSize: 10,
+                fontSize: AppFontSizes.caption,
                 letterSpacing: 1.4,
               ),
             ),

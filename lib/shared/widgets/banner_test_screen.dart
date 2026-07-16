@@ -68,7 +68,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             Text(
               'Native App Banner Debugger',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppFontSizes.title2,
                 fontWeight: FontWeight.bold,
                 color: context.colors.textPrimary,
               ),
@@ -76,7 +76,9 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             const SizedBox(height: Spacing.space8),
             Text(
               'Use this screen to debug why the banner is or isn\'t showing.',
-              style: TextStyle(fontSize: 14, color: context.colors.textSecondary),
+              style: TextStyle(
+                  fontSize: AppFontSizes.subhead,
+                  color: context.colors.textSecondary),
             ),
           ],
         ),
@@ -133,7 +135,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             Text(
               'localStorage Info',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.bold,
                 color: context.colors.textPrimary,
               ),
@@ -226,7 +228,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             Text(
               'Raw Debug Data',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.bold,
                 color: context.colors.textPrimary,
               ),
@@ -235,7 +237,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
             SelectableText(
               _debugInfo.toString(),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppFontSizes.caption,
                 color: context.colors.textSecondary,
                 fontFamily: 'monospace',
               ),
@@ -266,7 +268,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
@@ -275,7 +277,7 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSizes.subhead,
                       color: context.colors.textSecondary,
                     ),
                   ),
@@ -318,13 +320,15 @@ class _BannerTestScreenState extends State<BannerTestScreen> {
       children: [
         Text(
           key,
-          style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
+          style: TextStyle(
+              color: context.colors.textSecondary,
+              fontSize: AppFontSizes.subhead),
         ),
         Text(
           value,
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w500,
           ),
         ),

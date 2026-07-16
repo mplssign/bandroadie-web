@@ -240,7 +240,7 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                 style: AppTextStyles.body.copyWith(
                   color: enabled ? Colors.white : context.colors.textMuted,
                   fontWeight: FontWeight.w700,
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                 ),
               ),
             ),
@@ -341,7 +341,8 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                       foregroundColor: context.colors.textPrimary,
                       side: BorderSide(color: context.colors.border),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
                       ),
                       minimumSize: const Size(double.infinity, 48),
                       alignment: Alignment.centerLeft,
@@ -374,15 +375,18 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                         vertical: 12,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
                         borderSide: BorderSide(color: context.colors.border),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
                         borderSide: BorderSide(color: context.colors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
                         borderSide: const BorderSide(color: AppColors.primary),
                       ),
                     ),
@@ -406,7 +410,8 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                       decoration: BoxDecoration(
                         color: context.colors.background,
                         border: Border.all(color: context.colors.border),
-                        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String?>(
@@ -444,8 +449,8 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                               value: _kOther,
                               child: Text(
                                 'Other',
-                                style: AppTextStyles.callout
-                                    .copyWith(color: context.colors.textPrimary),
+                                style: AppTextStyles.callout.copyWith(
+                                    color: context.colors.textPrimary),
                               ),
                             ),
                           ],
@@ -475,12 +480,14 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                           border: OutlineInputBorder(
                             borderRadius:
                                 BorderRadius.circular(Spacing.buttonRadius),
-                            borderSide: BorderSide(color: context.colors.border),
+                            borderSide:
+                                BorderSide(color: context.colors.border),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius:
                                 BorderRadius.circular(Spacing.buttonRadius),
-                            borderSide: BorderSide(color: context.colors.border),
+                            borderSide:
+                                BorderSide(color: context.colors.border),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius:

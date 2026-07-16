@@ -240,19 +240,15 @@ class SetlistsNotifier extends Notifier<SetlistsState> {
     // Save snapshot for rollback (only save once per drag sequence)
     _preReorderSnapshot ??= List.of(state.setlists);
 
-    // SliverReorderableList convention
-    var adjustedNew = newIndex;
-    if (oldIndex < adjustedNew) adjustedNew--;
-
     if (oldIndex < 0 ||
         oldIndex >= reorderable.length ||
-        adjustedNew < 0 ||
-        adjustedNew >= reorderable.length) {
+        newIndex < 0 ||
+        newIndex >= reorderable.length) {
       return;
     }
 
     final item = reorderable.removeAt(oldIndex);
-    reorderable.insert(adjustedNew, item);
+    reorderable.insert(newIndex, item);
 
     // Update positions
     final updated = reorderable.asMap().entries.map((e) {
@@ -825,7 +821,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.colors.textSecondary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                   const SizedBox(height: Spacing.space24),

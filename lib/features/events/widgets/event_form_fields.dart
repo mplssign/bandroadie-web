@@ -493,7 +493,7 @@ class EventFormFields extends ConsumerWidget {
                   child: Text(
                     '-15',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                       color: durationMinutes <= minDuration
                           ? roseColor.withValues(alpha: 0.4)
@@ -509,7 +509,7 @@ class EventFormFields extends ConsumerWidget {
                 child: Text(
                   _formatDurationMinutes(durationMinutes),
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: AppFontSizes.display,
                     fontWeight: FontWeight.w700,
                     color: context.colors.textPrimary,
                   ),
@@ -530,7 +530,7 @@ class EventFormFields extends ConsumerWidget {
                   child: Text(
                     '+15',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                       color: roseColor,
                     ),

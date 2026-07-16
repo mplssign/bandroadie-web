@@ -53,13 +53,13 @@ class _NoBandStateState extends State<NoBandState>
         curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    _iconSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
-          ),
-        );
+    _iconSlide =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // Title: staggered fade + slide
     _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -68,13 +68,13 @@ class _NoBandStateState extends State<NoBandState>
         curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
       ),
     );
-    _titleSlide = Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic),
-          ),
-        );
+    _titleSlide =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic),
+      ),
+    );
 
     // Body fade
     _bodyFade = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -164,7 +164,8 @@ class _NoBandStateState extends State<NoBandState>
                     child: Text(
                       'Welcome, Roadie!',
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.displayLarge.copyWith(fontSize: 28),
+                      style: AppTextStyles.displayLarge
+                          .copyWith(fontSize: AppFontSizes.display),
                     ),
                   ),
                 ),
@@ -180,7 +181,7 @@ class _NoBandStateState extends State<NoBandState>
                     "(they're late, shocker) to invite you.",
                     textAlign: TextAlign.center,
                     style: AppTextStyles.body.copyWith(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       height: 1.6,
                       color: context.colors.textSecondary,
                     ),

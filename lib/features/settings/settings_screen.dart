@@ -122,7 +122,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Delete Account?',
                 style: TextStyle(
                   color: context.colors.textPrimary,
-                  fontSize: 20,
+                  fontSize: AppFontSizes.title2,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -137,7 +137,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'This action is permanent and cannot be undone.',
               style: TextStyle(
                 color: context.colors.textPrimary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -146,7 +146,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'Deleting your account will:',
               style: TextStyle(
                 color: context.colors.textSecondary,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
               ),
             ),
             const SizedBox(height: 8),
@@ -161,7 +161,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'This cannot be reversed. Are you sure?',
               style: TextStyle(
                 color: AppColors.error,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -174,7 +174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'Cancel',
               style: TextStyle(
                 color: context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
               ),
             ),
           ),
@@ -191,7 +191,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'Delete Account',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -215,7 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             '• ',
             style: TextStyle(
               color: context.colors.textSecondary,
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
             ),
           ),
           Expanded(
@@ -223,7 +223,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               text,
               style: TextStyle(
                 color: context.colors.textSecondary,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
               ),
             ),
           ),
@@ -291,7 +291,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           'Settings',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -311,7 +311,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     'Deleting your account...',
                     style: TextStyle(
                       color: context.colors.textSecondary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -319,7 +319,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     'This may take a moment',
                     style: TextStyle(
                       color: context.colors.textSecondary,
-                      fontSize: 14,
+                      fontSize: AppFontSizes.subhead,
                     ),
                   ),
                 ],
@@ -400,7 +400,7 @@ class _LightModeToggle extends ConsumerWidget {
                   'Light mode',
                   style: TextStyle(
                     color: context.colors.textPrimary,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -409,7 +409,7 @@ class _LightModeToggle extends ConsumerWidget {
                   'Switch to light theme',
                   style: TextStyle(
                     color: context.colors.textSecondary,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.caption,
                   ),
                 ),
               ],
@@ -458,7 +458,7 @@ class _SettingsListItem extends StatelessWidget {
                     item.label,
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -470,7 +470,7 @@ class _SettingsListItem extends StatelessWidget {
                         color: item.isDestructive
                             ? AppColors.error.withValues(alpha: 0.7)
                             : context.colors.textSecondary,
-                        fontSize: 13,
+                        fontSize: AppFontSizes.caption,
                       ),
                     ),
                   ],

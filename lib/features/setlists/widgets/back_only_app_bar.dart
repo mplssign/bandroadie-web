@@ -69,7 +69,7 @@ class BackOnlyAppBar extends ConsumerWidget {
                 Text(
                   'Back',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     height: 1.4,

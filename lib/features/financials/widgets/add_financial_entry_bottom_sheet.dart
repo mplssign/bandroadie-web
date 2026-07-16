@@ -480,7 +480,7 @@ class _AddFinancialEntryBottomSheetState
                     style: AppTextStyles.body.copyWith(
                       color: context.colors.textSecondary,
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                 ),
@@ -516,7 +516,7 @@ class _AddFinancialEntryBottomSheetState
                                 ? Colors.white
                                 : context.colors.textMuted,
                             fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                            fontSize: AppFontSizes.body,
                           ),
                         ),
                 ),
@@ -1110,7 +1110,7 @@ class _SegmentedToggle extends StatelessWidget {
                           duration: AppDurations.fast,
                           curve: AppCurves.ease,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w600,
                             color: isIncome
                                 ? Colors.white
@@ -1133,7 +1133,7 @@ class _SegmentedToggle extends StatelessWidget {
                           duration: AppDurations.fast,
                           curve: AppCurves.ease,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w600,
                             color: !isIncome
                                 ? Colors.white
@@ -1327,7 +1327,7 @@ class _TypePillState extends State<_TypePill>
                 Text(
                   widget.label,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                     fontWeight: FontWeight.w500,
                     height: 1.2,
                   ).copyWith(color: textColor),

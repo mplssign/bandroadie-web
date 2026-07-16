@@ -508,7 +508,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                 sliver: canEdit
                     ? SliverReorderableList(
                         itemCount: setlists.where((s) => !s.isCatalog).length,
-                        onReorder: _handleReorder,
+                        onReorderItem: _handleReorder,
                         itemBuilder: (context, index) {
                           final reorderableSetlists =
                               setlists.where((s) => !s.isCatalog).toList();

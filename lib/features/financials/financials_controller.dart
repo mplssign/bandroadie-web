@@ -60,12 +60,22 @@ class FinancialsState {
   }
 
   List<FinancialEntry> get filteredEntries {
-    final now = DateTime.now();
-    List<FinancialEntry> entries = allEntries.where((e) {
+    return _applyDateFilter(allEntries.where((e) {
       // Filter by income/expense mode
       if (viewMode == FinancialViewMode.income && !e.isIncome) return false;
       if (viewMode == FinancialViewMode.expenses && e.isIncome) return false;
-      // Filter by date range
+      return true;
+    }));
+  }
+
+  /// All entries (income and expenses) matching only the date filter —
+  /// ignores the income/expenses toggle. Used for combined reports.
+  List<FinancialEntry> get dateFilteredEntries =>
+      _applyDateFilter(allEntries);
+
+  List<FinancialEntry> _applyDateFilter(Iterable<FinancialEntry> source) {
+    final now = DateTime.now();
+    final entries = source.where((e) {
       switch (dateFilter) {
         case FinancialDateFilter.allTime:
           return true;

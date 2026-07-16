@@ -40,11 +40,11 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
     );
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: AppCurves.slideIn,
-          ),
-        );
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: AppCurves.slideIn,
+      ),
+    );
   }
 
   @override
@@ -103,7 +103,7 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                 Text(
                   'No Setlists Yet',
                   style: GoogleFonts.dmSans(
-                    fontSize: 20,
+                    fontSize: AppFontSizes.title2,
                     fontWeight: FontWeight.w700,
                     color: context.colors.textPrimary,
                   ),

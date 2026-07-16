@@ -259,7 +259,7 @@ class ConfigErrorApp extends StatelessWidget {
                     'Configuration Missing',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: AppFontSizes.modalTitle,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -268,7 +268,8 @@ class ConfigErrorApp extends StatelessWidget {
                     'The roadie can\'t find the venue address.\nCheck your .env file or launch config.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: BrandColors.dark.textSecondary, fontSize: 16),
+                        color: BrandColors.dark.textSecondary,
+                        fontSize: AppFontSizes.body),
                   ),
                   const SizedBox(height: 32),
                   Container(
@@ -284,7 +285,7 @@ class ConfigErrorApp extends StatelessWidget {
                         errorMessage,
                         style: TextStyle(
                           color: BrandColors.dark.textSecondary,
-                          fontSize: 11,
+                          fontSize: AppFontSizes.caption,
                           fontFamily: 'monospace',
                         ),
                       ),

@@ -108,14 +108,15 @@ class _CategoryButtonState extends State<CategoryButton>
                   children: [
                     Text(
                       widget.label,
-                      style: AppTextStyles.headline.copyWith(fontSize: 17),
+                      style: AppTextStyles.headline
+                          .copyWith(fontSize: AppFontSizes.headline),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       widget.subtitle,
                       style: AppTextStyles.body.copyWith(
                         color: context.colors.textSecondary,
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                       ),
                     ),
                   ],

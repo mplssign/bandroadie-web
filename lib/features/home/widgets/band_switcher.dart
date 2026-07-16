@@ -60,7 +60,7 @@ class _BandSwitcherTokens {
   // Typography - Band name: 18px, medium weight, matching Figma mock
   // No underline decoration - plain text only
   static const TextStyle bandNameStyle = TextStyle(
-    fontSize: 18,
+    fontSize: AppFontSizes.title,
     fontWeight: FontWeight.w500,
     height: 1.25,
     decoration: TextDecoration.none,
@@ -232,7 +232,9 @@ class _BandSwitcherState extends State<BandSwitcher>
                   ),
                   child: const Text(
                     'Edit Band',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        fontSize: AppFontSizes.body,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -247,7 +249,7 @@ class _BandSwitcherState extends State<BandSwitcher>
               child: Text(
                 '+ Create New Band',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,
                   decoration: TextDecoration.none,
@@ -469,7 +471,7 @@ class _BandListItemState extends State<_BandListItem>
                   BandAvatar.fromBand(
                     widget.band,
                     size: _BandSwitcherTokens.avatarSize,
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                   ),
                   const SizedBox(width: _BandSwitcherTokens.avatarTextGap),
                   // Band name

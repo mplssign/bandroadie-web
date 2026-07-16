@@ -666,7 +666,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 'Backup Band Data',
                 style: TextStyle(
                   color: context.colors.textPrimary,
-                  fontSize: 18,
+                  fontSize: AppFontSizes.title,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -679,8 +679,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           children: [
             Text(
               'A backup file will be created for ${band.name}. The backup includes:',
-              style:
-                  TextStyle(color: context.colors.textSecondary, fontSize: 14),
+              style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: AppFontSizes.subhead),
             ),
             const SizedBox(height: 12),
             ...[
@@ -697,12 +698,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   children: [
                     Text('• ',
                         style: TextStyle(
-                            color: context.colors.textSecondary, fontSize: 14)),
+                            color: context.colors.textSecondary,
+                            fontSize: AppFontSizes.subhead)),
                     Expanded(
                         child: Text(item,
                             style: TextStyle(
                                 color: context.colors.textSecondary,
-                                fontSize: 14))),
+                                fontSize: AppFontSizes.subhead))),
                   ],
                 ),
               ),
@@ -716,7 +718,9 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               ),
               child: Text(
                 '⚠ Backup files may contain sensitive information such as lyrics, notes, and member details. Store the file securely.',
-                style: TextStyle(color: context.colors.textMuted, fontSize: 12),
+                style: TextStyle(
+                    color: context.colors.textMuted,
+                    fontSize: AppFontSizes.caption),
               ),
             ),
           ],
@@ -726,7 +730,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             onPressed: () => Navigator.of(context).pop(false),
             child: Text('Cancel',
                 style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 16)),
+                    color: context.colors.textSecondary,
+                    fontSize: AppFontSizes.body)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -739,7 +744,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             child: const Text('Backup',
                 style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600)),
           ),
         ],
@@ -827,7 +832,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 'Restore Band Data?',
                 style: TextStyle(
                     color: context.colors.textPrimary,
-                    fontSize: 20,
+                    fontSize: AppFontSizes.title2,
                     fontWeight: FontWeight.w600),
               ),
             ),
@@ -840,7 +845,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             RichText(
               text: TextSpan(
                 style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 15),
+                    color: context.colors.textSecondary,
+                    fontSize: AppFontSizes.subhead),
                 children: [
                   const TextSpan(
                       text:
@@ -872,7 +878,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 'This cannot be undone. Make sure you have a current backup before restoring.',
                 style: TextStyle(
                     color: AppColors.error,
-                    fontSize: 15,
+                    fontSize: AppFontSizes.subhead,
                     fontWeight: FontWeight.w500),
               ),
             ),
@@ -883,7 +889,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             onPressed: () => Navigator.of(context).pop(false),
             child: Text('Cancel',
                 style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 16)),
+                    color: context.colors.textSecondary,
+                    fontSize: AppFontSizes.body)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -896,7 +903,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             child: const Text('Replace Data',
                 style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600)),
           ),
         ],
@@ -914,16 +921,18 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       child: Row(
         children: [
           Text('• ',
-              style:
-                  TextStyle(color: context.colors.textSecondary, fontSize: 15)),
+              style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: AppFontSizes.subhead)),
           Expanded(
               child: Text(label,
                   style: TextStyle(
-                      color: context.colors.textSecondary, fontSize: 15))),
+                      color: context.colors.textSecondary,
+                      fontSize: AppFontSizes.subhead))),
           Text('$count',
               style: TextStyle(
                   color: context.colors.textPrimary,
-                  fontSize: 15,
+                  fontSize: AppFontSizes.subhead,
                   fontWeight: FontWeight.w600)),
         ],
       ),
@@ -980,13 +989,14 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           'Delete Band?',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           'Are you sure you want to delete "${band.name}"? This action cannot be undone and will remove all associated gigs, rehearsals, and member data.',
-          style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+          style: TextStyle(
+              color: context.colors.textSecondary, fontSize: AppFontSizes.body),
         ),
         actions: [
           TextButton(
@@ -1245,13 +1255,14 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           title,
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           message,
-          style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+          style: TextStyle(
+              color: context.colors.textSecondary, fontSize: AppFontSizes.body),
         ),
         actions: [
           TextButton(
@@ -1302,7 +1313,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               Text(
                 'Choose Image Source',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: AppFontSizes.title,
                   fontWeight: FontWeight.w600,
                   color: context.colors.textPrimary,
                 ),
@@ -1324,15 +1335,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 title: Text(
                   'Take Photo',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w500,
                     color: context.colors.textPrimary,
                   ),
                 ),
                 subtitle: Text(
                   'Use camera to take a new photo',
-                  style:
-                      TextStyle(fontSize: 14, color: context.colors.textMuted),
+                  style: TextStyle(
+                      fontSize: AppFontSizes.subhead,
+                      color: context.colors.textMuted),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.camera),
               ),
@@ -1353,15 +1365,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 title: Text(
                   'Photo Library',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w500,
                     color: context.colors.textPrimary,
                   ),
                 ),
                 subtitle: Text(
                   'Choose from your photos',
-                  style:
-                      TextStyle(fontSize: 14, color: context.colors.textMuted),
+                  style: TextStyle(
+                      fontSize: AppFontSizes.subhead,
+                      color: context.colors.textMuted),
                 ),
                 onTap: () => Navigator.pop(context, ImageSource.gallery),
               ),
@@ -1510,7 +1523,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                               Text(
                                 title,
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: AppFontSizes.title2,
                                   fontWeight: FontWeight.w600,
                                   height: 1.25,
                                   color: context.colors.textPrimary,
@@ -1520,7 +1533,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                               Text(
                                 subtitle,
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: AppFontSizes.body,
                                   fontWeight: FontWeight.w400,
                                   height: 1.4,
                                   color: context.colors.textSecondary,
@@ -1571,7 +1584,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                                 Text(
                                   'Add email addresses to invite members to your band',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: AppFontSizes.body,
                                     fontWeight: FontWeight.w400,
                                     height: 1.4,
                                     color: context.colors.textSecondary,
@@ -1639,7 +1652,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 Text(
                   'Back',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     height: 1.4,
                     color: Colors.white,
@@ -1658,7 +1671,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     return Text(
       label,
       style: TextStyle(
-        fontSize: 16,
+        fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w400,
         height: 1.4,
         color: context.colors.textPrimary,
@@ -1683,14 +1696,14 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       onChanged: onChanged,
       inputFormatters: inputFormatters,
       style: TextStyle(
-        fontSize: 16,
+        fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w400,
         color: context.colors.textPrimary,
       ),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
-          fontSize: 16,
+          fontSize: AppFontSizes.body,
           fontWeight: FontWeight.w400,
           color: context.colors.textMuted,
         ),
@@ -1738,7 +1751,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   : _bandNameController.text.trim(),
               avatarColor: _selectedAvatarColor,
               size: 75,
-              fontSize: 28,
+              fontSize: AppFontSizes.display,
             ),
             if (_isUploadingImage)
               Container(
@@ -1880,7 +1893,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               Text(
                 'Upload an image or choose a color for your band avatar.',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w400,
                   height: 1.4,
                   color: context.colors.textSecondary,
@@ -1974,7 +1987,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         Text(
           'Used for general formatting and calendar feeds',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             fontWeight: FontWeight.w400,
             height: 1.4,
             color: context.colors.textSecondary,
@@ -2006,7 +2019,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           dropdownColor: context.colors.surfaceElevated,
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
           ),
           items: _timezoneOptions.asMap().entries.map((entry) {
             final index = entry.key;
@@ -2030,7 +2043,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                           tz['label'] as String,
                           style: TextStyle(
                             color: context.colors.primaryLight,
-                            fontSize: 18,
+                            fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -2040,7 +2053,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                       tz['label'] as String,
                       style: TextStyle(
                         color: context.colors.textPrimary,
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -2061,7 +2074,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               'Only admins can change the timezone',
               style: TextStyle(
                 color: context.colors.textMuted,
-                fontSize: 12,
+                fontSize: AppFontSizes.caption,
               ),
             ),
           ),
@@ -2080,14 +2093,14 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _addEmail(),
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w400,
               color: context.colors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: 'name@example.com',
               hintStyle: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w400,
                 color: context.colors.textMuted,
               ),
@@ -2155,7 +2168,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           child: Text(
             'Cancel',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w400,
               color: context.colors.textSecondary,
               decoration: TextDecoration.none,
@@ -2210,7 +2223,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   label: Text(
                     canDelete ? 'Backup / Restore Data' : 'Backup Data',
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -2234,7 +2247,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                         : const Text(
                             'Delete',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w400,
                               color: AppColors.primary,
                               decoration: TextDecoration.none,
@@ -2278,7 +2291,7 @@ class _EmailPill extends StatelessWidget {
           Text(
             email,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w400,
               height: 1.33,
               color: context.colors.textPrimary,
@@ -2350,7 +2363,7 @@ class _BackupSheetPanel extends StatelessWidget {
           label: Text(
             label,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -2360,7 +2373,7 @@ class _BackupSheetPanel extends StatelessWidget {
         Text(
           description,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: AppFontSizes.subhead,
             color: context.colors.textPrimary,
             height: 1.4,
           ),
@@ -2375,12 +2388,13 @@ class _BackupSheetPanel extends StatelessWidget {
               children: [
                 Text('• ',
                     style: TextStyle(
-                        fontSize: 15, color: context.colors.textPrimary)),
+                        fontSize: AppFontSizes.subhead,
+                        color: context.colors.textPrimary)),
                 Expanded(
                   child: Text(
                     item,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppFontSizes.subhead,
                       color: context.colors.textPrimary,
                       height: 1.3,
                     ),

@@ -180,7 +180,7 @@ class _RehearsalAvailabilityPromptModalState
                     const Text(
                       'Potential Rehearsal',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w600,
                         color: Colors.white70,
                       ),
@@ -189,7 +189,7 @@ class _RehearsalAvailabilityPromptModalState
                     const Text(
                       'Are you available?',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: AppFontSizes.sectionTitle,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
@@ -207,7 +207,7 @@ class _RehearsalAvailabilityPromptModalState
                     Text(
                       _formatDate(widget.rehearsal.date),
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: AppFontSizes.title2,
                         fontWeight: FontWeight.w600,
                         color: context.colors.textPrimary,
                       ),
@@ -284,7 +284,7 @@ class _RehearsalAvailabilityPromptModalState
                         child: Text(
                           'Not Sure Yet',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w500,
                             color: _isSubmitting
                                 ? context.colors.textMuted
@@ -342,7 +342,7 @@ class _DetailRow extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               color: context.colors.textSecondary,
             ),
             textAlign: TextAlign.center,
@@ -407,7 +407,7 @@ class _ResponseButton extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: AppFontSizes.title,
                         fontWeight: FontWeight.w700,
                         color: color,
                       ),

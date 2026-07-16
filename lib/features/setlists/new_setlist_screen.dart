@@ -830,7 +830,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               Text(
                 'Creating setlist...',
                 style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 16),
+                    color: context.colors.textSecondary,
+                    fontSize: AppFontSizes.body),
               ),
             ],
           ),
@@ -981,7 +982,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
           sliver: SliverReorderableList(
             itemCount: state.songs.length,
-            onReorder: _handleReorder,
+            onReorderItem: _handleReorder,
             itemBuilder: (context, index) {
               final song = state.songs[index];
               return Padding(
@@ -1012,7 +1013,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                           ),
                         ),
                         SizedBox(width: Spacing.space8),

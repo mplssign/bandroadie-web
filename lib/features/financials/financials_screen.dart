@@ -37,9 +37,59 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
     super.dispose();
   }
 
+  Future<void> _addEntry(FinancialsState state) async {
+    final notifier = ref.read(financialsProvider.notifier);
+    final isIncome = state.viewMode == FinancialViewMode.income;
+    final members = ref.read(membersProvider).members;
+    final savingsTotalCents = state.allEntries
+        .where((e) => e.depositToSavings == true)
+        .fold<int>(0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
+    await showAddFinancialEntrySheet(
+      context,
+      initialIsIncome: isIncome,
+      members: members,
+      savingsTotalCents: savingsTotalCents,
+      onSave: ({
+        required entryType,
+        required category,
+        required amountCents,
+        required entryDate,
+        description,
+        is1099Expected,
+        payerName,
+        paidToName,
+        paidToUserId,
+        disbursements,
+        depositToSavings,
+        depositToSavingsCents,
+      }) async {
+        await notifier.addEntry(
+          entryType: entryType,
+          category: category,
+          amountCents: amountCents,
+          entryDate: entryDate,
+          description: description,
+          is1099Expected: is1099Expected,
+          payerName: payerName,
+          paidToName: paidToName,
+          paidToUserId: paidToUserId,
+          disbursements: disbursements,
+          depositToSavings: depositToSavings,
+          depositToSavingsCents: depositToSavingsCents,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(financialsProvider);
+    final permissionsAsync = ref.watch(currentUserPermissionsProvider);
+    final canCreate = permissionsAsync.when(
+      data: (p) => p.canCreateFinancials,
+      loading: () => false,
+      error: (_, __) => false,
+    );
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -57,7 +107,7 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Page title + download action
+                      // Page title + add action
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
                           Spacing.pagePadding,
@@ -74,33 +124,17 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                     color: context.colors.textPrimary),
                               ),
                             ),
-                            GestureDetector(
-                              onTap: state.isLoading
-                                  ? null
-                                  : () {
-                                      final bandName = ref
-                                              .read(activeBandProvider)
-                                              .activeBand
-                                              ?.name ??
-                                          'Band';
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              FinancialsPdfPreviewScreen(
-                                            entries: state.filteredEntries,
-                                            bandName: bandName,
-                                            dateFilter: state.dateFilter,
-                                            customStartDate:
-                                                state.customStartDate,
-                                            customEndDate: state.customEndDate,
-                                            viewMode: state.viewMode,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                              child: const Icon(AppIcons.download,
-                                  size: 20, color: AppColors.primary),
-                            ),
+                            if (canCreate)
+                              TextButton.icon(
+                                onPressed: state.isLoading
+                                    ? null
+                                    : () => _addEntry(state),
+                                icon: const Icon(AppIcons.add, size: 18),
+                                label: const Text('Add'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -145,69 +179,6 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
           ],
         ),
       ),
-      floatingActionButton: () {
-        final permissionsAsync = ref.watch(currentUserPermissionsProvider);
-        final canCreate = permissionsAsync.when(
-          data: (p) => p.canCreateFinancials,
-          loading: () => false,
-          error: (_, __) => false,
-        );
-        if (!canCreate) {
-          return null;
-        }
-        return FloatingActionButton(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          tooltip: 'Add entry',
-          onPressed: state.isLoading
-              ? null
-              : () async {
-                  final notifier = ref.read(financialsProvider.notifier);
-                  final isIncome = state.viewMode == FinancialViewMode.income;
-                  final members = ref.read(membersProvider).members;
-                  final savingsTotalCents = state.allEntries
-                      .where((e) => e.depositToSavings == true)
-                      .fold<int>(
-                          0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
-                  await showAddFinancialEntrySheet(
-                    context,
-                    initialIsIncome: isIncome,
-                    members: members,
-                    savingsTotalCents: savingsTotalCents,
-                    onSave: ({
-                      required entryType,
-                      required category,
-                      required amountCents,
-                      required entryDate,
-                      description,
-                      is1099Expected,
-                      payerName,
-                      paidToName,
-                      paidToUserId,
-                      disbursements,
-                      depositToSavings,
-                      depositToSavingsCents,
-                    }) async {
-                      await notifier.addEntry(
-                        entryType: entryType,
-                        category: category,
-                        amountCents: amountCents,
-                        entryDate: entryDate,
-                        description: description,
-                        is1099Expected: is1099Expected,
-                        payerName: payerName,
-                        paidToName: paidToName,
-                        paidToUserId: paidToUserId,
-                        disbursements: disbursements,
-                        depositToSavings: depositToSavings,
-                        depositToSavingsCents: depositToSavingsCents,
-                      );
-                    },
-                  );
-                },
-          child: const Icon(Icons.add),
-        );
-      }(),
     );
   }
 }
@@ -342,7 +313,7 @@ class _SavingsSheetState extends State<_SavingsSheet>
                         style: AppTextStyles.displayLarge.copyWith(
                           color: context.colors.success,
                           fontWeight: FontWeight.w800,
-                          fontSize: 48,
+                          fontSize: AppFontSizes.hero,
                         ),
                       );
                     },
@@ -650,7 +621,7 @@ class _ViewModeToggle extends StatelessWidget {
                             duration: AppDurations.fast,
                             curve: AppCurves.ease,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w600,
                               color: isSelected
                                   ? Colors.white
@@ -755,11 +726,8 @@ class _EntriesList extends ConsumerWidget {
                 ),
               ),
             ),
-            // Total row — pinned outside the horizontal scroll view
-            _TotalRow(
-              entries: entries,
-              allEntries: ref.watch(financialsProvider).allEntries,
-            ),
+            // Bottom action buttons — pinned outside the horizontal scroll view
+            const _BottomActionsRow(),
           ],
         );
       },
@@ -799,7 +767,7 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderSide = BorderSide(color: context.colors.border, width: 0.5);
+    final borderSide = BorderSide(color: context.colors.border, width: 1.0);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -914,7 +882,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Text(
                     '$amountPrefix${entry.formattedAmount}',
                     style: AppTextStyles.callout.copyWith(
@@ -936,7 +904,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Text(
                     dateStr,
                     style: AppTextStyles.callout
@@ -954,7 +922,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Text(
                     entry.category,
                     style: AppTextStyles.callout
@@ -972,7 +940,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Text(
                     fromValue,
                     style: AppTextStyles.callout
@@ -990,7 +958,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Text(
                     paidToValue,
                     style: AppTextStyles.callout
@@ -1006,7 +974,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Center(
                     child: (entry.disbursements != null &&
                             entry.disbursements!.isNotEmpty)
@@ -1026,7 +994,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 0.5))),
+                              color: context.colors.border, width: 1.0))),
                   child: Center(
                     child: entry.depositToSavings == true
                         ? entry.depositToSavingsCents != null
@@ -1074,25 +1042,15 @@ class _EntryTableRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// TOTAL ROW
+// BOTTOM ACTIONS ROW
 // ---------------------------------------------------------------------------
 
-class _TotalRow extends StatelessWidget {
-  const _TotalRow({required this.entries, required this.allEntries});
-
-  final List<FinancialEntry> entries;
-  final List<FinancialEntry> allEntries;
+class _BottomActionsRow extends ConsumerWidget {
+  const _BottomActionsRow();
 
   @override
-  Widget build(BuildContext context) {
-    final totalCents = entries.fold<int>(0, (sum, e) => sum + e.amountCents);
-    final dollars = totalCents ~/ 100;
-    final cents = totalCents % 100;
-    final dollarsFormatted = NumberFormat('#,##0').format(dollars);
-    final totalStr = '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
-
-    final isIncome = entries.isNotEmpty && entries.first.isIncome;
-    final amountColor = isIncome ? context.colors.success : AppColors.error;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(financialsProvider);
 
     return Column(
       children: [
@@ -1102,36 +1060,90 @@ class _TotalRow extends StatelessWidget {
             horizontal: Spacing.pagePadding,
             vertical: Spacing.space12,
           ),
-          child: Row(
-            children: [
-              Text(
-                totalStr,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.callout.copyWith(
-                  color: amountColor,
-                  fontWeight: FontWeight.w700,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _OutlinedActionButton(
+                  label: 'View savings balance',
+                  onPressed: () =>
+                      _showSavingsSheet(context, state.allEntries),
                 ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => _showSavingsSheet(context, allEntries),
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: Spacing.space12),
-                  foregroundColor: context.colors.success,
-                  textStyle: AppTextStyles.footnote.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                const SizedBox(width: Spacing.space12),
+                _OutlinedActionButton(
+                  label: 'Generate Report',
+                  onPressed: state.isLoading
+                      ? null
+                      : () => _openCombinedReport(context, ref, state),
                 ),
-                child: const Text('View Savings'),
-              ),
-              SizedBox(width: _kDisbursedWidth + _kSavingsWidth + _k1099Width),
-            ],
+              ],
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+void _openCombinedReport(
+  BuildContext context,
+  WidgetRef ref,
+  FinancialsState state,
+) {
+  final bandName = ref.read(activeBandProvider).activeBand?.name ?? 'Band';
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => FinancialsPdfPreviewScreen(
+        entries: state.dateFilteredEntries,
+        bandName: bandName,
+        dateFilter: state.dateFilter,
+        customStartDate: state.customStartDate,
+        customEndDate: state.customEndDate,
+      ),
+    ),
+  );
+}
+
+/// Standard-size rose-outlined button used in the bottom action row.
+///
+/// Explicitly sized to the app's standard 48px button height (matching
+/// BrandActionButton and other OutlinedButtons across the app) rather than
+/// inheriting the app-wide OutlinedButtonTheme's full-width minimumSize —
+/// which would otherwise crash layout inside this row's horizontal scroll
+/// view.
+class _OutlinedActionButton extends StatelessWidget {
+  const _OutlinedActionButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          disabledForegroundColor: AppColors.primary.withValues(alpha: 0.4),
+          side: BorderSide(
+            width: BrandButton.borderWidth,
+            color: onPressed == null
+                ? AppColors.primary.withValues(alpha: 0.4)
+                : AppColors.primary,
+          ),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.space20,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          ),
+          textStyle: AppTextStyles.button,
+        ),
+        child: Text(label),
+      ),
     );
   }
 }

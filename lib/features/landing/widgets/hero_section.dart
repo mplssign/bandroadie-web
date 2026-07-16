@@ -75,7 +75,7 @@ class _HeroMobile extends StatelessWidget {
               'Manage Your Band\'s Setlists, Rehearsals, Gigs, and Calendars.\nAll In One Place.',
               textAlign: TextAlign.center,
               style: AppTextStyles.title3.copyWith(
-                fontSize: 28,
+                fontSize: AppFontSizes.display,
                 fontWeight: FontWeight.w700,
                 height: 1.3,
               ),
@@ -171,7 +171,7 @@ class _HeroDesktop extends StatelessWidget {
                   child: Text(
                     'Manage Your Band\'s Setlists, Rehearsals, Gigs, and Calendars.\nAll In One Place.',
                     style: AppTextStyles.title3.copyWith(
-                      fontSize: 40,
+                      fontSize: AppFontSizes.hero,
                       fontWeight: FontWeight.w700,
                       height: 1.25,
                     ),
@@ -332,7 +332,7 @@ class _StoreBadge extends StatelessWidget {
                     Text(
                       topText,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppFontSizes.caption,
                         fontWeight: FontWeight.w400,
                         color: Colors.white.withValues(alpha: 0.9),
                         height: 1,
@@ -342,7 +342,7 @@ class _StoreBadge extends StatelessWidget {
                     Text(
                       mainText,
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: AppFontSizes.title,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         height: 1.2,

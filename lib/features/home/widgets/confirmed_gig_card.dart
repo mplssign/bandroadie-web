@@ -82,7 +82,6 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
           },
           child: Container(
             constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
-            height: Spacing.gigCardHeight, // 126px
             margin: const EdgeInsets.all(3), // Space for gradient border
             decoration: BoxDecoration(
               color: context.colors.surface,
@@ -93,6 +92,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
               vertical: Spacing.space16,
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Title - 20px Title3/Emphasized
@@ -109,9 +109,9 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
 
                 // Location - 16px Callout/Regular, gray-400
                 Text(
-                  widget.gig.location,
+                  widget.gig.locationDisplay,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w400,
                     color: context.colors.textSecondary, // gray-400
                     height: 1.2,
@@ -120,13 +120,13 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                   overflow: TextOverflow.ellipsis,
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 8),
 
                 // Date - 17px Headline bold
                 Text(
                   _formatFullDate(widget.gig.date),
                   style: TextStyle(
-                    fontSize: 17,
+                    fontSize: AppFontSizes.headline,
                     fontWeight: FontWeight.w600,
                     color: context.colors.textPrimary,
                     height: 1.2,
@@ -144,7 +144,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
                     widget.bandTimezone,
                   ),
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w400,
                     color: context.colors.textSecondary, // gray-400
                     height: 1.2,

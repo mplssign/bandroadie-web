@@ -43,7 +43,7 @@ class DownloadSection extends StatelessWidget {
             'Available now on iOS, coming soon to Android',
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               color: context.colors.textSecondary,
             ),
           ),
@@ -124,7 +124,7 @@ class _WebAppButton extends StatelessWidget {
                     Text(
                       'BandRoadie.com',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppFontSizes.caption,
                         fontWeight: FontWeight.w400,
                         color: Colors.white.withValues(alpha: 0.9),
                         height: 1,
@@ -134,7 +134,7 @@ class _WebAppButton extends StatelessWidget {
                     Text(
                       'Web App',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: AppFontSizes.title2,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         height: 1,
@@ -196,7 +196,7 @@ class _OfficialBadge extends StatelessWidget {
                     Text(
                       topText,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppFontSizes.caption,
                         fontWeight: FontWeight.w400,
                         color: Colors.white.withValues(alpha: 0.9),
                         height: 1,
@@ -206,7 +206,7 @@ class _OfficialBadge extends StatelessWidget {
                     Text(
                       mainText,
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: AppFontSizes.title2,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         height: 1,

@@ -257,7 +257,7 @@ class AvailabilityButton extends StatelessWidget {
                         Text(
                           label,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w600,
                             color: contentColor,
                           ),

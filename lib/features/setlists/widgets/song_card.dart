@@ -287,7 +287,7 @@ class _SongCardState extends State<SongCard>
       child: Text(
         widget.song.musicalKey!,
         style: const TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
           color: Color(0xFF1F1F1F), // Dark text for light background
           height: 1,
@@ -322,7 +322,7 @@ class _SongCardState extends State<SongCard>
             child: Text(
               shortLabel,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w600,
                 color: textColor,
                 height: 1,
@@ -351,7 +351,7 @@ class _SongCardState extends State<SongCard>
       child: Text(
         shortLabel,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
           color: textColor,
           height: 1,

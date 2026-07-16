@@ -36,7 +36,7 @@ class OneCalendarSettingsScreen extends ConsumerWidget {
           'One Calendar',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
         ),

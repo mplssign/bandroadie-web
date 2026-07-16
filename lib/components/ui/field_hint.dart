@@ -99,7 +99,7 @@ class FieldHint extends StatelessWidget {
                     child: Text(
                       text,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppFontSizes.caption,
                         fontWeight: FontWeight.w400,
                         color: context.colors.textMuted,
                         height: 1.4,
@@ -158,8 +158,7 @@ class _TextFieldWithHintState extends State<TextFieldWithHint> {
     _hintController = FieldHintController();
 
     // Initialize with initial value state
-    final hasInitial =
-        (widget.initialValue?.isNotEmpty ?? false) ||
+    final hasInitial = (widget.initialValue?.isNotEmpty ?? false) ||
         (widget.controller?.text.isNotEmpty ?? false);
     _hintController.initialize(hasInitialValue: hasInitial);
 

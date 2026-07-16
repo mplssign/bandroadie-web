@@ -1190,23 +1190,25 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
-      height: Spacing.gigCardHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: confirmedGigs.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final gig = confirmedGigs[index];
-          return ConfirmedGigCard(
-            gig: gig,
-            index: index,
-            bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
-                'America/Chicago',
-            onTap: () => _openViewGigSheet(gig),
-          );
-        },
+    final bandTimezone =
+        ref.watch(activeBandProvider).activeBand?.timezone ?? 'America/Chicago';
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int index = 0; index < confirmedGigs.length; index++) ...[
+            if (index > 0) const SizedBox(width: 16),
+            ConfirmedGigCard(
+              gig: confirmedGigs[index],
+              index: index,
+              bandTimezone: bandTimezone,
+              onTap: () => _openViewGigSheet(confirmedGigs[index]),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1251,16 +1253,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 .firstOrNull;
             setlistName = setlist?.name;
           }
-          return SizedBox(
-            width: Spacing.potentialGigCardWidth,
-            child: RehearsalCard(
-              rehearsal: rehearsal,
-              setlistName: setlistName,
-              bandTimezone:
-                  ref.watch(activeBandProvider).activeBand?.timezone ??
-                      'America/Chicago',
-              onTap: () => _openViewRehearsalSheet(rehearsal),
-            ),
+          return RehearsalCard(
+            rehearsal: rehearsal,
+            setlistName: setlistName,
+            bandTimezone: ref.watch(activeBandProvider).activeBand?.timezone ??
+                'America/Chicago',
+            onTap: () => _openViewRehearsalSheet(rehearsal),
           );
         },
       ),

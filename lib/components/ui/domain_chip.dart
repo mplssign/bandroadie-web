@@ -46,7 +46,7 @@ class DomainChip extends StatelessWidget {
                     ? context.colors.primaryLight
                     : context.colors.textSecondary)
                 : context.colors.textMuted,
-            fontSize: 13,
+            fontSize: AppFontSizes.caption,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),

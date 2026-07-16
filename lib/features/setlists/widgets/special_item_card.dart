@@ -118,7 +118,7 @@ class SpecialItemCard extends StatelessWidget {
                 child: Text(
                   _label,
                   style: AppTextStyles.headline.copyWith(
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                     color: Colors.white,
                     letterSpacing: 0.5,
                   ),
@@ -197,7 +197,7 @@ class SpecialItemCard extends StatelessWidget {
                     Text(
                       _label,
                       style: AppTextStyles.headline.copyWith(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         color: accentColor,
                       ),
                       maxLines: 1,
@@ -209,7 +209,7 @@ class SpecialItemCard extends StatelessWidget {
                         _durationText!,
                         style: AppTextStyles.label.copyWith(
                           color: context.colors.textMuted,
-                          fontSize: 12,
+                          fontSize: AppFontSizes.caption,
                         ),
                       ),
                     ],

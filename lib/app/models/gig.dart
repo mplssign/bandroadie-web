@@ -41,6 +41,9 @@ class Gig {
   /// Optional street address for the venue (e.g., "123 Main St").
   final String? address;
 
+  /// Optional two-letter state abbreviation (e.g., "MN").
+  final String? state;
+
   /// If true, this gig requires band member approval before it's confirmed.
   /// Potential gigs show RSVP UI. Confirmed gigs show as scheduled.
   final bool isPotential;
@@ -66,6 +69,7 @@ class Gig {
     this.loadInTime,
     required this.location,
     this.address,
+    this.state,
     this.setlistId,
     this.setlistName,
     this.notes,
@@ -90,6 +94,7 @@ class Gig {
       loadInTime: json['load_in_time'] as String?,
       location: json['location'] as String,
       address: json['address'] as String?,
+      state: (json['state'] as String?)?.toUpperCase(),
       setlistId: json['setlist_id'] as String?,
       setlistName: json['setlist_name'] as String?,
       notes: json['notes'] as String?,
@@ -114,6 +119,7 @@ class Gig {
       'load_in_time': loadInTime,
       'location': location,
       'address': address,
+      'state': state?.toUpperCase(),
       'setlist_id': setlistId,
       'setlist_name': setlistName,
       'notes': notes,
@@ -181,6 +187,15 @@ class Gig {
       map[gigDate.date] = gigDate.id;
     }
     return map;
+  }
+
+  /// Location for display, appending the state if one is set
+  /// (e.g., "Minneapolis" or "Minneapolis, MN"). Falls back to just the
+  /// city when no state has been entered.
+  String get locationDisplay {
+    final trimmedState = state?.trim();
+    if (trimmedState == null || trimmedState.isEmpty) return location;
+    return '$location, ${trimmedState.toUpperCase()}';
   }
 
   /// Formatted time range (e.g., "7:30 PM - 10:30 PM")

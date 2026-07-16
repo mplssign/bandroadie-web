@@ -450,7 +450,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
                 const SizedBox(height: 16),
                 const Text(
                   'Processing your invite...',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                  style: TextStyle(
+                      color: Colors.white70, fontSize: AppFontSizes.body),
                 ),
               ],
             ],
@@ -524,7 +525,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
                         _pendingInviteMessage!,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: AppFontSizes.body,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

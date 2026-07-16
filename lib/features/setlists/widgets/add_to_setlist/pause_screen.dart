@@ -363,7 +363,7 @@ class _PauseScreenState extends State<PauseScreen> {
                   'Purpose',
                   style: AppTextStyles.title3.copyWith(
                     color: context.colors.textPrimary,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -412,13 +412,13 @@ class _PauseScreenState extends State<PauseScreen> {
                               focusNode: _customFields[i].$2,
                               style: AppTextStyles.body.copyWith(
                                 color: context.colors.textPrimary,
-                                fontSize: 14,
+                                fontSize: AppFontSizes.subhead,
                               ),
                               decoration: InputDecoration(
                                 hintText: 'Custom purpose...',
                                 hintStyle: AppTextStyles.body.copyWith(
                                   color: context.colors.textDisabled,
-                                  fontSize: 14,
+                                  fontSize: AppFontSizes.subhead,
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 12,
@@ -495,7 +495,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         'Add another',
                         style: AppTextStyles.body.copyWith(
                           color: _accent,
-                          fontSize: 14,
+                          fontSize: AppFontSizes.subhead,
                         ),
                       ),
                     ],
@@ -529,7 +529,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         'Add duration',
                         style: AppTextStyles.body.copyWith(
                           color: context.colors.textSecondary,
-                          fontSize: 14,
+                          fontSize: AppFontSizes.subhead,
                         ),
                       ),
                     ],
@@ -568,7 +568,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         onTap: _onDurationTap,
                         style: AppTextStyles.headline.copyWith(
                           color: context.colors.textPrimary,
-                          fontSize: 24,
+                          fontSize: AppFontSizes.modalTitle,
                           fontFeatures: const [
                             FontFeature.tabularFigures(),
                           ],
@@ -577,7 +577,7 @@ class _PauseScreenState extends State<PauseScreen> {
                           hintText: '0:00',
                           hintStyle: AppTextStyles.headline.copyWith(
                             color: context.colors.textDisabled,
-                            fontSize: 24,
+                            fontSize: AppFontSizes.modalTitle,
                             fontFeatures: const [
                               FontFeature.tabularFigures(),
                             ],
@@ -608,7 +608,7 @@ class _PauseScreenState extends State<PauseScreen> {
                           'Save for quick reuse',
                           style: AppTextStyles.body.copyWith(
                             color: context.colors.textSecondary,
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                           ),
                         ),
                       ],
@@ -624,7 +624,7 @@ class _PauseScreenState extends State<PauseScreen> {
                     'SAVED PAUSES',
                     style: AppTextStyles.label.copyWith(
                       color: context.colors.textMuted,
-                      fontSize: 12,
+                      fontSize: AppFontSizes.caption,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -658,7 +658,7 @@ class _PauseScreenState extends State<PauseScreen> {
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                                  fontSize: AppFontSizes.subhead,
                                 ),
                               ),
                               SizedBox(width: Spacing.space8),
@@ -750,7 +750,7 @@ class _PauseScreenState extends State<PauseScreen> {
                     'Cancel',
                     style: AppTextStyles.body.copyWith(
                       color: context.colors.textSecondary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                 ),
@@ -804,7 +804,7 @@ class _PurposeChip extends StatelessWidget {
           label,
           style: AppTextStyles.label.copyWith(
             color: isSelected ? accent : context.colors.textSecondary,
-            fontSize: 13,
+            fontSize: AppFontSizes.caption,
           ),
         ),
       ),
@@ -894,7 +894,7 @@ class _SavedPauseCard extends StatelessWidget {
                   _title,
                   style: AppTextStyles.headline.copyWith(
                     color: context.colors.textPrimary,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.caption,
                     letterSpacing: 0.3,
                   ),
                   maxLines: 1,
@@ -906,7 +906,7 @@ class _SavedPauseCard extends StatelessWidget {
                     _subtitle!,
                     style: AppTextStyles.label.copyWith(
                       color: context.colors.textMuted,
-                      fontSize: 12,
+                      fontSize: AppFontSizes.caption,
                     ),
                   ),
                 ],

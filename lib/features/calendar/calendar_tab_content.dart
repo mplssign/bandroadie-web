@@ -488,7 +488,7 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
                     '+ Subscribe to Calendar',
                     style: TextStyle(
                       color: AppColors.primary,
-                      fontSize: 14,
+                      fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

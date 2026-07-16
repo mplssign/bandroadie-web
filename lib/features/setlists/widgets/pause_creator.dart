@@ -294,13 +294,13 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                             focusNode: _customPurposeFocus,
                             style: AppTextStyles.body.copyWith(
                               color: context.colors.textPrimary,
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Custom reason…',
                               hintStyle: AppTextStyles.body.copyWith(
                                 color: context.colors.textDisabled,
-                                fontSize: 14,
+                                fontSize: AppFontSizes.subhead,
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
@@ -350,7 +350,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                     'Duration (optional)',
                     style: AppTextStyles.label.copyWith(
                       color: context.colors.textMuted,
-                      fontSize: 12,
+                      fontSize: AppFontSizes.caption,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -380,7 +380,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                           ':',
                           style: AppTextStyles.headline.copyWith(
                             color: context.colors.textMuted,
-                            fontSize: 20,
+                            fontSize: AppFontSizes.title2,
                           ),
                         ),
                       ),
@@ -487,7 +487,7 @@ class _PurposeChip extends StatelessWidget {
               label,
               style: AppTextStyles.label.copyWith(
                 color: isSelected ? accent : context.colors.textSecondary,
-                fontSize: 13,
+                fontSize: AppFontSizes.caption,
               ),
             ),
             if (isCustom && isSelected) ...[
@@ -528,7 +528,7 @@ class _DurationField extends StatelessWidget {
         maxLength: 2,
         style: AppTextStyles.headline.copyWith(
           color: context.colors.textPrimary,
-          fontSize: 16,
+          fontSize: AppFontSizes.body,
         ),
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
@@ -538,7 +538,7 @@ class _DurationField extends StatelessWidget {
           hintText: hint,
           hintStyle: AppTextStyles.headline.copyWith(
             color: context.colors.textDisabled,
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
           ),
           counterText: '',
           contentPadding: const EdgeInsets.symmetric(vertical: 10),

@@ -652,7 +652,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 16,
+          fontSize: AppFontSizes.body,
           fontWeight: FontWeight.w600,
           color: context.colors.textPrimary,
         ),
@@ -692,7 +692,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
               Text(
                 'Add Custom Tuning',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,
                   height: 1.3,
@@ -716,7 +716,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       child: Text(
         'Select fret',
         style: TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w400,
           color: context.colors.textSecondary,
           height: 1.3,
@@ -794,7 +794,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                 style: AppTextStyles.body.copyWith(
                   color: _hasChanges ? Colors.white : context.colors.textMuted,
                   fontWeight: FontWeight.w700,
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                 ),
               ),
             ),
@@ -889,7 +889,7 @@ class _CapoFretButtonState extends State<_CapoFretButton>
             child: Text(
               widget.fret.toString(),
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w500,
                 color: widget.isSelected
                     ? Colors.white
@@ -1020,7 +1020,7 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                     Text(
                       widget.option.name,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSizes.body,
                         fontWeight: FontWeight.w500,
                         color: widget.isSelected
                             ? context.colors.textPrimary
@@ -1033,7 +1033,7 @@ class _TuningOptionRowState extends State<_TuningOptionRow>
                     Text(
                       widget.option.strings,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w400,
                         color: context.colors.textSecondary,
                         height: 1.3,
