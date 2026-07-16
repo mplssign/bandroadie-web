@@ -816,7 +816,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                 : 'Changes apply to this song everywhere.',
             style: AppTextStyles.callout.copyWith(
               color: context.colors.textMuted,
-              fontSize: 12,
+              fontSize: AppFontSizes.caption,
             ),
           ),
         ],
@@ -1166,7 +1166,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
           ),
           child: Text(
             notes.length > 120 ? '${notes.substring(0, 120)}…' : notes,
-            style: AppTextStyles.footnote.copyWith(
+            style: AppTextStyles.body.copyWith(
               color: context.colors.textSecondary,
               height: 1.4,
             ),
@@ -1230,11 +1230,11 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
-            style:
-                AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+            style: AppTextStyles.headline
+                .copyWith(color: context.colors.textPrimary),
             decoration: InputDecoration(
               hintText: 'Add notes for this song...',
-              hintStyle: AppTextStyles.body.copyWith(
+              hintStyle: AppTextStyles.headline.copyWith(
                 color: context.colors.textMuted,
               ),
               border: InputBorder.none,
@@ -1392,7 +1392,7 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
                     color:
                         _hasChanges ? Colors.white : context.colors.textMuted,
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                   ),
                 ),
               ),

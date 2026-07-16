@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 // ============================================================================
 // KEYBOARD AWARE WRAPPER
@@ -196,7 +197,7 @@ class _NumericDoneBar extends StatelessWidget {
                   child: Text(
                     'Done',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w600,
                       color: textColor,
                     ),

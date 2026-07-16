@@ -481,7 +481,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
             style: AppTextStyles.footnote.copyWith(
               color: context.colors.textPrimary,
               fontWeight: FontWeight.w600,
-              fontSize: 13,
+              fontSize: AppFontSizes.caption,
             ),
           ),
         ),
@@ -586,7 +586,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
                     color:
                         isActive ? accentColor : context.colors.textSecondary,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.caption,
                   ),
                 ),
               ],
@@ -617,7 +617,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
               'Done',
               style: AppTextStyles.footnote.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 13,
+                fontSize: AppFontSizes.caption,
               ),
             ),
           ],

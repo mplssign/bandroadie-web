@@ -215,7 +215,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                           Text(
                             '$_minutes',
                             style: AppTextStyles.displayLarge.copyWith(
-                              fontSize: 48,
+                              fontSize: AppFontSizes.hero,
                               color: context.colors.textPrimary,
                               fontWeight: FontWeight.w700,
                             ),
@@ -224,7 +224,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                             'minutes',
                             style: AppTextStyles.label.copyWith(
                               color: context.colors.textMuted,
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                             ),
                           ),
                         ],
@@ -258,7 +258,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                           'Save for quick reuse',
                           style: AppTextStyles.body.copyWith(
                             color: context.colors.textSecondary,
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                           ),
                         ),
                       ],
@@ -276,7 +276,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                       'SAVED SET BREAKS',
                       style: AppTextStyles.label.copyWith(
                         color: context.colors.textMuted,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.caption,
                         letterSpacing: 1.0,
                       ),
                     ),
@@ -310,7 +310,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                                  fontSize: AppFontSizes.subhead,
                                 ),
                               ),
                               SizedBox(width: Spacing.space8),
@@ -393,7 +393,7 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
                     'Cancel',
                     style: AppTextStyles.body.copyWith(
                       color: context.colors.textSecondary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                 ),
@@ -507,7 +507,7 @@ class _SavedSetBreakCard extends StatelessWidget {
               _title,
               style: AppTextStyles.headline.copyWith(
                 color: context.colors.textPrimary,
-                fontSize: 13,
+                fontSize: AppFontSizes.caption,
                 letterSpacing: 0.3,
               ),
               maxLines: 1,

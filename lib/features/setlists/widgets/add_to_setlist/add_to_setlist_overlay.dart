@@ -264,7 +264,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                     'Back',
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.primary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                 ],
@@ -281,7 +281,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                   _title,
                   key: ValueKey(_title),
                   style: AppTextStyles.title3.copyWith(
-                    fontSize: 18,
+                    fontSize: AppFontSizes.title,
                     color: context.colors.textPrimary,
                   ),
                 ),
@@ -462,7 +462,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                                 'Back',
                                 style: AppTextStyles.body.copyWith(
                                   color: AppColors.primary,
-                                  fontSize: 16,
+                                  fontSize: AppFontSizes.body,
                                 ),
                               ),
                             ],
@@ -474,7 +474,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                           child: Text(
                             _title,
                             style: AppTextStyles.title3.copyWith(
-                              fontSize: 18,
+                              fontSize: AppFontSizes.title,
                               color: context.colors.textPrimary,
                             ),
                           ),

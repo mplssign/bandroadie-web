@@ -34,7 +34,7 @@ class SocialSection extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
               fontFamily: 'Caveat',
-              fontSize: 20,
+              fontSize: AppFontSizes.title2,
               color: context.colors.textSecondary,
               height: 1.5,
             ),
@@ -47,7 +47,7 @@ class SocialSection extends StatelessWidget {
               'Bands reuse songs constantly — across gigs, rehearsals, old favorites, new material, and songs still in progress. BandRoadie treats your Catalog as the source of truth, so every setlist stays connected to the same shared song library.',
               textAlign: TextAlign.center,
               style: AppTextStyles.callout.copyWith(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 color: context.colors.textSecondary,
                 height: 1.6,
               ),
@@ -192,7 +192,8 @@ class _CatalogCardState extends State<_CatalogCard> {
             // Title
             Text(
               widget.title,
-              style: AppTextStyles.headline.copyWith(fontSize: 24),
+              style: AppTextStyles.headline
+                  .copyWith(fontSize: AppFontSizes.modalTitle),
             ),
             const SizedBox(height: 12),
 
@@ -201,7 +202,7 @@ class _CatalogCardState extends State<_CatalogCard> {
               widget.description,
               style: AppTextStyles.callout.copyWith(
                 fontFamily: 'Caveat',
-                fontSize: 20,
+                fontSize: AppFontSizes.title2,
                 color: context.colors.textSecondary,
                 height: 1.5,
               ),

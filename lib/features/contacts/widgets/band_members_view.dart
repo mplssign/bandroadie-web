@@ -154,7 +154,7 @@ class BandMembersView extends StatelessWidget {
             const Text(
               'Something went wrong',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppFontSizes.title2,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -162,7 +162,7 @@ class BandMembersView extends StatelessWidget {
             Text(
               error,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 color: context.colors.textSecondary,
               ),
               textAlign: TextAlign.center,

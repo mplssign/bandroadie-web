@@ -38,7 +38,7 @@ class EmailDomainShortcutBar extends StatelessWidget {
               side: BorderSide(color: context.colors.border, width: 1),
               labelStyle: TextStyle(
                 color: context.colors.textPrimary,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             ),

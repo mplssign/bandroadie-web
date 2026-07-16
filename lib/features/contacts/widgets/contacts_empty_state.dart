@@ -40,7 +40,7 @@ class ContactsEmptyState extends StatelessWidget {
             Text(
               'No Contacts Yet',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: AppFontSizes.sectionTitle,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textPrimary,
               ),
@@ -50,7 +50,7 @@ class ContactsEmptyState extends StatelessWidget {
             Text(
               "No contacts yet — who's your booking agent?",
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w400,
                 color: context.colors.textSecondary,
                 height: 1.5,

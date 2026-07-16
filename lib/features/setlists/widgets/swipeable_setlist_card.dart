@@ -158,7 +158,7 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
             ),
           ),
           SizedBox(width: Spacing.space8),
@@ -187,7 +187,7 @@ class _SwipeableSetlistCardState extends State<SwipeableSetlistCard>
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
             ),
           ),
         ],

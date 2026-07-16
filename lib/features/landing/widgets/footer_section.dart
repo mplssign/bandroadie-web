@@ -67,7 +67,7 @@ class FooterSection extends StatelessWidget {
             '© ${DateTime.now().year} BandRoadie. All rights reserved.',
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               color: context.colors.textSecondary.withValues(alpha: 0.7),
             ),
           ),
@@ -89,7 +89,8 @@ class _FooterLink extends StatelessWidget {
       onPressed: onTap,
       style: TextButton.styleFrom(
         foregroundColor: context.colors.textSecondary,
-        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        textStyle: const TextStyle(
+            fontSize: AppFontSizes.subhead, fontWeight: FontWeight.w500),
       ),
       child: Text(label),
     );

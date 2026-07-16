@@ -193,7 +193,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                         Text(
                           '$_minutes',
                           style: AppTextStyles.displayLarge.copyWith(
-                            fontSize: 48,
+                            fontSize: AppFontSizes.hero,
                             color: context.colors.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
@@ -202,7 +202,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                           'minutes',
                           style: AppTextStyles.label.copyWith(
                             color: context.colors.textMuted,
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                           ),
                         ),
                       ],

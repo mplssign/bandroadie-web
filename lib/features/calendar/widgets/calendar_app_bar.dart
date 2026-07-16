@@ -131,7 +131,7 @@ class CalendarAppBar extends ConsumerWidget {
                 name: bandName,
                 avatarColor: bandAvatarColor,
                 size: 36,
-                fontSize: 15,
+                fontSize: AppFontSizes.subhead,
               ),
             ),
           ),

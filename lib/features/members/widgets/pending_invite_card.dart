@@ -117,7 +117,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                             ? widget.invite.email
                             : 'Unknown',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppFontSizes.body,
                           fontWeight: FontWeight.w600,
                           color: context.colors.textPrimary,
                         ),
@@ -141,7 +141,7 @@ class _PendingInviteCardState extends State<PendingInviteCard>
                               ? 'Expired'
                               : 'Invitation pending',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: AppFontSizes.caption,
                             fontWeight: FontWeight.w500,
                             color: widget.invite.isExpired
                                 ? AppColors.error // red-500

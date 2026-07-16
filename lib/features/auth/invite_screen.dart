@@ -275,7 +275,8 @@ class _InviteScreenState extends State<InviteScreen> {
           SizedBox(height: 16),
           Text(
             'Accepting your invite...',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+            style:
+                TextStyle(color: Colors.white70, fontSize: AppFontSizes.body),
           ),
         ],
       );
@@ -289,7 +290,8 @@ class _InviteScreenState extends State<InviteScreen> {
           const SizedBox(height: 16),
           Text(
             _error!,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
+            style:
+                const TextStyle(color: Colors.red, fontSize: AppFontSizes.body),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -321,7 +323,7 @@ class _InviteScreenState extends State<InviteScreen> {
                 : 'Invite accepted!',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: AppFontSizes.title2,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -329,7 +331,8 @@ class _InviteScreenState extends State<InviteScreen> {
           const SizedBox(height: 8),
           const Text(
             'Redirecting to the app...',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+            style:
+                TextStyle(color: Colors.white70, fontSize: AppFontSizes.body),
           ),
         ],
       );
@@ -353,20 +356,22 @@ class _InviteScreenState extends State<InviteScreen> {
             'Check your email!',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: AppFontSizes.modalTitle,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             'We sent a magic link to\n${_emailController.text.trim()}',
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+            style: const TextStyle(
+                color: Colors.white70, fontSize: AppFontSizes.body),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           const Text(
             'Click the link in the email to sign in and accept your band invite.',
-            style: TextStyle(color: Colors.white54, fontSize: 14),
+            style: TextStyle(
+                color: Colors.white54, fontSize: AppFontSizes.subhead),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -394,7 +399,7 @@ class _InviteScreenState extends State<InviteScreen> {
           'You\'ve been invited to join a band!',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 24,
+            fontSize: AppFontSizes.modalTitle,
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
@@ -402,7 +407,7 @@ class _InviteScreenState extends State<InviteScreen> {
         const SizedBox(height: 12),
         const Text(
           'Sign in or create an account to accept the invite.',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
+          style: TextStyle(color: Colors.white70, fontSize: AppFontSizes.body),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
@@ -480,7 +485,8 @@ class _InviteScreenState extends State<InviteScreen> {
                   )
                 : const Text(
                     'Email login link',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(
+                        fontSize: AppFontSizes.body, color: Colors.white),
                   ),
           ),
         ),

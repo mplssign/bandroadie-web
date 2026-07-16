@@ -45,7 +45,7 @@ class MembersEmptyState extends StatelessWidget {
             Text(
               'No Members Yet',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: AppFontSizes.sectionTitle,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textPrimary,
               ),
@@ -58,7 +58,7 @@ class MembersEmptyState extends StatelessWidget {
             Text(
               "It's just you and your dreams.\nInvite someone before you become a solo act.",
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w400,
                 color: context.colors.textSecondary,
                 height: 1.5,

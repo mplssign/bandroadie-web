@@ -99,7 +99,7 @@ class ConfirmActionDialog extends StatelessWidget {
                 confirmLabel,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                 ),
               ),
             ),
@@ -112,7 +112,8 @@ class ConfirmActionDialog extends StatelessWidget {
               child: Text(
                 cancelLabel,
                 style: TextStyle(
-                    color: context.colors.textSecondary, fontSize: 16),
+                    color: context.colors.textSecondary,
+                    fontSize: AppFontSizes.body),
               ),
             ),
           ),

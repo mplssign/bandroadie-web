@@ -343,7 +343,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                         TextSpan(
                           text: 'POTENTIAL GIG',
                           style: GoogleFonts.dmSans(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF4A1F0F),
                             letterSpacing: 0.5,
@@ -353,7 +353,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           TextSpan(
                             text: ': Multiple Dates',
                             style: GoogleFonts.dmSans(
-                              fontSize: 11,
+                              fontSize: AppFontSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF4A1F0F),
                               letterSpacing: 0.3,
@@ -371,7 +371,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   text: _formatFullDate(_currentDate),
                   direction: _navigationDirection,
                   style: GoogleFonts.dmSans(
-                    fontSize: 21,
+                    fontSize: AppFontSizes.pageTitle,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     height: 1.1,
@@ -390,7 +390,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   ),
                   direction: _navigationDirection,
                   style: GoogleFonts.dmSans(
-                    fontSize: 18,
+                    fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     height: 1.2,
@@ -412,7 +412,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.dmSans(
-                            fontSize: 18,
+                            fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                             height: 1.3,
@@ -421,9 +421,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       ),
                       if (widget.gig.location.isNotEmpty)
                         Text(
-                          ' - ${widget.gig.location}',
+                          ' - ${widget.gig.locationDisplay}',
                           style: GoogleFonts.dmSans(
-                            fontSize: 18,
+                            fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                             height: 1.3,
@@ -433,13 +433,13 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       Flexible(
                         child: Text(
                           widget.gig.location.isNotEmpty
-                              ? widget.gig.location
+                              ? widget.gig.locationDisplay
                               : 'No venue specified',
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.dmSans(
-                            fontSize: 18,
+                            fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                             height: 1.3,
@@ -644,7 +644,7 @@ class PotentialChip extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          fontSize: 12,
+          fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w600,
           color: Colors.white,
           height: 1.0,
@@ -728,7 +728,7 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
               : Text(
                   label,
                   style: GoogleFonts.dmSans(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     color: textColor,
                     letterSpacing: 0.5,
@@ -769,7 +769,7 @@ class AvailabilityRow extends StatelessWidget {
         Text(
           'Your Availability',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
             fontWeight: FontWeight.w500,
             color: Colors.white.withValues(alpha: 0.8),
           ),
@@ -834,7 +834,7 @@ class AvailabilityButton extends StatelessWidget {
         child: Text(
           label,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
             fontWeight: FontWeight.w700,
             color: Colors.white,
           ),

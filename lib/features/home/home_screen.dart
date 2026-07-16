@@ -929,22 +929,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
-      height: Spacing.gigCardHeight, // 126px
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: confirmedGigs.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final gig = confirmedGigs[index];
-          return ConfirmedGigCard(
-            gig: gig,
-            bandTimezone: bandTimezone,
-            index: index,
-            onTap: () => _openViewGigSheet(gig),
-          );
-        },
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int index = 0; index < confirmedGigs.length; index++) ...[
+            if (index > 0) const SizedBox(width: 16),
+            ConfirmedGigCard(
+              gig: confirmedGigs[index],
+              bandTimezone: bandTimezone,
+              index: index,
+              onTap: () => _openViewGigSheet(confirmedGigs[index]),
+            ),
+          ],
+        ],
       ),
     );
   }

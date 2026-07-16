@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/widgets/animated_logo.dart';
@@ -175,7 +176,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       text,
       style: TextStyle(
         color: context.colors.textPrimary,
-        fontSize: 24,
+        fontSize: AppFontSizes.modalTitle,
         fontWeight: FontWeight.w700,
         height: 1.3,
       ),
@@ -189,7 +190,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         text,
         style: TextStyle(
           color: context.colors.textSecondary,
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w400,
         ),
       ),
@@ -203,7 +204,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         text,
         style: TextStyle(
           color: context.colors.textPrimary,
-          fontSize: 18,
+          fontSize: AppFontSizes.title,
           fontWeight: FontWeight.w600,
           height: 1.3,
         ),
@@ -218,7 +219,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         text,
         style: TextStyle(
           color: context.colors.textPrimary,
-          fontSize: 15,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -232,7 +233,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         text,
         style: TextStyle(
           color: context.colors.textSecondary,
-          fontSize: 15,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w400,
           height: 1.5,
         ),
@@ -250,7 +251,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             '• ',
             style: TextStyle(
               color: context.colors.textSecondary,
-              fontSize: 15,
+              fontSize: AppFontSizes.subhead,
               height: 1.5,
             ),
           ),
@@ -259,7 +260,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
               text,
               style: TextStyle(
                 color: context.colors.textSecondary,
-                fontSize: 15,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w400,
                 height: 1.5,
               ),

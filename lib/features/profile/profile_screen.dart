@@ -214,7 +214,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: Text(
                       _getInitials(profile),
                       style: AppTextStyles.title3.copyWith(
-                        fontSize: 32,
+                        fontSize: AppFontSizes.statLarge,
                         color: AppColors.primary,
                       ),
                     ),
@@ -223,7 +223,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: Spacing.space16),
                 Text(
                   profile.fullName,
-                  style: AppTextStyles.title3.copyWith(fontSize: 24),
+                  style: AppTextStyles.title3
+                      .copyWith(fontSize: AppFontSizes.modalTitle),
                 ),
                 const SizedBox(height: Spacing.space4),
                 Text(profile.email, style: AppTextStyles.callout),

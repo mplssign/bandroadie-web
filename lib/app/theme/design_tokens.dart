@@ -52,9 +52,6 @@ class Spacing {
   /// Confirmed rehearsal card width for horizontal scroll row
   static const double rehearsalCardWidth = 350.0;
 
-  /// Figma: gig card height 126px
-  static const double gigCardHeight = 126.0;
-
   /// Potential gig card dimensions for horizontal scroll
   /// Height accommodates large date, time, location, and full-width buttons
   static const double potentialGigCardHeight = 240.0;
@@ -305,6 +302,28 @@ class _RubberbandCurve extends Curve {
   }
 }
 
+/// Font size scale — single source of truth for every fontSize in the app.
+///
+/// Floor is 13px: nothing in the app should render smaller than this.
+/// Values below the floor (8–12px) and clear near-duplicates (15, 26, 40)
+/// fold into the nearest step with real, independent usage.
+class AppFontSizes {
+  AppFontSizes._();
+
+  static const double caption = 13.0; // absorbs old 8–12px uses
+  static const double subhead = 14.0; // absorbs old 15px uses
+  static const double body = 16.0;
+  static const double headline = 17.0;
+  static const double title = 18.0;
+  static const double title2 = 20.0;
+  static const double pageTitle = 21.0;
+  static const double sectionTitle = 22.0;
+  static const double modalTitle = 24.0; // absorbs old 26px uses
+  static const double display = 28.0;
+  static const double statLarge = 32.0;
+  static const double hero = 48.0; // absorbs old 40px uses
+}
+
 /// Typography styles - Using DM Sans font
 class AppTextStyles {
   AppTextStyles._();
@@ -312,55 +331,64 @@ class AppTextStyles {
   // Unified page title style used by Setlists/Band Members/Venues/Contacts
   // and Home section headers (Upcoming Gigs, Quick Actions).
   static TextStyle get pageTitle => GoogleFonts.dmSans(
-        fontSize: 21,
+        fontSize: AppFontSizes.pageTitle,
         fontWeight: FontWeight.w700,
         height: 1.25,
       );
 
   // Title3/Emphasized - 20px, weight 600, line-height 25px
   static TextStyle get title3 => GoogleFonts.dmSans(
-        fontSize: 20,
+        fontSize: AppFontSizes.title2,
         fontWeight: FontWeight.w600,
         height: 1.25, // 25/20
       );
 
   // Headline/Regular - 17px, weight 600, line-height 22px
   static TextStyle get headline => GoogleFonts.dmSans(
-        fontSize: 17,
+        fontSize: AppFontSizes.headline,
         fontWeight: FontWeight.w600,
         height: 1.29, // 22/17
       );
 
   // Callout/Regular - 16px, weight 400, line-height 21px
   static TextStyle get callout => GoogleFonts.dmSans(
-        fontSize: 16,
+        fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w400,
         height: 1.31, // 21/16
       );
 
   // Callout/Emphasized - 16px, weight 600, line-height 21px
   static TextStyle get calloutEmphasized => GoogleFonts.dmSans(
-        fontSize: 16,
+        fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w600,
         height: 1.31,
       );
 
   // Footnote/Emphasized - 13px, weight 600, line-height 18px
   static TextStyle get footnote => GoogleFonts.dmSans(
-        fontSize: 13,
+        fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w600,
         height: 1.38, // 18/13
       );
 
-  // Nav label - 11px, weight 600, line-height 12px
+  // Caption/Regular - 13px, weight 400, line-height 18px
+  // Regular-weight counterpart to `footnote`, for muted/secondary small text.
+  static TextStyle get caption => GoogleFonts.dmSans(
+        fontSize: AppFontSizes.caption,
+        fontWeight: FontWeight.w400,
+        height: 1.38,
+      );
+
+  // Nav label - 13px (floor), weight 600, line-height 15px
   static TextStyle get navLabel => GoogleFonts.dmSans(
-        fontSize: 11,
+        fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w600,
-        height: 1.09, // 12/11
+        height: 1.15,
       );
 
   // Legacy aliases for compatibility
-  static TextStyle get displayLarge => title3.copyWith(fontSize: 28);
+  static TextStyle get displayLarge =>
+      title3.copyWith(fontSize: AppFontSizes.display);
   static TextStyle get displayMedium => title3;
   static TextStyle get sectionHeader => title3;
   static TextStyle get cardTitle => title3;
@@ -370,14 +398,14 @@ class AppTextStyles {
 
   // Button and badge styles
   static TextStyle get button => GoogleFonts.dmSans(
-        fontSize: 16,
+        fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w600,
         height: 1.31,
       );
 
   static TextStyle get badge => GoogleFonts.dmSans(
-        fontSize: 11,
+        fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w600,
-        height: 1.09,
+        height: 1.15,
       );
 }

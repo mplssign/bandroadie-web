@@ -59,7 +59,7 @@ class AppTheme {
         centerTitle: true,
         titleTextStyle: TextStyle(
           color: bc.textPrimary,
-          fontSize: 20,
+          fontSize: AppFontSizes.title2,
           fontWeight: FontWeight.w600,
         ),
         iconTheme: IconThemeData(color: AppColors.primary),
@@ -76,7 +76,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.body, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -91,7 +92,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.body, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -101,7 +103,8 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.subhead, fontWeight: FontWeight.w500),
         ),
       ),
 
@@ -116,7 +119,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.body, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -150,7 +154,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.error, width: 2),
         ),
-        hintStyle: TextStyle(color: bc.textMuted, fontSize: 16),
+        hintStyle: TextStyle(color: bc.textMuted, fontSize: AppFontSizes.body),
         labelStyle: TextStyle(color: bc.textSecondary),
       ),
 
@@ -164,11 +168,11 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 0,
         selectedLabelStyle: const TextStyle(
-          fontSize: 12,
+          fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w600,
         ),
         unselectedLabelStyle: const TextStyle(
-          fontSize: 12,
+          fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w400,
         ),
       ),
@@ -189,13 +193,13 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
               color: AppColors.primary,
-              fontSize: 12,
+              fontSize: AppFontSizes.caption,
               fontWeight: FontWeight.w600,
             );
           }
           return TextStyle(
             color: bc.textSecondary,
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
             fontWeight: FontWeight.w400,
           );
         }),
@@ -223,40 +227,43 @@ class AppTheme {
         TextTheme(
           headlineLarge: TextStyle(
             color: bc.textPrimary,
-            fontSize: 32,
+            fontSize: AppFontSizes.statLarge,
             fontWeight: FontWeight.w700,
           ),
           headlineMedium: TextStyle(
             color: bc.textPrimary,
-            fontSize: 26,
+            fontSize: AppFontSizes.modalTitle,
             fontWeight: FontWeight.w700,
           ),
           headlineSmall: TextStyle(
             color: bc.textPrimary,
-            fontSize: 22,
+            fontSize: AppFontSizes.sectionTitle,
             fontWeight: FontWeight.w600,
           ),
           titleLarge: TextStyle(
             color: bc.textPrimary,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
           titleMedium: TextStyle(
             color: bc.textPrimary,
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             fontWeight: FontWeight.w600,
           ),
           titleSmall: TextStyle(
             color: bc.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
           ),
-          bodyLarge: TextStyle(color: bc.textPrimary, fontSize: 16),
-          bodyMedium: TextStyle(color: bc.textSecondary, fontSize: 14),
-          bodySmall: TextStyle(color: bc.textMuted, fontSize: 12),
+          bodyLarge:
+              TextStyle(color: bc.textPrimary, fontSize: AppFontSizes.body),
+          bodyMedium: TextStyle(
+              color: bc.textSecondary, fontSize: AppFontSizes.subhead),
+          bodySmall:
+              TextStyle(color: bc.textMuted, fontSize: AppFontSizes.caption),
           labelLarge: TextStyle(
             color: bc.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -280,7 +287,8 @@ class AppTheme {
       // ----------------------------------------
       snackBarTheme: SnackBarThemeData(
         backgroundColor: bc.surfaceElevated,
-        contentTextStyle: TextStyle(color: bc.textPrimary, fontSize: 14),
+        contentTextStyle:
+            TextStyle(color: bc.textPrimary, fontSize: AppFontSizes.subhead),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -334,7 +342,7 @@ class AppTheme {
         centerTitle: true,
         titleTextStyle: const TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: AppFontSizes.title2,
           fontWeight: FontWeight.w600,
         ),
         iconTheme: IconThemeData(color: bc.primary),
@@ -351,7 +359,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.body, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -366,7 +375,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.body, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -376,7 +386,8 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: bc.primary,
-          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.subhead, fontWeight: FontWeight.w500),
         ),
       ),
 
@@ -391,7 +402,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+              fontSize: AppFontSizes.body, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -425,7 +437,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.error, width: 2),
         ),
-        hintStyle: TextStyle(color: bc.textMuted, fontSize: 16),
+        hintStyle: TextStyle(color: bc.textMuted, fontSize: AppFontSizes.body),
         labelStyle: TextStyle(color: bc.textSecondary),
       ),
 
@@ -439,11 +451,11 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 0,
         selectedLabelStyle: const TextStyle(
-          fontSize: 12,
+          fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w600,
         ),
         unselectedLabelStyle: TextStyle(
-          fontSize: 12,
+          fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w400,
         ),
       ),
@@ -464,13 +476,13 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
               color: bc.primary,
-              fontSize: 12,
+              fontSize: AppFontSizes.caption,
               fontWeight: FontWeight.w600,
             );
           }
           return TextStyle(
             color: bc.textSecondary,
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
             fontWeight: FontWeight.w400,
           );
         }),
@@ -498,40 +510,43 @@ class AppTheme {
         TextTheme(
           headlineLarge: TextStyle(
             color: bc.textPrimary,
-            fontSize: 32,
+            fontSize: AppFontSizes.statLarge,
             fontWeight: FontWeight.w700,
           ),
           headlineMedium: TextStyle(
             color: bc.textPrimary,
-            fontSize: 26,
+            fontSize: AppFontSizes.modalTitle,
             fontWeight: FontWeight.w700,
           ),
           headlineSmall: TextStyle(
             color: bc.textPrimary,
-            fontSize: 22,
+            fontSize: AppFontSizes.sectionTitle,
             fontWeight: FontWeight.w600,
           ),
           titleLarge: TextStyle(
             color: bc.textPrimary,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
           titleMedium: TextStyle(
             color: bc.textPrimary,
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             fontWeight: FontWeight.w600,
           ),
           titleSmall: TextStyle(
             color: bc.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
           ),
-          bodyLarge: TextStyle(color: bc.textPrimary, fontSize: 16),
-          bodyMedium: TextStyle(color: bc.textSecondary, fontSize: 14),
-          bodySmall: TextStyle(color: bc.textMuted, fontSize: 12),
+          bodyLarge:
+              TextStyle(color: bc.textPrimary, fontSize: AppFontSizes.body),
+          bodyMedium: TextStyle(
+              color: bc.textSecondary, fontSize: AppFontSizes.subhead),
+          bodySmall:
+              TextStyle(color: bc.textMuted, fontSize: AppFontSizes.caption),
           labelLarge: TextStyle(
             color: bc.textPrimary,
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -555,7 +570,8 @@ class AppTheme {
       // ----------------------------------------
       snackBarTheme: SnackBarThemeData(
         backgroundColor: bc.surfaceElevated,
-        contentTextStyle: TextStyle(color: bc.textPrimary, fontSize: 14),
+        contentTextStyle:
+            TextStyle(color: bc.textPrimary, fontSize: AppFontSizes.subhead),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

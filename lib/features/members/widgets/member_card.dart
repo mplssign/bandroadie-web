@@ -34,26 +34,26 @@ class _MemberCardTokens {
 
   // Typography
   static const TextStyle nameStyle = TextStyle(
-    fontSize: 21,
+    fontSize: AppFontSizes.pageTitle,
     fontWeight: FontWeight.w700,
     height: 1.2,
   );
 
   static const TextStyle pillStyle = TextStyle(
-    fontSize: 14,
+    fontSize: AppFontSizes.subhead,
     fontWeight: FontWeight.w500,
     color: borderRose,
     height: 1.2,
   );
 
   static const TextStyle contactLabelStyle = TextStyle(
-    fontSize: 16,
+    fontSize: AppFontSizes.body,
     fontWeight: FontWeight.w600,
     height: 1.3,
   );
 
   static const TextStyle contactValueStyle = TextStyle(
-    fontSize: 16,
+    fontSize: AppFontSizes.body,
     fontWeight: FontWeight.w400,
     height: 1.3,
   );

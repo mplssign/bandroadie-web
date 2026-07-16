@@ -208,7 +208,7 @@ class _BannerContent extends StatelessWidget {
                       'Get the full BandRoadie experience',
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 16,
+                        fontSize: AppFontSizes.body,
                         fontWeight: FontWeight.w600,
                         height: 1.3,
                       ),
@@ -228,7 +228,7 @@ class _BannerContent extends StatelessWidget {
                 'Faster performance, offline access, and notifications.',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                   height: 1.4,
                 ),
               ),
@@ -255,7 +255,7 @@ class _BannerContent extends StatelessWidget {
                       child: const Text(
                         'Download app',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: AppFontSizes.subhead,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -274,7 +274,7 @@ class _BannerContent extends StatelessWidget {
                     child: const Text(
                       'Don\'t show again',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

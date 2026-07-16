@@ -119,7 +119,7 @@ class _TitlePillSelectorState extends State<TitlePillSelector> {
                       child: Text(
                         title,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: AppFontSizes.subhead,
                           fontWeight: FontWeight.w500,
                           color: isSelected ? Colors.white : AppColors.primary,
                         ),
@@ -150,7 +150,7 @@ class _TitlePillSelectorState extends State<TitlePillSelector> {
                   child: Text(
                     'Custom',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w500,
                       color: _isCustomMode ? Colors.white : AppColors.primary,
                     ),
@@ -166,7 +166,7 @@ class _TitlePillSelectorState extends State<TitlePillSelector> {
             controller: _customController,
             style: TextStyle(
               color: context.colors.textPrimary,
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
             ),
             decoration: InputDecoration(
               hintText: 'Enter custom title',

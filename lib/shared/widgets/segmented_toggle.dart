@@ -65,7 +65,7 @@ class SegmentedToggle extends StatelessWidget {
                           duration: AppDurations.fast,
                           curve: AppCurves.ease,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w600,
                             color: isSelected
                                 ? Colors.white

@@ -431,7 +431,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
             title: Text(
               'Add custom role',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: AppFontSizes.title,
                 fontWeight: FontWeight.w500,
                 color: context.colors.textPrimary,
               ),
@@ -443,7 +443,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 Text(
                   'Enter a custom role to add to your roles list.',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w400,
                     color: context.colors.textSecondary,
                   ),
@@ -865,7 +865,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         title: Text(
           widget.isGated ? 'Complete Your Profile' : 'My Profile',
           style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w600, height: 1.25)
+                  fontSize: AppFontSizes.title2,
+                  fontWeight: FontWeight.w600,
+                  height: 1.25)
               .copyWith(
             color: Colors.white,
           ),
@@ -901,7 +903,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Text(
                 'Error loading profile',
                 style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w600, height: 1.25)
+                        fontSize: AppFontSizes.title2,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25)
                     .copyWith(
                   color: context.colors.textPrimary,
                 ),
@@ -910,7 +914,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Text(
                 _loadError!,
                 style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w400, height: 1.4)
+                        fontSize: AppFontSizes.body,
+                        fontWeight: FontWeight.w400,
+                        height: 1.4)
                     .copyWith(
                   color: context.colors.textSecondary,
                 ),
@@ -944,7 +950,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                         ? 'Please complete your profile to continue'
                         : 'Update your personal information',
                     style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: AppFontSizes.body,
                             fontWeight: FontWeight.w400,
                             height: 1.4)
                         .copyWith(
@@ -1047,7 +1053,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           text: TextSpan(
             text: label,
             style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                    fontSize: AppFontSizes.subhead,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4)
                 .copyWith(
               color: context.colors.textPrimary,
             ),
@@ -1137,7 +1145,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           children: [
             Text('Birthday',
                 style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                        fontSize: AppFontSizes.subhead,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4)
                     .copyWith(
                   color: context.colors.textPrimary,
                 )),
@@ -1146,7 +1156,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Text(
                 selectedBirthdayLabel,
                 style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                        fontSize: AppFontSizes.subhead,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4)
                     .copyWith(
                   color: context.colors.primaryDim,
                   fontWeight: FontWeight.w500,
@@ -1160,7 +1172,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         // Month subsection
         Text('Month',
             style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500, height: 1.4)
+                    fontSize: AppFontSizes.caption,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4)
                 .copyWith(
               color: context.colors.textSecondary,
             )),
@@ -1182,7 +1196,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         // Day subsection
         Text('Day',
             style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500, height: 1.4)
+                    fontSize: AppFontSizes.caption,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4)
                 .copyWith(
               color: context.colors.textSecondary,
             )),
@@ -1277,7 +1293,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       children: [
         Text('Role in Band',
             style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w500, height: 1.4)
+                    fontSize: AppFontSizes.subhead,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4)
                 .copyWith(
               color: context.colors.textPrimary,
             )),
@@ -1287,7 +1305,9 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           const SizedBox(height: 12),
           Text('Select Band',
               style: const TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w500, height: 1.4)
+                      fontSize: AppFontSizes.caption,
+                      fontWeight: FontWeight.w500,
+                      height: 1.4)
                   .copyWith(
                 color: context.colors.textSecondary,
               )),
@@ -1359,7 +1379,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       child: Text(
                         'Cancel',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppFontSizes.body,
                           fontWeight: FontWeight.w500,
                           color: context.colors.textSecondary,
                         ),
@@ -1379,7 +1399,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       child: Text(
                         'Skip for now',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: AppFontSizes.body,
                           fontWeight: FontWeight.w500,
                           color: context.colors.textSecondary,
                         ),
@@ -1408,7 +1428,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Text(
                 'You can complete your profile later in the menu.',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                   color: context.colors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
@@ -1495,7 +1515,9 @@ class _MonthPillState extends State<_MonthPill>
             child: Text(
               widget.label,
               style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500, height: 1.2)
+                      fontSize: AppFontSizes.subhead,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2)
                   .copyWith(
                 color: widget.isSelected
                     ? Colors.white
@@ -1581,7 +1603,9 @@ class _DayCircleState extends State<_DayCircle>
             child: Text(
               widget.day.toString(),
               style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500, height: 1.2)
+                      fontSize: AppFontSizes.subhead,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2)
                   .copyWith(
                 color: widget.isSelected
                     ? Colors.white
@@ -1716,7 +1740,7 @@ class _RolePillState extends State<_RolePill>
                 Text(
                   widget.label,
                   style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: AppFontSizes.subhead,
                           fontWeight: FontWeight.w500,
                           height: 1.2)
                       .copyWith(
@@ -1802,7 +1826,9 @@ class _BandPillState extends State<_BandPill>
             child: Text(
               widget.label,
               style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500, height: 1.2)
+                      fontSize: AppFontSizes.subhead,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2)
                   .copyWith(
                 color: widget.isSelected ? Colors.white : rose600,
                 fontWeight:

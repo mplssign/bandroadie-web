@@ -143,7 +143,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
         title: Text(
           'Delete Contact?',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
             color: context.colors.textPrimary,
           ),
@@ -151,7 +151,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
         content: Text(
           'This action cannot be undone.',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             color: context.colors.textSecondary,
           ),
         ),
@@ -161,7 +161,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             child: Text(
               'Cancel',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textSecondary,
               ),
@@ -172,7 +172,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             child: const Text(
               'Delete',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
                 color: AppColors.error,
               ),
@@ -239,7 +239,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           _isEditMode ? 'Edit Contact' : 'New Contact',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: AppFontSizes.title,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -259,7 +259,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
                     'Save',
                     style: TextStyle(
                       color: AppColors.primary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -273,7 +273,8 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _nameController,
             focusNode: _nameFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Name *'),
           ),
           const SizedBox(height: 20),
@@ -282,7 +283,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           Text(
             'Title',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: AppFontSizes.subhead,
               fontWeight: FontWeight.w500,
               color: context.colors.textSecondary,
             ),
@@ -301,7 +302,8 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
@@ -312,7 +314,8 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _emailController,
             focusNode: _emailFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Email'),
             keyboardType: TextInputType.emailAddress,
           ),
@@ -345,7 +348,8 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TextField(
             controller: _notesController,
             focusNode: _notesFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Notes'),
             maxLines: 3,
           ),
@@ -359,7 +363,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
                 child: const Text(
                   'Delete Contact',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w500,
                     color: AppColors.error,
                   ),

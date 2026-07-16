@@ -249,13 +249,14 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
           'Cancel Invite?',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
           ),
         ),
         content: Text(
           'Cancel invite for $email?',
-          style: TextStyle(color: context.colors.textSecondary, fontSize: 16),
+          style: TextStyle(
+              color: context.colors.textSecondary, fontSize: AppFontSizes.body),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
@@ -336,14 +337,14 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _sendInvite(),
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w400,
               color: context.colors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: 'name@example.com',
               hintStyle: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w400,
                 color: context.colors.textMuted,
               ),
@@ -394,7 +395,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
                   : const Text(
                       'Invite',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -433,7 +434,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
           'Invite Members',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: AppFontSizes.title,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -446,7 +447,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             Text(
               widget.band.name,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppFontSizes.title2,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textPrimary,
               ),
@@ -455,7 +456,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             Text(
               'Send an invitation to join your band',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w400,
                 height: 1.4,
                 color: context.colors.textSecondary,
@@ -470,7 +471,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
               Text(
                 'Invited',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: AppFontSizes.title,
                   fontWeight: FontWeight.w600,
                   color: context.colors.textPrimary,
                 ),
@@ -525,7 +526,7 @@ class _InvitePill extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                   fontWeight: FontWeight.w400,
                   height: 1.33,
                   color: context.colors.textPrimary,

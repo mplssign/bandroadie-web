@@ -243,7 +243,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
         title: Text(
           'Delete Venue?',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: AppFontSizes.title2,
             fontWeight: FontWeight.w600,
             color: context.colors.textPrimary,
           ),
@@ -251,7 +251,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
         content: Text(
           'This action cannot be undone.',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             color: context.colors.textSecondary,
           ),
         ),
@@ -261,7 +261,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
             child: Text(
               'Cancel',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textSecondary,
               ),
@@ -272,7 +272,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
             child: const Text(
               'Delete',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 fontWeight: FontWeight.w600,
                 color: AppColors.error,
               ),
@@ -357,7 +357,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           _isEditMode ? 'Edit Venue' : 'New Venue',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: AppFontSizes.title,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -377,7 +377,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                     'Save',
                     style: TextStyle(
                       color: AppColors.primary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -391,14 +391,16 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           TextField(
             controller: _nameController,
             focusNode: _nameFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Name *'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _addressController,
             focusNode: _addressFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Address'),
           ),
           const SizedBox(height: 16),
@@ -409,7 +411,8 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                   controller: _cityController,
                   focusNode: _cityFocus,
                   style: TextStyle(
-                      color: context.colors.textPrimary, fontSize: 16),
+                      color: context.colors.textPrimary,
+                      fontSize: AppFontSizes.body),
                   decoration: _inputDecoration('City'),
                 ),
               ),
@@ -421,7 +424,8 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                     controller: _stateController,
                     focusNode: _stateFocus,
                     style: TextStyle(
-                        color: context.colors.textPrimary, fontSize: 16),
+                        color: context.colors.textPrimary,
+                        fontSize: AppFontSizes.body),
                     decoration: _inputDecoration(_getStateLabel()),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: _getStateFormatters(),
@@ -434,7 +438,8 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           TextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Phone'),
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
@@ -443,7 +448,8 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           TextField(
             controller: _notesController,
             focusNode: _notesFocus,
-            style: TextStyle(color: context.colors.textPrimary, fontSize: 16),
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Notes'),
             maxLines: 3,
           ),
@@ -457,7 +463,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                 child: Text(
                   'Contacts at this venue',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: context.colors.textPrimary,
                   ),
@@ -521,7 +527,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                 child: const Text(
                   'Delete Venue',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w500,
                     color: AppColors.error,
                   ),

@@ -126,12 +126,12 @@ class _AnimatedSnackBarState extends State<_AnimatedSnackBar>
     // Subtle slide up animation
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          ),
-        );
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
 
     _currentController = _controller;
 
@@ -158,8 +158,7 @@ class _AnimatedSnackBarState extends State<_AnimatedSnackBar>
 
   @override
   Widget build(BuildContext context) {
-    final bgColor =
-        widget.backgroundColor ??
+    final bgColor = widget.backgroundColor ??
         Theme.of(context).snackBarTheme.backgroundColor ??
         context.colors.surface;
 
@@ -196,7 +195,7 @@ class _AnimatedSnackBarState extends State<_AnimatedSnackBar>
                       widget.message,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w400,
                       ),
                     ),

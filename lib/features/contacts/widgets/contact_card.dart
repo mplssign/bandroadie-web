@@ -65,7 +65,7 @@ class ContactCard extends StatelessWidget {
                     Text(
                       contact.name,
                       style: TextStyle(
-                        fontSize: 21,
+                        fontSize: AppFontSizes.pageTitle,
                         fontWeight: FontWeight.w700,
                         color: context.colors.textPrimary,
                         height: 1.2,
@@ -94,7 +94,7 @@ class ContactCard extends StatelessWidget {
                         child: Text(
                           contact.title!,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w500,
                             color: AppColors.primary,
                             height: 1.2,
@@ -182,7 +182,7 @@ class ContactCard extends StatelessWidget {
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w400,
                   color: context.colors.textPrimary,
                   height: 1.3,

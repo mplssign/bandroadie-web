@@ -50,7 +50,7 @@ class _SupportSectionState extends State<SupportSection> {
             'Questions or feedback? We\'re here for you!',
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               color: context.colors.textSecondary,
             ),
           ),
@@ -111,7 +111,7 @@ class _SupportSectionState extends State<SupportSection> {
                     Text(
                       'r/BandRoadie',
                       style: AppTextStyles.headline.copyWith(
-                        fontSize: 18,
+                        fontSize: AppFontSizes.title,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),

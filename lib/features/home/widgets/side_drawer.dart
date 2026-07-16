@@ -67,7 +67,7 @@ class _DrawerTokens {
   // Typography - Updated per Figma specs
   // Name: 18px, weight 500, primary text color
   static const TextStyle nameStyle = TextStyle(
-    fontSize: 18,
+    fontSize: AppFontSizes.title,
     fontWeight: FontWeight.w500,
     height: 1.3,
     decoration: TextDecoration.none,
@@ -75,7 +75,7 @@ class _DrawerTokens {
 
   // Email: 16px, weight 400, lighter gray
   static const TextStyle emailStyle = TextStyle(
-    fontSize: 16,
+    fontSize: AppFontSizes.body,
     fontWeight: FontWeight.w400,
     height: 1.4,
     decoration: TextDecoration.none,
@@ -83,7 +83,7 @@ class _DrawerTokens {
 
   // Nav item: 16px, weight 400, lighter gray
   static const TextStyle navItemStyle = TextStyle(
-    fontSize: 16,
+    fontSize: AppFontSizes.body,
     fontWeight: FontWeight.w400,
     height: 1.4,
     decoration: TextDecoration.none,
@@ -91,7 +91,7 @@ class _DrawerTokens {
 
   // Nav item logout: 16px, weight 400, rose-500
   static const TextStyle navItemLogoutStyle = TextStyle(
-    fontSize: 16,
+    fontSize: AppFontSizes.body,
     fontWeight: FontWeight.w400,
     height: 1.4,
     color: iconAccent,
@@ -100,7 +100,7 @@ class _DrawerTokens {
 
   // Footer app name: 12px, weight 400, lighter gray
   static const TextStyle footerAppNameStyle = TextStyle(
-    fontSize: 12,
+    fontSize: AppFontSizes.caption,
     fontWeight: FontWeight.w400,
     height: 1.4,
     decoration: TextDecoration.none,
@@ -108,7 +108,7 @@ class _DrawerTokens {
 
   // Footer version: 12px, weight 400, lighter gray
   static const TextStyle footerVersionStyle = TextStyle(
-    fontSize: 12,
+    fontSize: AppFontSizes.caption,
     fontWeight: FontWeight.w400,
     height: 1.4,
     decoration: TextDecoration.none,
@@ -400,7 +400,7 @@ class _SideDrawerState extends State<SideDrawer>
               child: Text(
                 'Privacy Policy',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppFontSizes.caption,
                   fontWeight: FontWeight.w400,
                   height: 1.4,
                   color: context.colors.textSecondary,

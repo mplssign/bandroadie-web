@@ -257,7 +257,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
                   Text(
                     'Members',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: AppFontSizes.display,
                       fontWeight: FontWeight.w700,
                       color: context.colors.textPrimary,
                     ),
@@ -266,9 +266,10 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
                   Text(
                     "Everyone in this band. Try not to break up before the next gig.",
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w400,
-                      color: context.colors.textSecondary.withValues(alpha: 0.8),
+                      color:
+                          context.colors.textSecondary.withValues(alpha: 0.8),
                       height: 1.4,
                     ),
                   ),
@@ -353,7 +354,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
             Text(
               'Something went wrong',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: AppFontSizes.title2,
                 fontWeight: FontWeight.w600,
                 color: context.colors.textPrimary,
               ),
@@ -362,7 +363,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
             Text(
               error,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 color: context.colors.textSecondary,
               ),
               textAlign: TextAlign.center,

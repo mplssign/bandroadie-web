@@ -357,7 +357,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 'Paste songs from a spreadsheet, then tap Load Songs.',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                 ),
               ),
               const SizedBox(height: Spacing.space8),
@@ -367,7 +367,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 maxLines: 5,
                 minLines: 3,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: AppFontSizes.caption,
                   color: context.colors.textPrimary,
                   fontFamily: 'monospace',
                 ),
@@ -376,7 +376,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                       'Artist, Song, BPM, Tuning\n'
                       'e.g.: Aerosmith, Eat The Rich, 123, Standard',
                   hintStyle: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppFontSizes.caption,
                     color: context.colors.textMuted.withValues(alpha: 0.5),
                     fontFamily: 'monospace',
                   ),
@@ -430,7 +430,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                             'Load Songs',
                             style: AppTextStyles.button.copyWith(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                             ),
                           ),
                   ),
@@ -442,7 +442,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   _ingestionSummary!,
                   style: AppTextStyles.body.copyWith(
                     color: context.colors.textSecondary,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.caption,
                   ),
                 ),
               ],
@@ -507,7 +507,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
           label,
           style: AppTextStyles.label.copyWith(
             color: context.colors.textSecondary,
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -647,7 +647,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
               'Add Row',
               style: AppTextStyles.body.copyWith(
                 color: context.colors.textSecondary,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -685,7 +685,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
               child: const Text(
                 'Done',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: AppFontSizes.subhead,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
@@ -760,7 +760,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                             color: _hasValidSongData
                                 ? Colors.white
                                 : Colors.white60,
-                            fontSize: 16,
+                            fontSize: AppFontSizes.body,
                           ),
                         ),
                 ),
@@ -775,7 +775,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   'Cancel',
                   style: AppTextStyles.body.copyWith(
                     color: context.colors.textSecondary,
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                   ),
                 ),
               ),
@@ -820,14 +820,14 @@ class _TableTextField extends StatelessWidget {
       inputFormatters: inputFormatters,
       textCapitalization: textCapitalization,
       style: TextStyle(
-        fontSize: 13,
+        fontSize: AppFontSizes.caption,
         color: context.colors.textPrimary,
         fontWeight: FontWeight.w400,
       ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
-          fontSize: 13,
+          fontSize: AppFontSizes.caption,
           color: context.colors.textMuted.withValues(alpha: 0.4),
         ),
         isDense: true,

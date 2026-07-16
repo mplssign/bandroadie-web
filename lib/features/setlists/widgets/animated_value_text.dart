@@ -84,7 +84,7 @@ class AnimatedValueText extends StatelessWidget {
     final effectiveBgColor = backgroundColor ?? context.colors.surfaceElevated;
     final effectiveStyle = textStyle ??
         TextStyle(
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
           color: isPlaceholder
               ? context.colors.textMuted

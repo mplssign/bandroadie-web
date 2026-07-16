@@ -293,7 +293,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
   String? _setlistId;
   String? _setlistName;
   String? _loadedForBandId;
-  String? _lastLoadedSetlistId;
   SetlistDetailState? _cachedState;
 
   /// Guard against concurrent item reorder persists.
@@ -333,15 +332,17 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       _setlistId = null;
       _setlistName = null;
       _loadedForBandId = null;
-      _lastLoadedSetlistId = null;
       _cachedState = null;
       return const SetlistDetailState(); // Return empty state
     }
 
     // FIX: No longer watch selectedSetlistProvider.
     // Screen calls loadSetlist() directly with route args.
-    // Return current state (or empty if not yet initialized).
-    return state;
+    // Return cached state (or empty if not yet initialized). Must NOT read
+    // the `state` getter here — on the first build there is no state yet,
+    // which throws "Bad state: Tried to read the state of an uninitialized
+    // provider."
+    return _cachedState ?? const SetlistDetailState();
   }
 
   /// Public method called by screen to initialize the setlist.
@@ -363,7 +364,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     _setlistId = id;
     _setlistName = name;
     _loadedForBandId = ref.read(activeBandIdProvider);
-    _lastLoadedSetlistId = null; // Force reload
     _cachedState = null;
 
     state = SetlistDetailState(
@@ -1042,10 +1042,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     final songs = List<SetlistSong>.from(state.songs);
     final song = songs.removeAt(oldIndex);
-
-    // Adjust newIndex if moving down
-    final adjustedIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    songs.insert(adjustedIndex, song);
+    songs.insert(newIndex, song);
 
     // Update positions
     final reindexedSongs = songs.asMap().entries.map((entry) {
@@ -2042,9 +2039,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
     final items = List<SetlistItem>.from(state.items);
     final item = items.removeAt(oldIndex);
-
-    final adjustedIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    items.insert(adjustedIndex, item);
+    items.insert(newIndex, item);
 
     // Re-index positions
     final reindexed = items.asMap().entries.map((entry) {

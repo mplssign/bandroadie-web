@@ -544,7 +544,7 @@ class _LoginScreenState extends State<LoginScreen>
                     '${7 - _logoTapCount} more...',
                     style: TextStyle(
                       color: AppColors.primary.withValues(alpha: 0.6),
-                      fontSize: 11,
+                      fontSize: AppFontSizes.caption,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -613,7 +613,7 @@ class _LoginScreenState extends State<LoginScreen>
               'Email address',
               style: TextStyle(
                 color: context.colors.textPrimary,
-                fontSize: 14,
+                fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -679,7 +679,7 @@ class _LoginScreenState extends State<LoginScreen>
                   _validationError!,
                   style: const TextStyle(
                     color: AppColors.error,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.caption,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -767,7 +767,8 @@ class _LoginScreenState extends State<LoginScreen>
                 : Text(
                     buttonText,
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                        fontSize: AppFontSizes.body,
+                        fontWeight: FontWeight.w600),
                   ),
           ),
         ),
@@ -790,7 +791,7 @@ class _LoginScreenState extends State<LoginScreen>
           color: _message!.contains('Check your email')
               ? context.colors.success
               : context.colors.warning,
-          fontSize: 14,
+          fontSize: AppFontSizes.subhead,
         ),
       ),
     );

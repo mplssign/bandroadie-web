@@ -40,9 +40,8 @@ String formatDurationMasked(String rawDigits) {
   final digits = rawDigits.replaceAll(RegExp(r'[^0-9]'), '');
 
   // Take only the last 4 digits (in case of overflow)
-  final trimmed = digits.length > 4
-      ? digits.substring(digits.length - 4)
-      : digits;
+  final trimmed =
+      digits.length > 4 ? digits.substring(digits.length - 4) : digits;
 
   // Pad with leading zeros to ensure 4 characters
   final padded = trimmed.padLeft(4, '0');
@@ -260,15 +259,15 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTextStyle =
-        widget.textStyle ??
+    final effectiveTextStyle = widget.textStyle ??
         TextStyle(
-          fontSize: 16,
+          fontSize: AppFontSizes.body,
           fontWeight: FontWeight.w500,
           color: context.colors.textPrimary,
         );
 
-    final effectiveBgColor = widget.backgroundColor ?? context.colors.surfaceElevated;
+    final effectiveBgColor =
+        widget.backgroundColor ?? context.colors.surfaceElevated;
     final effectiveBorderColor = widget.borderColor ?? Colors.white;
 
     return Container(

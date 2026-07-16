@@ -43,7 +43,7 @@ class FeaturesSection extends StatelessWidget {
             'Powerful tools built for real bands',
             textAlign: TextAlign.center,
             style: AppTextStyles.callout.copyWith(
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               color: context.colors.textSecondary,
             ),
           ),
@@ -187,7 +187,8 @@ class _FeatureCardState extends State<_FeatureCard> {
             // Title
             Text(
               widget.title,
-              style: AppTextStyles.headline.copyWith(fontSize: 24),
+              style: AppTextStyles.headline
+                  .copyWith(fontSize: AppFontSizes.modalTitle),
             ),
             const SizedBox(height: 12),
 
@@ -196,7 +197,7 @@ class _FeatureCardState extends State<_FeatureCard> {
               widget.description,
               style: AppTextStyles.callout.copyWith(
                 fontFamily: 'Caveat',
-                fontSize: 20,
+                fontSize: AppFontSizes.title2,
                 color: context.colors.textSecondary,
                 height: 1.5,
               ),

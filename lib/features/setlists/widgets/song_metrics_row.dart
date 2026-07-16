@@ -152,7 +152,7 @@ class SongMetricsRow extends StatelessWidget {
         child: Text(
           shortLabel,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: AppFontSizes.subhead,
             fontWeight: FontWeight.w600,
             color: textColor,
             height: 1,

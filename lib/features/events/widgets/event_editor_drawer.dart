@@ -289,15 +289,19 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       // Populate linked venue for edit mode
       _selectedVenueId = data.venueId;
 
-      // Populate state from linked venue (if any)
-      if (_selectedVenueId != null) {
+      // Populate state — prefer the value saved on the gig itself, falling
+      // back to the linked venue's state for gigs saved before this field
+      // existed on gigs.
+      if (data.state != null && data.state!.isNotEmpty) {
+        _stateController.text = data.state!;
+      } else if (_selectedVenueId != null) {
         final venues = ref.read(venuesProvider).venues;
         final venue = venues.cast<Venue?>().firstWhere(
               (v) => v!.id == _selectedVenueId,
               orElse: () => null,
             );
         if (venue != null && venue.state != null && venue.state!.isNotEmpty) {
-          _stateController.text = venue.state!;
+          _stateController.text = venue.state!.toUpperCase();
         }
       }
 
@@ -732,7 +736,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           _locationController.text.trim().isEmpty) {
         final cityState = [
           venue.city,
-          if (venue.state != null && venue.state!.isNotEmpty) venue.state,
+          if (venue.state != null && venue.state!.isNotEmpty)
+            venue.state!.toUpperCase(),
         ].join(', ');
         _locationController.text = cityState;
       }
@@ -748,7 +753,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (venue.state != null &&
           venue.state!.isNotEmpty &&
           _stateController.text.trim().isEmpty) {
-        _stateController.text = venue.state!;
+        _stateController.text = venue.state!.toUpperCase();
       }
     } else if (nameMatches.length > 1) {
       // Multiple matches — require city field to disambiguate
@@ -773,7 +778,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         if (exactMatch.state != null &&
             exactMatch.state!.isNotEmpty &&
             _stateController.text.trim().isEmpty) {
-          _stateController.text = exactMatch.state!;
+          _stateController.text = exactMatch.state!.toUpperCase();
         }
       } else {
         // Multiple matches, city doesn't disambiguate yet — don't auto-link
@@ -978,6 +983,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       address: _addressController.text.trim().isEmpty
           ? null
           : _addressController.text.trim(),
+      state: _stateController.text.trim().isEmpty
+          ? null
+          : _stateController.text.trim().toUpperCase(),
     );
   }
 

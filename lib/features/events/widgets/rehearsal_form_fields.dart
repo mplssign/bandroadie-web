@@ -611,7 +611,7 @@ class RehearsalFormFields extends ConsumerWidget {
           style: AppTextStyles.footnote.copyWith(
             color: textColor,
             fontWeight: FontWeight.w600,
-            fontSize: 12,
+            fontSize: AppFontSizes.caption,
           ),
           textAlign: TextAlign.center,
           overflow: TextOverflow.ellipsis,

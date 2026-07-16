@@ -95,7 +95,7 @@ class SetlistsAppBar extends ConsumerWidget {
                   Text(
                     'Back',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                       height: 1.4,
@@ -190,7 +190,7 @@ class SetlistsAppBar extends ConsumerWidget {
                 name: bandName,
                 avatarColor: bandAvatarColor,
                 size: 36,
-                fontSize: 15,
+                fontSize: AppFontSizes.subhead,
               ),
             ),
           ),

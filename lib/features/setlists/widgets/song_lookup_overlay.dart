@@ -370,7 +370,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                     'Back',
                     style: AppTextStyles.body.copyWith(
                       color: AppColors.primary,
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                 ],
@@ -384,7 +384,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
               child: Text(
                 'Song Lookup',
                 style: AppTextStyles.title3.copyWith(
-                  fontSize: 18,
+                  fontSize: AppFontSizes.title,
                   color: context.colors.textPrimary,
                 ),
               ),
@@ -427,14 +427,14 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           autofocus: true,
           onChanged: _onSearchChanged,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppFontSizes.body,
             fontWeight: FontWeight.w500,
             color: context.colors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: 'Search songs or artists',
             hintStyle: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w400,
               color: context.colors.textMuted,
             ),
@@ -662,7 +662,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   Text(
                     'Searching...',
                     style: TextStyle(
-                        fontSize: 13, color: context.colors.textMuted),
+                        fontSize: AppFontSizes.caption,
+                        color: context.colors.textMuted),
                   ),
                 ],
               ),
@@ -691,7 +692,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                 const SizedBox(width: 8),
                 Text(
                   'External search failed',
-                  style: TextStyle(fontSize: 13, color: AppColors.error),
+                  style: TextStyle(
+                      fontSize: AppFontSizes.caption, color: AppColors.error),
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
@@ -699,7 +701,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   child: Text(
                     'Retry',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSizes.caption,
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
@@ -722,7 +724,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: AppFontSizes.caption,
               fontWeight: FontWeight.w600,
               color: AppColors.primary,
             ),
@@ -824,7 +826,7 @@ class _SongResultRowState extends State<_SongResultRow>
                             child: Text(
                               widget.song.title,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: AppFontSizes.body,
                                 fontWeight: FontWeight.w600,
                                 color: context.colors.textPrimary,
                               ),
@@ -836,7 +838,7 @@ class _SongResultRowState extends State<_SongResultRow>
                           Text(
                             widget.song.formattedDuration,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w500,
                               color: context.colors.textSecondary,
                             ),
@@ -852,7 +854,7 @@ class _SongResultRowState extends State<_SongResultRow>
                             child: Text(
                               widget.song.artist,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppFontSizes.subhead,
                                 fontWeight: FontWeight.w400,
                                 color: context.colors.textSecondary,
                               ),
@@ -864,7 +866,7 @@ class _SongResultRowState extends State<_SongResultRow>
                           Text(
                             widget.song.formattedBpm,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w500,
                               color: context.colors.textSecondary,
                             ),
@@ -1007,7 +1009,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                             child: Text(
                               widget.result.title,
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: AppFontSizes.body,
                                 fontWeight: FontWeight.w600,
                                 color: context.colors.textPrimary,
                               ),
@@ -1021,7 +1023,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                             Text(
                               _formatDuration(widget.result.durationSeconds!),
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppFontSizes.subhead,
                                 fontWeight: FontWeight.w500,
                                 color: context.colors.textSecondary,
                               ),
@@ -1037,7 +1039,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                             child: Text(
                               widget.result.artist,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppFontSizes.subhead,
                                 fontWeight: FontWeight.w400,
                                 color: context.colors.textSecondary,
                               ),
@@ -1051,7 +1053,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
                             Text(
                               '${widget.result.bpm} BPM',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: AppFontSizes.caption,
                                 fontWeight: FontWeight.w500,
                                 color: context.colors.textMuted,
                               ),

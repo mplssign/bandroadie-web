@@ -173,7 +173,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     const Text(
                       'Potential Gig',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: AppFontSizes.subhead,
                         fontWeight: FontWeight.w600,
                         color: Colors.white70,
                       ),
@@ -182,7 +182,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     const Text(
                       'Are you available?',
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: AppFontSizes.sectionTitle,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
@@ -200,7 +200,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     Text(
                       widget.gig.name,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: AppFontSizes.title2,
                         fontWeight: FontWeight.w600,
                         color: context.colors.textPrimary,
                       ),
@@ -285,10 +285,11 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                         child: Text(
                           'Not Sure Yet',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w500,
                             color: _isSubmitting
-                                ? context.colors.textMuted.withValues(alpha: 0.5)
+                                ? context.colors.textMuted
+                                    .withValues(alpha: 0.5)
                                 : context.colors.textMuted,
                           ),
                         ),
@@ -342,7 +343,7 @@ class _DetailRow extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: AppFontSizes.body,
               color: context.colors.textSecondary,
             ),
             textAlign: TextAlign.center,
@@ -407,7 +408,7 @@ class _ResponseButton extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: AppFontSizes.title,
                         fontWeight: FontWeight.w700,
                         color: color,
                       ),

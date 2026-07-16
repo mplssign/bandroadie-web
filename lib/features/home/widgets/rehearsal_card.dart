@@ -350,7 +350,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                         TextSpan(
                           text: 'POTENTIAL REHEARSAL',
                           style: GoogleFonts.dmSans(
-                            fontSize: 14,
+                            fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF4A1F0F),
                             letterSpacing: 0.5,
@@ -360,7 +360,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                           TextSpan(
                             text: ': Multiple Dates',
                             style: GoogleFonts.dmSans(
-                              fontSize: 11,
+                              fontSize: AppFontSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF4A1F0F),
                               letterSpacing: 0.3,
@@ -397,7 +397,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                   text: _formatTimeLine(widget.rehearsal),
                   direction: _navigationDirection,
                   style: GoogleFonts.dmSans(
-                    fontSize: 18,
+                    fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     height: 1.2,
@@ -415,7 +415,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.dmSans(
-                    fontSize: 18,
+                    fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     height: 1.3,
@@ -589,18 +589,15 @@ class _RehearsalCardState extends State<RehearsalCard>
                 children: [
                   Text(
                     _formatDateLine(_currentDate),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
+                    style: AppTextStyles.title3.copyWith(
                       color: Colors.white,
-                      height: 1.2,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _formatTimeLine(widget.rehearsal),
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.75),
                       height: 1.2,
@@ -616,6 +613,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         AppIcons.location,
@@ -623,19 +621,15 @@ class _RehearsalCardState extends State<RehearsalCard>
                         color: Colors.white.withValues(alpha: 0.75),
                       ),
                       const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          widget.rehearsal.location.isNotEmpty
-                              ? widget.rehearsal.location
-                              : 'TBD',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white.withValues(alpha: 0.75),
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        widget.rehearsal.location.isNotEmpty
+                            ? widget.rehearsal.location
+                            : 'TBD',
+                        style: TextStyle(
+                          fontSize: AppFontSizes.body,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white.withValues(alpha: 0.75),
+                          height: 1.2,
                         ),
                       ),
                     ],
@@ -658,7 +652,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                         ),
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          widget.setlistName!,
+                          _truncatedSetlistName(widget.setlistName!),
                           style: AppTextStyles.footnote.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -681,6 +675,13 @@ class _RehearsalCardState extends State<RehearsalCard>
   // ---------------------------------------------------------------------------
   // Formatters
   // ---------------------------------------------------------------------------
+
+  static const int _setlistNameMaxLength = 25;
+
+  String _truncatedSetlistName(String name) {
+    if (name.length <= _setlistNameMaxLength) return name;
+    return '${name.substring(0, _setlistNameMaxLength)}…';
+  }
 
   String _formatFullDate(DateTime date) {
     const months = [
@@ -879,7 +880,7 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
               : Text(
                   label,
                   style: GoogleFonts.dmSans(
-                    fontSize: 16,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     color: textColor,
                     letterSpacing: 0.5,

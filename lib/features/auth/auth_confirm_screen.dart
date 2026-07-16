@@ -397,7 +397,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             'Login Link Opened in Wrong Browser',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -405,7 +405,8 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           const SizedBox(height: 12),
           const Text(
             'For security, magic links must be opened in the same browser where you requested them.',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(
+                color: Colors.white70, fontSize: AppFontSizes.subhead),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -422,7 +423,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                   'Quick Fix:',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: AppFontSizes.subhead,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -433,7 +434,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                   '3. Paste it directly into this browser\'s address bar',
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.caption,
                     height: 1.5,
                   ),
                 ),
@@ -442,7 +443,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                   '💡 Tip: If your email app opens links in its own browser, try "Open in Safari" or "Open in Chrome" instead.',
                   style: TextStyle(
                     color: Colors.white54,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.caption,
                     height: 1.4,
                   ),
                 ),
@@ -550,7 +551,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             title,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 18,
+              fontSize: AppFontSizes.title,
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
@@ -558,7 +559,8 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           const SizedBox(height: 12),
           Text(
             message,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(
+                color: Colors.white70, fontSize: AppFontSizes.subhead),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -633,7 +635,8 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                   SizedBox(height: 24),
                   Text(
                     'Verifying your login...',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    style: TextStyle(
+                        color: Colors.white70, fontSize: AppFontSizes.body),
                   ),
                 ],
               )

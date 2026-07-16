@@ -26,14 +26,16 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
   final FinancialDateFilter dateFilter;
   final DateTime? customStartDate;
   final DateTime? customEndDate;
-  final FinancialViewMode viewMode;
+
+  /// Null means a combined report containing both income and expenses.
+  final FinancialViewMode? viewMode;
 
   const FinancialsPdfPreviewScreen({
     super.key,
     required this.entries,
     required this.bandName,
     required this.dateFilter,
-    required this.viewMode,
+    this.viewMode,
     this.customStartDate,
     this.customEndDate,
   });
@@ -69,11 +71,19 @@ class _FinancialsPdfPreviewScreenState
     }
   }
 
-  String get _viewModeLabel =>
-      widget.viewMode == FinancialViewMode.income ? 'Income' : 'Expenses';
+  String get _viewModeLabel {
+    switch (widget.viewMode) {
+      case FinancialViewMode.income:
+        return 'Income';
+      case FinancialViewMode.expenses:
+        return 'Expenses';
+      case null:
+        return 'Income & Expenses';
+    }
+  }
 
   String get _fileName =>
-      '${widget.bandName} – $_viewModeLabel ($_filterLabel).pdf';
+      '${widget.bandName} – Financial Report ($_filterLabel).pdf';
 
   // ---------------------------------------------------------------------------
   // PDF GENERATION
@@ -83,159 +93,247 @@ class _FinancialsPdfPreviewScreenState
     if (_cachedPdf != null) return _cachedPdf!;
 
     final moneyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-    final dateFmt = DateFormat('MMM d, yyyy');
 
     final doc = pw.Document();
 
-    // Color palette mirroring the app's dark theme in print-friendly tones
-    const headerBg = PdfColor.fromInt(0xFF1F1F23);
-    const rowAlt = PdfColor.fromInt(0xFFF7F7F8);
-    const accentRed = PdfColor.fromInt(0xFFF43F5E);
-    const incomeGreen = PdfColor.fromInt(0xFF22C55E);
-    const expenseRed = PdfColor.fromInt(0xFFEF4444);
+    // Clean, professional color palette
+    const sectionHeaderBg = PdfColor.fromInt(0xFFF3F4F6); // light gray
+    const subtotalBg = PdfColor.fromInt(0xFFF9FAFB); // subtle tint
+    const netIncomeBg = PdfColor.fromInt(0xFFDCFCE7); // light green tint
+    const dividerColor = PdfColor.fromInt(0xFFE5E7EB); // thin divider
     const textDark = PdfColor.fromInt(0xFF111827);
     const textMuted = PdfColor.fromInt(0xFF6B7280);
+    const incomeGreen = PdfColor.fromInt(0xFF059669);
+    const expenseRed = PdfColor.fromInt(0xFFDC2626);
 
-    final totalCents = widget.entries.fold<int>(0, (s, e) => s + e.amountCents);
-    final totalStr = moneyFmt.format(totalCents / 100);
-    final isIncome = widget.viewMode == FinancialViewMode.income;
+    // Calculate totals
+    final incomeEntries = widget.entries.where((e) => e.isIncome).toList();
+    final expenseEntries = widget.entries.where((e) => !e.isIncome).toList();
+
+    final incomeCents = incomeEntries.fold<int>(0, (s, e) => s + e.amountCents);
+    final expenseCents = expenseEntries.fold<int>(0, (s, e) => s + e.amountCents);
+    final netIncomeCents = incomeCents - expenseCents;
+
+    // Group income by category
+    final incomeByCategory = <String, List<FinancialEntry>>{};
+    for (final entry in incomeEntries) {
+      incomeByCategory.putIfAbsent(entry.category, () => []).add(entry);
+    }
+
+    // Group expenses by category
+    final expensesByCategory = <String, List<FinancialEntry>>{};
+    for (final entry in expenseEntries) {
+      expensesByCategory.putIfAbsent(entry.category, () => []).add(entry);
+    }
+
+    // Calculate savings
+    final savingsCents = widget.entries
+        .where((e) => e.depositToSavings == true)
+        .fold<int>(0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: format,
-        margin: const pw.EdgeInsets.all(40),
-        header: (ctx) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
+        margin: const pw.EdgeInsets.all(50),
+        build: (ctx) {
+          final widgets = <pw.Widget>[];
+
+          // HEADER
+          widgets.addAll([
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
+                // Left side: Band name and title
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
                       widget.bandName,
                       style: pw.TextStyle(
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: pw.FontWeight.bold,
                         color: textDark,
                       ),
                     ),
-                    pw.SizedBox(height: 2),
+                    pw.SizedBox(height: 4),
                     pw.Text(
-                      '$_viewModeLabel Report · $_filterLabel',
-                      style: pw.TextStyle(fontSize: 11, color: textMuted),
+                      '$_viewModeLabel Report',
+                      style: pw.TextStyle(
+                        fontSize: 16,
+                        color: textMuted,
+                      ),
                     ),
                   ],
                 ),
+                // Right side: Date range and generated date
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text(
-                      'Total',
-                      style: pw.TextStyle(fontSize: 10, color: textMuted),
-                    ),
-                    pw.Text(
-                      totalStr,
+                      _filterLabel,
                       style: pw.TextStyle(
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
-                        color: isIncome ? incomeGreen : expenseRed,
+                        fontSize: 11,
+                        color: textMuted,
+                      ),
+                    ),
+                    pw.SizedBox(height: 2),
+                    pw.Text(
+                      'Generated ${DateFormat('MMMM d, yyyy').format(DateTime.now())}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        color: textMuted,
                       ),
                     ),
                   ],
                 ),
               ],
             ),
-            pw.SizedBox(height: 4),
-            pw.Divider(color: accentRed, thickness: 1.5),
-            pw.SizedBox(height: 8),
-          ],
-        ),
-        footer: (ctx) => pw.Row(
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            pw.Text(
-              'Generated ${DateFormat('MMMM d, yyyy').format(DateTime.now())}',
-              style: pw.TextStyle(fontSize: 8, color: textMuted),
-            ),
-            pw.Text(
-              'Page ${ctx.pageNumber} of ${ctx.pagesCount}',
-              style: pw.TextStyle(fontSize: 8, color: textMuted),
-            ),
-          ],
-        ),
-        build: (ctx) {
+            pw.SizedBox(height: 24),
+          ]);
+
+          // Empty state: no entries at all
           if (widget.entries.isEmpty) {
-            return [
+            widgets.add(
               pw.Center(
                 child: pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(vertical: 60),
                   child: pw.Text(
-                    'No entries for this period.',
-                    style: pw.TextStyle(color: textMuted, fontSize: 13),
+                    'No financial activity during this reporting period.',
+                    style: pw.TextStyle(fontSize: 13, color: textMuted),
                   ),
                 ),
               ),
-            ];
+            );
+            return widgets;
           }
 
-          // Table header row
-          final headerRow = pw.TableRow(
-            decoration: const pw.BoxDecoration(color: headerBg),
-            children: [
-              _headerCell('Amount'),
-              _headerCell('Date'),
-              _headerCell('Type'),
-              _headerCell('From / Description'),
-              _headerCell('1099', align: pw.Alignment.centerRight),
-            ],
-          );
+          // INCOME SECTION
+          widgets.add(_buildSectionHeader('Income', sectionHeaderBg, textDark));
 
-          // Data rows
-          final dataRows = widget.entries.asMap().entries.map((entry) {
-            final i = entry.key;
-            final e = entry.value;
-            final bg = i.isEven ? PdfColors.white : rowAlt;
-            final amtColor = e.isIncome ? incomeGreen : expenseRed;
-            final prefix = e.isIncome ? '+' : '−';
-            final amtStr = '$prefix${moneyFmt.format(e.amountCents / 100)}';
-            final fromStr = [e.payerName, e.description]
-                .whereType<String>()
-                .where((s) => s.isNotEmpty)
-                .join(' · ');
-
-            return pw.TableRow(
-              decoration: pw.BoxDecoration(color: bg),
-              children: [
-                _dataCell(amtStr, color: amtColor, bold: true),
-                _dataCell(dateFmt.format(e.entryDate)),
-                _dataCell(e.category),
-                _dataCell(fromStr.isNotEmpty ? fromStr : '—'),
-                _dataCell(
-                  e.is1099Expected == true ? '✓' : '',
-                  align: pw.Alignment.centerRight,
+          if (incomeEntries.isEmpty) {
+            widgets.addAll([
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: pw.Text(
+                  'No income during this period.',
+                  style: pw.TextStyle(fontSize: 11, color: textMuted),
                 ),
-              ],
-            );
-          }).toList();
-
-          return [
-            pw.Table(
-              border: pw.TableBorder.symmetric(
-                outside: const pw.BorderSide(color: PdfColors.grey300),
-                inside: const pw.BorderSide(color: PdfColors.grey200),
               ),
-              columnWidths: {
-                0: const pw.FlexColumnWidth(2.5),
-                1: const pw.FlexColumnWidth(2),
-                2: const pw.FlexColumnWidth(2.5),
-                3: const pw.FlexColumnWidth(4),
-                4: const pw.FlexColumnWidth(1),
-              },
-              children: [headerRow, ...dataRows],
-            ),
-          ];
+              pw.SizedBox(height: 8),
+            ]);
+          } else {
+            // Income categories
+            final sortedIncomeCategories = incomeByCategory.keys.toList()..sort();
+            for (final category in sortedIncomeCategories) {
+              final categoryTotal = incomeByCategory[category]!
+                  .fold<int>(0, (s, e) => s + e.amountCents);
+              widgets.add(_buildLineItem(
+                category,
+                categoryTotal,
+                moneyFmt,
+                textDark,
+                dividerColor,
+              ));
+            }
+
+            // Total Income subtotal
+            widgets.addAll([
+              pw.SizedBox(height: 4),
+              _buildSubtotalRow(
+                'Total Income',
+                incomeCents,
+                moneyFmt,
+                subtotalBg,
+                textDark,
+                incomeGreen,
+              ),
+              pw.SizedBox(height: 24),
+            ]);
+          }
+
+          // EXPENSES SECTION
+          widgets.add(_buildSectionHeader('Expenses', sectionHeaderBg, textDark));
+
+          if (expenseEntries.isEmpty) {
+            widgets.addAll([
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: pw.Text(
+                  'No expenses during this period.',
+                  style: pw.TextStyle(fontSize: 11, color: textMuted),
+                ),
+              ),
+              pw.SizedBox(height: 8),
+            ]);
+          } else {
+            // Expense categories
+            final sortedCategories = expensesByCategory.keys.toList()..sort();
+            for (final category in sortedCategories) {
+              final categoryTotal = expensesByCategory[category]!
+                  .fold<int>(0, (s, e) => s + e.amountCents);
+              widgets.add(_buildLineItem(
+                category,
+                categoryTotal,
+                moneyFmt,
+                textDark,
+                dividerColor,
+              ));
+            }
+
+            // Total Expenses subtotal
+            widgets.addAll([
+              pw.SizedBox(height: 4),
+              _buildSubtotalRow(
+                'Total Expenses',
+                expenseCents,
+                moneyFmt,
+                subtotalBg,
+                textDark,
+                expenseRed,
+              ),
+              pw.SizedBox(height: 24),
+            ]);
+          }
+
+          // NET INCOME (most prominent row)
+          widgets.add(_buildNetIncomeRow(
+            netIncomeCents,
+            moneyFmt,
+            netIncomeBg,
+            textDark,
+            netIncomeCents >= 0 ? incomeGreen : expenseRed,
+          ));
+          widgets.add(pw.SizedBox(height: 24));
+
+          // SAVINGS SECTION (if exists)
+          if (savingsCents > 0) {
+            widgets.addAll([
+              _buildSectionHeader('Savings', sectionHeaderBg, textDark),
+              _buildLineItem(
+                'Current Savings Balance',
+                savingsCents,
+                moneyFmt,
+                textDark,
+                dividerColor,
+              ),
+              pw.SizedBox(height: 24),
+            ]);
+          }
+
+          // OPTIONAL SUMMARY BOX
+          widgets.add(_buildSummaryBox(
+            incomeCents,
+            expenseCents,
+            netIncomeCents,
+            savingsCents,
+            moneyFmt,
+            textDark,
+            textMuted,
+            dividerColor,
+          ));
+
+          return widgets;
         },
       ),
     );
@@ -245,41 +343,232 @@ class _FinancialsPdfPreviewScreenState
     return _cachedPdf!;
   }
 
-  pw.Widget _headerCell(String text,
-      {pw.Alignment align = pw.Alignment.centerLeft}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: pw.Align(
-        alignment: align,
-        child: pw.Text(
-          text,
-          style: pw.TextStyle(
-            fontSize: 9,
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.white,
+  pw.Widget _buildSectionHeader(
+    String title,
+    PdfColor backgroundColor,
+    PdfColor textColor,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      decoration: pw.BoxDecoration(
+        color: backgroundColor,
+      ),
+      child: pw.Row(
+        children: [
+          pw.Expanded(
+            child: pw.Text(
+              title,
+              style: pw.TextStyle(
+                fontSize: 13,
+                fontWeight: pw.FontWeight.bold,
+                color: textColor,
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  pw.Widget _dataCell(String text,
-      {PdfColor? color,
-      bool bold = false,
-      pw.Alignment align = pw.Alignment.centerLeft}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: pw.Align(
-        alignment: align,
-        child: pw.Text(
-          text,
-          style: pw.TextStyle(
-            fontSize: 9,
-            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-            color: color ?? const PdfColor.fromInt(0xFF111827),
-          ),
+  pw.Widget _buildLineItem(
+    String label,
+    int amountCents,
+    NumberFormat moneyFmt,
+    PdfColor textColor,
+    PdfColor dividerColor,
+  ) {
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border(
+          bottom: pw.BorderSide(color: dividerColor, width: 0.5),
         ),
       ),
+      padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(fontSize: 11, color: textColor),
+          ),
+          pw.Text(
+            moneyFmt.format(amountCents / 100),
+            style: pw.TextStyle(fontSize: 11, color: textColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildSubtotalRow(
+    String label,
+    int amountCents,
+    NumberFormat moneyFmt,
+    PdfColor backgroundColor,
+    PdfColor textColor,
+    PdfColor amountColor,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      decoration: pw.BoxDecoration(color: backgroundColor),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: pw.FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          pw.Text(
+            moneyFmt.format(amountCents / 100),
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: pw.FontWeight.bold,
+              color: amountColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildNetIncomeRow(
+    int netIncomeCents,
+    NumberFormat moneyFmt,
+    PdfColor backgroundColor,
+    PdfColor textColor,
+    PdfColor amountColor,
+  ) {
+    final amountStr = netIncomeCents < 0
+        ? '−${moneyFmt.format(netIncomeCents.abs() / 100)}'
+        : moneyFmt.format(netIncomeCents / 100);
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      decoration: pw.BoxDecoration(
+        color: backgroundColor,
+        border: pw.Border.all(color: amountColor, width: 1.5),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            'Net Income',
+            style: pw.TextStyle(
+              fontSize: 14,
+              fontWeight: pw.FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          pw.Text(
+            amountStr,
+            style: pw.TextStyle(
+              fontSize: 16,
+              fontWeight: pw.FontWeight.bold,
+              color: amountColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildSummaryBox(
+    int incomeCents,
+    int expenseCents,
+    int netIncomeCents,
+    int savingsCents,
+    NumberFormat moneyFmt,
+    PdfColor textColor,
+    PdfColor textMuted,
+    PdfColor dividerColor,
+  ) {
+    final netStr = netIncomeCents < 0
+        ? '−${moneyFmt.format(netIncomeCents.abs() / 100)}'
+        : moneyFmt.format(netIncomeCents / 100);
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: dividerColor),
+        color: const PdfColor.fromInt(0xFFFAFAFA),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          _buildSummaryLine(
+            'Income',
+            moneyFmt.format(incomeCents / 100),
+            textColor,
+            textMuted,
+          ),
+          pw.SizedBox(height: 6),
+          _buildSummaryLine(
+            'Expenses',
+            moneyFmt.format(expenseCents / 100),
+            textColor,
+            textMuted,
+          ),
+          pw.SizedBox(height: 6),
+          _buildSummaryLine(
+            'Net Income',
+            netStr,
+            textColor,
+            textColor,
+            bold: true,
+          ),
+          if (savingsCents > 0) ...[
+            pw.SizedBox(height: 6),
+            _buildSummaryLine(
+              'Savings Balance',
+              moneyFmt.format(savingsCents / 100),
+              textColor,
+              textMuted,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildSummaryLine(
+    String label,
+    String amount,
+    PdfColor labelColor,
+    PdfColor amountColor, {
+    bool bold = false,
+  }) {
+    return pw.Row(
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(
+            fontSize: 10,
+            color: labelColor,
+            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+          ),
+        ),
+        pw.Expanded(
+          child: pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+            child: pw.Divider(
+              color: const PdfColor.fromInt(0xFFD1D5DB),
+              height: 1,
+            ),
+          ),
+        ),
+        pw.Text(
+          amount,
+          style: pw.TextStyle(
+            fontSize: 10,
+            color: amountColor,
+            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 

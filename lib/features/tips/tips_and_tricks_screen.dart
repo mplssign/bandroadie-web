@@ -123,7 +123,7 @@ class _TipSectionWidget extends StatelessWidget {
             style: AppTextStyles.headline.copyWith(
               color: isLight ? Colors.black : Colors.white,
               fontWeight: FontWeight.w700,
-              fontSize: 22,
+              fontSize: AppFontSizes.sectionTitle,
             ),
           ),
         ),
@@ -161,7 +161,7 @@ class _TipRow extends StatelessWidget {
                 color: isLight
                     ? context.colors.textPrimary
                     : context.colors.textSecondary,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
                 height: 1.5,
               ),
             ),
@@ -175,7 +175,7 @@ class _TipRow extends StatelessWidget {
                     ? context.colors.textPrimary
                     : context.colors.textSecondary,
                 height: 1.5,
-                fontSize: 16,
+                fontSize: AppFontSizes.body,
               ),
             ),
           ),
