@@ -30,6 +30,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
   final _inviteEmailController = TextEditingController();
   List<Map<String, dynamic>> _pendingInvites = [];
   bool _isSendingInvite = false;
+  String _selectedRole = 'member';
 
   @override
   void initState() {
@@ -170,6 +171,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             'email': email,
             'invited_by': userId,
             'status': 'pending',
+            'intended_role': _selectedRole,
           })
           .select('id, token')
           .single();
@@ -178,6 +180,7 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
       debugPrint('[Invite] inserted invitation id=$inviteId email=$email');
 
       _inviteEmailController.clear();
+      if (mounted) setState(() => _selectedRole = 'member');
 
       // Call edge function to send email via Resend
       debugPrint('[Invite] invoking send-band-invite id=$inviteId');
@@ -420,6 +423,113 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     );
   }
 
+  Widget _buildRoleSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select role',
+          style: TextStyle(
+            fontSize: AppFontSizes.body,
+            fontWeight: FontWeight.w600,
+            color: context.colors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildRoleButton(
+          role: 'admin',
+          label: 'Admin',
+          description: 'Full access to everything',
+        ),
+        const SizedBox(height: 8),
+        _buildRoleButton(
+          role: 'member',
+          label: 'Band Member',
+          description: 'Can manage gigs and setlists',
+        ),
+        const SizedBox(height: 8),
+        _buildRoleButton(
+          role: 'contributor',
+          label: 'Contributor',
+          description: 'Limited access with custom permissions',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoleButton({
+    required String role,
+    required String label,
+    required String description,
+  }) {
+    final isSelected = _selectedRole == role;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedRole = role),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : context.colors.border,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Radio indicator
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : context.colors.textSecondary,
+                  width: 2,
+                ),
+                color: isSelected ? AppColors.primary : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(AppIcons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            // Label + description
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.subhead,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.caption,
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -462,6 +572,8 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
                 color: context.colors.textSecondary,
               ),
             ),
+            const SizedBox(height: Spacing.space24),
+            _buildRoleSelector(),
             const SizedBox(height: Spacing.space24),
             _buildInviteEmailInput(),
             const SizedBox(height: 8),
