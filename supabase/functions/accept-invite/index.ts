@@ -1,8 +1,9 @@
 // Accept Invite Edge Function for Supabase (Deno)
-// Accepts all pending invitations for the authenticated user based on their email
-// This is a fallback/helper - the main invite acceptance happens client-side in AuthGate
-// Expects: {} (no body required, uses JWT to identify user)
-// Returns: { success, accepted_count, band_names }
+// Accepts invitations for the authenticated user based on their email.
+// If token is provided in request body, that invite is targeted first.
+// Expects: { token?: string }
+// Returns legacy keys + deterministic band id fields:
+// { success, accepted_count, band_names, accepted_band_id, accepted_band_ids }
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
@@ -77,27 +78,81 @@ serve(async (req) => {
 
     console.log(`[accept-invite] Processing invites for: ${authUser.email}`);
 
-    // Find all pending invitations for this user's email
-    const { data: invitations, error: inviteError } = await supabaseAdmin
-      .from("band_invitations")
-      .select("id, band_id, bands(name)")
-      .eq("email", authUser.email.toLowerCase())
-      .in("status", ["pending", "sent"]);
+    const requestBody = await req.json().catch(() => ({}));
+    const rawToken = requestBody?.token;
+    const inviteToken =
+      typeof rawToken === "string" && rawToken.trim().length > 0
+        ? rawToken.trim()
+        : null;
 
-    if (inviteError) {
-      console.error("[accept-invite] Error fetching invitations:", inviteError);
-      return new Response(
-        JSON.stringify({ error: "Failed to fetch invitations" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    let invitations: Array<{
+      id: string;
+      band_id: string;
+      bands?: { name?: string } | null;
+    }> = [];
+
+    if (inviteToken) {
+      const { data: inviteByToken, error: tokenInviteError } = await supabaseAdmin
+        .from("band_invitations")
+        .select("id, band_id, bands(name)")
+        .eq("token", inviteToken)
+        .eq("email", authUser.email.toLowerCase())
+        .in("status", ["pending", "sent"])
+        .maybeSingle();
+
+      if (tokenInviteError) {
+        console.error(
+          "[accept-invite] Error fetching token invitation:",
+          tokenInviteError,
+        );
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch invitation" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (inviteByToken) {
+        invitations = [inviteByToken];
+      }
+    }
+
+    if (!inviteToken || invitations.length === 0) {
+      const { data: allInvites, error: inviteError } = await supabaseAdmin
+        .from("band_invitations")
+        .select("id, band_id, bands(name)")
+        .eq("email", authUser.email.toLowerCase())
+        .in("status", ["pending", "sent"]);
+
+      if (inviteError) {
+        console.error("[accept-invite] Error fetching invitations:", inviteError);
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch invitations" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      invitations = (allInvites ?? []) as Array<{
+        id: string;
+        band_id: string;
+        bands?: { name?: string } | null;
+      }>;
     }
 
     if (!invitations || invitations.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, accepted_count: 0, band_names: [] }),
+        JSON.stringify({
+          success: true,
+          accepted_count: 0,
+          band_names: [],
+          accepted_band_id: null,
+          accepted_band_ids: [],
+        }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -106,6 +161,7 @@ serve(async (req) => {
     }
 
     const acceptedBands: string[] = [];
+    const acceptedBandIds: string[] = [];
 
     for (const invite of invitations) {
       try {
@@ -132,6 +188,7 @@ serve(async (req) => {
         const bandName =
           (invite.bands as { name?: string })?.name || "Unknown";
         acceptedBands.push(bandName);
+        acceptedBandIds.push(invite.band_id);
         console.log(`[accept-invite] Accepted invite to: ${bandName}`);
       } catch (e) {
         console.error(
@@ -146,6 +203,8 @@ serve(async (req) => {
         success: true,
         accepted_count: acceptedBands.length,
         band_names: acceptedBands,
+        accepted_band_id: inviteToken ? (acceptedBandIds[0] ?? null) : null,
+        accepted_band_ids: acceptedBandIds,
       }),
       {
         status: 200,

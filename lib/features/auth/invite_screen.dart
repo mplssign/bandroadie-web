@@ -144,13 +144,28 @@ class _InviteScreenState extends State<InviteScreen> {
           ? response.data
           : jsonDecode(response.data.toString());
 
+      String? acceptedBandName;
+      final legacyBandName = data['band_name'];
+      if (legacyBandName is String && legacyBandName.trim().isNotEmpty) {
+        acceptedBandName = legacyBandName.trim();
+      }
+      if (acceptedBandName == null && data['band_names'] is List) {
+        final bandNames = data['band_names'] as List;
+        for (final value in bandNames) {
+          if (value is String && value.trim().isNotEmpty) {
+            acceptedBandName = value.trim();
+            break;
+          }
+        }
+      }
+
       if (data['success'] == true) {
         // Clear pending invite token since we've successfully accepted
         await PendingInviteHelper.clearPendingInviteToken();
 
         setState(() {
           _accepted = true;
-          _bandName = data['band_name']?.toString();
+          _bandName = acceptedBandName;
           _loading = false;
         });
 
@@ -549,12 +564,27 @@ class PendingInviteHelper {
           ? response.data
           : jsonDecode(response.data.toString());
 
+      String? acceptedBandName;
+      final legacyBandName = data['band_name'];
+      if (legacyBandName is String && legacyBandName.trim().isNotEmpty) {
+        acceptedBandName = legacyBandName.trim();
+      }
+      if (acceptedBandName == null && data['band_names'] is List) {
+        final bandNames = data['band_names'] as List;
+        for (final value in bandNames) {
+          if (value is String && value.trim().isNotEmpty) {
+            acceptedBandName = value.trim();
+            break;
+          }
+        }
+      }
+
       // Clear the pending token after successful acceptance
       await clearPendingInviteToken();
 
       return {
         'success': data['success'] == true,
-        'band_name': data['band_name'],
+        'band_name': acceptedBandName,
         'error': data['error'],
       };
     } catch (e) {

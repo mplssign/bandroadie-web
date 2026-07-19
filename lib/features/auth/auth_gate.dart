@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -245,7 +246,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
         if (isComplete) {
           await _checkAndProcessPendingInvite();
-          await ref.read(activeBandProvider.notifier).loadUserBands();
         }
       }
     } catch (e) {
@@ -256,7 +256,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
           _checkingProfile = false;
         });
         await _checkAndProcessPendingInvite();
-        await ref.read(activeBandProvider.notifier).loadUserBands();
       }
     }
   }
@@ -270,6 +269,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
     try {
       final userEmail = supabase.auth.currentUser?.email;
       if (userEmail == null || userEmail.isEmpty) {
+        await ref.read(activeBandProvider.notifier).loadUserBands();
         return;
       }
 
@@ -285,10 +285,43 @@ class _AuthGateState extends ConsumerState<AuthGate>
       );
 
       if (response.status != 200) {
-        setState(() {
-          _processingPendingInvite = false;
-        });
+        if (mounted) {
+          setState(() {
+            _processingPendingInvite = false;
+          });
+        }
+        await ref.read(activeBandProvider.notifier).loadUserBands();
         return;
+      }
+
+      final payload = response.data is Map
+          ? response.data as Map
+          : jsonDecode(response.data.toString()) as Map;
+
+      String? acceptedBandId;
+      final acceptedBandIdRaw = payload['accepted_band_id'];
+      if (acceptedBandIdRaw is String && acceptedBandIdRaw.trim().isNotEmpty) {
+        acceptedBandId = acceptedBandIdRaw.trim();
+      }
+
+      if (acceptedBandId == null) {
+        final acceptedBandIdsRaw = payload['accepted_band_ids'];
+        if (acceptedBandIdsRaw is List) {
+          for (final value in acceptedBandIdsRaw) {
+            if (value is String && value.trim().isNotEmpty) {
+              acceptedBandId = value.trim();
+              break;
+            }
+          }
+        }
+      }
+
+      if (acceptedBandId != null) {
+        await ref
+            .read(activeBandProvider.notifier)
+            .loadAndSelectBand(acceptedBandId);
+      } else {
+        await ref.read(activeBandProvider.notifier).loadUserBands();
       }
 
       if (mounted) {
@@ -302,6 +335,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
           _processingPendingInvite = false;
         });
       }
+      await ref.read(activeBandProvider.notifier).loadUserBands();
     }
   }
 
@@ -323,10 +357,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
     setState(() {
       _profileSkipped = true;
     });
-    // Load bands and proceed (user may still have pending invites)
-    _checkAndProcessPendingInvite().then((_) {
-      ref.read(activeBandProvider.notifier).loadUserBands();
-    });
+    // Process pending invites and select band context when possible.
+    _checkAndProcessPendingInvite();
   }
 
   @override
@@ -483,7 +515,61 @@ class _AuthGateState extends ConsumerState<AuthGate>
     }
 
     Widget mainContent;
-    if (bandState.userBands.isEmpty) {
+    if (bandState.error != null) {
+      AuthDebugLogger.routerTransition(
+        from: 'profile_gate',
+        to: 'band_load_error',
+        reason: 'Band fetch failed: ${bandState.error}',
+      );
+      mainContent = Scaffold(
+        backgroundColor: context.colors.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  AppIcons.error,
+                  color: Colors.redAccent,
+                  size: 40,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'We hit a snag loading your bands.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: AppFontSizes.title2,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  bandState.error!,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: AppFontSizes.body,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(activeBandProvider.notifier).loadUserBands();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Try Again'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else if (bandState.userBands.isEmpty) {
       AuthDebugLogger.routerTransition(
         from: 'profile_gate',
         to: 'no_band_shell',
