@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,6 +11,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/components/ui/domain_chip.dart';
+import 'package:bandroadie/features/bands/active_band_controller.dart';
 import 'package:bandroadie/shared/utils/email_domain_helper.dart';
 
 /// Key for storing pending invite token in SharedPreferences
@@ -17,15 +19,15 @@ const String kPendingInviteTokenKey = 'pending_invite_token';
 
 /// InviteScreen handles /invite?token=... deep links for web and mobile.
 /// Shows loading, error, and success states, and handles auth + invite acceptance.
-class InviteScreen extends StatefulWidget {
+class InviteScreen extends ConsumerStatefulWidget {
   final String? token;
   const InviteScreen({super.key, this.token});
 
   @override
-  State<InviteScreen> createState() => _InviteScreenState();
+  ConsumerState<InviteScreen> createState() => _InviteScreenState();
 }
 
-class _InviteScreenState extends State<InviteScreen> {
+class _InviteScreenState extends ConsumerState<InviteScreen> {
   bool _loading = true;
   String? _error;
   bool _accepted = false;
@@ -133,6 +135,7 @@ class _InviteScreenState extends State<InviteScreen> {
         final errorMsg = response.data is Map
             ? response.data['error']
             : 'Failed to accept invite';
+        if (!mounted) return;
         setState(() {
           _error = errorMsg?.toString() ?? 'Failed to accept invite';
           _loading = false;
@@ -159,9 +162,32 @@ class _InviteScreenState extends State<InviteScreen> {
         }
       }
 
+      String? acceptedBandId;
+      final primaryBandId = data['accepted_band_id'];
+      if (primaryBandId is String && primaryBandId.trim().isNotEmpty) {
+        acceptedBandId = primaryBandId.trim();
+      }
+      if (acceptedBandId == null && data['accepted_band_ids'] is List) {
+        final acceptedBandIds = data['accepted_band_ids'] as List;
+        for (final value in acceptedBandIds) {
+          if (value is String && value.trim().isNotEmpty) {
+            acceptedBandId = value.trim();
+            break;
+          }
+        }
+      }
+
       if (data['success'] == true) {
         // Clear pending invite token since we've successfully accepted
         await PendingInviteHelper.clearPendingInviteToken();
+
+        if (acceptedBandId != null) {
+          await ref
+              .read(activeBandProvider.notifier)
+              .loadAndSelectBand(acceptedBandId);
+        }
+
+        if (!mounted) return;
 
         setState(() {
           _accepted = true;
@@ -178,6 +204,7 @@ class _InviteScreenState extends State<InviteScreen> {
           );
         }
       } else {
+        if (!mounted) return;
         setState(() {
           _error = data['error']?.toString() ?? 'Failed to accept invite';
           _loading = false;
@@ -185,6 +212,7 @@ class _InviteScreenState extends State<InviteScreen> {
       }
     } catch (e) {
       debugPrint('[InviteScreen] Error accepting invite: $e');
+      if (!mounted) return;
       setState(() {
         _error = 'Something went wrong. Please try again.';
         _loading = false;
