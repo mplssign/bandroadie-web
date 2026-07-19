@@ -48,7 +48,7 @@ class BandRepository {
     } catch (e, stackTrace) {
       debugPrint('BandRepository.fetchUserBands error: $e');
       debugPrintStack(stackTrace: stackTrace);
-      return [];
+      rethrow;
     }
   }
 
