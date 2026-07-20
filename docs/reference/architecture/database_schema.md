@@ -86,7 +86,7 @@ Three enforced roles: `admin` (full authority), `member` (CRUD, no destructive o
 | ----------------- | ---: | ----------- |
 | `print_templates` | 6    | Setlist print layouts per band — extensive font size, column, and display toggle settings |
 
-Key fields: `tuning_display` (grouped/inline), `show_capo/bpm/notes/tuning/pauses`, `column_count` (1 or 2), `paper_size` (letter/a4), `base_font_size`, plus individual font sizes for numbers, headers, band name, BPM, tuning, capo, notes, pauses, and `line_spacing`.
+Key fields: `tuning_display` (grouped/inline), `show_capo/bpm/key/notes/tuning/pauses`, `column_count` (1 or 2), `paper_size` (letter/a4), `base_font_size`, plus individual font sizes for numbers, headers, band name, BPM, key, tuning, capo, notes, pauses, and `line_spacing`.
 
 ## Analytics & Audit
 
