@@ -420,6 +420,17 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                               _current = _current.copyWith(bpmFontSize: v)),
                         ),
 
+                        // Key
+                        _buildSection(
+                          label: 'Key',
+                          toggleValue: _current.showKey,
+                          onToggleChanged: (v) => setState(
+                              () => _current = _current.copyWith(showKey: v)),
+                          fontSize: _current.keyFontSize,
+                          onFontSizeChanged: (v) => setState(() =>
+                              _current = _current.copyWith(keyFontSize: v)),
+                        ),
+
                         // 5. Tuning
                         _buildSection(
                           label: 'Tuning',

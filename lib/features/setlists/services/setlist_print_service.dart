@@ -186,24 +186,31 @@ class SetlistPrintService {
         buffer.writeln('</span>');
 
         // Right side: inline tuning and BPM (independent font sizes)
+        final keyLabel = song.musicalKey?.trim();
         final hasInlineTuning =
             template.showTuning && template.tuningDisplay == 'inline';
         final hasInlineBpm =
             template.showBpm && song.bpm != null && song.bpm! > 0;
+        final hasInlineKey =
+            template.showKey && keyLabel != null && keyLabel.isNotEmpty;
 
-        if (hasInlineTuning || hasInlineBpm) {
-          buffer.write('<span class="song-meta">');
-          if (hasInlineTuning) {
-            buffer.write(
-                '<span class="meta-tuning">${_escapeHtml(tuningShortLabel(song.tuning))}</span>');
-          }
-          if (hasInlineTuning && hasInlineBpm) {
-            buffer.write(' &middot; ');
-          }
-          if (hasInlineBpm) {
-            buffer.write('<span class="meta-bpm">${song.bpm} BPM</span>');
-          }
-          buffer.writeln('</span>');
+        final inlineMetaTokens = <String>[];
+        if (hasInlineTuning) {
+          inlineMetaTokens.add(
+              '<span class="meta-tuning">${_escapeHtml(tuningShortLabel(song.tuning))}</span>');
+        }
+        if (hasInlineBpm) {
+          inlineMetaTokens.add('<span class="meta-bpm">${song.bpm} BPM</span>');
+        }
+        if (hasInlineKey) {
+          inlineMetaTokens
+              .add('<span class="meta-key">(${_escapeHtml(keyLabel)})</span>');
+        }
+
+        if (inlineMetaTokens.isNotEmpty) {
+          buffer.write(
+              '<span class="song-meta">${inlineMetaTokens.join(' &middot; ')}</span>');
+          buffer.writeln();
         }
 
         buffer.writeln('</div>'); // Close song-row
@@ -268,6 +275,7 @@ class SetlistPrintService {
     final titleSize = template.headerFontSize.round();
     final numberSize = template.numberFontSize.round();
     final bpmSize = template.bpmFontSize.round();
+    final keySize = template.keyFontSize.round();
     final bandNameSize = template.bandNameFontSize.round();
     final tuningLabelSize = template.tuningFontSize.round();
     final capoSize = template.capoFontSize.round();
@@ -422,6 +430,10 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
 
 .meta-bpm {
   font-size: ${bpmSize}pt;
+}
+
+.meta-key {
+  font-size: ${keySize}pt;
 }
 
 .song-notes {
@@ -804,6 +816,7 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
     final titleFont = template.baseFontSize;
     final numberFont = template.numberFontSize;
     final bpmFont = template.bpmFontSize;
+    final keyFont = template.keyFontSize;
     final capoFont = template.capoFontSize;
     final tuningFont = template.tuningFontSize;
     final titleChildren = <pw.InlineSpan>[];
@@ -852,6 +865,18 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
         '${song.bpm} BPM',
         style: pw.TextStyle(
           fontSize: bpmFont,
+          fontWeight: pw.FontWeight.bold,
+          color: PdfColors.grey700,
+        ),
+      ));
+    }
+
+    final keyLabel = song.musicalKey?.trim();
+    if (template.showKey && keyLabel != null && keyLabel.isNotEmpty) {
+      rightWidgets.add(pw.Text(
+        '($keyLabel)',
+        style: pw.TextStyle(
+          fontSize: keyFont,
           fontWeight: pw.FontWeight.bold,
           color: PdfColors.grey700,
         ),

@@ -6,6 +6,7 @@ class PrintTemplate {
   final bool showTuning;
   final bool showCapo;
   final bool showBpm;
+  final bool showKey;
   final bool showNotes;
   final bool showPauses;
   final bool showSongNumbers;
@@ -17,6 +18,7 @@ class PrintTemplate {
   final double headerFontSize; // 14.0 – 36.0
   final double bandNameFontSize; // 14.0 – 36.0
   final double bpmFontSize; // 14.0 – 36.0
+  final double keyFontSize; // 14.0 – 36.0
   final double tuningFontSize; // 14.0 – 36.0
   final double capoFontSize; // 14.0 – 36.0
   final double notesFontSize; // 14.0 – 36.0
@@ -38,6 +40,7 @@ class PrintTemplate {
     this.showTuning = true,
     this.showCapo = true,
     this.showBpm = true,
+    this.showKey = true,
     this.showNotes = false,
     this.showPauses = true,
     this.showSongNumbers = true,
@@ -49,6 +52,7 @@ class PrintTemplate {
     this.headerFontSize = 28.0,
     this.bandNameFontSize = 16.0,
     this.bpmFontSize = 16.0,
+    this.keyFontSize = 14.0,
     this.tuningFontSize = 14.0,
     this.capoFontSize = 14.0,
     this.notesFontSize = 14.0,
@@ -80,6 +84,7 @@ class PrintTemplate {
       showTuning: json['show_tuning'] as bool? ?? true,
       showCapo: json['show_capo'] as bool? ?? true,
       showBpm: json['show_bpm'] as bool? ?? true,
+      showKey: json['show_key'] as bool? ?? true,
       showNotes: json['show_notes'] as bool? ?? false,
       showPauses: json['show_pauses'] as bool? ?? true,
       showSongNumbers: json['show_song_numbers'] as bool? ?? true,
@@ -91,6 +96,7 @@ class PrintTemplate {
       headerFontSize: clampFont('header_font_size', 28.0),
       bandNameFontSize: clampFont('band_name_font_size', 16.0),
       bpmFontSize: clampFont('bpm_font_size', 16.0),
+      keyFontSize: clampFont('key_font_size', 14.0),
       tuningFontSize: clampFont('tuning_font_size', 14.0),
       capoFontSize: clampFont('capo_font_size', 14.0),
       notesFontSize: clampFont('notes_font_size', 14.0),
@@ -112,6 +118,7 @@ class PrintTemplate {
       'show_tuning': showTuning,
       'show_capo': showCapo,
       'show_bpm': showBpm,
+      'show_key': showKey,
       'show_notes': showNotes,
       'show_pauses': showPauses,
       'show_song_numbers': showSongNumbers,
@@ -123,6 +130,7 @@ class PrintTemplate {
       'header_font_size': headerFontSize.clamp(_minFont, _maxFont),
       'band_name_font_size': bandNameFontSize.clamp(_minFont, _maxFont),
       'bpm_font_size': bpmFontSize.clamp(_minFont, _maxFont),
+      'key_font_size': keyFontSize.clamp(_minFont, _maxFont),
       'tuning_font_size': tuningFontSize.clamp(_minFont, _maxFont),
       'capo_font_size': capoFontSize.clamp(_minFont, _maxFont),
       'notes_font_size': notesFontSize.clamp(_minFont, _maxFont),
@@ -140,6 +148,7 @@ class PrintTemplate {
       'show_tuning': showTuning,
       'show_capo': showCapo,
       'show_bpm': showBpm,
+      'show_key': showKey,
       'show_notes': showNotes,
       'show_pauses': showPauses,
       'show_song_numbers': showSongNumbers,
@@ -151,6 +160,7 @@ class PrintTemplate {
       'header_font_size': headerFontSize.clamp(_minFont, _maxFont),
       'band_name_font_size': bandNameFontSize.clamp(_minFont, _maxFont),
       'bpm_font_size': bpmFontSize.clamp(_minFont, _maxFont),
+      'key_font_size': keyFontSize.clamp(_minFont, _maxFont),
       'tuning_font_size': tuningFontSize.clamp(_minFont, _maxFont),
       'capo_font_size': capoFontSize.clamp(_minFont, _maxFont),
       'notes_font_size': notesFontSize.clamp(_minFont, _maxFont),
@@ -169,6 +179,7 @@ class PrintTemplate {
     bool? showTuning,
     bool? showCapo,
     bool? showBpm,
+    bool? showKey,
     bool? showNotes,
     bool? showPauses,
     bool? showSongNumbers,
@@ -180,6 +191,7 @@ class PrintTemplate {
     double? headerFontSize,
     double? bandNameFontSize,
     double? bpmFontSize,
+    double? keyFontSize,
     double? tuningFontSize,
     double? capoFontSize,
     double? notesFontSize,
@@ -196,6 +208,7 @@ class PrintTemplate {
       showTuning: showTuning ?? this.showTuning,
       showCapo: showCapo ?? this.showCapo,
       showBpm: showBpm ?? this.showBpm,
+      showKey: showKey ?? this.showKey,
       showNotes: showNotes ?? this.showNotes,
       showPauses: showPauses ?? this.showPauses,
       showSongNumbers: showSongNumbers ?? this.showSongNumbers,
@@ -211,6 +224,7 @@ class PrintTemplate {
       bandNameFontSize:
           (bandNameFontSize ?? this.bandNameFontSize).clamp(_minFont, _maxFont),
       bpmFontSize: (bpmFontSize ?? this.bpmFontSize).clamp(_minFont, _maxFont),
+      keyFontSize: (keyFontSize ?? this.keyFontSize).clamp(_minFont, _maxFont),
       tuningFontSize:
           (tuningFontSize ?? this.tuningFontSize).clamp(_minFont, _maxFont),
       capoFontSize:
@@ -238,6 +252,7 @@ class PrintTemplate {
         showTuning == other.showTuning &&
         showCapo == other.showCapo &&
         showBpm == other.showBpm &&
+        showKey == other.showKey &&
         showNotes == other.showNotes &&
         showPauses == other.showPauses &&
         showSongNumbers == other.showSongNumbers &&
@@ -249,6 +264,7 @@ class PrintTemplate {
         headerFontSize == other.headerFontSize &&
         bandNameFontSize == other.bandNameFontSize &&
         bpmFontSize == other.bpmFontSize &&
+        keyFontSize == other.keyFontSize &&
         tuningFontSize == other.tuningFontSize &&
         capoFontSize == other.capoFontSize &&
         notesFontSize == other.notesFontSize &&
@@ -267,6 +283,7 @@ class PrintTemplate {
         showTuning,
         showCapo,
         showBpm,
+        showKey,
         showNotes,
         showSongNumbers,
         showHeader,
@@ -276,6 +293,7 @@ class PrintTemplate {
         headerFontSize,
         bandNameFontSize,
         bpmFontSize,
+        keyFontSize,
         tuningFontSize,
         capoFontSize,
         notesFontSize,
