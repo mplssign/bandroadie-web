@@ -106,8 +106,10 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       return;
     }
 
-    // User is authenticated - try to accept the invite
-    await _acceptInvite(token);
+    // User is authenticated - try to accept the invite once.
+    if (!_hasTriedAccept) {
+      await _acceptInvite(token);
+    }
   }
 
   Future<void> _acceptInvite(String token) async {

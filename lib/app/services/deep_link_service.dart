@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -94,12 +95,39 @@ class DeepLinkService {
   Future<void> _handleDeepLink(Uri uri, {String source = 'unknown'}) async {
     debugPrint('[DeepLinkService] Processing: $uri');
 
+    if (_isInviteLink(uri)) {
+      await _handleInviteLink(uri, source: source);
+      return;
+    }
+
     // Check if this is an auth callback
     if (!_isAuthCallback(uri)) {
       debugPrint('[DeepLinkService] Not an auth callback, ignoring');
       return;
     }
 
+    await _handleAuthCallback(uri);
+  }
+
+  Future<void> _handleInviteLink(Uri uri, {String source = 'unknown'}) async {
+    debugPrint('[DeepLinkService] Invite link detected: $uri');
+
+    final hasAuthParameters = _hasAuthParameters(uri);
+
+    if (hasAuthParameters) {
+      debugPrint(
+        '[DeepLinkService] Invite link includes auth params, processing session',
+      );
+      await _handleAuthCallback(uri);
+      return;
+    }
+
+    if (source == 'runtime') {
+      _forwardToInviteRoute(uri);
+    }
+  }
+
+  Future<void> _handleAuthCallback(Uri uri) async {
     try {
       // Extract auth parameters
       // PKCE flow uses ?code= parameter
@@ -206,6 +234,17 @@ class DeepLinkService {
     }
   }
 
+  void _forwardToInviteRoute(Uri uri) {
+    final route =
+        Uri(path: uri.path, query: uri.hasQuery ? uri.query : null).toString();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[DeepLinkService] Forwarding invite link to route: $route');
+      // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+      WidgetsBinding.instance.handlePushRoute(route);
+    });
+  }
+
   /// Notify the auth state provider that session has changed.
   /// This is a safety net for cases where onAuthStateChange might be missed,
   /// especially on iPad where multitasking can cause timing issues.
@@ -248,6 +287,21 @@ class DeepLinkService {
     }
 
     return false;
+  }
+
+  /// Check if URI is an invite link.
+  bool _isInviteLink(Uri uri) {
+    return uri.scheme == 'https' &&
+        (uri.host == 'bandroadie.com' || uri.host == 'app.bandroadie.com') &&
+        uri.path == '/invite';
+  }
+
+  /// Check whether the URI contains auth callback parameters.
+  bool _hasAuthParameters(Uri uri) {
+    return uri.queryParameters.containsKey('code') ||
+        uri.queryParameters.containsKey('error') ||
+        uri.fragment.contains('access_token') ||
+        uri.fragment.contains('refresh_token');
   }
 
   /// Clean up resources

@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "6SR6X9W8A8.com.bandroadie.app",
+        "paths": [
+          "/invite",
+          "/invite*",
+          "/auth/*"
+        ]
+      }
+    ]
+  }
+}
