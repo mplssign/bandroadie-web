@@ -55,8 +55,16 @@
                     android:pathPrefix="/auth"/>
                 <data
                     android:scheme="https"
+                    android:host="bandroadie.com"
+                    android:pathPrefix="/invite"/>
+                <data
+                    android:scheme="https"
                     android:host="app.bandroadie.com"
                     android:pathPrefix="/auth"/>
+                <data
+                    android:scheme="https"
+                    android:host="app.bandroadie.com"
+                    android:pathPrefix="/invite"/>
             </intent-filter>
         </activity>
         <!-- Default notification channel for Firebase Cloud Messaging -->
