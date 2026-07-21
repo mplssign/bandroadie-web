@@ -92,13 +92,15 @@
 		<string>remote-notification</string>
 	</array>
 
-	<!-- Camera & Photo Library Permissions -->
+	<!-- Camera, Photo Library & Location Permissions -->
 	<key>NSCameraUsageDescription</key>
 	<string>BandRoadie needs camera access to take photos for your band profile and gig memories.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>BandRoadie needs photo library access to select images for your band profile.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>BandRoadie needs permission to save photos to your library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>BandRoadie does not use your location. This permission is not requested by any app feature.</string>
 
 </dict>
 </plist>
