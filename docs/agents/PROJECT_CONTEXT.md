@@ -314,14 +314,12 @@ These are documented issues the Architect should be aware of — solutions must 
 - Routing logic lives in `main.dart` (not in `app_router.dart` which is empty) — do not add more routing logic to main.dart without Architect review
 - `setlist_repository.dart` is 4,027 lines — avoid adding to it; isolate changes
 - `setlist_detail_screen.dart` is 2,788 lines — same caution
-- Multiple controllers duplicate `_lastLoadedBandId` tracking pattern — do not copy this pattern for new features
 - Mixed migration naming formats in `supabase/migrations/` — use timestamp format for all new migrations
 
 **Do not:**
 
 - Add new routing logic to `main.dart` without flagging it
 - Copy the `catch (e) { return []; }` pattern
-- Copy the `_lastLoadedBandId` + `Future.microtask` pattern from gig/rehearsal controllers
 - Add new global color definitions — use `AppColors` from `design_tokens.dart`
 
 ---

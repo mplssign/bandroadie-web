@@ -1,6 +1,6 @@
 # BandRoadie — Architecture Reference
 
-*Last verified: 2026-04-14. For live database schema see `database_schema.md`. For Edge Functions see `supabase_functions.md`.*
+*Last verified: 2026-07-23. For live database schema see `database_schema.md`. For Edge Functions see `supabase_functions.md`.*
 
 ---
 
@@ -131,7 +131,7 @@ Riverpod `Notifier` + `NotifierProvider` pattern throughout. Key conventions:
 - No UI state used as source of truth for persisted data
 
 **Known pattern debt to avoid copying:**
-- `_lastLoadedBandId` + `Future.microtask()` in `build()` — present in `GigNotifier` and `RehearsalNotifier`, causes side effects in build
+- `_lastLoadedBandId` + `Future.microtask()` in `build()` — previously present in `GigNotifier` and `RehearsalNotifier`; resolved, both now watch `bandFullStateProvider` and branch on `AsyncValue.when(...)` with no manual band-change tracking
 - `catch (e) { return []; }` silent error swallowing — present in multiple repositories
 
 ---
@@ -176,12 +176,12 @@ Three roles enforced at the database level via PostgreSQL ENUM `band_role_type`:
 **Delivery flow:**
 ```
 DB INSERT → trigger creates notification record
-         → pg_cron polls every 5 min → deliver-notifications Edge Function
+         → database webhook → send-push Edge Function
          → FCM HTTP v1 API (OAuth2 service account)
          → device
 ```
 
-Two delivery mechanisms exist in the codebase (`send-push` via webhook, `deliver-notifications` via pg_cron). `deliver-notifications` is the current architecture. See `docs/reference/notifications/` for full details.
+`send-push` is the sole, current push delivery mechanism — triggered synchronously by a database webhook on `notifications` INSERT. See `docs/reference/notifications/` for full details.
 
 ---
 
@@ -231,7 +231,7 @@ The `_isMarketingHost()` check in `main.dart` determines whether to show the lan
 | Issue | Location | Rule |
 |-------|----------|------|
 | Routing in `main.dart` | `lib/main.dart:131–187` | Don't add more routing here |
-| `_lastLoadedBandId` + microtask pattern | `gig_controller.dart`, `rehearsal_controller.dart` | Don't copy this pattern |
+| `_lastLoadedBandId` + microtask pattern | Resolved — no longer present in `gig_controller.dart`, `rehearsal_controller.dart` | N/A |
 | `catch (e) { return []; }` | Multiple repositories | Don't copy this pattern |
 | Monolithic files | `setlist_repository.dart`, `setlist_detail_screen.dart` | Don't add to them |
 | Mixed migration naming | `supabase/migrations/` | Use timestamp format for all new migrations |
@@ -243,7 +243,7 @@ The `_isMarketingHost()` check in `main.dart` determines whether to show the lan
 | Topic | Document |
 |-------|----------|
 | Live database schema (28 tables, 54 RPCs) | `docs/reference/architecture/database_schema.md` |
-| Deployed Edge Functions (11 functions) | `docs/reference/architecture/supabase_functions.md` |
+| Deployed Edge Functions (9 functions) | `docs/reference/architecture/supabase_functions.md` |
 | App init order + config | `docs/reference/general/RUNTIME_CONFIG.md` |
 | Architectural decisions log | `docs/reference/general/AI_DECISIONS.md` |
 | Notification system detail | `docs/reference/notifications/` |
