@@ -146,7 +146,8 @@
 **Files:** `tools/deploy_web.sh`, `web/vercel.json`
 **Issue:** PWA strategy is explicitly disabled (`--pwa-strategy=none`). No cache headers for static assets in Vercel config (only `version.json` has cache-control).
 **Fix:** Add aggressive caching for versioned build artifacts (JS, CSS, fonts). Consider enabling PWA for offline capability.
-**Update (April 2026):** `no-cache, no-store, must-revalidate` headers added to `index.html` and `flutter_service_worker.js` in `web/vercel.json` to prevent stale deploys. Static build artifacts remain uncached.
+**Update (April 2026):** `no-cache, no-store, must-revalidate` headers added to `index.html` and `flutter_service_worker.js` in `web/vercel.json` to prevent stale deploys.
+**Update (2026-07-23):** Resolved. `web/vercel.json` now applies `public, max-age=31536000, immutable` cache headers to versioned static build artifacts: `/:path*.js`, `/flutter_bootstrap.js`, `/icons/:path*`, `/assets/:path*`, and `/canvaskit/:path*`.
 
 ---
 
@@ -252,7 +253,7 @@
 | **P1 — This Sprint** | Performance | Add caching to members/calendar fetches |
 | **P2 — Next Sprint** | Architecture | Decompose setlist_detail_screen.dart, band_form_screen.dart |
 | **P2 — Next Sprint** | Code Quality | Replace debugPrint with structured logging, resolve TODOs |
-| **P2 — Next Sprint** | Build | Enable Android obfuscation, fix Capacitor version, add cache headers |
+| **P2 — Next Sprint** | Build | Enable Android obfuscation, fix Capacitor version |
 | **P3 — Backlog** | Future-Proofing | GoRouter migration, crash reporting, staging environment, Result types |
 
 ---

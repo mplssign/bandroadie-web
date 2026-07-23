@@ -1,6 +1,6 @@
 # Supabase Edge Functions
 
-*Verified against live project `nekwjxvgbveheooyorjo` — 2026-04-14.*
+*Verified against live project `nekwjxvgbveheooyorjo` — 2026-07-23.*
 
 ---
 
@@ -17,9 +17,7 @@ All functions are `ACTIVE`. `verify_jwt` indicates whether a valid user JWT is r
 | `send-bug-report` | 18 | ✅ | Send in-app bug/feature report email via Resend |
 | `auth-confirm` | 15 | ✅ | Auth confirmation handler (PKCE token exchange) |
 | `accept-invite` | 21 | ✅ | Process band invite acceptance — validates token, adds member |
-| `acousticbrainz_bpm` | 13 | ✅ | ⚠️ DEAD — AcousticBrainz API shut down Nov 2022. Deployed but non-functional. |
 | `send-push` | 17 | ❌ | FCM HTTP v1 push delivery — triggered by database webhook on `notifications` INSERT. Uses OAuth2 service account. |
-| `deliver-notifications` | 13 | ❌ | Batch push delivery — polled by pg_cron every 5 min. Fetches `sent_at IS NULL` rows, sends FCM, marks sent. |
 | `calendar-feed` | 25 | ❌ | iCal feed generation — public URL auth via token param, no JWT required |
 
 ---
@@ -28,8 +26,8 @@ All functions are `ACTIVE`. `verify_jwt` indicates whether a valid user JWT is r
 
 | Pattern | Functions | Auth mechanism |
 |---------|-----------|----------------|
-| User JWT required | `spotify_*`, `musicbrainz_*`, `send-band-invite`, `send-bug-report`, `auth-confirm`, `accept-invite`, `acousticbrainz_bpm` | `Authorization: Bearer <anon-key + user session>` |
-| Service role key | `send-push`, `deliver-notifications` | `Authorization: Bearer <service_role_key>` (webhook / pg_cron) |
+| User JWT required | `spotify_*`, `musicbrainz_*`, `send-band-invite`, `send-bug-report`, `auth-confirm`, `accept-invite` | `Authorization: Bearer <anon-key + user session>` |
+| Service role key | `send-push` | `Authorization: Bearer <service_role_key>` (webhook) |
 | Token param | `calendar-feed` | `?token=<calendar_token>` in URL — no JWT |
 
 ---
@@ -67,8 +65,7 @@ supabase secrets set KEY=value --project-ref nekwjxvgbveheooyorjo
 
 ## Notes
 
-- **`acousticbrainz_bpm`** is deployed but permanently broken — the AcousticBrainz API was decommissioned in November 2022. It should be retired and removed.
-- **`send-push` vs `deliver-notifications`**: Two overlapping notification delivery functions exist. `deliver-notifications` is the current architecture (pg_cron polling). `send-push` is the older webhook-triggered approach. Both are active. See `docs/reference/notifications/NOTIFICATION_SYSTEM.md` for the current architecture.
+- **`send-push`** is the sole, current push delivery path — triggered synchronously by a database webhook on `notifications` INSERT. See `docs/reference/notifications/NOTIFICATION_SYSTEM.md` for the current architecture.
 - **`calendar-feed`** is the highest-version function (v25) — actively maintained.
 
 ---
