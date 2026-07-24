@@ -144,6 +144,35 @@ class AddSongResult {
 }
 
 // ============================================================================
+// BULK ADD SONGS RESULT
+// ============================================================================
+
+/// Result of a bulk add songs to setlist operation
+class BulkAddSongsResult {
+  final int addedCount;
+  final int skippedCount;
+  final bool success;
+  final String? error;
+
+  const BulkAddSongsResult({
+    required this.addedCount,
+    required this.skippedCount,
+    required this.success,
+    this.error,
+  });
+
+  /// Create from RPC JSON response
+  factory BulkAddSongsResult.fromJson(Map<String, dynamic> json) {
+    return BulkAddSongsResult(
+      addedCount: json['added_count'] as int? ?? 0,
+      skippedCount: json['skipped_count'] as int? ?? 0,
+      success: json['success'] as bool? ?? false,
+      error: json['error'] as String?,
+    );
+  }
+}
+
+// ============================================================================
 // SETLIST REPOSITORY
 // Handles all setlist-related Supabase operations.
 //
@@ -3537,6 +3566,96 @@ class SetlistRepository {
         setlistSongId: null,
         songTitle: songTitle,
         songArtist: songArtist,
+      );
+    }
+  }
+
+  // ==========================================================================
+  // BULK ADD SONGS TO SETLIST
+  // ==========================================================================
+
+  /// Adds multiple songs to a setlist in a single batch operation.
+  ///
+  /// Uses the `bulk_add_songs_to_setlist` RPC for optimal performance.
+  /// Songs already in the setlist are skipped (not an error).
+  ///
+  /// [bandId] - The band ID (required for permission check)
+  /// [setlistId] - The target setlist ID
+  /// [songIds] - List of song IDs to add
+  ///
+  /// Returns a [BulkAddSongsResult] with counts of added/skipped songs.
+  Future<BulkAddSongsResult> bulkAddSongsToSetlist({
+    required String bandId,
+    required String setlistId,
+    required List<String> songIds,
+  }) async {
+    // Validate inputs
+    if (bandId.isEmpty) {
+      return const BulkAddSongsResult(
+        addedCount: 0,
+        skippedCount: 0,
+        success: false,
+        error: 'Band ID is required',
+      );
+    }
+
+    if (setlistId.isEmpty) {
+      return const BulkAddSongsResult(
+        addedCount: 0,
+        skippedCount: 0,
+        success: false,
+        error: 'Setlist ID is required',
+      );
+    }
+
+    if (songIds.isEmpty) {
+      return const BulkAddSongsResult(
+        addedCount: 0,
+        skippedCount: 0,
+        success: false,
+        error: 'Song IDs list cannot be empty',
+      );
+    }
+
+    try {
+      // Call the RPC function
+      final response = await supabase.rpc(
+        'bulk_add_songs_to_setlist',
+        params: {
+          'p_band_id': bandId,
+          'p_setlist_id': setlistId,
+          'p_song_ids': songIds,
+        },
+      );
+
+      // Parse response
+      if (response is Map<String, dynamic>) {
+        return BulkAddSongsResult.fromJson(response);
+      }
+
+      // Unexpected response format
+      return const BulkAddSongsResult(
+        addedCount: 0,
+        skippedCount: 0,
+        success: false,
+        error: 'Unexpected response format from server',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+          '[SetlistRepository] PostgrestException in bulkAddSongsToSetlist: ${e.message}');
+      return BulkAddSongsResult(
+        addedCount: 0,
+        skippedCount: 0,
+        success: false,
+        error: 'Database error: ${e.message}',
+      );
+    } catch (e) {
+      debugPrint('[SetlistRepository] Error in bulkAddSongsToSetlist: $e');
+      return BulkAddSongsResult(
+        addedCount: 0,
+        skippedCount: 0,
+        success: false,
+        error: 'Failed to add songs: $e',
       );
     }
   }

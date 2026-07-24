@@ -1445,29 +1445,71 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     }
 
     // Add all selected songs to the target setlist
+    // Show loading dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Adding ${_selectedSongIds.length} ${_selectedSongIds.length == 1 ? 'song' : 'songs'}...',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     int addedCount = 0;
     int skippedCount = 0;
 
-    for (final songId in _selectedSongIds) {
-      try {
-        final song = ref
-            .read(setlistDetailProvider)
-            .songs
-            .firstWhere((s) => s.id == songId);
-        final addResult = await repository.addSongToSetlistEnsureCatalog(
-          bandId: bandId,
-          setlistId: targetSetlistId,
-          songId: songId,
-          songTitle: song.title,
-          songArtist: song.artist,
-        );
-        if (addResult.wasAlreadyInSetlist) {
-          skippedCount++;
-        } else if (addResult.success) {
-          addedCount++;
+    try {
+      // Call batch add RPC
+      final bulkResult = await repository.bulkAddSongsToSetlist(
+        bandId: bandId,
+        setlistId: targetSetlistId,
+        songIds: _selectedSongIds.toList(),
+      );
+
+      addedCount = bulkResult.addedCount;
+      skippedCount = bulkResult.skippedCount;
+
+      if (!bulkResult.success) {
+        debugPrint('[SelectMode] Bulk add failed: ${bulkResult.error}');
+        if (mounted) {
+          showErrorSnackBar(
+            context,
+            message: bulkResult.error ?? 'Failed to add songs',
+          );
         }
-      } catch (e) {
-        debugPrint('[SelectMode] Error adding song $songId: $e');
+        return;
+      }
+    } catch (e) {
+      debugPrint('[SelectMode] Error in bulk add: $e');
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Failed to add songs');
+      }
+      return;
+    } finally {
+      if (mounted) {
+        // Close loading dialog if still open
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
       }
     }
 
