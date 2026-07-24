@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // ============================================================================
 // BANDROADIE DESIGN TOKENS
@@ -330,42 +329,48 @@ class AppTextStyles {
 
   // Unified page title style used by Setlists/Band Members/Venues/Contacts
   // and Home section headers (Upcoming Gigs, Quick Actions).
-  static TextStyle get pageTitle => GoogleFonts.dmSans(
+  static TextStyle get pageTitle => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.pageTitle,
         fontWeight: FontWeight.w700,
         height: 1.25,
       );
 
   // Title3/Emphasized - 20px, weight 600, line-height 25px
-  static TextStyle get title3 => GoogleFonts.dmSans(
+  static TextStyle get title3 => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.title2,
         fontWeight: FontWeight.w600,
         height: 1.25, // 25/20
       );
 
   // Headline/Regular - 17px, weight 600, line-height 22px
-  static TextStyle get headline => GoogleFonts.dmSans(
+  static TextStyle get headline => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.headline,
         fontWeight: FontWeight.w600,
         height: 1.29, // 22/17
       );
 
   // Callout/Regular - 16px, weight 400, line-height 21px
-  static TextStyle get callout => GoogleFonts.dmSans(
+  static TextStyle get callout => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w400,
         height: 1.31, // 21/16
       );
 
   // Callout/Emphasized - 16px, weight 600, line-height 21px
-  static TextStyle get calloutEmphasized => GoogleFonts.dmSans(
+  static TextStyle get calloutEmphasized => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w600,
         height: 1.31,
       );
 
   // Footnote/Emphasized - 13px, weight 600, line-height 18px
-  static TextStyle get footnote => GoogleFonts.dmSans(
+  static TextStyle get footnote => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w600,
         height: 1.38, // 18/13
@@ -373,14 +378,16 @@ class AppTextStyles {
 
   // Caption/Regular - 13px, weight 400, line-height 18px
   // Regular-weight counterpart to `footnote`, for muted/secondary small text.
-  static TextStyle get caption => GoogleFonts.dmSans(
+  static TextStyle get caption => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w400,
         height: 1.38,
       );
 
   // Nav label - 13px (floor), weight 600, line-height 15px
-  static TextStyle get navLabel => GoogleFonts.dmSans(
+  static TextStyle get navLabel => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w600,
         height: 1.15,
@@ -397,13 +404,15 @@ class AppTextStyles {
   static TextStyle get label => footnote;
 
   // Button and badge styles
-  static TextStyle get button => GoogleFonts.dmSans(
+  static TextStyle get button => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.body,
         fontWeight: FontWeight.w600,
         height: 1.31,
       );
 
-  static TextStyle get badge => GoogleFonts.dmSans(
+  static TextStyle get badge => const TextStyle(
+        fontFamily: 'DM Sans',
         fontSize: AppFontSizes.caption,
         fontWeight: FontWeight.w600,
         height: 1.15,

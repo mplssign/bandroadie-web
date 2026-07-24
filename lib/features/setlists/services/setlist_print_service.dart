@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -481,10 +482,14 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
     String? venue,
   }) async {
     // Load Noto Sans for full Unicode coverage (curly quotes, ♭, etc.)
-    final font = await PdfGoogleFonts.notoSansRegular();
-    final fontBold = await PdfGoogleFonts.notoSansBold();
-    final fontItalic = await PdfGoogleFonts.notoSansItalic();
-    final fontBoldItalic = await PdfGoogleFonts.notoSansBoldItalic();
+    final font =
+        pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'));
+    final fontBold =
+        pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'));
+    final fontItalic =
+        pw.Font.ttf(await rootBundle.load('assets/fonts/NotoSans-Italic.ttf'));
+    final fontBoldItalic = pw.Font.ttf(
+        await rootBundle.load('assets/fonts/NotoSans-BoldItalic.ttf'));
 
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(

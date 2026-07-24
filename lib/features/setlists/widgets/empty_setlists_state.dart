@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -102,7 +101,8 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                 // Title
                 Text(
                   'No Setlists Yet',
-                  style: GoogleFonts.dmSans(
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
                     fontSize: AppFontSizes.title2,
                     fontWeight: FontWeight.w700,
                     color: context.colors.textPrimary,
