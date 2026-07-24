@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/models/gig.dart';
 import '../../../app/models/gig_date.dart';
@@ -342,7 +341,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       children: [
                         TextSpan(
                           text: 'POTENTIAL GIG',
-                          style: GoogleFonts.dmSans(
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
                             fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF4A1F0F),
@@ -352,7 +352,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                         if (_isMultiDate)
                           TextSpan(
                             text: ': Multiple Dates',
-                            style: GoogleFonts.dmSans(
+                            style: TextStyle(
+                              fontFamily: 'DM Sans',
                               fontSize: AppFontSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF4A1F0F),
@@ -370,7 +371,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                 AnimatedDateLabel(
                   text: _formatFullDate(_currentDate),
                   direction: _navigationDirection,
-                  style: GoogleFonts.dmSans(
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
                     fontSize: AppFontSizes.pageTitle,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -389,7 +391,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                     widget.bandTimezone,
                   ),
                   direction: _navigationDirection,
-                  style: GoogleFonts.dmSans(
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
                     fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -411,7 +414,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.dmSans(
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
                             fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -422,7 +426,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       if (widget.gig.location.isNotEmpty)
                         Text(
                           ' - ${widget.gig.locationDisplay}',
-                          style: GoogleFonts.dmSans(
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
                             fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -438,7 +443,8 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.dmSans(
+                          style: TextStyle(
+                            fontFamily: 'DM Sans',
                             fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -727,7 +733,8 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
                 )
               : Text(
                   label,
-                  style: GoogleFonts.dmSans(
+                  style: TextStyle(
+                    fontFamily: 'DM Sans',
                     fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     color: textColor,

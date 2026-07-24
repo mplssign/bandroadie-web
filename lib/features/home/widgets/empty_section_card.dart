@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -99,7 +98,8 @@ class _EmptySectionCardState extends State<EmptySectionCard>
           // Title (matches SectionHeader style: 16px bold)
           Text(
             widget.title,
-            style: GoogleFonts.dmSans(
+            style: TextStyle(
+              fontFamily: 'DM Sans',
               fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w700,
               color: context.colors.textPrimary,

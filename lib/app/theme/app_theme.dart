@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'brand_colors.dart';
 import 'design_tokens.dart';
 
@@ -223,56 +222,67 @@ class AppTheme {
       // ----------------------------------------
       // TEXT (DM Sans font)
       // ----------------------------------------
-      textTheme: GoogleFonts.dmSansTextTheme(
-        TextTheme(
-          headlineLarge: TextStyle(
+      textTheme: TextTheme(
+        headlineLarge: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.statLarge,
+          fontWeight: FontWeight.w700,
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.modalTitle,
+          fontWeight: FontWeight.w700,
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.sectionTitle,
+          fontWeight: FontWeight.w600,
+        ),
+        titleLarge: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.title2,
+          fontWeight: FontWeight.w600,
+        ),
+        titleMedium: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.body,
+          fontWeight: FontWeight.w600,
+        ),
+        titleSmall: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.subhead,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyLarge: TextStyle(
+            fontFamily: 'DM Sans',
             color: bc.textPrimary,
-            fontSize: AppFontSizes.statLarge,
-            fontWeight: FontWeight.w700,
-          ),
-          headlineMedium: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.modalTitle,
-            fontWeight: FontWeight.w700,
-          ),
-          headlineSmall: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.sectionTitle,
-            fontWeight: FontWeight.w600,
-          ),
-          titleLarge: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.title2,
-            fontWeight: FontWeight.w600,
-          ),
-          titleMedium: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.body,
-            fontWeight: FontWeight.w600,
-          ),
-          titleSmall: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.subhead,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyLarge:
-              TextStyle(color: bc.textPrimary, fontSize: AppFontSizes.body),
-          bodyMedium: TextStyle(
-              color: bc.textSecondary, fontSize: AppFontSizes.subhead),
-          bodySmall:
-              TextStyle(color: bc.textMuted, fontSize: AppFontSizes.caption),
-          labelLarge: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.subhead,
-            fontWeight: FontWeight.w600,
-          ),
+            fontSize: AppFontSizes.body),
+        bodyMedium: TextStyle(
+            fontFamily: 'DM Sans',
+            color: bc.textSecondary,
+            fontSize: AppFontSizes.subhead),
+        bodySmall: TextStyle(
+            fontFamily: 'DM Sans',
+            color: bc.textMuted,
+            fontSize: AppFontSizes.caption),
+        labelLarge: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.subhead,
+          fontWeight: FontWeight.w600,
         ),
       ),
 
       // ----------------------------------------
       // DEFAULT FONT FAMILY
       // ----------------------------------------
-      fontFamily: GoogleFonts.dmSans().fontFamily,
+      fontFamily: 'DM Sans',
 
       // ----------------------------------------
       // DIVIDER
@@ -506,56 +516,67 @@ class AppTheme {
       // ----------------------------------------
       // TEXT (DM Sans font)
       // ----------------------------------------
-      textTheme: GoogleFonts.dmSansTextTheme(
-        TextTheme(
-          headlineLarge: TextStyle(
+      textTheme: TextTheme(
+        headlineLarge: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.statLarge,
+          fontWeight: FontWeight.w700,
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.modalTitle,
+          fontWeight: FontWeight.w700,
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.sectionTitle,
+          fontWeight: FontWeight.w600,
+        ),
+        titleLarge: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.title2,
+          fontWeight: FontWeight.w600,
+        ),
+        titleMedium: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.body,
+          fontWeight: FontWeight.w600,
+        ),
+        titleSmall: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.subhead,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyLarge: TextStyle(
+            fontFamily: 'DM Sans',
             color: bc.textPrimary,
-            fontSize: AppFontSizes.statLarge,
-            fontWeight: FontWeight.w700,
-          ),
-          headlineMedium: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.modalTitle,
-            fontWeight: FontWeight.w700,
-          ),
-          headlineSmall: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.sectionTitle,
-            fontWeight: FontWeight.w600,
-          ),
-          titleLarge: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.title2,
-            fontWeight: FontWeight.w600,
-          ),
-          titleMedium: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.body,
-            fontWeight: FontWeight.w600,
-          ),
-          titleSmall: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.subhead,
-            fontWeight: FontWeight.w600,
-          ),
-          bodyLarge:
-              TextStyle(color: bc.textPrimary, fontSize: AppFontSizes.body),
-          bodyMedium: TextStyle(
-              color: bc.textSecondary, fontSize: AppFontSizes.subhead),
-          bodySmall:
-              TextStyle(color: bc.textMuted, fontSize: AppFontSizes.caption),
-          labelLarge: TextStyle(
-            color: bc.textPrimary,
-            fontSize: AppFontSizes.subhead,
-            fontWeight: FontWeight.w600,
-          ),
+            fontSize: AppFontSizes.body),
+        bodyMedium: TextStyle(
+            fontFamily: 'DM Sans',
+            color: bc.textSecondary,
+            fontSize: AppFontSizes.subhead),
+        bodySmall: TextStyle(
+            fontFamily: 'DM Sans',
+            color: bc.textMuted,
+            fontSize: AppFontSizes.caption),
+        labelLarge: TextStyle(
+          fontFamily: 'DM Sans',
+          color: bc.textPrimary,
+          fontSize: AppFontSizes.subhead,
+          fontWeight: FontWeight.w600,
         ),
       ),
 
       // ----------------------------------------
       // DEFAULT FONT FAMILY
       // ----------------------------------------
-      fontFamily: GoogleFonts.dmSans().fontFamily,
+      fontFamily: 'DM Sans',
 
       // ----------------------------------------
       // DIVIDER
