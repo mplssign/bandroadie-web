@@ -59,6 +59,9 @@ dependencies:
   # Timezone
   timezone: ^0.10.0
 
+  # Scrollable positioned list
+  scrollable_positioned_list: ^0.3.8
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
