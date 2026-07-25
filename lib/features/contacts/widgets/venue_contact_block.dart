@@ -146,11 +146,6 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.colors.border),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -189,7 +184,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
                 color: context.colors.textPrimary, fontSize: AppFontSizes.body),
             decoration: _inputDecoration('Name'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Title
           Text(
@@ -208,7 +203,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
               _emitChange();
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Phone
           TextField(
@@ -220,7 +215,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Email
           TextField(
@@ -254,7 +249,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
               }).toList(),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Notes
           TextField(

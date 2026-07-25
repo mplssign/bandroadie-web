@@ -13,11 +13,15 @@ class VenuesState {
   final List<Venue> venues;
   final bool isLoading;
   final String? error;
+  final String searchQuery;
+  final List<Venue> filteredVenues;
 
   const VenuesState({
     this.venues = const [],
     this.isLoading = false,
     this.error,
+    this.searchQuery = '',
+    this.filteredVenues = const [],
   });
 
   bool get hasVenues => venues.isNotEmpty;
@@ -27,11 +31,15 @@ class VenuesState {
     bool? isLoading,
     String? error,
     bool clearError = false,
+    String? searchQuery,
+    List<Venue>? filteredVenues,
   }) {
     return VenuesState(
       venues: venues ?? this.venues,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
+      searchQuery: searchQuery ?? this.searchQuery,
+      filteredVenues: filteredVenues ?? this.filteredVenues,
     );
   }
 }
@@ -48,6 +56,7 @@ class VenuesNotifier extends Notifier<VenuesState> {
         venues: [],
         isLoading: false,
         error: 'No band selected',
+        filteredVenues: [],
       );
       return;
     }
@@ -56,7 +65,11 @@ class VenuesNotifier extends Notifier<VenuesState> {
 
     try {
       final venues = await _repository.fetchVenues(bandId: bandId);
-      state = state.copyWith(venues: venues, isLoading: false);
+      state = state.copyWith(
+        venues: venues,
+        isLoading: false,
+        filteredVenues: _filterVenues(venues, state.searchQuery),
+      );
 
       if (kDebugMode) {
         debugPrint('[VenuesController] Loaded ${venues.length} venues');
@@ -77,7 +90,11 @@ class VenuesNotifier extends Notifier<VenuesState> {
     try {
       final venues =
           await _repository.fetchVenues(bandId: bandId, forceRefresh: true);
-      state = state.copyWith(venues: venues, isLoading: false);
+      state = state.copyWith(
+        venues: venues,
+        isLoading: false,
+        filteredVenues: _filterVenues(venues, state.searchQuery),
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -135,6 +152,25 @@ class VenuesNotifier extends Notifier<VenuesState> {
   void reset() {
     _repository.clearCache();
     state = const VenuesState();
+  }
+
+  void setSearchQuery(String query) {
+    state = state.copyWith(
+      searchQuery: query,
+      filteredVenues: _filterVenues(state.venues, query),
+    );
+  }
+
+  List<Venue> _filterVenues(List<Venue> venues, String query) {
+    if (query.isEmpty) return venues;
+    final lower = query.toLowerCase();
+    return venues.where((v) {
+      if (v.name.toLowerCase().contains(lower)) return true;
+      if (v.city != null && v.city!.toLowerCase().contains(lower)) {
+        return true;
+      }
+      return v.contacts.any((c) => c.name.toLowerCase().contains(lower));
+    }).toList();
   }
 }
 
