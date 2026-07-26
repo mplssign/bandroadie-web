@@ -32,10 +32,12 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
   final _repository = ContactsRepository();
 
   late TextEditingController _nameController;
+  late TextEditingController _companyController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
   late TextEditingController _notesController;
   late FocusNode _nameFocus;
+  late FocusNode _companyFocus;
   late FocusNode _phoneFocus;
   late FocusNode _emailFocus;
   late FocusNode _notesFocus;
@@ -51,10 +53,12 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
     super.initState();
     final c = widget.contact;
     _nameController = TextEditingController(text: c?.name ?? '');
+    _companyController = TextEditingController(text: c?.company ?? '');
     _phoneController = TextEditingController(text: c?.phone ?? '');
     _emailController = TextEditingController(text: c?.email ?? '');
     _notesController = TextEditingController(text: c?.notes ?? '');
     _nameFocus = FocusNode();
+    _companyFocus = FocusNode();
     _phoneFocus = FocusNode();
     _emailFocus = FocusNode();
     _notesFocus = FocusNode();
@@ -64,10 +68,12 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _companyController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _notesController.dispose();
     _nameFocus.dispose();
+    _companyFocus.dispose();
     _phoneFocus.dispose();
     _emailFocus.dispose();
     _notesFocus.dispose();
@@ -107,6 +113,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
       final data = <String, dynamic>{
         'name': name,
         'title': _selectedTitle,
+        'company': _companyController.text.trim().isEmpty
+            ? null
+            : _companyController.text.trim(),
         'phone': _phoneController.text.trim().isEmpty
             ? null
             : _phoneController.text.trim(),
@@ -292,6 +301,16 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           TitlePillSelector(
             selectedTitle: _selectedTitle,
             onChanged: (title) => setState(() => _selectedTitle = title),
+          ),
+          const SizedBox(height: 20),
+
+          // Company
+          TextField(
+            controller: _companyController,
+            focusNode: _companyFocus,
+            style: TextStyle(
+                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
+            decoration: _inputDecoration('Company'),
           ),
           const SizedBox(height: 20),
 

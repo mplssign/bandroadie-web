@@ -8,11 +8,11 @@ import '../bands/active_band_controller.dart';
 import '../home/widgets/home_app_bar.dart';
 import '../members/member_vm.dart';
 import '../members/members_controller.dart';
-import '../members/widgets/role_management_sheet.dart';
 import '../shell/overlay_state.dart';
 import '../../shared/widgets/segmented_toggle.dart';
 import 'contacts_controller.dart';
 import 'venues_controller.dart';
+import 'widgets/band_member_edit_drawer.dart';
 import 'widgets/band_members_view.dart';
 import 'widgets/contacts_view.dart';
 import 'widgets/invite_members_screen.dart';
@@ -112,13 +112,10 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
     final adminCount =
         membersState.members.where((m) => m.isAdmin && m.isActive).length;
 
-    Navigator.of(context).push(
-      fadeSlideRoute(
-        page: RoleManagementSheet(
-          member: member,
-          adminCount: adminCount,
-        ),
-      ),
+    BandMemberEditDrawer.show(
+      context,
+      member: member,
+      adminCount: adminCount,
     );
   }
 
