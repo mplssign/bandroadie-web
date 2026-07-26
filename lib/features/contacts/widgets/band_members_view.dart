@@ -6,14 +6,15 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../bands/active_band_controller.dart';
 import '../../members/members_controller.dart';
 import '../../members/member_vm.dart';
-import '../../members/widgets/member_card.dart';
 import '../../members/widgets/member_card_skeleton.dart';
 import '../../members/widgets/members_empty_state.dart';
+import 'band_member_card.dart';
+import 'band_member_detail_drawer.dart';
 
 // ============================================================================
 // BAND MEMBERS VIEW
 // Extracted member list view used within ContactsTabContent.
-// Reuses existing member widgets — does NOT modify any members/ files.
+// Flat, ungrouped, unsearchable list — no search bar, no A-Z sectioning.
 // ============================================================================
 
 class BandMembersView extends StatelessWidget {
@@ -102,11 +103,14 @@ class BandMembersView extends StatelessWidget {
                           ? Spacing.space16
                           : 0,
                     ),
-                    child: MemberCard(
+                    child: BandMemberCard(
                       member: member,
-                      showAdminActions: membersState.isCurrentUserAdmin,
-                      onManageRole: () => onManageRole(member),
-                      onTap: () {},
+                      onTap: () => BandMemberDetailDrawer.show(
+                        context,
+                        member: member,
+                        isAdmin: membersState.isCurrentUserAdmin,
+                        onManageRole: () => onManageRole(member),
+                      ),
                     ),
                   );
                 }, childCount: membersState.members.length),

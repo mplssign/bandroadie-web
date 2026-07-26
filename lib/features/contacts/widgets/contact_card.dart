@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bandroadie/app/theme/app_animations.dart';
-import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/contact.dart';
 
 // ============================================================================
 // CONTACT CARD
-// Card for displaying a standalone contact.
-// Matches MemberCard visual language (rose border, glow, 24px radius).
+// Simplified card for displaying a standalone contact.
+// Matches VenueCard visual language (plain surface, 16px radius).
 // ============================================================================
 
 class ContactCard extends StatelessWidget {
@@ -28,172 +26,50 @@ class ContactCard extends StatelessWidget {
     return AnimatedCardPressable(
       onTap: onTap,
       child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: AppColors.primary,
-            width: 2,
-          ),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primary.withValues(alpha: 0.05),
-                        Colors.transparent,
-                        AppColors.primary.withValues(alpha: 0.03),
-                      ],
-                      stops: const [0.0, 0.5, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Name
-                    Text(
-                      contact.name,
-                      style: TextStyle(
-                        fontSize: AppFontSizes.pageTitle,
-                        fontWeight: FontWeight.w700,
-                        color: context.colors.textPrimary,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Title pill
-                    if (contact.title != null && contact.title!.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Text(
-                          contact.title!,
-                          style: const TextStyle(
-                            fontSize: AppFontSizes.subhead,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primary,
-                            height: 1.2,
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
-
-                    // Phone
-                    if (contact.phone != null && contact.phone!.isNotEmpty)
-                      _buildInfoRow(
-                        context: context,
-                        icon: AppIcons.phone,
-                        value: contact.phone!,
-                        onTap: () => _launchPhone(contact.phone!),
-                      ),
-
-                    // Email
-                    if (contact.email != null && contact.email!.isNotEmpty)
-                      _buildInfoRow(
-                        context: context,
-                        icon: AppIcons.email,
-                        value: contact.email!,
-                        onTap: () => _launchEmail(contact.email!),
-                      ),
-
-                    // Notes preview
-                    if (contact.notes != null && contact.notes!.isNotEmpty)
-                      _buildInfoRow(
-                        context: context,
-                        icon: AppIcons.info,
-                        value: contact.notes!,
-                        maxLines: 1,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _launchPhone(String phone) async {
-    final digits = phone.replaceAll(RegExp(r'[^\d+]'), '');
-    if (digits.isEmpty) return;
-    final uri = Uri(scheme: 'tel', path: digits);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _launchEmail(String email) async {
-    if (email.isEmpty) return;
-    final uri = Uri(scheme: 'mailto', path: email);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      }
-    } catch (_) {}
-  }
-
-  Widget _buildInfoRow({
-    required BuildContext context,
-    required IconData icon,
-    required String value,
-    VoidCallback? onTap,
-    int maxLines = 2,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: AppColors.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: AppFontSizes.body,
-                  fontWeight: FontWeight.w400,
-                  color: context.colors.textPrimary,
-                  height: 1.3,
-                ),
-                maxLines: maxLines,
-                overflow: TextOverflow.ellipsis,
+            // Name
+            Text(
+              contact.name,
+              style: TextStyle(
+                fontSize: AppFontSizes.title,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textPrimary,
+                height: 1.2,
+              ),
+            ),
+
+            // Role/title + company (always reserve space for uniform card height)
+            const SizedBox(height: 6),
+            Text(
+              _subtitle(contact),
+              style: TextStyle(
+                fontSize: AppFontSizes.body,
+                fontWeight: FontWeight.w400,
+                color: context.colors.textSecondary,
+                height: 1.3,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _subtitle(Contact contact) {
+    final title = contact.title?.trim();
+    final company = contact.company?.trim();
+    final hasTitle = title != null && title.isNotEmpty;
+    final hasCompany = company != null && company.isNotEmpty;
+    if (hasTitle && hasCompany) return '$title, $company';
+    if (hasTitle) return title;
+    if (hasCompany) return company;
+    return '';
   }
 }

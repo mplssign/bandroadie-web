@@ -9,6 +9,10 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../bands/active_band_controller.dart';
 import '../models/venue.dart';
 import '../venues_controller.dart';
+import 'az_index_column.dart';
+import 'az_list_helpers.dart';
+import 'az_search_field.dart';
+import 'az_section_header.dart';
 import 'venue_card.dart';
 import 'venue_detail_screen.dart';
 import 'venue_form_screen.dart';
@@ -42,22 +46,6 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
         ref.read(venuesProvider.notifier).load(bandId);
       }
     });
-  }
-
-  // Shared helper: Maps section letter to flat index of its header
-  int _getFlatIndexForSection(
-      String targetLetter, Map<String, List<Venue>> grouped) {
-    int currentIndex = 0;
-
-    for (final key in grouped.keys) {
-      if (key == targetLetter) {
-        return currentIndex; // Return header index
-      }
-      // Skip this section: 1 header + N venues
-      currentIndex += 1 + grouped[key]!.length;
-    }
-
-    return 0; // Fallback to first item
   }
 
   @override
@@ -166,21 +154,9 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
 
         // Section header
         if (index == currentIndex) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.pagePadding,
-              Spacing.space8,
-              rightPadding,
-              Spacing.space8,
-            ),
-            child: Text(
-              section.key,
-              style: TextStyle(
-                fontSize: AppFontSizes.pageTitle,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-              ),
-            ),
+          return AzSectionHeader(
+            letter: section.key,
+            rightPadding: rightPadding,
           );
         }
         currentIndex++;
@@ -218,26 +194,6 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
             32,
       );
     }
-  }
-
-  Map<String, List<Venue>> _groupVenuesByLetter(List<Venue> venues) {
-    final Map<String, List<Venue>> grouped = {};
-    for (final venue in venues) {
-      // Get first character, default to '#' if empty
-      final firstChar = venue.name.isEmpty ? '#' : venue.name[0].toUpperCase();
-      // Map non-A-Z characters to '#'
-      final letter = RegExp(r'^[A-Z]$').hasMatch(firstChar) ? firstChar : '#';
-      grouped.putIfAbsent(letter, () => []).add(venue);
-    }
-    // Sort so A-Z come first, then '#' at the end
-    return Map.fromEntries(
-      grouped.entries.toList()
-        ..sort((a, b) {
-          if (a.key == '#' && b.key != '#') return 1; // '#' goes after letters
-          if (a.key != '#' && b.key == '#') return -1; // letters go before '#'
-          return a.key.compareTo(b.key); // normal alphabetical sort
-        }),
-    );
   }
 
   @override
@@ -283,7 +239,7 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
         isSearching ? venuesState.filteredVenues : venuesState.venues;
     final grouped = isSearching
         ? const <String, List<Venue>>{}
-        : _groupVenuesByLetter(displayVenues);
+        : groupByLetter(displayVenues, (v) => v.name);
 
     // Handle empty search results
     if (isSearching && displayVenues.isEmpty) {
@@ -434,60 +390,16 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
   }
 
   Widget _buildSearchBar(BuildContext context, VenuesState venuesState) {
-    return TextField(
+    return AzSearchField(
       controller: _searchController,
-      decoration: InputDecoration(
-        hintText: 'Search venues, names, cities',
-        hintStyle: TextStyle(
-          color: context.colors.textSecondary,
-          fontSize: AppFontSizes.body,
-        ),
-        prefixIcon: Icon(
-          AppIcons.search,
-          color: context.colors.textSecondary,
-        ),
-        suffixIcon: venuesState.searchQuery.isNotEmpty
-            ? IconButton(
-                icon: Icon(
-                  AppIcons.close,
-                  color: context.colors.textSecondary,
-                ),
-                onPressed: () {
-                  _searchController.clear();
-                  ref.read(venuesProvider.notifier).setSearchQuery('');
-                },
-              )
-            : null,
-        filled: true,
-        fillColor: context.colors.surface,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: context.colors.border,
-            width: 1,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: context.colors.border,
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 2,
-          ),
-        ),
-      ),
-      style: TextStyle(
-        color: context.colors.textPrimary,
-        fontSize: AppFontSizes.body,
-      ),
+      hintText: 'Search venues, names, cities',
+      currentQuery: venuesState.searchQuery,
       onChanged: (value) {
         ref.read(venuesProvider.notifier).setSearchQuery(value);
+      },
+      onClear: () {
+        _searchController.clear();
+        ref.read(venuesProvider.notifier).setSearchQuery('');
       },
     );
   }
@@ -497,37 +409,6 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
     List<Venue> venues,
     Map<String, List<Venue>> grouped,
   ) {
-    // Always show A-Z plus # (all 27 letters)
-    final allLetters = [
-      'A',
-      'B',
-      'C',
-      'D',
-      'E',
-      'F',
-      'G',
-      'H',
-      'I',
-      'J',
-      'K',
-      'L',
-      'M',
-      'N',
-      'O',
-      'P',
-      'Q',
-      'R',
-      'S',
-      'T',
-      'U',
-      'V',
-      'W',
-      'X',
-      'Y',
-      'Z',
-      '#'
-    ];
-
     // Calculate dynamic positioning
     // Top: align with the top of the search field, i.e. the height of the
     // title row alone (top/bottom padding + its button-driven row height).
@@ -537,63 +418,22 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
     final bottomPadding =
         Spacing.bottomNavHeight + MediaQuery.of(context).padding.bottom;
 
-    return Positioned(
-      right: 8,
-      top: topOffset,
-      bottom: bottomPadding,
-      child: Column(
-        children: allLetters.map((letter) {
-          return Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                // If section doesn't exist, find nearest populated section
-                String targetLetter = letter;
-                if (!grouped.containsKey(letter)) {
-                  // Find nearest populated section
-                  String? nearestLetter;
-                  for (final key in grouped.keys) {
-                    if (key.compareTo(letter) >= 0 || key == '#') {
-                      nearestLetter = key;
-                      break;
-                    }
-                  }
-                  // If no section after, use last section
-                  nearestLetter ??= grouped.keys.last;
-                  targetLetter = nearestLetter;
-                }
+    return AzIndexColumn(
+      grouped: grouped,
+      topOffset: topOffset,
+      bottomPadding: bottomPadding,
+      onLetterTap: (letter) {
+        final targetLetter = resolveTargetLetter(letter, grouped);
+        final targetIndex = flatIndexForSection(targetLetter, grouped);
 
-                // Use shared helper to get flat index
-                final targetIndex =
-                    _getFlatIndexForSection(targetLetter, grouped);
-
-                if (_itemScrollController.isAttached) {
-                  _itemScrollController.scrollTo(
-                    index: targetIndex,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                }
-              },
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    // Dim letters that have no venues
-                    color: grouped.containsKey(letter)
-                        ? AppColors.primary
-                        : AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-              ),
-            ),
+        if (_itemScrollController.isAttached) {
+          _itemScrollController.scrollTo(
+            index: targetIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
           );
-        }).toList(),
-      ),
+        }
+      },
     );
   }
 

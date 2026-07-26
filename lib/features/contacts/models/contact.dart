@@ -3,6 +3,7 @@ class Contact {
   final String bandId;
   final String name;
   final String? title;
+  final String? company;
   final String? phone;
   final String? email;
   final String? notes;
@@ -14,6 +15,7 @@ class Contact {
     required this.bandId,
     required this.name,
     this.title,
+    this.company,
     this.phone,
     this.email,
     this.notes,
@@ -27,6 +29,7 @@ class Contact {
       bandId: json['band_id'] as String,
       name: json['name'] as String,
       title: json['title'] as String?,
+      company: json['company'] as String?,
       phone: json['phone'] as String?,
       email: json['email'] as String?,
       notes: json['notes'] as String?,
@@ -45,6 +48,7 @@ class Contact {
       'band_id': bandId,
       'name': name,
       'title': title,
+      'company': company,
       'phone': phone,
       'email': email,
       'notes': notes,

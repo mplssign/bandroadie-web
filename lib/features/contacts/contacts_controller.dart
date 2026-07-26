@@ -13,11 +13,15 @@ class ContactsState {
   final List<Contact> contacts;
   final bool isLoading;
   final String? error;
+  final String searchQuery;
+  final List<Contact> filteredContacts;
 
   const ContactsState({
     this.contacts = const [],
     this.isLoading = false,
     this.error,
+    this.searchQuery = '',
+    this.filteredContacts = const [],
   });
 
   bool get hasContacts => contacts.isNotEmpty;
@@ -27,11 +31,15 @@ class ContactsState {
     bool? isLoading,
     String? error,
     bool clearError = false,
+    String? searchQuery,
+    List<Contact>? filteredContacts,
   }) {
     return ContactsState(
       contacts: contacts ?? this.contacts,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
+      searchQuery: searchQuery ?? this.searchQuery,
+      filteredContacts: filteredContacts ?? this.filteredContacts,
     );
   }
 }
@@ -56,7 +64,11 @@ class ContactsNotifier extends Notifier<ContactsState> {
 
     try {
       final contacts = await _repository.fetchContacts(bandId: bandId);
-      state = state.copyWith(contacts: contacts, isLoading: false);
+      state = state.copyWith(
+        contacts: contacts,
+        isLoading: false,
+        filteredContacts: _filterContacts(contacts, state.searchQuery),
+      );
 
       if (kDebugMode) {
         debugPrint('[ContactsController] Loaded ${contacts.length} contacts');
@@ -77,7 +89,11 @@ class ContactsNotifier extends Notifier<ContactsState> {
     try {
       final contacts =
           await _repository.fetchContacts(bandId: bandId, forceRefresh: true);
-      state = state.copyWith(contacts: contacts, isLoading: false);
+      state = state.copyWith(
+        contacts: contacts,
+        isLoading: false,
+        filteredContacts: _filterContacts(contacts, state.searchQuery),
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -136,6 +152,19 @@ class ContactsNotifier extends Notifier<ContactsState> {
   void reset() {
     _repository.clearCache();
     state = const ContactsState();
+  }
+
+  void setSearchQuery(String query) {
+    state = state.copyWith(
+      searchQuery: query,
+      filteredContacts: _filterContacts(state.contacts, query),
+    );
+  }
+
+  List<Contact> _filterContacts(List<Contact> contacts, String query) {
+    if (query.isEmpty) return contacts;
+    final lower = query.toLowerCase();
+    return contacts.where((c) => c.name.toLowerCase().contains(lower)).toList();
   }
 }
 
