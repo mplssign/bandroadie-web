@@ -284,13 +284,11 @@ class BandMemberDetailDrawer extends StatelessWidget {
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool showChevron;
   final VoidCallback? onTap;
 
   const _DetailRow({
     required this.label,
     required this.value,
-    this.showChevron = false,
     this.onTap,
   });
 
@@ -322,14 +320,6 @@ class _DetailRow extends StatelessWidget {
               ),
             ),
           ),
-          if (showChevron) ...[
-            const SizedBox(width: Spacing.space4),
-            Icon(
-              AppIcons.forward,
-              size: 16,
-              color: context.colors.textMuted,
-            ),
-          ],
         ],
       ),
     );
