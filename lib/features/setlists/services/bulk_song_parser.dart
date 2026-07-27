@@ -8,6 +8,7 @@
 // - 2+ space fallback for legacy formats
 // - BPM validation (1-300 or empty)
 // - Tuning normalization to match app's tuning IDs
+// - Musical key normalization to match the app's canonical key set
 // - De-duplication within pasted batch
 // - Validation error reporting per row
 // ============================================================================
@@ -54,10 +55,10 @@ class BulkSongParser {
   /// Parse raw input text into BulkSongRow objects.
   ///
   /// Supports two input formats:
-  /// 1. Spreadsheet paste: ARTIST\tSONG\tBPM\tTUNING (tab-delimited or 2+ spaces)
-  /// 2. Manual entry: ARTIST, SONG, BPM, TUNING (comma-delimited)
+  /// 1. Spreadsheet paste: ARTIST\tSONG\tBPM\tTUNING\tKEY (tab-delimited or 2+ spaces)
+  /// 2. Manual entry: ARTIST, SONG, BPM, TUNING, KEY (comma-delimited)
   ///
-  /// - BPM and TUNING are optional
+  /// - BPM, TUNING, and KEY are optional
   /// - Blank lines are ignored
   /// - [maxRows] limits the number of rows processed (default: no limit)
   BulkSongParseResult parse(String input, {int? maxRows}) {
@@ -104,6 +105,7 @@ class BulkSongParser {
       final title = columns[1].trim();
       final rawBpm = columns.length > 2 ? columns[2].trim() : '';
       final rawTuning = columns.length > 3 ? columns[3].trim() : '';
+      final rawKey = columns.length > 4 ? columns[4].trim() : '';
 
       // Validate title is not empty
       if (title.isEmpty) {
@@ -150,9 +152,26 @@ class BulkSongParser {
         }
       }
 
-      // Determine overall warning (prioritize BPM warning over tuning)
-      final warning = bpmWarning ?? tuningWarning;
-      final warningMessage = bpmWarningMessage ?? tuningWarningMessage;
+      // Normalize and validate musical key
+      String? musicalKey;
+      BulkSongValidationError? keyWarning;
+      String? keyWarningMessage;
+      if (rawKey.isNotEmpty) {
+        final normalizedKey = _normalizeKey(rawKey);
+        if (normalizedKey == null) {
+          // Unknown key is a warning, not an error - row is still valid
+          keyWarning = BulkSongValidationError.unknownKey;
+          keyWarningMessage = 'Unknown key ignored';
+          // Leave musicalKey as null
+        } else {
+          musicalKey = normalizedKey;
+        }
+      }
+
+      // Determine overall warning (prioritize BPM warning, then tuning, then key)
+      final warning = bpmWarning ?? tuningWarning ?? keyWarning;
+      final warningMessage =
+          bpmWarningMessage ?? tuningWarningMessage ?? keyWarningMessage;
 
       // Create valid row (with possible warning)
       final row = BulkSongRow.valid(
@@ -161,6 +180,7 @@ class BulkSongParser {
         bpm: bpm,
         tuning: tuningId,
         tuningLabel: tuningLabel,
+        musicalKey: musicalKey,
         warning: warning,
         warningMessage: warningMessage,
       );
@@ -201,11 +221,50 @@ class BulkSongParser {
 
     // Try comma-delimited (manual entry)
     if (line.contains(',')) {
-      return line.split(',').map(_unescapeField).toList();
+      return _splitCsvLine(line).map(_unescapeField).toList();
     }
 
     // Fall back to 2+ spaces (legacy support)
     return line.split(RegExp(r'\s{2,}')).map(_unescapeField).toList();
+  }
+
+  /// Split a comma-delimited line into fields, honoring RFC 4180 quoting:
+  /// a comma inside a double-quoted field is NOT a delimiter.
+  ///
+  /// Quotes are preserved in the returned fields (not stripped) — stripping
+  /// and un-escaping remains the job of `_unescapeField`, which already runs
+  /// on every returned field.
+  List<String> _splitCsvLine(String line) {
+    final fields = <String>[];
+    final buffer = StringBuffer();
+    var insideQuotes = false;
+
+    for (var i = 0; i < line.length; i++) {
+      final char = line[i];
+
+      if (char == '"') {
+        if (insideQuotes && i + 1 < line.length && line[i + 1] == '"') {
+          // Escaped quote ("") inside a quoted field — keep both chars,
+          // _unescapeField collapses them later.
+          buffer.write('""');
+          i++;
+          continue;
+        }
+        insideQuotes = !insideQuotes;
+        buffer.write(char);
+        continue;
+      }
+
+      if (char == ',' && !insideQuotes) {
+        fields.add(buffer.toString());
+        buffer.clear();
+        continue;
+      }
+
+      buffer.write(char);
+    }
+    fields.add(buffer.toString());
+    return fields;
   }
 
   /// Un-escape a TSV/CSV field that may be wrapped in double quotes.
@@ -331,6 +390,71 @@ class BulkSongParser {
       );
     }
     return result;
+  }
+
+  /// Normalize musical key input to match the canonical key set used by
+  /// key_picker_bottom_sheet.dart (`_kMajorKeys` / `_kMinorKeys`, duplicated
+  /// locally here since the parser is a service and should not import a
+  /// widget file).
+  ///
+  /// Exact match after normalization only — no enharmonic aliasing (e.g.
+  /// "Db" is NOT normalized to "C#"). Returns null if unrecognized.
+  static const _kCanonicalKeys = {
+    // Major
+    'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B',
+    // Minor
+    'Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm',
+    'Bm',
+  };
+
+  static final _minorKeyPattern = RegExp(
+    r'^([A-Ga-g])([#b]?)\s*(?:m|min|minor)$',
+    caseSensitive: false,
+  );
+
+  static final _majorKeyPattern = RegExp(
+    r'^([A-Ga-g])([#b]?)(?:\s*(?:major|maj))?$',
+    caseSensitive: false,
+  );
+
+  String? _normalizeKey(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    String root;
+    String accidental;
+    bool isMinor;
+
+    final minorMatch = _minorKeyPattern.firstMatch(trimmed);
+    if (minorMatch != null) {
+      root = minorMatch.group(1)!;
+      accidental = minorMatch.group(2) ?? '';
+      isMinor = true;
+    } else {
+      final majorMatch = _majorKeyPattern.firstMatch(trimmed);
+      if (majorMatch == null) {
+        if (kDebugMode) {
+          debugPrint('[BulkSongParser] Unknown key: "$input"');
+        }
+        return null;
+      }
+      root = majorMatch.group(1)!;
+      accidental = majorMatch.group(2) ?? '';
+      isMinor = false;
+    }
+
+    final candidate =
+        '${root.toUpperCase()}${accidental.toLowerCase()}${isMinor ? 'm' : ''}';
+
+    if (_kCanonicalKeys.contains(candidate)) {
+      return candidate;
+    }
+    if (kDebugMode) {
+      debugPrint(
+        '[BulkSongParser] Unknown key: "$input" -> normalized="$candidate"',
+      );
+    }
+    return null;
   }
 }
 

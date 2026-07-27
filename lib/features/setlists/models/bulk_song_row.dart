@@ -5,7 +5,12 @@
 // ============================================================================
 
 /// Validation error types for bulk paste rows
-enum BulkSongValidationError { missingTitle, invalidBpm, unknownTuning }
+enum BulkSongValidationError {
+  missingTitle,
+  invalidBpm,
+  unknownTuning,
+  unknownKey,
+}
 
 /// Represents a single parsed row from the bulk paste input.
 ///
@@ -28,6 +33,10 @@ class BulkSongRow {
   /// Display-friendly tuning label (for preview)
   final String? tuningLabel;
 
+  /// Normalized musical key (Column 5) - null if not provided
+  /// Matches the canonical key set in key_picker_bottom_sheet.dart
+  final String? musicalKey;
+
   /// Validation error if the row is invalid (missing required fields)
   final BulkSongValidationError? error;
 
@@ -46,6 +55,7 @@ class BulkSongRow {
     this.bpm,
     this.tuning,
     this.tuningLabel,
+    this.musicalKey,
     this.error,
     this.errorMessage,
     this.warning,
@@ -64,6 +74,7 @@ class BulkSongRow {
     required String title,
     int? bpm,
     String? tuning,
+    String? musicalKey,
     required BulkSongValidationError error,
     required String errorMessage,
   }) {
@@ -72,6 +83,7 @@ class BulkSongRow {
       title: title,
       bpm: bpm,
       tuning: tuning,
+      musicalKey: musicalKey,
       error: error,
       errorMessage: errorMessage,
     );
@@ -84,6 +96,7 @@ class BulkSongRow {
     int? bpm,
     String? tuning,
     String? tuningLabel,
+    String? musicalKey,
     BulkSongValidationError? warning,
     String? warningMessage,
   }) {
@@ -93,6 +106,7 @@ class BulkSongRow {
       bpm: bpm,
       tuning: tuning,
       tuningLabel: tuningLabel,
+      musicalKey: musicalKey,
       warning: warning,
       warningMessage: warningMessage,
     );
@@ -103,6 +117,9 @@ class BulkSongRow {
 
   /// Formatted tuning for display
   String get formattedTuning => tuningLabel ?? tuning ?? 'Standard';
+
+  /// Formatted musical key for display
+  String get formattedKey => musicalKey ?? '-';
 
   /// Unique key for de-duplication: lowercase artist + title
   String get dedupeKey =>

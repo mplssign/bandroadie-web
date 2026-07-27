@@ -11,7 +11,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // BULK ENTRY SCREEN
 // Screen 3 of the Add to Setlist flow — paste or type many songs at once.
 //
-// Structured editable table with columns: Artist | Song | BPM | Tuning
+// Structured editable table with columns: Artist | Song | BPM | Tuning | Key
 //
 // Supports:
 //   - Manual cell editing
@@ -46,37 +46,44 @@ class _RowData {
   final TextEditingController song;
   final TextEditingController bpm;
   final TextEditingController tuning;
+  final TextEditingController key;
   final FocusNode artistFocus;
   final FocusNode songFocus;
   final FocusNode bpmFocus;
   final FocusNode tuningFocus;
+  final FocusNode keyFocus;
 
   _RowData()
       : artist = TextEditingController(),
         song = TextEditingController(),
         bpm = TextEditingController(),
         tuning = TextEditingController(),
+        key = TextEditingController(),
         artistFocus = FocusNode(),
         songFocus = FocusNode(),
         bpmFocus = FocusNode(),
-        tuningFocus = FocusNode();
+        tuningFocus = FocusNode(),
+        keyFocus = FocusNode();
 
   void dispose() {
     artist.dispose();
     song.dispose();
     bpm.dispose();
     tuning.dispose();
+    key.dispose();
     artistFocus.dispose();
     songFocus.dispose();
     bpmFocus.dispose();
     tuningFocus.dispose();
+    keyFocus.dispose();
   }
 
   bool get isEmpty =>
       artist.text.trim().isEmpty &&
       song.text.trim().isEmpty &&
       bpm.text.trim().isEmpty &&
-      tuning.text.trim().isEmpty;
+      tuning.text.trim().isEmpty &&
+      key.text.trim().isEmpty;
 
   bool get hasRequiredFields =>
       artist.text.trim().isNotEmpty && song.text.trim().isNotEmpty;
@@ -89,10 +96,11 @@ class _RowData {
 const int _kInitialRows = 5;
 const int _kMaxRows = 500;
 
-const int _kFlexArtist = 4;
-const int _kFlexSong = 4;
+const int _kFlexArtist = 3;
+const int _kFlexSong = 3;
 const int _kFlexBpm = 2;
-const int _kFlexTuning = 3;
+const int _kFlexTuning = 2;
+const int _kFlexKey = 2;
 const double _kDeleteWidth = 36;
 const double _kCellHeight = 42;
 
@@ -164,6 +172,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     row.songFocus.addListener(trackFocus);
     row.bpmFocus.addListener(trackFocus);
     row.tuningFocus.addListener(trackFocus);
+    row.keyFocus.addListener(trackFocus);
     return row;
   }
 
@@ -274,6 +283,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
       row.song.text = parsed.title;
       row.bpm.text = parsed.bpm?.toString() ?? '';
       row.tuning.text = parsed.tuningLabel ?? parsed.tuning ?? '';
+      row.key.text = parsed.musicalKey ?? '';
       _rows.add(row);
     }
 
@@ -302,7 +312,8 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
           '${r.artist.text.trim()}\t'
           '${r.song.text.trim()}\t'
           '${r.bpm.text.trim()}\t'
-          '${r.tuning.text.trim()}',
+          '${r.tuning.text.trim()}\t'
+          '${r.key.text.trim()}',
         );
       }
 
@@ -373,8 +384,8 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                 ),
                 decoration: InputDecoration(
                   hintText: 'Paste CSV or tab-delimited data here…\n'
-                      'Artist, Song, BPM, Tuning\n'
-                      'e.g.: Aerosmith, Eat The Rich, 123, Standard',
+                      'Artist, Song, BPM, Tuning, Key\n'
+                      'e.g.: Aerosmith, Eat The Rich, 123, Standard, G',
                   hintStyle: TextStyle(
                     fontSize: AppFontSizes.caption,
                     color: context.colors.textMuted.withValues(alpha: 0.5),
@@ -492,6 +503,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
           _headerCell('Song', _kFlexSong),
           _headerCell('BPM', _kFlexBpm),
           _headerCell('Tuning', _kFlexTuning),
+          _headerCell('Key', _kFlexKey),
           const SizedBox(width: _kDeleteWidth),
         ],
       ),
@@ -567,6 +579,13 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             hint: '-',
             rowIndex: index,
             textCapitalization: TextCapitalization.words,
+          ),
+          _tableCell(
+            controller: row.key,
+            focusNode: row.keyFocus,
+            flex: _kFlexKey,
+            hint: '-',
+            rowIndex: index,
           ),
           SizedBox(
             width: _kDeleteWidth,

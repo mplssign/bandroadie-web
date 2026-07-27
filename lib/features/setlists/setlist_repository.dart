@@ -3923,6 +3923,7 @@ class SetlistRepository {
               artist: row.artist,
               bpm: row.bpm,
               tuning: row.tuning,
+              musicalKey: row.musicalKey,
             );
 
             if (songId == null) {
@@ -4043,6 +4044,7 @@ class SetlistRepository {
     required String artist,
     int? bpm,
     String? tuning,
+    String? musicalKey,
     int? durationSeconds,
     String? albumArtwork,
   }) async {
@@ -4057,7 +4059,8 @@ class SetlistRepository {
       // First, try to find existing song
       final existing = await supabase
           .from('songs')
-          .select('id, bpm, tuning, duration_seconds, album_artwork')
+          .select(
+              'id, bpm, tuning, duration_seconds, album_artwork, musical_key')
           .eq('band_id', bandId)
           .ilike('title', normalizedTitle)
           .ilike('artist', normalizedArtist)
@@ -4092,6 +4095,9 @@ class SetlistRepository {
         if (albumArtwork != null && existing[0]['album_artwork'] == null) {
           updates['album_artwork'] = albumArtwork;
         }
+        if (musicalKey != null && existing[0]['musical_key'] == null) {
+          updates['musical_key'] = musicalKey;
+        }
 
         if (updates.isNotEmpty) {
           await supabase.from('songs').update(updates).eq('id', existingId);
@@ -4122,6 +4128,10 @@ class SetlistRepository {
 
       if (albumArtwork != null) {
         insertData['album_artwork'] = albumArtwork;
+      }
+
+      if (musicalKey != null && musicalKey.isNotEmpty) {
+        insertData['musical_key'] = musicalKey;
       }
 
       // Convert app tuning ID to database enum value
