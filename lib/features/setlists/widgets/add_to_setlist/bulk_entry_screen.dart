@@ -355,37 +355,92 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             Spacing.space16,
-            Spacing.space12,
+            keyboardHeight > 0 ? Spacing.space4 : Spacing.space12,
             Spacing.space16,
             0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Paste songs from a spreadsheet, then tap Load Songs.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: AppFontSizes.subhead,
+              if (keyboardHeight == 0) ...[
+                const Text(
+                  'Paste songs from a spreadsheet, then tap Load Songs.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: AppFontSizes.body,
+                  ),
                 ),
-              ),
-              const SizedBox(height: Spacing.space8),
+                const SizedBox(height: Spacing.space12),
+                Container(
+                  padding: const EdgeInsets.all(Spacing.space8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: context.colors.textMuted.withValues(alpha: 0.5),
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Column order:',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: AppFontSizes.subhead,
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.space4),
+                      const Text(
+                        'Artist, Song, BPM, Tuning, Key',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: AppFontSizes.body,
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.space4),
+                      Text(
+                        '(Led Zeppelin, Rock and Roll, 172, Standard, A Major)',
+                        style: TextStyle(
+                          color: context.colors.textSecondary,
+                          fontSize: AppFontSizes.subhead,
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.space4),
+                      const Text(
+                        'Required columns: Artist, Song',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: AppFontSizes.body,
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.space4),
+                      const Text(
+                        'Optional columns: BPM, Tuning, Key',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: AppFontSizes.body,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: Spacing.space16),
+              ],
               TextField(
                 controller: _csvController,
                 autofocus: true,
                 maxLines: 5,
-                minLines: 3,
+                minLines: keyboardHeight > 0 ? 1 : 3,
                 style: TextStyle(
                   fontSize: AppFontSizes.caption,
                   color: context.colors.textPrimary,
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Paste CSV or tab-delimited data here…\n'
-                      'Artist, Song, BPM, Tuning, Key\n'
-                      'e.g.: Aerosmith, Eat The Rich, 123, Standard, G',
+                  isDense: keyboardHeight > 0,
+                  hintText: 'Column order: Artist, Song, BPM, Tuning, Key',
                   hintStyle: TextStyle(
                     fontSize: AppFontSizes.caption,
                     color: context.colors.textMuted.withValues(alpha: 0.5),
@@ -393,7 +448,9 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   ),
                   filled: true,
                   fillColor: Colors.white.withValues(alpha: 0.04),
-                  contentPadding: const EdgeInsets.all(12),
+                  contentPadding: keyboardHeight > 0
+                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 0)
+                      : const EdgeInsets.all(12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
@@ -415,7 +472,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: Spacing.space8),
+              if (keyboardHeight == 0) const SizedBox(height: Spacing.space8),
               SizedBox(
                 height: 40,
                 child: GestureDetector(
