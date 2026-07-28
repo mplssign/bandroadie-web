@@ -1091,6 +1091,7 @@ void _openCombinedReport(
   FinancialsState state,
 ) {
   final bandName = ref.read(activeBandProvider).activeBand?.name ?? 'Band';
+  final members = ref.read(membersProvider).members;
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => FinancialsPdfPreviewScreen(
@@ -1099,6 +1100,7 @@ void _openCombinedReport(
         dateFilter: state.dateFilter,
         customStartDate: state.customStartDate,
         customEndDate: state.customEndDate,
+        members: members,
       ),
     ),
   );
