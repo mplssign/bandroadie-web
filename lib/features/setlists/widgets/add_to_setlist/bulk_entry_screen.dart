@@ -96,12 +96,12 @@ class _RowData {
 const int _kInitialRows = 5;
 const int _kMaxRows = 500;
 
-const int _kFlexArtist = 3;
-const int _kFlexSong = 3;
-const int _kFlexBpm = 2;
-const int _kFlexTuning = 2;
-const int _kFlexKey = 2;
-const double _kDeleteWidth = 36;
+const int _kFlexArtist = 5; // 25%
+const int _kFlexSong = 5; // 25%
+const int _kFlexBpm = 3; // 15%
+const int _kFlexTuning = 4; // 20%
+const int _kFlexKey = 3; // 15%
+const double _kDeleteWidth = 16;
 const double _kCellHeight = 42;
 
 // -------------------------------------------------------
@@ -129,11 +129,13 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   bool _isSubmitting = false;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _csvController = TextEditingController();
+  final FocusNode _csvFocusNode = FocusNode();
 
   int _focusedRowIndex = 0;
   bool _isLoadingSongs = false;
   String? _ingestionSummary;
   bool _hasLoadedSongs = false;
+  bool _isPasteFieldFocused = false;
 
   // -------------------------------------------------------
   // Lifecycle
@@ -145,6 +147,14 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     for (var i = 0; i < _kInitialRows; i++) {
       _rows.add(_createRow());
     }
+    _csvFocusNode.addListener(_handleCsvFocusChange);
+  }
+
+  void _handleCsvFocusChange() {
+    if (!mounted) return;
+    setState(() {
+      _isPasteFieldFocused = _csvFocusNode.hasFocus;
+    });
   }
 
   @override
@@ -154,6 +164,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     }
     _scrollController.dispose();
     _csvController.dispose();
+    _csvFocusNode.dispose();
     super.dispose();
   }
 
@@ -349,175 +360,184 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final showFullPasteUi = keyboardHeight == 0 && !_hasLoadedSongs;
+    final showExpandedPasteField = !_hasLoadedSongs || _isPasteFieldFocused;
     final validCount = _validRowCount;
     final hasValid = validCount > 0;
 
+    final pasteUiBlock = Padding(
+      padding: EdgeInsets.fromLTRB(
+        Spacing.space16,
+        showFullPasteUi ? Spacing.space12 : Spacing.space4,
+        Spacing.space16,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showFullPasteUi) ...[
+            const Text(
+              'Paste songs from a spreadsheet, then tap Load Songs.',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: AppFontSizes.body,
+              ),
+            ),
+            const SizedBox(height: Spacing.space12),
+            Container(
+              padding: const EdgeInsets.all(Spacing.space8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Column order:',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: AppFontSizes.subhead,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space4),
+                  const Text(
+                    'Artist, Song, BPM, Tuning, Key',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: AppFontSizes.body,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space4),
+                  Text(
+                    '(Led Zeppelin, Rock and Roll, 172, Standard, A Major)',
+                    style: TextStyle(
+                      color: context.colors.textSecondary,
+                      fontSize: AppFontSizes.subhead,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space4),
+                  const Text(
+                    'Required columns: Artist, Song',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: AppFontSizes.body,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space4),
+                  const Text(
+                    'Optional columns: BPM, Tuning, Key',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: AppFontSizes.body,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Spacing.space16),
+          ],
+          TextField(
+            key: const ValueKey('bulk-entry-csv-field'),
+            controller: _csvController,
+            focusNode: _csvFocusNode,
+            maxLines: 5,
+            minLines: showExpandedPasteField ? 3 : 1,
+            style: TextStyle(
+              fontSize: AppFontSizes.caption,
+              color: context.colors.textPrimary,
+              fontFamily: 'monospace',
+            ),
+            decoration: InputDecoration(
+              isDense: !showExpandedPasteField,
+              hintText: 'Column order: Artist, Song, BPM, Tuning, Key',
+              hintStyle: TextStyle(
+                fontSize: AppFontSizes.caption,
+                color: context.colors.textMuted.withValues(alpha: 0.5),
+                fontFamily: 'monospace',
+              ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.08),
+              contentPadding: showExpandedPasteField
+                  ? const EdgeInsets.all(12)
+                  : const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: context.colors.border,
+                  width: 1.5,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: context.colors.border,
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: Spacing.space8),
+          SizedBox(
+            height: 40,
+            child: GestureDetector(
+              onTap: _isLoadingSongs ? null : _handleCsvIngestion,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _isLoadingSongs
+                      ? AppColors.primary.withValues(alpha: 0.4)
+                      : AppColors.primary,
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                ),
+                alignment: Alignment.center,
+                child: _isLoadingSongs
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Load Songs',
+                        style: AppTextStyles.button.copyWith(
+                          color: Colors.white,
+                          fontSize: AppFontSizes.subhead,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          if (_ingestionSummary != null) ...[
+            const SizedBox(height: Spacing.space8),
+            Text(
+              _ingestionSummary!,
+              style: AppTextStyles.body.copyWith(
+                color: context.colors.textSecondary,
+                fontSize: AppFontSizes.caption,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
     return Column(
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            Spacing.space16,
-            keyboardHeight > 0 ? Spacing.space4 : Spacing.space12,
-            Spacing.space16,
-            0,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (keyboardHeight == 0) ...[
-                const Text(
-                  'Paste songs from a spreadsheet, then tap Load Songs.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: AppFontSizes.body,
-                  ),
-                ),
-                const SizedBox(height: Spacing.space12),
-                Container(
-                  padding: const EdgeInsets.all(Spacing.space8),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: context.colors.textMuted.withValues(alpha: 0.5),
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Column order:',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: AppFontSizes.subhead,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.space4),
-                      const Text(
-                        'Artist, Song, BPM, Tuning, Key',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: AppFontSizes.body,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.space4),
-                      Text(
-                        '(Led Zeppelin, Rock and Roll, 172, Standard, A Major)',
-                        style: TextStyle(
-                          color: context.colors.textSecondary,
-                          fontSize: AppFontSizes.subhead,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.space4),
-                      const Text(
-                        'Required columns: Artist, Song',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: AppFontSizes.body,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.space4),
-                      const Text(
-                        'Optional columns: BPM, Tuning, Key',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: AppFontSizes.body,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: Spacing.space16),
-              ],
-              TextField(
-                controller: _csvController,
-                autofocus: true,
-                maxLines: 5,
-                minLines: keyboardHeight > 0 ? 1 : 3,
-                style: TextStyle(
-                  fontSize: AppFontSizes.caption,
-                  color: context.colors.textPrimary,
-                  fontFamily: 'monospace',
-                ),
-                decoration: InputDecoration(
-                  isDense: keyboardHeight > 0,
-                  hintText: 'Column order: Artist, Song, BPM, Tuning, Key',
-                  hintStyle: TextStyle(
-                    fontSize: AppFontSizes.caption,
-                    color: context.colors.textMuted.withValues(alpha: 0.5),
-                    fontFamily: 'monospace',
-                  ),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.04),
-                  contentPadding: keyboardHeight > 0
-                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 0)
-                      : const EdgeInsets.all(12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: context.colors.border,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(
-                      color: context.colors.border,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              if (keyboardHeight == 0) const SizedBox(height: Spacing.space8),
-              SizedBox(
-                height: 40,
-                child: GestureDetector(
-                  onTap: _isLoadingSongs ? null : _handleCsvIngestion,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _isLoadingSongs
-                          ? AppColors.primary.withValues(alpha: 0.4)
-                          : AppColors.primary,
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                    alignment: Alignment.center,
-                    child: _isLoadingSongs
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            'Load Songs',
-                            style: AppTextStyles.button.copyWith(
-                              color: Colors.white,
-                              fontSize: AppFontSizes.subhead,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-              if (_ingestionSummary != null) ...[
-                const SizedBox(height: Spacing.space8),
-                Text(
-                  _ingestionSummary!,
-                  style: AppTextStyles.body.copyWith(
-                    color: context.colors.textSecondary,
-                    fontSize: AppFontSizes.caption,
-                  ),
-                ),
-              ],
-            ],
+        Flexible(
+          flex: keyboardHeight > 0 ? 1 : 0,
+          child: SingleChildScrollView(
+            physics: keyboardHeight > 0
+                ? const ClampingScrollPhysics()
+                : const NeverScrollableScrollPhysics(),
+            child: pasteUiBlock,
           ),
         ),
-        if (_hasLoadedSongs) ...[
+        if (_hasLoadedSongs && !showExpandedPasteField) ...[
           const SizedBox(height: Spacing.space12),
           _buildColumnHeaders(),
           Expanded(
@@ -537,7 +557,8 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         ] else
           const Expanded(child: SizedBox.shrink()),
         if (keyboardHeight > 0) _buildKeyboardToolbar(),
-        _buildFooter(hasValid, validCount),
+        if ((_hasLoadedSongs && !showExpandedPasteField) || keyboardHeight == 0)
+          _buildFooter(hasValid, validCount),
       ],
     );
   }
@@ -548,7 +569,6 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
 
   Widget _buildColumnHeaders() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(color: context.colors.border, width: 1),
@@ -601,7 +621,6 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
           bottom: BorderSide(color: context.colors.surfaceElevated, width: 1),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
       child: Row(
         children: [
           _tableCell(
@@ -739,13 +758,16 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
 
   Widget _buildKeyboardToolbar() {
     return Container(
+      key: const ValueKey('bulk-entry-keyboard-toolbar'),
       padding: const EdgeInsets.symmetric(
         horizontal: Spacing.space16,
         vertical: Spacing.space8,
       ),
       decoration: BoxDecoration(
         color: context.colors.surfaceElevated,
-        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
+        border: Border(
+          top: BorderSide(color: context.colors.border, width: 1),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -787,6 +809,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
 
   Widget _buildFooter(bool hasValid, int validCount) {
     return Container(
+      key: const ValueKey('bulk-entry-footer'),
       padding: EdgeInsets.fromLTRB(
         Spacing.pagePadding,
         Spacing.space12,
