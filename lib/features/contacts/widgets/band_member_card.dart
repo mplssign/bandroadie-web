@@ -40,15 +40,6 @@ class BandMemberCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (member.isAdmin)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6, right: 10),
-                    child: Icon(
-                      AppIcons.crown,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                  ),
                 Expanded(
                   child: Text(
                     member.name,
@@ -62,6 +53,15 @@ class BandMemberCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (member.isAdmin)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6, left: 10),
+                    child: Icon(
+                      AppIcons.crown,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                  ),
               ],
             ),
 
