@@ -86,6 +86,10 @@ class MemberVM {
   /// Whether this user has completed their profile (from users.profile_completed)
   final bool profileCompleted;
 
+  /// Manual sort position within the band (from band_members.position).
+  /// null = no manual order set for this member — falls back to alphabetical.
+  final int? position;
+
   const MemberVM({
     required this.userId,
     required this.memberId,
@@ -104,6 +108,7 @@ class MemberVM {
     required this.joinedAt,
     required this.hasUserRow,
     required this.profileCompleted,
+    this.position,
   });
 
   /// Create a MemberVM from merged band_members + users data
@@ -204,6 +209,7 @@ class MemberVM {
       joinedAt: DateTime.parse(bandMember['joined_at'] as String),
       hasUserRow: hasUserRow,
       profileCompleted: profileCompleted,
+      position: bandMember['position'] as int?,
     );
   }
 

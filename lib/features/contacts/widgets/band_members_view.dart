@@ -10,6 +10,7 @@ import '../../members/widgets/member_card_skeleton.dart';
 import '../../members/widgets/members_empty_state.dart';
 import 'band_member_card.dart';
 import 'band_member_detail_drawer.dart';
+import 'reorderable_band_member_card.dart';
 
 // ============================================================================
 // BAND MEMBERS VIEW
@@ -23,6 +24,7 @@ class BandMembersView extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final VoidCallback onInvite;
   final void Function(MemberVM) onManageRole;
+  final void Function(int oldIndex, int newIndex)? onReorder;
 
   const BandMembersView({
     super.key,
@@ -31,6 +33,7 @@ class BandMembersView extends StatelessWidget {
     required this.onRefresh,
     required this.onInvite,
     required this.onManageRole,
+    this.onReorder,
   });
 
   @override
@@ -91,30 +94,59 @@ class BandMembersView extends StatelessWidget {
           if (membersState.hasMembers)
             SliverPadding(
               padding: const EdgeInsets.all(Spacing.pagePadding),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final member = membersState.members[index];
-                  return Padding(
-                    key: ValueKey(
-                      'member_${member.memberId}_${member.musicalRoles.join(',')}',
+              sliver: membersState.isCurrentUserAdmin
+                  ? SliverReorderableList(
+                      itemCount: membersState.members.length,
+                      onReorderItem: (oldIndex, newIndex) =>
+                          onReorder?.call(oldIndex, newIndex),
+                      itemBuilder: (context, index) {
+                        final member = membersState.members[index];
+                        return Padding(
+                          key: ValueKey(
+                            'member_${member.memberId}_${member.musicalRoles.join(',')}',
+                          ),
+                          padding: EdgeInsets.only(
+                            bottom: index < membersState.members.length - 1
+                                ? Spacing.space16
+                                : 0,
+                          ),
+                          child: ReorderableBandMemberCard(
+                            member: member,
+                            index: index,
+                            onTap: () => BandMemberDetailDrawer.show(
+                              context,
+                              member: member,
+                              isAdmin: membersState.isCurrentUserAdmin,
+                              onManageRole: () => onManageRole(member),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final member = membersState.members[index];
+                        return Padding(
+                          key: ValueKey(
+                            'member_${member.memberId}_${member.musicalRoles.join(',')}',
+                          ),
+                          padding: EdgeInsets.only(
+                            bottom: index < membersState.members.length - 1
+                                ? Spacing.space16
+                                : 0,
+                          ),
+                          child: BandMemberCard(
+                            member: member,
+                            onTap: () => BandMemberDetailDrawer.show(
+                              context,
+                              member: member,
+                              isAdmin: membersState.isCurrentUserAdmin,
+                              onManageRole: () => onManageRole(member),
+                            ),
+                          ),
+                        );
+                      }, childCount: membersState.members.length),
                     ),
-                    padding: EdgeInsets.only(
-                      bottom: index < membersState.members.length - 1
-                          ? Spacing.space16
-                          : 0,
-                    ),
-                    child: BandMemberCard(
-                      member: member,
-                      onTap: () => BandMemberDetailDrawer.show(
-                        context,
-                        member: member,
-                        isAdmin: membersState.isCurrentUserAdmin,
-                        onManageRole: () => onManageRole(member),
-                      ),
-                    ),
-                  );
-                }, childCount: membersState.members.length),
-              ),
             ),
           SliverToBoxAdapter(
             child: SizedBox(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,6 +42,8 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
   int _selectedSegment = 0;
   final Set<int> _loadedSegments = {0}; // Band is loaded by default
 
+  Timer? _reorderDebounceTimer;
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +83,7 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
 
   @override
   void dispose() {
+    _reorderDebounceTimer?.cancel();
     _entranceController.dispose();
     super.dispose();
   }
@@ -105,6 +110,20 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
         ),
       );
     }
+  }
+
+  void _handleMemberReorder(int oldIndex, int newIndex) {
+    ref.read(membersProvider.notifier).reorderLocal(oldIndex, newIndex);
+
+    _reorderDebounceTimer?.cancel();
+    _reorderDebounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      final bandId = ref.read(activeBandProvider).activeBandId;
+      if (bandId != null) {
+        await ref.read(membersProvider.notifier).persistReorder(bandId);
+      }
+    });
   }
 
   void _openRoleManagement(MemberVM member) {
@@ -152,6 +171,7 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
           onRefresh: _onMembersRefresh,
           onInvite: _openInviteScreen,
           onManageRole: _openRoleManagement,
+          onReorder: _handleMemberReorder,
         );
       case 1:
         return const VenuesView(key: ValueKey('venues'));
