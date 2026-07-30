@@ -26,24 +26,30 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 class BandMemberEditDrawer extends ConsumerStatefulWidget {
   final MemberVM member;
   final int adminCount;
+  final int activeMemberCount;
 
   const BandMemberEditDrawer({
     super.key,
     required this.member,
     required this.adminCount,
+    required this.activeMemberCount,
   });
 
   static Future<void> show(
     BuildContext context, {
     required MemberVM member,
     required int adminCount,
+    required int activeMemberCount,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          BandMemberEditDrawer(member: member, adminCount: adminCount),
+      builder: (_) => BandMemberEditDrawer(
+        member: member,
+        adminCount: adminCount,
+        activeMemberCount: activeMemberCount,
+      ),
     );
   }
 
@@ -108,6 +114,12 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
 
   bool get _isLastAdmin {
     return widget.member.isAdmin && widget.adminCount <= 1;
+  }
+
+  bool get _isSoleActiveMember {
+    final currentUserId = supabase.auth.currentUser?.id;
+    return widget.member.userId == currentUserId &&
+        widget.activeMemberCount <= 1;
   }
 
   bool get _hasChanges {
@@ -452,8 +464,37 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
                     ),
                   ],
 
-                  // ─── Remove from band button ───
-                  if (!_isLastAdmin) ...[
+                  // ─── Remove from band button / sole-member notice ───
+                  if (_isSoleActiveMember) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: context.colors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: context.colors.warning.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(AppIcons.warning,
+                              color: context.colors.warning, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Since you are the only member in this band, you cannot leave the band, instead you must delete the band (Tap band avatar top right → Edit band → Delete)',
+                              style: TextStyle(
+                                fontSize: AppFontSizes.caption,
+                                color: context.colors.warning,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (!_isLastAdmin) ...[
                     const SizedBox(height: 24),
                     Center(
                       child: TextButton.icon(

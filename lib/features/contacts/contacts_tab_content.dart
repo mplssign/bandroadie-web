@@ -111,11 +111,14 @@ class _ContactsTabContentState extends ConsumerState<ContactsTabContent>
     final membersState = ref.read(membersProvider);
     final adminCount =
         membersState.members.where((m) => m.isAdmin && m.isActive).length;
+    final activeMemberCount =
+        membersState.members.where((m) => m.isActive).length;
 
     BandMemberEditDrawer.show(
       context,
       member: member,
       adminCount: adminCount,
+      activeMemberCount: activeMemberCount,
     );
   }
 
