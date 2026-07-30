@@ -322,7 +322,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
       return;
     }
 
-    await _persistBandId(band.id);
     state = state.copyWith(activeBand: band);
     ref.invalidate(displayBandProvider);
 
@@ -331,6 +330,8 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     ref.read(selectedSetlistProvider.notifier).clear();
 
     ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
+
+    await _persistBandId(band.id);
   }
 
   /// Select band by ID (persists selection)
