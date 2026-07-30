@@ -198,6 +198,19 @@ class Gig {
     return '$location, ${trimmedState.toUpperCase()}';
   }
 
+  /// Full location for display: street address (if entered) on its own
+  /// line, followed by location display (city, and state if entered).
+  /// Omits any line whose fields were left blank — no empty text.
+  String get fullLocationDisplay {
+    final lines = <String>[];
+    final trimmedAddress = address?.trim();
+    if (trimmedAddress != null && trimmedAddress.isNotEmpty) {
+      lines.add(trimmedAddress);
+    }
+    lines.add(locationDisplay);
+    return lines.join('\n');
+  }
+
   /// Formatted time range (e.g., "7:30 PM - 10:30 PM")
   /// Uses TimeFormatter to ensure consistent 12-hour format display.
   String get timeRange => TimeFormatter.formatRange(startTime, endTime);
