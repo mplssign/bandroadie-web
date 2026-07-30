@@ -300,7 +300,7 @@ class ViewGigDrawer extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                gig.location,
+                                gig.fullLocationDisplay,
                                 style: AppTextStyles.callout.copyWith(
                                   color: context.colors.textMuted,
                                 ),
