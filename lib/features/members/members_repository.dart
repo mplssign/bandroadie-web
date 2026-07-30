@@ -109,7 +109,7 @@ class MembersRepository {
     // =========================================
     final bandMembersResponse = await supabase
         .from('band_members')
-        .select('id, user_id, role, status, joined_at')
+        .select('id, user_id, role, status, joined_at, position')
         .eq('band_id', bandId)
         .inFilter('status', ['active', 'invited']).order('joined_at',
             ascending: true);
@@ -219,9 +219,12 @@ class MembersRepository {
     }
 
     // =========================================
-    // SORT: Alphabetically by last name, then first name
+    // SORT: Alphabetically by last name, then first name — unless any
+    // member has a manually-set position, in which case sort by position
+    // ascending, with unpositioned members appended after all positioned
+    // members (alphabetical tiebreak among themselves).
     // =========================================
-    members.sort((a, b) {
+    int alphabeticalCompare(MemberVM a, MemberVM b) {
       // Compare last names first (case-insensitive)
       final lastNameA = (a.lastName ?? '').toLowerCase();
       final lastNameB = (b.lastName ?? '').toLowerCase();
@@ -232,7 +235,22 @@ class MembersRepository {
       final firstNameA = (a.firstName ?? '').toLowerCase();
       final firstNameB = (b.firstName ?? '').toLowerCase();
       return firstNameA.compareTo(firstNameB);
-    });
+    }
+
+    final hasManualOrder = members.any((m) => m.position != null);
+
+    if (hasManualOrder) {
+      members.sort((a, b) {
+        if (a.position != null && b.position != null) {
+          return a.position!.compareTo(b.position!);
+        }
+        if (a.position != null) return -1;
+        if (b.position != null) return 1;
+        return alphabeticalCompare(a, b);
+      });
+    } else {
+      members.sort(alphabeticalCompare);
+    }
 
     // =========================================
     // PARSE: Pending invites
@@ -368,6 +386,48 @@ class MembersRepository {
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[MembersRepository] Failed to update member role');
+      }
+      rethrow;
+    }
+  }
+
+  /// Updates positions for all members in a band after a manual reorder.
+  ///
+  /// Takes the complete, currently-rendered ordered list of band_members IDs
+  /// and persists them atomically via the `reorder_band_members` RPC.
+  Future<void> reorderMembers({
+    required String bandId,
+    required List<String> memberIdsInOrder,
+  }) async {
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId cannot be empty');
+    }
+
+    if (memberIdsInOrder.isEmpty) {
+      return; // Nothing to reorder
+    }
+
+    try {
+      final response = await supabase.rpc(
+        'reorder_band_members',
+        params: {'p_band_id': bandId, 'p_member_ids': memberIdsInOrder},
+      );
+
+      if (response is Map && response['success'] == true) {
+        // Invalidate cache for this band so the next fetch reflects the new order
+        _cache.remove(bandId);
+        return;
+      }
+
+      if (response is Map && response['success'] == false) {
+        final error = response['error'] ?? 'Unknown RPC error';
+        throw Exception('Reorder failed: $error');
+      }
+
+      throw Exception('Unexpected response from reorder RPC');
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MembersRepository] Failed to reorder members: $e');
       }
       rethrow;
     }

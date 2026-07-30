@@ -36,12 +36,20 @@ class MembersState {
   /// Whether current user is an admin (can remove members)
   final bool isCurrentUserAdmin;
 
+  /// Whether a manual reorder is currently being persisted.
+  final bool isReordering;
+
+  /// Last successfully persisted member order (for rollback on failure).
+  final List<MemberVM>? lastKnownGoodMembers;
+
   const MembersState({
     this.members = const [],
     this.pendingInvites = const [],
     this.isLoading = false,
     this.error,
     this.isCurrentUserAdmin = false,
+    this.isReordering = false,
+    this.lastKnownGoodMembers,
   });
 
   /// Whether there are any members to show
@@ -61,6 +69,9 @@ class MembersState {
     String? error,
     bool clearError = false,
     bool? isCurrentUserAdmin,
+    bool? isReordering,
+    List<MemberVM>? lastKnownGoodMembers,
+    bool clearLastKnownGood = false,
   }) {
     return MembersState(
       members: members ?? this.members,
@@ -68,6 +79,10 @@ class MembersState {
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
       isCurrentUserAdmin: isCurrentUserAdmin ?? this.isCurrentUserAdmin,
+      isReordering: isReordering ?? this.isReordering,
+      lastKnownGoodMembers: clearLastKnownGood
+          ? null
+          : (lastKnownGoodMembers ?? this.lastKnownGoodMembers),
     );
   }
 }
@@ -195,6 +210,68 @@ class MembersNotifier extends Notifier<MembersState> {
   /// Force refresh the members list
   Future<void> refresh(String? bandId) async {
     await loadMembers(bandId, forceRefresh: true);
+  }
+
+  /// Reorder members locally (optimistic update).
+  ///
+  /// Saves the current order as "last known good" before applying changes,
+  /// so we can revert if persistence fails.
+  void reorderLocal(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
+
+    // Save current order as last known good (only if not already saved)
+    final lastGood =
+        state.lastKnownGoodMembers ?? List<MemberVM>.from(state.members);
+
+    final members = List<MemberVM>.from(state.members);
+    final member = members.removeAt(oldIndex);
+    members.insert(newIndex, member);
+
+    state = state.copyWith(members: members, lastKnownGoodMembers: lastGood);
+  }
+
+  /// Persist reorder to database.
+  ///
+  /// On success: clears the lastKnownGoodMembers (current order becomes "known good").
+  /// On failure: reverts to lastKnownGoodMembers and shows error.
+  Future<bool> persistReorder(String bandId) async {
+    state = state.copyWith(isReordering: true, clearError: true);
+
+    final memberIds = state.members.map((m) => m.memberId).toList();
+
+    try {
+      await _repository.reorderMembers(
+        bandId: bandId,
+        memberIdsInOrder: memberIds,
+      );
+
+      // Success: clear the backup (current order is now the "known good")
+      state = state.copyWith(isReordering: false, clearLastKnownGood: true);
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MembersController] Error persisting reorder: $e');
+      }
+
+      // Revert to last known good order
+      final lastGood = state.lastKnownGoodMembers;
+      if (lastGood != null && lastGood.isNotEmpty) {
+        state = state.copyWith(
+          members: lastGood,
+          isReordering: false,
+          error: 'Failed to save order. Changes reverted.',
+          clearLastKnownGood: true,
+        );
+      } else {
+        // No backup available - trigger a refetch
+        state = state.copyWith(
+          isReordering: false,
+          error: 'Failed to save order. Reloading...',
+        );
+        Future.microtask(() => loadMembers(bandId, forceRefresh: true));
+      }
+      return false;
+    }
   }
 
   /// Reset state (e.g., on logout or band switch)
