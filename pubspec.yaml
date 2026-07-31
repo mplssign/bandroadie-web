@@ -2,7 +2,7 @@ name: bandroadie
 description: "Gig and setlist management for bands."
 publish_to: "none"
 
-version: 1.4.3+235
+version: 1.4.3+236
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
