@@ -71,7 +71,46 @@ class FooterSection extends StatelessWidget {
               color: context.colors.textSecondary.withValues(alpha: 0.7),
             ),
           ),
+          const SizedBox(height: 8),
+
+          // Third-party data attribution (required by GetSongBPM's API terms)
+          _AttributionLink(
+            label: 'Song tempo & key data via GetSongBPM.com',
+            url: 'https://getsongbpm.com',
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _AttributionLink extends StatelessWidget {
+  final String label;
+  final String url;
+
+  const _AttributionLink({required this.label, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () async {
+          final uri = Uri.parse(url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppTextStyles.caption.copyWith(
+            color: context.colors.textSecondary.withValues(alpha: 0.6),
+            decoration: TextDecoration.underline,
+            decorationColor:
+                context.colors.textSecondary.withValues(alpha: 0.4),
+          ),
+        ),
       ),
     );
   }
