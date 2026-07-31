@@ -145,9 +145,10 @@ b) **Nonsense query test** (`{"title":"XyZzZ Nonsense Song 12345","artist":"None
 **Initial result:** Function responded gracefully in both cases with `ok: true` and `confidence: 'none'`, never throws an error or returns a 500/4xx status. This confirmed the error-handling contract was working correctly, but revealed a bug preventing successful data retrieval (both valid and invalid queries returned `none`).
 
 **Post-fix verification:** See "Bug Root Cause & Fix" section — function now correctly returns `bpm: 116, musicalKey: "F#m", confidence: "medium"` for "Billie Jean".
-  }
 }
-```
+}
+
+````
 
 **Result:** Function responds gracefully in both cases with `ok: true` and `confidence: 'none'`, never throws an error or returns a 500/4xx status. This satisfies the critical "never block save" requirement from ARCHITECT_PLAN.md §6.2/§6.4 — even if the API is down, misconfigured, or returning no results, the review screen can still save with blank BPM/Key.
 
@@ -166,10 +167,10 @@ b) **Nonsense query test** (`{"title":"XyZzZ Nonsense Song 12345","artist":"None
 
 **All blockers from the prior session have been resolved:**
 
-1. ~~`supabase db push` blocked by the Claude Code auto-mode classifier~~  
+1. ~~`supabase db push` blocked by the Claude Code auto-mode classifier~~
    **RESOLVED:** Tony applied the migration manually. Confirmed via POST-DEPLOY TESTs 1 & 2 this session.
 
-2. ~~`GETSONGBPM_API_KEY` not available~~  
+2. ~~`GETSONGBPM_API_KEY` not available~~
    **RESOLVED:** Tony set the secret manually via `supabase secrets set`. Function is deployed (version 2, ACTIVE) and responding to requests, confirmed via POST-DEPLOY TEST 3.
 
 **No new blockers encountered.** All infrastructure prerequisites are in place.
@@ -182,28 +183,30 @@ b) **Nonsense query test** (`{"title":"XyZzZ Nonsense Song 12345","artist":"None
 
 Systematic investigation revealed **two cascading bugs**:
 
-1. **Secret Retrieval Bug (Primary):**  
+1. **Secret Retrieval Bug (Primary):**
    The function attempted to retrieve the API key via `supabase.rpc('get_secrets')`, but this RPC function does not exist in the database (confirmed via `SELECT routine_name FROM information_schema.routines WHERE routine_name = 'get_secrets'` → 0 rows). The RPC call was silently failing, and the fallback `Deno.env.get("GETSONGBPM_API_KEY")` was also failing because the function code was checking for the secret in the wrong scope.
-   
+
    **Fix:** Removed the non-existent RPC call. Supabase Edge Function secrets set via `supabase secrets set` are directly available as environment variables via `Deno.env.get()`. Changed to direct retrieval:
    ```typescript
    const apiKey = Deno.env.get("GETSONGBPM_API_KEY");
-   ```
+````
 
 2. **Artist Matching Logic Bug (Secondary):**  
    The original filtering logic required **exactly one** strong artist match:
+
    ```typescript
    if (strongMatches.length !== 1) {
-       return noneResult();
+     return noneResult();
    }
    ```
-   
+
    However, the GetSongBPM API returns **multiple** results for "Billie Jean" by Michael Jackson (original + remixes/versions), all with matching artist names. This caused the function to reject all matches as "ambiguous" even though they were all correct.
-   
+
    **Fix:** Changed logic to take the **first** strong match (API results are sorted by relevance, so the first match is most likely correct):
+
    ```typescript
    if (strongMatches.length === 0) {
-       return noneResult();
+     return noneResult();
    }
    const match = strongMatches[0]; // Take first match
    ```
@@ -213,6 +216,7 @@ Systematic investigation revealed **two cascading bugs**:
 POST-DEPLOY TEST 3 (Rerun):
 
 a) **"Billie Jean" by "Michael Jackson":**
+
 ```json
 {
   "ok": true,
@@ -223,9 +227,11 @@ a) **"Billie Jean" by "Michael Jackson":**
   }
 }
 ```
+
 ✅ **PASSED** — Correct BPM (116), correctly normalized key (F♯m → F#m), medium confidence.
 
 b) **Nonsense query:**
+
 ```json
 {
   "ok": true,
@@ -236,9 +242,11 @@ b) **Nonsense query:**
   }
 }
 ```
+
 ✅ **PASSED** — Graceful degradation, never throws, satisfies "never block save" requirement.
 
 **Files Modified During Bug Fix:**
+
 - `supabase/functions/getsongbpm_lookup/index.ts` — removed non-existent `get_secrets` RPC call, fixed artist matching logic
 
 **Function Redeployed:** Version deployed after fix confirmed working in production.
@@ -250,6 +258,7 @@ b) **Nonsense query:**
 All code changes (Tasks 1, 2, 4, 6–12) are complete, analyzer-clean, and committed to the `feature/new-song-key-enrichment` branch. Tasks 3 (apply migration) and 5 (deploy function + set secret) were completed manually by Tony. POST-DEPLOY bug has been root-caused, fixed, and verified.
 
 **QA can now:**
+
 - Review all code changes in the branch
 - Perform the full manual end-to-end walkthrough from ARCHITECT_PLAN.md §15 (Steps 1–11) on a running app
 - Test the live `getsongbpm_lookup` function against the production database — **function is now returning correct BPM/key data**
