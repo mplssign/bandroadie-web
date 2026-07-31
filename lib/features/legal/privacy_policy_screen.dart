@@ -97,6 +97,12 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _buildParagraph(context, 'Information may be shared only when:'),
             _buildBullet(context, 'Required to operate core app services'),
             _buildBullet(context, 'Required by law or legal process'),
+            const SizedBox(height: 12),
+            _buildSubheader(context, 'Third-Party Data Providers'),
+            _buildParagraph(context,
+                "BandRoadie uses third-party services to help build your band's song catalog. When you look up a song, we may send the song title and artist name to GetSongBPM (getsongbpm.com) to retrieve tempo (BPM) and key information for that song."),
+            _buildParagraph(
+                context, 'Data from GetSongBPM: https://getsongbpm.com/.'),
             _buildDivider(context),
 
             // Data Retention
