@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -10,6 +12,14 @@ import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
+import '../setlist_repository.dart';
+import '../setlist_detail_controller.dart';
+import '../../songs/song_enrichment_service.dart';
+import '../../songs/external_song_lookup_service.dart';
+import '../../songs/services/song_enrichment_orchestrator.dart';
+import '../../songs/widgets/enrichment_selector_bottom_sheet.dart';
+import '../../songs/widgets/enrichment_results_overlay.dart';
+import '../../bands/active_band_controller.dart';
 import 'bpm_input_dialog.dart';
 import 'duration_input_dialog.dart';
 import 'key_picker_bottom_sheet.dart';
@@ -100,17 +110,17 @@ Future<SongDetailsResult?> showSongDetailsBottomSheet(
   );
 }
 
-class _SongDetailsSheet extends StatefulWidget {
+class _SongDetailsSheet extends ConsumerStatefulWidget {
   final SetlistSong song;
   final bool isReadOnly;
 
   const _SongDetailsSheet({required this.song, this.isReadOnly = false});
 
   @override
-  State<_SongDetailsSheet> createState() => _SongDetailsSheetState();
+  ConsumerState<_SongDetailsSheet> createState() => _SongDetailsSheetState();
 }
 
-class _SongDetailsSheetState extends State<_SongDetailsSheet>
+class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _slideAnimation;
@@ -505,6 +515,62 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
     if (discard == true && mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  /// Handle enrichment action (Task 7: single-song entry point)
+  Future<void> _handleEnrichSong() async {
+    // Get active band ID
+    final activeBandState = ref.read(activeBandProvider);
+    final bandId = activeBandState.activeBandId;
+    if (bandId == null) {
+      debugPrint('[SongDetails] No active band - cannot enrich');
+      return;
+    }
+
+    // Step 1: Show selector
+    final selection = await showEnrichmentSelectorBottomSheet(
+      context,
+      songCount: 1,
+    );
+    if (selection == null || !mounted) return;
+
+    // Step 2: Orchestrate enrichment
+    final supabase = Supabase.instance.client;
+    final repository = SetlistRepository();
+    final enrichmentService = SongEnrichmentService(supabase);
+    final lookupService = ExternalSongLookupService(supabase);
+
+    final orchestrator = SongEnrichmentOrchestrator(
+      repository: repository,
+      enrichmentService: enrichmentService,
+      lookupService: lookupService,
+    );
+
+    final result = await orchestrator.enrichSongs(
+      songIds: [widget.song.id],
+      bandId: bandId,
+      enrichBpm: selection.bpmSelected,
+      enrichDuration: selection.durationSelected,
+      enrichKey: selection.keySelected,
+    );
+
+    if (!mounted) return;
+
+    // Step 3: Broadcast updates for enriched fields to refresh catalog/list views.
+    final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
+    for (final detail in result.details) {
+      if (detail.bpmResult == EnrichmentFieldResult.updated ||
+          detail.durationResult == EnrichmentFieldResult.updated ||
+          detail.keyResult == EnrichmentFieldResult.updated) {
+        broadcaster.broadcast(SongUpdateEvent(songId: detail.songId));
+      }
+    }
+
+    // Step 4: Show results overlay
+    await showEnrichmentResultsOverlay(
+      context: context,
+      result: result,
+    );
   }
 
   /// Show modal to add a new YouTube link
@@ -1398,6 +1464,28 @@ class _SongDetailsSheetState extends State<_SongDetailsSheet>
               ),
             ),
           if (!widget.isReadOnly) const SizedBox(height: 8),
+          // Enrich Data button
+          if (!widget.isReadOnly)
+            TextButton.icon(
+              onPressed: _handleEnrichSong,
+              style: TextButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              ),
+              icon: Icon(
+                Icons.auto_awesome,
+                size: 16,
+                color: context.colors.primary,
+              ),
+              label: Text(
+                'Enrich Song Data',
+                style: AppTextStyles.body.copyWith(
+                  color: context.colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          if (!widget.isReadOnly) const SizedBox(height: 4),
           // Centered Cancel/Close text button
           TextButton(
             onPressed: widget.isReadOnly

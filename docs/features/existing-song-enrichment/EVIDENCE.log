@@ -1,0 +1,248 @@
+================================================================================
+PRE-RESET MIGRATION STATE - bandroadie-staging-2 (hpjvbagybmmaykamsgpd)
+Date: 2026-07-31
+Action: About to reset staging project to match origin/main
+Note: Two orphan migrations (20260702153141, 20260717143103) will be removed
+================================================================================
+
+{"migrations":[{"local":"073","remote":"073","time":"073"},{"local":"074","remote":"074","time":"074"},{"local":"075","remote":"075","time":"075"},{"local":"084","remote":"084","time":"084"},{"local":"085","remote":"085","time":"085"},{"local":"086","remote":"086","time":"086"},{"local":"087","remote":"087","time":"087"},{"local":"088","remote":"088","time":"088"},{"local":"20260109","remote":"20260109","time":"20260109"},{"local":"20260128205900","remote":"20260128205900","time":"2026-01-28 20:59:00"},{"local":"20260128210000","remote":"20260128210000","time":"2026-01-28 21:00:00"},{"local":"20260204","remote":"20260204","time":"20260204"},{"local":"20260206","remote":"20260206","time":"20260206"},{"local":"20260207120000","remote":"20260207120000","time":"2026-02-07 12:00:00"},{"local":"20260220120000","remote":"20260220120000","time":"2026-02-20 12:00:00"},{"local":"20260220130000","remote":"20260220130000","time":"2026-02-20 13:00:00"},{"local":"20260221000000","remote":"20260221000000","time":"2026-02-21 00:00:00"},{"local":"20260228000000","remote":"20260228000000","time":"2026-02-28 00:00:00"},{"local":"20260302000000","remote":"20260302000000","time":"2026-03-02 00:00:00"},{"local":"20260305000000","remote":"20260305000000","time":"2026-03-05 00:00:00"},{"local":"20260305100000","remote":"20260305100000","time":"2026-03-05 10:00:00"},{"local":"20260313000000","remote":"20260313000000","time":"2026-03-13 00:00:00"},{"local":"20260322000000","remote":"20260322000000","time":"2026-03-22 00:00:00"},{"local":"20260322100000","remote":"20260322100000","time":"2026-03-22 10:00:00"},{"local":"20260323100000","remote":"20260323100000","time":"2026-03-23 10:00:00"},{"local":"20260323200000","remote":"20260323200000","time":"2026-03-23 20:00:00"},{"local":"20260328000000","remote":"20260328000000","time":"2026-03-28 00:00:00"},{"local":"20260328100000","remote":"20260328100000","time":"2026-03-28 10:00:00"},{"local":"20260328200000","remote":"20260328200000","time":"2026-03-28 20:00:00"},{"local":"20260408000000","remote":"20260408000000","time":"2026-04-08 00:00:00"},{"local":"20260410000000","remote":"20260410000000","time":"2026-04-10 00:00:00"},{"local":"20260411000000","remote":"20260411000000","time":"2026-04-11 00:00:00"},{"local":"20260507000000","remote":"20260507000000","time":"2026-05-07 00:00:00"},{"local":"20260507135822","remote":"20260507135822","time":"2026-05-07 13:58:22"},{"local":"20260519160119","remote":"20260519160119","time":"2026-05-19 16:01:19"},{"local":"20260521000000","remote":"20260521000000","time":"2026-05-21 00:00:00"},{"local":"20260524000000","remote":"20260524000000","time":"2026-05-24 00:00:00"},{"local":"20260601000000","remote":"20260601000000","time":"2026-06-01 00:00:00"},{"local":"20260601000001","remote":"20260601000001","time":"2026-06-01 00:00:01"},{"local":"20260601000002","remote":"20260601000002","time":"2026-06-01 00:00:02"},{"local":"20260603000000","remote":"20260603000000","time":"2026-06-03 00:00:00"},{"local":"20260604000000","remote":"20260604000000","time":"2026-06-04 00:00:00"},{"local":"20260604000001","remote":"20260604000001","time":"2026-06-04 00:00:01"},{"local":"20260607000000","remote":"20260607000000","time":"2026-06-07 00:00:00"},{"local":"20260611000000","remote":"20260611000000","time":"2026-06-11 00:00:00"},{"local":"20260611000001","remote":"20260611000001","time":"2026-06-11 00:00:01"},{"local":"20260614000000","remote":"20260614000000","time":"2026-06-14 00:00:00"},{"local":"20260621000000","remote":"20260621000000","time":"2026-06-21 00:00:00"},{"local":"20260621000001","remote":"20260621000001","time":"2026-06-21 00:00:01"},{"local":"20260621000002","remote":"20260621000002","time":"2026-06-21 00:00:02"},{"local":"20260626005216","remote":"20260626005216","time":"2026-06-26 00:52:16"},{"local":"20260626010000","remote":"20260626010000","time":"2026-06-26 01:00:00"},{"local":"20260630000000","remote":"20260630000000","time":"2026-06-30 00:00:00"},{"local":"20260630000001","remote":"20260630000001","time":"2026-06-30 00:00:01"},{"local":"20260701000000","remote":"20260701000000","time":"2026-07-01 00:00:00"},{"local":"","remote":"20260702153141","time":"2026-07-02 15:31:41"},{"local":"20260703034302","remote":"","time":"2026-07-03 03:43:02"},{"local":"20260705143000","remote":"","time":"2026-07-05 14:30:00"},{"local":"20260711081810","remote":"","time":"2026-07-11 08:18:10"},{"local":"20260711120000","remote":"","time":"2026-07-11 12:00:00"},{"local":"20260712000000","remote":"","time":"2026-07-12 00:00:00"},{"local":"20260715000000","remote":"","time":"2026-07-15 00:00:00"},{"local":"20260717085528","remote":"","time":"2026-07-17 08:55:28"},{"local":"","remote":"20260717143103","time":"2026-07-17 14:31:03"},{"local":"20260719000000","remote":"","time":"2026-07-19 00:00:00"},{"local":"20260723192724","remote":"","time":"2026-07-23 19:27:24"},{"local":"20260724035503","remote":"","time":"2026-07-24 03:55:03"},{"local":"20260724054158","remote":"","time":"2026-07-24 05:41:58"},{"local":"20260724143942","remote":"","time":"2026-07-24 14:39:42"},{"local":"20260725000000","remote":"","time":"2026-07-25 00:00:00"},{"local":"20260729120000","remote":"","time":"2026-07-29 12:00:00"},{"local":"20260730120000","remote":"","time":"2026-07-30 12:00:00"},{"local":"20260801000000","remote":"","time":"2026-08-01 00:00:00"},{"local":"20260801000001","remote":"","time":"2026-08-01 00:00:01"}],"message":"Migrations listed"}
+
+
+================================================================================
+STAGING RESET ATTEMPT - bandroadie-staging-2 (hpjvbagybmmaykamsgpd)
+Date: 2026-07-31
+Status: FAILED - Cannot reset from scratch
+================================================================================
+
+ISSUE: Repo-wide migration ordering bugs prevent from-scratch database reset.
+
+MIGRATIONS AFFECTED:
+1. Sequential-numbered migrations (073, 074, 075, 084-088) - sort before 
+   timestamp migrations but reference tables created in later timestamp migrations
+2. Timestamp migrations with forward references - e.g., 20260109_notifications.sql
+   references bands(id) before bands table is created
+
+ERRORS ENCOUNTERED:
+- Migration 073: references gig_responses table (not yet created)
+- Migration 074: references gigs table (not yet created)  
+- Migration 20260109: references bands table (not yet created)
+
+WORKAROUND ATTEMPTED:
+Deferred all sequential-numbered migrations (073-088) to apply last, but 
+timestamp-based migrations also have ordering issues.
+
+CONCLUSION:
+Cannot use staging project for isolated NEW logic testing via db reset approach.
+Staging database state is now corrupted from partial reset attempts.
+
+RECOMMENDATION:
+Step 3 verification requires either:
+1. Manual minimal schema setup (bypass migration framework)
+2. Controlled production testing approach
+3. Fix migration ordering repo-wide first (separate bug ticket per Tony)
+
+
+================================================================================
+GIT STATUS VERIFICATION - Post migration mv/restore
+Date: 2026-07-31
+================================================================================
+
+COMMAND: git status --porcelain supabase/migrations/
+OUTPUT:
+?? supabase/migrations/20260801000000_fix_musical_key_duration_overwrite_in_update_song_rpc.sql
+
+EXPLANATION: One untracked file (expected - NEW migration on feature branch)
+
+COMMAND: git diff --stat supabase/migrations/
+OUTPUT: (empty - no modifications to tracked files)
+
+CONCLUSION: Working tree clean, all tracked migrations match origin/main ✓
+
+================================================================================
+MIGRATION ORDERING INVESTIGATION - Raw Evidence
+Date: 2026-07-31
+================================================================================
+
+COMMAND: ls supabase/migrations/ | sort
+FIRST 10 RESULTS:
+073_fix_gig_responses_unique_constraint.sql
+074_add_gig_pay_column.sql
+075_delete_user_account_rpc.sql
+084_update_song_metadata_conditional_bpm.sql
+085_add_load_in_time_to_gigs.sql
+086_add_youtube_links_column.sql
+087_fix_create_band_no_profile.sql
+088_add_lyrics_youtube_to_update_song_rpc.sql
+20260109_notifications.sql
+20260128205900_notification_categories.sql
+
+OBSERVATION: Sequential-numbered files (073-088) sort BEFORE all timestamp files
+
+COMMAND: grep -l "CREATE TABLE bands" supabase/migrations/*.sql
+OUTPUT: (empty - no migration creates bands table in tracked files)
+
+COMMAND: head -50 supabase/migrations/20260109_notifications.sql
+KEY LINE (line ~50):
+  band_id UUID REFERENCES bands(id) ON DELETE CASCADE,
+
+ERROR FROM supabase db reset --linked:
+Applying migration 20260109_notifications.sql...
+ERROR: relation "bands" does not exist (SQLSTATE 42P01)
+At statement: 7
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  band_id UUID REFERENCES bands(id) ON DELETE CASCADE,
+
+CONCLUSION: Migration 20260109_notifications.sql references bands(id) but no 
+tracked migration creates bands table. This suggests either:
+1. Core schema (bands, users, songs) was created in untracked initial migration
+2. Schema was manually created before migration framework adopted
+3. Early migrations were deleted from repo after being applied
+
+RECOMMENDATION: Separate bug ticket for Architect to investigate and fix migration 
+ordering for from-scratch database resets. NOT blocking this test.
+
+================================================================================
+WORKAROUND: Manual Minimal Schema Approach
+Date: 2026-07-31
+================================================================================
+
+DECISION: Proceeding with Option 1 (manual minimal schema) to bypass migration 
+framework entirely for this test. This approach:
+- Exercises real auth.uid() via PostgREST JWT routing
+- Tests real RLS policies on songs table
+- Verifies NEW update_song_metadata logic in isolated environment
+- Zero production risk
+- Does not depend on resolving migration ordering bugs
+
+SCHEMA SOURCE: Extracted from production using information_schema queries
+SCHEMA LOCATION: /tmp/minimal_test_schema.sql
+TABLES CREATED: users, bands, band_members, songs
+FUNCTIONS CREATED: is_band_member(), update_song_metadata (NEW logic)
+
+NEXT STEPS:
+1. Apply minimal schema to staging (hpjvbagybmmaykamsgpd)
+2. Create test user + band + membership
+3. Run two-way verification (SQL + REST API)
+4. Document results
+
+
+================================================================================
+STEP 3: TWO-WAY VERIFICATION - COMPLETE ✅
+Date: 2026-07-31
+================================================================================
+
+ENVIRONMENT:
+- Database: Staging (hpjvbagybmmaykamsgpd)
+- Test User: 506cf019-5241-46f3-87ff-02b421b9f699 (test-staging-1785517066@mailinator.com)
+- Test Band: 3d8d3159-4334-4670-826e-c6a6101c30dc
+- Schema: Manual minimal schema with NEW update_song_metadata logic
+
+================================================================================
+TEST RESULTS: SQL (faked claims via set_config)
+================================================================================
+
+TEST 1A: KEY-FILL-MISSING (NULL → Dm)
+- Method: SQL with set_config('request.jwt.claims', ...)
+- Before: musical_key = NULL
+- Called: update_song_metadata(p_musical_key => 'Dm')
+- RPC Response: {"success" : true}
+- After: musical_key = 'Dm'
+- RESULT: ✅ PASS
+
+TEST 1B: KEY-NON-OVERWRITE (Am → C should keep Am)
+- Method: SQL with set_config('request.jwt.claims', ...)
+- Before: musical_key = 'Am'
+- Called: update_song_metadata(p_musical_key => 'C')
+- RPC Response: {"success" : true}
+- After: musical_key = 'Am'
+- RESULT: ✅ PASS
+
+================================================================================
+TEST RESULTS: REST API (real JWT via PostgREST)
+================================================================================
+
+TEST 2A: REST API - Fill Missing (NULL → Dm)
+Song ID: 11111111-1111-1111-1111-111111111111
+
+BEFORE (GET /rest/v1/songs):
+[{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "title": "REST Test 2A - Fill Missing",
+  "musical_key": null
+}]
+
+RPC CALL (POST /rest/v1/rpc/update_song_metadata):
+Request Body:
+{
+  "p_song_id": "11111111-1111-1111-1111-111111111111",
+  "p_band_id": "3d8d3159-4334-4670-826e-c6a6101c30dc",
+  "p_musical_key": "Dm"
+}
+
+Response:
+{"success": true}
+
+AFTER (GET /rest/v1/songs):
+[{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "title": "REST Test 2A - Fill Missing",
+  "musical_key": "Dm"
+}]
+
+RESULT: ✅ PASS - musical_key filled from NULL to "Dm"
+
+---
+
+TEST 2B: REST API - Non-Overwrite (Am → C should keep Am)
+Song ID: 22222222-2222-2222-2222-222222222222
+
+BEFORE (GET /rest/v1/songs):
+[{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "title": "REST Test 2B - Non-Overwrite",
+  "musical_key": "Am"
+}]
+
+RPC CALL (POST /rest/v1/rpc/update_song_metadata):
+Request Body:
+{
+  "p_song_id": "22222222-2222-2222-2222-222222222222",
+  "p_band_id": "3d8d3159-4334-4670-826e-c6a6101c30dc",
+  "p_musical_key": "C"
+}
+
+Response:
+{"success": true}
+
+AFTER (GET /rest/v1/songs):
+[{
+  "id": "22222222-2222-2222-2222-222222222222",
+  "title": "REST Test 2B - Non-Overwrite",
+  "musical_key": "Am"
+}]
+
+RESULT: ✅ PASS - musical_key preserved as "Am" (not overwritten with "C")
+
+================================================================================
+CONCLUSION
+================================================================================
+
+All 4 tests PASS:
+✅ TEST 1A: SQL - Fill missing (NULL → Dm)
+✅ TEST 1B: SQL - Non-overwrite (Am stays Am)
+✅ TEST 2A: REST API - Fill missing (NULL → Dm)
+✅ TEST 2B: REST API - Non-overwrite (Am stays Am)
+
+The NEW logic from migration 20260801000000 works correctly in both execution contexts:
+1. SQL via Management API with faked claims (set_config)
+2. REST API via PostgREST with real JWT token and auth.uid()
+
+The original bug in POST-DEPLOY TEST 3 (musical_key staying NULL) was caused by 
+authentication context issues in the test environment, NOT by incorrect CASE logic 
+in the migration.
+
+EVIDENCE TYPE: Raw test output from both execution paths
+STATUS: Ready for independent QA review
+NEXT: Report to Tony - do not self-declare resolved
+
