@@ -33,32 +33,35 @@ BandRoadie is a cross-platform band management app for iOS, Android, macOS, and 
 
 **Critical — read before any feature touching routing, URLs, or deployment.**
 
-BandRoadie is a **single Vercel deployment** serving both the marketing site and the web app from the same Flutter build.
+BandRoadie operates as **three separate Vercel deployments**, not a single unified build:
 
-| Surface           | Hostname                                           | Entry point                             |
-| ----------------- | -------------------------------------------------- | --------------------------------------- |
-| Marketing site    | `bandroadie.com`                                   | `LandingPage` → `lib/features/landing/` |
-| Web app           | Any non-marketing host (e.g. `app.bandroadie.com`) | `AuthGate`                              |
-| Privacy policy    | `bandroadie.com/privacy`                           | Flutter route → `PrivacyPolicyScreen`   |
-| Auth confirmation | `bandroadie.com/auth/confirm`                      | Flutter route → `AuthConfirmScreen`     |
+| Vercel Project                                      | Deployed Content                                            | Live Domain(s)                           | Deploy Script               |
+| --------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------- | --------------------------- |
+| `marketing` (prj_6XAVv0lp4ySiYWAoBTPaWgT52DzW)      | `marketing/` — static Webflow export (HTML/CSS, no Flutter) | `bandroadie.com`, `www.bandroadie.com`   | `tools/deploy_marketing.sh` |
+| `web` (prj_Aq7Q0pRo2oezPMOy01E0gMKO0Sk9)            | `build/web` — Flutter web build output                      | `app.bandroadie.com`                     | `tools/deploy_web.sh`       |
+| `bandroadie-web` (prj_EF0jMD0m2SEBdytZxCp7XnZVknzT) | Orphaned root `.vercel` link                                | No production domain (preview URLs only) | Not used                    |
 
-Host detection happens in `lib/main.dart` via `_isMarketingHost()`. The `vercel.json` catch-all rewrite sends all requests to `index.html`; Flutter handles routing from there.
+**Privacy policy surfaces — two live, independent `/privacy` pages:**
 
-**Files that affect BOTH surfaces — always flag in the Architect plan:**
+| URL                                                    | Served By                                                                       | Status                                                  |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `bandroadie.com/privacy`, `www.bandroadie.com/privacy` | `marketing/privacy.html` (static HTML)                                          | **Canonical** — SEO-indexed, publicly linked            |
+| `app.bandroadie.com/privacy`                           | Flutter `PrivacyPolicyScreen` (`lib/features/legal/privacy_policy_screen.dart`) | **Live** — in-app, routed unconditionally on path match |
+| `web/privacy.html` (in `build/web`)                    | **Dead/unreachable** — intercepted by `web/vercel.json` catch-all rewrite       | Never served                                            |
 
-- `lib/main.dart` (routing, host detection, initialization)
-- `vercel.json` (rewrites, headers)
-- `web/index.html`
+**Host detection (`_isMarketingHost()` in `lib/main.dart`):** This function exists and can return `true` for `bandroadie.com`, but it is **unreachable in production** — `bandroadie.com` DNS routes exclusively to the `marketing` Vercel project (static site), never to the `web` project where this Flutter code runs. The Flutter landing page (`lib/features/landing/`) is bundled into the `web` project's build but is never served at the live marketing domain.
 
-**Files scoped to marketing only:**
+**Files scoped to the static marketing site (`marketing` project) only:**
 
-- `lib/features/landing/` (all landing page widgets)
-- `web/privacy.html`
-- `web/support.html`
+- `marketing/index.html`, `marketing/privacy.html`, `marketing/support.html`, `marketing/style.css`
+- **Not** `lib/features/landing/` — that is Flutter code in the `web` project, unreachable at `bandroadie.com`
+- **Not** `web/privacy.html` — dead duplicate, never served (see table above)
 
-**Files scoped to app only:**
+**Files scoped to the Flutter web app (`web` project) only:**
 
-- `lib/features/auth/`, `bands/`, `calendar/`, `gigs/`, `members/`, `profile/`, `rehearsals/`, `setlists/`, `home/`, `settings/`, `notifications/`
+- `lib/main.dart` (routing, initialization)
+- `lib/features/auth/`, `bands/`, `calendar/`, `gigs/`, `members/`, `profile/`, `rehearsals/`, `setlists/`, `home/`, `settings/`, `notifications/`, `legal/`, `landing/`
+- `web/index.html`, `web/vercel.json`
 
 ---
 

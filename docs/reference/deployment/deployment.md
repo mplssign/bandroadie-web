@@ -15,9 +15,9 @@ The `.env` file must define:
 
 **Do not** set these as Vercel environment variables — they are injected at build time via `--dart-define`, not at runtime.
 
-**Vercel project:** `web` (aliases: `bandroadie.com`, `app.bandroadie.com`)
+**Vercel project:** `web` (domain: `app.bandroadie.com`)
 
-Both `bandroadie.com` and `app.bandroadie.com` are aliases for the same deployment. Flutter's `_isMarketingHost()` in `lib/main.dart` routes the request to the marketing landing page or the app shell based on the hostname.
+`bandroadie.com` and `www.bandroadie.com` are served by a separate Vercel project (`marketing`) deploying the static `marketing/` directory via `tools/deploy_marketing.sh`. Only `app.bandroadie.com` routes to the Flutter web build.
 
 Auth confirmation is handled via the `/auth/confirm` route using PKCE flow on all platforms.
 
