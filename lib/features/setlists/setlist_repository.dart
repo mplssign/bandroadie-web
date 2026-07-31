@@ -3279,7 +3279,7 @@ class SetlistRepository {
   ///
   /// Uses the unique constraint (band_id, title, artist) for conflict resolution.
   /// On conflict:
-  /// - Updates missing fields (bpm, spotify_id, musicbrainz_id, album_artwork, duration_seconds)
+  /// - Updates missing fields (bpm, spotify_id, musicbrainz_id, album_artwork, duration_seconds, musical_key, isrc)
   /// - Does NOT overwrite user-edited tuning unless it is null
   ///
   /// [bandId] - Required for band isolation
@@ -3290,6 +3290,10 @@ class SetlistRepository {
   /// [albumArtwork] - Album artwork URL (optional)
   /// [spotifyId] - Spotify track ID (optional)
   /// [musicbrainzId] - MusicBrainz recording ID (optional)
+  /// [musicalKey] - Musical key, normalized to the app's 24-key set (optional)
+  /// [isrc] - International Standard Recording Code (optional, not populated by any caller today)
+  /// [skipBackgroundEnrichment] - When true, skip the fire-and-forget Spotify BPM
+  ///   enrichment after insert (used when the caller already did enrichment synchronously)
   ///
   /// Returns the song ID (existing or newly created).
   Future<String?> upsertExternalSong({
@@ -3301,6 +3305,9 @@ class SetlistRepository {
     String? albumArtwork,
     String? spotifyId,
     String? musicbrainzId,
+    String? musicalKey,
+    String? isrc,
+    bool skipBackgroundEnrichment = false,
   }) async {
     if (bandId.isEmpty) {
       throw NoBandSelectedError();
@@ -3326,7 +3333,7 @@ class SetlistRepository {
       final existing = await supabase
           .from('songs')
           .select(
-            'id, tuning, bpm, spotify_id, musicbrainz_id, album_artwork, duration_seconds',
+            'id, tuning, bpm, spotify_id, musicbrainz_id, album_artwork, duration_seconds, musical_key, isrc',
           )
           .eq('band_id', bandId)
           .ilike('title', normalizedTitle)
@@ -3355,6 +3362,14 @@ class SetlistRepository {
         if (durationSeconds != null &&
             existingRow['duration_seconds'] == null) {
           updates['duration_seconds'] = durationSeconds;
+        }
+        if (musicalKey != null &&
+            musicalKey.isNotEmpty &&
+            existingRow['musical_key'] == null) {
+          updates['musical_key'] = musicalKey;
+        }
+        if (isrc != null && existingRow['isrc'] == null) {
+          updates['isrc'] = isrc;
         }
 
         if (updates.isNotEmpty) {
@@ -3397,6 +3412,12 @@ class SetlistRepository {
       if (musicbrainzId != null) {
         insertData['musicbrainz_id'] = musicbrainzId;
       }
+      if (musicalKey != null && musicalKey.isNotEmpty) {
+        insertData['musical_key'] = musicalKey;
+      }
+      if (isrc != null) {
+        insertData['isrc'] = isrc;
+      }
 
       final result =
           await supabase.from('songs').insert(insertData).select('id').single();
@@ -3408,8 +3429,13 @@ class SetlistRepository {
         );
       }
 
-      // Fire-and-forget BPM enrichment if no BPM was provided
-      if (bpm == null) {
+      // Fire-and-forget BPM enrichment if no BPM was provided.
+      // Skipped when the caller already did enrichment synchronously (e.g. the
+      // new-song review screen) — firing this afterward would be a no-op today
+      // (spotifyId is always null on this path) but would become a silent-overwrite
+      // bug the moment a future phase starts supplying a real spotifyId, since it
+      // could quietly refill a BPM value the user explicitly reviewed and left blank.
+      if (bpm == null && !skipBackgroundEnrichment) {
         _attemptBpmEnrichment(
           songId: newId,
           bandId: bandId,

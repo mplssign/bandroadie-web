@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/services/supabase_client.dart';
 import '../../app/theme/brand_colors.dart';
@@ -56,6 +57,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         subtitle: 'Manage push notifications',
         onTap: _openNotifications,
       ),
+      SettingsItem(
+        icon: AppIcons.music,
+        label: 'Song tempo & key data via GetSongBPM.com',
+        onTap: _openGetSongBpmAttribution,
+      ),
     ];
 
     // Conditionally add One Calendar (only if user has 2+ bands)
@@ -99,6 +105,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         builder: (context) => const OneCalendarSettingsScreen(),
       ),
     );
+  }
+
+  /// Open the GetSongBPM attribution link (required by their API terms).
+  Future<void> _openGetSongBpmAttribution() async {
+    final uri = Uri.parse('https://getsongbpm.com');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   /// Show confirmation dialog for account deletion

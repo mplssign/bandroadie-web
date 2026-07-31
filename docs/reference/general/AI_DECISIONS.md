@@ -153,6 +153,81 @@ Introduce a narrow `SECURITY DEFINER` RPC `restore_band_members(p_band_id uuid, 
 
 ---
 
+## [DECISION-004] Add GetSongBPM as New-Song Key/BPM Enrichment Provider
+
+**Date:** 2026-07-30
+**Feature:** feature/new-song-key-enrichment
+**Agent:** Architect
+**Status:** Active
+
+### Context
+
+The new-song lookup flow (search → select → song lands in the Catalog) does not
+retrieve musical key, and saves BPM/duration with no review step. `musical_key`
+already exists on `songs` (migration `20260630000000_add_musical_key_to_songs.sql`)
+but is never auto-populated on this path. The existing BPM enrichment path
+(`_attemptBpmEnrichment` → Spotify Audio Features) is effectively dead code here:
+the live search source is iTunes + MusicBrainz, neither of which supplies a
+`spotify_id`, so Strategy 1 never runs. GetSongBPM was evaluated as a new external
+provider to fill both gaps (see `docs/features/new-song-key-enrichment/ARCHITECT_PLAN.md`
+§6.4 for the full provider-viability writeup and §14 Task 1 for a live API spike
+confirming the request/response contract).
+
+### Decision
+
+Add a new external service, GetSongBPM (`api.getsong.co`), as the BPM/key
+enrichment source for the new-song review screen. A new Edge Function
+(`supabase/functions/getsongbpm_lookup/`) calls GetSongBPM server-side (API key
+held in Supabase Vault, never exposed to the client) using `type=both` combined
+title+artist search, normalizes the returned key notation to the app's 24-key
+vocabulary, and returns `confidence: 'medium'` only on an unambiguous single
+artist-name match — otherwise `confidence: 'none'`. ISRC-based lookup was
+evaluated and confirmed unsupported by GetSongBPM's API (`type=isrc` and an
+`isrc=` param both 400); the medium-confidence title+artist path is the only
+tier implemented in this phase, with the ISRC parameter wired through end-to-end
+but dormant (see plan §19).
+
+GetSongBPM's terms require a live, crawlable attribution backlink. Attribution is
+provided in three places: an authenticated Settings-screen row (§6.6/§14 Task 11),
+a public marketing-footer link (`lib/features/landing/widgets/footer_section.dart`,
+added ahead of Task 11 per a Tony-directed scope amendment — see this feature's
+`ENGINEER_REPORT.md`), and a Privacy Policy disclosure
+(`lib/features/legal/privacy_policy_screen.dart`, `marketing/privacy.html`, added
+in `bug/getsongbpm-hosting-doc-audit`).
+
+### Rationale
+
+1. GetSongBPM is free, requires only a static `api_key` query param (no OAuth), and
+   has a rate limit (3,000 req/hr) that is a non-issue for one lookup per new-song save.
+2. The two fields this feature needs (`tempo`, `key_of`) are confirmed present in
+   live API responses.
+3. The provider is called only server-side (Edge Function), consistent with every
+   other existing third-party integration (`spotify_search`, `musicbrainz_search`) —
+   no API key reaches the client.
+4. The enrichment call is non-blocking: the review screen never gates Save on this
+   fetch completing, matching the existing "BPM is a convenience, not a dependency"
+   principle.
+5. No per-song attribution is added to the primary song-enrichment UI (review
+   screen, song cards) — only the two static, non-conditional surfaces above satisfy
+   the backlink requirement without cluttering the core UX.
+
+### Constraints Imposed
+
+- `GETSONGBPM_API_KEY` must be present in Supabase Vault (or as an Edge Function
+  env var fallback) for `getsongbpm_lookup` to return anything beyond `confidence: 'none'`.
+- The three attribution surfaces (Settings, marketing footer, Privacy Policy) must
+  all remain in place for as long as GetSongBPM is in use — GetSongBPM's terms
+  permit key suspension "without notice" if the backlink disappears.
+- Any future attempt to wire a real ISRC into this path must first re-verify
+  GetSongBPM's API still lacks ISRC support (confirmed absent as of 2026-07-30) or
+  swap in a working parameter if one is ever added.
+- `key_of` normalization assumes GetSongBPM continues returning Unicode-sharp
+  notation exclusively (confirmed via ~40-result sample this session, not a
+  documented guarantee) — if flat notation is ever observed, `normalizeKey()` in
+  `getsongbpm_lookup/index.ts` must be extended, not replaced.
+
+---
+
 ## Categories Requiring a Logged Decision
 
 Any of the following changes **must** produce a new entry before implementation:

@@ -11,6 +11,7 @@ import '../../songs/external_song_lookup_service.dart';
 import '../models/song.dart';
 import '../setlist_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'song_enrichment_review_sheet.dart';
 
 // ============================================================================
 // SONG LOOKUP OVERLAY
@@ -262,22 +263,30 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
   Future<void> _handleExternalSongTap(SongLookupResult result) async {
     if (_isAdding) return;
 
+    // Open the review screen so the user can confirm/edit Duration, BPM, and
+    // Key (auto-fetched in the background) before the song is written to the
+    // Catalog. Cancelling here creates no song.
+    final review = await showSongEnrichmentReviewSheet(context, result: result);
+    if (review == null || !mounted) return;
+
     setState(() {
       _isAdding = true;
     });
 
     try {
-      // Upsert the external song to the catalog
+      // Upsert the external song to the catalog with the reviewed values
       final repo = ref.read(setlistRepositoryProvider);
       final songId = await repo.upsertExternalSong(
         bandId: widget.bandId,
         title: result.title,
         artist: result.artist,
-        bpm: result.bpm,
-        durationSeconds: result.durationSeconds,
+        bpm: review.bpm,
+        durationSeconds: review.durationSeconds,
         albumArtwork: result.albumArtwork,
         spotifyId: result.spotifyId,
         musicbrainzId: result.musicbrainzId,
+        musicalKey: review.musicalKey,
+        skipBackgroundEnrichment: true,
       );
 
       if (songId == null) {

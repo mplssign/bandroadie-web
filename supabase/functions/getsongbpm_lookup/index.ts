@@ -1,0 +1,224 @@
+// GetSongBPM Lookup Edge Function for Supabase (Deno)
+// Fetches tempo (BPM) and musical key for a song by title+artist.
+// Expects: { title: string, artist: string, duration_seconds?: number, isrc?: string }
+// Returns: { ok: boolean, data?: { bpm: number|null, musicalKey: string|null, confidence: 'medium'|'none' }, error?: string }
+//
+// ----------------------------------------------------------------------------
+// Task 1 live API spike findings (docs/features/new-song-key-enrichment/ARCHITECT_PLAN.md §14
+// Task 1 / §6.4). Confirmed against the real API this session — supersedes the
+// plan's pre-spike assumptions:
+//
+// - Correct base URL is https://api.getsong.co/ — NOT api.getsongbpm.com, which is a
+//   stale legacy domain that is Cloudflare-challenge-walled and unusable server-side.
+// - Response envelope: {"search": [...]} on match. On no match: the API returns
+//   {"search": {"error": "no result"}} — an object, not an empty array. Callers must
+//   check for this shape explicitly rather than assuming `.length === 0` is safe.
+// - Combined song+artist disambiguation: `type=both` is correct and required for this
+//   use case. The `lookup` param format is strict: `song:<title> artist:<artist>`
+//   (literal `song:`/`artist:` prefixes) — plain concatenation returns a 400
+//   {"error":"Bad query."}. `type=multi` is not a valid type (also 400) — only
+//   `artist` | `song` | `both` are accepted.
+// - ISRC-based lookup: confirmed absent. Both `type=isrc` and passing `isrc=` as an
+//   extra param return 400 {"error":"Bad query."}. No ISRC parameter is attempted
+//   below — matches the already-agreed medium-confidence-only scope (plan §19).
+// - `key_of` notation: always Unicode sharp (♯), never flat, across a ~40-result
+//   sample spanning sharp-heavy songs. Normalization here converts ♯→#, then maps
+//   D#→Eb, G#→Ab, A#→Bb (majors and minors) to match the app's 24-key vocabulary;
+//   C#/F# pass through unchanged since they're already in that vocabulary.
+// - Malformed entries are real and recurring: results with `"key_of":"m"` (no root
+//   note) and tempo/open_key/danceability/acousticness all null appear across
+//   unrelated queries. A bare "m" (and anything else that doesn't normalize to one
+//   of the app's 24 keys) is rejected to `musicalKey: null` rather than passed through.
+// - Duration is not present in any response field — no design change; duration
+//   continues to come from the search result that triggered this lookup, not this API.
+// - Auth/error shapes: bad key → 401 + {"error":"Invalid API Key, or inactive."}.
+//   Good key, no results → 200 + the no-result shape above (not an error status).
+// ----------------------------------------------------------------------------
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const GETSONGBPM_BASE_URL = 'https://api.getsong.co';
+
+// The app's exact 24-key vocabulary (lib/features/setlists/widgets/key_picker_bottom_sheet.dart)
+const VALID_MAJOR_KEYS = new Set(['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']);
+const VALID_MINOR_KEYS = new Set(['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm', 'Bm']);
+
+// GetSongBPM always returns sharps; map the three that don't match the app's
+// vocabulary directly to their enharmonic flat equivalents.
+const SHARP_TO_FLAT: Record<string, string> = { 'D#': 'Eb', 'G#': 'Ab', 'A#': 'Bb' };
+
+interface LookupResult {
+    bpm: number | null;
+    musicalKey: string | null;
+    confidence: 'medium' | 'none';
+}
+
+/// Normalize a GetSongBPM `key_of` value (e.g. "D#", "Fm", "m") to the app's
+/// 24-key vocabulary, or null if it can't be represented.
+function normalizeKey(raw: unknown): string | null {
+    if (typeof raw !== 'string' || raw.length === 0) return null;
+
+    // GetSongBPM uses Unicode sharp (♯); normalize to ASCII '#' first.
+    let key = raw.replace(/♯/g, '#').trim();
+
+    const isMinor = key.endsWith('m');
+    let root = isMinor ? key.slice(0, -1) : key;
+
+    // Reject malformed entries with no root note (e.g. bare "m").
+    if (root.length === 0) return null;
+
+    if (SHARP_TO_FLAT[root]) {
+        root = SHARP_TO_FLAT[root];
+    }
+
+    const normalized = isMinor ? `${root}m` : root;
+
+    if (isMinor ? VALID_MINOR_KEYS.has(normalized) : VALID_MAJOR_KEYS.has(normalized)) {
+        return normalized;
+    }
+
+    return null;
+}
+
+/// Normalize an artist name for loose comparison (lowercase, alphanumeric only).
+function normalizeArtistName(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function noneResult(): LookupResult {
+    return { bpm: null, musicalKey: null, confidence: 'none' };
+}
+
+async function lookupGetSongBpm(
+    apiKey: string,
+    title: string,
+    artist: string,
+): Promise<LookupResult> {
+    const lookup = `song:${title} artist:${artist}`;
+    // GetSongBPM API expects spaces encoded as '+' (application/x-www-form-urlencoded),
+    // not '%20' (encodeURIComponent). Replace spaces after encoding.
+    const encodedLookup = encodeURIComponent(lookup).replace(/%20/g, '+');
+    const url = `${GETSONGBPM_BASE_URL}/search/?api_key=${encodeURIComponent(apiKey)}&type=both&lookup=${encodedLookup}`;
+
+    const response = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+    });
+
+    // Never surface a provider error to the caller — bad key (401), bad query
+    // (400), or any other non-2xx all degrade to a "not found" result.
+    if (!response.ok) {
+        return noneResult();
+    }
+
+    const data = await response.json();
+    const search = data?.search;
+
+    // No-result shape is {"search": {"error": "no result"}} — an object, not
+    // an array. Only treat a real array as candidates.
+    if (!Array.isArray(search) || search.length === 0) {
+        return noneResult();
+    }
+
+    const normalizedRequestArtist = normalizeArtistName(artist);
+    
+    const strongMatches = search.filter((candidate: any) => {
+        const candidateArtist = candidate?.artist?.name;
+        if (typeof candidateArtist !== 'string') return false;
+        const normalized = normalizeArtistName(candidateArtist);
+        return normalized === normalizedRequestArtist;
+    });
+
+    // At least one strong artist match → take the first (GetSongBPM returns results sorted by relevance).
+    // Zero matches → none, per the "flag for review rather than auto-fill" directive.
+    if (strongMatches.length === 0) {
+        return noneResult();
+    }
+
+    // Take the first match (API sorts by relevance, so first is most likely correct)
+    const match = strongMatches[0];
+    const tempo = typeof match?.tempo === 'string' ? parseFloat(match.tempo) : match?.tempo;
+    const bpm = typeof tempo === 'number' && !Number.isNaN(tempo) ? Math.round(tempo) : null;
+    const musicalKey = normalizeKey(match?.key_of);
+
+    if (bpm === null && musicalKey === null) {
+        return noneResult();
+    }
+
+    return { bpm, musicalKey, confidence: 'medium' };
+}
+
+serve(async (req) => {
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
+    try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+        if (!supabaseUrl || !serviceRoleKey) {
+            return new Response(
+                JSON.stringify({ ok: false, error: "Server configuration error" }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+
+        // Secrets set via `supabase secrets set` are available as environment variables
+        const apiKey = Deno.env.get("GETSONGBPM_API_KEY");
+
+        if (!apiKey) {
+            console.error('[getsongbpm_lookup] Missing GetSongBPM API key');
+            return new Response(
+                JSON.stringify({ ok: false, error: "GetSongBPM API not configured" }),
+                { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+
+        const body = await req.json();
+        const title = body.title as string;
+        const artist = body.artist as string;
+        const isrc = body.isrc as string | undefined;
+
+        if (!title || !artist) {
+            return new Response(
+                JSON.stringify({ ok: false, error: "title and artist are required" }),
+                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+
+        if (isrc) {
+            // Confirmed absent from the API (see header comment) — logged for
+            // future-phase telemetry only, falls through to the title+artist path.
+            console.log('[getsongbpm_lookup] isrc provided but not queryable, falling through:', isrc);
+        }
+
+        // Never throws — any failure degrades to a "not found" result so the
+        // review screen never blocks on this call (same contract as spotify_audio_features).
+        let result: LookupResult;
+        try {
+            result = await lookupGetSongBpm(apiKey, title, artist);
+        } catch (error) {
+            console.error('[getsongbpm_lookup] Lookup failed:', error);
+            result = noneResult();
+        }
+
+        return new Response(
+            JSON.stringify({ ok: true, data: result }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+    } catch (error) {
+        console.error('[getsongbpm_lookup] Error:', error);
+        return new Response(
+            JSON.stringify({ ok: false, error: "Internal server error" }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+    }
+});
