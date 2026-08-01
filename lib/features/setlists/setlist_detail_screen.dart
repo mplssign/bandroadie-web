@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
@@ -39,6 +40,12 @@ import 'special_item_repository.dart';
 import 'models/special_item.dart';
 import 'links/song_link.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../songs/song_enrichment_service.dart';
+import '../songs/external_song_lookup_service.dart';
+import '../songs/services/song_enrichment_orchestrator.dart';
+import '../songs/widgets/enrichment_selector_bottom_sheet.dart';
+import '../songs/widgets/enrichment_results_overlay.dart';
+import '../songs/widgets/enrichment_progress_overlay.dart';
 
 // ============================================================================
 // SETLIST DETAIL SCREEN
@@ -1350,6 +1357,210 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     }
   }
 
+  /// Handle enrichment of selected songs (Task 8: multi-select entry point)
+  Future<void> _handleEnrichSelectedSongs() async {
+    if (_selectedSongIds.isEmpty) return;
+
+    final bandId = ref.read(activeBandIdProvider);
+    if (bandId == null) {
+      debugPrint('[SelectMode] No active band - cannot enrich');
+      return;
+    }
+
+    // Step 1: Show selector
+    final selection = await showEnrichmentSelectorBottomSheet(
+      context,
+      songCount: _selectedSongIds.length,
+    );
+    if (selection == null || !mounted) return;
+
+    // Step 2: Orchestrate enrichment
+    final supabase = Supabase.instance.client;
+    final repository = SetlistRepository();
+    final enrichmentService = SongEnrichmentService(supabase);
+    final lookupService = ExternalSongLookupService(supabase);
+
+    final orchestrator = SongEnrichmentOrchestrator(
+      repository: repository,
+      enrichmentService: enrichmentService,
+      lookupService: lookupService,
+    );
+
+    final spinner = _showEnrichmentSpinnerOverlay();
+    late final EnrichmentOrchestrationResult result;
+    try {
+      result = await orchestrator.enrichSongs(
+        songIds: _selectedSongIds.toList(),
+        bandId: bandId,
+        enrichBpm: selection.bpmSelected,
+        enrichDuration: selection.durationSelected,
+        enrichKey: selection.keySelected,
+      );
+    } finally {
+      spinner.remove();
+    }
+
+    if (!mounted) return;
+
+    // Step 3: Broadcast updates for enriched songs to trigger UI refresh
+    final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
+    for (final detail in result.details) {
+      if (detail.bpmResult == EnrichmentFieldResult.updated ||
+          detail.durationResult == EnrichmentFieldResult.updated ||
+          detail.keyResult == EnrichmentFieldResult.updated) {
+        // Broadcast update for this song
+        broadcaster.broadcast(SongUpdateEvent(songId: detail.songId));
+      }
+    }
+
+    // Step 4: Show results overlay
+    await showEnrichmentResultsOverlay(
+      context: context,
+      result: result,
+    );
+
+    // Step 5: Exit select mode
+    _exitSelectMode();
+  }
+
+  /// Handle enrichment of all catalog songs (Task 9: catalog-wide entry point)
+  Future<void> _handleEnrichAllCatalogSongs(SetlistDetailState state) async {
+    if (!state.isCatalog || state.songs.isEmpty) return;
+
+    final bandId = ref.read(activeBandIdProvider);
+    if (bandId == null) {
+      debugPrint('[Catalog] No active band - cannot enrich');
+      return;
+    }
+
+    // Step 1: Show selector
+    final selection = await showEnrichmentSelectorBottomSheet(
+      context,
+      songCount: state.songs.length,
+    );
+    if (selection == null || !mounted) return;
+
+    // Step 2: Show progress overlay for large catalogs (50+ songs)
+    void Function(int completed, int total, String currentSong)? updateProgress;
+    NavigatorState? navigator;
+
+    if (state.songs.length >= 50) {
+      updateProgress = await showEnrichmentProgressOverlay(context: context);
+      navigator = Navigator.of(context);
+    }
+
+    final showSpinner = updateProgress == null;
+    final spinner = showSpinner ? _showEnrichmentSpinnerOverlay() : null;
+
+    // Step 3: Orchestrate enrichment with progress tracking
+    final supabase = Supabase.instance.client;
+    final repository = SetlistRepository();
+    final enrichmentService = SongEnrichmentService(supabase);
+    final lookupService = ExternalSongLookupService(supabase);
+
+    final orchestrator = SongEnrichmentOrchestrator(
+      repository: repository,
+      enrichmentService: enrichmentService,
+      lookupService: lookupService,
+    );
+
+    // Map song progress to overlay updates
+    void onProgress(int completed, int total) {
+      if (updateProgress != null && completed <= state.songs.length) {
+        final currentSong = state.songs[completed - 1];
+        updateProgress(
+          completed,
+          total,
+          '${currentSong.title} • ${currentSong.artist}',
+        );
+      }
+    }
+
+    late final EnrichmentOrchestrationResult result;
+    try {
+      result = await orchestrator.enrichSongs(
+        songIds: [], // Empty = all catalog songs
+        bandId: bandId,
+        enrichBpm: selection.bpmSelected,
+        enrichDuration: selection.durationSelected,
+        enrichKey: selection.keySelected,
+        onProgress: onProgress,
+      );
+    } finally {
+      spinner?.remove();
+      // Remove progress overlay if it was shown
+      if (navigator != null && navigator.canPop()) {
+        navigator.pop();
+      }
+    }
+
+    if (!mounted) return;
+
+    // Step 4: Broadcast updates for enriched songs to trigger UI refresh
+    final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
+    for (final detail in result.details) {
+      if (detail.bpmResult == EnrichmentFieldResult.updated ||
+          detail.durationResult == EnrichmentFieldResult.updated ||
+          detail.keyResult == EnrichmentFieldResult.updated) {
+        broadcaster.broadcast(SongUpdateEvent(songId: detail.songId));
+      }
+    }
+
+    // Step 5: Show results overlay
+    await showEnrichmentResultsOverlay(
+      context: context,
+      result: result,
+    );
+  }
+
+  OverlayEntry _showEnrichmentSpinnerOverlay() {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final colors = context.colors;
+
+    final entry = OverlayEntry(
+      builder: (context) {
+        return Material(
+          color: Colors.black54,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(Spacing.space20),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                border: Border.all(color: colors.borderStrong),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: Spacing.space24,
+                    height: Spacing.space24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        colors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space12),
+                  Text(
+                    'Enriching songs...',
+                    style: AppTextStyles.callout.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    overlay.insert(entry);
+    return entry;
+  }
+
   /// Update search query
   void _onSearchChanged(String query) {
     setState(() {
@@ -1798,45 +2009,75 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
   /// Build the action buttons row (default state)
   Widget _buildActionButtonsRow(SetlistDetailState state, bool canEdit) {
+    final selectedCount = _selectedSongIds.length;
+    final enrichLabel = _isSelectMode && selectedCount > 0
+        ? 'Enrich ($selectedCount)'
+        : 'Enrich';
+
     return SingleChildScrollView(
       key: const ValueKey('action-buttons'),
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          // Sort button (Catalog only) — read-only action, always visible
-          if (state.isCatalog && state.songs.isNotEmpty) ...[
-            _ActionButton(
-              icon: Icons.sort_rounded,
-              label: 'Sort',
-              onTap: () =>
-                  _showSortOptions(context, ref, state.catalogSortMode),
-            ),
-            const SizedBox(width: 8),
+          if (state.isCatalog) ...[
+            // Catalog order: + Add, Search, Sort, Enrich
+            if (canEdit) ...[
+              _ActionButton(
+                icon: AppIcons.add,
+                label: 'Add',
+                onTap: _handleOpenAddOverlay,
+              ),
+              const SizedBox(width: 8),
+            ],
+            _ActionButton(icon: Icons.search_rounded, onTap: _startSearch),
+            if (state.songs.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              _ActionButton(
+                icon: Icons.sort_rounded,
+                label: 'Sort',
+                onTap: () =>
+                    _showSortOptions(context, ref, state.catalogSortMode),
+              ),
+            ],
+            if (state.songs.isNotEmpty && canEdit) ...[
+              const SizedBox(width: 8),
+              _ActionButton(
+                icon: Icons.auto_awesome,
+                label: enrichLabel,
+                onTap: _isSelectMode && selectedCount > 0
+                    ? _handleEnrichSelectedSongs
+                    : () => _handleEnrichAllCatalogSongs(state),
+              ),
+            ],
+          ] else ...[
+            // Keep non-catalog behavior unchanged.
+            if (canEdit) ...[
+              _ActionButton(
+                icon: AppIcons.add,
+                label: 'Add to Setlist',
+                onTap: _handleOpenAddOverlay,
+              ),
+              const SizedBox(width: 8),
+            ],
+            if (ref
+                    .read(setlistDetailProvider.notifier)
+                    .availableTunings
+                    .length >
+                1) ...[
+              _TuningSortButton(
+                startingTuningId: state.startingTuningId,
+                onTap: () {
+                  ref
+                      .read(setlistDetailProvider.notifier)
+                      .cycleStartingTuning();
+                  _sortAnimController.forward(from: 0);
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+            // Search filter button (icon only) — read-only action
+            _ActionButton(icon: Icons.search_rounded, onTap: _startSearch),
           ],
-          // + Add to Setlist button (hidden for read-only)
-          if (canEdit) ...[
-            _ActionButton(
-              icon: AppIcons.add,
-              label: 'Add to Setlist',
-              onTap: _handleOpenAddOverlay,
-            ),
-            const SizedBox(width: 8),
-          ],
-          // Tuning sort toggle (non-Catalog only) — cycles starting tuning group
-          if (!state.isCatalog &&
-              ref.read(setlistDetailProvider.notifier).availableTunings.length >
-                  1) ...[
-            _TuningSortButton(
-              startingTuningId: state.startingTuningId,
-              onTap: () {
-                ref.read(setlistDetailProvider.notifier).cycleStartingTuning();
-                _sortAnimController.forward(from: 0);
-              },
-            ),
-            const SizedBox(width: 8),
-          ],
-          // Search filter button (icon only) — read-only action
-          _ActionButton(icon: Icons.search_rounded, onTap: _startSearch),
         ],
       ),
     );
@@ -2469,14 +2710,15 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
   // ============================================================
   // SELECT MODE BOTTOM ACTIONS
-  // Sticky bottom bar with Cancel and Add To Setlist buttons.
+  // Sticky bottom bar with Cancel and Move to setlist button.
   // ============================================================
 
   Widget _buildSelectModeBottomActions() {
     final hasSelection = _selectedSongIds.isNotEmpty;
     final selectedCount = _selectedSongIds.length;
-    final buttonLabel =
-        selectedCount > 0 ? 'Add $selectedCount to Setlist' : 'Add To Setlist';
+    final buttonLabel = selectedCount > 0
+        ? 'Move to setlist ($selectedCount)'
+        : 'Move to setlist';
 
     return Container(
       padding: EdgeInsets.only(
@@ -2521,7 +2763,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
           const SizedBox(width: Spacing.space12),
 
-          // Add To Setlist button (primary, disabled when no selection)
+          // Move to setlist button (primary, disabled when no selection)
           Expanded(
             flex: 2,
             child: FilledButton(

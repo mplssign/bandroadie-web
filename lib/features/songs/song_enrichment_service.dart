@@ -24,6 +24,40 @@ class SongEnrichmentResult {
       const SongEnrichmentResult(confidence: 'none');
 }
 
+/// Input for batch enrichment — one song's current state.
+class EnrichmentSongInput {
+  final String id;
+  final String title;
+  final String artist;
+  final int? currentBpm;
+  final int? currentDuration;
+  final String? currentKey;
+
+  const EnrichmentSongInput({
+    required this.id,
+    required this.title,
+    required this.artist,
+    this.currentBpm,
+    this.currentDuration,
+    this.currentKey,
+  });
+}
+
+/// Result of batch enrichment for a single song.
+class SongEnrichmentBatchResult {
+  final String songId;
+  final String title;
+  final String artist;
+  final SongEnrichmentResult result;
+
+  const SongEnrichmentBatchResult({
+    required this.songId,
+    required this.title,
+    required this.artist,
+    required this.result,
+  });
+}
+
 /// Service for fetching BPM/key enrichment via the getsongbpm_lookup Edge Function.
 class SongEnrichmentService {
   final SupabaseClient _supabase;
@@ -72,5 +106,46 @@ class SongEnrichmentService {
       debugPrint('[SongEnrichmentService] Lookup failed (non-fatal): $e');
       return SongEnrichmentResult.notFound();
     }
+  }
+
+  /// Enrich multiple songs in batch for BPM and Key.
+  ///
+  /// For each song, calls GetSongBPM and returns results.
+  /// Never throws — failed lookups return 'none' confidence.
+  ///
+  /// Progress callback is invoked after each song completes.
+  /// NOTE: This handles BPM/Key only. Duration uses separate ExternalSongLookupService.
+  ///
+  /// Processing is sequential to avoid overwhelming the GetSongBPM API
+  /// (3,000 requests/hour limit, sufficient for typical catalog sizes).
+  Future<List<SongEnrichmentBatchResult>> enrichBatch({
+    required List<EnrichmentSongInput> songs,
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final results = <SongEnrichmentBatchResult>[];
+    final total = songs.length;
+
+    for (var i = 0; i < songs.length; i++) {
+      final song = songs[i];
+      final result = await lookup(
+        title: song.title,
+        artist: song.artist,
+        durationSeconds: song.currentDuration,
+      );
+
+      results.add(SongEnrichmentBatchResult(
+        songId: song.id,
+        title: song.title,
+        artist: song.artist,
+        result: result,
+      ));
+
+      // Report progress
+      if (onProgress != null) {
+        onProgress(i + 1, total);
+      }
+    }
+
+    return results;
   }
 }

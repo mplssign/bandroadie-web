@@ -3272,6 +3272,72 @@ class SetlistRepository {
   }
 
   // ==========================================================================
+  // ENRICH SONGS (BATCH UPDATE)
+  // ==========================================================================
+
+  /// Enrich songs via update_song_metadata RPC.
+  ///
+  /// Only updates fields where newValue is non-null.
+  /// Returns success/failure per song.
+  ///
+  /// [bandId] - Required for security check
+  /// [updates] - Map of songId -> Map with optional 'bpm', 'durationSeconds', 'musicalKey' keys
+  ///
+  /// Returns map of songId -> success bool.
+  Future<Map<String, bool>> enrichSongs({
+    required String bandId,
+    required Map<String, Map<String, dynamic>> updates,
+  }) async {
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    final results = <String, bool>{};
+
+    for (final entry in updates.entries) {
+      final songId = entry.key;
+      final update = entry.value;
+
+      try {
+        // Call RPC with only non-null fields
+        final result = await supabase.rpc(
+          'update_song_metadata',
+          params: {
+            'p_song_id': songId,
+            'p_band_id': bandId,
+            'p_bpm': update['bpm'],
+            'p_duration_seconds': update['durationSeconds'],
+            'p_tuning': null,
+            'p_notes': null,
+            'p_title': null,
+            'p_artist': null,
+            'p_youtube_links': null,
+            'p_lyrics': null,
+            'p_musical_key': update['musicalKey'],
+          },
+        );
+
+        // Check RPC result
+        if (result is Map) {
+          results[songId] = result['success'] == true;
+          if (result['success'] == false) {
+            debugPrint(
+              '[SetlistRepository] Enrichment failed for $songId: ${result['error']}',
+            );
+          }
+        } else {
+          results[songId] = true; // Assume success if no error
+        }
+      } catch (e) {
+        debugPrint('[SetlistRepository] Error enriching song $songId: $e');
+        results[songId] = false;
+      }
+    }
+
+    return results;
+  }
+
+  // ==========================================================================
   // UPSERT EXTERNAL SONG
   // ==========================================================================
 
