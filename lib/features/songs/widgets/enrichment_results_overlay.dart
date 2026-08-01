@@ -102,29 +102,28 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    if (result.notFound > 0 || result.errors > 0) ...[
+                    if (result.notFound > 0 ||
+                        result.errors > 0 ||
+                        result.unchanged > 0) ...[
                       const SizedBox(height: Spacing.space8),
                       // Secondary stats
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: Spacing.space8,
+                        runSpacing: Spacing.space4,
                         children: [
+                          if (result.unchanged > 0)
+                            Text(
+                              '• ${result.unchanged} song${result.unchanged == 1 ? "" : "s"} unchanged',
+                              style: AppTextStyles.footnote.copyWith(
+                                color: context.colors.textSecondary,
+                              ),
+                            ),
                           if (result.notFound > 0)
                             Text(
                               '• ${result.notFound} song${result.notFound == 1 ? "" : "s"} not recognized',
                               style: AppTextStyles.footnote.copyWith(
                                 color: context.colors.textSecondary,
-                              ),
-                            ),
-                          if (result.notFound > 0 && result.errors > 0)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: Spacing.space8,
-                              ),
-                              child: Text(
-                                '•',
-                                style: AppTextStyles.footnote.copyWith(
-                                  color: context.colors.textSecondary,
-                                ),
                               ),
                             ),
                           if (result.errors > 0)

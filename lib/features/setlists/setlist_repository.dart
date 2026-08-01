@@ -3298,6 +3298,16 @@ class SetlistRepository {
       final songId = entry.key;
       final update = entry.value;
 
+      if (kDebugMode) {
+        final nonNullParams = update.entries
+            .where((e) => e.value != null)
+            .map((e) => e.key)
+            .join(', ');
+        debugPrint(
+          '[SetlistRepository] Enriching song $songId with params: $nonNullParams',
+        );
+      }
+
       try {
         // Call RPC with only non-null fields
         final result = await supabase.rpc(
@@ -3320,6 +3330,11 @@ class SetlistRepository {
         // Check RPC result
         if (result is Map) {
           results[songId] = result['success'] == true;
+          if (kDebugMode) {
+            debugPrint(
+              '[SetlistRepository] RPC result for $songId: success=${result['success']}, error=${result['error']}',
+            );
+          }
           if (result['success'] == false) {
             debugPrint(
               '[SetlistRepository] Enrichment failed for $songId: ${result['error']}',
@@ -3327,6 +3342,11 @@ class SetlistRepository {
           }
         } else {
           results[songId] = true; // Assume success if no error
+          if (kDebugMode) {
+            debugPrint(
+              '[SetlistRepository] RPC returned non-map result for $songId, assuming success',
+            );
+          }
         }
       } catch (e) {
         debugPrint('[SetlistRepository] Error enriching song $songId: $e');

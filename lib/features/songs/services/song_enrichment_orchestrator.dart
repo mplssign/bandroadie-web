@@ -71,6 +71,12 @@ class SongEnrichmentOrchestrator {
         _enrichmentService = enrichmentService,
         _lookupService = lookupService;
 
+  // Helper predicates for field-missing detection
+  bool _isMissingBpm(int? bpm) => bpm == null || bpm <= 0;
+  bool _isMissingDuration(int durationSeconds) => durationSeconds <= 0;
+  bool _isMissingKey(String? musicalKey) =>
+      musicalKey == null || musicalKey.trim().isEmpty;
+
   /// Enrich songs for BPM, Duration, and/or Key.
   ///
   /// [songIds]: List of song IDs to enrich. Empty = all catalog songs.
@@ -107,9 +113,10 @@ class SongEnrichmentOrchestrator {
 
     // 2. Filter: skip songs where all requested fields are already filled
     final songsNeedingEnrichment = songsToEnrich.where((song) {
-      final needsBpm = enrichBpm && song.bpm == null;
-      final needsDuration = enrichDuration && song.durationSeconds == 0;
-      final needsKey = enrichKey && song.musicalKey == null;
+      final needsBpm = enrichBpm && _isMissingBpm(song.bpm);
+      final needsDuration =
+          enrichDuration && _isMissingDuration(song.durationSeconds);
+      final needsKey = enrichKey && _isMissingKey(song.musicalKey);
       return needsBpm || needsDuration || needsKey;
     }).toList();
 
@@ -128,9 +135,16 @@ class SongEnrichmentOrchestrator {
       final song = songsToEnrich[i];
 
       // Check if this song needs enrichment
-      final needsBpm = enrichBpm && song.bpm == null;
-      final needsDuration = enrichDuration && song.durationSeconds == 0;
-      final needsKey = enrichKey && song.musicalKey == null;
+      final needsBpm = enrichBpm && _isMissingBpm(song.bpm);
+      final needsDuration =
+          enrichDuration && _isMissingDuration(song.durationSeconds);
+      final needsKey = enrichKey && _isMissingKey(song.musicalKey);
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SongEnrichmentOrchestrator] Song "${song.title}" eligibility: needsBpm=$needsBpm, needsDuration=$needsDuration, needsKey=$needsKey',
+        );
+      }
 
       if (!needsBpm && !needsDuration && !needsKey) {
         // All requested fields already filled
@@ -220,6 +234,12 @@ class SongEnrichmentOrchestrator {
         updateMap['durationSeconds'] = fetchedDuration;
       }
       if (fetchedKey != null) updateMap['musicalKey'] = fetchedKey;
+
+      if (kDebugMode && updateMap.isNotEmpty) {
+        debugPrint(
+          '[SongEnrichmentOrchestrator] Song "${song.title}" updateMap: ${updateMap.keys.join(", ")}',
+        );
+      }
 
       // Call RPC if we have any update
       bool rpcSuccess = false;
