@@ -133,9 +133,11 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   // BPM is tracked as nullable int (dialog-based input)
   late int? _currentBpm;
+  late int? _originalBpm;
 
   // Duration is tracked as seconds (used by MaskedDurationInput)
   late int _currentDurationSeconds;
+  late int _originalDurationSeconds;
 
   // YouTube links list
   late List<SongLink> _youtubeLinks;
@@ -165,7 +167,9 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     _artistController = TextEditingController(text: widget.song.artist);
     _notesController = TextEditingController(text: widget.song.notes ?? '');
     _currentBpm = widget.song.bpm;
+    _originalBpm = widget.song.bpm;
     _currentDurationSeconds = widget.song.durationSeconds;
+    _originalDurationSeconds = widget.song.durationSeconds;
     _currentTuning = widget.song.tuning ?? 'standard_e';
 
     // Initialize YouTube links from song data
@@ -234,6 +238,29 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
   }
 
   void _checkForChanges() {
+    final changes = _computeChangeFlags();
+
+    debugPrint(
+      '[SongDetails] _checkForChanges: bpmChanged=${changes.bpmChanged}, anyChanged=${changes.anyChanged}',
+    );
+
+    setState(() {
+      _hasChanges = changes.anyChanged;
+    });
+  }
+
+  ({
+    bool titleChanged,
+    bool artistChanged,
+    bool notesChanged,
+    bool tuningChanged,
+    bool bpmChanged,
+    bool durationChanged,
+    bool youtubeLinksChanged,
+    bool lyricsChanged,
+    bool musicalKeyChanged,
+    bool anyChanged,
+  }) _computeChangeFlags() {
     final newTitle = _titleController.text.trim();
     final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
@@ -243,9 +270,8 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     final artistChanged = newArtist != widget.song.artist;
     final notesChanged = newNotes != (widget.song.notes ?? '');
     final tuningChanged = _currentTuning != originalTuning;
-    final bpmChanged = _currentBpm != widget.song.bpm;
-    final durationChanged =
-        _currentDurationSeconds != widget.song.durationSeconds;
+    final bpmChanged = _currentBpm != _originalBpm;
+    final durationChanged = _currentDurationSeconds != _originalDurationSeconds;
     final youtubeLinksChanged = !_areYoutubeLinksEqual(
       _youtubeLinks,
       _originalYoutubeLinks,
@@ -264,13 +290,58 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
         lyricsChanged ||
         musicalKeyChanged;
 
-    debugPrint(
-      '[SongDetails] _checkForChanges: bpmChanged=$bpmChanged, anyChanged=$anyChanged',
+    return (
+      titleChanged: titleChanged,
+      artistChanged: artistChanged,
+      notesChanged: notesChanged,
+      tuningChanged: tuningChanged,
+      bpmChanged: bpmChanged,
+      durationChanged: durationChanged,
+      youtubeLinksChanged: youtubeLinksChanged,
+      lyricsChanged: lyricsChanged,
+      musicalKeyChanged: musicalKeyChanged,
+      anyChanged: anyChanged,
     );
+  }
 
-    setState(() {
-      _hasChanges = anyChanged;
-    });
+  bool _didCurrentSongMetadataUpdate(EnrichmentOrchestrationResult result) {
+    for (final detail in result.details) {
+      if (detail.songId == widget.song.id) {
+        return detail.bpmResult == EnrichmentFieldResult.updated ||
+            detail.durationResult == EnrichmentFieldResult.updated ||
+            detail.keyResult == EnrichmentFieldResult.updated;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _refreshAndRebaselineMetadata(String bandId) async {
+    try {
+      final row = await Supabase.instance.client
+          .from('songs')
+          .select('bpm, duration_seconds, musical_key')
+          .eq('id', widget.song.id)
+          .eq('band_id', bandId)
+          .maybeSingle();
+
+      if (!mounted || row == null) return;
+
+      final refreshedBpm = row['bpm'] as int?;
+      final refreshedDurationSeconds = row['duration_seconds'] as int? ?? 0;
+      final refreshedMusicalKey = row['musical_key'] as String?;
+
+      setState(() {
+        _currentBpm = refreshedBpm;
+        _originalBpm = refreshedBpm;
+        _currentDurationSeconds = refreshedDurationSeconds;
+        _originalDurationSeconds = refreshedDurationSeconds;
+        _currentMusicalKey = refreshedMusicalKey;
+        _originalMusicalKey = refreshedMusicalKey;
+        _hasChanges = _computeChangeFlags().anyChanged;
+      });
+    } catch (e) {
+      debugPrint('[SongDetails] Failed to refresh enriched metadata: $e');
+    }
   }
 
   /// Compare two lists of YouTube links for equality
@@ -398,52 +469,37 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     final newTitle = _titleController.text.trim();
     final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
-    final originalTuning = widget.song.tuning ?? 'standard_e';
+    final changes = _computeChangeFlags();
 
-    debugPrint('[SongDetails] Original song.bpm: ${widget.song.bpm}');
+    debugPrint('[SongDetails] Original song.bpm: $_originalBpm');
     debugPrint('[SongDetails] New BPM from state: $_currentBpm');
 
-    // Determine which fields changed
-    final titleChanged = newTitle != widget.song.title;
-    final artistChanged = newArtist != widget.song.artist;
-    final notesChanged = newNotes != (widget.song.notes ?? '');
-    final tuningChanged = _currentTuning != originalTuning;
-    final bpmChanged = _currentBpm != widget.song.bpm;
-    final durationChanged =
-        _currentDurationSeconds != widget.song.durationSeconds;
-    final youtubeLinksChanged = !_areYoutubeLinksEqual(
-      _youtubeLinks,
-      _originalYoutubeLinks,
-    );
-    final lyricsChanged = _currentLyrics != _originalLyrics;
-    final musicalKeyChanged = _currentMusicalKey != _originalMusicalKey;
-
     debugPrint(
-      '[SongDetails] bpmChanged: $bpmChanged (newBpm=$_currentBpm, original=${widget.song.bpm})',
+      '[SongDetails] bpmChanged: ${changes.bpmChanged} (newBpm=$_currentBpm, original=$_originalBpm)',
     );
     debugPrint('[SongDetails] _hasChanges state: $_hasChanges');
 
     final result = SongDetailsResult(
-      title: titleChanged ? newTitle : null,
-      artist: artistChanged ? newArtist : null,
-      notes: notesChanged ? newNotes : null,
-      tuning: tuningChanged ? _currentTuning : null,
+      title: changes.titleChanged ? newTitle : null,
+      artist: changes.artistChanged ? newArtist : null,
+      notes: changes.notesChanged ? newNotes : null,
+      tuning: changes.tuningChanged ? _currentTuning : null,
       bpm: _currentBpm, // Always include so handler can check bpmChanged flag
       duration:
           _currentDurationSeconds, // Always include so handler can check durationChanged flag
-      youtubeLinks: youtubeLinksChanged ? _youtubeLinks : null,
-      lyrics: lyricsChanged ? _currentLyrics : null,
-      musicalKey: musicalKeyChanged ? _currentMusicalKey : null,
-      hasChanges: _hasChanges,
-      titleChanged: titleChanged,
-      artistChanged: artistChanged,
-      notesChanged: notesChanged,
-      tuningChanged: tuningChanged,
-      bpmChanged: bpmChanged,
-      durationChanged: durationChanged,
-      youtubeLinksChanged: youtubeLinksChanged,
-      lyricsChanged: lyricsChanged,
-      musicalKeyChanged: musicalKeyChanged,
+      youtubeLinks: changes.youtubeLinksChanged ? _youtubeLinks : null,
+      lyrics: changes.lyricsChanged ? _currentLyrics : null,
+      musicalKey: changes.musicalKeyChanged ? _currentMusicalKey : null,
+      hasChanges: changes.anyChanged,
+      titleChanged: changes.titleChanged,
+      artistChanged: changes.artistChanged,
+      notesChanged: changes.notesChanged,
+      tuningChanged: changes.tuningChanged,
+      bpmChanged: changes.bpmChanged,
+      durationChanged: changes.durationChanged,
+      youtubeLinksChanged: changes.youtubeLinksChanged,
+      lyricsChanged: changes.lyricsChanged,
+      musicalKeyChanged: changes.musicalKeyChanged,
     );
 
     Navigator.of(context).pop(result);
@@ -555,6 +611,12 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     );
 
     if (!mounted) return;
+
+    // Rebaseline local metadata state so Save reflects post-enrichment values.
+    if (_didCurrentSongMetadataUpdate(result)) {
+      await _refreshAndRebaselineMetadata(bandId);
+      if (!mounted) return;
+    }
 
     // Step 3: Broadcast updates for enriched fields to refresh catalog/list views.
     final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
