@@ -323,7 +323,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     }
 
     state = state.copyWith(activeBand: band);
-    ref.invalidate(displayBandProvider);
 
     ref.invalidate(currentUserPermissionsProvider);
 
