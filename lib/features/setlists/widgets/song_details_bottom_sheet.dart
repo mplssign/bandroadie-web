@@ -884,6 +884,32 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                         ? [_buildNotesSubView()]
                         : [
                             _buildSongInfo(),
+                            if (!widget.isReadOnly) ...[
+                              const SizedBox(height: 8),
+                              Center(
+                                child: TextButton.icon(
+                                  onPressed: _handleEnrichSong,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 16,
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    Icons.auto_awesome,
+                                    size: 16,
+                                    color: context.colors.primary,
+                                  ),
+                                  label: Text(
+                                    'Enrich Song Data',
+                                    style: AppTextStyles.body.copyWith(
+                                      color: context.colors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: Spacing.space24),
                             _buildMetricsRow(),
                             const SizedBox(height: Spacing.space24),
@@ -1548,28 +1574,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               ),
             ),
           if (!widget.isReadOnly) const SizedBox(height: 8),
-          // Enrich Data button
-          if (!widget.isReadOnly)
-            TextButton.icon(
-              onPressed: _handleEnrichSong,
-              style: TextButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              ),
-              icon: Icon(
-                Icons.auto_awesome,
-                size: 16,
-                color: context.colors.primary,
-              ),
-              label: Text(
-                'Enrich Song Data',
-                style: AppTextStyles.body.copyWith(
-                  color: context.colors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          if (!widget.isReadOnly) const SizedBox(height: 4),
           // Centered Cancel/Close text button
           TextButton(
             onPressed: widget.isReadOnly
