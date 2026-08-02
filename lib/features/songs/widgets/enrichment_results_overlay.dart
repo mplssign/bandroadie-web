@@ -96,7 +96,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                   children: [
                     // Primary stat
                     Text(
-                      '${result.enriched} of ${result.total} songs enriched',
+                      '${result.enriched} of ${result.total} songs enriched and saved',
                       style: AppTextStyles.title3.copyWith(
                         color: Colors.white,
                       ),

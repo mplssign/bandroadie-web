@@ -155,6 +155,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
   bool _isEditingArtist = false;
   bool _isEditingNotes = false;
   bool _hasChanges = false;
+  bool _justEnriched = false;
 
   final FocusNode _titleFocus = FocusNode();
   final FocusNode _artistFocus = FocusNode();
@@ -246,6 +247,10 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
     setState(() {
       _hasChanges = changes.anyChanged;
+      // Clear _justEnriched flag when user makes a manual edit after enrichment
+      if (_justEnriched && _hasChanges) {
+        _justEnriched = false;
+      }
     });
   }
 
@@ -616,6 +621,9 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     if (_didCurrentSongMetadataUpdate(result)) {
       await _refreshAndRebaselineMetadata(bandId);
       if (!mounted) return;
+      setState(() {
+        _justEnriched = true;
+      });
     }
 
     // Step 3: Broadcast updates for enriched fields to refresh catalog/list views.
@@ -1497,14 +1505,27 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Full-width Save button (hidden in read-only mode)
+          // Explanatory text when enrichment just completed
+          if (_justEnriched) ...[
+            Text(
+              '✓ Enrichment saved automatically',
+              style: AppTextStyles.callout.copyWith(
+                color: context.colors.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          // Full-width Save/Done button (hidden in read-only mode)
           if (!widget.isReadOnly)
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: _hasChanges ? _handleSave : null,
+                onPressed: _justEnriched
+                    ? () => Navigator.of(context).pop()
+                    : (_hasChanges ? _handleSave : null),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _hasChanges
+                  backgroundColor: (_justEnriched || _hasChanges)
                       ? AppColors.primary
                       : context.colors.border.withValues(alpha: 0.3),
                   disabledBackgroundColor:
@@ -1515,10 +1536,11 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                   ),
                 ),
                 child: Text(
-                  'Save',
+                  _justEnriched ? 'Done' : 'Save',
                   style: AppTextStyles.body.copyWith(
-                    color:
-                        _hasChanges ? Colors.white : context.colors.textMuted,
+                    color: (_justEnriched || _hasChanges)
+                        ? Colors.white
+                        : context.colors.textMuted,
                     fontWeight: FontWeight.w700,
                     fontSize: AppFontSizes.body,
                   ),
@@ -1552,7 +1574,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
           TextButton(
             onPressed: widget.isReadOnly
                 ? () => Navigator.of(context).pop()
-                : _handleCancel,
+                : (_justEnriched ? null : _handleCancel),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
             ),
