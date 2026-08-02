@@ -790,6 +790,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     }
   }
 
+  void _unlinkVenue() {
+    if (_selectedVenueId == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedVenueId = null;
+    });
+    _markDirty();
+  }
+
   /// Fetch gig city suggestions with debounce (from past gig cities for this band)
   void _fetchGigCitySuggestions(String query) {
     _gigCityDebounceTimer?.cancel();
@@ -1952,6 +1963,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       isSaving: _isSaving,
       isEditMode: _isEditMode,
       existingEventId: widget.existingEventId,
+      isVenueLinked: _selectedVenueId != null,
+      onUnlinkVenue: _unlinkVenue,
       nameController: _nameController,
       venueHintController: _venueHintController,
       gigNameFocusNode: _gigNameFocusNode,

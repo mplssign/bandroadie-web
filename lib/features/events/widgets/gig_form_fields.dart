@@ -20,6 +20,8 @@ class GigFormFields extends ConsumerWidget {
     required this.isSaving,
     required this.isEditMode,
     required this.existingEventId,
+    required this.isVenueLinked,
+    required this.onUnlinkVenue,
     // Gig name autocomplete
     required this.nameController,
     required this.venueHintController,
@@ -79,6 +81,8 @@ class GigFormFields extends ConsumerWidget {
   final bool isSaving;
   final bool isEditMode;
   final String? existingEventId;
+  final bool isVenueLinked;
+  final VoidCallback onUnlinkVenue;
 
   // --- Gig name autocomplete ---
   final TextEditingController nameController;
@@ -203,7 +207,7 @@ class GigFormFields extends ConsumerWidget {
         TextField(
           controller: addressController,
           focusNode: gigAddressFocusNode,
-          enabled: !isSaving,
+          enabled: !isSaving && !isVenueLinked,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
           style: AppTextStyles.callout.copyWith(
@@ -306,7 +310,7 @@ class GigFormFields extends ConsumerWidget {
         const SizedBox(height: 6),
         TextField(
           controller: stateController,
-          enabled: !isSaving,
+          enabled: !isSaving && !isVenueLinked,
           textCapitalization: TextCapitalization.characters,
           textInputAction: TextInputAction.next,
           maxLength: 2,
@@ -493,6 +497,22 @@ class GigFormFields extends ConsumerWidget {
             style: AppTextStyles.footnote.copyWith(color: AppColors.error),
           ),
         ],
+        if (isVenueLinked) ...[
+          const SizedBox(height: Spacing.space8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(
+              onTap: isSaving ? null : onUnlinkVenue,
+              child: Text(
+                'Unlink venue',
+                style: AppTextStyles.footnote.copyWith(
+                  color:
+                      isSaving ? context.colors.textMuted : AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
         FieldHint(
           text: "Start typing to reuse past venues.",
           controller: venueHintController,
@@ -545,7 +565,7 @@ class GigFormFields extends ConsumerWidget {
             return TextField(
               controller: controller,
               focusNode: focusNode,
-              enabled: !isSaving,
+              enabled: !isSaving && !isVenueLinked,
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               style: AppTextStyles.callout.copyWith(
