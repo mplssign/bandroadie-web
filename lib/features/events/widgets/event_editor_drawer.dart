@@ -734,12 +734,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (venue.city != null &&
           venue.city!.isNotEmpty &&
           _locationController.text.trim().isEmpty) {
-        final cityState = [
-          venue.city,
-          if (venue.state != null && venue.state!.isNotEmpty)
-            venue.state!.toUpperCase(),
-        ].join(', ');
-        _locationController.text = cityState;
+        _locationController.text = venue.city!;
       }
 
       // Auto-fill address from venue if set and address field is empty
