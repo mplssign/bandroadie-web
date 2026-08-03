@@ -116,6 +116,33 @@ class VenuesNotifier extends Notifier<VenuesState> {
     }
   }
 
+  Future<Venue> createForGigSave({
+    required String bandId,
+    required String name,
+    String? city,
+    String? address,
+    String? state,
+    required bool isPotential,
+  }) async {
+    try {
+      final venue = await _repository.createVenueForGigSave(
+        bandId: bandId,
+        name: name,
+        city: city,
+        address: address,
+        state: state,
+        isPotential: isPotential,
+      );
+      await load(bandId);
+      return venue;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[VenuesController] Error creating venue for gig save: $e');
+      }
+      rethrow;
+    }
+  }
+
   Future<Venue?> update({
     required String id,
     required String bandId,

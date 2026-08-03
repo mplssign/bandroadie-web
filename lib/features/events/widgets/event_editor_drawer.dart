@@ -1444,23 +1444,21 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           formData = formData.copyWith(venueId: _selectedVenueId);
         } else {
           // No match — create new venue with all available fields
-          final newVenue = await ref.read(venuesProvider.notifier).create(
-            bandId: widget.bandId,
-            data: {
-              'name': venueName,
-              'city': venueCity.isNotEmpty ? venueCity : null,
-              'address': _addressController.text.trim().isNotEmpty
-                  ? _addressController.text.trim()
-                  : null,
-              'state': _stateController.text.trim().isNotEmpty
-                  ? _stateController.text.trim()
-                  : null,
-            },
-          );
-          if (newVenue != null) {
-            _selectedVenueId = newVenue.id;
-            formData = formData.copyWith(venueId: newVenue.id);
-          }
+          final newVenue =
+              await ref.read(venuesProvider.notifier).createForGigSave(
+                    bandId: widget.bandId,
+                    name: venueName,
+                    city: venueCity.isNotEmpty ? venueCity : null,
+                    address: _addressController.text.trim().isNotEmpty
+                        ? _addressController.text.trim()
+                        : null,
+                    state: _stateController.text.trim().isNotEmpty
+                        ? _stateController.text.trim()
+                        : null,
+                    isPotential: _isPotentialGig,
+                  );
+          _selectedVenueId = newVenue.id;
+          formData = formData.copyWith(venueId: newVenue.id);
         }
       }
 
