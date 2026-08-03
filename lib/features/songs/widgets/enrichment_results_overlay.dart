@@ -52,6 +52,26 @@ class EnrichmentResultsOverlay extends StatelessWidget {
     required this.result,
   });
 
+  String get _title {
+    if (result.enriched > 0) {
+      return 'Enrichment Complete';
+    }
+    if (result.errors > 0) {
+      return 'Enrichment Incomplete';
+    }
+    return 'No New Song Data Found';
+  }
+
+  String get _summary {
+    if (result.enriched > 0) {
+      return '${result.enriched} of ${result.total} songs enriched and saved';
+    }
+    if (result.errors > 0) {
+      return 'No song data was saved because one or more lookups or updates failed';
+    }
+    return 'No new song data was found for the selected songs';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog.fullscreen(
@@ -66,7 +86,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Enrichment Complete',
+                      _title,
                       style: AppTextStyles.pageTitle.copyWith(
                         color: Colors.white,
                       ),
@@ -96,7 +116,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                   children: [
                     // Primary stat
                     Text(
-                      '${result.enriched} of ${result.total} songs enriched and saved',
+                      _summary,
                       style: AppTextStyles.title3.copyWith(
                         color: Colors.white,
                       ),
