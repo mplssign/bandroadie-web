@@ -123,9 +123,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     // FIX: Call controller directly with route args instead of setting selectedSetlistProvider
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(setlistDetailProvider.notifier)
-          .loadSetlist(widget.setlistId, widget.setlistName);
+      ref.read(setlistDetailProvider.notifier).loadSetlist(
+            widget.setlistId,
+            widget.setlistName,
+            forceReload: true,
+          );
     });
 
     Future.delayed(const Duration(milliseconds: 50), () {
@@ -1421,6 +1423,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     // Step 5: Exit select mode
     _exitSelectMode();
+
+    final didUpdateMetadata = result.details.any(
+      (detail) =>
+          detail.bpmResult == EnrichmentFieldResult.updated ||
+          detail.durationResult == EnrichmentFieldResult.updated ||
+          detail.keyResult == EnrichmentFieldResult.updated,
+    );
+    if (didUpdateMetadata) {
+      await ref.read(setlistDetailProvider.notifier).loadSongs();
+    }
   }
 
   /// Handle enrichment of all catalog songs (Task 9: catalog-wide entry point)
@@ -1446,6 +1458,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     if (state.songs.length >= 50) {
       updateProgress = await showEnrichmentProgressOverlay(context: context);
+      if (!mounted) return;
       navigator = Navigator.of(context);
     }
 
@@ -1511,6 +1524,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       context: context,
       result: result,
     );
+
+    final didUpdateMetadata = result.details.any(
+      (detail) =>
+          detail.bpmResult == EnrichmentFieldResult.updated ||
+          detail.durationResult == EnrichmentFieldResult.updated ||
+          detail.keyResult == EnrichmentFieldResult.updated,
+    );
+    if (didUpdateMetadata) {
+      await ref.read(setlistDetailProvider.notifier).loadSongs();
+    }
   }
 
   OverlayEntry _showEnrichmentSpinnerOverlay() {

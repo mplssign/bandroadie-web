@@ -347,9 +347,9 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
 
   /// Public method called by screen to initialize the setlist.
   /// Replaces the previous pattern of watching selectedSetlistProvider.
-  void loadSetlist(String id, String name) {
-    // If already loaded this setlist, don't reload
-    if (_setlistId == id) {
+  void loadSetlist(String id, String name, {bool forceReload = false}) {
+    // If already loaded this setlist and no refresh was requested, don't reload
+    if (_setlistId == id && !forceReload) {
       if (kDebugMode) {
         debugPrint(
             '[SetlistDetail] Setlist $id already loaded, skipping reload');
