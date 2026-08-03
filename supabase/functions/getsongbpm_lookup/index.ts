@@ -111,6 +111,11 @@ function normalizeTitleName(title: string): string {
     return normalizeWords(title).join('');
 }
 
+function getPrimaryTitleFallback(title: string): string {
+    const trimmed = title.replace(/\s*\([^()]*\)\s*$/, '').trim();
+    return trimmed.length > 0 ? trimmed : title;
+}
+
 function getCandidateTitle(candidate: any): string | null {
     if (typeof candidate?.title === 'string') return candidate.title;
     if (typeof candidate?.song?.title === 'string') return candidate.song.title;
@@ -220,10 +225,11 @@ function selectBestAvailableMatch(matches: any[]): {
     return bestAvailableMatch;
 }
 
-async function lookupGetSongBpm(
+async function lookupGetSongBpmForTitle(
     apiKey: string,
     title: string,
     artist: string,
+    attempt: 'first' | 'fallback',
 ): Promise<LookupResult> {
     const lookup = `song:${title} artist:${artist}`;
     // GetSongBPM API expects spaces encoded as '+' (application/x-www-form-urlencoded),
@@ -238,6 +244,7 @@ async function lookupGetSongBpm(
     // Never surface a provider error to the caller — bad key (401), bad query
     // (400), or any other non-2xx all degrade to a "not found" result.
     if (!response.ok) {
+        console.log(`[getsongbpm_lookup] attempt=${attempt} reason=provider_non_2xx status=${response.status}`);
         return noneResult();
     }
 
@@ -247,7 +254,7 @@ async function lookupGetSongBpm(
     // No-result shape is {"search": {"error": "no result"}} — an object, not
     // an array. Only treat a real array as candidates.
     if (!Array.isArray(search)) {
-        console.log('[getsongbpm_lookup] reason=no_usable_match detail=no_search_array');
+        console.log(`[getsongbpm_lookup] attempt=${attempt} reason=no_usable_match detail=no_search_array`);
         return noneResult();
     }
 
@@ -265,7 +272,7 @@ async function lookupGetSongBpm(
     if (exactArtistMatches.length > 0 && bestExactArtistMatch &&
         (bestExactArtistMatch.bpm !== null || bestExactArtistMatch.musicalKey !== null)) {
         console.log(
-            `[getsongbpm_lookup] reason=exact_artist_match matches=${exactArtistMatches.length} selected_index=${bestExactArtistMatch.index} has_bpm=${bestExactArtistMatch.hasNumericTempo} has_key=${bestExactArtistMatch.hasNormalizableKey}`,
+            `[getsongbpm_lookup] attempt=${attempt} reason=exact_artist_match matches=${exactArtistMatches.length} selected_index=${bestExactArtistMatch.index} has_bpm=${bestExactArtistMatch.hasNumericTempo} has_key=${bestExactArtistMatch.hasNormalizableKey}`,
         );
         return {
             bpm: bestExactArtistMatch.bpm,
@@ -290,7 +297,7 @@ async function lookupGetSongBpm(
         if (artistVariantMatches.length > 0 && bestArtistVariantMatch &&
             (bestArtistVariantMatch.bpm !== null || bestArtistVariantMatch.musicalKey !== null)) {
             console.log(
-                `[getsongbpm_lookup] reason=artist_variant_match matches=${artistVariantMatches.length} selected_index=${bestArtistVariantMatch.index} has_bpm=${bestArtistVariantMatch.hasNumericTempo} has_key=${bestArtistVariantMatch.hasNormalizableKey}`,
+                `[getsongbpm_lookup] attempt=${attempt} reason=artist_variant_match matches=${artistVariantMatches.length} selected_index=${bestArtistVariantMatch.index} has_bpm=${bestArtistVariantMatch.hasNumericTempo} has_key=${bestArtistVariantMatch.hasNormalizableKey}`,
             );
             return {
                 bpm: bestArtistVariantMatch.bpm,
@@ -300,15 +307,38 @@ async function lookupGetSongBpm(
         }
 
         console.log(
-            `[getsongbpm_lookup] reason=no_usable_match total_candidates=${search.length} exact_matches=0 variant_matches=${artistVariantMatches.length}`,
+            `[getsongbpm_lookup] attempt=${attempt} reason=no_usable_match total_candidates=${search.length} exact_matches=0 variant_matches=${artistVariantMatches.length}`,
         );
         return noneResult();
     }
 
     console.log(
-        `[getsongbpm_lookup] reason=no_usable_match total_candidates=${search.length} exact_matches=${exactArtistMatches.length} variant_matches=0`,
+        `[getsongbpm_lookup] attempt=${attempt} reason=no_usable_match total_candidates=${search.length} exact_matches=${exactArtistMatches.length} variant_matches=0`,
     );
     return noneResult();
+}
+
+async function lookupGetSongBpm(
+    apiKey: string,
+    title: string,
+    artist: string,
+): Promise<LookupResult> {
+    const firstAttemptResult = await lookupGetSongBpmForTitle(apiKey, title, artist, 'first');
+    if (firstAttemptResult.confidence !== 'none') {
+        console.log('[getsongbpm_lookup] fallback_attempted=false result_attempt=first');
+        return firstAttemptResult;
+    }
+
+    const fallbackTitle = getPrimaryTitleFallback(title);
+    if (fallbackTitle === title) {
+        console.log('[getsongbpm_lookup] fallback_attempted=false result_attempt=first');
+        return firstAttemptResult;
+    }
+
+    console.log(`[getsongbpm_lookup] fallback_attempted=true fallback_title="${fallbackTitle}"`);
+    const fallbackAttemptResult = await lookupGetSongBpmForTitle(apiKey, fallbackTitle, artist, 'fallback');
+    console.log('[getsongbpm_lookup] fallback_attempted=true result_attempt=fallback');
+    return fallbackAttemptResult;
 }
 
 serve(async (req) => {
