@@ -91,6 +91,74 @@ function normalizeArtistName(name: string): string {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function normalizeWords(value: string): string[] {
+    return value
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+function normalizeTitleName(title: string): string {
+    return normalizeWords(title).join('');
+}
+
+function getCandidateTitle(candidate: any): string | null {
+    if (typeof candidate?.title === 'string') return candidate.title;
+    if (typeof candidate?.song?.title === 'string') return candidate.song.title;
+    return null;
+}
+
+function isContiguousWordSequence(shorterWords: string[], longerWords: string[]): boolean {
+    if (shorterWords.length === 0 || shorterWords.length > longerWords.length) {
+        return false;
+    }
+
+    for (let start = 0; start <= longerWords.length - shorterWords.length; start += 1) {
+        let matches = true;
+        for (let offset = 0; offset < shorterWords.length; offset += 1) {
+            if (longerWords[start + offset] !== shorterWords[offset]) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) return true;
+    }
+
+    return false;
+}
+
+function isArtistVariantMatch(requestArtist: string, candidateArtist: string): boolean {
+    const requestWords = normalizeWords(requestArtist);
+    const candidateWords = normalizeWords(candidateArtist);
+    if (requestWords.length === 0 || candidateWords.length === 0) {
+        return false;
+    }
+
+    const requestCompact = requestWords.join('');
+    const candidateCompact = candidateWords.join('');
+    if (requestCompact === candidateCompact) {
+        return false;
+    }
+
+    const shorterWords = requestCompact.length <= candidateCompact.length ? requestWords : candidateWords;
+    const longerWords = requestCompact.length <= candidateCompact.length ? candidateWords : requestWords;
+    const shorterCompact = shorterWords.join('');
+    const longerCompact = longerWords.join('');
+
+    if (!isContiguousWordSequence(shorterWords, longerWords)) {
+        return false;
+    }
+
+    if (shorterWords.length === 1) {
+        return shorterCompact.length >= 6 && (shorterCompact.length / longerCompact.length) >= 0.6;
+    }
+
+    return shorterCompact.length >= 8;
+}
+
 function noneResult(): LookupResult {
     return { bpm: null, musicalKey: null, confidence: 'none' };
 }
@@ -101,6 +169,49 @@ function parseTempo(raw: unknown): number | null {
         return Math.round(tempo);
     }
     return null;
+}
+
+function selectBestAvailableMatch(matches: any[]): {
+    bpm: number | null;
+    musicalKey: string | null;
+    hasNumericTempo: boolean;
+    hasNormalizableKey: boolean;
+    index: number;
+} | null {
+    let bestAvailableMatch: {
+        bpm: number | null;
+        musicalKey: string | null;
+        hasNumericTempo: boolean;
+        hasNormalizableKey: boolean;
+        index: number;
+    } | null = null;
+
+    for (let i = 0; i < matches.length; i += 1) {
+        const candidate = matches[i];
+        const bpm = parseTempo(candidate?.tempo);
+        const musicalKey = normalizeKey(candidate?.key_of);
+        const hasNumericTempo = bpm !== null;
+        const hasNormalizableKey = musicalKey !== null;
+
+        const isBetterThanCurrent = !bestAvailableMatch ||
+            Number(hasNumericTempo) > Number(bestAvailableMatch.hasNumericTempo) ||
+            (
+                Number(hasNumericTempo) === Number(bestAvailableMatch.hasNumericTempo) &&
+                Number(hasNormalizableKey) > Number(bestAvailableMatch.hasNormalizableKey)
+            );
+
+        if (isBetterThanCurrent) {
+            bestAvailableMatch = {
+                bpm,
+                musicalKey,
+                hasNumericTempo,
+                hasNormalizableKey,
+                index: i,
+            };
+        }
+    }
+
+    return bestAvailableMatch;
 }
 
 async function lookupGetSongBpm(
@@ -130,81 +241,68 @@ async function lookupGetSongBpm(
     // No-result shape is {"search": {"error": "no result"}} — an object, not
     // an array. Only treat a real array as candidates.
     if (!Array.isArray(search)) {
-        console.log('[getsongbpm_lookup] reason=no_search_array');
+        console.log('[getsongbpm_lookup] reason=no_usable_match detail=no_search_array');
         return noneResult();
     }
 
     const normalizedRequestArtist = normalizeArtistName(artist);
-    
-    const strongMatches = search.filter((candidate: any) => {
+    const normalizedRequestTitle = normalizeTitleName(title);
+
+    const exactArtistMatches = search.filter((candidate: any) => {
         const candidateArtist = candidate?.artist?.name;
         if (typeof candidateArtist !== 'string') return false;
         const normalized = normalizeArtistName(candidateArtist);
         return normalized === normalizedRequestArtist;
     });
 
-    if (strongMatches.length === 0) {
+    const bestExactArtistMatch = selectBestAvailableMatch(exactArtistMatches);
+    if (exactArtistMatches.length > 0 && bestExactArtistMatch &&
+        (bestExactArtistMatch.bpm !== null || bestExactArtistMatch.musicalKey !== null)) {
         console.log(
-            `[getsongbpm_lookup] reason=zero_strong_matches total_candidates=${search.length}`,
+            `[getsongbpm_lookup] reason=exact_artist_match matches=${exactArtistMatches.length} selected_index=${bestExactArtistMatch.index} has_bpm=${bestExactArtistMatch.hasNumericTempo} has_key=${bestExactArtistMatch.hasNormalizableKey}`,
         );
-        return noneResult();
+        return {
+            bpm: bestExactArtistMatch.bpm,
+            musicalKey: bestExactArtistMatch.musicalKey,
+            confidence: 'medium',
+        };
     }
 
-    let bestAvailableStrongMatch: {
-        bpm: number | null;
-        musicalKey: string | null;
-        hasNumericTempo: boolean;
-        hasNormalizableKey: boolean;
-        index: number;
-    } | null = null;
+    if (exactArtistMatches.length === 0) {
+        const artistVariantMatches = search.filter((candidate: any) => {
+            const candidateArtist = candidate?.artist?.name;
+            const candidateTitle = getCandidateTitle(candidate);
+            if (typeof candidateArtist !== 'string' || typeof candidateTitle !== 'string') {
+                return false;
+            }
 
-    for (let i = 0; i < strongMatches.length; i += 1) {
-        const candidate = strongMatches[i];
-        const bpm = parseTempo(candidate?.tempo);
-        const musicalKey = normalizeKey(candidate?.key_of);
-        const hasNumericTempo = bpm !== null;
-        const hasNormalizableKey = musicalKey !== null;
+            return normalizeTitleName(candidateTitle) === normalizedRequestTitle &&
+                isArtistVariantMatch(artist, candidateArtist);
+        });
 
-        const isBetterThanCurrent = !bestAvailableStrongMatch ||
-            Number(hasNumericTempo) > Number(bestAvailableStrongMatch.hasNumericTempo) ||
-            (
-                Number(hasNumericTempo) === Number(bestAvailableStrongMatch.hasNumericTempo) &&
-                Number(hasNormalizableKey) > Number(bestAvailableStrongMatch.hasNormalizableKey)
+        const bestArtistVariantMatch = selectBestAvailableMatch(artistVariantMatches);
+        if (artistVariantMatches.length > 0 && bestArtistVariantMatch &&
+            (bestArtistVariantMatch.bpm !== null || bestArtistVariantMatch.musicalKey !== null)) {
+            console.log(
+                `[getsongbpm_lookup] reason=artist_variant_match matches=${artistVariantMatches.length} selected_index=${bestArtistVariantMatch.index} has_bpm=${bestArtistVariantMatch.hasNumericTempo} has_key=${bestArtistVariantMatch.hasNormalizableKey}`,
             );
-
-        if (isBetterThanCurrent) {
-            bestAvailableStrongMatch = {
-                bpm,
-                musicalKey,
-                hasNumericTempo,
-                hasNormalizableKey,
-                index: i,
+            return {
+                bpm: bestArtistVariantMatch.bpm,
+                musicalKey: bestArtistVariantMatch.musicalKey,
+                confidence: 'medium',
             };
         }
-    }
 
-    if (!bestAvailableStrongMatch) {
         console.log(
-            `[getsongbpm_lookup] reason=zero_strong_matches total_candidates=${search.length}`,
-        );
-        return noneResult();
-    }
-
-    const bpm = bestAvailableStrongMatch.bpm;
-    const musicalKey = bestAvailableStrongMatch.musicalKey;
-
-    if (bpm === null && musicalKey === null) {
-        console.log(
-            `[getsongbpm_lookup] reason=no_usable_strong_match strong_matches=${strongMatches.length}`,
+            `[getsongbpm_lookup] reason=no_usable_match total_candidates=${search.length} exact_matches=0 variant_matches=${artistVariantMatches.length}`,
         );
         return noneResult();
     }
 
     console.log(
-        `[getsongbpm_lookup] reason=selected_candidate strong_matches=${strongMatches.length} selected_index=${bestAvailableStrongMatch.index} has_bpm=${bestAvailableStrongMatch.hasNumericTempo} has_key=${bestAvailableStrongMatch.hasNormalizableKey}`,
+        `[getsongbpm_lookup] reason=no_usable_match total_candidates=${search.length} exact_matches=${exactArtistMatches.length} variant_matches=0`,
     );
-
-    return { bpm, musicalKey, confidence: 'medium' };
+    return noneResult();
 }
 
 serve(async (req) => {
