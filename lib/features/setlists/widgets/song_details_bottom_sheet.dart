@@ -320,7 +320,20 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     return false;
   }
 
-  Future<void> _refreshAndRebaselineMetadata(String bandId) async {
+  SongEnrichmentDetail? _findCurrentSongDetail(
+      EnrichmentOrchestrationResult result) {
+    for (final detail in result.details) {
+      if (detail.songId == widget.song.id) {
+        return detail;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _refreshAndRebaselineMetadata(
+    String bandId,
+    SongEnrichmentDetail detail,
+  ) async {
     try {
       final row = await Supabase.instance.client
           .from('songs')
@@ -336,12 +349,19 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       final refreshedMusicalKey = row['musical_key'] as String?;
 
       setState(() {
-        _currentBpm = refreshedBpm;
-        _originalBpm = refreshedBpm;
-        _currentDurationSeconds = refreshedDurationSeconds;
-        _originalDurationSeconds = refreshedDurationSeconds;
-        _currentMusicalKey = refreshedMusicalKey;
-        _originalMusicalKey = refreshedMusicalKey;
+        // Selective merge: only apply fields where enrichment returned 'updated'
+        if (detail.bpmResult == EnrichmentFieldResult.updated) {
+          _currentBpm = refreshedBpm;
+          _originalBpm = refreshedBpm;
+        }
+        if (detail.durationResult == EnrichmentFieldResult.updated) {
+          _currentDurationSeconds = refreshedDurationSeconds;
+          _originalDurationSeconds = refreshedDurationSeconds;
+        }
+        if (detail.keyResult == EnrichmentFieldResult.updated) {
+          _currentMusicalKey = refreshedMusicalKey;
+          _originalMusicalKey = refreshedMusicalKey;
+        }
         _hasChanges = _computeChangeFlags().anyChanged;
       });
     } catch (e) {
@@ -619,11 +639,14 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
     // Rebaseline local metadata state so Save reflects post-enrichment values.
     if (_didCurrentSongMetadataUpdate(result)) {
-      await _refreshAndRebaselineMetadata(bandId);
-      if (!mounted) return;
-      setState(() {
-        _justEnriched = true;
-      });
+      final detail = _findCurrentSongDetail(result);
+      if (detail != null) {
+        await _refreshAndRebaselineMetadata(bandId, detail);
+        if (!mounted) return;
+        setState(() {
+          _justEnriched = true;
+        });
+      }
     }
 
     // Step 3: Broadcast updates for enriched fields to refresh catalog/list views.
