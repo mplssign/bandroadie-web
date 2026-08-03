@@ -36,6 +36,7 @@ import 'event_editor_actions.dart';
 import 'event_editor_helpers.dart';
 import 'event_form_fields.dart';
 import 'event_type_selector.dart';
+import 'gig_expense_subview.dart';
 import 'gig_form_fields.dart';
 import 'rehearsal_form_fields.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -176,6 +177,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   // Gig pay details (gigs only)
   GigPayDetails? _gigPayDetails;
+
+  // Gig expenses (gigs only)
+  List<GigExpenseDraft> _pendingGigExpenses = [];
+  bool _isEditingExpense = false;
+  GigExpenseDraft? _editingGigExpense;
+  bool _isSavingExpense = false;
+  bool _isDeletingExpense = false;
 
   // Location autocomplete suggestions (loaded once from past rehearsals)
   List<String> _locationSuggestions = [];
@@ -324,6 +332,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       ref.read(membersProvider.notifier).loadMembers(widget.bandId);
       ref.read(venuesProvider.notifier).load(widget.bandId);
       _loadLocationSuggestions();
+
+      final permissionsAsync = ref.read(currentUserPermissionsProvider);
+      permissionsAsync.whenData((perms) {
+        if (!mounted) return;
+        if (_eventType == EventType.gig &&
+            _isEditMode &&
+            widget.existingEventId != null &&
+            perms.canViewFinancials) {
+          _loadGigExpenses(widget.existingEventId!);
+        }
+      });
 
       // RBAC: If contributor with potential-only permission, force potential gig mode
       if (widget.mode == EventEditorMode.create &&
@@ -995,6 +1014,229 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
+  GigExpenseDraft _expenseDraftFromEntry(FinancialEntry entry) {
+    return GigExpenseDraft(
+      localId: entry.id,
+      existingEntryId: entry.id,
+      amountCents: entry.amountCents,
+      category: entry.category,
+      entryDate: entry.entryDate,
+      paidByUserId: entry.paidToUserId,
+      paidByName: entry.payerName ?? entry.paidToName,
+      notes: entry.description,
+      isReimbursed: entry.isReimbursed,
+      reimbursedDate: entry.reimbursedDate,
+    );
+  }
+
+  Future<void> _loadGigExpenses(String gigId) async {
+    try {
+      final repo = ref.read(financialEntryRepositoryProvider);
+      final entries = await repo.fetchGigExpenseEntries(gigId);
+      if (!mounted) return;
+      setState(() {
+        _pendingGigExpenses = entries.map(_expenseDraftFromEntry).toList();
+      });
+    } catch (e) {
+      debugPrint('[EventEditorDrawer] Error loading gig expenses: $e');
+    }
+  }
+
+  void _openExpenseEditor({GigExpenseDraft? expense}) {
+    setState(() {
+      _editingGigExpense = expense;
+      _isEditingExpense = true;
+      _errorMessage = null;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
+  }
+
+  void _closeExpenseEditor() {
+    setState(() {
+      _isEditingExpense = false;
+      _editingGigExpense = null;
+      _isSavingExpense = false;
+      _isDeletingExpense = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
+  }
+
+  Future<void> _handleSaveExpense(GigExpenseDraft draft) async {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final canWriteFinancials =
+        permsAsync.whenOrNull(data: (p) => p.canCreateFinancials) ?? false;
+    if (!canWriteFinancials || widget.viewOnly) {
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          message: 'You don\'t have permission to edit financial entries.',
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _isSavingExpense = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final isPersistedGig =
+          widget.mode == EventEditorMode.edit && widget.existingEventId != null;
+      if (isPersistedGig) {
+        final repo = ref.read(financialEntryRepositoryProvider);
+        FinancialEntry saved;
+
+        if (draft.existingEntryId == null) {
+          saved = await repo.insertGigExpenseEntry(
+            bandId: widget.bandId,
+            gigId: widget.existingEventId!,
+            amountCents: draft.amountCents,
+            category: draft.category,
+            entryDate: draft.entryDate,
+            notes: draft.notes,
+            payorName: draft.paidByName,
+            paidToName: draft.paidByName,
+            paidToUserId: draft.paidByUserId,
+            isReimbursed: draft.isReimbursed,
+            reimbursedDate: draft.reimbursedDate,
+          );
+          _pendingGigExpenses = [
+            _expenseDraftFromEntry(saved),
+            ..._pendingGigExpenses,
+          ];
+        } else {
+          saved = await repo.updateGigExpenseEntry(
+            entryId: draft.existingEntryId!,
+            bandId: widget.bandId,
+            amountCents: draft.amountCents,
+            category: draft.category,
+            entryDate: draft.entryDate,
+            notes: draft.notes,
+            payorName: draft.paidByName,
+            paidToName: draft.paidByName,
+            paidToUserId: draft.paidByUserId,
+            isReimbursed: draft.isReimbursed,
+            reimbursedDate: draft.reimbursedDate,
+          );
+
+          _pendingGigExpenses = _pendingGigExpenses
+              .map((item) => item.localId == draft.localId
+                  ? _expenseDraftFromEntry(saved)
+                  : item)
+              .toList();
+        }
+
+        ref.invalidate(financialsProvider);
+      } else {
+        final existingIndex = _pendingGigExpenses
+            .indexWhere((item) => item.localId == draft.localId);
+        if (existingIndex >= 0) {
+          _pendingGigExpenses[existingIndex] = draft;
+        } else {
+          _pendingGigExpenses = [draft, ..._pendingGigExpenses];
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isSavingExpense = false;
+        _isDirty = true;
+      });
+      _closeExpenseEditor();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSavingExpense = false;
+        _errorMessage = mapEventErrorToMessage(e, context: 'save expense');
+      });
+    }
+  }
+
+  Future<void> _handleDeleteExpense(GigExpenseDraft draft) async {
+    final permsAsync = ref.read(currentUserPermissionsProvider);
+    final canDeleteFinancials =
+        permsAsync.whenOrNull(data: (p) => p.canDeleteFinancials) ?? false;
+    if (!canDeleteFinancials || widget.viewOnly) {
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          message: 'You don\'t have permission to delete financial entries.',
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _isDeletingExpense = true;
+      _errorMessage = null;
+    });
+
+    try {
+      if (widget.mode == EventEditorMode.edit &&
+          widget.existingEventId != null &&
+          draft.existingEntryId != null) {
+        final repo = ref.read(financialEntryRepositoryProvider);
+        await repo.deleteEntry(draft.existingEntryId!, widget.bandId);
+        ref.invalidate(financialsProvider);
+      }
+
+      _pendingGigExpenses = _pendingGigExpenses
+          .where((item) => item.localId != draft.localId)
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _isDeletingExpense = false;
+        _isDirty = true;
+      });
+      _closeExpenseEditor();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isDeletingExpense = false;
+        _errorMessage = mapEventErrorToMessage(e, context: 'delete expense');
+      });
+    }
+  }
+
+  Future<void> _flushPendingGigExpenses({
+    required String gigId,
+  }) async {
+    if (_pendingGigExpenses.isEmpty) return;
+
+    final repo = ref.read(financialEntryRepositoryProvider);
+    for (final draft in _pendingGigExpenses) {
+      await repo.insertGigExpenseEntry(
+        bandId: widget.bandId,
+        gigId: gigId,
+        amountCents: draft.amountCents,
+        category: draft.category,
+        entryDate: draft.entryDate,
+        notes: draft.notes,
+        payorName: draft.paidByName,
+        paidToName: draft.paidByName,
+        paidToUserId: draft.paidByUserId,
+        isReimbursed: draft.isReimbursed,
+        reimbursedDate: draft.reimbursedDate,
+      );
+    }
+
+    if (mounted) {
+      ref.invalidate(financialsProvider);
+    }
+  }
+
   /// Convert duration in minutes to the closest EventDuration enum value.
   /// If exact match not found, returns the closest higher value or max.
   EventDuration _durationMinutesToEnum(int minutes) {
@@ -1565,6 +1807,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             );
             if (mounted) ref.invalidate(financialsProvider);
           }
+
+          // Flush deferred expense entries now that we have a gig ID.
+          if (_pendingGigExpenses.isNotEmpty) {
+            await _flushPendingGigExpenses(gigId: savedGig.id);
+          }
         }
       }
 
@@ -1957,6 +2204,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   GigFormFields _createGigFormFields() {
+    final permsAsync = ref.watch(currentUserPermissionsProvider);
+    final perms = permsAsync.whenOrNull(data: (p) => p);
+    final canViewFinancials = perms?.canViewFinancials ?? false;
+    final canEditFinancials =
+        (perms?.canCreateFinancials ?? false) && !widget.viewOnly && !_isSaving;
+
     return GigFormFields(
       isSaving: _isSaving,
       isEditMode: _isEditMode,
@@ -2029,6 +2282,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       },
       gigPayDetails: _gigPayDetails,
       onGigPayTap: _handleGigPayTap,
+      showExpensesSection: canViewFinancials,
+      canEditExpenses: canEditFinancials,
+      gigExpenses: _pendingGigExpenses,
+      onAddExpense: () => _openExpenseEditor(),
+      onExpenseTap: (expense) => _openExpenseEditor(expense: expense),
       onMarkDirty: _markDirty,
       currentUserId: supabase.auth.currentUser?.id,
       addressController: _addressController,
@@ -2143,6 +2401,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final safeBottom = MediaQuery.of(context).padding.bottom;
+    final members = ref.watch(membersProvider).members;
+    final permsAsync = ref.watch(currentUserPermissionsProvider);
+    final perms = permsAsync.whenOrNull(data: (p) => p);
+    final canEditFinancials =
+        (perms?.canCreateFinancials ?? false) && !widget.viewOnly && !_isSaving;
+    final canDeleteExpense =
+        (perms?.canDeleteFinancials ?? false) && !widget.viewOnly && !_isSaving;
 
     final eventFormFields = _createEventFormFields(context);
     final gigFormFields =
@@ -2183,13 +2448,36 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
             child: Row(
               children: [
+                if (_isEditingExpense) ...[
+                  GestureDetector(
+                    onTap: _closeExpenseEditor,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: context.colors.background,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        AppIcons.back,
+                        size: 18,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(
                   child: Text(
-                    widget.viewOnly
-                        ? '${_eventType.displayName} Details'
-                        : widget.mode == EventEditorMode.edit
-                            ? 'Edit ${_eventType.displayName}'
-                            : 'Add Event',
+                    _isEditingExpense
+                        ? (_editingGigExpense == null
+                            ? 'Add Expense'
+                            : 'Edit Expense')
+                        : widget.viewOnly
+                            ? '${_eventType.displayName} Details'
+                            : widget.mode == EventEditorMode.edit
+                                ? 'Edit ${_eventType.displayName}'
+                                : 'Add Event',
                     style: AppTextStyles.pageTitle.copyWith(
                       color: context.colors.textPrimary,
                     ),
@@ -2236,92 +2524,111 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Error banner
-                      if (_errorMessage != null) ...[
-                        _buildErrorBanner(),
-                        const SizedBox(height: Spacing.space16),
-                      ],
-
-                      // Event Type Toggle (create mode only)
-                      if (!_isEditMode) ...[
-                        EventTypeSelector(
-                          selectedType: _eventType,
-                          availableTypes: _computeAvailableTypes(),
-                          isEditMode: _isEditMode,
-                          isSaving: _isSaving,
-                          onTypeChanged: _handleTypeChanged,
+                      if (_isEditingExpense && _eventType == EventType.gig) ...[
+                        GigExpenseSubView(
+                          members: members,
+                          defaultDate: DateTime.now(),
+                          initialExpense: _editingGigExpense,
+                          onBack: _closeExpenseEditor,
+                          onSave: _handleSaveExpense,
+                          onDelete: _editingGigExpense != null
+                              ? _handleDeleteExpense
+                              : null,
+                          canEdit: canEditFinancials,
+                          canDelete: canDeleteExpense,
+                          isSaving: _isSavingExpense,
+                          isDeleting: _isDeletingExpense,
                         ),
-                        const SizedBox(height: Spacing.space20),
-                      ],
-
-                      // Gig name + potential gig (gig only)
-                      if (_eventType == EventType.gig) ...[
-                        gigFormFields!,
-                        const SizedBox(height: Spacing.space12),
-                      ],
-
-                      // Potential Rehearsal toggle (rehearsal only, before date/time)
-                      if (_eventType == EventType.rehearsal) ...[
-                        rehearsalFormFields!
-                            .buildPotentialSection(context, ref),
-                        const SizedBox(height: Spacing.space16),
-                      ],
-
-                      // Block out form
-                      if (_eventType == EventType.blockOut) ...[
-                        _buildBlockOutForm(),
-                        if (_isEditMode && !widget.viewOnly) ...[
-                          const SizedBox(height: Spacing.space24),
-                          EventDeleteButton(
-                            isSaving: _isSaving,
-                            isDeleting: _isDeleting,
-                            onDelete: _showDeleteConfirmation,
-                          ),
-                        ],
                       ] else ...[
-                        // Shared: date (+add date when potential), time, duration
-                        eventFormFields,
-
-                        // Location/City (type-specific)
-                        if (_eventType == EventType.rehearsal) ...[
-                          // Location + recurring toggle (recurring hidden when isPotential)
-                          rehearsalFormFields!,
-                        ] else ...[
-                          gigFormFields!.buildAddressField(context),
+                        // Error banner
+                        if (_errorMessage != null) ...[
+                          _buildErrorBanner(),
                           const SizedBox(height: Spacing.space16),
-                          gigFormFields.buildCityStateRow(context),
-                          const SizedBox(height: Spacing.space16),
-                          gigFormFields.buildLoadInTimeSelector(context),
                         ],
 
-                        const SizedBox(height: Spacing.space16),
-
-                        // Setlist selector
-                        eventFormFields.buildSetlistSelector(context, ref),
-
-                        // Gig Pay (gigs only)
-                        if (_eventType == EventType.gig) ...[
-                          const SizedBox(height: Spacing.space16),
-                          gigFormFields!.buildGigPayButton(context),
-                        ],
-
-                        const SizedBox(height: Spacing.space16),
-
-                        // Notes
-                        eventFormFields.buildNotesSection(),
-
-                        const SizedBox(height: Spacing.space20),
-
-                        // Delete button (edit mode only)
-                        if (_isEditMode && !widget.viewOnly) ...[
-                          const SizedBox(height: Spacing.space24),
-                          EventDeleteButton(
+                        // Event Type Toggle (create mode only)
+                        if (!_isEditMode) ...[
+                          EventTypeSelector(
+                            selectedType: _eventType,
+                            availableTypes: _computeAvailableTypes(),
+                            isEditMode: _isEditMode,
                             isSaving: _isSaving,
-                            isDeleting: _isDeleting,
-                            onDelete: _showDeleteConfirmation,
+                            onTypeChanged: _handleTypeChanged,
                           ),
+                          const SizedBox(height: Spacing.space20),
                         ],
-                      ], // end else (non-blockOut form)
+
+                        // Gig name + potential gig (gig only)
+                        if (_eventType == EventType.gig) ...[
+                          gigFormFields!,
+                          const SizedBox(height: Spacing.space12),
+                        ],
+
+                        // Potential Rehearsal toggle (rehearsal only, before date/time)
+                        if (_eventType == EventType.rehearsal) ...[
+                          rehearsalFormFields!
+                              .buildPotentialSection(context, ref),
+                          const SizedBox(height: Spacing.space16),
+                        ],
+
+                        // Block out form
+                        if (_eventType == EventType.blockOut) ...[
+                          _buildBlockOutForm(),
+                          if (_isEditMode && !widget.viewOnly) ...[
+                            const SizedBox(height: Spacing.space24),
+                            EventDeleteButton(
+                              isSaving: _isSaving,
+                              isDeleting: _isDeleting,
+                              onDelete: _showDeleteConfirmation,
+                            ),
+                          ],
+                        ] else ...[
+                          // Shared: date (+add date when potential), time, duration
+                          eventFormFields,
+
+                          // Location/City (type-specific)
+                          if (_eventType == EventType.rehearsal) ...[
+                            // Location + recurring toggle (recurring hidden when isPotential)
+                            rehearsalFormFields!,
+                          ] else ...[
+                            gigFormFields!.buildAddressField(context),
+                            const SizedBox(height: Spacing.space16),
+                            gigFormFields.buildCityStateRow(context),
+                            const SizedBox(height: Spacing.space16),
+                            gigFormFields.buildLoadInTimeSelector(context),
+                          ],
+
+                          const SizedBox(height: Spacing.space16),
+
+                          // Setlist selector
+                          eventFormFields.buildSetlistSelector(context, ref),
+
+                          // Gig Pay (gigs only)
+                          if (_eventType == EventType.gig) ...[
+                            const SizedBox(height: Spacing.space16),
+                            gigFormFields!.buildGigPayButton(context),
+                            const SizedBox(height: Spacing.space16),
+                            gigFormFields.buildExpensesSection(context),
+                          ],
+
+                          const SizedBox(height: Spacing.space16),
+
+                          // Notes
+                          eventFormFields.buildNotesSection(),
+
+                          const SizedBox(height: Spacing.space20),
+
+                          // Delete button (edit mode only)
+                          if (_isEditMode && !widget.viewOnly) ...[
+                            const SizedBox(height: Spacing.space24),
+                            EventDeleteButton(
+                              isSaving: _isSaving,
+                              isDeleting: _isDeleting,
+                              onDelete: _showDeleteConfirmation,
+                            ),
+                          ],
+                        ], // end else (non-blockOut form)
+                      ],
                     ],
                   ),
                 ),
@@ -2332,26 +2639,28 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           // Bottom action buttons — padded above keyboard and system nav bar
           Padding(
             padding: EdgeInsets.only(bottom: bottomPadding + safeBottom),
-            child: widget.viewOnly
-                ? EventEditorViewOnlyClose(
-                    onClose: () {
-                      Navigator.of(context).pop(false);
-                      widget.onCancelled?.call();
-                    },
-                  )
-                : EventEditorBottomActions(
-                    canSave: !_isSaving &&
-                        !_isDeleting &&
-                        (widget.mode == EventEditorMode.create || _isDirty),
-                    isSaving: _isSaving,
-                    isDeleting: _isDeleting,
-                    primaryButtonLabel: _primaryButtonLabel,
-                    onSave: _handleSave,
-                    onCancel: () {
-                      Navigator.pop(context);
-                      widget.onCancelled?.call();
-                    },
-                  ),
+            child: _isEditingExpense
+                ? const SizedBox.shrink()
+                : widget.viewOnly
+                    ? EventEditorViewOnlyClose(
+                        onClose: () {
+                          Navigator.of(context).pop(false);
+                          widget.onCancelled?.call();
+                        },
+                      )
+                    : EventEditorBottomActions(
+                        canSave: !_isSaving &&
+                            !_isDeleting &&
+                            (widget.mode == EventEditorMode.create || _isDirty),
+                        isSaving: _isSaving,
+                        isDeleting: _isDeleting,
+                        primaryButtonLabel: _primaryButtonLabel,
+                        onSave: _handleSave,
+                        onCancel: () {
+                          Navigator.pop(context);
+                          widget.onCancelled?.call();
+                        },
+                      ),
           ),
         ],
       ),

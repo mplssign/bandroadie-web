@@ -43,6 +43,8 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '+' : '−';
     final dateStr = DateFormat('MMMM d, yyyy').format(entry.entryDate);
+    final isReimbursedExpense =
+        entry.entryType == FinancialEntryType.expense && entry.isReimbursed;
 
     return Container(
       decoration: BoxDecoration(
@@ -90,7 +92,14 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                           .copyWith(color: amountColor),
                     ),
                     const SizedBox(height: Spacing.space4),
-                    _TypeBadge(label: entry.category),
+                    Wrap(
+                      spacing: Spacing.space8,
+                      runSpacing: Spacing.space8,
+                      children: [
+                        _TypeBadge(label: entry.category),
+                        if (isReimbursedExpense) const _ReimbursedBadge(),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -120,6 +129,14 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                 ? entry.paidToName!
                 : '—',
           ),
+          if (isReimbursedExpense) ...[
+            const SizedBox(height: Spacing.space12),
+            _DetailRow(
+              icon: AppIcons.check,
+              label: 'Reimbursement',
+              value: _buildReimbursementDetailLine(entry),
+            ),
+          ],
           if (entry.description != null && entry.description!.isNotEmpty) ...[
             const SizedBox(height: Spacing.space12),
             _DetailRow(
@@ -211,6 +228,18 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
       ),
     );
   }
+
+  String _buildReimbursementDetailLine(FinancialEntry entry) {
+    final reimbursedDate = entry.reimbursedDate != null
+        ? DateFormat('MMMM d, yyyy').format(entry.reimbursedDate!)
+        : 'Unknown date';
+    final reimbursedTo =
+        (entry.payerName != null && entry.payerName!.trim().isNotEmpty)
+            ? entry.payerName!.trim()
+            : 'Unknown payer';
+
+    return 'Purchased ${DateFormat('MMMM d, yyyy').format(entry.entryDate)} · Reimbursed $reimbursedDate to $reimbursedTo';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -300,6 +329,31 @@ class _Badge1099 extends StatelessWidget {
         '1099',
         style: AppTextStyles.footnote.copyWith(
           color: Colors.orange,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReimbursedBadge extends StatelessWidget {
+  const _ReimbursedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space8,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: context.colors.success.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'Reimbursed',
+        style: AppTextStyles.footnote.copyWith(
+          color: context.colors.success,
           fontWeight: FontWeight.w600,
         ),
       ),

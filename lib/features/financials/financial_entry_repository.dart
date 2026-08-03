@@ -46,6 +46,117 @@ class FinancialEntryRepository {
     return FinancialEntry.fromJson(response);
   }
 
+  /// Fetch all expense entries linked to a specific gig.
+  Future<List<FinancialEntry>> fetchGigExpenseEntries(String gigId) async {
+    final response = await supabase
+        .from('financial_entries')
+        .select()
+        .eq('gig_id', gigId)
+        .eq('entry_type', 'expense')
+        .order('entry_date', ascending: false)
+        .order('created_at', ascending: false);
+
+    return response
+        .map<FinancialEntry>((json) => FinancialEntry.fromJson(json))
+        .toList();
+  }
+
+  /// Insert a new expense entry linked to a gig.
+  Future<FinancialEntry> insertGigExpenseEntry({
+    required String bandId,
+    required String gigId,
+    required int amountCents,
+    required String category,
+    required DateTime entryDate,
+    String? notes,
+    String? payorName,
+    String? paidToName,
+    String? paidToUserId,
+    bool isReimbursed = false,
+    DateTime? reimbursedDate,
+  }) async {
+    if (bandId.isEmpty) throw NoBandSelectedError();
+
+    final createdBy = supabase.auth.currentUser?.id;
+    if (createdBy == null) throw StateError('No authenticated user');
+
+    final payload = {
+      'band_id': bandId,
+      'entry_type': 'expense',
+      'category': category,
+      'amount_cents': amountCents,
+      'is_income': false,
+      'description': notes?.isEmpty == true ? null : notes,
+      'entry_date': entryDate.toIso8601String().split('T').first,
+      'payor_name': payorName?.isEmpty == true ? null : payorName,
+      'paid_to_name': paidToName?.isEmpty == true ? null : paidToName,
+      'paid_to_user_id': paidToUserId,
+      'is_reimbursed': isReimbursed,
+      'reimbursed_date': isReimbursed
+          ? (reimbursedDate ?? DateTime.now())
+              .toIso8601String()
+              .split('T')
+              .first
+          : null,
+      'gig_id': gigId,
+      'created_by': createdBy,
+    };
+
+    final result = await supabase
+        .from('financial_entries')
+        .insert(payload)
+        .select()
+        .single();
+
+    return FinancialEntry.fromJson(result);
+  }
+
+  /// Update an existing expense entry linked to a gig.
+  Future<FinancialEntry> updateGigExpenseEntry({
+    required String entryId,
+    required String bandId,
+    required int amountCents,
+    required String category,
+    required DateTime entryDate,
+    String? notes,
+    String? payorName,
+    String? paidToName,
+    String? paidToUserId,
+    bool isReimbursed = false,
+    DateTime? reimbursedDate,
+  }) async {
+    if (bandId.isEmpty) throw NoBandSelectedError();
+
+    final result = await supabase
+        .from('financial_entries')
+        .update({
+          'entry_type': 'expense',
+          'category': category,
+          'amount_cents': amountCents,
+          'is_income': false,
+          'description': notes?.isEmpty == true ? null : notes,
+          'entry_date': entryDate.toIso8601String().split('T').first,
+          'payor_name': payorName?.isEmpty == true ? null : payorName,
+          'paid_to_name': paidToName?.isEmpty == true ? null : paidToName,
+          'paid_to_user_id': paidToUserId,
+          'is_reimbursed': isReimbursed,
+          'reimbursed_date': isReimbursed
+              ? (reimbursedDate ?? DateTime.now())
+                  .toIso8601String()
+                  .split('T')
+                  .first
+              : null,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', entryId)
+        .eq('band_id', bandId)
+        .eq('entry_type', 'expense')
+        .select()
+        .single();
+
+    return FinancialEntry.fromJson(result);
+  }
+
   /// Create or update a gig_pay entry.
   /// Uses existingEntryId from details to decide INSERT vs UPDATE.
   Future<FinancialEntry> upsertGigPayEntry({
