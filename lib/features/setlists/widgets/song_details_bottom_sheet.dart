@@ -664,6 +664,16 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       context: context,
       result: result,
     );
+
+    final didUpdateMetadata = result.details.any(
+      (detail) =>
+          detail.bpmResult == EnrichmentFieldResult.updated ||
+          detail.durationResult == EnrichmentFieldResult.updated ||
+          detail.keyResult == EnrichmentFieldResult.updated,
+    );
+    if (didUpdateMetadata) {
+      await ref.read(setlistDetailProvider.notifier).loadSongs();
+    }
   }
 
   /// Show modal to add a new YouTube link
