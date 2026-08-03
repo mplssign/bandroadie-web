@@ -84,6 +84,30 @@ class VenuesRepository {
     return Venue.fromJson(response);
   }
 
+  Future<Venue> createVenueForGigSave({
+    required String bandId,
+    required String name,
+    String? city,
+    String? address,
+    String? state,
+    required bool isPotential,
+  }) async {
+    final response = await supabase.rpc(
+      'create_venue_for_gig_save',
+      params: {
+        'p_band_id': bandId,
+        'p_name': name,
+        'p_city': city,
+        'p_address': address,
+        'p_state': state,
+        'p_is_potential': isPotential,
+      },
+    );
+
+    _invalidateCache(bandId);
+    return Venue.fromJson(Map<String, dynamic>.from(response as Map));
+  }
+
   Future<Venue> updateVenue({
     required String id,
     required Map<String, dynamic> data,
