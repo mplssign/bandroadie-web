@@ -95,6 +95,14 @@ function noneResult(): LookupResult {
     return { bpm: null, musicalKey: null, confidence: 'none' };
 }
 
+function parseTempo(raw: unknown): number | null {
+    const tempo = typeof raw === 'string' ? parseFloat(raw) : raw;
+    if (typeof tempo === 'number' && !Number.isNaN(tempo)) {
+        return Math.round(tempo);
+    }
+    return null;
+}
+
 async function lookupGetSongBpm(
     apiKey: string,
     title: string,
@@ -121,7 +129,8 @@ async function lookupGetSongBpm(
 
     // No-result shape is {"search": {"error": "no result"}} — an object, not
     // an array. Only treat a real array as candidates.
-    if (!Array.isArray(search) || search.length === 0) {
+    if (!Array.isArray(search)) {
+        console.log('[getsongbpm_lookup] reason=no_search_array');
         return noneResult();
     }
 
@@ -134,21 +143,66 @@ async function lookupGetSongBpm(
         return normalized === normalizedRequestArtist;
     });
 
-    // At least one strong artist match → take the first (GetSongBPM returns results sorted by relevance).
-    // Zero matches → none, per the "flag for review rather than auto-fill" directive.
     if (strongMatches.length === 0) {
+        console.log(
+            `[getsongbpm_lookup] reason=zero_strong_matches total_candidates=${search.length}`,
+        );
         return noneResult();
     }
 
-    // Take the first match (API sorts by relevance, so first is most likely correct)
-    const match = strongMatches[0];
-    const tempo = typeof match?.tempo === 'string' ? parseFloat(match.tempo) : match?.tempo;
-    const bpm = typeof tempo === 'number' && !Number.isNaN(tempo) ? Math.round(tempo) : null;
-    const musicalKey = normalizeKey(match?.key_of);
+    let bestAvailableStrongMatch: {
+        bpm: number | null;
+        musicalKey: string | null;
+        hasNumericTempo: boolean;
+        hasNormalizableKey: boolean;
+        index: number;
+    } | null = null;
+
+    for (let i = 0; i < strongMatches.length; i += 1) {
+        const candidate = strongMatches[i];
+        const bpm = parseTempo(candidate?.tempo);
+        const musicalKey = normalizeKey(candidate?.key_of);
+        const hasNumericTempo = bpm !== null;
+        const hasNormalizableKey = musicalKey !== null;
+
+        const isBetterThanCurrent = !bestAvailableStrongMatch ||
+            Number(hasNumericTempo) > Number(bestAvailableStrongMatch.hasNumericTempo) ||
+            (
+                Number(hasNumericTempo) === Number(bestAvailableStrongMatch.hasNumericTempo) &&
+                Number(hasNormalizableKey) > Number(bestAvailableStrongMatch.hasNormalizableKey)
+            );
+
+        if (isBetterThanCurrent) {
+            bestAvailableStrongMatch = {
+                bpm,
+                musicalKey,
+                hasNumericTempo,
+                hasNormalizableKey,
+                index: i,
+            };
+        }
+    }
+
+    if (!bestAvailableStrongMatch) {
+        console.log(
+            `[getsongbpm_lookup] reason=zero_strong_matches total_candidates=${search.length}`,
+        );
+        return noneResult();
+    }
+
+    const bpm = bestAvailableStrongMatch.bpm;
+    const musicalKey = bestAvailableStrongMatch.musicalKey;
 
     if (bpm === null && musicalKey === null) {
+        console.log(
+            `[getsongbpm_lookup] reason=no_usable_strong_match strong_matches=${strongMatches.length}`,
+        );
         return noneResult();
     }
+
+    console.log(
+        `[getsongbpm_lookup] reason=selected_candidate strong_matches=${strongMatches.length} selected_index=${bestAvailableStrongMatch.index} has_bpm=${bestAvailableStrongMatch.hasNumericTempo} has_key=${bestAvailableStrongMatch.hasNormalizableKey}`,
+    );
 
     return { bpm, musicalKey, confidence: 'medium' };
 }
