@@ -88,11 +88,17 @@ function normalizeKey(raw: unknown): string | null {
 
 /// Normalize an artist name for loose comparison (lowercase, alphanumeric only).
 function normalizeArtistName(name: string): string {
-    return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
 }
 
 function normalizeWords(value: string): string[] {
     return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .replace(/&/g, ' and ')
         .replace(/[^a-z0-9]+/g, ' ')
