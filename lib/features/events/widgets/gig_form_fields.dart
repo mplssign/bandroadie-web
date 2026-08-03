@@ -8,6 +8,7 @@ import '../../financials/models/financial_entry.dart';
 import '../../members/member_vm.dart';
 import '../../members/members_controller.dart';
 import '../models/event_form_data.dart';
+import 'gig_expense_subview.dart';
 import 'button_group_grid.dart';
 import 'event_editor_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -73,6 +74,12 @@ class GigFormFields extends ConsumerWidget {
     // Gig pay
     required this.gigPayDetails,
     required this.onGigPayTap,
+    // Gig expenses
+    required this.showExpensesSection,
+    required this.canEditExpenses,
+    required this.gigExpenses,
+    required this.onAddExpense,
+    required this.onExpenseTap,
     // General
     required this.onMarkDirty,
     required this.currentUserId,
@@ -144,6 +151,13 @@ class GigFormFields extends ConsumerWidget {
   // --- Gig pay ---
   final GigPayDetails? gigPayDetails;
   final VoidCallback onGigPayTap;
+
+  // --- Gig expenses ---
+  final bool showExpensesSection;
+  final bool canEditExpenses;
+  final List<GigExpenseDraft> gigExpenses;
+  final VoidCallback onAddExpense;
+  final ValueChanged<GigExpenseDraft> onExpenseTap;
 
   // --- General ---
   final VoidCallback onMarkDirty;
@@ -294,6 +308,178 @@ class GigFormFields extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  /// Builds the expenses section shown beneath Gig Pay.
+  Widget buildExpensesSection(BuildContext context) {
+    if (!showExpensesSection) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Expenses',
+                style: AppTextStyles.footnote.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: (isSaving || !canEditExpenses) ? null : onAddExpense,
+              icon: const Icon(AppIcons.add, size: 14),
+              label: const Text('Add Expense'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (gigExpenses.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: context.colors.background,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              border: Border.all(color: context.colors.border),
+            ),
+            child: Text(
+              'No expenses added yet.',
+              style: AppTextStyles.footnote.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+          )
+        else
+          ...gigExpenses.map(
+            (expense) => Padding(
+              padding: const EdgeInsets.only(bottom: Spacing.space8),
+              child: InkWell(
+                onTap: canEditExpenses ? () => onExpenseTap(expense) : null,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.background,
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                    border: Border.all(color: context.colors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    expense.category,
+                                    style: AppTextStyles.callout.copyWith(
+                                      color: context.colors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                if (expense.isReimbursed) ...[
+                                  const SizedBox(width: 8),
+                                  _buildReimbursedBadge(context),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              expense.isReimbursed
+                                  ? _buildReimbursementDetailLine(expense)
+                                  : _formatDate(expense.entryDate),
+                              style: AppTextStyles.footnote.copyWith(
+                                color: context.colors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        expense.formattedAmount,
+                        style: AppTextStyles.calloutEmphasized.copyWith(
+                          color: context.colors.textPrimary,
+                        ),
+                      ),
+                      if (canEditExpenses) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          AppIcons.forward,
+                          size: 14,
+                          color: context.colors.textMuted,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildReimbursedBadge(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space8,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: context.colors.success.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        'Reimbursed',
+        style: AppTextStyles.footnote.copyWith(
+          color: context.colors.success,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  String _buildReimbursementDetailLine(GigExpenseDraft expense) {
+    final reimbursedDate = expense.reimbursedDate;
+    final reimbursedTo =
+        (expense.paidByName != null && expense.paidByName!.trim().isNotEmpty)
+            ? expense.paidByName!.trim()
+            : 'Unknown payer';
+    final reimbursedDateText =
+        reimbursedDate != null ? _formatDate(reimbursedDate) : 'Unknown date';
+
+    return 'Purchased ${_formatDate(expense.entryDate)} · Reimbursed $reimbursedDateText to $reimbursedTo';
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   /// Builds the state field (private, called from buildAddressCityRow).

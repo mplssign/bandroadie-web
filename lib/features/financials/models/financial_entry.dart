@@ -63,6 +63,8 @@ class FinancialEntry {
   final bool isIncome;
   final String? description;
   final DateTime entryDate;
+  final bool isReimbursed;
+  final DateTime? reimbursedDate;
   final bool? is1099Expected;
   final String? payerName;
   final String? paidToName;
@@ -84,6 +86,8 @@ class FinancialEntry {
     required this.isIncome,
     this.description,
     required this.entryDate,
+    this.isReimbursed = false,
+    this.reimbursedDate,
     this.is1099Expected,
     this.payerName,
     this.paidToName,
@@ -107,6 +111,10 @@ class FinancialEntry {
       isIncome: json['is_income'] as bool,
       description: json['description'] as String?,
       entryDate: DateTime.parse(json['entry_date'] as String),
+      isReimbursed: json['is_reimbursed'] as bool? ?? false,
+      reimbursedDate: json['reimbursed_date'] != null
+          ? DateTime.parse(json['reimbursed_date'] as String)
+          : null,
       is1099Expected: json['is_1099_expected'] as bool?,
       payerName: json['payor_name'] as String?,
       paidToName: json['paid_to_name'] as String?,
@@ -132,6 +140,8 @@ class FinancialEntry {
       'is_income': isIncome,
       'description': description,
       'entry_date': entryDate.toIso8601String().split('T').first,
+      'is_reimbursed': isReimbursed,
+      'reimbursed_date': reimbursedDate?.toIso8601String().split('T').first,
       'is_1099_expected': is1099Expected,
       'payor_name': payerName,
       'paid_to_name': paidToName,
