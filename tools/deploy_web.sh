@@ -205,6 +205,7 @@ ok "Version committed"
 step "Cleaning build environment"
 
 flutter clean
+flutter pub get
 
 ok "Build environment clean"
 
