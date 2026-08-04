@@ -77,13 +77,16 @@ class SongCardLayout {
   static const double metricsGutter = 12.0;
 
   /// Fixed width for BPM column (must fit '999 BPM' on one line)
-  static const double bpmColWidth = 90.0;
+  static const double bpmColWidth = 68.0;
 
   /// Fixed width for Duration column
-  static const double durationColWidth = 80.0;
+  static const double durationColWidth = 60.0;
+
+  /// Fixed width for key badge column (fits values like 'F#m')
+  static const double keyColWidth = 64.0;
 
   /// Fixed width for trailing tuning badge column
-  static const double trailingColWidth = 100.0;
+  static const double trailingColWidth = 128.0;
 
   /// Card horizontal padding (left/right from content edge)
   static const double cardHorizontalPadding = 16.0;
