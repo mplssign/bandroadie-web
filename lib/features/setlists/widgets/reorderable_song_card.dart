@@ -324,48 +324,53 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
   ///
   /// BPM, Duration, and Key use fixed-width left-aligned slots.
   /// Tuning uses a fixed-width trailing slot with right alignment.
-  /// Positions remain deterministic, including when Key is missing.
+  /// The Key slot remains reserved even when the song has no key so all
+  /// metric values stay in the same horizontal positions.
   Widget _buildMetricsRow() {
+    final hasKey = widget.song.musicalKey != null &&
+        widget.song.musicalKey!.trim().isNotEmpty;
+
     return SizedBox(
       height: SongCardLayout.metricsRowHeight,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: SongCardLayout.bpmColWidth,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _buildBpmValue(),
-            ),
-          ),
-          const SizedBox(width: SongCardLayout.metricsGutter),
-          SizedBox(
-            width: SongCardLayout.durationColWidth,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _buildDurationValue(),
-            ),
-          ),
-          const SizedBox(width: SongCardLayout.metricsGutter),
-          SizedBox(
-            width: SongCardLayout.keyColWidth,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: widget.song.musicalKey != null &&
-                      widget.song.musicalKey!.isNotEmpty
-                  ? _buildKeyBadge()
-                  : const SizedBox.shrink(),
-            ),
-          ),
-          const SizedBox(width: SongCardLayout.metricsGutter),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _buildTuningBadge(),
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: SongCardLayout.bpmColWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildBpmValue(),
+                ),
+              ),
+              const SizedBox(width: SongCardLayout.metricsGutter),
+              SizedBox(
+                width: SongCardLayout.durationColWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildDurationValue(),
+                ),
+              ),
+              const SizedBox(width: SongCardLayout.metricsGutter),
+              SizedBox(
+                width: SongCardLayout.keyColWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: hasKey ? _buildKeyBadge() : const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(width: SongCardLayout.metricsGutter),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildTuningBadge(),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

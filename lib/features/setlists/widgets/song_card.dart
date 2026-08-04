@@ -204,50 +204,64 @@ class _SongCardState extends State<SongCard>
   /// Metrics row with fixed-width columns for deterministic alignment.
   /// Uses AnimatedValueText for placeholder support and animated transitions.
   Widget _buildMetricsRow() {
+    final hasKey = widget.song.musicalKey != null &&
+        widget.song.musicalKey!.trim().isNotEmpty;
+
     return SizedBox(
       height: SongCardLayout.metricsRowHeight,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // BPM column (fixed width, left-aligned)
-          SizedBox(
-            width: SongCardLayout.bpmColWidth,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _buildBpmValue(),
-            ),
-          ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // BPM column (fixed width, left-aligned)
+              SizedBox(
+                width: SongCardLayout.bpmColWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildBpmValue(),
+                ),
+              ),
 
-          // Gutter
-          const SizedBox(width: SongCardLayout.metricsGutter),
+              // Gutter
+              const SizedBox(width: SongCardLayout.metricsGutter),
 
-          // Duration column (fixed width, left-aligned)
-          SizedBox(
-            width: SongCardLayout.durationColWidth,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: _buildDurationValue(),
-            ),
-          ),
+              // Duration column (fixed width, left-aligned)
+              SizedBox(
+                width: SongCardLayout.durationColWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildDurationValue(),
+                ),
+              ),
 
-          // Gutter before key badge (only if key exists)
-          if (widget.song.musicalKey != null &&
-              widget.song.musicalKey!.isNotEmpty)
-            const SizedBox(width: SongCardLayout.metricsGutter),
+              // Gutter
+              const SizedBox(width: SongCardLayout.metricsGutter),
 
-          // Key badge column (only if key exists)
-          if (widget.song.musicalKey != null &&
-              widget.song.musicalKey!.isNotEmpty)
-            _buildKeyBadge(),
+              // Key badge slot is always reserved so all metric values stay in
+              // the same horizontal positions regardless of key presence.
+              SizedBox(
+                width: SongCardLayout.keyColWidth,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: hasKey ? _buildKeyBadge() : const SizedBox.shrink(),
+                ),
+              ),
 
-          // Flexible spacer + tuning (takes remaining space, right-aligned)
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _buildTuningBadge(),
-            ),
-          ),
-        ],
+              // Gutter
+              const SizedBox(width: SongCardLayout.metricsGutter),
+
+              // Tuning badge keeps intrinsic width, right edge stays aligned,
+              // and longer labels grow leftward.
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildTuningBadge(),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -327,6 +341,9 @@ class _SongCardState extends State<SongCard>
                 color: textColor,
                 height: 1,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
             ),
           );
         },
@@ -356,6 +373,9 @@ class _SongCardState extends State<SongCard>
           color: textColor,
           height: 1,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
       ),
     );
   }
