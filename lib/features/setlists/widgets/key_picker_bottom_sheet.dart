@@ -86,6 +86,24 @@ class _KeyPickerBottomSheet extends StatelessWidget {
             child: ListView(
               shrinkWrap: true,
               children: [
+                ListTile(
+                  title: Text(
+                    'None',
+                    style: AppTextStyles.callout.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                  trailing: (selectedKey == null || selectedKey!.isEmpty)
+                      ? const Icon(
+                          Icons.check,
+                          color: AppColors.primary,
+                        )
+                      : null,
+                  onTap: () => Navigator.of(context).pop(''),
+                ),
+
+                const SizedBox(height: Spacing.space8),
+
                 // Major section
                 Padding(
                   padding: const EdgeInsets.symmetric(

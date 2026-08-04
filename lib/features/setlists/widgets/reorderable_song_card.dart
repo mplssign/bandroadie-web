@@ -122,16 +122,22 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
     );
 
     if (result != null) {
-      // Compose the compound tuning string (e.g. "standard_e|capo:3")
-      final newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
-          result.tuningId;
+      final String? newTuning;
+      if (result.tuningId.isEmpty) {
+        newTuning = null;
+      } else {
+        // Compose the compound tuning string (e.g. "standard_e|capo:3")
+        newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
+            result.tuningId;
+      }
 
       if (newTuning != widget.song.tuning) {
         setState(() {
           _isSaving = true;
         });
 
-        final success = await widget.onTuningChanged?.call(newTuning) ?? false;
+        final success =
+            await widget.onTuningChanged?.call(newTuning ?? '') ?? false;
 
         setState(() {
           _isSaving = false;

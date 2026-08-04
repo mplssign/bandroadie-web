@@ -36,6 +36,7 @@ class SongUpdateEvent {
   /// Flags to indicate which fields should be cleared to null
   /// (needed because null means "no change" by default)
   final bool clearBpm;
+  final bool clearTuning;
   final bool clearNotes;
   final bool clearYoutubeLinks;
   final bool clearLyrics;
@@ -53,6 +54,7 @@ class SongUpdateEvent {
     this.lyrics,
     this.musicalKey,
     this.clearBpm = false,
+    this.clearTuning = false,
     this.clearNotes = false,
     this.clearYoutubeLinks = false,
     this.clearLyrics = false,
@@ -389,22 +391,43 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     final song = updatedSongs[songIndex];
 
     // Apply the updates using explicit clear flags
-    updatedSongs[songIndex] = song.copyWith(
-      title: event.title ?? song.title,
-      artist: event.artist ?? song.artist,
-      bpm: event.bpm ?? song.bpm,
-      durationSeconds: event.durationSeconds ?? song.durationSeconds,
-      notes: event.notes ?? song.notes,
-      tuning: event.tuning ?? song.tuning,
-      youtubeLinks: event.youtubeLinks ?? song.youtubeLinks,
-      lyrics: event.lyrics ?? song.lyrics,
-      musicalKey: event.musicalKey ?? song.musicalKey,
-      clearBpm: event.clearBpm,
-      clearNotes: event.clearNotes,
-      clearYoutubeLinks: event.clearYoutubeLinks,
-      clearLyrics: event.clearLyrics,
-      clearMusicalKey: event.clearMusicalKey,
-    );
+    if (event.clearTuning) {
+      updatedSongs[songIndex] = SetlistSong(
+        id: song.id,
+        title: event.title ?? song.title,
+        artist: event.artist ?? song.artist,
+        bpm: event.clearBpm ? null : (event.bpm ?? song.bpm),
+        durationSeconds: event.durationSeconds ?? song.durationSeconds,
+        tuning: null,
+        albumArtwork: song.albumArtwork,
+        notes: event.clearNotes ? null : (event.notes ?? song.notes),
+        youtubeLinks: event.clearYoutubeLinks
+            ? null
+            : (event.youtubeLinks ?? song.youtubeLinks),
+        lyrics: event.clearLyrics ? null : (event.lyrics ?? song.lyrics),
+        musicalKey: event.clearMusicalKey
+            ? null
+            : (event.musicalKey ?? song.musicalKey),
+        position: song.position,
+      );
+    } else {
+      updatedSongs[songIndex] = song.copyWith(
+        title: event.title ?? song.title,
+        artist: event.artist ?? song.artist,
+        bpm: event.bpm ?? song.bpm,
+        durationSeconds: event.durationSeconds ?? song.durationSeconds,
+        notes: event.notes ?? song.notes,
+        tuning: event.tuning ?? song.tuning,
+        youtubeLinks: event.youtubeLinks ?? song.youtubeLinks,
+        lyrics: event.lyrics ?? song.lyrics,
+        musicalKey: event.musicalKey ?? song.musicalKey,
+        clearBpm: event.clearBpm,
+        clearNotes: event.clearNotes,
+        clearYoutubeLinks: event.clearYoutubeLinks,
+        clearLyrics: event.clearLyrics,
+        clearMusicalKey: event.clearMusicalKey,
+      );
+    }
 
     // RACE CONDITION FIX: Re-sort Catalog to maintain consistent ordering
     // after song metadata changes that affect sort order (artist, BPM, etc.)
@@ -1362,6 +1385,60 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
+  /// Clear tuning for a song (global - syncs across all setlists)
+  Future<bool> clearSongTuning(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+
+    final updatedSongs = state.songs.map((song) {
+      if (song.id != songId) return song;
+      return SetlistSong(
+        id: song.id,
+        title: song.title,
+        artist: song.artist,
+        bpm: song.bpm,
+        durationSeconds: song.durationSeconds,
+        tuning: null,
+        albumArtwork: song.albumArtwork,
+        notes: song.notes,
+        youtubeLinks: song.youtubeLinks,
+        lyrics: song.lyrics,
+        musicalKey: song.musicalKey,
+        position: song.position,
+      );
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.clearSongTuningOverride(
+        bandId: bandId,
+        setlistId: state.setlistId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared tuning for song $songId');
+
+      ref
+          .read(songUpdateBroadcasterProvider.notifier)
+          .broadcast(SongUpdateEvent(songId: songId, clearTuning: true));
+
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing tuning: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear tuning. Please try again.',
+      );
+      return false;
+    }
+  }
+
   /// Update notes for a song (global - syncs across all setlists)
   ///
   /// Uses optimistic update pattern:
@@ -1483,6 +1560,51 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         songs: originalSongs,
         items: originalItems,
         error: 'Couldn\'t save musical key. Try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clear musical key for a song (global - syncs across all setlists)
+  Future<bool> clearSongMusicalKey(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearMusicalKey: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.clearSongMusicalKeyOverride(
+        bandId: bandId,
+        setlistId: state.setlistId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared musical key for song $songId');
+
+      ref.read(songUpdateBroadcasterProvider.notifier).broadcast(
+            SongUpdateEvent(songId: songId, clearMusicalKey: true),
+          );
+
+      return true;
+    } catch (e, stack) {
+      debugPrint('[SetlistDetail] Error clearing musical key: $e');
+      debugPrint('[SetlistDetail] Stack trace: $stack');
+
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Couldn\'t clear musical key. Try again.',
       );
       return false;
     }

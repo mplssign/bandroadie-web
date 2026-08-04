@@ -541,9 +541,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       onEdit: canEdit ? () => _handleSongTap(song) : null,
       onDelete: canEdit ? () => _handleDelete(song.id, song.title) : null,
       onTuningChanged: canEdit
-          ? (tuning) => ref
-              .read(setlistDetailProvider.notifier)
-              .updateSongTuning(song.id, tuning)
+          ? (tuning) {
+              final notifier = ref.read(setlistDetailProvider.notifier);
+              if (tuning.isEmpty) {
+                return notifier.clearSongTuning(song.id);
+              }
+              return notifier.updateSongTuning(song.id, tuning);
+            }
           : null,
     );
 
@@ -1673,12 +1677,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       }
 
       // Update tuning if changed
-      if (result.tuningChanged && result.tuning != null) {
+      if (result.tuningChanged) {
         debugPrint('[SetlistDetail] Saving tuning...');
-        final success = await notifier.updateSongTuning(
-          song.id,
-          result.tuning!,
-        );
+        final success = (result.tuning == null || result.tuning!.isEmpty)
+            ? await notifier.clearSongTuning(song.id)
+            : await notifier.updateSongTuning(song.id, result.tuning!);
         debugPrint('[SetlistDetail] Tuning save result: $success');
       }
 
@@ -1705,7 +1708,12 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       if (result.musicalKeyChanged) {
         debugPrint('[SetlistDetail] Saving musical key...');
         final success =
-            await notifier.updateSongMusicalKey(song.id, result.musicalKey);
+            (result.musicalKey == null || result.musicalKey!.isEmpty)
+                ? await notifier.clearSongMusicalKey(song.id)
+                : await notifier.updateSongMusicalKey(
+                    song.id,
+                    result.musicalKey,
+                  );
         debugPrint('[SetlistDetail] Musical key save result: $success');
       }
     }

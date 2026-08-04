@@ -1654,6 +1654,158 @@ class SetlistRepository {
     }
   }
 
+  /// Clears the tuning for a song globally (syncs across all setlists).
+  /// Uses clear_song_metadata RPC with SECURITY DEFINER to bypass RLS.
+  Future<void> clearSongTuningOverride({
+    required String bandId,
+    required String setlistId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    debugPrint(
+      '[SetlistRepository] clearSongTuningOverride: songId=$songId, bandId=$bandId',
+    );
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_tuning': true,
+        },
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Cleared tuning for song $songId (global via RPC)',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] clear_song_metadata RPC not found, falling back to direct update',
+        );
+        await supabase.from('songs').update({'tuning': null}).eq('id', songId);
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared tuning for song $songId (direct fallback)',
+        );
+        return;
+      }
+      debugPrint('[SetlistRepository] Error clearing song tuning: $e');
+      rethrow;
+    } catch (e) {
+      debugPrint('[SetlistRepository] Error clearing song tuning: $e');
+      rethrow;
+    }
+  }
+
+  /// Clears the musical key for a song globally (syncs across all setlists).
+  /// Uses clear_song_metadata RPC with SECURITY DEFINER to bypass RLS.
+  Future<void> clearSongMusicalKeyOverride({
+    required String bandId,
+    required String setlistId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    debugPrint(
+      '[SetlistRepository] clearSongMusicalKeyOverride: songId=$songId, bandId=$bandId',
+    );
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_musical_key': true,
+        },
+      );
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
+        );
+      }
+
+      if (result is Map) {
+        if (result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          debugPrint('[SetlistRepository] RPC returned error: $error');
+          throw Exception(error);
+        }
+      }
+
+      debugPrint(
+        '[SetlistRepository] ✓ Cleared musical key for song $songId (global via RPC)',
+      );
+    } on PostgrestException catch (e) {
+      debugPrint(
+        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
+      );
+
+      if (e.code == 'PGRST203') {
+        debugPrint(
+          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
+        );
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        debugPrint(
+          '[SetlistRepository] clear_song_metadata RPC not found, falling back to direct update',
+        );
+        await supabase
+            .from('songs')
+            .update({'musical_key': null}).eq('id', songId);
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared musical key for song $songId (direct fallback)',
+        );
+        return;
+      }
+      debugPrint('[SetlistRepository] Error clearing song musical key: $e');
+      rethrow;
+    } catch (e) {
+      debugPrint('[SetlistRepository] Error clearing song musical key: $e');
+      rethrow;
+    }
+  }
+
   /// Updates the duration for a song globally (syncs across all setlists).
   /// Duration is in seconds. Uses RPC with SECURITY DEFINER to bypass RLS.
   Future<void> updateSongDurationOverride({
