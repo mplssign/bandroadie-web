@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,6 +69,14 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
   late TextEditingController _nameController;
   late FocusNode _nameFocusNode;
   bool _isSavingName = false;
+
+  // Memoized shared metrics widths for ReorderableSongCard rows.
+  List<SetlistSong>? _cachedMetricsSongsRef;
+  int _cachedMetricsSongCount = -1;
+  int? _cachedMetricsSignature;
+  SongMetricsSharedWidths? _cachedMetricsWidths;
+  static const double _metricsTextSafetyMarginPx = 4.0;
+  static const double _tuningExtraWidthPx = 16.0;
 
   @override
   void initState() {
@@ -934,7 +944,109 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     return _buildContent(state);
   }
 
+  SongMetricsSharedWidths _sharedMetricsWidthsForSongs(
+      List<SetlistSong> songs) {
+    final cachedWidths = _cachedMetricsWidths;
+    if (cachedWidths != null &&
+        identical(_cachedMetricsSongsRef, songs) &&
+        _cachedMetricsSongCount == songs.length) {
+      return cachedWidths;
+    }
+
+    final signature = _buildMetricsSignature(songs);
+    if (cachedWidths != null &&
+        _cachedMetricsSongCount == songs.length &&
+        _cachedMetricsSignature == signature) {
+      _cachedMetricsSongsRef = songs;
+      return cachedWidths;
+    }
+
+    final computed = _computeSharedMetricsWidths(songs);
+    _cachedMetricsSongsRef = songs;
+    _cachedMetricsSongCount = songs.length;
+    _cachedMetricsSignature = signature;
+    _cachedMetricsWidths = computed;
+    return computed;
+  }
+
+  int _buildMetricsSignature(List<SetlistSong> songs) {
+    return Object.hashAll(
+      songs.map(
+        (song) => Object.hash(
+          song.bpm,
+          song.durationSeconds,
+          song.musicalKey,
+          song.tuning,
+        ),
+      ),
+    );
+  }
+
+  SongMetricsSharedWidths _computeSharedMetricsWidths(List<SetlistSong> songs) {
+    final metricStyle = DefaultTextStyle.of(context).style.merge(
+          const TextStyle(
+            fontSize: AppFontSizes.subhead,
+            fontWeight: FontWeight.w600,
+            height: 1,
+          ),
+        );
+
+    double bpmWidth = 0;
+    double durationWidth = 0;
+    double keyWidth = 0;
+    double tuningWidth = 0;
+
+    for (final song in songs) {
+      final bpmText = song.isBpmPlaceholder ? '- BPM' : song.formattedBpm;
+      bpmWidth = math.max(bpmWidth, _measureTextWidth(bpmText, metricStyle));
+
+      durationWidth = math.max(
+        durationWidth,
+        _measureTextWidth(song.formattedDuration, metricStyle),
+      );
+
+      final key = song.musicalKey;
+      if (key != null && key.trim().isNotEmpty) {
+        keyWidth = math.max(keyWidth, _measureBadgeWidth(key, metricStyle));
+      }
+
+      final tuningText = tuningShortLabel(song.tuning);
+      tuningWidth = math.max(
+        tuningWidth,
+        _measureBadgeWidth(tuningText, metricStyle) + _tuningExtraWidthPx,
+      );
+    }
+
+    return SongMetricsSharedWidths(
+      bpmWidth: bpmWidth > 0 ? bpmWidth : SongCardLayout.bpmColWidth,
+      durationWidth:
+          durationWidth > 0 ? durationWidth : SongCardLayout.durationColWidth,
+      keyWidth: keyWidth > 0 ? keyWidth : SongCardLayout.keyColWidth,
+      tuningWidth:
+          tuningWidth > 0 ? tuningWidth : SongCardLayout.trailingColWidth,
+    );
+  }
+
+  double _measureBadgeWidth(String label, TextStyle style) {
+    final textWidth = _measureTextWidth(label, style);
+    return textWidth + (Spacing.space12 * 2);
+  }
+
+  double _measureTextWidth(String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      textWidthBasis: TextWidthBasis.longestLine,
+      locale: Localizations.maybeLocaleOf(context),
+    )..layout();
+    return painter.width.ceilToDouble() + _metricsTextSafetyMarginPx;
+  }
+
   Widget _buildContent(SetlistDetailState state) {
+    final sharedWidths = _sharedMetricsWidthsForSongs(state.songs);
+
     return CustomScrollView(
       slivers: [
         // Header section
@@ -1024,6 +1136,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   child: ReorderableSongCard(
                     song: song,
                     index: index,
+                    sharedWidths: sharedWidths,
                     onTap: () {},
                     onLyricsView: () {
                       final lyrics = LyricsData.fromJsonString(song.lyrics);

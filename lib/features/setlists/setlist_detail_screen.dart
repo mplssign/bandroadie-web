@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -106,6 +107,14 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
   // Debounce timer for reorder persistence
   Timer? _reorderDebounceTimer;
+
+  // Memoized shared metrics widths for ReorderableSongCard rows.
+  List<SetlistSong>? _cachedMetricsSongsRef;
+  int _cachedMetricsSongCount = -1;
+  int? _cachedMetricsSignature;
+  SongMetricsSharedWidths? _cachedMetricsWidths;
+  static const double _metricsTextSafetyMarginPx = 4.0;
+  static const double _tuningExtraWidthPx = 16.0;
 
   // ============================================================
   // SELECT MODE STATE (Catalog only)
@@ -517,16 +526,119 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     );
   }
 
+  /// Returns memoized shared metrics widths for the full songs list.
+  SongMetricsSharedWidths _sharedMetricsWidthsForSongs(
+      List<SetlistSong> songs) {
+    final cachedWidths = _cachedMetricsWidths;
+    if (cachedWidths != null &&
+        identical(_cachedMetricsSongsRef, songs) &&
+        _cachedMetricsSongCount == songs.length) {
+      return cachedWidths;
+    }
+
+    final signature = _buildMetricsSignature(songs);
+    if (cachedWidths != null &&
+        _cachedMetricsSongCount == songs.length &&
+        _cachedMetricsSignature == signature) {
+      _cachedMetricsSongsRef = songs;
+      return cachedWidths;
+    }
+
+    final computed = _computeSharedMetricsWidths(songs);
+    _cachedMetricsSongsRef = songs;
+    _cachedMetricsSongCount = songs.length;
+    _cachedMetricsSignature = signature;
+    _cachedMetricsWidths = computed;
+    return computed;
+  }
+
+  int _buildMetricsSignature(List<SetlistSong> songs) {
+    return Object.hashAll(
+      songs.map(
+        (song) => Object.hash(
+          song.bpm,
+          song.durationSeconds,
+          song.musicalKey,
+          song.tuning,
+        ),
+      ),
+    );
+  }
+
+  SongMetricsSharedWidths _computeSharedMetricsWidths(List<SetlistSong> songs) {
+    final metricStyle = DefaultTextStyle.of(context).style.merge(
+          const TextStyle(
+            fontSize: AppFontSizes.subhead,
+            fontWeight: FontWeight.w600,
+            height: 1,
+          ),
+        );
+
+    double bpmWidth = 0;
+    double durationWidth = 0;
+    double keyWidth = 0;
+    double tuningWidth = 0;
+
+    for (final song in songs) {
+      final bpmText = song.isBpmPlaceholder ? '- BPM' : song.formattedBpm;
+      bpmWidth = math.max(bpmWidth, _measureTextWidth(bpmText, metricStyle));
+
+      durationWidth = math.max(
+        durationWidth,
+        _measureTextWidth(song.formattedDuration, metricStyle),
+      );
+
+      final key = song.musicalKey;
+      if (key != null && key.trim().isNotEmpty) {
+        keyWidth = math.max(keyWidth, _measureBadgeWidth(key, metricStyle));
+      }
+
+      final tuningText = tuningShortLabel(song.tuning);
+      tuningWidth = math.max(
+        tuningWidth,
+        _measureBadgeWidth(tuningText, metricStyle) + _tuningExtraWidthPx,
+      );
+    }
+
+    return SongMetricsSharedWidths(
+      bpmWidth: bpmWidth > 0 ? bpmWidth : SongCardLayout.bpmColWidth,
+      durationWidth:
+          durationWidth > 0 ? durationWidth : SongCardLayout.durationColWidth,
+      keyWidth: keyWidth > 0 ? keyWidth : SongCardLayout.keyColWidth,
+      tuningWidth:
+          tuningWidth > 0 ? tuningWidth : SongCardLayout.trailingColWidth,
+    );
+  }
+
+  double _measureBadgeWidth(String label, TextStyle style) {
+    final textWidth = _measureTextWidth(label, style);
+    return textWidth + (Spacing.space12 * 2);
+  }
+
+  double _measureTextWidth(String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      textWidthBasis: TextWidthBasis.longestLine,
+      locale: Localizations.maybeLocaleOf(context),
+    )..layout();
+    return painter.width.ceilToDouble() + _metricsTextSafetyMarginPx;
+  }
+
   /// Build a song card.
   Widget _buildSongCardWithMenu({
     required SetlistSong song,
     required int index,
     required bool isDraggable,
     required bool canEdit,
+    required SongMetricsSharedWidths sharedWidths,
   }) {
     final card = ReorderableSongCard(
       song: song,
       index: index,
+      sharedWidths: sharedWidths,
       isDraggable: isDraggable,
       onTap: () => _handleSongTap(song, readOnly: !canEdit),
       onLyricsView: () {
@@ -2450,6 +2562,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   List<Widget> _buildSongsList(SetlistDetailState state, bool canEdit) {
     // Apply search filter if active
     final displaySongs = _isSearching ? _filterSongs(state.songs) : state.songs;
+    final sharedWidths = _sharedMetricsWidthsForSongs(state.songs);
 
     // Empty state (no songs and no items at all)
     if (state.songs.isEmpty && state.items.isEmpty) {
@@ -2553,6 +2666,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                           index: index,
                           isDraggable: false,
                           canEdit: canEdit,
+                          sharedWidths: sharedWidths,
                         ),
                       ),
                     );
@@ -2643,6 +2757,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               index: index,
               isDraggable: canEdit,
               canEdit: canEdit,
+              sharedWidths: sharedWidths,
             ),
           ),
         );
@@ -2676,6 +2791,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             index: index,
             isDraggable: canEdit,
             canEdit: canEdit,
+            sharedWidths: sharedWidths,
           ),
         ),
       );
@@ -3055,22 +3171,30 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
           // ================================================
           // 3. TUNING - anchors to right edge
           // ================================================
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.space12,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Text(
-              shortLabel,
-              style: TextStyle(
-                fontSize: AppFontSizes.subhead,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-                height: 1,
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.space12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  shortLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: TextStyle(
+                    fontSize: AppFontSizes.subhead,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    height: 1,
+                  ),
+                ),
               ),
             ),
           ),

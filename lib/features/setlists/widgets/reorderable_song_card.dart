@@ -15,7 +15,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // METRICS LAYOUT:
 // - Top row: Title/Artist (left) + Delete icon (right)
 // - Bottom row (metrics): BPM | Duration | Key | Tuning
-//   - Uses fixed-width deterministic columns for stable alignment
+//   - Uses shared list-level widths for stable alignment
 //
 // Border: StandardCardBorder (#334155) 1.5px - matches non-Catalog setlist cards
 // Card height: 121px
@@ -28,9 +28,26 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // - Drag: handled by parent ReorderableListView proxyDecorator
 // ============================================================================
 
+class SongMetricsSharedWidths {
+  final double bpmWidth;
+  final double durationWidth;
+  final double keyWidth;
+  final double tuningWidth;
+
+  const SongMetricsSharedWidths({
+    required this.bpmWidth,
+    required this.durationWidth,
+    required this.keyWidth,
+    required this.tuningWidth,
+  });
+
+  double get totalWidth => bpmWidth + durationWidth + keyWidth + tuningWidth;
+}
+
 class ReorderableSongCard extends StatefulWidget {
   final SetlistSong song;
   final int index;
+  final SongMetricsSharedWidths sharedWidths;
   final bool isDraggable;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
@@ -42,6 +59,7 @@ class ReorderableSongCard extends StatefulWidget {
     super.key,
     required this.song,
     required this.index,
+    required this.sharedWidths,
     this.isDraggable = true,
     this.onTap,
     this.onEdit,
@@ -317,13 +335,15 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
     );
   }
 
-  /// Metrics row with stable column positions.
+  /// Metrics row with shared list-level column positions.
   ///
   /// LAYOUT STRUCTURE:
   /// [BPM] [Duration] [Key] [Tuning]
   ///
-  /// BPM, Duration, and Key use fixed-width left-aligned slots.
-  /// Tuning uses a fixed-width trailing slot with right alignment.
+  /// BPM, Duration, and Key use shared-width left-aligned slots.
+  /// Tuning uses a shared-width right-aligned slot.
+  /// Tuning uses shared width and is the only
+  /// column allowed to truncate when space is tight.
   /// The Key slot remains reserved even when the song has no key so all
   /// metric values stay in the same horizontal positions.
   Widget _buildMetricsRow() {
@@ -334,35 +354,49 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
       height: SongCardLayout.metricsRowHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final shared = widget.sharedWidths;
+          final availableWidth = constraints.maxWidth;
+          final fixedColsWidth =
+              shared.bpmWidth + shared.durationWidth + shared.keyWidth;
+          final colSum = shared.totalWidth;
+          final leftover = availableWidth - colSum;
+
+          final gap = leftover >= 0 ? leftover / 3 : 0.0;
+          final tuningWidth = leftover >= 0
+              ? shared.tuningWidth
+              : (availableWidth - fixedColsWidth)
+                  .clamp(0.0, shared.tuningWidth);
+
           return Row(
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(
-                width: SongCardLayout.bpmColWidth,
+                width: shared.bpmWidth,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: _buildBpmValue(),
                 ),
               ),
-              const SizedBox(width: SongCardLayout.metricsGutter),
+              SizedBox(width: gap),
               SizedBox(
-                width: SongCardLayout.durationColWidth,
+                width: shared.durationWidth,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: _buildDurationValue(),
                 ),
               ),
-              const SizedBox(width: SongCardLayout.metricsGutter),
+              SizedBox(width: gap),
               SizedBox(
-                width: SongCardLayout.keyColWidth,
+                width: shared.keyWidth,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: hasKey ? _buildKeyBadge() : const SizedBox.shrink(),
                 ),
               ),
-              const SizedBox(width: SongCardLayout.metricsGutter),
-              Expanded(
+              SizedBox(width: gap),
+              SizedBox(
+                width: tuningWidth,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: _buildTuningBadge(),
