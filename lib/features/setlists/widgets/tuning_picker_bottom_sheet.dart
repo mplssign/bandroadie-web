@@ -56,6 +56,12 @@ class TuningPickerResult {
   const TuningPickerResult({required this.tuningId, this.capoFret});
 }
 
+const TuningOption _noneTuningOption = TuningOption(
+  id: '',
+  name: 'None',
+  strings: 'No tuning set',
+);
+
 // =============================================================================
 // TUNING DATA
 // =============================================================================
@@ -550,6 +556,13 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
                     controller: scrollController,
                     padding: EdgeInsets.zero,
                     children: [
+                      _buildSectionHeader('None'),
+                      _TuningOptionRow(
+                        option: _noneTuningOption,
+                        isSelected: _isSelected(_noneTuningOption),
+                        onTap: () => _selectTuning(_noneTuningOption),
+                      ),
+
                       // Preset tuning groups
                       for (final group in tuningGroups) ...[
                         _buildSectionHeader(group.title),

@@ -1036,9 +1036,13 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     },
                     onEdit: () {},
                     onDelete: () => _handleDelete(song.id, song.title),
-                    onTuningChanged: (tuning) => ref
-                        .read(setlistDetailProvider.notifier)
-                        .updateSongTuning(song.id, tuning),
+                    onTuningChanged: (tuning) {
+                      final notifier = ref.read(setlistDetailProvider.notifier);
+                      if (tuning.isEmpty) {
+                        return notifier.clearSongTuning(song.id);
+                      }
+                      return notifier.updateSongTuning(song.id, tuning);
+                    },
                   ),
                 ),
               );

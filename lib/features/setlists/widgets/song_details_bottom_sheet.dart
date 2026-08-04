@@ -129,7 +129,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
   late TextEditingController _titleController;
   late TextEditingController _artistController;
   late TextEditingController _notesController;
-  late String _currentTuning;
+  late String? _currentTuning;
 
   // BPM is tracked as nullable int (dialog-based input)
   late int? _currentBpm;
@@ -171,7 +171,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     _originalBpm = widget.song.bpm;
     _currentDurationSeconds = widget.song.durationSeconds;
     _originalDurationSeconds = widget.song.durationSeconds;
-    _currentTuning = widget.song.tuning ?? 'standard_e';
+    _currentTuning = widget.song.tuning;
 
     // Initialize YouTube links from song data
     debugPrint(
@@ -269,7 +269,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     final newTitle = _titleController.text.trim();
     final newArtist = _artistController.text.trim();
     final newNotes = _notesController.text.trim();
-    final originalTuning = widget.song.tuning ?? 'standard_e';
+    final originalTuning = widget.song.tuning;
 
     final titleChanged = newTitle != widget.song.title;
     final artistChanged = newArtist != widget.song.artist;
@@ -399,9 +399,14 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     );
 
     if (result != null) {
-      // Compose the compound tuning string (e.g. "standard_e|capo:3")
-      final newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
-          result.tuningId;
+      final String? newTuning;
+      if (result.tuningId.isEmpty) {
+        newTuning = null;
+      } else {
+        // Compose the compound tuning string (e.g. "standard_e|capo:3")
+        newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
+            result.tuningId;
+      }
 
       if (newTuning != _currentTuning) {
         HapticFeedback.selectionClick();
@@ -1174,12 +1179,10 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   /// 4-column metrics row: BPM | Duration | Tuning | Key
   Widget _buildMetricsRow() {
-    // Parse capo suffix so findTuningByIdOrName sees the base tuning
-    final baseTuning =
-        parseCapoTuning(_currentTuning).tuningId ?? _currentTuning;
-    final tuningOption = findTuningByIdOrName(baseTuning);
-    final tuningDisplayName =
-        tuningOption?.name ?? tuningShortLabel(_currentTuning);
+    String tuningDisplayName = '—';
+    if (_currentTuning != null && _currentTuning!.isNotEmpty) {
+      tuningDisplayName = tuningShortLabel(_currentTuning);
+    }
 
     return SegmentedButtonGroup(
       segments: [
