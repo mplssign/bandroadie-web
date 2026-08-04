@@ -12,13 +12,10 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // REORDERABLE SONG CARD
 // Variant of SongCard optimized for ReorderableListView with inline editing.
 //
-// RESPONSIVE LAYOUT:
+// METRICS LAYOUT:
 // - Top row: Title/Artist (left) + Delete icon (right)
-// - Bottom row (metrics): BPM | Duration | Edit | Tuning
-//   - Uses MainAxisAlignment.spaceBetween for equidistant spacing
-//   - BPM left-aligns with song title
-//   - Tuning right-aligns with delete icon
-//   - Spacing adjusts evenly as screen width changes
+// - Bottom row (metrics): BPM | Duration | Key | Tuning
+//   - Uses fixed-width deterministic columns for stable alignment
 //
 // Border: StandardCardBorder (#334155) 1.5px - matches non-Catalog setlist cards
 // Card height: 121px
@@ -304,8 +301,8 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                           ),
 
                         // ============================================
-                        // METRICS ROW: Responsive flexbox layout
-                        // Left: BPM (fixed) | Right: Duration → Edit → Tuning (flex)
+                        // METRICS ROW: Fixed columns for stable alignment
+                        // BPM | Duration | Key | Tuning
                         // ============================================
                         _buildMetricsRow(),
                       ],
@@ -320,48 +317,54 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
     );
   }
 
-  /// Metrics row with equidistant spacing.
+  /// Metrics row with stable column positions.
   ///
   /// LAYOUT STRUCTURE:
-  /// [BPM] ←--equal space--→ [Duration] ←--equal space--→ [Key Badge] ←--equal space--→ [Tuning]
+  /// [BPM] [Duration] [Key] [Tuning]
   ///
-  /// Uses MainAxisAlignment.spaceBetween to distribute elements evenly:
-  /// - BPM anchors to left edge (aligns with song title above)
-  /// - Tuning anchors to right edge (aligns with delete icon above)
-  /// - Duration and Key Badge (when present) are distributed evenly in between
-  /// - As screen width changes, spacing adjusts proportionally
+  /// BPM, Duration, and Key use fixed-width left-aligned slots.
+  /// Tuning uses a fixed-width trailing slot with right alignment.
+  /// Positions remain deterministic, including when Key is missing.
   Widget _buildMetricsRow() {
     return SizedBox(
       height: SongCardLayout.metricsRowHeight,
       child: Row(
-        // ================================================
-        // EQUIDISTANT SPACING: spaceBetween distributes
-        // elements evenly from left edge to right edge
-        // ================================================
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ================================================
-          // 1. BPM - anchors to left (aligns with title)
-          // ================================================
-          _buildBpmValue(),
-
-          // ================================================
-          // 2. DURATION - second element, evenly spaced
-          // ================================================
-          _buildDurationValue(),
-
-          // ================================================
-          // 3. KEY BADGE - shown only when musical key is set
-          // ================================================
-          if (widget.song.musicalKey != null &&
-              widget.song.musicalKey!.isNotEmpty)
-            _buildKeyBadge(),
-
-          // ================================================
-          // 4. TUNING - anchors to right (aligns with delete)
-          // ================================================
-          _buildTuningBadge(),
+          SizedBox(
+            width: SongCardLayout.bpmColWidth,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _buildBpmValue(),
+            ),
+          ),
+          const SizedBox(width: SongCardLayout.metricsGutter),
+          SizedBox(
+            width: SongCardLayout.durationColWidth,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _buildDurationValue(),
+            ),
+          ),
+          const SizedBox(width: SongCardLayout.metricsGutter),
+          SizedBox(
+            width: SongCardLayout.keyColWidth,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: widget.song.musicalKey != null &&
+                      widget.song.musicalKey!.isNotEmpty
+                  ? _buildKeyBadge()
+                  : const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(width: SongCardLayout.metricsGutter),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _buildTuningBadge(),
+            ),
+          ),
         ],
       ),
     );
@@ -379,6 +382,9 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
         color: context.colors.textPrimary,
         height: 1,
       ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      softWrap: false,
     );
   }
 
@@ -393,6 +399,9 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
         color: context.colors.textPrimary,
         height: 1,
       ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      softWrap: false,
     );
   }
 
@@ -416,6 +425,9 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           color: Color(0xFF1F1F1F), // Dark text for light background
           height: 1,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
       ),
     );
   }
@@ -447,6 +459,9 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           color: textColor,
           height: 1,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
       ),
     );
 
