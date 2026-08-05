@@ -993,27 +993,44 @@ class SetlistRepository {
     if (setlistIdsInOrder.isEmpty) return;
 
     if (kDebugMode) {
-      debugPrint('[SetlistRepository] reorderSetlists:');
+      debugPrint('[SetlistRepository] reorderSetlists (via RPC):');
       debugPrint('  bandId: $bandId');
       debugPrint('  setlistCount: ${setlistIdsInOrder.length}');
     }
 
     try {
-      // Update each setlist's position
-      // Position 0 is reserved for Catalog, so non-catalog starts at 1
-      for (int i = 0; i < setlistIdsInOrder.length; i++) {
-        await supabase
-            .from('setlists')
-            .update({'position': i + 1})
-            .eq('id', setlistIdsInOrder[i])
-            .eq('band_id', bandId);
+      final response = await supabase.rpc(
+        'reorder_setlists',
+        params: {
+          'p_band_id': bandId,
+          'p_setlist_ids': setlistIdsInOrder,
+        },
+      );
+
+      // Parse JSON response
+      if (response is Map && response['success'] == true) {
+        if (kDebugMode) {
+          debugPrint(
+            '[SetlistRepository] ✓ Reordered ${response['reordered_count']} setlists via RPC',
+          );
+        }
+        return;
       }
 
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] ✓ Reordered ${setlistIdsInOrder.length} setlists',
-        );
+      // RPC returned error
+      if (response is Map && response['success'] == false) {
+        final error = response['error'] ?? 'Unknown RPC error';
+        if (kDebugMode) {
+          debugPrint('[SetlistRepository] RPC error: $error');
+        }
+        throw Exception('Reorder setlists failed: $error');
       }
+
+      // Unexpected response format
+      if (kDebugMode) {
+        debugPrint('[SetlistRepository] Unexpected RPC response: $response');
+      }
+      throw Exception('Unexpected response from reorder_setlists RPC');
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[SetlistRepository] Error reordering setlists: $e');
