@@ -128,6 +128,8 @@ class AutoConflictBlockingService {
   /// [eventEndTime] - The end time of the event (for rehearsals, optional)
   /// [eventName] - The name of the event (for display in block-out reason)
   /// [bandName] - The name of the band (for display in block-out reason)
+  /// [sourceGigId] - If blocking for a gig, pass the gig ID (applies to all dates)
+  /// [sourceRehearsalIdsByDate] - If blocking for rehearsal(s), pass list of rehearsal IDs (parallel to eventDates)
   Future<void> autoBlockConflictingDates({
     required String userId,
     required String eventBandId,
@@ -136,10 +138,20 @@ class AutoConflictBlockingService {
     DateTime? eventEndTime,
     required String eventName,
     required String bandName,
+    String? sourceGigId,
+    List<String>? sourceRehearsalIdsByDate,
   }) async {
     debugPrint(
       '[AutoConflictBlockingService] Auto-blocking ${eventDates.length} date(s) for user: $userId, event: $eventName',
     );
+
+    // Validate sourceRehearsalIdsByDate length matches eventDates if provided
+    if (sourceRehearsalIdsByDate != null) {
+      assert(
+        sourceRehearsalIdsByDate.length == eventDates.length,
+        'sourceRehearsalIdsByDate length must match eventDates length',
+      );
+    }
 
     try {
       // Check if user has auto-conflict blocking enabled
@@ -180,8 +192,11 @@ class AutoConflictBlockingService {
       // Generate block-out reason
       final reason = 'Unavailable (scheduled with $bandName)';
 
-      // Loop through all dates
-      for (final eventDate in eventDates) {
+      // Loop through all dates (indexed to match sourceRehearsalIdsByDate)
+      for (var i = 0; i < eventDates.length; i++) {
+        final eventDate = eventDates[i];
+        final sourceRehearsalId = sourceRehearsalIdsByDate?[i];
+
         // Use only the date (not time) for block-out
         final blockOutDate = DateTime(
           eventDate.year,
@@ -198,6 +213,8 @@ class AutoConflictBlockingService {
               startDate: blockOutDate,
               untilDate: null, // Single day
               reason: reason,
+              sourceGigId: sourceGigId,
+              sourceRehearsalId: sourceRehearsalId,
             );
             debugPrint(
               '[AutoConflictBlockingService] Auto-blocked date $blockOutDate for band: $bandId',
@@ -219,6 +236,18 @@ class AutoConflictBlockingService {
       // Do not fail the primary operation if auto-blocking fails
       debugPrint('[AutoConflictBlockingService] Auto-block error: $e');
     }
+  }
+
+  /// Clear all auto-created block-outs for a specific source event
+  /// Used when updating or deleting gigs/rehearsals.
+  Future<void> clearAutoBlocksForSource({
+    String? sourceGigId,
+    String? sourceRehearsalId,
+  }) {
+    return _blockOutRepository.deleteBlockOutsForSource(
+      sourceGigId: sourceGigId,
+      sourceRehearsalId: sourceRehearsalId,
+    );
   }
 }
 
