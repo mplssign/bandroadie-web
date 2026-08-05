@@ -58,11 +58,14 @@ class VenueDetailScreen extends StatelessWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      final edited = await Navigator.push<bool>(
                         context,
                         fadeSlideRoute(page: VenueFormScreen(venue: venue)),
                       );
+                      if (edited == true && context.mounted) {
+                        Navigator.of(context).pop(true);
+                      }
                     },
                     child: const Text(
                       'Edit',
