@@ -242,20 +242,30 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       _isAdding = true;
     });
 
-    final result = await widget.onSongAdded(song.id, song.title, song.artist);
+    try {
+      final result = await widget.onSongAdded(song.id, song.title, song.artist);
 
-    if (mounted) {
-      if (result.success) {
-        Navigator.of(context).pop();
-        showAppSnackBar(context, message: result.friendlyMessage);
-      } else {
+      if (mounted) {
+        if (result.success) {
+          Navigator.of(context).pop();
+          showAppSnackBar(context, message: result.friendlyMessage);
+        } else {
+          setState(() {
+            _isAdding = false;
+          });
+          showErrorSnackBar(
+            context,
+            message: 'Failed to add song. Please try again.',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[SongLookup] Internal song add error: $e');
+      if (mounted) {
         setState(() {
           _isAdding = false;
         });
-        showErrorSnackBar(
-          context,
-          message: 'Failed to add song. Please try again.',
-        );
+        showErrorSnackBar(context, message: 'Failed to add song: $e');
       }
     }
   }
