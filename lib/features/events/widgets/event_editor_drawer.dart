@@ -765,27 +765,39 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       }
     }
 
+    // Capture previous venue ID to detect venue switches
+    final previousVenueId = _selectedVenueId;
+    final isSwitchingVenues =
+        previousVenueId != null && previousVenueId != selectedVenue.id;
+
     if (mounted) {
       setState(() {
         _selectedVenueId = selectedVenue.id;
 
-        // Only fill empty fields to avoid clobbering user-entered values.
-        if (selectedVenue.city != null &&
-            selectedVenue.city!.isNotEmpty &&
-            _locationController.text.trim().isEmpty) {
-          _locationController.text = selectedVenue.city!;
-        }
+        if (isSwitchingVenues) {
+          // Switching from one venue to another — always sync to new venue's values
+          _locationController.text = selectedVenue.city ?? '';
+          _addressController.text = selectedVenue.address ?? '';
+          _stateController.text = selectedVenue.state?.toUpperCase() ?? '';
+        } else {
+          // Initial link — only fill empty fields to preserve user-entered values
+          if (selectedVenue.city != null &&
+              selectedVenue.city!.isNotEmpty &&
+              _locationController.text.trim().isEmpty) {
+            _locationController.text = selectedVenue.city!;
+          }
 
-        if (selectedVenue.address != null &&
-            selectedVenue.address!.isNotEmpty &&
-            _addressController.text.trim().isEmpty) {
-          _addressController.text = selectedVenue.address!;
-        }
+          if (selectedVenue.address != null &&
+              selectedVenue.address!.isNotEmpty &&
+              _addressController.text.trim().isEmpty) {
+            _addressController.text = selectedVenue.address!;
+          }
 
-        if (selectedVenue.state != null &&
-            selectedVenue.state!.isNotEmpty &&
-            _stateController.text.trim().isEmpty) {
-          _stateController.text = selectedVenue.state!.toUpperCase();
+          if (selectedVenue.state != null &&
+              selectedVenue.state!.isNotEmpty &&
+              _stateController.text.trim().isEmpty) {
+            _stateController.text = selectedVenue.state!.toUpperCase();
+          }
         }
       });
     }
