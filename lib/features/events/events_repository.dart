@@ -94,6 +94,7 @@ class EventsRepository {
 
     Rehearsal? firstRehearsal;
     String? parentId;
+    final createdRehearsalIds = <String>[];
 
     try {
       for (var i = 0; i < dates.length; i++) {
@@ -130,6 +131,9 @@ class EventsRepository {
 
         debugPrint('[EventsRepository] Successfully created rehearsal');
 
+        // Collect created IDs for source tracking
+        createdRehearsalIds.add(response['id'] as String);
+
         if (isFirst) {
           firstRehearsal = Rehearsal.fromJson(response);
           parentId = firstRehearsal.id;
@@ -145,8 +149,8 @@ class EventsRepository {
 
       invalidateCache(bandId);
 
-      // Trigger automatic conflict blocking (if enabled)
-      if (firstRehearsal != null) {
+      // Trigger automatic conflict blocking (if enabled and confirmed)
+      if (firstRehearsal != null && !formData.isPotentialGig) {
         try {
           final userId = supabase.auth.currentUser?.id;
           if (userId != null) {
@@ -166,6 +170,7 @@ class EventsRepository {
               eventEndTime: null,
               eventName: 'Rehearsal',
               bandName: bandName,
+              sourceRehearsalIdsByDate: createdRehearsalIds,
             );
           }
         } catch (e) {
@@ -412,6 +417,38 @@ class EventsRepository {
     // Sync additional dates for multi-date potential rehearsals
     await _syncRehearsalDates(rehearsalId, formData);
 
+    // Resync auto-block dates (delete old, recreate if confirmed)
+    try {
+      await _autoConflictBlockingService.clearAutoBlocksForSource(
+        sourceRehearsalId: rehearsalId,
+      );
+
+      if (!formData.isPotentialGig) {
+        final userId = supabase.auth.currentUser?.id;
+        if (userId != null) {
+          final bandResponse = await supabase
+              .from('bands')
+              .select('name')
+              .eq('id', bandId)
+              .single();
+          final bandName = bandResponse['name'] as String;
+
+          await _autoConflictBlockingService.autoBlockConflictingDates(
+            userId: userId,
+            eventBandId: bandId,
+            eventDates: [formData.date],
+            eventStartTime: null,
+            eventEndTime: null,
+            eventName: 'Rehearsal',
+            bandName: bandName,
+            sourceRehearsalIdsByDate: [rehearsalId],
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[EventsRepository] Auto-block resync failed: $e');
+    }
+
     invalidateCache(bandId);
     return Rehearsal.fromJson(response);
   }
@@ -421,6 +458,23 @@ class EventsRepository {
     required String rehearsalId,
     required String bandId,
   }) async {
+    // Gather child IDs BEFORE deleting, so their block-outs can be cleaned up.
+    final children = await supabase
+        .from('rehearsals')
+        .select('id')
+        .eq('parent_rehearsal_id', rehearsalId)
+        .eq('band_id', bandId);
+
+    try {
+      for (final child in children) {
+        await _autoConflictBlockingService.clearAutoBlocksForSource(
+          sourceRehearsalId: child['id'] as String,
+        );
+      }
+    } catch (e) {
+      debugPrint('[EventsRepository] Auto-block cleanup failed: $e');
+    }
+
     await supabase
         .from('rehearsals')
         .delete()
@@ -507,6 +561,52 @@ class EventsRepository {
     debugPrint(
       '[EventsRepository] Created ${dates.length - 1} additional rehearsal(s) in series',
     );
+
+    // Resync auto-block dates for the entire series
+    try {
+      // Clear old blocks for the parent (children are new, no cleanup needed)
+      await _autoConflictBlockingService.clearAutoBlocksForSource(
+        sourceRehearsalId: rehearsalId,
+      );
+
+      if (!formData.isPotentialGig) {
+        final userId = supabase.auth.currentUser?.id;
+        if (userId != null) {
+          final bandResponse = await supabase
+              .from('bands')
+              .select('name')
+              .eq('id', bandId)
+              .single();
+          final bandName = bandResponse['name'] as String;
+
+          // Fetch all created child IDs to build sourceRehearsalIdsByDate
+          final childrenResult = await supabase
+              .from('rehearsals')
+              .select('id, date')
+              .eq('parent_rehearsal_id', rehearsalId)
+              .eq('band_id', bandId)
+              .order('date');
+
+          final allRehearsalIds = [rehearsalId];
+          for (final child in childrenResult) {
+            allRehearsalIds.add(child['id'] as String);
+          }
+
+          await _autoConflictBlockingService.autoBlockConflictingDates(
+            userId: userId,
+            eventBandId: bandId,
+            eventDates: dates,
+            eventStartTime: null,
+            eventEndTime: null,
+            eventName: 'Rehearsal',
+            bandName: bandName,
+            sourceRehearsalIdsByDate: allRehearsalIds,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[EventsRepository] Auto-block resync failed: $e');
+    }
 
     invalidateCache(bandId);
     return parentRehearsal;
@@ -630,37 +730,40 @@ class EventsRepository {
 
     invalidateCache(bandId);
 
-    // Trigger automatic conflict blocking (if enabled)
-    try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId != null) {
-        // Fetch band name for auto-conflict blocking reason
-        final bandResponse = await supabase
-            .from('bands')
-            .select('name')
-            .eq('id', bandId)
-            .single();
-        final bandName = bandResponse['name'] as String;
+    // Trigger automatic conflict blocking (if enabled and confirmed)
+    if (!formData.isPotentialGig) {
+      try {
+        final userId = supabase.auth.currentUser?.id;
+        if (userId != null) {
+          // Fetch band name for auto-conflict blocking reason
+          final bandResponse = await supabase
+              .from('bands')
+              .select('name')
+              .eq('id', bandId)
+              .single();
+          final bandName = bandResponse['name'] as String;
 
-        // Build date list: main date + additional dates
-        final allDates = [
-          formData.date,
-          ...formData.additionalDates.map((e) => e.date),
-        ];
+          // Build date list: main date + additional dates
+          final allDates = [
+            formData.date,
+            ...formData.additionalDates.map((e) => e.date),
+          ];
 
-        await _autoConflictBlockingService.autoBlockConflictingDates(
-          userId: userId,
-          eventBandId: bandId,
-          eventDates: allDates,
-          eventStartTime: null,
-          eventEndTime: null,
-          eventName: formData.name ?? formData.displayName,
-          bandName: bandName,
-        );
+          await _autoConflictBlockingService.autoBlockConflictingDates(
+            userId: userId,
+            eventBandId: bandId,
+            eventDates: allDates,
+            eventStartTime: null,
+            eventEndTime: null,
+            eventName: formData.name ?? formData.displayName,
+            bandName: bandName,
+            sourceGigId: gigId,
+          );
+        }
+      } catch (e) {
+        // Do not fail gig creation if auto-blocking fails
+        debugPrint('[EventsRepository] Auto-conflict blocking failed: $e');
       }
-    } catch (e) {
-      // Do not fail gig creation if auto-blocking fails
-      debugPrint('[EventsRepository] Auto-conflict blocking failed: $e');
     }
 
     // Fetch the gig with its dates to return complete data
@@ -719,6 +822,43 @@ class EventsRepository {
 
     // Sync additional dates for multi-date potential gigs
     await _syncGigDates(gigId, formData);
+
+    // Resync auto-block dates (delete old, recreate if confirmed)
+    try {
+      await _autoConflictBlockingService.clearAutoBlocksForSource(
+        sourceGigId: gigId,
+      );
+
+      if (!formData.isPotentialGig) {
+        final userId = supabase.auth.currentUser?.id;
+        if (userId != null) {
+          final bandResponse = await supabase
+              .from('bands')
+              .select('name')
+              .eq('id', bandId)
+              .single();
+          final bandName = bandResponse['name'] as String;
+
+          final allDates = [
+            formData.date,
+            ...formData.additionalDates.map((e) => e.date),
+          ];
+
+          await _autoConflictBlockingService.autoBlockConflictingDates(
+            userId: userId,
+            eventBandId: bandId,
+            eventDates: allDates,
+            eventStartTime: null,
+            eventEndTime: null,
+            eventName: formData.name ?? formData.displayName,
+            bandName: bandName,
+            sourceGigId: gigId,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[EventsRepository] Auto-block resync failed: $e');
+    }
 
     invalidateCache(bandId);
 
@@ -928,6 +1068,15 @@ class EventsRepository {
       '[EventsRepository] Deleting rehearsal $rehearsalId for band: $bandId',
     );
 
+    // Clean up auto-created block-outs (contingency: explicit cleanup instead of FK cascade)
+    try {
+      await _autoConflictBlockingService.clearAutoBlocksForSource(
+        sourceRehearsalId: rehearsalId,
+      );
+    } catch (e) {
+      debugPrint('[EventsRepository] Auto-block cleanup failed: $e');
+    }
+
     await supabase
         .from('rehearsals')
         .delete()
@@ -1006,6 +1155,31 @@ class EventsRepository {
       // Delete using parent-child relationship
       debugPrint('[EventsRepository] Deleting series via parent-child link');
 
+      // Gather all ids in the series BEFORE deleting anything, so we can clean up
+      // their block-outs after they're gone.
+      final childIds = await supabase
+          .from('rehearsals')
+          .select('id')
+          .eq('parent_rehearsal_id', seriesParentId)
+          .eq('band_id', bandId);
+
+      final allSeriesIds = <String>{
+        seriesParentId,
+        rehearsalId,
+        for (final c in childIds) c['id'] as String,
+      };
+
+      // Clean up auto-created block-outs for all rehearsals in the series
+      try {
+        for (final id in allSeriesIds) {
+          await _autoConflictBlockingService.clearAutoBlocksForSource(
+            sourceRehearsalId: id,
+          );
+        }
+      } catch (e) {
+        debugPrint('[EventsRepository] Auto-block cleanup failed: $e');
+      }
+
       await supabase
           .from('rehearsals')
           .delete()
@@ -1073,6 +1247,17 @@ class EventsRepository {
 
     // Delete all matching rehearsals
     if (idsToDelete.isNotEmpty) {
+      // Clean up auto-created block-outs for each rehearsal in the series
+      try {
+        for (final id in idsToDelete) {
+          await _autoConflictBlockingService.clearAutoBlocksForSource(
+            sourceRehearsalId: id,
+          );
+        }
+      } catch (e) {
+        debugPrint('[EventsRepository] Auto-block cleanup failed: $e');
+      }
+
       await supabase
           .from('rehearsals')
           .delete()
@@ -1093,6 +1278,15 @@ class EventsRepository {
     }
 
     debugPrint('[EventsRepository] Deleting gig $gigId for band: $bandId');
+
+    // Clean up auto-created block-outs (contingency: explicit cleanup instead of FK cascade)
+    try {
+      await _autoConflictBlockingService.clearAutoBlocksForSource(
+        sourceGigId: gigId,
+      );
+    } catch (e) {
+      debugPrint('[EventsRepository] Auto-block cleanup failed: $e');
+    }
 
     await supabase.from('gigs').delete().eq('id', gigId).eq('band_id', bandId);
 

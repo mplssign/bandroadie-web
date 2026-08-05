@@ -117,6 +117,8 @@ class BlockOutRepository {
     required DateTime startDate,
     DateTime? untilDate,
     String? reason,
+    String? sourceGigId,
+    String? sourceRehearsalId,
   }) async {
     if (bandId.isEmpty) {
       throw NoBandSelectedError();
@@ -125,9 +127,8 @@ class BlockOutRepository {
     debugPrint('[BlockOutRepository] Creating block date(s) for band: $bandId');
 
     // Normalize reason: empty string if null/blank (DB column is NOT NULL)
-    final normalizedReason = reason?.trim().isNotEmpty == true
-        ? reason!.trim()
-        : '';
+    final normalizedReason =
+        reason?.trim().isNotEmpty == true ? reason!.trim() : '';
 
     // Format date as YYYY-MM-DD
     String formatDate(DateTime dt) {
@@ -151,14 +152,14 @@ class BlockOutRepository {
           'user_id': userId,
           'date': formatDate(current),
           'reason': normalizedReason,
+          if (sourceGigId != null) 'source_gig_id': sourceGigId,
+          if (sourceRehearsalId != null)
+            'source_rehearsal_id': sourceRehearsalId,
         };
 
         try {
-          final response = await supabase
-              .from('block_dates')
-              .insert(data)
-              .select()
-              .single();
+          final response =
+              await supabase.from('block_dates').insert(data).select().single();
 
           results.add(BlockOut.fromJson(response));
         } catch (e) {
@@ -177,13 +178,12 @@ class BlockOutRepository {
         'user_id': userId,
         'date': formatDate(startDate),
         'reason': normalizedReason,
+        if (sourceGigId != null) 'source_gig_id': sourceGigId,
+        if (sourceRehearsalId != null) 'source_rehearsal_id': sourceRehearsalId,
       };
 
-      final response = await supabase
-          .from('block_dates')
-          .insert(data)
-          .select()
-          .single();
+      final response =
+          await supabase.from('block_dates').insert(data).select().single();
 
       results.add(BlockOut.fromJson(response));
     }
@@ -218,9 +218,8 @@ class BlockOutRepository {
     }
 
     // Normalize reason
-    final normalizedReason = reason?.trim().isNotEmpty == true
-        ? reason!.trim()
-        : '';
+    final normalizedReason =
+        reason?.trim().isNotEmpty == true ? reason!.trim() : '';
 
     final data = {
       'date': formatDate(date),
@@ -295,6 +294,38 @@ class BlockOutRepository {
         .lte('date', formatDate(endDate));
 
     invalidateCache(bandId);
+  }
+
+  /// Delete all block dates created by a specific gig or rehearsal
+  /// Used for lifecycle sync when updating or deleting events.
+  /// Clears all cache since deleted rows may span multiple bands.
+  Future<void> deleteBlockOutsForSource({
+    String? sourceGigId,
+    String? sourceRehearsalId,
+  }) async {
+    assert(
+      (sourceGigId == null) != (sourceRehearsalId == null),
+      'Exactly one of sourceGigId or sourceRehearsalId must be provided',
+    );
+
+    debugPrint(
+      '[BlockOutRepository] Deleting block dates for source: '
+      'gigId=$sourceGigId rehearsalId=$sourceRehearsalId',
+    );
+
+    if (sourceGigId != null) {
+      await supabase
+          .from('block_dates')
+          .delete()
+          .eq('source_gig_id', sourceGigId);
+    } else {
+      await supabase
+          .from('block_dates')
+          .delete()
+          .eq('source_rehearsal_id', sourceRehearsalId!);
+    }
+
+    clearAllCache();
   }
 
   static bool _isSameDay(DateTime a, DateTime b) {
