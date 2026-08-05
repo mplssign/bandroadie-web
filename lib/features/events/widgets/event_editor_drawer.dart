@@ -724,10 +724,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       if (_gigNameSuggestions.isNotEmpty) {
         setState(() => _gigNameSuggestions = []);
       }
-      // Clear venue link if user is editing the name
-      if (_selectedVenueId != null) {
-        _selectedVenueId = null;
-      }
       return;
     }
 
@@ -740,73 +736,60 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         .take(15)
         .toList();
 
-    // Smart matching: single-match auto-fills immediately, multi-match requires city to disambiguate
-    final nameMatches =
-        venues.where((v) => v.name.toLowerCase() == queryLower).toList();
-
-    if (nameMatches.length == 1) {
-      // Exactly one match — auto-link and auto-fill immediately
-      final venue = nameMatches.first;
-      _selectedVenueId = venue.id;
-
-      // Auto-fill city from venue if set and location field is empty
-      if (venue.city != null &&
-          venue.city!.isNotEmpty &&
-          _locationController.text.trim().isEmpty) {
-        _locationController.text = venue.city!;
-      }
-
-      // Auto-fill address from venue if set and address field is empty
-      if (venue.address != null &&
-          venue.address!.isNotEmpty &&
-          _addressController.text.trim().isEmpty) {
-        _addressController.text = venue.address!;
-      }
-
-      // Auto-fill state from venue if set and state field is empty
-      if (venue.state != null &&
-          venue.state!.isNotEmpty &&
-          _stateController.text.trim().isEmpty) {
-        _stateController.text = venue.state!.toUpperCase();
-      }
-    } else if (nameMatches.length > 1) {
-      // Multiple matches — require city field to disambiguate
-      final currentCity = _locationController.text.trim().toLowerCase();
-      final exactMatch = nameMatches.cast<Venue?>().firstWhere(
-            (v) => (v!.city?.toLowerCase() ?? '') == currentCity,
-            orElse: () => null,
-          );
-
-      if (exactMatch != null) {
-        // City disambiguated — auto-link and auto-fill address/state (city already typed)
-        _selectedVenueId = exactMatch.id;
-
-        // Auto-fill address from venue if set and address field is empty
-        if (exactMatch.address != null &&
-            exactMatch.address!.isNotEmpty &&
-            _addressController.text.trim().isEmpty) {
-          _addressController.text = exactMatch.address!;
-        }
-
-        // Auto-fill state from venue if set and state field is empty
-        if (exactMatch.state != null &&
-            exactMatch.state!.isNotEmpty &&
-            _stateController.text.trim().isEmpty) {
-          _stateController.text = exactMatch.state!.toUpperCase();
-        }
-      } else {
-        // Multiple matches, city doesn't disambiguate yet — don't auto-link
-        _selectedVenueId = null;
-      }
-    } else {
-      // No match — clear venue link
-      _selectedVenueId = null;
-    }
-
     if (mounted) {
       setState(() => _gigNameSuggestions = suggestions);
       debugPrint('[GigNameAutocomplete] "$query" -> ${suggestions.length}');
     }
+  }
+
+  void _handleGigNameSelected(String selection) {
+    final venues = ref.read(venuesProvider).venues;
+    final selectionLower = selection.toLowerCase();
+    final nameMatches =
+        venues.where((v) => v.name.toLowerCase() == selectionLower).toList();
+
+    if (nameMatches.isEmpty) {
+      return;
+    }
+
+    Venue selectedVenue = nameMatches.first;
+    if (nameMatches.length > 1) {
+      final currentCity = _locationController.text.trim().toLowerCase();
+      final cityMatchedVenue = nameMatches.cast<Venue?>().firstWhere(
+            (v) => (v!.city?.toLowerCase() ?? '') == currentCity,
+            orElse: () => null,
+          );
+      if (cityMatchedVenue != null) {
+        selectedVenue = cityMatchedVenue;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _selectedVenueId = selectedVenue.id;
+
+        // Only fill empty fields to avoid clobbering user-entered values.
+        if (selectedVenue.city != null &&
+            selectedVenue.city!.isNotEmpty &&
+            _locationController.text.trim().isEmpty) {
+          _locationController.text = selectedVenue.city!;
+        }
+
+        if (selectedVenue.address != null &&
+            selectedVenue.address!.isNotEmpty &&
+            _addressController.text.trim().isEmpty) {
+          _addressController.text = selectedVenue.address!;
+        }
+
+        if (selectedVenue.state != null &&
+            selectedVenue.state!.isNotEmpty &&
+            _stateController.text.trim().isEmpty) {
+          _stateController.text = selectedVenue.state!.toUpperCase();
+        }
+      });
+    }
+
+    _markDirty();
   }
 
   void _unlinkVenue() {
@@ -2221,6 +2204,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       gigNameFocusNode: _gigNameFocusNode,
       gigNameSuggestions: _gigNameSuggestions,
       onGigNameChanged: _fetchGigNameSuggestions,
+      onGigNameSelected: _handleGigNameSelected,
       gigNameKey: _gigNameKey,
       fieldErrors: _fieldErrors,
       locationController: _locationController,

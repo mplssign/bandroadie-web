@@ -29,6 +29,7 @@ class GigFormFields extends ConsumerWidget {
     required this.gigNameFocusNode,
     required this.gigNameSuggestions,
     required this.onGigNameChanged,
+    required this.onGigNameSelected,
     required this.gigNameKey,
     required this.fieldErrors,
     // City autocomplete
@@ -97,6 +98,7 @@ class GigFormFields extends ConsumerWidget {
   final FocusNode gigNameFocusNode;
   final List<String> gigNameSuggestions;
   final ValueChanged<String> onGigNameChanged;
+  final ValueChanged<String> onGigNameSelected;
   final GlobalKey gigNameKey;
   final Map<String, String> fieldErrors;
 
@@ -578,8 +580,7 @@ class GigFormFields extends ConsumerWidget {
             nameController.selection = TextSelection.collapsed(
               offset: selection.length,
             );
-            // Trigger matching logic to set _selectedVenueId and auto-fill city/address/state
-            onGigNameChanged(selection);
+            onGigNameSelected(selection);
           },
           fieldViewBuilder: (
             BuildContext context,
