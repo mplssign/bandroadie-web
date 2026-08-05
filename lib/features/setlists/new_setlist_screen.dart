@@ -156,10 +156,12 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         _isCreating = false;
       });
 
-      // Set up the provider for this setlist
-      ref
-          .read(selectedSetlistProvider.notifier)
-          .select(id: result.id, name: result.name);
+      // Load setlist into detail controller
+      ref.read(setlistDetailProvider.notifier).loadSetlist(
+            result.id,
+            result.name,
+            forceReload: true,
+          );
 
       // Refresh the setlists list
       ref.read(setlistsProvider.notifier).refresh();
