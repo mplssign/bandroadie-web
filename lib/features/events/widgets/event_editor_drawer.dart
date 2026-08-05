@@ -9,6 +9,7 @@ import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
@@ -792,15 +793,72 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _markDirty();
   }
 
-  void _unlinkVenue() {
-    if (_selectedVenueId == null) {
-      return;
+  /// Check if gig's venue-derived fields differ from the linked venue's current values.
+  /// Returns null if no venue is linked or venue cannot be found.
+  Future<Venue?> _venueNeedsUpdate() async {
+    if (_selectedVenueId == null) return null;
+
+    try {
+      final venues = ref.read(venuesProvider).venues;
+
+      final venue = venues.cast<Venue?>().firstWhere(
+            (v) => v!.id == _selectedVenueId,
+            orElse: () => null,
+          );
+      if (venue == null) return null;
+
+      // Compare form values with venue's current values
+      final formAddress = _addressController.text.trim();
+      final formCity = _locationController.text.trim();
+      final formState = _stateController.text.trim().toUpperCase();
+
+      final venueAddress = venue.address ?? '';
+      final venueCity = venue.city ?? '';
+      final venueState = venue.state ?? '';
+
+      final addressChanged = formAddress != venueAddress;
+      final cityChanged = formCity != venueCity;
+      final stateChanged = formState != venueState;
+
+      if (addressChanged || cityChanged || stateChanged) {
+        return venue;
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('[EventEditorDrawer] Error checking venue update: $e');
+      return null;
+    }
+  }
+
+  /// Update the linked venue with the gig's address/city/state values.
+  /// Returns true if successful, false if update failed.
+  Future<bool> _syncVenueData() async {
+    if (_selectedVenueId == null) return false;
+
+    final venue = await ref.read(venuesProvider.notifier).update(
+      id: _selectedVenueId!,
+      bandId: widget.bandId,
+      data: {
+        'address': _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
+        'city': _locationController.text.trim().isEmpty
+            ? null
+            : _locationController.text.trim(),
+        'state': _stateController.text.trim().isEmpty
+            ? null
+            : _stateController.text.trim().toUpperCase(),
+      },
+    );
+
+    if (venue == null) {
+      debugPrint(
+          '[EventEditorDrawer] Venue update returned null - sync failed');
+      return false;
     }
 
-    setState(() {
-      _selectedVenueId = null;
-    });
-    _markDirty();
+    return true;
   }
 
   /// Fetch gig city suggestions with debounce (from past gig cities for this band)
@@ -1637,6 +1695,33 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       // Continue with save after showing dialog
     }
 
+    // Check if venue data should be synced back
+    if (_eventType == EventType.gig) {
+      final venueToUpdate = await _venueNeedsUpdate();
+      if (venueToUpdate != null && mounted) {
+        final shouldSync = await showConfirmActionDialog(
+          context: context,
+          title: 'Update Venue',
+          message:
+              'You made changes to this venue. Do you want to update the venue\'s contact card?',
+          confirmLabel: 'Yes',
+          cancelLabel: 'No',
+          isDestructive: false,
+        );
+
+        if (shouldSync && mounted) {
+          final synced = await _syncVenueData();
+          if (!synced && mounted) {
+            // Optional: show snackbar that venue sync failed but gig will still save
+            showAppSnackBar(
+              context,
+              message: 'Venue update failed, but gig will still be saved.',
+            );
+          }
+        }
+      }
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -2197,8 +2282,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       isSaving: _isSaving,
       isEditMode: _isEditMode,
       existingEventId: widget.existingEventId,
-      isVenueLinked: _selectedVenueId != null,
-      onUnlinkVenue: _unlinkVenue,
       nameController: _nameController,
       venueHintController: _venueHintController,
       gigNameFocusNode: _gigNameFocusNode,
