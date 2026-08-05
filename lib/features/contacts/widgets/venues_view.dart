@@ -78,9 +78,15 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
     required BuildContext context,
     required Venue venue,
   }) async {
-    await Navigator.of(context).push(
+    final needsRefresh = await Navigator.of(context).push<bool>(
       fadeSlideRoute(page: VenueDetailScreen(venue: venue)),
     );
+    if (needsRefresh == true) {
+      final bandId = ref.read(activeBandProvider).activeBandId;
+      if (bandId != null) {
+        ref.read(venuesProvider.notifier).refresh(bandId);
+      }
+    }
   }
 
   int _calculateItemCount(
