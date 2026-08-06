@@ -503,7 +503,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
     // Show no results only if both catalog and external are empty and not searching
     if (_filteredSongs.isEmpty &&
         _externalResults.isEmpty &&
-        !_isSearchingExternal) {
+        !_isSearchingExternal &&
+        _externalError == null) {
       return _buildNoResultsState();
     }
 

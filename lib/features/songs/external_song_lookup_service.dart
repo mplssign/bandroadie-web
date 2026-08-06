@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ============================================================================
@@ -206,35 +204,36 @@ class ExternalSongLookupService {
         debugPrint(
           '[ExternalSongLookup] MusicBrainz fallback also failed: $e2',
         );
-        return [];
+        rethrow;
       }
     }
   }
 
-  /// Search iTunes via public Search API (no auth required).
+  /// Search iTunes via Edge Function (avoids CORS on Web).
   /// Results are pre-sorted by Apple's internal popularity ranking.
   Future<List<SongLookupResult>> _searchItunes(String query, int limit) async {
-    final uri = Uri.https('itunes.apple.com', '/search', {
-      'term': query,
-      'entity': 'song',
-      'limit': limit.toString(),
-    });
+    final response = await _supabase.functions.invoke(
+      'itunes_search',
+      body: {'query': query, 'limit': limit},
+    );
 
-    final response = await http.get(uri);
-
-    if (response.statusCode != 200) {
-      throw Exception('iTunes search failed: ${response.statusCode}');
+    if (response.status != 200) {
+      throw Exception('iTunes search failed: ${response.status}');
     }
 
-    final data = json.decode(response.body) as Map<String, dynamic>;
-    final results = (data['results'] as List?) ?? [];
+    final data = response.data;
+    if (data == null || data['ok'] != true) {
+      throw Exception(data?['error'] ?? 'Unknown iTunes error');
+    }
+
+    final results = (data['data'] as List?) ?? [];
 
     if (kDebugMode) {
       debugPrint('[ExternalSongLookup] Raw iTunes results: ${results.length}');
       for (var i = 0; i < results.length && i < 5; i++) {
         final t = results[i];
         debugPrint(
-          '[ExternalSongLookup] RAW #$i: "${t['trackName']}" by ${t['artistName']}',
+          '[ExternalSongLookup] RAW #$i: "${t['title']}" by ${t['artist']}',
         );
       }
     }
@@ -247,13 +246,11 @@ class ExternalSongLookupService {
       final syntheticPopularity =
           (100 - (idx * (100 / limit)).round()).clamp(0, 100);
 
-      final durationMs = track['trackTimeMillis'] as int?;
       return SongLookupResult(
-        title: track['trackName'] as String? ?? 'Unknown',
-        artist: track['artistName'] as String? ?? 'Unknown Artist',
-        durationSeconds:
-            durationMs != null ? (durationMs / 1000).round() : null,
-        albumArtwork: track['artworkUrl100'] as String?,
+        title: track['title'] as String? ?? 'Unknown',
+        artist: track['artist'] as String? ?? 'Unknown Artist',
+        durationSeconds: track['duration_seconds'] as int?,
+        albumArtwork: track['album_artwork'] as String?,
         bpm: null,
         popularity: syntheticPopularity,
         source: SongSource.itunes,
