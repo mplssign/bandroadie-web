@@ -5,10 +5,15 @@ import 'package:flutter/material.dart';
 /// Use this widget instead of [TextFormField] to ensure consistent
 /// text form field styling across the app. Delegates all props directly
 /// to [TextFormField] while respecting theme's inputDecorationTheme.
+///
+/// When [decoration] is provided, it is used directly and overrides
+/// [hintText], [labelText], [prefixIcon], and [suffixIcon].
 class AppTextFormField extends StatelessWidget {
   const AppTextFormField({
     super.key,
     this.controller,
+    this.focusNode,
+    this.decoration,
     this.hintText,
     this.labelText,
     this.prefixIcon,
@@ -16,6 +21,9 @@ class AppTextFormField extends StatelessWidget {
     this.obscureText = false,
     this.maxLines = 1,
     this.keyboardType,
+    this.textCapitalization = TextCapitalization.none,
+    this.textInputAction,
+    this.style,
     this.onChanged,
     this.enabled = true,
     this.validator,
@@ -25,16 +33,27 @@ class AppTextFormField extends StatelessWidget {
   /// Optional text editing controller
   final TextEditingController? controller;
 
-  /// Optional hint text displayed when field is empty
+  /// Optional focus node for managing focus
+  final FocusNode? focusNode;
+
+  /// Full input decoration. When provided, overrides [hintText], [labelText],
+  /// [prefixIcon], and [suffixIcon].
+  final InputDecoration? decoration;
+
+  /// Optional hint text displayed when field is empty.
+  /// Ignored if [decoration] is provided.
   final String? hintText;
 
-  /// Optional label text displayed above field
+  /// Optional label text displayed above field.
+  /// Ignored if [decoration] is provided.
   final String? labelText;
 
-  /// Optional prefix icon
+  /// Optional prefix icon.
+  /// Ignored if [decoration] is provided.
   final IconData? prefixIcon;
 
-  /// Optional suffix widget (e.g., clear button, visibility toggle)
+  /// Optional suffix widget (e.g., clear button, visibility toggle).
+  /// Ignored if [decoration] is provided.
   final Widget? suffixIcon;
 
   /// Whether to obscure text (for passwords)
@@ -45,6 +64,15 @@ class AppTextFormField extends StatelessWidget {
 
   /// Keyboard type for mobile platforms
   final TextInputType? keyboardType;
+
+  /// Text capitalization behavior
+  final TextCapitalization textCapitalization;
+
+  /// Keyboard action button (e.g., next, done)
+  final TextInputAction? textInputAction;
+
+  /// Text style override
+  final TextStyle? style;
 
   /// Callback when text changes
   final ValueChanged<String>? onChanged;
@@ -62,15 +90,21 @@ class AppTextFormField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        hintText: hintText,
-        labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-        suffixIcon: suffixIcon,
-      ),
+      focusNode: focusNode,
+      decoration:
+          decoration ??
+          InputDecoration(
+            hintText: hintText,
+            labelText: labelText,
+            prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+            suffixIcon: suffixIcon,
+          ),
       obscureText: obscureText,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      textCapitalization: textCapitalization,
+      textInputAction: textInputAction,
+      style: style,
       onChanged: onChanged,
       enabled: enabled,
       validator: validator,

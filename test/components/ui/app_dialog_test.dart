@@ -144,5 +144,116 @@ void main() {
 
       expect(find.byType(TextButton), findsOneWidget);
     });
+
+    testWidgets('custom builder is used when provided', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showAppDialog(
+                    context: context,
+                    builder: (context) => const Dialog(
+                      child: SizedBox(
+                        width: 200,
+                        height: 200,
+                        child: Center(child: Text('Custom Dialog Content')),
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      // Verify custom dialog is displayed
+      expect(find.text('Custom Dialog Content'), findsOneWidget);
+      // Verify it's not an AppAlertDialog
+      expect(find.byType(AppAlertDialog), findsNothing);
+    });
+
+    testWidgets('AlertDialog pattern still works when builder is null', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showAppDialog(
+                    context: context,
+                    title: 'Standard Dialog',
+                    message: 'Using title/message/actions',
+                    actions: [
+                      DialogAction(
+                        label: 'OK',
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  );
+                },
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      // Verify standard AlertDialog pattern is displayed
+      expect(find.text('Standard Dialog'), findsOneWidget);
+      expect(find.text('Using title/message/actions'), findsOneWidget);
+      expect(find.text('OK'), findsOneWidget);
+      expect(find.byType(AppAlertDialog), findsOneWidget);
+    });
+
+    testWidgets('throws ArgumentError when builder is null and args incomplete', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  try {
+                    showAppDialog(
+                      context: context,
+                      title: 'Only Title',
+                      // Missing message and actions
+                    );
+                  } catch (e) {
+                    expect(e, isA<ArgumentError>());
+                    expect(
+                      e.toString(),
+                      contains(
+                        'Either provide builder or provide title, message, and actions',
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Show Dialog'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      // Dialog should not be displayed since ArgumentError was thrown
+      expect(find.byType(AppAlertDialog), findsNothing);
+    });
   });
 }

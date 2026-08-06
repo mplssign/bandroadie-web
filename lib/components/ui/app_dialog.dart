@@ -23,14 +23,34 @@ class DialogAction {
 /// Use this instead of [showDialog] with [AlertDialog] to ensure
 /// consistent dialog styling across the app.
 ///
+/// When [builder] is provided, it is used to construct a custom dialog,
+/// and [title], [message], and [actions] are ignored.
+/// When [builder] is null, [title], [message], and [actions] must be provided
+/// to construct a standard [AppAlertDialog].
+///
 /// Returns the result passed to [Navigator.pop] when the dialog is dismissed.
 Future<T?> showAppDialog<T>({
   required BuildContext context,
-  required String title,
-  required String message,
-  required List<DialogAction> actions,
+  String? title,
+  String? message,
+  List<DialogAction>? actions,
   bool barrierDismissible = true,
+  WidgetBuilder? builder,
 }) {
+  if (builder != null) {
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      builder: builder,
+    );
+  }
+
+  if (title == null || message == null || actions == null) {
+    throw ArgumentError(
+      'Either provide builder or provide title, message, and actions',
+    );
+  }
+
   return showDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,

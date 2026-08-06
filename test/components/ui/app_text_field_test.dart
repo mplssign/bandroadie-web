@@ -78,5 +78,106 @@ void main() {
       final textField = tester.widget<TextField>(find.byType(TextField));
       expect(textField.enabled, isFalse);
     });
+
+    testWidgets('delegates focusNode to TextField', (tester) async {
+      final focusNode = FocusNode();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: AppTextField(focusNode: focusNode)),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.focusNode, focusNode);
+
+      focusNode.dispose();
+    });
+
+    testWidgets('delegates textCapitalization to TextField', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AppTextField(textCapitalization: TextCapitalization.words),
+          ),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.textCapitalization, TextCapitalization.words);
+    });
+
+    testWidgets('delegates textInputAction to TextField', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AppTextField(textInputAction: TextInputAction.next),
+          ),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.textInputAction, TextInputAction.next);
+    });
+
+    testWidgets('delegates style to TextField', (tester) async {
+      const customStyle = TextStyle(fontSize: 20, color: Colors.red);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: AppTextField(style: customStyle)),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.style, customStyle);
+    });
+
+    testWidgets('uses full decoration when provided', (tester) async {
+      const customDecoration = InputDecoration(
+        filled: true,
+        fillColor: Colors.blue,
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.all(16),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: AppTextField(decoration: customDecoration)),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.decoration, customDecoration);
+    });
+
+    testWidgets('decoration overrides simplified props when provided', (
+      tester,
+    ) async {
+      const customDecoration = InputDecoration(
+        filled: true,
+        fillColor: Colors.blue,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AppTextField(
+              decoration: customDecoration,
+              hintText: 'Ignored hint',
+              labelText: 'Ignored label',
+              prefixIcon: Icons.person,
+            ),
+          ),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.decoration, customDecoration);
+      // Verify simplified props are not in the decoration
+      expect(find.text('Ignored hint'), findsNothing);
+      expect(find.text('Ignored label'), findsNothing);
+      expect(find.byIcon(Icons.person), findsNothing);
+    });
   });
 }

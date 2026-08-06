@@ -11,11 +11,17 @@ Future<T?> showAppBottomSheet<T>({
   required WidgetBuilder builder,
   bool isDismissible = true,
   bool useRootNavigator = false,
+  Color? backgroundColor,
+  ShapeBorder? shape,
+  bool isScrollControlled = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     builder: builder,
     isDismissible: isDismissible,
     useRootNavigator: useRootNavigator,
+    backgroundColor: backgroundColor,
+    shape: shape,
+    isScrollControlled: isScrollControlled,
   );
 }
