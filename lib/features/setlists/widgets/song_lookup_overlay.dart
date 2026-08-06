@@ -102,7 +102,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
 
   List<Song> _allSongs = [];
   List<Song> _filteredSongs = [];
-  List<SongLookupResult> _externalResults = [];
+  List<SongLookupResult> _songResults = [];
+  List<SongLookupResult> _artistResults = [];
   bool _isLoading = true;
   bool _isAdding = false;
   bool _isSearchingExternal = false;
@@ -191,7 +192,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
   Future<void> _searchExternal(String query) async {
     if (query.isEmpty || query.length < 3) {
       setState(() {
-        _externalResults = [];
+        _songResults = [];
+        _artistResults = [];
         _isSearchingExternal = false;
         _externalError = null;
       });
@@ -204,14 +206,19 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
     });
 
     try {
-      final results = await _externalService.searchExternalSongs(query);
+      final groupedResults = await _externalService.searchExternalSongs(query);
 
-      // Filter out songs that are already in the catalog results
       final catalogKeys = _filteredSongs
           .map((s) => '${s.title.toLowerCase()}|${s.artist.toLowerCase()}')
           .toSet();
 
-      final filtered = results.where((result) {
+      final filteredSongs = groupedResults.songs.where((result) {
+        final key =
+            '${result.title.toLowerCase()}|${result.artist.toLowerCase()}';
+        return !catalogKeys.contains(key);
+      }).toList();
+
+      final filteredArtists = groupedResults.artists.where((result) {
         final key =
             '${result.title.toLowerCase()}|${result.artist.toLowerCase()}';
         return !catalogKeys.contains(key);
@@ -219,7 +226,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
 
       if (mounted) {
         setState(() {
-          _externalResults = filtered;
+          _songResults = filteredSongs;
+          _artistResults = filteredArtists;
           _isSearchingExternal = false;
         });
       }
@@ -227,7 +235,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
       debugPrint('[SongLookup] External search error: $e');
       if (mounted) {
         setState(() {
-          _externalResults = [];
+          _songResults = [];
+          _artistResults = [];
           _isSearchingExternal = false;
           _externalError = e.toString();
         });
@@ -502,7 +511,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
 
     // Show no results only if both catalog and external are empty and not searching
     if (_filteredSongs.isEmpty &&
-        _externalResults.isEmpty &&
+        _songResults.isEmpty &&
+        _artistResults.isEmpty &&
         !_isSearchingExternal &&
         _externalError == null) {
       return _buildNoResultsState();
@@ -648,7 +658,8 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
 
   Widget _buildResultsList() {
     final hasCatalogResults = _filteredSongs.isNotEmpty;
-    final hasExternalResults = _externalResults.isNotEmpty;
+    final hasSongResults = _songResults.isNotEmpty;
+    final hasArtistResults = _artistResults.isNotEmpty;
 
     return ListView(
       padding: const EdgeInsets.all(Spacing.space16),
@@ -689,10 +700,24 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
               ),
             ),
           )
-        else if (hasExternalResults) ...[
+        else if (hasSongResults) ...[
           if (hasCatalogResults) const SizedBox(height: Spacing.space12),
-          _buildSectionHeader('External Results', Icons.cloud_rounded),
-          ...(_externalResults.map(
+          _buildSectionHeader('Songs', Icons.music_note_rounded),
+          ...(_songResults.map(
+            (result) => _ExternalSongRow(
+              result: result,
+              onTap: () => _handleExternalSongTap(result),
+              isAdding: _isAdding,
+            ),
+          )),
+        ],
+
+        // Artists section
+        if (hasArtistResults) ...[
+          if (hasCatalogResults || hasSongResults)
+            const SizedBox(height: Spacing.space12),
+          _buildSectionHeader('Artists', Icons.person_rounded),
+          ...(_artistResults.map(
             (result) => _ExternalSongRow(
               result: result,
               onTap: () => _handleExternalSongTap(result),

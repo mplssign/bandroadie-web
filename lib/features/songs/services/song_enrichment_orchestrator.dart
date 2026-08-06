@@ -194,16 +194,14 @@ class SongEnrichmentOrchestrator {
       if (needsDuration) {
         try {
           final query = '${song.title} ${song.artist}';
-          final searchResults = await _lookupService.searchExternalSongs(
-            query,
-            limit: 1,
-          );
+          final groupedResults =
+              await _lookupService.searchExternalSongs(query);
+          final bestResult = groupedResults.bestMatch;
 
-          if (searchResults.isEmpty ||
-              searchResults.first.durationSeconds == null) {
+          if (bestResult == null || bestResult.durationSeconds == null) {
             durationNotFound = true;
           } else {
-            fetchedDuration = searchResults.first.durationSeconds;
+            fetchedDuration = bestResult.durationSeconds;
           }
         } catch (e) {
           debugPrint(
