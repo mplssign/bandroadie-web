@@ -24,6 +24,7 @@ import 'bpm_input_dialog.dart';
 import 'duration_input_dialog.dart';
 import 'key_picker_bottom_sheet.dart';
 import 'tuning_picker_bottom_sheet.dart';
+import 'song_notes_drawer.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import '../links/song_link.dart';
 import '../links/song_link_detector.dart';
@@ -600,6 +601,21 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
     if (discard == true && mounted) {
       Navigator.of(context).pop();
+    }
+  }
+
+  /// Opens the notes drawer for viewing/editing.
+  /// When notes exist, this replaces the inline edit flow.
+  Future<void> _viewNotes() async {
+    final result = await showSongNotesDrawer(
+      context,
+      notes: _notesController.text.trim(),
+    );
+    if (result != null) {
+      setState(() {
+        _notesController.text = result;
+      });
+      _checkForChanges();
     }
   }
 
@@ -1309,7 +1325,9 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
         // + Add Notes
         Expanded(
           child: GestureDetector(
-            onTap: () => setState(() => _isEditingNotes = true),
+            onTap: hasNotes
+                ? _viewNotes
+                : () => setState(() => _isEditingNotes = true),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
@@ -1326,7 +1344,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    hasNotes ? 'Edit Notes' : 'Add Notes',
+                    hasNotes ? 'View notes' : 'Add Notes',
                     style: AppTextStyles.footnote.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,
@@ -1351,9 +1369,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: GestureDetector(
-        onTap: widget.isReadOnly
-            ? null
-            : () => setState(() => _isEditingNotes = true),
+        onTap: widget.isReadOnly ? null : _viewNotes,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
