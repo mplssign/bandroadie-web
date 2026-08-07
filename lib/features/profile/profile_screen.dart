@@ -7,6 +7,12 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_text_form_field.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 
 // ============================================================================
 // PROFILE SCREEN
@@ -18,8 +24,11 @@ final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) return null;
 
-  final response =
-      await supabase.from('users').select().eq('id', userId).maybeSingle();
+  final response = await supabase
+      .from('users')
+      .select()
+      .eq('id', userId)
+      .maybeSingle();
 
   if (response == null) return null;
   return UserProfile.fromJson(response);
@@ -67,13 +76,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Not logged in');
 
-      await supabase.from('users').update({
-        'first_name': _firstNameController.text.trim(),
-        'last_name': _lastNameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'city': _cityController.text.trim(),
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', userId);
+      await supabase
+          .from('users')
+          .update({
+            'first_name': _firstNameController.text.trim(),
+            'last_name': _lastNameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'city': _cityController.text.trim(),
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
 
       // Refresh the profile data
       ref.invalidate(userProfileProvider);
@@ -98,19 +110,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
         title: Text('My Profile', style: AppTextStyles.title3),
-        leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           if (!_isEditing)
-            IconButton(
-              icon: const Icon(AppIcons.edit, color: Colors.white),
+            AppIconButton(
+              icon: AppIcons.edit,
+              color: Colors.white,
               onPressed: () {
                 final profile = profileAsync.value;
                 if (profile != null) {
@@ -120,30 +134,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
             )
           else
-            TextButton(
+            AppButton(
+              label: 'Save',
+              variant: AppButtonVariant.text,
               onPressed: _isSaving ? null : _saveProfile,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              isLoading: _isSaving,
             ),
         ],
       ),
       body: profileAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
         ),
         error: (error, _) => Center(
           child: Padding(
@@ -151,11 +155,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  AppIcons.error,
-                  size: 48,
-                  color: AppColors.error,
-                ),
+                const Icon(AppIcons.error, size: 48, color: AppColors.error),
                 const SizedBox(height: Spacing.space16),
                 Text('Error loading profile', style: AppTextStyles.title3),
                 const SizedBox(height: Spacing.space8),
@@ -165,12 +165,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: Spacing.space24),
-                ElevatedButton(
+                AppButton(
+                  label: 'Retry',
+                  variant: AppButtonVariant.secondary,
                   onPressed: () => ref.invalidate(userProfileProvider),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                  ),
-                  child: const Text('Retry'),
                 ),
               ],
             ),
@@ -223,8 +221,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: Spacing.space16),
                 Text(
                   profile.fullName,
-                  style: AppTextStyles.title3
-                      .copyWith(fontSize: AppFontSizes.modalTitle),
+                  style: AppTextStyles.title3.copyWith(
+                    fontSize: AppFontSizes.modalTitle,
+                  ),
                 ),
                 const SizedBox(height: Spacing.space4),
                 Text(profile.email, style: AppTextStyles.callout),
@@ -297,21 +296,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: Spacing.space32),
 
             // Cancel button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => setState(() => _isEditing = false),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.colors.border),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: Spacing.space16,
-                  ),
-                ),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.outlined,
+              onPressed: () => setState(() => _isEditing = false),
+              fullWidth: true,
             ),
           ],
         ),
@@ -335,7 +324,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         const SizedBox(height: Spacing.space8),
-        TextFormField(
+        AppTextFormField(
           controller: controller,
           keyboardType: keyboardType,
           style: const TextStyle(color: Colors.white),

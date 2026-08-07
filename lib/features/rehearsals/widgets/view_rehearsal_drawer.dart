@@ -7,6 +7,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
 import 'rehearsal_notes_sheet.dart';
@@ -282,14 +283,10 @@ class ViewRehearsalDrawer extends ConsumerWidget {
                   const SizedBox(height: Spacing.space12),
                   SizedBox(
                     width: double.infinity,
-                    child: TextButton(
+                    child: AppButton(
+                      label: 'Edit',
+                      variant: AppButtonVariant.text,
                       onPressed: () => _handleEdit(context),
-                      child: Text(
-                        'Edit',
-                        style: AppTextStyles.calloutEmphasized.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ),
                   ),
                 ],

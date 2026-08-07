@@ -6,6 +6,9 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../components/ui/app_scaffold.dart';
+import '../../components/ui/app_progress_indicator.dart';
+import '../../components/ui/app_button.dart';
 import '../../shared/utils/event_permission_helper.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import '../tips/tips_and_tricks_screen.dart';
@@ -328,7 +331,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     final userEmail = currentUser?.email ?? '';
 
     // Build the main content
-    final content = Scaffold(
+    final content = AppScaffold(
       backgroundColor: context.colors.background,
       body: Column(
         children: [
@@ -426,7 +429,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       {required bool isContributor, required bool canCreateGig}) {
     if (calendarState.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: AppProgressIndicator(
+          type: ProgressIndicatorType.circular,
+          color: AppColors.primary,
+        ),
       );
     }
 
@@ -444,9 +450,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: Spacing.space16),
-            TextButton(
+            AppButton(
+              label: 'Retry',
+              variant: AppButtonVariant.text,
               onPressed: () => ref.read(calendarProvider.notifier).loadEvents(),
-              child: const Text('Retry'),
             ),
           ],
         ),

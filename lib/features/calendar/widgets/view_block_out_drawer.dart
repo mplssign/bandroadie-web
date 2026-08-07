@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import '../models/calendar_event.dart';
 
 class ViewBlockOutDrawer extends StatelessWidget {
@@ -171,14 +172,10 @@ class ViewBlockOutDrawer extends StatelessWidget {
                   const SizedBox(height: Spacing.space12),
                   SizedBox(
                     width: double.infinity,
-                    child: TextButton(
+                    child: AppButton(
+                      label: 'Edit',
+                      variant: AppButtonVariant.text,
                       onPressed: () => _handleEdit(context),
-                      child: Text(
-                        'Edit',
-                        style: AppTextStyles.calloutEmphasized.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ),
                   ),
                 ],

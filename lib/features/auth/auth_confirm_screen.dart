@@ -12,6 +12,9 @@ import 'auth_state_provider.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 /// AuthConfirmScreen handles /auth/confirm?token_hash=...&type=email
 /// Also handles PKCE flow: /auth/confirm?code=...
@@ -451,10 +454,11 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
+          AppButton(
+            label: 'Request New Magic Link',
+            icon: AppIcons.refresh,
+            variant: AppButtonVariant.secondary,
             onPressed: () => Navigator.of(context).pushReplacementNamed('/app'),
-            icon: const Icon(AppIcons.refresh),
-            label: const Text('Request New Magic Link'),
           ),
         ],
       ),
@@ -565,7 +569,10 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
           ),
           const SizedBox(height: 24),
           if (showRetryButton)
-            ElevatedButton.icon(
+            AppButton(
+              label: 'Retry',
+              icon: AppIcons.refresh,
+              variant: AppButtonVariant.secondary,
               onPressed: () {
                 setState(() {
                   _loading = true;
@@ -573,17 +580,12 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                 });
                 _handleConfirm();
               },
-              icon: const Icon(AppIcons.refresh),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
             )
           else if (navigateToLogin)
-            ElevatedButton.icon(
+            AppButton(
+              label: 'Back to Login',
+              icon: Icons.arrow_back,
+              variant: AppButtonVariant.secondary,
               onPressed: () {
                 // Navigate back to login screen
                 if (kIsWeb) {
@@ -595,27 +597,14 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
                   );
                 }
               },
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back to Login'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
             )
           else
-            ElevatedButton.icon(
+            AppButton(
+              label: 'Request New Magic Link',
+              icon: AppIcons.email,
+              variant: AppButtonVariant.secondary,
               onPressed: () =>
                   Navigator.of(context).pushReplacementNamed('/app'),
-              icon: const Icon(AppIcons.email),
-              label: const Text('Request New Magic Link'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
             ),
         ],
       ),
@@ -624,16 +613,19 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
       body: Center(
         child: _loading
-            ? const Column(
+            ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 24),
-                  Text(
+                  const AppProgressIndicator(
+                    type: ProgressIndicatorType.circular,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
                     'Verifying your login...',
                     style: TextStyle(
                         color: Colors.white70, fontSize: AppFontSizes.body),

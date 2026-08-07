@@ -8,6 +8,12 @@ import 'package:bandroadie/shared/utils/snackbar_helper.dart';
 import 'package:bandroadie/features/calendar/models/one_calendar_preferences.dart';
 import 'package:bandroadie/features/calendar/one_calendar_preferences_controller.dart';
 import 'package:bandroadie/features/bands/active_band_controller.dart';
+import '../../components/ui/app_scaffold.dart';
+import '../../components/ui/app_app_bar.dart';
+import '../../components/ui/app_icon_button.dart';
+import '../../components/ui/app_progress_indicator.dart';
+import '../../components/ui/app_button.dart';
+import '../../components/ui/app_checkbox.dart';
 
 // ============================================================================
 // ONE CALENDAR SETTINGS SCREEN
@@ -23,13 +29,13 @@ class OneCalendarSettingsScreen extends ConsumerWidget {
     final activeBandState = ref.watch(activeBandProvider);
     final userBands = activeBandState.userBands;
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(AppIcons.arrowLeft, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -43,7 +49,9 @@ class OneCalendarSettingsScreen extends ConsumerWidget {
       ),
       body: prefsAsync.when(
         data: (prefs) => _buildContent(context, ref, prefs, userBands),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: AppProgressIndicator(type: ProgressIndicatorType.circular),
+        ),
         error: (error, stackTrace) => Center(
           child: Padding(
             padding: const EdgeInsets.all(Spacing.pagePadding),
@@ -71,11 +79,12 @@ class OneCalendarSettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: Spacing.space24),
-                ElevatedButton(
+                AppButton(
+                  label: 'Retry',
+                  variant: AppButtonVariant.secondary,
                   onPressed: () {
                     ref.invalidate(oneCalendarPreferencesProvider);
                   },
-                  child: const Text('Retry'),
                 ),
               ],
             ),
@@ -382,13 +391,10 @@ class _BandCheckboxTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Checkbox(
+          AppCheckbox(
             value: isSelected,
             onChanged: onChanged,
             activeColor: AppColors.primary,
-            side: BorderSide(
-              color: context.colors.border,
-            ),
           ),
           const SizedBox(width: Spacing.space8),
           Expanded(

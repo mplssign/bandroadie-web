@@ -8,6 +8,8 @@ import 'package:bandroadie/components/ui/domain_chip.dart';
 import 'package:bandroadie/shared/utils/email_domain_helper.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import 'title_pill_selector.dart';
+import '../../../components/ui/app_icon_button.dart';
+import '../../../components/ui/app_text_field.dart';
 
 // ============================================================================
 // VENUE CONTACT BLOCK
@@ -162,22 +164,18 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(AppIcons.delete, size: 20),
+              AppIconButton(
+                icon: AppIcons.delete,
+                size: 20,
                 color: AppColors.error,
                 onPressed: widget.onRemove,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
 
           // Name
-          TextField(
+          AppTextField(
             controller: _nameController,
             focusNode: _nameFocus,
             style: TextStyle(
@@ -206,7 +204,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           const SizedBox(height: 16),
 
           // Phone
-          TextField(
+          AppTextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
             style: TextStyle(
@@ -218,7 +216,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           const SizedBox(height: 16),
 
           // Email
-          TextField(
+          AppTextField(
             controller: _emailController,
             focusNode: _emailFocus,
             style: TextStyle(
@@ -252,7 +250,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           const SizedBox(height: 16),
 
           // Notes
-          TextField(
+          AppTextField(
             controller: _notesController,
             focusNode: _notesFocus,
             style: TextStyle(

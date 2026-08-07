@@ -12,6 +12,13 @@ import '../notifications/notification_settings_screen.dart';
 import '../calendar/one_calendar_settings_screen.dart';
 import '../bands/active_band_controller.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_switch.dart';
+import 'package:bandroadie/components/ui/app_dialog.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 // ============================================================================
 // SETTINGS SCREEN
@@ -117,7 +124,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   /// Show confirmation dialog for account deletion
   Future<void> _showDeleteConfirmation() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false, // Prevent accidental dismissal
       builder: (context) => AlertDialog(
@@ -182,15 +189,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.text,
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: context.colors.textSecondary,
-                fontSize: AppFontSizes.body,
-              ),
-            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -205,8 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               'Delete Account',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -297,9 +298,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final regularItems = items.where((item) => !item.isDestructive).toList();
     final deleteAccountItem = items.firstWhere((item) => item.isDestructive);
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
         title: Text(
           'Settings',
@@ -309,8 +310,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -319,7 +321,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: AppColors.error),
+                  AppProgressIndicator(
+                    type: ProgressIndicatorType.circular,
+                    color: AppColors.error,
+                  ),
                   SizedBox(height: 24),
                   Text(
                     'Deleting your account...',
@@ -429,12 +434,10 @@ class _LightModeToggle extends ConsumerWidget {
               ],
             ),
           ),
-          Switch(
+          AppSwitch(
             value: isLight,
             onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: context.colors.surfaceOverlay,
-            inactiveThumbColor: context.colors.textSecondary,
+            activeColor: AppColors.primary,
           ),
         ],
       ),

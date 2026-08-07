@@ -12,6 +12,12 @@ import '../models/venue_contact.dart';
 import '../venues_controller.dart';
 import '../venues_repository.dart';
 import 'venue_contact_block.dart';
+import '../../../components/ui/app_scaffold.dart';
+import '../../../components/ui/app_app_bar.dart';
+import '../../../components/ui/app_icon_button.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_dialog.dart';
 
 // ============================================================================
 // VENUE FORM SCREEN
@@ -235,51 +241,21 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
   }
 
   Future<void> _deleteVenue() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Delete Venue?',
-          style: TextStyle(
-            fontSize: AppFontSizes.title2,
-            fontWeight: FontWeight.w600,
-            color: context.colors.textPrimary,
-          ),
+      title: 'Delete Venue?',
+      message: 'This action cannot be undone.',
+      actions: [
+        DialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
         ),
-        content: Text(
-          'This action cannot be undone.',
-          style: TextStyle(
-            fontSize: AppFontSizes.body,
-            color: context.colors.textSecondary,
-          ),
+        DialogAction(
+          label: 'Delete',
+          onPressed: () => Navigator.of(context).pop(true),
+          isDestructive: true,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w600,
-                color: context.colors.textSecondary,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w600,
-                color: AppColors.error,
-              ),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
 
     if (confirmed != true) return;
@@ -345,12 +321,13 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
-        leading: IconButton(
-          icon: Icon(AppIcons.close, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.close,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -362,25 +339,11 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Save',
+            variant: AppButtonVariant.text,
             onPressed: _isSaving ? null : _save,
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.primary,
-                    ),
-                  )
-                : const Text(
-                    'Save',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            isLoading: _isSaving,
           ),
         ],
       ),
@@ -388,7 +351,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
         padding: const EdgeInsets.all(Spacing.pagePadding),
         children: [
           // Venue fields
-          TextField(
+          AppTextField(
             controller: _nameController,
             focusNode: _nameFocus,
             style: TextStyle(
@@ -396,7 +359,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
             decoration: _inputDecoration('Name *'),
           ),
           const SizedBox(height: 16),
-          TextField(
+          AppTextField(
             controller: _addressController,
             focusNode: _addressFocus,
             style: TextStyle(
@@ -407,7 +370,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: AppTextField(
                   controller: _cityController,
                   focusNode: _cityFocus,
                   style: TextStyle(
@@ -420,7 +383,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                 const SizedBox(width: 12),
                 SizedBox(
                   width: 100,
-                  child: TextField(
+                  child: AppTextField(
                     controller: _stateController,
                     focusNode: _stateFocus,
                     style: TextStyle(
@@ -435,7 +398,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          TextField(
+          AppTextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
             style: TextStyle(
@@ -445,7 +408,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
             inputFormatters: _getPhoneFormatters(),
           ),
           const SizedBox(height: 16),
-          TextField(
+          AppTextField(
             controller: _notesController,
             focusNode: _notesFocus,
             style: TextStyle(
@@ -469,13 +432,11 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                   ),
                 ),
               ),
-              TextButton.icon(
+              AppButton(
+                label: 'Add Contact',
+                icon: AppIcons.add,
+                variant: AppButtonVariant.text,
                 onPressed: _addContact,
-                icon: const Icon(AppIcons.add, size: 18),
-                label: const Text('Add Contact'),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                ),
               ),
             ],
           ),
@@ -522,16 +483,10 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           if (_isEditMode) ...[
             const SizedBox(height: 32),
             Center(
-              child: TextButton(
+              child: AppButton(
+                label: 'Delete Venue',
+                variant: AppButtonVariant.destructive,
                 onPressed: _deleteVenue,
-                child: const Text(
-                  'Delete Venue',
-                  style: TextStyle(
-                    fontSize: AppFontSizes.body,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.error,
-                  ),
-                ),
               ),
             ),
           ],

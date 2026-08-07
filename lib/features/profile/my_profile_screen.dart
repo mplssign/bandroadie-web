@@ -16,6 +16,14 @@ import '../members/members_controller.dart';
 import '../members/members_repository.dart';
 import 'user_band_roles_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_dialog.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_text_form_field.dart';
 
 // ============================================================================
 // MY PROFILE SCREEN
@@ -419,7 +427,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     final controller = TextEditingController();
     String? errorText;
 
-    final result = await showDialog<String>(
+    final result = await showAppDialog<String>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -449,7 +457,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                AppTextField(
                   controller: controller,
                   autofocus: true,
                   style: TextStyle(color: context.colors.textPrimary),
@@ -479,25 +487,23 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       ),
                     ),
                   ),
+                  textInputAction: TextInputAction.done,
                   onSubmitted: (value) {
                     _validateAndSubmitRole(
-                      value,
-                      setDialogState,
-                      (error) => errorText = error,
-                    );
+                        value, setDialogState, (error) => errorText = error);
                   },
                 ),
               ],
             ),
             actions: [
-              TextButton(
+              AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.text,
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: context.colors.textSecondary),
-                ),
               ),
-              TextButton(
+              AppButton(
+                label: 'Add',
+                variant: AppButtonVariant.text,
                 onPressed: () {
                   _validateAndSubmitRole(
                     controller.text,
@@ -505,13 +511,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     (error) => errorText = error,
                   );
                 },
-                child: Text(
-                  'Add',
-                  style: TextStyle(
-                    color: context.colors.primaryDim,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ],
           );
@@ -573,35 +572,20 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   /// Now we persist the role removal immediately after updating local state.
   Future<void> _deleteCustomRole(String roleLabel) async {
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        title: Text(
-          'Delete Role',
-          style: TextStyle(color: context.colors.textPrimary),
+      title: 'Delete Role',
+      message: 'Remove "$roleLabel" from your roles?',
+      actions: [
+        DialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
         ),
-        content: Text(
-          'Remove "$roleLabel" from your roles?',
-          style: TextStyle(color: context.colors.textSecondary),
+        DialogAction(
+          label: 'Delete',
+          onPressed: () => Navigator.of(context).pop(true),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: context.colors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Delete',
-              style: TextStyle(color: context.colors.primaryDim),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
 
     if (confirmed != true || !mounted) return;
@@ -858,25 +842,23 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
         title: Text(
           widget.isGated ? 'Complete Your Profile' : 'My Profile',
           style: const TextStyle(
-                  fontSize: AppFontSizes.title2,
-                  fontWeight: FontWeight.w600,
-                  height: 1.25)
-              .copyWith(
-            color: Colors.white,
-          ),
+            fontSize: AppFontSizes.title2,
+            fontWeight: FontWeight.w600,
+            height: 1.25,
+          ).copyWith(color: Colors.white),
         ),
-        automaticallyImplyLeading: false,
         leading: widget.isGated
             ? null
-            : IconButton(
-                icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
+            : AppIconButton(
+                icon: AppIcons.arrowLeft,
+                color: AppColors.primary,
                 onPressed: () => Navigator.of(context).pop(),
               ),
       ),
@@ -887,7 +869,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return Center(
-        child: CircularProgressIndicator(color: context.colors.primaryDim),
+        child: AppProgressIndicator(
+          type: ProgressIndicatorType.circular,
+          color: context.colors.primaryDim,
+        ),
       );
     }
 
@@ -903,23 +888,19 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               Text(
                 'Error loading profile',
                 style: const TextStyle(
-                        fontSize: AppFontSizes.title2,
-                        fontWeight: FontWeight.w600,
-                        height: 1.25)
-                    .copyWith(
-                  color: context.colors.textPrimary,
-                ),
+                  fontSize: AppFontSizes.title2,
+                  fontWeight: FontWeight.w600,
+                  height: 1.25,
+                ).copyWith(color: context.colors.textPrimary),
               ),
               const SizedBox(height: 8),
               Text(
                 _loadError!,
                 style: const TextStyle(
-                        fontSize: AppFontSizes.body,
-                        fontWeight: FontWeight.w400,
-                        height: 1.4)
-                    .copyWith(
-                  color: context.colors.textSecondary,
-                ),
+                  fontSize: AppFontSizes.body,
+                  fontWeight: FontWeight.w400,
+                  height: 1.4,
+                ).copyWith(color: context.colors.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -950,12 +931,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                         ? 'Please complete your profile to continue'
                         : 'Update your personal information',
                     style: const TextStyle(
-                            fontSize: AppFontSizes.body,
-                            fontWeight: FontWeight.w400,
-                            height: 1.4)
-                        .copyWith(
-                      color: context.colors.textSecondary,
-                    ),
+                      fontSize: AppFontSizes.body,
+                      fontWeight: FontWeight.w400,
+                      height: 1.4,
+                    ).copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 24),
 
@@ -1053,12 +1032,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           text: TextSpan(
             text: label,
             style: const TextStyle(
-                    fontSize: AppFontSizes.subhead,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4)
-                .copyWith(
-              color: context.colors.textPrimary,
-            ),
+              fontSize: AppFontSizes.subhead,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ).copyWith(color: context.colors.textPrimary),
             children: isRequired
                 ? [
                     TextSpan(
@@ -1070,7 +1047,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
+        AppTextFormField(
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
@@ -1143,23 +1120,23 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text('Birthday',
-                style: const TextStyle(
-                        fontSize: AppFontSizes.subhead,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4)
-                    .copyWith(
-                  color: context.colors.textPrimary,
-                )),
+            Text(
+              'Birthday',
+              style: const TextStyle(
+                fontSize: AppFontSizes.subhead,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ).copyWith(color: context.colors.textPrimary),
+            ),
             if (selectedBirthdayLabel != null) ...[
               const SizedBox(width: 8),
               Text(
                 selectedBirthdayLabel,
                 style: const TextStyle(
-                        fontSize: AppFontSizes.subhead,
-                        fontWeight: FontWeight.w500,
-                        height: 1.4)
-                    .copyWith(
+                  fontSize: AppFontSizes.subhead,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ).copyWith(
                   color: context.colors.primaryDim,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1170,14 +1147,14 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         const SizedBox(height: 16),
 
         // Month subsection
-        Text('Month',
-            style: const TextStyle(
-                    fontSize: AppFontSizes.caption,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4)
-                .copyWith(
-              color: context.colors.textSecondary,
-            )),
+        Text(
+          'Month',
+          style: const TextStyle(
+            fontSize: AppFontSizes.caption,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+          ).copyWith(color: context.colors.textSecondary),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -1194,14 +1171,14 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         const SizedBox(height: 16),
 
         // Day subsection
-        Text('Day',
-            style: const TextStyle(
-                    fontSize: AppFontSizes.caption,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4)
-                .copyWith(
-              color: context.colors.textSecondary,
-            )),
+        Text(
+          'Day',
+          style: const TextStyle(
+            fontSize: AppFontSizes.caption,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+          ).copyWith(color: context.colors.textSecondary),
+        ),
         const SizedBox(height: 8),
         _selectedMonth == null
             ? Text(
@@ -1291,26 +1268,26 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Role in Band',
-            style: const TextStyle(
-                    fontSize: AppFontSizes.subhead,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4)
-                .copyWith(
-              color: context.colors.textPrimary,
-            )),
+        Text(
+          'Role in Band',
+          style: const TextStyle(
+            fontSize: AppFontSizes.subhead,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+          ).copyWith(color: context.colors.textPrimary),
+        ),
 
         // Band selector row - only shown in multi-band mode
         if (_isMultiBandMode) ...[
           const SizedBox(height: 12),
-          Text('Select Band',
-              style: const TextStyle(
-                      fontSize: AppFontSizes.caption,
-                      fontWeight: FontWeight.w500,
-                      height: 1.4)
-                  .copyWith(
-                color: context.colors.textSecondary,
-              )),
+          Text(
+            'Select Band',
+            style: const TextStyle(
+              fontSize: AppFontSizes.caption,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ).copyWith(color: context.colors.textSecondary),
+          ),
           const SizedBox(height: 8),
           SizedBox(
             height: 36.0,
@@ -1371,19 +1348,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 // Cancel button - secondary action on the left (non-gated mode)
                 if (!widget.isGated) ...[
                   Expanded(
-                    child: TextButton(
+                    child: AppButton(
+                      label: 'Cancel',
+                      variant: AppButtonVariant.text,
                       onPressed: _cancel,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          fontSize: AppFontSizes.body,
-                          fontWeight: FontWeight.w500,
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -1391,19 +1359,10 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 // Skip for now button - secondary action on the left (gated mode only)
                 if (widget.isGated && widget.onSkip != null) ...[
                   Expanded(
-                    child: TextButton(
+                    child: AppButton(
+                      label: 'Skip for now',
+                      variant: AppButtonVariant.text,
                       onPressed: widget.onSkip,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text(
-                        'Skip for now',
-                        style: TextStyle(
-                          fontSize: AppFontSizes.body,
-                          fontWeight: FontWeight.w500,
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -1515,10 +1474,10 @@ class _MonthPillState extends State<_MonthPill>
             child: Text(
               widget.label,
               style: const TextStyle(
-                      fontSize: AppFontSizes.subhead,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2)
-                  .copyWith(
+                fontSize: AppFontSizes.subhead,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ).copyWith(
                 color: widget.isSelected
                     ? Colors.white
                     : context.colors.textSecondary,
@@ -1603,10 +1562,10 @@ class _DayCircleState extends State<_DayCircle>
             child: Text(
               widget.day.toString(),
               style: const TextStyle(
-                      fontSize: AppFontSizes.subhead,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2)
-                  .copyWith(
+                fontSize: AppFontSizes.subhead,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ).copyWith(
                 color: widget.isSelected
                     ? Colors.white
                     : context.colors.textSecondary,
@@ -1740,12 +1699,10 @@ class _RolePillState extends State<_RolePill>
                 Text(
                   widget.label,
                   style: const TextStyle(
-                          fontSize: AppFontSizes.subhead,
-                          fontWeight: FontWeight.w500,
-                          height: 1.2)
-                      .copyWith(
-                    color: textColor,
-                  ),
+                    fontSize: AppFontSizes.subhead,
+                    fontWeight: FontWeight.w500,
+                    height: 1.2,
+                  ).copyWith(color: textColor),
                 ),
               ],
             ),
@@ -1826,10 +1783,10 @@ class _BandPillState extends State<_BandPill>
             child: Text(
               widget.label,
               style: const TextStyle(
-                      fontSize: AppFontSizes.subhead,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2)
-                  .copyWith(
+                fontSize: AppFontSizes.subhead,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ).copyWith(
                 color: widget.isSelected ? Colors.white : rose600,
                 fontWeight:
                     widget.isSelected ? FontWeight.w600 : FontWeight.w500,

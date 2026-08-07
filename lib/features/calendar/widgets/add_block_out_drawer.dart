@@ -6,6 +6,10 @@ import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_dialog.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../members/permissions/band_permissions_provider.dart';
@@ -82,7 +86,7 @@ class BlockOutDrawer extends ConsumerStatefulWidget {
     BlockOutSpan? existingBlockOut,
     VoidCallback? onSaved,
   }) {
-    return showModalBottomSheet<bool>(
+    return showAppBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -308,74 +312,46 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
 
     if (shouldShowChoice) {
       // Show choice dialog: Delete from this band only OR all bands
-      deleteChoice = await showDialog<String>(
+      deleteChoice = await showAppDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: context.colors.surface,
-          title: Text('Delete Block Out?', style: AppTextStyles.title3),
-          content: Text(
+        title: 'Delete Block Out?',
+        message:
             'This block out is shared across multiple bands. Where would you like to delete it from?',
-            style: AppTextStyles.callout
-                .copyWith(color: context.colors.textSecondary),
+        actions: [
+          DialogAction(
+            label: 'Cancel',
+            onPressed: () => Navigator.pop(context, null),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, null),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'this_band'),
-              child: Text(
-                'This band only',
-                style: AppTextStyles.callout.copyWith(color: AppColors.error),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'all_bands'),
-              child: Text(
-                'All bands',
-                style: AppTextStyles.callout.copyWith(color: AppColors.error),
-              ),
-            ),
-          ],
-        ),
+          DialogAction(
+            label: 'This band only',
+            onPressed: () => Navigator.pop(context, 'this_band'),
+            isDestructive: true,
+          ),
+          DialogAction(
+            label: 'All bands',
+            onPressed: () => Navigator.pop(context, 'all_bands'),
+            isDestructive: true,
+          ),
+        ],
       );
     } else {
       // Show simple confirmation dialog (existing behavior)
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showAppDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: context.colors.surface,
-          title: Text('Delete Block Out?', style: AppTextStyles.title3),
-          content: Text(
+        title: 'Delete Block Out?',
+        message:
             'This will remove the block out dates. This action cannot be undone.',
-            style: AppTextStyles.callout
-                .copyWith(color: context.colors.textSecondary),
+        actions: [
+          DialogAction(
+            label: 'Cancel',
+            onPressed: () => Navigator.pop(context, false),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(
-                'Delete',
-                style: AppTextStyles.callout.copyWith(color: AppColors.error),
-              ),
-            ),
-          ],
-        ),
+          DialogAction(
+            label: 'Delete',
+            onPressed: () => Navigator.pop(context, true),
+            isDestructive: true,
+          ),
+        ],
       );
 
       if (confirmed == true) {
@@ -681,23 +657,11 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   /// Delete button (destructive text style) - only shown in edit mode for creator
   Widget _buildDeleteButton() {
     return Center(
-      child: TextButton(
+      child: AppButton(
+        label: 'Delete Block Out',
+        variant: AppButtonVariant.destructive,
         onPressed: (_isSaving || _isDeleting) ? null : _handleDelete,
-        child: _isDeleting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.error,
-                ),
-              )
-            : Text(
-                'Delete Block Out',
-                style: AppTextStyles.calloutEmphasized.copyWith(
-                  color: AppColors.error,
-                ),
-              ),
+        isLoading: _isDeleting,
       ),
     );
   }
@@ -809,7 +773,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           ),
         ),
         const SizedBox(height: 6),
-        TextField(
+        AppTextField(
           controller: controller,
           enabled: !_isSaving && !_isDeleting,
           maxLines: maxLines,
@@ -875,23 +839,12 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             Expanded(
               child: SizedBox(
                 height: 48,
-                child: OutlinedButton(
+                child: AppButton(
+                  label: 'Cancel',
+                  variant: AppButtonVariant.outlined,
                   onPressed: (_isSaving || _isDeleting)
                       ? null
                       : () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: context.colors.textSecondary,
-                    side: BorderSide(color: context.colors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                  ),
-                  child: Text(
-                    'Cancel',
-                    style: AppTextStyles.calloutEmphasized.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
                 ),
               ),
             ),
@@ -929,21 +882,10 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           Expanded(
             child: SizedBox(
               height: 48,
-              child: OutlinedButton(
+              child: AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.outlined,
                 onPressed: _isSaving ? null : () => Navigator.pop(context),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: context.colors.textSecondary,
-                  side: BorderSide(color: context.colors.border),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  'Cancel',
-                  style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
               ),
             ),
           ),

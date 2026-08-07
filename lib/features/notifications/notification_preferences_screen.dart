@@ -7,6 +7,11 @@ import '../../shared/widgets/toggle_tile.dart';
 import 'notification_controller.dart';
 import 'push_notification_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 // ============================================================================
 // NOTIFICATION PREFERENCES SCREEN
@@ -54,28 +59,33 @@ class _NotificationPreferencesScreenState
   Widget build(BuildContext context) {
     final prefsAsync = ref.watch(notificationPreferencesProvider);
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
-        elevation: 0,
         title: Text(
           'Notifications',
-          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
-        leading: IconButton(
-          icon: Icon(AppIcons.back, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.back,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: prefsAsync.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
         ),
         error: (error, _) => Center(
           child: Text(
             'Error loading preferences',
-            style: AppTextStyles.body.copyWith(color: context.colors.textSecondary),
+            style: AppTextStyles.body
+                .copyWith(color: context.colors.textSecondary),
           ),
         ),
         data: (prefs) => ListView(
@@ -221,20 +231,11 @@ class _NotificationPreferencesScreenState
             ),
           ),
           const SizedBox(height: Spacing.space12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _requestPermission,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-              child: const Text('Enable Notifications'),
-            ),
+          AppButton(
+            label: 'Enable Notifications',
+            variant: AppButtonVariant.secondary,
+            onPressed: _requestPermission,
+            fullWidth: true,
           ),
         ],
       ),
@@ -247,5 +248,4 @@ class _NotificationPreferencesScreenState
       style: AppTextStyles.headline.copyWith(color: context.colors.textPrimary),
     );
   }
-
 }

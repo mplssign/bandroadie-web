@@ -6,6 +6,8 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/phone_formatter.dart';
 import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_button.dart';
 import '../../members/member_vm.dart';
 
 // ============================================================================
@@ -34,7 +36,7 @@ class BandMemberDetailDrawer extends StatelessWidget {
     required bool isAdmin,
     required VoidCallback onManageRole,
   }) {
-    return showModalBottomSheet<void>(
+    return showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -261,14 +263,10 @@ class BandMemberDetailDrawer extends StatelessWidget {
                   const SizedBox(height: Spacing.space12),
                   SizedBox(
                     width: double.infinity,
-                    child: TextButton(
+                    child: AppButton(
+                      label: 'Edit',
+                      variant: AppButtonVariant.text,
                       onPressed: () => _handleEdit(context),
-                      child: Text(
-                        'Edit',
-                        style: AppTextStyles.calloutEmphasized.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ),
                   ),
                 ],
