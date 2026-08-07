@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_switch.dart';
+import '../../../components/ui/app_text_field.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../../members/member_vm.dart';
 
@@ -320,7 +323,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
         ),
         if (_isOtherCategory) ...[
           const SizedBox(height: Spacing.space12),
-          TextField(
+          AppTextField(
             controller: _customCategoryController,
             enabled: widget.canEdit && !widget.isSaving,
             textCapitalization: TextCapitalization.words,
@@ -361,19 +364,12 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
           ),
         ),
         const SizedBox(height: 6),
-        OutlinedButton.icon(
+        AppButton(
+          label: dateLabel,
+          variant: AppButtonVariant.outlined,
+          icon: AppIcons.calendar,
+          fullWidth: true,
           onPressed: widget.canEdit && !widget.isSaving ? _pickDate : null,
-          icon: const Icon(AppIcons.calendar, size: 16),
-          label: Text(dateLabel),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: context.colors.textPrimary,
-            side: BorderSide(color: context.colors.border),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            ),
-            minimumSize: const Size(double.infinity, 48),
-            alignment: Alignment.centerLeft,
-          ),
         ),
         const SizedBox(height: Spacing.space16),
         Row(
@@ -385,11 +381,9 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
                 color: context.colors.textPrimary,
               ),
             ),
-            Switch(
+            AppSwitch(
               value: _isReimbursed,
-              activeTrackColor: AppColors.primary,
-              inactiveTrackColor: context.colors.surfaceOverlay,
-              inactiveThumbColor: context.colors.textSecondary,
+              activeColor: AppColors.primary,
               onChanged: widget.canEdit && !widget.isSaving
                   ? (value) {
                       setState(() {
@@ -415,20 +409,13 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
             ),
           ),
           const SizedBox(height: 6),
-          OutlinedButton.icon(
+          AppButton(
+            label: reimbursedDateLabel,
+            variant: AppButtonVariant.outlined,
+            icon: AppIcons.calendar,
+            fullWidth: true,
             onPressed:
                 widget.canEdit && !widget.isSaving ? _pickReimbursedDate : null,
-            icon: const Icon(AppIcons.calendar, size: 16),
-            label: Text(reimbursedDateLabel),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.textPrimary,
-              side: BorderSide(color: context.colors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              minimumSize: const Size(double.infinity, 48),
-              alignment: Alignment.centerLeft,
-            ),
           ),
         ],
         const SizedBox(height: Spacing.space16),
@@ -493,7 +480,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
         ),
         if (_isOtherPaidBy) ...[
           const SizedBox(height: Spacing.space12),
-          TextField(
+          AppTextField(
             controller: _paidByOtherController,
             enabled: widget.canEdit && !widget.isSaving,
             textCapitalization: TextCapitalization.words,
@@ -533,7 +520,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
               .copyWith(color: context.colors.textSecondary),
         ),
         const SizedBox(height: 6),
-        TextField(
+        AppTextField(
           controller: _notesController,
           enabled: widget.canEdit && !widget.isSaving,
           textCapitalization: TextCapitalization.sentences,
@@ -572,81 +559,36 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+              child: AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.outlined,
                 onPressed:
                     widget.isSaving || widget.isDeleting ? null : widget.onBack,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.colors.border),
-                  minimumSize: const Size(0, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  'Cancel',
-                  style: AppTextStyles.body.copyWith(
-                    color: context.colors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: FilledButton(
+              child: AppButton(
+                label: 'Save Expense',
+                variant: AppButtonVariant.primary,
                 onPressed: canSave ? _handleSave : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: canSave
-                      ? AppColors.primary
-                      : context.colors.border.withValues(alpha: 0.3),
-                  disabledBackgroundColor:
-                      context.colors.border.withValues(alpha: 0.3),
-                  minimumSize: const Size(0, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: widget.isSaving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        'Save Expense',
-                        style: AppTextStyles.body.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                isLoading: widget.isSaving,
               ),
             ),
           ],
         ),
         if (widget.initialExpense != null && widget.onDelete != null) ...[
           const SizedBox(height: Spacing.space12),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton.icon(
-              onPressed:
-                  widget.canDelete && !widget.isSaving && !widget.isDeleting
-                      ? _handleDelete
-                      : null,
-              icon: widget.isDeleting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(AppIcons.delete, size: 16),
-              label: const Text('Delete Expense'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
-              ),
-            ),
+          AppButton(
+            label: 'Delete Expense',
+            variant: AppButtonVariant.destructive,
+            icon: AppIcons.delete,
+            fullWidth: true,
+            onPressed:
+                widget.canDelete && !widget.isSaving && !widget.isDeleting
+                    ? _handleDelete
+                    : null,
+            isLoading: widget.isDeleting,
           ),
         ],
       ],

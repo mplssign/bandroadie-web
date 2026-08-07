@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/brand_action_button.dart';
 
 class GigNotesSheet extends StatelessWidget {
@@ -19,7 +20,7 @@ class GigNotesSheet extends StatelessWidget {
     required String notes,
     required String gigName,
   }) {
-    showModalBottomSheet<void>(
+    showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

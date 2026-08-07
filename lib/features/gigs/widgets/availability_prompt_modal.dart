@@ -5,6 +5,8 @@ import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_snackbar.dart';
 import '../gig_response_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -87,8 +89,10 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
       debugPrint('[AvailabilityPromptModal] GigResponseError: ${e.message}');
       setState(() => _isSubmitting = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.userMessage), backgroundColor: Colors.red),
+        showAppSnackbar(
+          context: context,
+          message: e.userMessage,
+          type: SnackbarType.error,
         );
       }
     } catch (e, stackTrace) {
@@ -97,11 +101,10 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
       setState(() => _isSubmitting = false);
       // Show error but keep modal open
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Something went wrong — try again in a moment.'),
-            backgroundColor: Colors.red,
-          ),
+        showAppSnackbar(
+          context: context,
+          message: 'Something went wrong — try again in a moment.',
+          type: SnackbarType.error,
         );
       }
     }
@@ -272,27 +275,12 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
                     // "Not Sure Yet" link - closes without saving, will show again next app open
                     const SizedBox(height: 16),
                     Center(
-                      child: TextButton(
+                      child: AppButton(
+                        label: 'Not Sure Yet',
+                        variant: AppButtonVariant.text,
                         onPressed: _isSubmitting
                             ? null
                             : () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                        ),
-                        child: Text(
-                          'Not Sure Yet',
-                          style: TextStyle(
-                            fontSize: AppFontSizes.subhead,
-                            fontWeight: FontWeight.w500,
-                            color: _isSubmitting
-                                ? context.colors.textMuted
-                                    .withValues(alpha: 0.5)
-                                : context.colors.textMuted,
-                          ),
-                        ),
                       ),
                     ),
                   ],

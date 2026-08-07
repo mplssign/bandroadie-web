@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/brand_action_button.dart';
 
 /// Bottom action buttons for the event editor: Cancel + Save.
@@ -29,24 +29,10 @@ class EventEditorBottomActions extends StatelessWidget {
       children: [
         // Cancel button - equal width
         Expanded(
-          child: SizedBox(
-            height: 48,
-            child: OutlinedButton(
-              onPressed: (isSaving || isDeleting) ? null : onCancel,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: context.colors.textSecondary,
-                side: BorderSide(color: context.colors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.calloutEmphasized.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
-            ),
+          child: AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.outlined,
+            onPressed: (isSaving || isDeleting) ? null : onCancel,
           ),
         ),
         const SizedBox(width: Spacing.space12),
@@ -74,25 +60,11 @@ class EventEditorViewOnlyClose extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: OutlinedButton(
-        onPressed: onClose,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: context.colors.textSecondary,
-          side: BorderSide(color: context.colors.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-        ),
-        child: Text(
-          'Close',
-          style: AppTextStyles.calloutEmphasized.copyWith(
-            color: context.colors.textSecondary,
-          ),
-        ),
-      ),
+    return AppButton(
+      label: 'Close',
+      variant: AppButtonVariant.outlined,
+      fullWidth: true,
+      onPressed: onClose,
     );
   }
 }
@@ -113,23 +85,11 @@ class EventDeleteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: TextButton(
+      child: AppButton(
+        label: 'Delete Event',
+        variant: AppButtonVariant.destructive,
         onPressed: (isSaving || isDeleting) ? null : onDelete,
-        child: isDeleting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.error,
-                ),
-              )
-            : Text(
-                'Delete Event',
-                style: AppTextStyles.calloutEmphasized.copyWith(
-                  color: AppColors.error,
-                ),
-              ),
+        isLoading: isDeleting,
       ),
     );
   }

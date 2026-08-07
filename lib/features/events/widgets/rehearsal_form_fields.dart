@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_progress_indicator.dart';
+import '../../../components/ui/app_switch.dart';
+import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/title_case_formatter.dart';
 import '../models/event_form_data.dart';
@@ -200,7 +203,7 @@ class RehearsalFormFields extends ConsumerWidget {
             fieldController.addListener(() {
               locationController.text = fieldController.text;
             });
-            return TextField(
+            return AppTextField(
               controller: fieldController,
               focusNode: focusNode,
               enabled: !isSaving,
@@ -346,16 +349,10 @@ class RehearsalFormFields extends ConsumerWidget {
                   ],
                 ),
               ),
-              Switch.adaptive(
+              AppSwitch(
                 value: isPotential,
                 onChanged: isSaving ? null : onPotentialToggled,
-                activeTrackColor: AppColors.primary,
-                thumbColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return Colors.white;
-                  }
-                  return null;
-                }),
+                activeColor: AppColors.primary,
               ),
             ],
           ),
@@ -378,12 +375,11 @@ class RehearsalFormFields extends ConsumerWidget {
                     const SizedBox(height: Spacing.space12),
                   ],
                   if (membersState.isLoading || isLoadingMemberAvailability)
-                    Center(
+                    const Center(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: AppProgressIndicator(
+                          type: ProgressIndicatorType.circular,
                         ),
                       ),
                     )
@@ -520,7 +516,11 @@ class RehearsalFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: Spacing.space8),
         if (isLoading || isLoadingPerDateAvailability)
-          const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          const Center(
+            child: AppProgressIndicator(
+              type: ProgressIndicatorType.circular,
+            ),
+          )
         else if (members.isEmpty)
           Text('No members', style: AppTextStyles.footnote)
         else
@@ -691,16 +691,10 @@ class RehearsalFormFields extends ConsumerWidget {
                   .copyWith(color: context.colors.textPrimary),
             ),
           ),
-          Switch.adaptive(
+          AppSwitch(
             value: isRecurring,
             onChanged: isSaving ? null : onRecurringToggled,
-            activeTrackColor: AppColors.primary,
-            thumbColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return Colors.white;
-              }
-              return null;
-            }),
+            activeColor: AppColors.primary,
           ),
         ],
       ),
@@ -1005,7 +999,9 @@ class RehearsalFormFields extends ConsumerWidget {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: AppProgressIndicator(
+                    type: ProgressIndicatorType.circular,
+                  ),
                 ),
               ),
             )

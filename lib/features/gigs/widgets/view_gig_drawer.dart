@@ -7,6 +7,8 @@ import '../../../app/models/gig.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/brand_action_button.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../setlists/setlist_detail_screen.dart';
@@ -37,7 +39,7 @@ class ViewGigDrawer extends StatelessWidget {
     required VoidCallback onEdit,
     VoidCallback? onSaved,
   }) {
-    return showModalBottomSheet<void>(
+    return showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -101,7 +103,7 @@ class ViewGigDrawer extends StatelessWidget {
   }
 
   Future<_NavigationApp?> _showNavigationAppPicker(BuildContext context) {
-    return showModalBottomSheet<_NavigationApp>(
+    return showAppBottomSheet<_NavigationApp>(
       context: context,
       backgroundColor: context.colors.surface,
       builder: (sheetContext) {
@@ -307,7 +309,8 @@ class ViewGigDrawer extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(LucideIcons.navigation2, color: AppColors.primary),
+                              icon: const Icon(LucideIcons.navigation2,
+                                  color: AppColors.primary),
                               color: AppColors.primary,
                               iconSize: 20,
                               onPressed: () => _openNavigation(context),
@@ -318,7 +321,8 @@ class ViewGigDrawer extends StatelessWidget {
                                   width: BrandButton.borderWidth,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                                  borderRadius: BorderRadius.circular(
+                                      Spacing.buttonRadius),
                                 ),
                               ),
                             ),
@@ -420,17 +424,11 @@ class ViewGigDrawer extends StatelessWidget {
                 ),
                 if (canEdit) ...[
                   const SizedBox(height: Spacing.space12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: () => _handleEdit(context),
-                      child: Text(
-                        'Edit',
-                        style: AppTextStyles.calloutEmphasized.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
+                  AppButton(
+                    label: 'Edit',
+                    variant: AppButtonVariant.text,
+                    fullWidth: true,
+                    onPressed: () => _handleEdit(context),
                   ),
                 ],
               ],
