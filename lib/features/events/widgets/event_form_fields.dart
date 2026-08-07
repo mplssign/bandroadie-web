@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../setlists/models/setlist.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
@@ -578,7 +579,9 @@ class EventFormFields extends ConsumerWidget {
                 const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: AppProgressIndicator(
+                    type: ProgressIndicatorType.circular,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(

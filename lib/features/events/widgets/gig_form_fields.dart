@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_progress_indicator.dart';
+import '../../../components/ui/app_switch.dart';
+import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../financials/models/financial_entry.dart';
 import '../../members/member_vm.dart';
@@ -216,7 +220,7 @@ class GigFormFields extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        TextField(
+        AppTextField(
           controller: addressController,
           focusNode: gigAddressFocusNode,
           enabled: !isSaving,
@@ -281,28 +285,12 @@ class GigFormFields extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: isSaving ? null : onGigPayTap,
-            icon: Icon(
-              hasDetails ? AppIcons.edit : AppIcons.dollar,
-              size: 16,
-            ),
-            label: Text(label),
-            style: OutlinedButton.styleFrom(
-              foregroundColor:
-                  hasDetails ? AppColors.primary : context.colors.textSecondary,
-              side: BorderSide(
-                color: hasDetails ? AppColors.primary : context.colors.border,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              alignment: Alignment.centerLeft,
-            ),
-          ),
+        AppButton(
+          label: label,
+          variant: AppButtonVariant.outlined,
+          icon: hasDetails ? AppIcons.edit : AppIcons.dollar,
+          fullWidth: true,
+          onPressed: isSaving ? null : onGigPayTap,
         ),
       ],
     );
@@ -327,13 +315,11 @@ class GigFormFields extends ConsumerWidget {
                 ),
               ),
             ),
-            TextButton.icon(
+            AppButton(
+              label: 'Add Expense',
+              variant: AppButtonVariant.text,
+              icon: AppIcons.add,
               onPressed: (isSaving || !canEditExpenses) ? null : onAddExpense,
-              icon: const Icon(AppIcons.add, size: 14),
-              label: const Text('Add Expense'),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
             ),
           ],
         ),
@@ -492,7 +478,7 @@ class GigFormFields extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        TextField(
+        AppTextField(
           controller: stateController,
           enabled: !isSaving,
           textCapitalization: TextCapitalization.characters,
@@ -729,7 +715,7 @@ class GigFormFields extends ConsumerWidget {
             FocusNode focusNode,
             VoidCallback onFieldSubmitted,
           ) {
-            return TextField(
+            return AppTextField(
               controller: controller,
               focusNode: focusNode,
               enabled: !isSaving,
@@ -880,19 +866,12 @@ class GigFormFields extends ConsumerWidget {
                   ],
                 ),
               ),
-              Switch.adaptive(
+              AppSwitch(
                 value: isPotentialGig,
                 onChanged: (isSaving || forcePotentialOnly)
                     ? null
                     : onPotentialGigToggled,
-                activeTrackColor: AppColors.primary,
-                inactiveTrackColor: context.colors.surfaceOverlay,
-                thumbColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return Colors.white;
-                  }
-                  return context.colors.textSecondary;
-                }),
+                activeColor: AppColors.primary,
               ),
             ],
           ),
@@ -992,7 +971,9 @@ class GigFormFields extends ConsumerWidget {
               child: SizedBox(
                 width: 24,
                 height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: AppProgressIndicator(
+                  type: ProgressIndicatorType.circular,
+                ),
               ),
             ),
           )
@@ -1096,7 +1077,9 @@ class GigFormFields extends ConsumerWidget {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: AppProgressIndicator(
+                    type: ProgressIndicatorType.circular,
+                  ),
                 ),
               ),
             )
@@ -1144,7 +1127,9 @@ class GigFormFields extends ConsumerWidget {
           child: SizedBox(
             width: 24,
             height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: AppProgressIndicator(
+              type: ProgressIndicatorType.circular,
+            ),
           ),
         ),
       );
