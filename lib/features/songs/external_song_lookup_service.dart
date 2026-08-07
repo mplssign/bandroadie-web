@@ -75,9 +75,30 @@ class SongLookupResult {
   }
 }
 
+/// Grouped search results split by match type
+class GroupedSongResults {
+  final List<SongLookupResult> songs;
+  final List<SongLookupResult> artists;
+  final List<SongLookupResult> _otherRanked;
+
+  const GroupedSongResults({
+    required this.songs,
+    required this.artists,
+    required List<SongLookupResult> otherRanked,
+  }) : _otherRanked = otherRanked;
+
+  SongLookupResult? get bestMatch => songs.isNotEmpty
+      ? songs.first
+      : artists.isNotEmpty
+          ? artists.first
+          : _otherRanked.isNotEmpty
+              ? _otherRanked.first
+              : null;
+}
+
 /// Cache entry for external search results
 class _CacheEntry {
-  final List<SongLookupResult> results;
+  final GroupedSongResults results;
   final DateTime timestamp;
 
   _CacheEntry(this.results) : timestamp = DateTime.now();
@@ -96,7 +117,7 @@ class ExternalSongLookupService {
   Timer? _debounceTimer;
 
   // Track in-flight requests to avoid duplicates
-  final Map<String, Future<List<SongLookupResult>>> _inFlightRequests = {};
+  final Map<String, Future<GroupedSongResults>> _inFlightRequests = {};
 
   ExternalSongLookupService(this._supabase);
 
@@ -109,66 +130,77 @@ class ExternalSongLookupService {
   /// Returns cached results if available and not expired.
   ///
   /// Implements debouncing internally - call from onChanged without delay.
-  Future<List<SongLookupResult>> searchExternalSongs(
+  Future<GroupedSongResults> searchExternalSongs(
     String query, {
-    int limit = 10,
+    int songsLimit = 6,
+    int artistsLimit = 6,
     bool forceRefresh = false,
   }) async {
     final normalizedQuery = _normalizeQuery(query);
+    final cacheKey = '$normalizedQuery-$songsLimit-$artistsLimit';
 
     // Minimum query length
     if (normalizedQuery.length < 2) {
-      return [];
+      return const GroupedSongResults(
+        songs: [],
+        artists: [],
+        otherRanked: [],
+      );
     }
 
     // Check cache first
-    if (!forceRefresh && _cache.containsKey(normalizedQuery)) {
-      final entry = _cache[normalizedQuery]!;
+    if (!forceRefresh && _cache.containsKey(cacheKey)) {
+      final entry = _cache[cacheKey]!;
       if (!entry.isExpired) {
         if (kDebugMode) {
-          debugPrint('[ExternalSongLookup] Cache hit for "$normalizedQuery"');
+          debugPrint('[ExternalSongLookup] Cache hit for "$cacheKey"');
         }
         return entry.results;
       }
-      _cache.remove(normalizedQuery);
+      _cache.remove(cacheKey);
     }
 
     // Return in-flight request if exists
-    if (_inFlightRequests.containsKey(normalizedQuery)) {
+    if (_inFlightRequests.containsKey(cacheKey)) {
       if (kDebugMode) {
         debugPrint(
-          '[ExternalSongLookup] Returning in-flight request for "$normalizedQuery"',
+          '[ExternalSongLookup] Returning in-flight request for "$cacheKey"',
         );
       }
-      return _inFlightRequests[normalizedQuery]!;
+      return _inFlightRequests[cacheKey]!;
     }
 
-    // Create the request
-    final request = _performExternalSearch(normalizedQuery, limit);
-    _inFlightRequests[normalizedQuery] = request;
+    // Create the request - CRITICAL: Pass normalizedQuery (the search text), not cacheKey
+    final request = _performExternalSearch(
+      normalizedQuery,
+      songsLimit: songsLimit,
+      artistsLimit: artistsLimit,
+    );
+    _inFlightRequests[cacheKey] = request;
 
     try {
       final results = await request;
-      _cache[normalizedQuery] = _CacheEntry(results);
+      _cache[cacheKey] = _CacheEntry(results);
       return results;
     } finally {
-      _inFlightRequests.remove(normalizedQuery);
+      _inFlightRequests.remove(cacheKey);
     }
   }
 
   /// Perform the actual external search.
   /// Fetches extra results from the API so ranking has a larger pool,
   /// then returns only the top [limit] after scoring.
-  Future<List<SongLookupResult>> _performExternalSearch(
-    String query,
-    int limit,
-  ) async {
+  Future<GroupedSongResults> _performExternalSearch(
+    String query, {
+    required int songsLimit,
+    required int artistsLimit,
+  }) async {
     // Fetch more than needed so ranking can surface the best results
-    final fetchLimit = (limit * 3).clamp(10, 50);
+    final fetchLimit = ((songsLimit + artistsLimit) * 3).clamp(10, 50);
 
     if (kDebugMode) {
       debugPrint(
-          '[ExternalSongLookup] Searching iTunes for "$query" (fetch $fetchLimit, return $limit)');
+          '[ExternalSongLookup] Searching iTunes for "$query" (fetch $fetchLimit, return $songsLimit+$artistsLimit)');
     }
 
     try {
@@ -182,7 +214,8 @@ class ExternalSongLookupService {
           );
         }
         final ranked = _rankResults(query, itunesResults);
-        return ranked.take(limit).toList();
+        return _groupResults(query, ranked,
+            songsLimit: songsLimit, artistsLimit: artistsLimit);
       }
 
       // Fallback to MusicBrainz if iTunes returns nothing
@@ -191,7 +224,8 @@ class ExternalSongLookupService {
       }
       final mbResults = await _searchMusicBrainz(query, fetchLimit);
       final ranked = _rankResults(query, mbResults);
-      return ranked.take(limit).toList();
+      return _groupResults(query, ranked,
+          songsLimit: songsLimit, artistsLimit: artistsLimit);
     } catch (e) {
       debugPrint('[ExternalSongLookup] Error: $e');
 
@@ -199,7 +233,8 @@ class ExternalSongLookupService {
       try {
         final mbResults = await _searchMusicBrainz(query, fetchLimit);
         final ranked = _rankResults(query, mbResults);
-        return ranked.take(limit).toList();
+        return _groupResults(query, ranked,
+            songsLimit: songsLimit, artistsLimit: artistsLimit);
       } catch (e2) {
         debugPrint(
           '[ExternalSongLookup] MusicBrainz fallback also failed: $e2',
@@ -403,6 +438,47 @@ class ExternalSongLookupService {
     }
 
     return ranked;
+  }
+
+  /// Group results into songs, artists, and other buckets based on query match
+  GroupedSongResults _groupResults(
+    String query,
+    List<SongLookupResult> results, {
+    int songsLimit = 6,
+    int artistsLimit = 6,
+  }) {
+    final lowerQuery = query.toLowerCase().trim();
+
+    final songMatches = <SongLookupResult>[];
+    final artistMatches = <SongLookupResult>[];
+    final otherMatches = <SongLookupResult>[];
+
+    for (final result in results) {
+      final lowerTitle = result.title.toLowerCase();
+      final lowerArtist = result.artist.toLowerCase();
+
+      final isTitleMatch = lowerTitle == lowerQuery ||
+          lowerTitle.startsWith(lowerQuery) ||
+          lowerTitle.contains(lowerQuery);
+
+      if (isTitleMatch) {
+        songMatches.add(result);
+      } else if (lowerArtist.contains(lowerQuery)) {
+        artistMatches.add(result);
+      } else {
+        otherMatches.add(result);
+      }
+    }
+
+    final rankedSongs = _rankResults(query, songMatches);
+    final rankedArtists = _rankResults(query, artistMatches);
+    final rankedOthers = _rankResults(query, otherMatches);
+
+    return GroupedSongResults(
+      songs: rankedSongs.take(songsLimit).toList(),
+      artists: rankedArtists.take(artistsLimit).toList(),
+      otherRanked: rankedOthers.take(6).toList(),
+    );
   }
 
   /// Cancel any pending debounced search

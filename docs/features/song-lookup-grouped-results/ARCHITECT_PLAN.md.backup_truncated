@@ -1,0 +1,251 @@
+# Architect Plan: Group External Song Lookup Results
+
+## Feature Identifier
+
+`feature/song-lookup-grouped-results`
+
+## Feature Type
+
+feature
+
+## Feature Title
+
+Group external song lookup results into "Songs" and "Artists" sections
+
+## Root Cause Confirmation
+
+The Song Lookup overlay (`song_lookup_overlay.dart`) presents external results (iTunes/MusicBrainz) as a single flat ranked list. The ranking algorithm in `external_song_lookup_service.dart:_rankResults()` uses a heavily title-biased scoring system:
+
+1. **Title match scoring:**
+   - Exact title match: +100
+   - Title starts with query: +75
+   - Title contains query: +50
+   - Artist contains query (no title match): +25
+   - No match: -20
+
+2. **Canonical boost problem:**
+   - Exact title matches get +80 if popularity > 70
+   - Additional +30 if popularity > 85
+   - This boost applies to ANY exact title match, not specifically to the artist the user searched for
+
+3. **Observed behavior:**
+   - User searches "Queen" (the band)
+   - Results return a song literally titled "Queen" at the top
+   - Queen's actual catalog (Bohemian Rhapsody, We Will Rock You, etc.) ranks lower
+   - The algorithm cannot distinguish "user searched for artist name" from "user searched for a song title that happens to equal an artist name"
+
+4. **Current truncation pattern:**
+   - `_performExternalSearch()` fetches `(limit * 3).clamp(10, 50)` results
+   - Ranks all results into a single list via `_rankResults()`
+   - Truncates via `.take(limit)` at **three separate call sites:**
+     - Line ~194: iTunes success path
+     - Line ~201: MusicBrainz fallback path
+     - Line ~208: MusicBrainz catch-block fallback path
+   - UI renders this single list under "External Results" section (overlay lines ~692-702)
+
+Rather than attempting to algorithmically guess whether the user meant an artist or a song title, we'll split results into two labeled sections ("Songs" and "Artists") so both are visible and the user can pick — matching the pattern Spotify/Apple Music use for the same ambiguity.
+
+## Solution Design
+
+### Phase 1 Scope (This Feature)
+
+Split external results into two independently-ranked and independently-capped sections:
+
+1. **"Songs" section:** Results where the title matches the query (exact, startsWith, or contains)
+2. **"Artists" section:** Results where the artist matches the query but the title does NOT match
+
+### Grouping Logic
+
+Reuse existing classification signals from `_rankResults()` scoring:
+
+```dart
+// Classification rule:
+final lowerTitle = result.title.toLowerCase();
+final lowerArtist = result.artist.toLowerCase();
+final lowerQuery = query.toLowerCase().trim();
+
+// Song group: Any title-tier match
+final isTitleMatch =
+    lowerTitle == lowerQuery ||
+    lowerTitle.startsWith(lowerQuery) ||
+    lowerTitle.contains(lowerQuery);
+
+// Artist group: Artist match with NO title match
+final isArtistOnly =
+    !isTitleMatch && lowerArtist.contains(lowerQuery);
+```
+
+### Ranking & Capping Strategy
+
+1. Split raw results into two groups using classification rule above
+2. Rank each group independently using the existing `_rankResults()` logic
+3. Cap each group independently (e.g., top 5-6 each)
+4. Return both groups as separate lists
+
+**Critical:** This grouping and capping must happen **before/instead of** the current single `.take(limit)` truncation at the three call sites. All three must use a shared grouping helper to ensure consistency.
+
+### UI Changes
+
+Replace the single "External Results" section with two conditional sections:
+
+```dart
+// Current (lines ~692-702):
+if (hasExternalResults) ...[
+  _buildSectionHeader('External Results', Icons.cloud_rounded),
+  ...(_externalResults.map(...))
+]
+
+// New:
+if (hasSongResults) ...[
+  _buildSectionHeader('Songs', Icons.music_note_rounded),
+  ...(_songResults.map(...))
+]
+if (hasArtistResults) ...[
+  if (hasSongResults) const SizedBox(height: Spacing.space12),
+  _buildSectionHeader('Artists', Icons.person_rounded),
+  ...(_artistResults.map(...))
+]
+```
+
+Empty sections are hidden, consistent with existing `hasCatalogResults`/`hasExternalResults` pattern.
+
+### Fetch Budget
+
+Current: `fetchLimit = (limit * 3).clamp(10, 50)`
+
+**Analysis:** With `limit=10` (typical display limit), we fetch 30 results. Splitting into two groups with 5-6 items each = 10-12 total displayed, well within the fetch budget. No significant increase needed for Phase 1.
+
+### Phase 2 (Out of Scope)
+
+Lazy-loading/infinite scroll within each section. iTunes API has no `offset` parameter, so this requires:
+
+- Fetching a larger batch upfront (e.g., 100 results)
+- Client-side pagination as user scrolls
+- Not repeated network calls per scroll
+
+This is tracked separately and deliberately excluded from Phase 1.
+
+## Out of Scope
+
+- Lazy-loading/pagination (Phase 2)
+- Changes to `itunes_search` or `musicbrainz_search` Edge Functions
+- Changes to CORS proxy work (merged as PR #127)
+- Touching dead `_debounceTimer`/`cancelPendingSearch()` code in service
+- Significantly increasing fetch/display limits
+- Adding guitar/musical-instrument emoji to section headers (standing override)
+
+## Implementation Plan
+
+### 1. Define Grouped Results Data Structure
+
+**File:** `lib/features/songs/external_song_lookup_service.dart`
+
+Add a new class to hold grouped results:
+
+```dart
+/// Grouped external search results by match type
+class GroupedSongResults {
+  final List<SongLookupResult> songs;     // Title matches
+  final List<SongLookupResult> artists;   // Artist-only matches
+  final List<SongLookupResult> _otherRanked; // No title/artist match - ranked but not displayed in UI
+
+  const GroupedSongResults({
+    required this.songs,
+    required this.artists,
+    List<SongLookupResult>? otherRanked,
+  }) : _otherRanked = otherRanked ?? const [];
+
+  /// Total number of results across all groups (for debugging)
+  int get totalCount => songs.length + artists.length + _otherRanked.length;
+
+  /// Whether there are any UI-displayable results (songs or artists only)
+  bool get isEmpty => songs.isEmpty && artists.isEmpty;
+  bool get isNotEmpty => !isEmpty;
+
+  /// Get the best single result across all groups (songs first, then artists, then other)
+  /// Used by SongEnrichmentOrchestrator for Duration-only lookups.
+  /// Critical: The "other" bucket handles queries like "bohemian rhapsody queen" where
+  /// neither the title alone nor artist alone matches the combined query, but the result
+  /// is still ranked by popularity/API position.
+  SongLookupResult? get bestMatch =>
+      songs.isNotEmpty ? songs.first :
+      (artists.isNotEmpty ? artists.first :
+      (_otherRanked.isNotEmpty ? _otherRanked.first : null));
+}
+```
+
+**Location:** Add after `SongLookupResult` class definition (~line 72)
+
+**Rationale for `_otherRanked` bucket:** The `song_enrichment_orchestrator.dart` file (line 197) queries with `'${song.title} ${song.artist}'` (e.g., "bohemian rhapsody queen"). For such queries:
+- The result's title ("Bohemian Rhapsody") cannot match the longer combined query
+- The result's artist ("Queen") cannot match the combined query either
+- So `isTitleMatch` and `isArtistOnly` are both false
+- Without the `_otherRanked` bucket, this result would be discarded and `bestMatch` would return null
+- With `_otherRanked`, the result is ranked by popularity/API position (even with -20 no-match penalty) and returned as the best available match
+- The UI never displays this bucket—only `songs` and `artists` are rendered
+
+
+### 2. Add Grouping Helper Method
+
+**File:** `lib/features/songs/external_song_lookup_service.dart`
+
+Add new private method to classify and group results:
+
+```dart
+/// Group results by match type: songs (title match) vs artists (artist-only match) vs other (no match)
+GroupedSongResults _groupResults(
+  String query,
+  List<SongLookupResult> results, {
+  int songsLimit = 6,
+  int artistsLimit = 6,
+}) {
+  final lowerQuery = query.toLowerCase().trim();
+
+  final songMatches = <SongLookupResult>[];
+  final artistMatches = <SongLookupResult>[];
+  final otherMatches = <SongLookupResult>[]; // Keep for bestMatch accessor
+
+  for (final result in results) {
+    final lowerTitle = result.title.toLowerCase();
+    final lowerArtist = result.artist.toLowerCase();
+
+    // Song group: Any title-tier match
+    final isTitleMatch =
+        lowerTitle == lowerQuery ||
+        lowerTitle.startsWith(lowerQuery) ||
+        lowerTitle.contains(lowerQuery);
+
+    if (isTitleMatch) {
+      songMatches.add(result);
+    } else if (lowerArtist.contains(lowerQuery)) {
+      // Artist group: Artist match with NO title match
+      artistMatches.add(result);
+    } else {
+      // Other group: No title or artist match (e.g., orchestrator's "title artist" queries)
+      // These are ranked but not displayed in UI. Critical for SongEnrichmentOrchestrator.
+      otherMatches.add(result);
+    }
+  }
+
+  // Rank each group independently using existing scoring
+  final rankedSongs = _rankResults(query, songMatches);
+  final rankedArtists = _rankResults(query, artistMatches);
+  final rankedOthers = _rankResults(query, otherMatches);
+
+  // Cap each group independently
+  return GroupedSongResults(
+    songs: rankedSongs.take(songsLimit).toList(),
+    artists: rankedArtists.take(artistsLimit).toList(),
+    otherRanked: rankedOthers.take(6).toList(), // Cap at 6 for memory, never displayed in UI
+  );
+}
+```
+
+**Location:** Add after `_rankResults()` method (~line 423)
+
+**Rationale:**
+- Independent ranking ensures each group is sorted by relevance
+- Independent capping ensures groups are well-represented without memory bloat
+- Reuses existing `_rankResults()` logic for consistency
+- **Critical:** The `otherMatches` bucket keeps "no-match" results (scored -20 base, but boosted by popularity/API position) for `bestMatch` accessor. This handles the `song_enrichment_orchestrator.dart` use case where queries like "bohemian rhapsody queen" don't substring-match either title or artist alone.
+
