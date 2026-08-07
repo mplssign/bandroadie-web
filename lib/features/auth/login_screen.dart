@@ -39,6 +39,9 @@ import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import 'auth_gate.dart';
 import '../../app/constants/demo_credentials.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -460,10 +463,13 @@ class _LoginScreenState extends State<LoginScreen>
     // SAFEGUARD: If we detected an existing session, show loading
     // instead of login UI. AuthGate will handle the redirect.
     if (_sessionDetected) {
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
         ),
       );
     }
@@ -735,42 +741,19 @@ class _LoginScreenState extends State<LoginScreen>
   Widget _buildLoginButton({required bool hasValidEmail}) {
     final bool isDisabled =
         _isLoading || !hasValidEmail || _cooldownSeconds > 0;
-    final String buttonText = _cooldownSeconds > 0
-        ? 'Resend in ${_cooldownSeconds}s'
-        : 'Email Login Link';
 
     return FadeTransition(
       opacity: _buttonOpacity,
       child: ScaleTransition(
         scale: _buttonScale,
-        child: SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: isDisabled ? null : _sendMagicLink,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    buttonText,
-                    style: const TextStyle(
-                        fontSize: AppFontSizes.body,
-                        fontWeight: FontWeight.w600),
-                  ),
-          ),
+        child: AppButton(
+          label: _cooldownSeconds > 0
+              ? 'Resend in ${_cooldownSeconds}s'
+              : 'Email Login Link',
+          variant: AppButtonVariant.primary,
+          onPressed: isDisabled ? null : _sendMagicLink,
+          isLoading: _isLoading,
+          fullWidth: true,
         ),
       ),
     );

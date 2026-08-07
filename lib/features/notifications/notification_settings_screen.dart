@@ -8,6 +8,12 @@ import 'notification_permission_service.dart';
 import 'notification_preferences_controller.dart';
 import 'widgets/notification_settings_modal.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_switch.dart';
+import 'package:bandroadie/components/ui/app_checkbox.dart';
 
 // ============================================================================
 // NOTIFICATION SETTINGS SCREEN
@@ -23,13 +29,13 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final prefsAsync = ref.watch(notificationPreferencesProvider);
     final permissionState = ref.watch(notificationPermissionProvider);
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(AppIcons.arrowLeft, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -43,7 +49,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
       ),
       body: prefsAsync.when(
         data: (prefs) => _buildContent(context, ref, prefs, permissionState),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: AppProgressIndicator(type: ProgressIndicatorType.circular),
+        ),
         error: (error, _) => Center(
           child: Text(
             'Failed to load preferences',
@@ -299,12 +307,10 @@ class _MasterToggleCard extends StatelessWidget {
               ],
             ),
           ),
-          Switch.adaptive(
+          AppSwitch(
             value: enabled,
             onChanged: onChanged,
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: context.colors.surfaceOverlay,
-            inactiveThumbColor: context.colors.textSecondary,
+            activeColor: AppColors.primary,
           ),
         ],
       ),
@@ -345,14 +351,10 @@ class _CategoryCheckbox extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Checkbox(
+          AppCheckbox(
             value: value,
             onChanged: onChanged,
             activeColor: AppColors.primary,
-            side: BorderSide(
-              color:
-                  isEnabled ? context.colors.border : context.colors.textMuted,
-            ),
           ),
           const SizedBox(width: Spacing.space8),
           Expanded(

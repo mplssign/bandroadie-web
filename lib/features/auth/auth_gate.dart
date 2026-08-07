@@ -21,6 +21,10 @@ import 'splash_complete_provider.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
 
 // Re-export supabase client for backward compatibility
 export '../../app/services/supabase_client.dart';
@@ -419,10 +423,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
   Widget _buildAuthContent(BuildContext context, AppAuthState authState) {
     if (!_initialized) {
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
         ),
       );
     }
@@ -445,10 +452,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
             ref.read(authStateProvider.notifier).refreshSession();
           }
         });
-        return Scaffold(
+        return AppScaffold(
           backgroundColor: context.colors.background,
           body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+            child: AppProgressIndicator(
+              type: ProgressIndicatorType.circular,
+              color: AppColors.primary,
+            ),
           ),
         );
       }
@@ -471,13 +481,16 @@ class _AuthGateState extends ConsumerState<AuthGate>
     if (_profileComplete == null ||
         _checkingProfile ||
         _processingPendingInvite) {
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: AppColors.primary),
+              const AppProgressIndicator(
+                type: ProgressIndicatorType.circular,
+                color: AppColors.primary,
+              ),
               if (_processingPendingInvite) ...[
                 const SizedBox(height: 16),
                 const Text(
@@ -506,10 +519,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
     final bandState = ref.watch(activeBandProvider);
     if (bandState.isLoading) {
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
         ),
       );
     }
@@ -521,7 +537,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
         to: 'band_load_error',
         reason: 'Band fetch failed: ${bandState.error}',
       );
-      mainContent = Scaffold(
+      mainContent = AppScaffold(
         backgroundColor: context.colors.background,
         body: Center(
           child: Padding(
@@ -554,15 +570,12 @@ class _AuthGateState extends ConsumerState<AuthGate>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
+                AppButton(
+                  label: 'Try Again',
+                  variant: AppButtonVariant.secondary,
                   onPressed: () {
                     ref.read(activeBandProvider.notifier).loadUserBands();
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Try Again'),
                 ),
               ],
             ),
@@ -616,8 +629,9 @@ class _AuthGateState extends ConsumerState<AuthGate>
                         ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(AppIcons.close, color: Colors.white),
+                    AppIconButton(
+                      icon: AppIcons.close,
+                      color: Colors.white,
                       onPressed: () {
                         setState(() {
                           _pendingInviteMessage = null;

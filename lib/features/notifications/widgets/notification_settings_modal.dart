@@ -7,6 +7,8 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_dialog.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 // ============================================================================
 // NOTIFICATION SETTINGS DEEP LINK MODAL
@@ -20,7 +22,7 @@ class NotificationSettingsModal extends StatelessWidget {
 
   /// Show the modal with system settings guidance
   static Future<void> show(BuildContext context) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (context) => const NotificationSettingsModal(),
@@ -108,58 +110,26 @@ class NotificationSettingsModal extends StatelessWidget {
             const SizedBox(height: Spacing.space24),
 
             // Open Settings button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  // Close modal
-                  Navigator.of(context).pop();
-
-                  // Open system settings
-                  await _openAppSettings();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: Spacing.space16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Open Settings',
-                  style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            AppButton(
+              label: 'Open Settings',
+              variant: AppButtonVariant.secondary,
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _openAppSettings();
+              },
+              fullWidth: true,
             ),
 
             const SizedBox(height: Spacing.space12),
 
             // Cancel button
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: context.colors.textSecondary,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: Spacing.space12,
-                  ),
-                ),
-                child: Text(
-                  'Cancel',
-                  style: AppTextStyles.callout.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ),
+            AppButton(
+              label: 'Cancel',
+              variant: AppButtonVariant.text,
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              fullWidth: true,
             ),
           ],
         ),

@@ -13,6 +13,9 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/components/ui/domain_chip.dart';
 import 'package:bandroadie/features/bands/active_band_controller.dart';
 import 'package:bandroadie/shared/utils/email_domain_helper.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -298,7 +301,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
         child: Center(
@@ -316,7 +319,10 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       return const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: AppColors.primary),
+          AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
           SizedBox(height: 16),
           Text(
             'Accepting your invite...',
@@ -340,17 +346,15 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
+          AppButton(
+            label: 'Go to App',
+            variant: AppButtonVariant.secondary,
             onPressed: () {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const AuthGate()),
                 (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-            ),
-            child: const Text('Go to App'),
           ),
         ],
       );
@@ -420,16 +424,14 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          TextButton(
+          AppButton(
+            label: 'Use a different email',
+            variant: AppButtonVariant.text,
             onPressed: () {
               setState(() {
                 _magicLinkSent = false;
               });
             },
-            child: const Text(
-              'Use a different email',
-              style: TextStyle(color: AppColors.primary),
-            ),
           ),
         ],
       );
@@ -511,28 +513,11 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         SizedBox(
           width: 320,
           height: 48,
-          child: ElevatedButton(
+          child: AppButton(
+            label: 'Email login link',
+            variant: AppButtonVariant.secondary,
             onPressed: _signingIn ? null : _sendMagicLink,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: _signingIn
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text(
-                    'Email login link',
-                    style: TextStyle(
-                        fontSize: AppFontSizes.body, color: Colors.white),
-                  ),
+            isLoading: _signingIn,
           ),
         ),
       ],

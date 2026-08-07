@@ -5,6 +5,8 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../push_notification_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 // ============================================================================
 // NOTIFICATION PERMISSION PROMPT
@@ -64,8 +66,9 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(AppIcons.close, size: 20),
+              AppIconButton(
+                icon: AppIcons.close,
+                size: 20,
                 color: context.colors.textSecondary,
                 onPressed: () {
                   ref
@@ -86,24 +89,22 @@ class NotificationPermissionPrompt extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: TextButton(
+                child: AppButton(
+                  label: 'Not Now',
+                  variant: AppButtonVariant.text,
                   onPressed: () {
                     ref
                         .read(permissionPromptDismissedProvider.notifier)
                         .dismiss();
                   },
-                  child: Text(
-                    'Not Now',
-                    style: AppTextStyles.callout.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(width: Spacing.space12),
               Expanded(
                 flex: 2,
-                child: ElevatedButton(
+                child: AppButton(
+                  label: 'Enable Notifications',
+                  variant: AppButtonVariant.secondary,
                   onPressed: () async {
                     // Dismiss the in-app prompt
                     ref
@@ -128,16 +129,6 @@ class NotificationPermissionPrompt extends ConsumerWidget {
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: context.colors.textPrimary,
-                  ),
-                  child: Text(
-                    'Enable Notifications',
-                    style: AppTextStyles.callout.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -230,17 +221,10 @@ class _EnableNotificationsButtonState
       ),
       title: const Text('Enable Push Notifications'),
       subtitle: const Text('Get notified about band activity'),
-      trailing: ElevatedButton(
+      trailing: AppButton(
+        label: 'Enable',
+        variant: AppButtonVariant.secondary,
         onPressed: _enableNotifications,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: context.colors.textPrimary,
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.space16,
-            vertical: Spacing.space8,
-          ),
-        ),
-        child: const Text('Enable'),
       ),
     );
   }
