@@ -7,6 +7,8 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../rehearsal_response_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_progress_indicator.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // REHEARSAL AVAILABILITY PROMPT MODAL
@@ -271,27 +273,12 @@ class _RehearsalAvailabilityPromptModalState
                     // "Not Sure Yet" link - closes without saving, will show again next app open
                     const SizedBox(height: 16),
                     Center(
-                      child: TextButton(
+                      child: AppButton(
+                        label: 'Not Sure Yet',
+                        variant: AppButtonVariant.text,
                         onPressed: _isSubmitting
                             ? null
                             : () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                        ),
-                        child: Text(
-                          'Not Sure Yet',
-                          style: TextStyle(
-                            fontSize: AppFontSizes.subhead,
-                            fontWeight: FontWeight.w500,
-                            color: _isSubmitting
-                                ? context.colors.textMuted
-                                    .withValues(alpha: 0.5)
-                                : context.colors.textMuted,
-                          ),
-                        ),
                       ),
                     ),
                   ],
@@ -394,8 +381,8 @@ class _ResponseButton extends StatelessWidget {
               ? SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
+                  child: AppProgressIndicator(
+                    type: ProgressIndicatorType.circular,
                     color: color,
                   ),
                 )

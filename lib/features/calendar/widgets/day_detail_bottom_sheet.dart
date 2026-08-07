@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
 import '../models/calendar_event.dart';
 import 'calendar_event_card.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -37,7 +38,7 @@ class DayDetailBottomSheet extends StatelessWidget {
     void Function(CalendarEvent event)? onEventTap,
     VoidCallback? onAddEvent,
   }) {
-    return showModalBottomSheet(
+    return showAppBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,

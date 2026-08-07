@@ -6,6 +6,9 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/widgets/toggle_tile.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_progress_indicator.dart';
+import '../../../components/ui/app_button.dart';
 import '../calendar_subscription_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -22,7 +25,7 @@ void showCalendarSubscriptionDialog(
   required String bandId,
   required String bandName,
 }) {
-  showModalBottomSheet(
+  showAppBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -188,7 +191,10 @@ class _CalendarSubscriptionDialogState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(color: AppColors.primary),
+          AppProgressIndicator(
+            type: ProgressIndicatorType.circular,
+            color: AppColors.primary,
+          ),
           const SizedBox(height: Spacing.space16),
           Text(
             'Generating your calendar link...',
@@ -224,9 +230,10 @@ class _CalendarSubscriptionDialogState
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: Spacing.space24),
-          TextButton(
+          AppButton(
+            label: 'Close',
+            variant: AppButtonVariant.text,
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),
@@ -355,7 +362,9 @@ class _CalendarSubscriptionDialogState
               child: SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: AppProgressIndicator(
+                  type: ProgressIndicatorType.circular,
+                ),
               ),
             ),
           ),

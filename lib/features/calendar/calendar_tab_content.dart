@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_progress_indicator.dart';
+import '../../components/ui/app_button.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
@@ -401,7 +403,10 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   Widget _buildContent(CalendarState calendarState, BandPermissions? perms) {
     if (calendarState.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: AppProgressIndicator(
+          type: ProgressIndicatorType.circular,
+          color: AppColors.primary,
+        ),
       );
     }
 
@@ -419,9 +424,10 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: Spacing.space16),
-            TextButton(
+            AppButton(
+              label: 'Retry',
+              variant: AppButtonVariant.text,
               onPressed: () => ref.read(calendarProvider.notifier).loadEvents(),
-              child: const Text('Retry'),
             ),
           ],
         ),

@@ -4,6 +4,11 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_scaffold.dart';
+import '../../../components/ui/app_app_bar.dart';
+import '../../../components/ui/app_icon_button.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_dialog.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
@@ -172,36 +177,22 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
     if (_isRemoving) return;
 
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Remove ${widget.member.name}?',
-          style: TextStyle(color: context.colors.textPrimary),
-        ),
-        content: Text(
+      title: 'Remove ${widget.member.name}?',
+      message:
           'Are you sure you want to remove this member from the band? This cannot be undone.',
-          style: TextStyle(color: context.colors.textSecondary),
+      actions: [
+        DialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: context.colors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
+        DialogAction(
+          label: 'Remove',
+          onPressed: () => Navigator.of(context).pop(true),
+          isDestructive: true,
+        ),
+      ],
     );
 
     if (confirmed != true || !mounted) return;
@@ -235,13 +226,13 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(AppIcons.close, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.close,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -416,28 +407,13 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                     if (!_isLastAdmin) ...[
                       const SizedBox(height: 24),
                       Center(
-                        child: TextButton.icon(
+                        child: AppButton(
+                          label: 'Remove from band',
+                          icon: AppIcons.userRemove,
+                          variant: AppButtonVariant.destructive,
                           onPressed: _isRemoving ? null : _removeMember,
-                          icon: _isRemoving
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppColors.error),
-                                  ),
-                                )
-                              : const Icon(AppIcons.userRemove,
-                                  color: AppColors.error, size: 20),
-                          label: Text(
-                            _isRemoving ? 'Removing...' : 'Remove from band',
-                            style: const TextStyle(
-                              color: AppColors.error,
-                              fontSize: AppFontSizes.subhead,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          isLoading: _isRemoving,
+                          fullWidth: false,
                         ),
                       ),
                     ],
@@ -484,53 +460,19 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         children: [
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
+            child: AppButton(
+              label: 'Save',
+              variant: AppButtonVariant.primary,
               onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: (_hasChanges && !_isSaving)
-                    ? AppColors.primary
-                    : context.colors.border.withValues(alpha: 0.3),
-                disabledBackgroundColor:
-                    context.colors.border.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Text(
-                      'Save',
-                      style: AppTextStyles.body.copyWith(
-                        color: (_hasChanges && !_isSaving)
-                            ? Colors.white
-                            : context.colors.textMuted,
-                        fontWeight: FontWeight.w700,
-                        fontSize: AppFontSizes.body,
-                      ),
-                    ),
+              isLoading: _isSaving,
+              fullWidth: true,
             ),
           ),
           const SizedBox(height: 8),
-          TextButton(
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.text,
             onPressed: () => Navigator.of(context).pop(),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ),
         ],
       ),
