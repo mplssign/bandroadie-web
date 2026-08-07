@@ -42,6 +42,7 @@ import '../../app/constants/demo_credentials.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -481,7 +482,7 @@ class _LoginScreenState extends State<LoginScreen>
     final emailText = _emailController.text.trim();
     final hasValidEmail = emailText.contains('@') && emailText.length > 3;
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
       resizeToAvoidBottomInset: false,
       body: SafeArea(
@@ -625,7 +626,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             const SizedBox(height: 8),
             AutofillGroup(
-              child: TextField(
+              child: AppTextField(
                 controller: _emailController,
                 focusNode: _focusNode,
                 enabled: !_isLoading,

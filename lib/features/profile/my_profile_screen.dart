@@ -22,6 +22,8 @@ import 'package:bandroadie/components/ui/app_icon_button.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_dialog.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_text_form_field.dart';
 
 // ============================================================================
 // MY PROFILE SCREEN
@@ -455,7 +457,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                AppTextField(
                   controller: controller,
                   autofocus: true,
                   style: TextStyle(color: context.colors.textPrimary),
@@ -487,7 +489,8 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   ),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) {
-                    _validateAndSubmitRole(value, setDialogState, (error) => errorText = error);
+                    _validateAndSubmitRole(
+                        value, setDialogState, (error) => errorText = error);
                   },
                 ),
               ],
@@ -1044,7 +1047,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        TextFormField(
+        AppTextFormField(
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,

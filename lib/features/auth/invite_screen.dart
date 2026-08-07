@@ -16,6 +16,7 @@ import 'package:bandroadie/shared/utils/email_domain_helper.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
 
 /// Key for storing pending invite token in SharedPreferences
 const String kPendingInviteTokenKey = 'pending_invite_token';
@@ -460,7 +461,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         const SizedBox(height: 32),
         SizedBox(
           width: 320,
-          child: TextField(
+          child: AppTextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: const TextStyle(color: Colors.white),
