@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 
@@ -178,6 +179,74 @@ void main() {
       expect(find.text('Ignored hint'), findsNothing);
       expect(find.text('Ignored label'), findsNothing);
       expect(find.byIcon(Icons.person), findsNothing);
+    });
+
+    testWidgets('delegates inputFormatters to TextField', (tester) async {
+      final formatter = LengthLimitingTextInputFormatter(5);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppTextField(inputFormatters: [formatter]),
+          ),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.inputFormatters, [formatter]);
+    });
+
+    testWidgets('delegates autocorrect to TextField', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: AppTextField(autocorrect: false)),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.autocorrect, isFalse);
+    });
+
+    testWidgets('delegates autofillHints to TextField', (tester) async {
+      const hints = [AutofillHints.email];
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: AppTextField(autofillHints: hints)),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.autofillHints, hints);
+    });
+
+    testWidgets('calls onSubmitted callback', (tester) async {
+      String? submittedValue;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppTextField(
+              onSubmitted: (value) => submittedValue = value,
+            ),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), 'test');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(submittedValue, 'test');
+    });
+
+    testWidgets('delegates autofocus to TextField', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: AppTextField(autofocus: true)),
+        ),
+      );
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.autofocus, isTrue);
     });
   });
 }

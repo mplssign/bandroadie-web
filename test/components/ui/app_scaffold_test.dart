@@ -54,5 +54,19 @@ void main() {
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
       expect(scaffold.backgroundColor, Colors.blue);
     });
+
+    testWidgets('delegates resizeToAvoidBottomInset prop', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AppScaffold(
+            body: Text('Test Body'),
+            resizeToAvoidBottomInset: false,
+          ),
+        ),
+      );
+
+      final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+      expect(scaffold.resizeToAvoidBottomInset, isFalse);
+    });
   });
 }

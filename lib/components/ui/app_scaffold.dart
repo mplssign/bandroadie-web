@@ -14,6 +14,7 @@ class AppScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.bottomNavigationBar,
     this.backgroundColor,
+    this.resizeToAvoidBottomInset,
   });
 
   /// Optional app bar widget
@@ -32,6 +33,10 @@ class AppScaffold extends StatelessWidget {
   /// If null, uses theme's scaffoldBackgroundColor
   final Color? backgroundColor;
 
+  /// Whether to resize body when keyboard appears
+  /// If null, uses Scaffold's default (true)
+  final bool? resizeToAvoidBottomInset;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,6 +45,7 @@ class AppScaffold extends StatelessWidget {
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
       backgroundColor: backgroundColor,
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
     );
   }
 }

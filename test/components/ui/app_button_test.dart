@@ -135,5 +135,49 @@ void main() {
       );
       expect(filledButton.onPressed, isNull);
     });
+
+    testWidgets(
+        'renders destructive variant as FilledButton with error styling',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppButton(
+              label: 'Delete',
+              onPressed: () {},
+              variant: AppButtonVariant.destructive,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.byType(FilledButton), findsOneWidget);
+
+      final filledButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(filledButton.style, isNotNull);
+    });
+
+    testWidgets('renders destructive variant with icon correctly',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AppButton(
+              label: 'Delete',
+              onPressed: () {},
+              icon: Icons.delete,
+              variant: AppButtonVariant.destructive,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.byIcon(Icons.delete), findsOneWidget);
+      expect(find.byType(FilledButton), findsOneWidget);
+    });
   });
 }

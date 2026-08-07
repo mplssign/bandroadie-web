@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 
 /// Button style variants
 enum AppButtonVariant {
@@ -13,6 +14,9 @@ enum AppButtonVariant {
 
   /// Outlined button with border (OutlinedButton)
   outlined,
+
+  /// Error-colored filled button for dangerous actions (FilledButton with error background)
+  destructive,
 }
 
 /// Wrapper for Material button widgets that respects app theme configuration.
@@ -63,15 +67,15 @@ class AppButton extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           )
         : icon != null
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18),
-              const SizedBox(width: 8),
-              Text(label),
-            ],
-          )
-        : Text(label);
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 18),
+                  const SizedBox(width: 8),
+                  Text(label),
+                ],
+              )
+            : Text(label);
 
     // Build the button based on variant
     Widget button;
@@ -84,6 +88,18 @@ class AppButton extends StatelessWidget {
         button = TextButton(onPressed: effectiveOnPressed, child: content);
       case AppButtonVariant.outlined:
         button = OutlinedButton(onPressed: effectiveOnPressed, child: content);
+      case AppButtonVariant.destructive:
+        button = FilledButton(
+          onPressed: effectiveOnPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.error,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: content,
+        );
     }
 
     // Wrap in full-width container if needed

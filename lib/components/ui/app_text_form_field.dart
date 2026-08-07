@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Wrapper for [TextFormField] that respects app theme configuration.
 ///
@@ -28,6 +29,11 @@ class AppTextFormField extends StatelessWidget {
     this.enabled = true,
     this.validator,
     this.onSaved,
+    this.inputFormatters,
+    this.autocorrect = true,
+    this.autofillHints,
+    this.onSubmitted,
+    this.autofocus = false,
   });
 
   /// Optional text editing controller
@@ -86,13 +92,27 @@ class AppTextFormField extends StatelessWidget {
   /// Callback when form is saved
   final FormFieldSetter<String>? onSaved;
 
+  /// Optional input formatters for restricting/formatting input
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// Whether to enable autocorrect (defaults to true)
+  final bool autocorrect;
+
+  /// Optional autofill hints for password managers and form autofill
+  final Iterable<String>? autofillHints;
+
+  /// Callback when user submits the field (e.g., presses Enter)
+  final ValueChanged<String>? onSubmitted;
+
+  /// Whether to autofocus this field when widget is built (defaults to false)
+  final bool autofocus;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
-      decoration:
-          decoration ??
+      decoration: decoration ??
           InputDecoration(
             hintText: hintText,
             labelText: labelText,
@@ -109,6 +129,11 @@ class AppTextFormField extends StatelessWidget {
       enabled: enabled,
       validator: validator,
       onSaved: onSaved,
+      inputFormatters: inputFormatters,
+      autocorrect: autocorrect,
+      autofillHints: autofillHints,
+      onFieldSubmitted: onSubmitted,
+      autofocus: autofocus,
     );
   }
 }
