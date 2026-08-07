@@ -9,6 +9,10 @@ import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/shared/utils/snackbar_helper.dart';
 import '../models/venue.dart';
 import 'venue_form_screen.dart';
+import '../../../components/ui/app_scaffold.dart';
+import '../../../components/ui/app_app_bar.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
 
 // ============================================================================
 // VENUE DETAIL SCREEN
@@ -26,13 +30,11 @@ class VenueDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         title: Text('Venue Details', style: AppTextStyles.title3),
         backgroundColor: context.colors.surface,
-        foregroundColor: context.colors.textPrimary,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -57,7 +59,9 @@ class VenueDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  TextButton(
+                  AppButton(
+                    label: 'Edit',
+                    variant: AppButtonVariant.text,
                     onPressed: () async {
                       final edited = await Navigator.push<bool>(
                         context,
@@ -67,14 +71,6 @@ class VenueDetailScreen extends StatelessWidget {
                         Navigator.of(context).pop(true);
                       }
                     },
-                    child: const Text(
-                      'Edit',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: AppFontSizes.body,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -278,7 +274,7 @@ class VenueDetailScreen extends StatelessWidget {
   }
 
   Future<_NavigationApp?> _showNavigationAppPicker(BuildContext context) {
-    return showModalBottomSheet<_NavigationApp>(
+    return showAppBottomSheet<_NavigationApp>(
       context: context,
       backgroundColor: context.colors.surface,
       builder: (sheetContext) {

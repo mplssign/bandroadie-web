@@ -17,6 +17,7 @@ import 'venue_card.dart';
 import 'venue_detail_screen.dart';
 import 'venue_form_screen.dart';
 import 'venues_empty_state.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // VENUES VIEW
@@ -223,9 +224,10 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            TextButton(
+            AppButton(
+              label: 'Retry',
+              variant: AppButtonVariant.text,
               onPressed: _onRefresh,
-              child: const Text('Retry'),
             ),
           ],
         ),
@@ -274,13 +276,11 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
                         ),
                       ),
                     ),
-                    TextButton.icon(
+                    AppButton(
+                      label: 'Add',
+                      icon: AppIcons.add,
+                      variant: AppButtonVariant.text,
                       onPressed: () => _openVenueForm(context: context),
-                      icon: const Icon(AppIcons.add, size: 18),
-                      label: const Text('Add'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                      ),
                     ),
                   ],
                 ),
@@ -351,13 +351,11 @@ class _VenuesViewState extends ConsumerState<VenuesView> {
                         ),
                       ),
                     ),
-                    TextButton.icon(
+                    AppButton(
+                      label: 'Add',
+                      icon: AppIcons.add,
+                      variant: AppButtonVariant.text,
                       onPressed: () => _openVenueForm(context: context),
-                      icon: const Icon(AppIcons.add, size: 18),
-                      label: const Text('Add'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                      ),
                     ),
                   ],
                 ),

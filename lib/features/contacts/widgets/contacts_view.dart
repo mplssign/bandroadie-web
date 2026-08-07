@@ -16,6 +16,7 @@ import 'az_section_header.dart';
 import 'contact_card.dart';
 import 'contact_form_screen.dart';
 import 'contacts_empty_state.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // CONTACTS VIEW
@@ -195,9 +196,10 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            TextButton(
+            AppButton(
+              label: 'Retry',
+              variant: AppButtonVariant.text,
               onPressed: _onRefresh,
-              child: const Text('Retry'),
             ),
           ],
         ),
@@ -246,13 +248,11 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
                         ),
                       ),
                     ),
-                    TextButton.icon(
+                    AppButton(
+                      label: 'Add',
+                      icon: AppIcons.add,
+                      variant: AppButtonVariant.text,
                       onPressed: () => _openContactForm(context: context),
-                      icon: const Icon(AppIcons.add, size: 18),
-                      label: const Text('Add'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                      ),
                     ),
                   ],
                 ),
@@ -323,13 +323,11 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
                         ),
                       ),
                     ),
-                    TextButton.icon(
+                    AppButton(
+                      label: 'Add',
+                      icon: AppIcons.add,
+                      variant: AppButtonVariant.text,
                       onPressed: () => _openContactForm(context: context),
-                      icon: const Icon(AppIcons.add, size: 18),
-                      label: const Text('Add'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                      ),
                     ),
                   ],
                 ),

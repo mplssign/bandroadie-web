@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_text_field.dart';
 
 // ============================================================================
 // TITLE PILL SELECTOR
@@ -162,7 +163,7 @@ class _TitlePillSelectorState extends State<TitlePillSelector> {
         ),
         if (_isCustomMode) ...[
           const SizedBox(height: 12),
-          TextField(
+          AppTextField(
             controller: _customController,
             style: TextStyle(
               color: context.colors.textPrimary,

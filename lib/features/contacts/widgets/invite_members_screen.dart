@@ -9,6 +9,12 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/components/ui/email_domain_shortcut_bar.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../../components/ui/app_scaffold.dart';
+import '../../../components/ui/app_app_bar.dart';
+import '../../../components/ui/app_icon_button.dart';
+import '../../../components/ui/app_text_form_field.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_dialog.dart';
 
 // ============================================================================
 // INVITE MEMBERS SCREEN
@@ -243,59 +249,20 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     final email = invite['email'] ?? '';
 
     // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Cancel Invite?',
-          style: TextStyle(
-            color: context.colors.textPrimary,
-            fontSize: AppFontSizes.title2,
-            fontWeight: FontWeight.w600,
-          ),
+      title: 'Cancel Invite?',
+      message: 'Cancel invite for $email?',
+      actions: [
+        DialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
         ),
-        content: Text(
-          'Cancel invite for $email?',
-          style: TextStyle(
-              color: context.colors.textSecondary, fontSize: AppFontSizes.body),
+        DialogAction(
+          label: 'Cancel Invite',
+          onPressed: () => Navigator.of(context).pop(true),
         ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Cancel Invite',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: context.colors.textSecondary),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
 
     if (confirmed != true) return;
@@ -334,11 +301,11 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     return Row(
       children: [
         Expanded(
-          child: TextFormField(
+          child: AppTextFormField(
             controller: _inviteEmailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _sendInvite(),
+            onSubmitted: (_) => _sendInvite(),
             style: TextStyle(
               fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w400,
@@ -374,36 +341,13 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
           ),
         ),
         const SizedBox(width: Spacing.space12),
-        GestureDetector(
-          onTap: _isSendingInvite ? null : _sendInvite,
-          child: Container(
-            width: 80,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _isSendingInvite
-                  ? AppColors.primary.withValues(alpha: 0.5)
-                  : AppColors.primary,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            ),
-            child: Center(
-              child: _isSendingInvite
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      'Invite',
-                      style: TextStyle(
-                        fontSize: AppFontSizes.subhead,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
+        SizedBox(
+          width: 80,
+          child: AppButton(
+            label: 'Invite',
+            variant: AppButtonVariant.primary,
+            onPressed: _isSendingInvite ? null : _sendInvite,
+            isLoading: _isSendingInvite,
           ),
         ),
       ],
@@ -532,12 +476,13 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
-        leading: IconButton(
-          icon: Icon(AppIcons.back, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.back,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(

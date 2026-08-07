@@ -13,6 +13,12 @@ import '../contacts_controller.dart';
 import '../contacts_repository.dart';
 import '../models/contact.dart';
 import 'title_pill_selector.dart';
+import '../../../components/ui/app_scaffold.dart';
+import '../../../components/ui/app_app_bar.dart';
+import '../../../components/ui/app_icon_button.dart';
+import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_dialog.dart';
 
 // ============================================================================
 // CONTACT FORM SCREEN
@@ -144,51 +150,21 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
   }
 
   Future<void> _deleteContact() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Delete Contact?',
-          style: TextStyle(
-            fontSize: AppFontSizes.title2,
-            fontWeight: FontWeight.w600,
-            color: context.colors.textPrimary,
-          ),
+      title: 'Delete Contact?',
+      message: 'This action cannot be undone.',
+      actions: [
+        DialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(false),
         ),
-        content: Text(
-          'This action cannot be undone.',
-          style: TextStyle(
-            fontSize: AppFontSizes.body,
-            color: context.colors.textSecondary,
-          ),
+        DialogAction(
+          label: 'Delete',
+          onPressed: () => Navigator.of(context).pop(true),
+          isDestructive: true,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w600,
-                color: context.colors.textSecondary,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w600,
-                color: AppColors.error,
-              ),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
 
     if (confirmed != true) return;
@@ -236,12 +212,13 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
-        leading: IconButton(
-          icon: Icon(AppIcons.close, color: context.colors.textPrimary),
+        leading: AppIconButton(
+          icon: AppIcons.close,
+          color: context.colors.textPrimary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -253,25 +230,11 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Save',
+            variant: AppButtonVariant.text,
             onPressed: _isSaving ? null : _save,
-            child: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.primary,
-                    ),
-                  )
-                : const Text(
-                    'Save',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            isLoading: _isSaving,
           ),
         ],
       ),
@@ -279,7 +242,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
         padding: const EdgeInsets.all(Spacing.pagePadding),
         children: [
           // Name
-          TextField(
+          AppTextField(
             controller: _nameController,
             focusNode: _nameFocus,
             style: TextStyle(
@@ -305,7 +268,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           const SizedBox(height: 20),
 
           // Company
-          TextField(
+          AppTextField(
             controller: _companyController,
             focusNode: _companyFocus,
             style: TextStyle(
@@ -318,7 +281,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           // Contacts (agents, promoters) are lightweight records. Venues carry full address data.
 
           // Phone
-          TextField(
+          AppTextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
             style: TextStyle(
@@ -330,7 +293,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           const SizedBox(height: 16),
 
           // Email
-          TextField(
+          AppTextField(
             controller: _emailController,
             focusNode: _emailFocus,
             style: TextStyle(
@@ -364,7 +327,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           const SizedBox(height: 16),
 
           // Notes
-          TextField(
+          AppTextField(
             controller: _notesController,
             focusNode: _notesFocus,
             style: TextStyle(
@@ -377,16 +340,10 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           if (_isEditMode) ...[
             const SizedBox(height: 32),
             Center(
-              child: TextButton(
+              child: AppButton(
+                label: 'Delete Contact',
+                variant: AppButtonVariant.destructive,
                 onPressed: _deleteContact,
-                child: const Text(
-                  'Delete Contact',
-                  style: TextStyle(
-                    fontSize: AppFontSizes.body,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.error,
-                  ),
-                ),
               ),
             ),
           ],
