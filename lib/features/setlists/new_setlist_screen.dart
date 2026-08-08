@@ -9,6 +9,11 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_scaffold.dart';
+import '../../components/ui/app_app_bar.dart';
+import '../../components/ui/app_icon_button.dart';
+import '../../components/ui/app_progress_indicator.dart';
+import '../../components/ui/app_text_field.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -821,7 +826,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           );
         }
       });
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
         body: SizedBox.shrink(),
       );
@@ -829,14 +834,14 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     // Show creating state
     if (_isCreating) {
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              AppProgressIndicator(
+                color: AppColors.primary,
               ),
               SizedBox(height: Spacing.space16),
               Text(
@@ -853,12 +858,13 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     // Show error state
     if (_createError != null) {
-      return Scaffold(
+      return AppScaffold(
         backgroundColor: context.colors.background,
-        appBar: AppBar(
+        appBar: AppAppBar(
           backgroundColor: context.colors.appBarBg,
-          leading: IconButton(
-            icon: Icon(AppIcons.close, color: Colors.white),
+          leading: AppIconButton(
+            icon: AppIcons.close,
+            color: Colors.white,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -910,7 +916,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
       }
     });
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
         child: Column(
@@ -933,8 +939,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
   Widget _buildBody(SetlistDetailState state) {
     if (state.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation(AppColors.primary),
+        child: AppProgressIndicator(
+          color: AppColors.primary,
         ),
       );
     }
@@ -1239,7 +1245,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     return Row(
       children: [
         Expanded(
-          child: TextField(
+          child: AppTextField(
             controller: _nameController,
             focusNode: _nameFocusNode,
             style: AppTextStyles.title3,
@@ -1276,8 +1282,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
             child: _isSavingName
                 ? Padding(
                     padding: EdgeInsets.all(6),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                    child: AppProgressIndicator(
                       color: context.colors.textPrimary,
                     ),
                   )

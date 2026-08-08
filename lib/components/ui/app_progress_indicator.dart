@@ -20,6 +20,7 @@ class AppProgressIndicator extends StatelessWidget {
     this.type = ProgressIndicatorType.circular,
     this.value,
     this.color,
+    this.strokeWidth,
   });
 
   /// Progress indicator type (circular or linear)
@@ -33,11 +34,19 @@ class AppProgressIndicator extends StatelessWidget {
   /// If null, uses theme's progressIndicatorTheme.color
   final Color? color;
 
+  /// Optional stroke width for circular progress indicator
+  /// If null, uses Material default (4.0)
+  final double? strokeWidth;
+
   @override
   Widget build(BuildContext context) {
     switch (type) {
       case ProgressIndicatorType.circular:
-        return CircularProgressIndicator(value: value, color: color);
+        return CircularProgressIndicator(
+          value: value,
+          color: color,
+          strokeWidth: strokeWidth ?? 4.0,
+        );
 
       case ProgressIndicatorType.linear:
         return LinearProgressIndicator(value: value, color: color);

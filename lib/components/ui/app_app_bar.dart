@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppAppBar({
     super.key,
-    required this.title,
+    this.title,
     this.leading,
     this.actions,
     this.backgroundColor,
@@ -36,7 +36,9 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      title: title is String ? Text(title as String) : title as Widget,
+      title: title == null
+          ? null
+          : (title is String ? Text(title as String) : title as Widget),
       leading: leading,
       actions: actions,
       backgroundColor: backgroundColor,

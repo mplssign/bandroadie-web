@@ -9,6 +9,8 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/brand_action_button.dart';
 import '../../components/ui/confirm_action_dialog.dart';
+import '../../components/ui/app_progress_indicator.dart';
+import '../../components/ui/app_button.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
@@ -320,7 +322,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   child: SizedBox(
                     width: 28,
                     height: 28,
-                    child: CircularProgressIndicator(
+                    child: AppProgressIndicator(
                       color: AppColors.primary,
                       strokeWidth: 3,
                     ),
@@ -454,17 +456,11 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                               ),
                             ),
                             if (canEdit)
-                              TextButton.icon(
+                              AppButton(
                                 onPressed: _navigateToCreateSetlist,
-                                icon: const Icon(AppIcons.add, size: 18),
-                                label: const Text('New'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.primary,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
+                                variant: AppButtonVariant.text,
+                                icon: AppIcons.add,
+                                label: 'New',
                               ),
                           ],
                         ),

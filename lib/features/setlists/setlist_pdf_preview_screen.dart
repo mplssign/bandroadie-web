@@ -7,6 +7,9 @@ import 'package:printing/printing.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
 import 'models/print_template.dart';
 import 'models/setlist_item.dart';
 import 'services/setlist_print_service.dart';
@@ -89,31 +92,27 @@ class _SetlistPdfPreviewScreenState extends State<SetlistPdfPreviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.background,
         title: Text(
           'Print Preview',
-          style: AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
+          style:
+              AppTextStyles.title3.copyWith(color: context.colors.textPrimary),
         ),
-        iconTheme: IconThemeData(color: context.colors.textPrimary),
         actions: [
-          IconButton(
+          AppIconButton(
             onPressed: _handlePrint,
-            icon: const Icon(
-              Icons.print_rounded,
-              size: 20,
-              color: AppColors.primary,
-            ),
+            icon: Icons.print_rounded,
+            size: 20,
+            color: AppColors.primary,
           ),
-          IconButton(
+          AppIconButton(
             onPressed: () => _handleShare(context),
-            icon: const Icon(
-              AppIcons.share,
-              size: 20,
-              color: AppColors.primary,
-            ),
+            icon: AppIcons.share,
+            size: 20,
+            color: AppColors.primary,
           ),
         ],
       ),
