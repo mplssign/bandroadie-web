@@ -34,6 +34,7 @@ class AppTextField extends StatelessWidget {
     this.autocorrect = true,
     this.autofillHints,
     this.onSubmitted,
+    this.onEditingComplete,
     this.autofocus = false,
   });
 
@@ -108,6 +109,9 @@ class AppTextField extends StatelessWidget {
   /// Callback when user submits the field (e.g., presses Enter)
   final ValueChanged<String>? onSubmitted;
 
+  /// Callback when editing is complete (e.g., loses focus or submits)
+  final VoidCallback? onEditingComplete;
+
   /// Whether to autofocus this field when widget is built (defaults to false)
   final bool autofocus;
 
@@ -138,6 +142,7 @@ class AppTextField extends StatelessWidget {
       autocorrect: autocorrect,
       autofillHints: autofillHints,
       onSubmitted: onSubmitted,
+      onEditingComplete: onEditingComplete,
       autofocus: autofocus,
     );
   }

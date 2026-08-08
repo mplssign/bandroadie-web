@@ -11,6 +11,9 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import '../../components/ui/confirm_action_dialog.dart';
+import '../../components/ui/app_scaffold.dart';
+import '../../components/ui/app_progress_indicator.dart';
+import '../../components/ui/app_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
@@ -616,7 +619,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
     }
 
     // Main content
-    final content = Scaffold(
+    final content = AppScaffold(
       backgroundColor: context.colors.background,
       body: showLoading
           ? _buildLoadingState(
@@ -772,8 +775,8 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
         const SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(AppColors.primary),
+            child: AppProgressIndicator(
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -896,17 +899,11 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                           ),
                         ),
                         if (canEdit)
-                          TextButton.icon(
+                          AppButton(
                             onPressed: _navigateToCreateSetlist,
-                            icon: const Icon(AppIcons.add, size: 18),
-                            label: const Text('New'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
+                            variant: AppButtonVariant.text,
+                            icon: AppIcons.add,
+                            label: 'New',
                           ),
                       ],
                     );

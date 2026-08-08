@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
 
 // ============================================================================
 // CREATE SETLIST SCREEN
@@ -15,13 +18,14 @@ class CreateSetlistScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
         title: Text('New Setlist', style: AppTextStyles.title3),
-        leading: IconButton(
-          icon: Icon(AppIcons.close, color: Colors.white),
+        leading: AppIconButton(
+          icon: AppIcons.close,
+          color: Colors.white,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
