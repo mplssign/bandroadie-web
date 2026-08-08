@@ -147,9 +147,20 @@ class AppButton extends StatelessWidget {
           child: content,
         );
       case AppButtonVariant.text:
-        button = TextButton(onPressed: effectiveOnPressed, child: content);
+        button = TextButton(
+          onPressed: effectiveOnPressed,
+          style:
+              padding != null ? TextButton.styleFrom(padding: padding) : null,
+          child: content,
+        );
       case AppButtonVariant.outlined:
-        button = OutlinedButton(onPressed: effectiveOnPressed, child: content);
+        button = OutlinedButton(
+          onPressed: effectiveOnPressed,
+          style: padding != null
+              ? OutlinedButton.styleFrom(padding: padding)
+              : null,
+          child: content,
+        );
       case AppButtonVariant.destructive:
         button = FilledButton(
           onPressed: effectiveOnPressed,

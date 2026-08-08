@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/segmented_button_group.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
@@ -568,29 +570,18 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              FilledButton(
+              AppButton(
+                label: 'Keep Editing',
                 onPressed: () => Navigator.of(context).pop(false),
-                style:
-                    FilledButton.styleFrom(backgroundColor: AppColors.primary),
-                child: Text(
-                  'Keep Editing',
-                  style: AppTextStyles.body.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                variant: AppButtonVariant.primary,
+                backgroundColor: AppColors.primary,
               ),
               const SizedBox(height: 8),
               Center(
-                child: TextButton(
+                child: AppButton(
+                  label: 'Discard',
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: Text(
-                    'Discard',
-                    style: AppTextStyles.body.copyWith(
-                      color: context.colors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  variant: AppButtonVariant.text,
                 ),
               ),
             ],
@@ -719,7 +710,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
+            AppTextField(
               controller: titleController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
@@ -747,7 +738,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppTextField(
               controller: urlController,
               keyboardType: TextInputType.url,
               style: AppTextStyles.body
@@ -774,7 +765,8 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               ),
             ),
             const SizedBox(height: 20),
-            FilledButton(
+            AppButton(
+              label: 'Save',
               onPressed: () {
                 final title = titleController.text.trim();
                 final url = urlController.text.trim();
@@ -784,28 +776,16 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                       SongLink(title: title, url: url, type: detectedType));
                 }
               },
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              child: Text(
-                'Save',
-                style: AppTextStyles.body.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              variant: AppButtonVariant.primary,
+              backgroundColor: AppColors.primary,
+              fullWidth: true,
             ),
             const SizedBox(height: 16),
             Center(
-              child: TextButton(
+              child: AppButton(
+                label: 'Cancel',
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Cancel',
-                  style: AppTextStyles.body.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
+                variant: AppButtonVariant.text,
               ),
             ),
           ],
@@ -941,25 +921,14 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                             if (!widget.isReadOnly) ...[
                               const SizedBox(height: 8),
                               Center(
-                                child: TextButton.icon(
+                                child: AppButton(
+                                  label: 'Enrich Song Data',
                                   onPressed: _handleEnrichSong,
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                      horizontal: 16,
-                                    ),
-                                  ),
-                                  icon: Icon(
-                                    Icons.auto_awesome,
-                                    size: 16,
-                                    color: context.colors.primary,
-                                  ),
-                                  label: Text(
-                                    'Enrich Song Data',
-                                    style: AppTextStyles.body.copyWith(
-                                      color: context.colors.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  variant: AppButtonVariant.text,
+                                  icon: Icons.auto_awesome,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 16,
                                   ),
                                 ),
                               ),
@@ -1060,7 +1029,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   border: Border.all(color: AppColors.primary, width: 1.5),
                 ),
-                child: TextField(
+                child: AppTextField(
                   controller: _titleController,
                   focusNode: _titleFocus,
                   textCapitalization: TextCapitalization.words,
@@ -1133,7 +1102,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                   border: Border.all(color: AppColors.primary, width: 1.5),
                 ),
-                child: TextField(
+                child: AppTextField(
                   controller: _artistController,
                   focusNode: _artistFocus,
                   textCapitalization: TextCapitalization.words,
@@ -1436,7 +1405,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(color: context.colors.border),
           ),
-          child: TextField(
+          child: AppTextField(
             controller: _notesController,
             readOnly: widget.isReadOnly,
             maxLines: null,
@@ -1596,51 +1565,30 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
           ],
           // Full-width Save/Done button (hidden in read-only mode)
           if (!widget.isReadOnly)
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _justEnriched
-                    ? () => Navigator.of(context).pop()
-                    : (_hasChanges ? _handleSave : null),
-                style: FilledButton.styleFrom(
-                  backgroundColor: (_justEnriched || _hasChanges)
-                      ? AppColors.primary
-                      : context.colors.border.withValues(alpha: 0.3),
-                  disabledBackgroundColor:
-                      context.colors.border.withValues(alpha: 0.3),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  _justEnriched ? 'Done' : 'Save',
-                  style: AppTextStyles.body.copyWith(
-                    color: (_justEnriched || _hasChanges)
-                        ? Colors.white
-                        : context.colors.textMuted,
-                    fontWeight: FontWeight.w700,
-                    fontSize: AppFontSizes.body,
-                  ),
-                ),
-              ),
+            AppButton(
+              label: _justEnriched ? 'Done' : 'Save',
+              onPressed: _justEnriched
+                  ? () => Navigator.of(context).pop()
+                  : (_hasChanges ? _handleSave : null),
+              variant: AppButtonVariant.primary,
+              backgroundColor: (_justEnriched || _hasChanges)
+                  ? AppColors.primary
+                  : context.colors.border.withValues(alpha: 0.3),
+              disabledBackgroundColor:
+                  context.colors.border.withValues(alpha: 0.3),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              fullWidth: true,
             ),
           if (!widget.isReadOnly) const SizedBox(height: 8),
           // Centered Cancel/Close text button
-          TextButton(
+          AppButton(
+            label: widget.isReadOnly ? 'Close' : 'Cancel',
             onPressed: widget.isReadOnly
                 ? () => Navigator.of(context).pop()
                 : (_justEnriched ? null : _handleCancel),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-            ),
-            child: Text(
-              widget.isReadOnly ? 'Close' : 'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            variant: AppButtonVariant.text,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
           ),
         ],
       ),

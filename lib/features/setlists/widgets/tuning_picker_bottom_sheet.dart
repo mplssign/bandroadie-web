@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_button.dart';
 import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
 import 'custom_tuning_modal.dart';
@@ -431,12 +432,10 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
           style: TextStyle(color: context.colors.textSecondary),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: context.colors.textSecondary),
-            ),
+            variant: AppButtonVariant.text,
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -787,44 +786,25 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _hasChanges ? _handleSave : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: _hasChanges
-                    ? AppColors.primary
-                    : context.colors.border.withValues(alpha: 0.3),
-                disabledBackgroundColor:
-                    context.colors.border.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-              child: Text(
-                'Save',
-                style: AppTextStyles.body.copyWith(
-                  color: _hasChanges ? Colors.white : context.colors.textMuted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: AppFontSizes.body,
-                ),
-              ),
-            ),
+          AppButton(
+            label: 'Save',
+            onPressed: _hasChanges ? _handleSave : null,
+            variant: AppButtonVariant.primary,
+            backgroundColor: _hasChanges
+                ? AppColors.primary
+                : context.colors.border.withValues(alpha: 0.3),
+            disabledBackgroundColor:
+                context.colors.border.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            fullWidth: true,
           ),
           const SizedBox(height: 8),
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: _handleCancel,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            variant: AppButtonVariant.text,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
           ),
         ],
       ),

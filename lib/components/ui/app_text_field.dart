@@ -37,6 +37,7 @@ class AppTextField extends StatelessWidget {
     this.onEditingComplete,
     this.onTap,
     this.autofocus = false,
+    this.readOnly = false,
   });
 
   /// Optional text editing controller
@@ -119,6 +120,9 @@ class AppTextField extends StatelessWidget {
   /// Whether to autofocus this field when widget is built (defaults to false)
   final bool autofocus;
 
+  /// Whether the field is read-only (defaults to false)
+  final bool readOnly;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -149,6 +153,7 @@ class AppTextField extends StatelessWidget {
       onEditingComplete: onEditingComplete,
       onTap: onTap,
       autofocus: autofocus,
+      readOnly: readOnly,
     );
   }
 }

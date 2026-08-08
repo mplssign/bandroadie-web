@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/segmented_button_group.dart';
 import '../../songs/external_song_lookup_service.dart';
 import '../../songs/song_enrichment_service.dart';
@@ -208,29 +209,18 @@ class _SongEnrichmentReviewSheetState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              FilledButton(
+              AppButton(
+                label: 'Keep Editing',
                 onPressed: () => Navigator.of(context).pop(false),
-                style:
-                    FilledButton.styleFrom(backgroundColor: AppColors.primary),
-                child: Text(
-                  'Keep Editing',
-                  style: AppTextStyles.body.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                variant: AppButtonVariant.primary,
+                backgroundColor: AppColors.primary,
               ),
               const SizedBox(height: 8),
               Center(
-                child: TextButton(
+                child: AppButton(
+                  label: 'Discard',
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: Text(
-                    'Discard',
-                    style: AppTextStyles.body.copyWith(
-                      color: context.colors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  variant: AppButtonVariant.text,
                 ),
               ),
             ],
@@ -458,41 +448,22 @@ class _SongEnrichmentReviewSheetState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              // Save is never gated on the enrichment fetch completing.
-              onPressed: _handleSave,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-              child: Text(
-                'Save',
-                style: AppTextStyles.body.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: AppFontSizes.body,
-                ),
-              ),
-            ),
+          AppButton(
+            label: 'Save',
+            // Save is never gated on the enrichment fetch completing.
+            onPressed: _handleSave,
+            variant: AppButtonVariant.primary,
+            backgroundColor: AppColors.primary,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            fullWidth: true,
           ),
           const SizedBox(height: 8),
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: _handleCancel,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            variant: AppButtonVariant.text,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
           ),
         ],
       ),

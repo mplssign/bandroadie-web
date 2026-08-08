@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_progress_indicator.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../songs/external_song_lookup_service.dart';
 import '../models/song.dart';
@@ -449,7 +451,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(color: context.colors.border, width: 1),
         ),
-        child: TextField(
+        child: AppTextField(
           controller: _searchController,
           focusNode: _searchFocus,
           autofocus: true,
@@ -687,7 +689,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                   const SizedBox(
                     width: 24,
                     height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: AppProgressIndicator(strokeWidth: 2),
                   ),
                   const SizedBox(height: 8),
                   Text(
