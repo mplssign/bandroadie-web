@@ -6,6 +6,8 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/bulk_song_row.dart';
 import '../../services/bulk_song_parser.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 
 // ============================================================================
 // BULK ENTRY SCREEN
@@ -433,7 +435,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             ),
             const SizedBox(height: Spacing.space16),
           ],
-          TextField(
+          AppTextField(
             key: const ValueKey('bulk-entry-csv-field'),
             controller: _csvController,
             focusNode: _csvFocusNode,
@@ -497,7 +499,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(
+                        child: AppProgressIndicator(
                           strokeWidth: 2,
                           color: Colors.white,
                         ),
@@ -848,7 +850,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
                       ? const SizedBox(
                           width: 22,
                           height: 22,
-                          child: CircularProgressIndicator(
+                          child: AppProgressIndicator(
                             strokeWidth: 2.5,
                             color: Colors.white,
                           ),
@@ -912,7 +914,7 @@ class _TableTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return AppTextField(
       controller: controller,
       focusNode: focusNode,
       keyboardType: keyboardType,

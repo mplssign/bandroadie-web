@@ -5,6 +5,8 @@ import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/special_item.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 // ============================================================================
 // PAUSE SCREEN
@@ -407,7 +409,7 @@ class _PauseScreenState extends State<PauseScreen> {
                                 width: 1,
                               ),
                             ),
-                            child: TextField(
+                            child: AppTextField(
                               controller: _customFields[i].$1,
                               focusNode: _customFields[i].$2,
                               style: AppTextStyles.body.copyWith(
@@ -559,7 +561,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: TextField(
+                      child: AppTextField(
                         controller: _durationController,
                         focusNode: _durationFocusNode,
                         keyboardType: TextInputType.number,
@@ -706,38 +708,18 @@ class _PauseScreenState extends State<PauseScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 48,
-                child: ElevatedButton(
-                  onPressed:
-                      (_hasContent && !_isSubmitting) ? _handleSubmit : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: _accent.withValues(alpha: 0.25),
-                    disabledForegroundColor:
-                        Colors.white.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _isEditing ? 'Save Pause' : 'Add Pause',
-                          style: AppTextStyles.button.copyWith(
-                            color: _hasContent
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.4),
-                          ),
-                        ),
+                child: AppButton(
+                  label: _isEditing ? 'Save Pause' : 'Add Pause',
+                  onPressed: _hasContent ? _handleSubmit : null,
+                  variant: AppButtonVariant.secondary,
+                  isLoading: _isSubmitting,
+                  fullWidth: true,
+                  backgroundColor: _accent,
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  elevation: 0,
+                  disabledBackgroundColor: _accent.withValues(alpha: 0.25),
+                  disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
                 ),
               ),
               const SizedBox(height: 12),
