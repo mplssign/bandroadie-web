@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_switch.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/shared/utils/snackbar_helper.dart';
 import '../models/print_template.dart';
 import '../models/setlist_item.dart';
@@ -161,7 +166,7 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               title: Text('Save layout',
                   style: AppTextStyles.title3
                       .copyWith(color: context.colors.textPrimary)),
-              content: TextField(
+              content: AppTextField(
                 controller: controller,
                 autofocus: true,
                 style: AppTextStyles.body
@@ -191,49 +196,26 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                 Row(
                   children: [
                     Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          style: OutlinedButton.styleFrom(
-                            side:
-                                BorderSide(color: context.colors.borderStrong),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(Spacing.buttonRadius),
-                            ),
-                          ),
-                          child: Text('Cancel',
-                              style: AppTextStyles.button.copyWith(
-                                  color: context.colors.textSecondary)),
-                        ),
+                      child: AppButton(
+                        label: 'Cancel',
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        variant: AppButtonVariant.outlined,
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        fullWidth: true,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: controller.text.trim().isEmpty
-                              ? null
-                              : () => Navigator.of(ctx).pop(true),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: controller.text.trim().isEmpty
-                                  ? context.colors.borderStrong
-                                  : AppColors.primary,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(Spacing.buttonRadius),
-                            ),
-                          ),
-                          child: Text('Save',
-                              style: AppTextStyles.button.copyWith(
-                                  color: controller.text.trim().isEmpty
-                                      ? context.colors.textMuted
-                                      : AppColors.primary)),
-                        ),
+                      child: AppButton(
+                        label: 'Save',
+                        onPressed: controller.text.trim().isEmpty
+                            ? null
+                            : () => Navigator.of(ctx).pop(true),
+                        variant: AppButtonVariant.outlined,
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                        fullWidth: true,
                       ),
                     ),
                   ],
@@ -327,12 +309,10 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                         .copyWith(color: context.colors.textPrimary),
                   ),
                   const Spacer(),
-                  IconButton(
+                  AppIconButton(
+                    icon: Icons.close_rounded,
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close_rounded,
-                        color: context.colors.textSecondary),
-                    constraints:
-                        const BoxConstraints(minWidth: 48, minHeight: 48),
+                    color: context.colors.textSecondary,
                   ),
                 ],
               ),
@@ -347,8 +327,7 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
             Expanded(
               child: _isLoading
                   ? const Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.primary))
+                      child: AppProgressIndicator(color: AppColors.primary))
                   : ListView(
                       controller: scrollController,
                       padding: const EdgeInsets.symmetric(
@@ -662,10 +641,11 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               ),
             ),
             if (toggleValue != null && onToggleChanged != null)
-              Switch.adaptive(
+              AppSwitch(
                 value: toggleValue,
                 onChanged: onToggleChanged,
                 activeTrackColor: AppColors.primary,
+                useAdaptiveSwitch: true,
               ),
           ],
         ),
@@ -733,10 +713,11 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                 .copyWith(color: context.colors.textSecondary),
           ),
         ),
-        Switch.adaptive(
+        AppSwitch(
           value: value,
           onChanged: onChanged,
           activeTrackColor: AppColors.primary,
+          useAdaptiveSwitch: true,
         ),
       ],
     );
@@ -914,41 +895,24 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
       child: Row(
         children: [
           Expanded(
-            child: SizedBox(
-              height: 48,
-              child: OutlinedButton(
-                onPressed: _showSaveLayoutDialog,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: context.colors.borderStrong),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text('Save layout',
-                    style: AppTextStyles.button
-                        .copyWith(color: context.colors.textPrimary)),
-              ),
+            child: AppButton(
+              label: 'Save layout',
+              onPressed: _showSaveLayoutDialog,
+              variant: AppButtonVariant.outlined,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              fullWidth: true,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: SizedBox(
-              height: 48,
-              child: FilledButton(
-                onPressed: _handlePreview,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text('Preview',
-                    style: AppTextStyles.button.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    )),
-              ),
+            child: AppButton(
+              label: 'Preview',
+              onPressed: _handlePreview,
+              variant: AppButtonVariant.primary,
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              fullWidth: true,
             ),
           ),
         ],

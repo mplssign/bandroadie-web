@@ -12,6 +12,8 @@ class AppSwitch extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.activeColor,
+    this.activeTrackColor,
+    this.useAdaptiveSwitch = false,
   });
 
   /// Current switch state
@@ -24,13 +26,32 @@ class AppSwitch extends StatelessWidget {
   /// If null, uses theme's switchTheme.thumbColor
   final Color? activeColor;
 
+  /// Optional active track color override
+  /// If null, uses theme's switchTheme.trackColor
+  final Color? activeTrackColor;
+
+  /// Whether to use Switch.adaptive (Cupertino on iOS/macOS, Material on Android/Web)
+  /// Defaults to false (always use Material Switch)
+  final bool useAdaptiveSwitch;
+
   @override
   Widget build(BuildContext context) {
+    if (useAdaptiveSwitch) {
+      return Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+        activeThumbColor: activeColor,
+        activeTrackColor: activeTrackColor,
+      );
+    }
+
     return Switch(
       value: value,
       onChanged: onChanged,
-      thumbColor: activeColor != null
-          ? WidgetStateProperty.all(activeColor)
+      thumbColor:
+          activeColor != null ? WidgetStateProperty.all(activeColor) : null,
+      trackColor: activeTrackColor != null
+          ? WidgetStateProperty.all(activeTrackColor)
           : null,
     );
   }

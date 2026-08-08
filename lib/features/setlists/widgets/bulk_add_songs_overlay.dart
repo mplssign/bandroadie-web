@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_progress_indicator.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../models/bulk_song_row.dart';
 import '../services/bulk_song_parser.dart';
@@ -481,7 +483,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(color: context.colors.border, width: 1),
       ),
-      child: TextField(
+      child: AppTextField(
         controller: _inputController,
         focusNode: _inputFocus,
         onChanged: _onInputChanged,
@@ -869,9 +871,9 @@ class _AddSongsButtonState extends State<_AddSongsButton>
                     const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(
+                      child: AppProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(width: 8),
