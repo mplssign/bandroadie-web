@@ -8,6 +8,10 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist.dart';
 import '../setlists_screen.dart' show setlistsProvider;
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_icon_button.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // SETLIST PICKER BOTTOM SHEET
@@ -84,7 +88,7 @@ Future<SetlistPickerResult?> showSetlistPickerBottomSheet(
 }) async {
   HapticFeedback.lightImpact();
 
-  return showModalBottomSheet<SetlistPickerResult>(
+  return showAppBottomSheet<SetlistPickerResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -315,12 +319,9 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
                 ),
               ),
               // Close button
-              IconButton(
+              AppIconButton(
+                icon: AppIcons.close,
                 onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(
-                  AppIcons.close,
-                  color: context.colors.textSecondary,
-                ),
               ),
             ],
           ),
@@ -488,7 +489,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Text field
-          TextField(
+          AppTextField(
             controller: _newNameController,
             focusNode: _newNameFocus,
             autofocus: true,
@@ -544,24 +545,10 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             children: [
               // Cancel
               Expanded(
-                child: OutlinedButton(
+                child: AppButton(
+                  label: 'Cancel',
+                  variant: AppButtonVariant.outlined,
                   onPressed: _handleCancelCreate,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color:
-                          context.colors.textSecondary.withValues(alpha: 0.5),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                  ),
-                  child: Text(
-                    'Cancel',
-                    style: AppTextStyles.button.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
                 ),
               ),
 
@@ -569,19 +556,10 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
 
               // Create & Add
               Expanded(
-                child: FilledButton(
+                child: AppButton(
+                  label: 'Create & Add',
+                  variant: AppButtonVariant.primary,
                   onPressed: _handleConfirmCreate,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                  ),
-                  child: Text(
-                    'Create & Add',
-                    style: AppTextStyles.button.copyWith(color: Colors.white),
-                  ),
                 ),
               ),
             ],

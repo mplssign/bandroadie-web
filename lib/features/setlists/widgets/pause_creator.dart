@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // PAUSE CREATOR
@@ -37,7 +40,7 @@ const List<String> _predefinedPurposes = [
 /// Show the Pause creator bottom sheet.
 Future<PauseConfig?> showPauseCreator(BuildContext context) async {
   HapticFeedback.lightImpact();
-  return showModalBottomSheet<PauseConfig>(
+  return showAppBottomSheet<PauseConfig>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -289,7 +292,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                               width: 1,
                             ),
                           ),
-                          child: TextField(
+                          child: AppTextField(
                             controller: _customPurposeController,
                             focusNode: _customPurposeFocus,
                             style: AppTextStyles.body.copyWith(
@@ -405,33 +408,11 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                   padding: const EdgeInsets.symmetric(
                     horizontal: Spacing.pagePadding,
                   ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _hasContent ? _submit : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accent,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            _accent.withValues(alpha: 0.25),
-                        disabledForegroundColor:
-                            Colors.white.withValues(alpha: 0.4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(Spacing.buttonRadius),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Add Pause',
-                        style: AppTextStyles.button.copyWith(
-                          color: _hasContent
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    ),
+                  child: AppButton(
+                    label: 'Add Pause',
+                    variant: AppButtonVariant.secondary,
+                    fullWidth: true,
+                    onPressed: _hasContent ? _submit : null,
                   ),
                 ),
 
@@ -521,7 +502,7 @@ class _DurationField extends StatelessWidget {
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(color: context.colors.border, width: 1),
       ),
-      child: TextField(
+      child: AppTextField(
         controller: controller,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,

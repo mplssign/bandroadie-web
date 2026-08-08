@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_text_field.dart';
 
 // ============================================================================
 // MASKED DURATION INPUT
@@ -297,12 +298,10 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
             // Use AbsorbPointer to prevent TextField from handling taps
             // This ensures our custom keyboard handling works
             absorbing: false,
-            child: TextField(
+            child: AppTextField(
               controller: _controller,
               focusNode: _focusNode,
               enabled: widget.enabled,
-              readOnly: false,
-              showCursor: true,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               style: effectiveTextStyle,

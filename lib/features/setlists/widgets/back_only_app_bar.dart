@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_progress_indicator.dart';
 import '../../../shared/scroll/scroll_blur_notifier.dart';
 import '../../../shared/widgets/glass_surface.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -86,10 +87,7 @@ class BackOnlyAppBar extends ConsumerWidget {
             const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(AppColors.primary),
-              ),
+              child: AppProgressIndicator(),
             ),
         ],
       ),

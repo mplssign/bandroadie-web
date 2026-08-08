@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_button.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -17,7 +19,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 /// Returns the chosen duration in minutes, or null if cancelled.
 Future<int?> showSetBreakCreator(BuildContext context) async {
   HapticFeedback.lightImpact();
-  return showModalBottomSheet<int>(
+  return showAppBottomSheet<int>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -228,27 +230,11 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
                 padding: const EdgeInsets.symmetric(
                   horizontal: Spacing.pagePadding,
                 ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accent,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Add Set Break',
-                      style: AppTextStyles.button.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                child: AppButton(
+                  label: 'Add Set Break',
+                  variant: AppButtonVariant.secondary,
+                  fullWidth: true,
+                  onPressed: _submit,
                 ),
               ),
 

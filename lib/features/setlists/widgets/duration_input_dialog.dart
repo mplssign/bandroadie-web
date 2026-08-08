@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
 import 'bpm_input_dialog.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 
 /// Shows a dialog for duration input in mm:ss format
 ///
@@ -96,7 +98,7 @@ class _DurationInputDialogState extends State<_DurationInputDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
+          AppTextField(
             controller: _controller,
             keyboardType: TextInputType.number,
             inputFormatters: [
@@ -137,32 +139,20 @@ class _DurationInputDialogState extends State<_DurationInputDialog> {
         ],
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
+          variant: AppButtonVariant.text,
           onPressed: _handleCancel,
-          child: Text(
-            'Cancel',
-            style: AppTextStyles.button.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
         ),
-        TextButton(
+        AppButton(
+          label: 'Clear',
+          variant: AppButtonVariant.text,
           onPressed: _handleClear,
-          child: Text(
-            'Clear',
-            style: AppTextStyles.button.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
         ),
-        TextButton(
+        AppButton(
+          label: 'Save',
+          variant: AppButtonVariant.text,
           onPressed: _handleSave,
-          child: Text(
-            'Save',
-            style: AppTextStyles.button.copyWith(
-              color: AppColors.primary,
-            ),
-          ),
         ),
       ],
     );

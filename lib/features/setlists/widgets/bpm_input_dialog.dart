@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 
 /// Result type for dialogs that can be cancelled, cleared, or return a value
 sealed class DialogResult<T> {}
@@ -128,7 +130,7 @@ class _BpmInputDialogState extends State<_BpmInputDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
+          AppTextField(
             controller: _controller,
             keyboardType: TextInputType.number,
             inputFormatters: [
@@ -186,32 +188,20 @@ class _BpmInputDialogState extends State<_BpmInputDialog> {
         ],
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
+          variant: AppButtonVariant.text,
           onPressed: _handleCancel,
-          child: Text(
-            'Cancel',
-            style: AppTextStyles.button.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
         ),
-        TextButton(
+        AppButton(
+          label: 'Clear',
+          variant: AppButtonVariant.text,
           onPressed: _handleClear,
-          child: Text(
-            'Clear',
-            style: AppTextStyles.button.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
         ),
-        TextButton(
+        AppButton(
+          label: 'Save',
+          variant: AppButtonVariant.text,
           onPressed: _handleSave,
-          child: Text(
-            'Save',
-            style: AppTextStyles.button.copyWith(
-              color: AppColors.primary,
-            ),
-          ),
         ),
       ],
     );
