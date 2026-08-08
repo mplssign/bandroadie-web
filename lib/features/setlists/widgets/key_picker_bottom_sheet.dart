@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_button.dart';
 
 const _kMajorKeys = [
   'C',
@@ -39,7 +41,7 @@ Future<String?> showKeyPickerBottomSheet(
   BuildContext context, {
   String? selectedKey,
 }) async {
-  return showModalBottomSheet<String>(
+  return showAppBottomSheet<String>(
     context: context,
     backgroundColor: context.colors.surface,
     shape: const RoundedRectangleBorder(
@@ -146,22 +148,11 @@ class _KeyPickerBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.all(Spacing.space16),
             child: SizedBox(
               width: double.infinity,
-              child: TextButton(
+              child: AppButton(
+                label: 'Cancel',
+                variant: AppButtonVariant.text,
+                fullWidth: true,
                 onPressed: () => Navigator.of(context).pop(null),
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: Spacing.space16),
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  'Cancel',
-                  style: AppTextStyles.button.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
               ),
             ),
           ),

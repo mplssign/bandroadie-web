@@ -5,6 +5,9 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../services/custom_tuning_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // CUSTOM TUNING MODAL
@@ -24,7 +27,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 Future<CustomTuning?> showCustomTuningModal(BuildContext context) async {
   HapticFeedback.lightImpact();
 
-  return showModalBottomSheet<CustomTuning>(
+  return showAppBottomSheet<CustomTuning>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -368,7 +371,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           ),
         ),
         const SizedBox(height: Spacing.space8),
-        TextField(
+        AppTextField(
           controller: _stringsController,
           focusNode: _stringsFocusNode,
           enabled: !_isSaving,
@@ -425,7 +428,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           ),
         ),
         const SizedBox(height: Spacing.space8),
-        TextField(
+        AppTextField(
           controller: _nameController,
           focusNode: _nameFocusNode,
           enabled: !_isSaving,
@@ -470,23 +473,10 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
       children: [
         // Cancel button
         Expanded(
-          child: OutlinedButton(
+          child: AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.outlined,
             onPressed: _isSaving ? null : _handleCancel,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: Spacing.space14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              side: BorderSide(color: context.colors.border),
-            ),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w600,
-                color: context.colors.textSecondary,
-              ),
-            ),
           ),
         ),
 
@@ -495,34 +485,18 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
         // Save button
         Expanded(
           flex: 2,
-          child: ElevatedButton(
-            onPressed: (_isValid && !_isSaving) ? _handleSave : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.3),
-              padding: const EdgeInsets.symmetric(vertical: Spacing.space14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-            ),
-            child: _isSaving
-                ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    'Save Tuning',
-                    style: TextStyle(
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-          ),
+          child: _isSaving
+              ? AppButton(
+                  label: '',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: null,
+                  isLoading: true,
+                )
+              : AppButton(
+                  label: 'Save Tuning',
+                  variant: AppButtonVariant.secondary,
+                  onPressed: (_isValid && !_isSaving) ? _handleSave : null,
+                ),
         ),
       ],
     );

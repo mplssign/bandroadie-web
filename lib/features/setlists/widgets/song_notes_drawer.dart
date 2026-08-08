@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // SONG NOTES DRAWER
@@ -22,7 +25,7 @@ Future<String?> showSongNotesDrawer(
   BuildContext context, {
   required String notes,
 }) async {
-  return showModalBottomSheet<String>(
+  return showAppBottomSheet<String>(
     context: context,
     backgroundColor: context.colors.surface,
     isScrollControlled: true,
@@ -166,7 +169,7 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(color: context.colors.border),
       ),
-      child: TextField(
+      child: AppTextField(
         controller: _notesController,
         maxLines: null,
         minLines: 8,
@@ -198,61 +201,27 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
         children: [
           if (_isEditing) ...[
             // Edit mode: Save button
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _hasChanges ? _handleSave : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  disabledBackgroundColor:
-                      AppColors.primary.withValues(alpha: 0.3),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  'Save',
-                  style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: _hasChanges
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
+            AppButton(
+              label: 'Save',
+              variant: AppButtonVariant.primary,
+              fullWidth: true,
+              onPressed: _hasChanges ? _handleSave : null,
             ),
           ] else ...[
             // View mode: Edit button
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => setState(() => _isEditing = true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  ),
-                ),
-                child: Text(
-                  'Edit',
-                  style: AppTextStyles.calloutEmphasized.copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            AppButton(
+              label: 'Edit',
+              variant: AppButtonVariant.primary,
+              fullWidth: true,
+              onPressed: () => setState(() => _isEditing = true),
             ),
           ],
           const SizedBox(height: 8),
           // Cancel button (both modes)
-          TextButton(
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.text,
             onPressed: _handleCancel,
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textSecondary,
-              ),
-            ),
           ),
         ],
       ),

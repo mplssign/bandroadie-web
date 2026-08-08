@@ -20,12 +20,13 @@ class AppTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
-    this.maxLines = 1,
+    this.maxLines,
     this.minLines,
     this.maxLength,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
+    this.textAlign = TextAlign.start,
     this.style,
     this.onChanged,
     this.enabled = true,
@@ -65,8 +66,8 @@ class AppTextField extends StatelessWidget {
   /// Whether to obscure text (for passwords)
   final bool obscureText;
 
-  /// Maximum number of lines (1 for single-line input)
-  final int maxLines;
+  /// Maximum number of lines (null for unlimited, 1 for single-line input)
+  final int? maxLines;
 
   /// Minimum number of lines (for multiline fields)
   final int? minLines;
@@ -82,6 +83,9 @@ class AppTextField extends StatelessWidget {
 
   /// Keyboard action button (e.g., next, done)
   final TextInputAction? textInputAction;
+
+  /// Text alignment (defaults to start)
+  final TextAlign textAlign;
 
   /// Text style override
   final TextStyle? style;
@@ -126,6 +130,7 @@ class AppTextField extends StatelessWidget {
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       textInputAction: textInputAction,
+      textAlign: textAlign,
       style: style,
       onChanged: onChanged,
       enabled: enabled,

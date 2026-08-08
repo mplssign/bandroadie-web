@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_progress_indicator.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
@@ -225,12 +226,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                   child: SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary.withValues(alpha: 0.7),
-                      ),
-                    ),
+                    child: AppProgressIndicator(),
                   ),
                 ),
 

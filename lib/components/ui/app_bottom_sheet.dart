@@ -14,6 +14,8 @@ Future<T?> showAppBottomSheet<T>({
   Color? backgroundColor,
   ShapeBorder? shape,
   bool isScrollControlled = false,
+  bool useSafeArea = false,
+  Color? barrierColor,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -23,5 +25,7 @@ Future<T?> showAppBottomSheet<T>({
     backgroundColor: backgroundColor,
     shape: shape,
     isScrollControlled: isScrollControlled,
+    useSafeArea: useSafeArea,
+    barrierColor: barrierColor,
   );
 }
