@@ -5,6 +5,7 @@ import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/special_item.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 // ============================================================================
 // SET BREAK SCREEN
@@ -355,32 +356,16 @@ class _SetBreakScreenState extends State<SetBreakScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _handleSubmit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: _accent.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _isEditing ? 'Save Set Break' : 'Add Set Break',
-                          style: AppTextStyles.button.copyWith(
-                            color: Colors.white,
-                          ),
-                        ),
+                child: AppButton(
+                  label: _isEditing ? 'Save Set Break' : 'Add Set Break',
+                  onPressed: _handleSubmit,
+                  variant: AppButtonVariant.secondary,
+                  isLoading: _isSubmitting,
+                  fullWidth: true,
+                  backgroundColor: _accent,
+                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  elevation: 0,
+                  disabledBackgroundColor: _accent.withValues(alpha: 0.4),
                 ),
               ),
               const SizedBox(height: 12),

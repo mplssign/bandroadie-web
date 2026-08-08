@@ -34,6 +34,12 @@ class AppButton extends StatelessWidget {
     this.variant = AppButtonVariant.primary,
     this.isLoading = false,
     this.fullWidth = false,
+    this.backgroundColor,
+    this.borderRadius,
+    this.elevation,
+    this.disabledBackgroundColor,
+    this.disabledForegroundColor,
+    this.padding,
   });
 
   /// Button label text
@@ -53,6 +59,24 @@ class AppButton extends StatelessWidget {
 
   /// If true, button expands to fill available width
   final bool fullWidth;
+
+  /// Optional custom background color (applies to primary/secondary variants)
+  final Color? backgroundColor;
+
+  /// Optional custom border radius (applies to primary/secondary variants)
+  final BorderRadius? borderRadius;
+
+  /// Optional custom elevation (applies to secondary variant only)
+  final double? elevation;
+
+  /// Optional custom disabled background color (applies to primary/secondary variants)
+  final Color? disabledBackgroundColor;
+
+  /// Optional custom disabled foreground color (applies to primary/secondary variants)
+  final Color? disabledForegroundColor;
+
+  /// Optional custom padding (applies to all variants)
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -81,9 +105,47 @@ class AppButton extends StatelessWidget {
     Widget button;
     switch (variant) {
       case AppButtonVariant.primary:
-        button = FilledButton(onPressed: effectiveOnPressed, child: content);
+        button = FilledButton(
+          onPressed: effectiveOnPressed,
+          style: (backgroundColor != null ||
+                  borderRadius != null ||
+                  disabledBackgroundColor != null ||
+                  disabledForegroundColor != null ||
+                  padding != null)
+              ? FilledButton.styleFrom(
+                  backgroundColor: backgroundColor,
+                  shape: borderRadius != null
+                      ? RoundedRectangleBorder(borderRadius: borderRadius!)
+                      : null,
+                  disabledBackgroundColor: disabledBackgroundColor,
+                  disabledForegroundColor: disabledForegroundColor,
+                  padding: padding,
+                )
+              : null,
+          child: content,
+        );
       case AppButtonVariant.secondary:
-        button = ElevatedButton(onPressed: effectiveOnPressed, child: content);
+        button = ElevatedButton(
+          onPressed: effectiveOnPressed,
+          style: (backgroundColor != null ||
+                  borderRadius != null ||
+                  elevation != null ||
+                  disabledBackgroundColor != null ||
+                  disabledForegroundColor != null ||
+                  padding != null)
+              ? ElevatedButton.styleFrom(
+                  backgroundColor: backgroundColor,
+                  shape: borderRadius != null
+                      ? RoundedRectangleBorder(borderRadius: borderRadius!)
+                      : null,
+                  elevation: elevation,
+                  disabledBackgroundColor: disabledBackgroundColor,
+                  disabledForegroundColor: disabledForegroundColor,
+                  padding: padding,
+                )
+              : null,
+          child: content,
+        );
       case AppButtonVariant.text:
         button = TextButton(onPressed: effectiveOnPressed, child: content);
       case AppButtonVariant.outlined:

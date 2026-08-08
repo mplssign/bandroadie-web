@@ -35,6 +35,7 @@ class AppTextField extends StatelessWidget {
     this.autofillHints,
     this.onSubmitted,
     this.onEditingComplete,
+    this.onTap,
     this.autofocus = false,
   });
 
@@ -112,6 +113,9 @@ class AppTextField extends StatelessWidget {
   /// Callback when editing is complete (e.g., loses focus or submits)
   final VoidCallback? onEditingComplete;
 
+  /// Callback when the field is tapped
+  final VoidCallback? onTap;
+
   /// Whether to autofocus this field when widget is built (defaults to false)
   final bool autofocus;
 
@@ -143,6 +147,7 @@ class AppTextField extends StatelessWidget {
       autofillHints: autofillHints,
       onSubmitted: onSubmitted,
       onEditingComplete: onEditingComplete,
+      onTap: onTap,
       autofocus: autofocus,
     );
   }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 
 // ============================================================================
 // ORIGINAL SONG SCREEN
@@ -341,7 +343,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
                       ? const SizedBox(
                           width: 22,
                           height: 22,
-                          child: CircularProgressIndicator(
+                          child: AppProgressIndicator(
                             strokeWidth: 2.5,
                             color: Colors.white,
                           ),
@@ -624,7 +626,7 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
         const SizedBox(height: 6),
         SizedBox(
           height: 44,
-          child: TextField(
+          child: AppTextField(
             controller: controller,
             focusNode: focusNode,
             enabled: enabled,
