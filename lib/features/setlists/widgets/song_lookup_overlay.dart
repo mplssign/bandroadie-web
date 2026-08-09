@@ -355,26 +355,24 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         bottom: keyboardHeight ==
             0, // Don't apply bottom safe area when keyboard is showing
         child: Container(
-          margin: EdgeInsets.fromLTRB(
-            Spacing.space16,
-            Spacing.space16,
-            Spacing.space16,
-            keyboardHeight > 0 ? 0 : Spacing.space16,
-          ),
+          margin: const EdgeInsets.all(Spacing.space16),
           decoration: BoxDecoration(
             color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
             border: Border.all(color: context.colors.border, width: 1),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            child: Column(
-              children: [
-                _buildHeader(),
-                _buildSearchField(),
-                Divider(color: context.colors.border, height: 1),
-                Expanded(child: _buildBody()),
-              ],
+          child: Padding(
+            padding: EdgeInsets.only(bottom: keyboardHeight),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Spacing.cardRadius),
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  _buildSearchField(),
+                  Divider(color: context.colors.border, height: 1),
+                  Expanded(child: _buildBody()),
+                ],
+              ),
             ),
           ),
         ),
