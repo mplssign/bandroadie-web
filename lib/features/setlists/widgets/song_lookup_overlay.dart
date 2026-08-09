@@ -307,7 +307,6 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         spotifyId: result.spotifyId,
         musicbrainzId: result.musicbrainzId,
         musicalKey: review.musicalKey,
-        skipBackgroundEnrichment: true,
       );
 
       if (songId == null) {

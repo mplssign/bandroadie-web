@@ -89,12 +89,6 @@ backend = "postgres"
 # Changing verify_jwt here and redeploying will override the production setting.
 # ============================================================================
 
-[functions.spotify_search]
-verify_jwt = true
-
-[functions.spotify_audio_features]
-verify_jwt = true
-
 [functions.musicbrainz_search]
 verify_jwt = true
 
