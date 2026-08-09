@@ -1,9 +1,11 @@
 # Feature: Remove Orphaned Spotify Edge Functions
 
 ## Feature Slug
+
 `bug/remove-orphaned-spotify-functions`
 
 ## Problem Summary
+
 Two Supabase edge functions in production — `spotify_search` (v21) and `spotify_audio_features` (v20) — both call a non-existent RPC function `supabase.rpc('get_secrets', { secret_names: [...] })` to retrieve Spotify API credentials. This RPC has never existed in the database (confirmed via direct `pg_proc` query against prod project `nekwjxvgbveheooyorjo` — only `create_secret` and `update_secret` exist, no `get_secrets` was ever migrated).
 
 Both functions are confirmed **dead code**, not live bugs:
@@ -20,6 +22,7 @@ Both functions are confirmed **dead code**, not live bugs:
 This is tech-debt cleanup, not a user-facing incident. No migrations, cron jobs, or SQL reference either function or `get_secrets`.
 
 ## Root Cause
+
 **Confidence Level:** HIGH (confirmed in code)
 
 The immediate cause is a non-existent RPC `get_secrets` that both functions attempt to call. However, the deeper root cause is that both functions are obsolete:
@@ -30,18 +33,20 @@ The immediate cause is a non-existent RPC `get_secrets` that both functions atte
 The functions were deployed but never undeployed when the client code migrated away. The broken `get_secrets` call prevents them from running if ever invoked, but they are never invoked, making this a silent dead-code issue rather than a runtime failure.
 
 ## Reference Docs Consulted
+
 - `docs/agents/ARCHITECT.md`
 - `docs/agents/GUARDRAILS.md`
 - `docs/agents/OPERATING_MODEL.md`
 - `.github/copilot-instructions.md` (BandRoadie project conventions)
 
-*Note:* No notification-specific reference docs were consulted; this feature does not involve the notification domain.
+_Note:_ No notification-specific reference docs were consulted; this feature does not involve the notification domain.
 
 ## Existing System Analysis
 
 ### Current Data Flow (Dead Paths)
 
 **Path 1: `spotify_search` (never invoked)**
+
 ```
 User searches for song
   → ExternalSongLookupService.searchExternalSongs()
@@ -49,9 +54,11 @@ User searches for song
       → _searchItunes() [first attempt]
       → _searchMusicBrainz() [fallback, no Spotify]
 ```
+
 **Result:** `spotify_search` edge function is deployed but unreachable from client code.
 
 **Path 2: `spotify_audio_features` (call path exists but spotifyId always null)**
+
 ```
 User adds song from search overlay
   → SetlistRepository.upsertExternalSong()
@@ -60,6 +67,7 @@ User adds song from search overlay
         → (if spotifyId != null) _fetchSpotifyBpm()  // never executes
           → supabase.functions.invoke('spotify_audio_features') // never reached
 ```
+
 **Result:** The `_attemptBpmEnrichment` method always returns early without updating anything because `spotifyId` is always null and no BPM is found.
 
 ### Confirmed Dead Code Elements
@@ -68,7 +76,7 @@ User adds song from search overlay
 2. **`spotify_audio_features` config in `supabase/config.toml`** — References non-existent function folder
 3. **`SetlistRepository._fetchSpotifyBpm()`** — Private method, never executes (spotifyId always null)
 4. **`SetlistRepository._attemptBpmEnrichment()`** — Private method, always returns early without effect
-5. **`upsertExternalSong.skipBackgroundEnrichment` parameter** — Only used to gate the dead _attemptBpmEnrichment call
+5. **`upsertExternalSong.skipBackgroundEnrichment` parameter** — Only used to gate the dead \_attemptBpmEnrichment call
 
 ### Not Dead (Historical Data / Display)
 
@@ -81,9 +89,11 @@ User adds song from search overlay
 ### Minimal Deletion
 
 **Delete entire directory:**
+
 1. `supabase/functions/spotify_search/` (edge function with broken `get_secrets` call)
 
 **Modify existing files (remove dead code):**
+
 1. `supabase/config.toml` — Remove `[functions.spotify_audio_features]` section (lines ~95-96)
 2. `lib/features/setlists/setlist_repository.dart`:
    - Remove entire `_fetchSpotifyBpm()` method (~lines 4559-4594)
@@ -96,6 +106,7 @@ User adds song from search overlay
 ### Preserve for Historical Data
 
 Do NOT remove:
+
 - `SongSource.spotify` enum case (used for display of legacy search results)
 - `Song.spotifyId` field (persists historical Spotify IDs)
 - `spotifyId` parameters in `upsertExternalSong` (currently unused but harmless, may support future migrations)
@@ -103,6 +114,7 @@ Do NOT remove:
 ### Post-Merge Manual Action (Tony)
 
 The Engineer cannot undeploy edge functions. After merge, Tony must manually undeploy from prod:
+
 ```bash
 # Via Supabase Dashboard or CLI
 supabase functions delete spotify_search --project-ref nekwjxvgbveheooyorjo
@@ -125,16 +137,20 @@ This is purely a client-side Dart cleanup + edge function source deletion + conf
 ## Flutter Architecture Changes
 
 ### Repositories
+
 - **`SetlistRepository`** — Remove two private methods (`_fetchSpotifyBpm`, `_attemptBpmEnrichment`) and one unused parameter (`skipBackgroundEnrichment`)
 
 ### Widgets
+
 - **`SongLookupOverlay`** — Remove one unused argument in `upsertExternalSong` call
 
 ### State Management
+
 - No Riverpod providers affected
 - No controllers affected
 
 ### Models
+
 - No changes to `Song`, `SongLookupResult`, or any other model
 
 ## Files to Create
@@ -143,11 +159,11 @@ This is purely a client-side Dart cleanup + edge function source deletion + conf
 
 ## Files to Modify
 
-| File | Description of Changes |
-|------|------------------------|
-| `supabase/config.toml` | Remove `[functions.spotify_audio_features]` section and `verify_jwt = true` line (~lines 95-96) |
-| `lib/features/setlists/setlist_repository.dart` | (1) Remove `_fetchSpotifyBpm` method (~lines 4559-4594); (2) Remove `_attemptBpmEnrichment` method (~lines 4481-4556); (3) Remove fire-and-forget enrichment block (~lines 3667-3682); (4) Remove `skipBackgroundEnrichment` parameter from `upsertExternalSong` signature (~line 3545) and docstring (~line 3530) |
-| `lib/features/setlists/widgets/song_lookup_overlay.dart` | Remove `skipBackgroundEnrichment: true,` line (~line 310) from `repo.upsertExternalSong()` call |
+| File                                                     | Description of Changes                                                                                                                                                                                                                                                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `supabase/config.toml`                                   | Remove `[functions.spotify_audio_features]` section and `verify_jwt = true` line (~lines 95-96)                                                                                                                                                                                                                    |
+| `lib/features/setlists/setlist_repository.dart`          | (1) Remove `_fetchSpotifyBpm` method (~lines 4559-4594); (2) Remove `_attemptBpmEnrichment` method (~lines 4481-4556); (3) Remove fire-and-forget enrichment block (~lines 3667-3682); (4) Remove `skipBackgroundEnrichment` parameter from `upsertExternalSong` signature (~line 3545) and docstring (~line 3530) |
+| `lib/features/setlists/widgets/song_lookup_overlay.dart` | Remove `skipBackgroundEnrichment: true,` line (~line 310) from `repo.upsertExternalSong()` call                                                                                                                                                                                                                    |
 
 **Files to delete:**
 | Path | Reason |
@@ -156,33 +172,34 @@ This is purely a client-side Dart cleanup + edge function source deletion + conf
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/features/songs/external_song_lookup_service.dart` | Do not remove `SongSource.spotify` enum case — used for displaying legacy data |
-| `lib/features/setlists/models/song.dart` | Do not remove `spotifyId` field — persists historical Spotify IDs |
-| `supabase/migrations/**/*.sql` | No database changes required |
-| `docs/**/*.md` | Do not modify documentation as part of this cleanup — doc updates are out of scope |
-| `android/app/src/main/assets/**/*.js` | Compiled artifacts — will be regenerated on next build |
-| `lib/main.dart` | Initialization order must not change |
+| File                                                   | Reason                                                                             |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `lib/features/songs/external_song_lookup_service.dart` | Do not remove `SongSource.spotify` enum case — used for displaying legacy data     |
+| `lib/features/setlists/models/song.dart`               | Do not remove `spotifyId` field — persists historical Spotify IDs                  |
+| `supabase/migrations/**/*.sql`                         | No database changes required                                                       |
+| `docs/**/*.md`                                         | Do not modify documentation as part of this cleanup — doc updates are out of scope |
+| `android/app/src/main/assets/**/*.js`                  | Compiled artifacts — will be regenerated on next build                             |
+| `lib/main.dart`                                        | Initialization order must not change                                               |
 
 ## System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | unaffected |
-| Rehearsals | unaffected |
-| Setlists / Catalog | **affected** — dead Spotify enrichment code removed from song creation path; no functional change (path was already dead) |
-| Members / RBAC | unaffected |
-| Auth / Session | unaffected |
-| Routing | unaffected |
-| Notifications | unaffected |
-| Platform (iOS / Android / Web / macOS) | unaffected — all platforms use the same shared Dart code path |
+| System                                 | Impact                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Gigs                                   | unaffected                                                                                                                |
+| Rehearsals                             | unaffected                                                                                                                |
+| Setlists / Catalog                     | **affected** — dead Spotify enrichment code removed from song creation path; no functional change (path was already dead) |
+| Members / RBAC                         | unaffected                                                                                                                |
+| Auth / Session                         | unaffected                                                                                                                |
+| Routing                                | unaffected                                                                                                                |
+| Notifications                          | unaffected                                                                                                                |
+| Platform (iOS / Android / Web / macOS) | unaffected — all platforms use the same shared Dart code path                                                             |
 
 ## Regression Risk
 
 **Level:** LOW
 
 **Rationale:**
+
 - Only deleting provably dead code — no live call paths affected
 - No database schema changes
 - No RLS policy changes
@@ -192,6 +209,7 @@ This is purely a client-side Dart cleanup + edge function source deletion + conf
 - After deletion, `flutter analyze` should pass cleanly (three simple unused-parameter removals + two method deletions + one directory deletion)
 
 The only risk is if there exists an undiscovered code path that somehow passes a non-null `spotifyId` to `upsertExternalSong`, but:
+
 1. Grep confirms no Dart code constructs a `SongLookupResult` with `source: SongSource.spotify`
 2. The only place `spotifyId` is set on `SongLookupResult` is in `external_song_lookup_service.dart`, where it's always null (iTunes/MusicBrainz results don't populate it)
 3. The code comment at line 3670 explicitly documents "spotifyId is always null on this path"
@@ -201,10 +219,12 @@ The only risk is if there exists an undiscovered code path that somehow passes a
 Execute in strict order:
 
 ### Task 1: Delete `spotify_search` Edge Function
+
 - Delete the entire directory: `supabase/functions/spotify_search/`
 - Confirm deletion: `ls supabase/functions/` should not list `spotify_search/`
 
 ### Task 2: Remove `spotify_audio_features` Config
+
 - Open `supabase/config.toml`
 - Delete lines ~95-96:
   ```toml
@@ -214,40 +234,48 @@ Execute in strict order:
 - Confirm: search file for "spotify_audio_features" returns zero matches
 
 ### Task 3: Remove Dead Code from `setlist_repository.dart`
+
 In order (to avoid orphaned references):
 
 **3a. Remove fire-and-forget enrichment call block (~lines 3667-3682)**
+
 - Delete the entire `if (bpm == null && !skipBackgroundEnrichment) { ... }` block
 - Keep the `return newId;` statement immediately after
 - Confirm: `_attemptBpmEnrichment` is no longer called from this file
 
 **3b. Remove `skipBackgroundEnrichment` parameter (~lines 3530, 3545)**
+
 - Remove from `upsertExternalSong` method signature (change `bool skipBackgroundEnrichment = false,` → remove entire line)
 - Remove from method docstring (delete the `/// [skipBackgroundEnrichment] - ...` line)
 - Confirm: grep for "skipBackgroundEnrichment" in this file returns zero matches
 
 **3c. Remove `_attemptBpmEnrichment` method (~lines 4481-4556)**
+
 - Delete the entire method including docstring
-- Confirm: search file for "_attemptBpmEnrichment" returns zero matches
+- Confirm: search file for "\_attemptBpmEnrichment" returns zero matches
 
 **3d. Remove `_fetchSpotifyBpm` method (~lines 4559-4594)**
+
 - Delete the entire method including docstring
-- Confirm: search file for "_fetchSpotifyBpm" returns zero matches
+- Confirm: search file for "\_fetchSpotifyBpm" returns zero matches
 - Confirm: search file for "spotify_audio_features" returns zero matches
 
 ### Task 4: Remove `skipBackgroundEnrichment` Argument from Call Site
+
 - Open `lib/features/setlists/widgets/song_lookup_overlay.dart`
 - Find the `repo.upsertExternalSong(...)` call (~line 300-311)
 - Remove the line: `skipBackgroundEnrichment: true,`
 - Confirm: search file for "skipBackgroundEnrichment" returns zero matches
 
 ### Task 5: Verify Clean Build
+
 - Run: `flutter analyze`
 - Confirm: 0 errors, 0 warnings
 - If unused import warnings appear (unlikely), remove them
 - Do NOT run `flutter test` — no test changes required (deleted code was never tested)
 
 ### Task 6: Document Completion
+
 - Create `docs/features/remove-orphaned-spotify-functions/ENGINEER_REPORT.md`
 - List all modified/deleted files
 - Confirm `flutter analyze` output
@@ -258,6 +286,7 @@ In order (to avoid orphaned references):
 ### Tier 1 — Pre-deployment (must pass before commit)
 
 **PRE-DEPLOY TEST 1: Confirm spotify_search directory deleted**
+
 ```bash
 ls supabase/functions/ | grep spotify
 # Expected: no output (or only spotify_search if deletion not yet done)
@@ -265,18 +294,21 @@ ls supabase/functions/ | grep spotify
 ```
 
 **PRE-DEPLOY TEST 2: Confirm spotify_audio_features config removed**
+
 ```bash
 grep -n "spotify_audio_features" supabase/config.toml
 # Expected: no matches
 ```
 
 **PRE-DEPLOY TEST 3: Confirm dead methods removed from setlist_repository.dart**
+
 ```bash
 grep -n "_fetchSpotifyBpm\|_attemptBpmEnrichment" lib/features/setlists/setlist_repository.dart
 # Expected: no matches
 ```
 
 **PRE-DEPLOY TEST 4: Confirm skipBackgroundEnrichment parameter removed**
+
 ```bash
 grep -n "skipBackgroundEnrichment" lib/features/setlists/setlist_repository.dart
 # Expected: no matches
@@ -286,12 +318,14 @@ grep -n "skipBackgroundEnrichment" lib/features/setlists/widgets/song_lookup_ove
 ```
 
 **PRE-DEPLOY TEST 5: Confirm flutter analyze passes**
+
 ```bash
 flutter analyze
 # Expected: "No issues found!" (or 0 errors, 0 warnings)
 ```
 
 **PRE-DEPLOY TEST 6: Confirm preserved elements still exist**
+
 ```bash
 # Confirm SongSource.spotify enum case still exists (line ~14)
 grep -n "enum SongSource" lib/features/songs/external_song_lookup_service.dart
@@ -306,6 +340,7 @@ grep -n "spotifyId" lib/features/setlists/models/song.dart
 ### Tier 2 — Post-deployment (run after merge + manual edge function undeployment)
 
 **POST-DEPLOY TEST 1: Confirm song creation still works (iTunes/MusicBrainz path)**
+
 1. Open BandRoadie (any platform)
 2. Navigate to any setlist
 3. Tap "Add Song" → search for "Yellow Submarine Beatles"
@@ -314,11 +349,13 @@ grep -n "spotifyId" lib/features/setlists/models/song.dart
 6. Confirm: Song appears in setlist, no errors in console
 
 **POST-DEPLOY TEST 2: Confirm BPM enrichment path (GetSongBPM) still works**
+
 1. In new-song review screen, tap "Get BPM" button
 2. Confirm: GetSongBPM lookup executes (existing enrichment flow, unrelated to Spotify)
 3. Confirm: No references to Spotify in debug logs
 
 **POST-DEPLOY TEST 3: Confirm edge functions undeployed (Tony only)**
+
 ```bash
 # Via Supabase CLI or Dashboard
 supabase functions list --project-ref nekwjxvgbveheooyorjo
@@ -326,6 +363,7 @@ supabase functions list --project-ref nekwjxvgbveheooyorjo
 ```
 
 **POST-DEPLOY TEST 4: Smoke test existing setlists**
+
 1. Open an existing setlist with songs
 2. Reorder songs (drag & drop)
 3. Edit BPM/Duration inline
@@ -347,6 +385,7 @@ QA must explicitly validate:
 **Not applicable.** This is a pure deletion change with no database migration, no user-facing feature change, and no rollback complexity.
 
 **Post-merge action required (Tony):**
+
 - Manually undeploy `spotify_search` and `spotify_audio_features` from prod Supabase project `nekwjxvgbveheooyorjo`
 - Confirm undeployment via `supabase functions list` or Dashboard
 - If undeployment fails or is deferred, confirm with Tony that leaving stale deployed functions (never called, JWT-protected) is acceptable

@@ -3527,8 +3527,6 @@ class SetlistRepository {
   /// [musicbrainzId] - MusicBrainz recording ID (optional)
   /// [musicalKey] - Musical key, normalized to the app's 24-key set (optional)
   /// [isrc] - International Standard Recording Code (optional, not populated by any caller today)
-  /// [skipBackgroundEnrichment] - When true, skip the fire-and-forget Spotify BPM
-  ///   enrichment after insert (used when the caller already did enrichment synchronously)
   ///
   /// Returns the song ID (existing or newly created).
   Future<String?> upsertExternalSong({
@@ -3542,7 +3540,6 @@ class SetlistRepository {
     String? musicbrainzId,
     String? musicalKey,
     String? isrc,
-    bool skipBackgroundEnrichment = false,
   }) async {
     if (bandId.isEmpty) {
       throw NoBandSelectedError();
@@ -3662,24 +3659,6 @@ class SetlistRepository {
         debugPrint(
           '[SetlistRepository] Created external song: "$normalizedTitle" by $normalizedArtist -> $newId',
         );
-      }
-
-      // Fire-and-forget BPM enrichment if no BPM was provided.
-      // Skipped when the caller already did enrichment synchronously (e.g. the
-      // new-song review screen) — firing this afterward would be a no-op today
-      // (spotifyId is always null on this path) but would become a silent-overwrite
-      // bug the moment a future phase starts supplying a real spotifyId, since it
-      // could quietly refill a BPM value the user explicitly reviewed and left blank.
-      if (bpm == null && !skipBackgroundEnrichment) {
-        _attemptBpmEnrichment(
-          songId: newId,
-          bandId: bandId,
-          title: normalizedTitle,
-          artist: normalizedArtist,
-          spotifyId: spotifyId,
-        ).then((_) {
-          // Enrichment complete (or failed silently)
-        });
       }
 
       return newId;
@@ -4453,136 +4432,6 @@ class SetlistRepository {
       return null;
     } catch (e) {
       debugPrint('[SetlistRepository] Unexpected error creating song: $e');
-      return null;
-    }
-  }
-
-  // ==========================================================================
-  // BPM ENRICHMENT (SPOTIFY)
-  // ==========================================================================
-
-  /// Optional BPM enrichment using hybrid strategy:
-  /// 1. Try Spotify Audio Features (if spotifyId available)
-  /// 2. Give up if Spotify fails
-  ///
-  /// CRITICAL RULES:
-  /// - Fire-and-forget ONLY - never awaited by callers
-  /// - Never throws exceptions
-  /// - Never blocks song creation
-  /// - Only enriches when BPM is null
-  /// - Clamps BPM to 40-240
-  /// - Updates with WHERE bpm IS NULL condition
-  ///
-  /// [songId] - ID of the song to enrich
-  /// [bandId] - Band ID for RLS bypass (required)
-  /// [title] - Song title for lookup
-  /// [artist] - Artist name for lookup
-  /// [spotifyId] - Optional Spotify track ID for direct audio features fetch
-  Future<void> _attemptBpmEnrichment({
-    required String songId,
-    required String bandId,
-    required String title,
-    required String artist,
-    String? spotifyId,
-  }) async {
-    try {
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] 🎵 Attempting BPM enrichment for "$title" by $artist',
-        );
-      }
-
-      int? bpm;
-
-      // Strategy 1: Try Spotify Audio Features (if spotifyId available)
-      if (spotifyId != null) {
-        bpm = await _fetchSpotifyBpm(spotifyId, title, artist);
-        if (bpm != null) {
-          if (kDebugMode) {
-            debugPrint('[SetlistRepository] ✓ Spotify BPM=$bpm for "$title"');
-          }
-        }
-      }
-
-      // Give up if Spotify failed
-      if (bpm == null) {
-        if (kDebugMode) {
-          debugPrint(
-            '[SetlistRepository] No BPM found for "$title" by $artist',
-          );
-        }
-        return;
-      }
-
-      // Clamp BPM to sane values (40-240)
-      final clampedBpm = bpm.clamp(40, 240);
-      if (clampedBpm != bpm && kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] ⚠️ Clamped BPM from $bpm to $clampedBpm',
-        );
-      }
-
-      // Update song with WHERE bpm IS NULL condition via RPC
-      // This prevents overwriting user edits and handles legacy songs
-      await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': clampedBpm,
-          'p_duration_seconds': null,
-          'p_tuning': null,
-          'p_notes': null,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': null,
-        },
-      );
-
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] ✓ Updated BPM to $clampedBpm for song $songId',
-        );
-      }
-    } catch (e) {
-      // Never throw - enrichment is optional
-      if (kDebugMode) {
-        debugPrint('[SetlistRepository] BPM enrichment failed (non-fatal): $e');
-      }
-    }
-  }
-
-  /// Fetch BPM from Spotify Audio Features API.
-  /// Returns null on any failure (never throws).
-  Future<int?> _fetchSpotifyBpm(
-    String spotifyId,
-    String title,
-    String artist,
-  ) async {
-    try {
-      final response = await supabase.functions.invoke(
-        'spotify_audio_features',
-        body: {'spotify_id': spotifyId},
-      );
-
-      final data = response.data;
-      if (data is! Map || data['tempo'] == null) {
-        return null;
-      }
-
-      // Spotify returns tempo as double, round to int
-      final tempo = data['tempo'];
-      if (tempo is num) {
-        return tempo.round();
-      }
-
-      return null;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[SetlistRepository] Spotify BPM fetch failed: $e');
-      }
       return null;
     }
   }
