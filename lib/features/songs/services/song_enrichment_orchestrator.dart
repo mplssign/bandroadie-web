@@ -77,6 +77,7 @@ class SongEnrichmentOrchestrator {
   /// [enrichBpm]: Whether to enrich BPM (checked in drawer).
   /// [enrichDuration]: Whether to enrich Duration (checked in drawer).
   /// [enrichKey]: Whether to enrich Key (checked in drawer).
+  /// [overwriteExisting]: Whether to overwrite existing values (default false).
   /// [onProgress]: Callback invoked after each song completes.
   ///
   /// Returns summary with per-song details for results overlay.
@@ -86,6 +87,7 @@ class SongEnrichmentOrchestrator {
     required bool enrichBpm,
     required bool enrichDuration,
     required bool enrichKey,
+    bool overwriteExisting = false,
     void Function(int completed, int total)? onProgress,
   }) async {
     // 1. Fetch song records
@@ -107,9 +109,11 @@ class SongEnrichmentOrchestrator {
 
     // 2. Filter: skip songs where all requested fields are already filled
     final songsNeedingEnrichment = songsToEnrich.where((song) {
-      final needsBpm = enrichBpm && song.sourceBpm == null;
+      final needsBpm =
+          enrichBpm && (overwriteExisting || song.sourceBpm == null);
       final needsDuration = enrichDuration && song.durationSeconds == 0;
-      final needsKey = enrichKey && song.sourceMusicalKey == null;
+      final needsKey =
+          enrichKey && (overwriteExisting || song.sourceMusicalKey == null);
       return needsBpm || needsDuration || needsKey;
     }).toList();
 
@@ -128,9 +132,11 @@ class SongEnrichmentOrchestrator {
       final song = songsToEnrich[i];
 
       // Check if this song needs enrichment
-      final needsBpm = enrichBpm && song.sourceBpm == null;
+      final needsBpm =
+          enrichBpm && (overwriteExisting || song.sourceBpm == null);
       final needsDuration = enrichDuration && song.durationSeconds == 0;
-      final needsKey = enrichKey && song.sourceMusicalKey == null;
+      final needsKey =
+          enrichKey && (overwriteExisting || song.sourceMusicalKey == null);
 
       if (!needsBpm && !needsDuration && !needsKey) {
         // All requested fields already filled

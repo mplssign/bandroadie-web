@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../../app/services/supabase_client.dart';
 import '../../models/bulk_song_row.dart';
 import '../../services/bulk_song_parser.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import '../../../songs/models/enrichment_settings.dart';
+import '../../../songs/services/inline_song_enrichment_service.dart';
+import '../../../songs/widgets/enrichment_confirm_dialog.dart';
 
 // ============================================================================
 // BULK ENTRY SCREEN
@@ -114,12 +119,18 @@ class BulkEntryScreen extends StatefulWidget {
   final OnBulkSongsSubmitted onSubmit;
   final VoidCallback onBack;
   final VoidCallback? onClose;
+  final String bandId;
+  final EnrichmentSettings? enrichmentSettings;
+  final InlineSongEnrichmentService enrichmentService;
 
   const BulkEntryScreen({
     super.key,
     required this.onSubmit,
     required this.onBack,
     this.onClose,
+    required this.bandId,
+    this.enrichmentSettings,
+    required this.enrichmentService,
   });
 
   @override
@@ -312,6 +323,23 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
 
   int get _validRowCount => _rows.where((r) => r.hasRequiredFields).length;
 
+  /// Check if a song exists in the band's catalog
+  Future<bool> _songExists(String title, String artist) async {
+    try {
+      final result = await supabase
+          .from('songs')
+          .select('id')
+          .eq('band_id', widget.bandId)
+          .ilike('title', title.trim())
+          .ilike('artist', artist.trim())
+          .limit(1);
+      return (result as List).isNotEmpty;
+    } catch (e) {
+      debugPrint('[BulkEntryScreen] Error checking song existence: $e');
+      return false; // Assume new on error to allow enrichment
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (_isSubmitting || _validRowCount == 0) return;
 
@@ -340,7 +368,78 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         return;
       }
 
-      final result = await widget.onSubmit(parseResult.validRows);
+      // Apply enrichment based on settings
+      final enrichedRows = <BulkSongRow>[];
+      final settings = widget.enrichmentSettings;
+      final newSongBehavior = settings?.newSongBehavior ?? NewSongBehavior.off;
+
+      int processedCount = 0;
+      for (final row in parseResult.validRows) {
+        processedCount++;
+
+        // Check if song exists
+        final exists = await _songExists(row.title, row.artist);
+
+        if (exists || newSongBehavior == NewSongBehavior.off) {
+          // Existing song or enrichment disabled - use row as-is
+          enrichedRows.add(row);
+          continue;
+        }
+
+        // New song - apply enrichment based on behavior
+        if (newSongBehavior == NewSongBehavior.ask) {
+          // Show confirmation dialog
+          final shouldEnrich = await showEnrichmentConfirmDialog(
+            context,
+            title: row.title,
+            artist: row.artist,
+            enrichmentService: widget.enrichmentService,
+          );
+
+          if (shouldEnrich == null) {
+            // User cancelled - abort entire submission
+            if (mounted) setState(() => _isSubmitting = false);
+            return;
+          }
+
+          if (shouldEnrich) {
+            // Enrich the song
+            final enrichmentResult = await widget.enrichmentService.enrichSong(
+              title: row.title,
+              artist: row.artist,
+            );
+
+            enrichedRows.add(BulkSongRow(
+              artist: row.artist,
+              title: row.title,
+              bpm: enrichmentResult.bpm ?? row.bpm,
+              tuning: row.tuning,
+              tuningLabel: row.tuningLabel,
+              musicalKey: enrichmentResult.musicalKey ?? row.musicalKey,
+            ));
+          } else {
+            // Skip enrichment
+            enrichedRows.add(row);
+          }
+        } else if (newSongBehavior == NewSongBehavior.auto) {
+          // Auto-enrich in background
+          final enrichmentResult = await widget.enrichmentService.enrichSong(
+            title: row.title,
+            artist: row.artist,
+          );
+
+          enrichedRows.add(BulkSongRow(
+            artist: row.artist,
+            title: row.title,
+            bpm: enrichmentResult.bpm ?? row.bpm,
+            tuning: row.tuning,
+            tuningLabel: row.tuningLabel,
+            musicalKey: enrichmentResult.musicalKey ?? row.musicalKey,
+          ));
+        }
+      }
+
+      final result = await widget.onSubmit(enrichedRows);
 
       if (mounted && result.addedCount > 0) {
         Navigator.of(context).pop();

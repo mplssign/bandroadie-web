@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../enrichment_settings_controller.dart';
+import '../models/enrichment_settings.dart';
 
 // ============================================================================
 // ENRICHMENT SELECTOR BOTTOM SHEET
@@ -13,11 +16,13 @@ class EnrichmentSelectorResult {
   final bool bpmSelected;
   final bool durationSelected;
   final bool keySelected;
+  final bool overwriteExisting;
 
   const EnrichmentSelectorResult({
     required this.bpmSelected,
     required this.durationSelected,
     required this.keySelected,
+    required this.overwriteExisting,
   });
 
   bool get hasAnySelection => bpmSelected || durationSelected || keySelected;
@@ -41,18 +46,18 @@ Future<EnrichmentSelectorResult?> showEnrichmentSelectorBottomSheet(
   );
 }
 
-class _EnrichmentSelectorBottomSheet extends StatefulWidget {
+class _EnrichmentSelectorBottomSheet extends ConsumerStatefulWidget {
   final int songCount;
 
   const _EnrichmentSelectorBottomSheet({required this.songCount});
 
   @override
-  State<_EnrichmentSelectorBottomSheet> createState() =>
+  ConsumerState<_EnrichmentSelectorBottomSheet> createState() =>
       _EnrichmentSelectorBottomSheetState();
 }
 
 class _EnrichmentSelectorBottomSheetState
-    extends State<_EnrichmentSelectorBottomSheet> {
+    extends ConsumerState<_EnrichmentSelectorBottomSheet> {
   bool _bpmSelected = true;
   bool _durationSelected = true;
   bool _keySelected = true;
@@ -60,6 +65,37 @@ class _EnrichmentSelectorBottomSheetState
   @override
   Widget build(BuildContext context) {
     final hasSelection = _bpmSelected || _durationSelected || _keySelected;
+
+    // Read enrichment settings to determine overwrite behavior
+    final settingsAsync = ref.watch(enrichmentSettingsProvider);
+    final existingSongBehavior = settingsAsync.whenOrNull(
+          data: (settings) => settings.existingSongBehavior,
+        ) ??
+        ExistingSongBehavior.fillMissingOnly; // fallback
+
+    // Determine subtitle text based on existing song behavior
+    final String subtitleText;
+    switch (existingSongBehavior) {
+      case ExistingSongBehavior.fillMissingOnly:
+        subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
+            '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
+            'values will be filled — existing data is never overwritten.';
+        break;
+      case ExistingSongBehavior.autoReplace:
+        subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
+            '${widget.songCount == 1 ? "song" : "songs"}. All selected '
+            'fields will be updated, including existing values.';
+        break;
+      case ExistingSongBehavior.showDiffs:
+        subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
+            '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
+            'values will be filled (diff review coming soon).';
+        break;
+    }
+
+    // Determine overwriteExisting flag
+    final bool overwriteExisting =
+        existingSongBehavior == ExistingSongBehavior.autoReplace;
 
     return SafeArea(
       child: Padding(
@@ -94,9 +130,7 @@ class _EnrichmentSelectorBottomSheetState
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
               child: Text(
-                'Select data to auto-enrich for ${widget.songCount} '
-                '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
-                'values will be filled — existing data is never overwritten.',
+                subtitleText,
                 style: AppTextStyles.callout.copyWith(
                   color: context.colors.textSecondary,
                 ),
@@ -159,6 +193,7 @@ class _EnrichmentSelectorBottomSheetState
                                 bpmSelected: _bpmSelected,
                                 durationSelected: _durationSelected,
                                 keySelected: _keySelected,
+                                overwriteExisting: overwriteExisting,
                               ),
                             );
                           }

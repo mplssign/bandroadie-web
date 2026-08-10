@@ -10,6 +10,10 @@ import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../songs/external_song_lookup_service.dart';
+import '../../songs/enrichment_settings_controller.dart';
+import '../../songs/models/enrichment_settings.dart';
+import '../../songs/song_enrichment_service.dart';
+import '../../songs/services/inline_song_enrichment_service.dart';
 import '../models/song.dart';
 import '../setlist_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -284,29 +288,78 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
   Future<void> _handleExternalSongTap(SongLookupResult result) async {
     if (_isAdding) return;
 
-    // Open the review screen so the user can confirm/edit Duration, BPM, and
-    // Key (auto-fetched in the background) before the song is written to the
-    // Catalog. Cancelling here creates no song.
-    final review = await showSongEnrichmentReviewSheet(context, result: result);
-    if (review == null || !mounted) return;
+    // Check enrichment settings to determine behavior
+    final settingsAsync = ref.read(enrichmentSettingsProvider);
+    final newSongBehavior = settingsAsync.whenOrNull(
+          data: (settings) => settings.newSongBehavior,
+        ) ??
+        NewSongBehavior.ask; // fallback to ask if loading/error
+
+    int? bpm;
+    int? durationSeconds = result.durationSeconds;
+    String? musicalKey;
+
+    // Branch based on new song behavior setting
+    switch (newSongBehavior) {
+      case NewSongBehavior.ask:
+        // Show review sheet (current behavior)
+        final review =
+            await showSongEnrichmentReviewSheet(context, result: result);
+        if (review == null || !mounted) return;
+        bpm = review.bpm;
+        durationSeconds = review.durationSeconds;
+        musicalKey = review.musicalKey;
+        break;
+
+      case NewSongBehavior.auto:
+        // Auto-enrich in background
+        setState(() {
+          _isAdding = true;
+        });
+
+        try {
+          final enrichmentService =
+              SongEnrichmentService(Supabase.instance.client);
+          final inlineService = InlineSongEnrichmentService(enrichmentService);
+          final enrichResult = await inlineService.enrichSong(
+            title: result.title,
+            artist: result.artist,
+            durationSeconds: result.durationSeconds,
+          );
+          bpm = enrichResult.bpm;
+          durationSeconds =
+              enrichResult.durationSeconds ?? result.durationSeconds;
+          musicalKey = enrichResult.musicalKey;
+        } catch (e) {
+          debugPrint('[SongLookup] Auto-enrichment failed: $e');
+          // Continue without enrichment on error
+        }
+        break;
+
+      case NewSongBehavior.off:
+        // Skip enrichment, use only title/artist/duration from search
+        bpm = null;
+        musicalKey = null;
+        break;
+    }
 
     setState(() {
       _isAdding = true;
     });
 
     try {
-      // Upsert the external song to the catalog with the reviewed values
+      // Upsert the external song to the catalog
       final repo = ref.read(setlistRepositoryProvider);
       final songId = await repo.upsertExternalSong(
         bandId: widget.bandId,
         title: result.title,
         artist: result.artist,
-        bpm: review.bpm,
-        durationSeconds: review.durationSeconds,
+        bpm: bpm,
+        durationSeconds: durationSeconds,
         albumArtwork: result.albumArtwork,
         spotifyId: result.spotifyId,
         musicbrainzId: result.musicbrainzId,
-        musicalKey: review.musicalKey,
+        musicalKey: musicalKey,
       );
 
       if (songId == null) {

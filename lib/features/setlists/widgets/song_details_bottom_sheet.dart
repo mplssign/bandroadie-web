@@ -873,6 +873,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       enrichBpm: selection.bpmSelected,
       enrichDuration: selection.durationSelected,
       enrichKey: selection.keySelected,
+      overwriteExisting: selection.overwriteExisting,
     );
 
     if (!mounted) return;

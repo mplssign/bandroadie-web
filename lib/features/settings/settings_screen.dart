@@ -10,6 +10,7 @@ import '../../app/theme/theme_mode_controller.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../notifications/notification_settings_screen.dart';
 import '../calendar/one_calendar_settings_screen.dart';
+import '../songs/enrichment_settings_screen.dart';
 import '../bands/active_band_controller.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
@@ -66,6 +67,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       SettingsItem(
         icon: AppIcons.music,
+        label: 'Song Enrichment',
+        subtitle:
+            'Configure how songs are enriched with BPM, Duration, and Key',
+        onTap: _openEnrichmentSettings,
+      ),
+      SettingsItem(
+        icon: AppIcons.music,
         label: 'Song tempo & key data via GetSongBPM.com',
         onTap: _openGetSongBpmAttribution,
       ),
@@ -101,6 +109,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const NotificationSettingsScreen(),
+      ),
+    );
+  }
+
+  /// Navigate to enrichment settings
+  void _openEnrichmentSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const EnrichmentSettingsScreen(),
       ),
     );
   }

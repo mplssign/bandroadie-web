@@ -35,6 +35,9 @@ import 'widgets/back_only_app_bar.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/song_lookup_overlay.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../songs/song_enrichment_service.dart';
+import '../songs/enrichment_settings_controller.dart';
+import '../songs/services/inline_song_enrichment_service.dart';
 
 // ============================================================================
 // NEW SETLIST SCREEN
@@ -268,10 +271,27 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     if (_setlistId == null) return;
     final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
     final bandId = ref.read(activeBandIdProvider);
+
+    // Fetch enrichment settings
+    final enrichmentSettingsAsync = ref.read(enrichmentSettingsProvider);
+    final enrichmentSettings = enrichmentSettingsAsync.when(
+      data: (settings) => settings,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    // Create enrichment service
+    final enrichmentService = InlineSongEnrichmentService(
+      SongEnrichmentService(supabase),
+    );
+
     showAddToSetlistOverlay(
       context: context,
       isCatalog: false,
       defaultArtist: bandName,
+      bandId: bandId,
+      enrichmentSettings: enrichmentSettings,
+      enrichmentService: enrichmentService,
       onOriginalSongsSubmitted: (songs) async {
         if (bandId == null || _setlistId == null) return 0;
         return _handleOriginalSongsSubmit(bandId, songs);
@@ -343,7 +363,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
   /// Create original songs via the repository and add them to this setlist.
   Future<int> _handleOriginalSongsSubmit(
     String bandId,
-    List<({String title, String artist})> songs,
+    List<({String title, String artist, int? bpm, String? musicalKey})> songs,
   ) async {
     final repository = ref.read(setlistRepositoryProvider);
     var addedCount = 0;
@@ -354,6 +374,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           bandId,
           song.title,
           song.artist,
+          bpm: song.bpm,
+          musicalKey: song.musicalKey,
         );
         final result = await repository.addSongToSetlistEnsureCatalog(
           bandId: bandId,
@@ -386,8 +408,10 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
   Future<String> _ensureSongRecord(
     String bandId,
     String title,
-    String artist,
-  ) async {
+    String artist, {
+    int? bpm,
+    String? musicalKey,
+  }) async {
     final result = await supabase
         .from('songs')
         .select('id')
@@ -397,18 +421,30 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         .limit(1);
 
     if ((result as List).isNotEmpty) {
-      return result[0]['id'] as String;
+      // Song exists - update enrichment data if provided
+      final songId = result[0]['id'] as String;
+      if (bpm != null || musicalKey != null) {
+        final updateData = <String, dynamic>{};
+        if (bpm != null) updateData['source_bpm'] = bpm;
+        if (musicalKey != null) updateData['source_musical_key'] = musicalKey;
+
+        if (updateData.isNotEmpty) {
+          await supabase.from('songs').update(updateData).eq('id', songId);
+        }
+      }
+      return songId;
     }
 
-    final inserted = await supabase
-        .from('songs')
-        .insert({
-          'band_id': bandId,
-          'title': title.trim(),
-          'artist': artist.trim(),
-        })
-        .select('id')
-        .single();
+    final insertData = <String, dynamic>{
+      'band_id': bandId,
+      'title': title.trim(),
+      'artist': artist.trim(),
+    };
+    if (bpm != null) insertData['source_bpm'] = bpm;
+    if (musicalKey != null) insertData['source_musical_key'] = musicalKey;
+
+    final inserted =
+        await supabase.from('songs').insert(insertData).select('id').single();
 
     return inserted['id'] as String;
   }
@@ -477,6 +513,19 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
     if (bandId == null) return;
 
+    // Fetch enrichment settings
+    final enrichmentSettingsAsync = ref.read(enrichmentSettingsProvider);
+    final enrichmentSettings = enrichmentSettingsAsync.when(
+      data: (settings) => settings,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    // Create enrichment service
+    final enrichmentService = InlineSongEnrichmentService(
+      SongEnrichmentService(supabase),
+    );
+
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -497,6 +546,9 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 child: OriginalSongScreen(
+                  bandId: bandId,
+                  enrichmentSettings: enrichmentSettings,
+                  enrichmentService: enrichmentService,
                   defaultArtist: bandName,
                   onSubmit: (songs) async {
                     final addedCount =
@@ -541,6 +593,19 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
 
+    // Fetch enrichment settings
+    final enrichmentSettingsAsync = ref.read(enrichmentSettingsProvider);
+    final enrichmentSettings = enrichmentSettingsAsync.when(
+      data: (settings) => settings,
+      loading: () => null,
+      error: (_, __) => null,
+    );
+
+    // Create enrichment service
+    final enrichmentService = InlineSongEnrichmentService(
+      SongEnrichmentService(supabase),
+    );
+
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -561,6 +626,9 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 child: BulkEntryScreen(
+                  bandId: bandId,
+                  enrichmentSettings: enrichmentSettings,
+                  enrichmentService: enrichmentService,
                   onSubmit: (validRows) async {
                     final result =
                         await _handleBulkSongsSubmit(bandId, validRows);

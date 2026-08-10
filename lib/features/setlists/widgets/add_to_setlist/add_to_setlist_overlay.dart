@@ -5,6 +5,8 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/bulk_song_row.dart';
 import '../../models/setlist_item_type.dart';
 import '../../models/special_item.dart';
+import '../../../songs/models/enrichment_settings.dart';
+import '../../../songs/services/inline_song_enrichment_service.dart';
 import 'bulk_entry_screen.dart';
 import 'category_screen.dart';
 import 'original_song_screen.dart';
@@ -63,6 +65,9 @@ Future<void> showAddToSetlistOverlay({
   OnDeleteTemplate? onDeleteTemplate,
   List<SpecialItem> savedPauses = const [],
   List<SpecialItem> savedSetBreaks = const [],
+  String? bandId,
+  EnrichmentSettings? enrichmentSettings,
+  InlineSongEnrichmentService? enrichmentService,
 }) {
   return showGeneralDialog(
     context: context,
@@ -92,6 +97,9 @@ Future<void> showAddToSetlistOverlay({
         onDeleteTemplate: onDeleteTemplate,
         savedPauses: savedPauses,
         savedSetBreaks: savedSetBreaks,
+        bandId: bandId,
+        enrichmentSettings: enrichmentSettings,
+        enrichmentService: enrichmentService,
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
@@ -128,6 +136,9 @@ class _AddToSetlistOverlay extends StatefulWidget {
   final OnDeleteTemplate? onDeleteTemplate;
   final List<SpecialItem> savedPauses;
   final List<SpecialItem> savedSetBreaks;
+  final String? bandId;
+  final EnrichmentSettings? enrichmentSettings;
+  final InlineSongEnrichmentService? enrichmentService;
 
   const _AddToSetlistOverlay({
     required this.onCategorySelected,
@@ -142,6 +153,9 @@ class _AddToSetlistOverlay extends StatefulWidget {
     this.onDeleteTemplate,
     this.savedPauses = const [],
     this.savedSetBreaks = const [],
+    this.bandId,
+    this.enrichmentSettings,
+    this.enrichmentService,
   });
 
   @override
@@ -307,6 +321,10 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
   }
 
   Widget _buildContent() {
+    // Enrichment parameters should always be provided by parent
+    assert(widget.bandId != null, 'bandId is required for enrichment');
+    assert(widget.enrichmentService != null, 'enrichmentService is required');
+
     switch (_activeCategory) {
       case AddToSetlistCategory.original:
         return OriginalSongScreen(
@@ -316,6 +334,9 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
               (_) async => 0, // no-op fallback
           onBack: _handleBack,
           onClose: () => Navigator.of(context).pop(),
+          bandId: widget.bandId!,
+          enrichmentSettings: widget.enrichmentSettings,
+          enrichmentService: widget.enrichmentService!,
         );
       case AddToSetlistCategory.bulk:
         return BulkEntryScreen(
@@ -327,6 +348,9 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
                   ),
           onBack: _handleBack,
           onClose: () => Navigator.of(context).pop(),
+          bandId: widget.bandId!,
+          enrichmentSettings: widget.enrichmentSettings,
+          enrichmentService: widget.enrichmentService!,
         );
       case AddToSetlistCategory.setBreak:
         return SetBreakScreen(

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../../app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import '../../../songs/models/enrichment_settings.dart';
+import '../../../songs/services/inline_song_enrichment_service.dart';
+import '../../../songs/widgets/enrichment_confirm_dialog.dart';
 
 // ============================================================================
 // ORIGINAL SONG SCREEN
@@ -53,8 +58,16 @@ class _SongEntry {
 
 /// Callback when original songs are submitted.
 /// [songs] is a list of (title, artist) pairs.
+/// Returns a list of enriched song data.
 typedef OnOriginalSongsSubmitted = Future<int> Function(
-  List<({String title, String artist})> songs,
+  List<
+          ({
+            String title,
+            String artist,
+            int? bpm,
+            String? musicalKey,
+          })>
+      songs,
 );
 
 class OriginalSongScreen extends StatefulWidget {
@@ -62,6 +75,9 @@ class OriginalSongScreen extends StatefulWidget {
   final OnOriginalSongsSubmitted onSubmit;
   final VoidCallback onBack;
   final VoidCallback? onClose;
+  final String bandId;
+  final EnrichmentSettings? enrichmentSettings;
+  final InlineSongEnrichmentService enrichmentService;
 
   const OriginalSongScreen({
     super.key,
@@ -69,6 +85,9 @@ class OriginalSongScreen extends StatefulWidget {
     required this.onSubmit,
     required this.onBack,
     this.onClose,
+    required this.bandId,
+    this.enrichmentSettings,
+    required this.enrichmentService,
   });
 
   @override
@@ -148,6 +167,23 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
     return allValid;
   }
 
+  /// Check if a song exists in the band's catalog
+  Future<bool> _songExists(String title, String artist) async {
+    try {
+      final result = await supabase
+          .from('songs')
+          .select('id')
+          .eq('band_id', widget.bandId)
+          .ilike('title', title.trim())
+          .ilike('artist', artist.trim())
+          .limit(1);
+      return (result as List).isNotEmpty;
+    } catch (e) {
+      debugPrint('[OriginalSongScreen] Error checking song existence: $e');
+      return false; // Assume new on error to allow enrichment
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (_isSubmitting) return;
     if (!_validateAll()) return;
@@ -156,16 +192,85 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
       _isSubmitting = true;
     });
 
-    final songs = _entries
-        .map(
-          (e) => (
-            title: e.titleController.text.trim(),
-            artist: e.artistController.text.trim(),
-          ),
-        )
-        .toList();
+    final settings = widget.enrichmentSettings;
+    final newSongBehavior = settings?.newSongBehavior ?? NewSongBehavior.off;
 
-    final addedCount = await widget.onSubmit(songs);
+    final enrichedSongs =
+        <({String title, String artist, int? bpm, String? musicalKey})>[];
+
+    for (final entry in _entries) {
+      final title = entry.titleController.text.trim();
+      final artist = entry.artistController.text.trim();
+
+      // Check if song exists
+      final exists = await _songExists(title, artist);
+
+      if (exists || newSongBehavior == NewSongBehavior.off) {
+        // Existing song or enrichment disabled
+        enrichedSongs.add((
+          title: title,
+          artist: artist,
+          bpm: null,
+          musicalKey: null,
+        ));
+        continue;
+      }
+
+      // New song - apply enrichment based on behavior
+      if (newSongBehavior == NewSongBehavior.ask) {
+        // Show confirmation dialog
+        final shouldEnrich = await showEnrichmentConfirmDialog(
+          context,
+          title: title,
+          artist: artist,
+          enrichmentService: widget.enrichmentService,
+        );
+
+        if (shouldEnrich == null) {
+          // User cancelled - abort entire submission
+          if (mounted) setState(() => _isSubmitting = false);
+          return;
+        }
+
+        if (shouldEnrich) {
+          // Enrich the song
+          final enrichmentResult = await widget.enrichmentService.enrichSong(
+            title: title,
+            artist: artist,
+          );
+
+          enrichedSongs.add((
+            title: title,
+            artist: artist,
+            bpm: enrichmentResult.bpm,
+            musicalKey: enrichmentResult.musicalKey,
+          ));
+        } else {
+          // Skip enrichment
+          enrichedSongs.add((
+            title: title,
+            artist: artist,
+            bpm: null,
+            musicalKey: null,
+          ));
+        }
+      } else if (newSongBehavior == NewSongBehavior.auto) {
+        // Auto-enrich in background
+        final enrichmentResult = await widget.enrichmentService.enrichSong(
+          title: title,
+          artist: artist,
+        );
+
+        enrichedSongs.add((
+          title: title,
+          artist: artist,
+          bpm: enrichmentResult.bpm,
+          musicalKey: enrichmentResult.musicalKey,
+        ));
+      }
+    }
+
+    final addedCount = await widget.onSubmit(enrichedSongs);
 
     if (!mounted) return;
 
