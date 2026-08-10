@@ -107,9 +107,9 @@ class SongEnrichmentOrchestrator {
 
     // 2. Filter: skip songs where all requested fields are already filled
     final songsNeedingEnrichment = songsToEnrich.where((song) {
-      final needsBpm = enrichBpm && song.bpm == null;
+      final needsBpm = enrichBpm && song.sourceBpm == null;
       final needsDuration = enrichDuration && song.durationSeconds == 0;
-      final needsKey = enrichKey && song.musicalKey == null;
+      final needsKey = enrichKey && song.sourceMusicalKey == null;
       return needsBpm || needsDuration || needsKey;
     }).toList();
 
@@ -128,9 +128,9 @@ class SongEnrichmentOrchestrator {
       final song = songsToEnrich[i];
 
       // Check if this song needs enrichment
-      final needsBpm = enrichBpm && song.bpm == null;
+      final needsBpm = enrichBpm && song.sourceBpm == null;
       final needsDuration = enrichDuration && song.durationSeconds == 0;
-      final needsKey = enrichKey && song.musicalKey == null;
+      final needsKey = enrichKey && song.sourceMusicalKey == null;
 
       if (!needsBpm && !needsDuration && !needsKey) {
         // All requested fields already filled
@@ -213,11 +213,11 @@ class SongEnrichmentOrchestrator {
 
       // c. Merge results and update song via RPC for whichever fields resolved.
       final updateMap = <String, dynamic>{};
-      if (fetchedBpm != null) updateMap['bpm'] = fetchedBpm;
+      if (fetchedBpm != null) updateMap['sourceBpm'] = fetchedBpm;
       if (fetchedDuration != null) {
         updateMap['durationSeconds'] = fetchedDuration;
       }
-      if (fetchedKey != null) updateMap['musicalKey'] = fetchedKey;
+      if (fetchedKey != null) updateMap['sourceMusicalKey'] = fetchedKey;
 
       // Call RPC if we have any update
       bool rpcSuccess = false;

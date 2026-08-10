@@ -1610,6 +1610,468 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     }
   }
 
+  // ==========================================================================
+  // DUAL-VALUE UPDATE METHODS (Phase 2.2)
+  // ==========================================================================
+
+  /// Updates a song's source BPM (original recording).
+  Future<bool> updateSourceBpm(String songId, int sourceBpm) async {
+    if (sourceBpm < 20 || sourceBpm > 300) {
+      state = state.copyWith(error: 'BPM must be between 20 and 300');
+      return false;
+    }
+
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(sourceBpm: sourceBpm);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs);
+
+    try {
+      await _repository.updateSourceBpm(
+        bandId: bandId,
+        songId: songId,
+        sourceBpm: sourceBpm,
+      );
+      debugPrint(
+          '[SetlistDetail] Updated source BPM to $sourceBpm for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error updating source BPM: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to save source BPM. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's performance BPM (band's version).
+  Future<bool> updatePerformanceBpm(String songId, int performanceBpm) async {
+    if (performanceBpm < 20 || performanceBpm > 300) {
+      state = state.copyWith(error: 'BPM must be between 20 and 300');
+      return false;
+    }
+
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(performanceBpm: performanceBpm);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs);
+
+    try {
+      await _repository.updatePerformanceBpm(
+        bandId: bandId,
+        songId: songId,
+        performanceBpm: performanceBpm,
+      );
+      debugPrint(
+          '[SetlistDetail] Updated performance BPM to $performanceBpm for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error updating performance BPM: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to save performance BPM. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's source musical key (original recording).
+  Future<bool> updateSourceMusicalKey(
+      String songId, String sourceMusicalKey) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(sourceMusicalKey: sourceMusicalKey);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.updateSourceMusicalKey(
+        bandId: bandId,
+        songId: songId,
+        sourceMusicalKey: sourceMusicalKey,
+      );
+      debugPrint(
+          '[SetlistDetail] Updated source musical key to $sourceMusicalKey for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error updating source musical key: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to save source musical key. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's performance musical key (band's version).
+  Future<bool> updatePerformanceMusicalKey(
+      String songId, String performanceMusicalKey) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(performanceMusicalKey: performanceMusicalKey);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.updatePerformanceMusicalKey(
+        bandId: bandId,
+        songId: songId,
+        performanceMusicalKey: performanceMusicalKey,
+      );
+      debugPrint(
+          '[SetlistDetail] Updated performance musical key to $performanceMusicalKey for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error updating performance musical key: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to save performance musical key. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's source tuning (original recording).
+  Future<bool> updateSourceTuning(String songId, String sourceTuning) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(sourceTuning: sourceTuning);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.updateSourceTuning(
+        bandId: bandId,
+        songId: songId,
+        sourceTuning: sourceTuning,
+      );
+      debugPrint(
+          '[SetlistDetail] Updated source tuning to $sourceTuning for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error updating source tuning: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to save source tuning. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Updates a song's performance tuning (band's version).
+  Future<bool> updatePerformanceTuning(
+      String songId, String performanceTuning) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(performanceTuning: performanceTuning);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.updatePerformanceTuning(
+        bandId: bandId,
+        songId: songId,
+        performanceTuning: performanceTuning,
+      );
+      debugPrint(
+          '[SetlistDetail] Updated performance tuning to $performanceTuning for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error updating performance tuning: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to save performance tuning. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clears a song's source BPM.
+  Future<bool> clearSourceBpm(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearSourceBpm: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs);
+
+    try {
+      await _repository.clearSourceBpm(
+        bandId: bandId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared source BPM for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing source BPM: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear source BPM. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clears a song's performance BPM.
+  Future<bool> clearPerformanceBpm(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearPerformanceBpm: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs);
+
+    try {
+      await _repository.clearPerformanceBpm(
+        bandId: bandId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared performance BPM for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing performance BPM: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear performance BPM. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clears a song's source musical key.
+  Future<bool> clearSourceMusicalKey(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearSourceMusicalKey: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.clearSourceMusicalKey(
+        bandId: bandId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared source musical key for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing source musical key: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear source musical key. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clears a song's performance musical key.
+  Future<bool> clearPerformanceMusicalKey(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearPerformanceMusicalKey: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.clearPerformanceMusicalKey(
+        bandId: bandId,
+        songId: songId,
+      );
+      debugPrint(
+          '[SetlistDetail] Cleared performance musical key for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing performance musical key: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear performance musical key. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clears a song's source tuning.
+  Future<bool> clearSourceTuning(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearSourceTuning: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.clearSourceTuning(
+        bandId: bandId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared source tuning for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing source tuning: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear source tuning. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Clears a song's performance tuning.
+  Future<bool> clearPerformanceTuning(String songId) async {
+    final bandId = _bandId;
+    if (bandId == null) {
+      state = state.copyWith(error: 'No band selected');
+      return false;
+    }
+
+    final originalSongs = List<SetlistSong>.from(state.songs);
+    final originalItems = List<SetlistItem>.from(state.items);
+    final updatedSongs = state.songs.map((song) {
+      if (song.id == songId) {
+        return song.copyWith(clearPerformanceTuning: true);
+      }
+      return song;
+    }).toList();
+    _syncSongStateWith(updatedSongs, clearError: true);
+
+    try {
+      await _repository.clearPerformanceTuning(
+        bandId: bandId,
+        songId: songId,
+      );
+      debugPrint('[SetlistDetail] Cleared performance tuning for song $songId');
+      return true;
+    } catch (e) {
+      debugPrint('[SetlistDetail] Error clearing performance tuning: $e');
+      state = state.copyWith(
+        songs: originalSongs,
+        items: originalItems,
+        error: 'Failed to clear performance tuning. Please try again.',
+      );
+      return false;
+    }
+  }
+
   /// Updates a song's YouTube links globally.
   ///
   /// Uses optimistic update pattern:

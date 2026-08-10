@@ -1828,6 +1828,66 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   );
         debugPrint('[SetlistDetail] Musical key save result: $success');
       }
+
+      // Phase 2.2: Dual-value BPM dispatch
+      if (result.sourceBpmChanged) {
+        debugPrint('[SetlistDetail] Saving source BPM...');
+        final success = result.sourceBpm != null
+            ? await notifier.updateSourceBpm(song.id, result.sourceBpm!)
+            : await notifier.clearSourceBpm(song.id);
+        debugPrint('[SetlistDetail] Source BPM save result: $success');
+      }
+
+      if (result.performanceBpmChanged) {
+        debugPrint('[SetlistDetail] Saving performance BPM...');
+        final success = result.performanceBpm != null
+            ? await notifier.updatePerformanceBpm(
+                song.id, result.performanceBpm!)
+            : await notifier.clearPerformanceBpm(song.id);
+        debugPrint('[SetlistDetail] Performance BPM save result: $success');
+      }
+
+      // Phase 2.2: Dual-value Musical Key dispatch
+      if (result.sourceMusicalKeyChanged) {
+        debugPrint('[SetlistDetail] Saving source musical key...');
+        final success = (result.sourceMusicalKey != null &&
+                result.sourceMusicalKey!.isNotEmpty)
+            ? await notifier.updateSourceMusicalKey(
+                song.id, result.sourceMusicalKey!)
+            : await notifier.clearSourceMusicalKey(song.id);
+        debugPrint('[SetlistDetail] Source musical key save result: $success');
+      }
+
+      if (result.performanceMusicalKeyChanged) {
+        debugPrint('[SetlistDetail] Saving performance musical key...');
+        final success = (result.performanceMusicalKey != null &&
+                result.performanceMusicalKey!.isNotEmpty)
+            ? await notifier.updatePerformanceMusicalKey(
+                song.id, result.performanceMusicalKey!)
+            : await notifier.clearPerformanceMusicalKey(song.id);
+        debugPrint(
+            '[SetlistDetail] Performance musical key save result: $success');
+      }
+
+      // Phase 2.2: Dual-value Tuning dispatch
+      if (result.sourceTuningChanged) {
+        debugPrint('[SetlistDetail] Saving source tuning...');
+        final success = (result.sourceTuning != null &&
+                result.sourceTuning!.isNotEmpty)
+            ? await notifier.updateSourceTuning(song.id, result.sourceTuning!)
+            : await notifier.clearSourceTuning(song.id);
+        debugPrint('[SetlistDetail] Source tuning save result: $success');
+      }
+
+      if (result.performanceTuningChanged) {
+        debugPrint('[SetlistDetail] Saving performance tuning...');
+        final success = (result.performanceTuning != null &&
+                result.performanceTuning!.isNotEmpty)
+            ? await notifier.updatePerformanceTuning(
+                song.id, result.performanceTuning!)
+            : await notifier.clearPerformanceTuning(song.id);
+        debugPrint('[SetlistDetail] Performance tuning save result: $success');
+      }
     }
   }
 

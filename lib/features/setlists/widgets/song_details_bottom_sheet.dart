@@ -57,6 +57,14 @@ class SongDetailsResult {
   final String? musicalKey;
   final bool hasChanges;
 
+  // Phase 2.2: Dual-value fields for BPM, Key, Tuning
+  final int? sourceBpm;
+  final int? performanceBpm;
+  final String? sourceMusicalKey;
+  final String? performanceMusicalKey;
+  final String? sourceTuning;
+  final String? performanceTuning;
+
   // Flags to indicate which fields were changed (needed to distinguish
   // "no change" from "changed to null/empty")
   final bool titleChanged;
@@ -68,6 +76,14 @@ class SongDetailsResult {
   final bool youtubeLinksChanged;
   final bool lyricsChanged;
   final bool musicalKeyChanged;
+
+  // Phase 2.2: Dual-value changed flags
+  final bool sourceBpmChanged;
+  final bool performanceBpmChanged;
+  final bool sourceMusicalKeyChanged;
+  final bool performanceMusicalKeyChanged;
+  final bool sourceTuningChanged;
+  final bool performanceTuningChanged;
 
   const SongDetailsResult({
     this.title,
@@ -89,6 +105,19 @@ class SongDetailsResult {
     this.youtubeLinksChanged = false,
     this.lyricsChanged = false,
     this.musicalKeyChanged = false,
+    // Phase 2.2: Dual-value parameters
+    this.sourceBpm,
+    this.performanceBpm,
+    this.sourceMusicalKey,
+    this.performanceMusicalKey,
+    this.sourceTuning,
+    this.performanceTuning,
+    this.sourceBpmChanged = false,
+    this.performanceBpmChanged = false,
+    this.sourceMusicalKeyChanged = false,
+    this.performanceMusicalKeyChanged = false,
+    this.sourceTuningChanged = false,
+    this.performanceTuningChanged = false,
   });
 }
 
@@ -154,6 +183,20 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
   late String? _currentMusicalKey;
   late String? _originalMusicalKey;
 
+  // Phase 2.2: Dual-value state variables for BPM, Key, Tuning
+  late int? _currentSourceBpm;
+  late int? _originalSourceBpm;
+  late int? _currentPerformanceBpm;
+  late int? _originalPerformanceBpm;
+  late String? _currentSourceMusicalKey;
+  late String? _originalSourceMusicalKey;
+  late String? _currentPerformanceMusicalKey;
+  late String? _originalPerformanceMusicalKey;
+  late String? _currentSourceTuning;
+  late String? _originalSourceTuning;
+  late String? _currentPerformanceTuning;
+  late String? _originalPerformanceTuning;
+
   bool _isEditingTitle = false;
   bool _isEditingArtist = false;
   bool _isEditingNotes = false;
@@ -175,6 +218,20 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     _currentDurationSeconds = widget.song.durationSeconds;
     _originalDurationSeconds = widget.song.durationSeconds;
     _currentTuning = widget.song.tuning;
+
+    // Phase 2.2: Initialize dual-value fields from song
+    _currentSourceBpm = widget.song.sourceBpm;
+    _originalSourceBpm = widget.song.sourceBpm;
+    _currentPerformanceBpm = widget.song.performanceBpm;
+    _originalPerformanceBpm = widget.song.performanceBpm;
+    _currentSourceMusicalKey = widget.song.sourceMusicalKey;
+    _originalSourceMusicalKey = widget.song.sourceMusicalKey;
+    _currentPerformanceMusicalKey = widget.song.performanceMusicalKey;
+    _originalPerformanceMusicalKey = widget.song.performanceMusicalKey;
+    _currentSourceTuning = widget.song.sourceTuning;
+    _originalSourceTuning = widget.song.sourceTuning;
+    _currentPerformanceTuning = widget.song.performanceTuning;
+    _originalPerformanceTuning = widget.song.performanceTuning;
 
     // Initialize YouTube links from song data
     debugPrint(
@@ -267,6 +324,12 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     bool youtubeLinksChanged,
     bool lyricsChanged,
     bool musicalKeyChanged,
+    bool sourceBpmChanged,
+    bool performanceBpmChanged,
+    bool sourceMusicalKeyChanged,
+    bool performanceMusicalKeyChanged,
+    bool sourceTuningChanged,
+    bool performanceTuningChanged,
     bool anyChanged,
   }) _computeChangeFlags() {
     final newTitle = _titleController.text.trim();
@@ -288,6 +351,18 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     final musicalKeyChanged =
         (_currentMusicalKey ?? '') != (_originalMusicalKey ?? '');
 
+    // Phase 2.2: Dual-value change detection
+    final sourceBpmChanged = _currentSourceBpm != _originalSourceBpm;
+    final performanceBpmChanged =
+        _currentPerformanceBpm != _originalPerformanceBpm;
+    final sourceMusicalKeyChanged =
+        _currentSourceMusicalKey != _originalSourceMusicalKey;
+    final performanceMusicalKeyChanged =
+        _currentPerformanceMusicalKey != _originalPerformanceMusicalKey;
+    final sourceTuningChanged = _currentSourceTuning != _originalSourceTuning;
+    final performanceTuningChanged =
+        _currentPerformanceTuning != _originalPerformanceTuning;
+
     final anyChanged = titleChanged ||
         artistChanged ||
         notesChanged ||
@@ -296,7 +371,13 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
         durationChanged ||
         youtubeLinksChanged ||
         lyricsChanged ||
-        musicalKeyChanged;
+        musicalKeyChanged ||
+        sourceBpmChanged ||
+        performanceBpmChanged ||
+        sourceMusicalKeyChanged ||
+        performanceMusicalKeyChanged ||
+        sourceTuningChanged ||
+        performanceTuningChanged;
 
     return (
       titleChanged: titleChanged,
@@ -308,6 +389,12 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       youtubeLinksChanged: youtubeLinksChanged,
       lyricsChanged: lyricsChanged,
       musicalKeyChanged: musicalKeyChanged,
+      sourceBpmChanged: sourceBpmChanged,
+      performanceBpmChanged: performanceBpmChanged,
+      sourceMusicalKeyChanged: sourceMusicalKeyChanged,
+      performanceMusicalKeyChanged: performanceMusicalKeyChanged,
+      sourceTuningChanged: sourceTuningChanged,
+      performanceTuningChanged: performanceTuningChanged,
       anyChanged: anyChanged,
     );
   }
@@ -493,6 +580,134 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     // If result is null (cancelled) or same as current, do nothing
   }
 
+  // Phase 2.2: Dual-value selection methods
+
+  Future<void> _selectSourceBpm() async {
+    final result = await showBpmInputDialog(
+      context,
+      initialBpm: _currentSourceBpm,
+    );
+    if (result is DialogCleared<int>) {
+      setState(() {
+        _currentSourceBpm = null;
+      });
+      _checkForChanges();
+    } else if (result is DialogValue<int>) {
+      setState(() {
+        _currentSourceBpm = result.value;
+      });
+      _checkForChanges();
+    }
+  }
+
+  Future<void> _selectPerformanceBpm() async {
+    final result = await showBpmInputDialog(
+      context,
+      initialBpm: _currentPerformanceBpm,
+    );
+    if (result is DialogCleared<int>) {
+      setState(() {
+        _currentPerformanceBpm = null;
+      });
+      _checkForChanges();
+    } else if (result is DialogValue<int>) {
+      setState(() {
+        _currentPerformanceBpm = result.value;
+      });
+      _checkForChanges();
+    }
+  }
+
+  Future<void> _selectSourceKey() async {
+    final result = await showKeyPickerBottomSheet(
+      context,
+      selectedKey: _currentSourceMusicalKey,
+    );
+    if (result == '') {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentSourceMusicalKey = '';
+      });
+      _checkForChanges();
+    } else if (result != null && result != _currentSourceMusicalKey) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentSourceMusicalKey = result;
+      });
+      _checkForChanges();
+    }
+  }
+
+  Future<void> _selectPerformanceKey() async {
+    final result = await showKeyPickerBottomSheet(
+      context,
+      selectedKey: _currentPerformanceMusicalKey,
+    );
+    if (result == '') {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentPerformanceMusicalKey = '';
+      });
+      _checkForChanges();
+    } else if (result != null && result != _currentPerformanceMusicalKey) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentPerformanceMusicalKey = result;
+      });
+      _checkForChanges();
+    }
+  }
+
+  Future<void> _selectSourceTuning() async {
+    final result = await showTuningPickerBottomSheet(
+      context,
+      selectedTuningIdOrName: _currentSourceTuning,
+    );
+
+    if (result != null) {
+      final String? newTuning;
+      if (result.tuningId.isEmpty) {
+        newTuning = null;
+      } else {
+        newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
+            result.tuningId;
+      }
+
+      if (newTuning != _currentSourceTuning) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _currentSourceTuning = newTuning;
+          _hasChanges = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _selectPerformanceTuning() async {
+    final result = await showTuningPickerBottomSheet(
+      context,
+      selectedTuningIdOrName: _currentPerformanceTuning,
+    );
+
+    if (result != null) {
+      final String? newTuning;
+      if (result.tuningId.isEmpty) {
+        newTuning = null;
+      } else {
+        newTuning = composeCapoTuning(result.tuningId, result.capoFret) ??
+            result.tuningId;
+      }
+
+      if (newTuning != _currentPerformanceTuning) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _currentPerformanceTuning = newTuning;
+          _hasChanges = true;
+        });
+      }
+    }
+  }
+
   void _handleSave() {
     // RBAC self-defense: block save in read-only mode
     if (widget.isReadOnly) return;
@@ -533,6 +748,19 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       youtubeLinksChanged: changes.youtubeLinksChanged,
       lyricsChanged: changes.lyricsChanged,
       musicalKeyChanged: changes.musicalKeyChanged,
+      // Phase 2.2: Dual-value fields (always include values so handler can use changed flags)
+      sourceBpm: _currentSourceBpm,
+      performanceBpm: _currentPerformanceBpm,
+      sourceMusicalKey: _currentSourceMusicalKey,
+      performanceMusicalKey: _currentPerformanceMusicalKey,
+      sourceTuning: _currentSourceTuning,
+      performanceTuning: _currentPerformanceTuning,
+      sourceBpmChanged: changes.sourceBpmChanged,
+      performanceBpmChanged: changes.performanceBpmChanged,
+      sourceMusicalKeyChanged: changes.sourceMusicalKeyChanged,
+      performanceMusicalKeyChanged: changes.performanceMusicalKeyChanged,
+      sourceTuningChanged: changes.sourceTuningChanged,
+      performanceTuningChanged: changes.performanceTuningChanged,
     );
 
     Navigator.of(context).pop(result);
@@ -934,7 +1162,13 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                               ),
                             ],
                             const SizedBox(height: Spacing.space24),
-                            _buildMetricsRow(),
+                            _buildDurationRow(),
+                            const SizedBox(height: Spacing.space16),
+                            _buildBpmSection(),
+                            const SizedBox(height: Spacing.space16),
+                            _buildKeySection(),
+                            const SizedBox(height: Spacing.space16),
+                            _buildTuningSection(),
                             const SizedBox(height: Spacing.space24),
                             _buildNotesSection(),
                             const SizedBox(height: Spacing.space24),
@@ -1163,35 +1397,130 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
   }
 
   /// 4-column metrics row: BPM | Duration | Tuning | Key
-  Widget _buildMetricsRow() {
-    String tuningDisplayName = '—';
-    if (_currentTuning != null && _currentTuning!.isNotEmpty) {
-      tuningDisplayName = tuningShortLabel(_currentTuning);
-    }
-
+  /// Phase 2.2: Single-value Duration row (unchanged behavior)
+  Widget _buildDurationRow() {
     return SegmentedButtonGroup(
       segments: [
-        SegmentData(
-          label: 'BPM',
-          value: _currentBpm?.toString() ?? '—',
-          onTap: widget.isReadOnly ? null : _selectBpm,
-        ),
         SegmentData(
           label: 'Duration',
           value: _formatDuration(_currentDurationSeconds),
           onTap: widget.isReadOnly ? null : _selectDuration,
         ),
-        SegmentData(
-          label: 'Tuning',
-          value: tuningDisplayName,
-          onTap: widget.isReadOnly ? null : _selectTuning,
+      ],
+    );
+  }
+
+  /// Phase 2.2: Dual-value BPM section
+  Widget _buildBpmSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          child: Text(
+            'BPM',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: context.colors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
         ),
-        SegmentData(
-          label: 'Key',
-          value: (_currentMusicalKey == null || _currentMusicalKey!.isEmpty)
-              ? '—'
-              : _currentMusicalKey!,
-          onTap: widget.isReadOnly ? null : _selectKey,
+        SegmentedButtonGroup(
+          segments: [
+            SegmentData(
+              label: 'Original Recording',
+              value: _currentSourceBpm?.toString() ?? '—',
+              onTap: widget.isReadOnly ? null : _selectSourceBpm,
+            ),
+            SegmentData(
+              label: 'Your Performance',
+              value: _currentPerformanceBpm?.toString() ?? 'Not set',
+              onTap: widget.isReadOnly ? null : _selectPerformanceBpm,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Phase 2.2: Dual-value Key section
+  Widget _buildKeySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          child: Text(
+            'Musical Key',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: context.colors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+        SegmentedButtonGroup(
+          segments: [
+            SegmentData(
+              label: 'Original Recording',
+              value: (_currentSourceMusicalKey == null ||
+                      _currentSourceMusicalKey!.isEmpty)
+                  ? '—'
+                  : _currentSourceMusicalKey!,
+              onTap: widget.isReadOnly ? null : _selectSourceKey,
+            ),
+            SegmentData(
+              label: 'Your Performance',
+              value: (_currentPerformanceMusicalKey == null ||
+                      _currentPerformanceMusicalKey!.isEmpty)
+                  ? 'Not set'
+                  : _currentPerformanceMusicalKey!,
+              onTap: widget.isReadOnly ? null : _selectPerformanceKey,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Phase 2.2: Dual-value Tuning section
+  Widget _buildTuningSection() {
+    String sourceDisplayName = '—';
+    if (_currentSourceTuning != null && _currentSourceTuning!.isNotEmpty) {
+      sourceDisplayName = tuningShortLabel(_currentSourceTuning);
+    }
+
+    String performanceDisplayName = 'Not set';
+    if (_currentPerformanceTuning != null &&
+        _currentPerformanceTuning!.isNotEmpty) {
+      performanceDisplayName = tuningShortLabel(_currentPerformanceTuning);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 8),
+          child: Text(
+            'Tuning',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: context.colors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+        SegmentedButtonGroup(
+          segments: [
+            SegmentData(
+              label: 'Original Recording',
+              value: sourceDisplayName,
+              onTap: widget.isReadOnly ? null : _selectSourceTuning,
+            ),
+            SegmentData(
+              label: 'Your Performance',
+              value: performanceDisplayName,
+              onTap: widget.isReadOnly ? null : _selectPerformanceTuning,
+            ),
+          ],
         ),
       ],
     );

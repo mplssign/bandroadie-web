@@ -642,13 +642,19 @@ class SetlistRepository {
               title,
               artist,
               bpm,
+              source_bpm,
+              performance_bpm,
               duration_seconds,
               tuning,
+              source_tuning,
+              performance_tuning,
               album_artwork,
               notes,
               youtube_links,
               lyrics,
-              musical_key
+              musical_key,
+              source_musical_key,
+              performance_musical_key
             )
           ''').eq('setlist_id', setlistId).order('position', ascending: true);
 
@@ -2447,6 +2453,662 @@ class SetlistRepository {
   }
 
   // ==========================================================================
+  // UPDATE SONG DUAL-VALUE FIELDS (Phase 2.2)
+  // ==========================================================================
+
+  /// Updates a song's source BPM (original recording).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updateSourceBpm({
+    required String bandId,
+    required String songId,
+    required int sourceBpm,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (sourceBpm < 20 || sourceBpm > 300) {
+      throw ArgumentError('BPM must be between 20 and 300');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSourceBpm: songId=$songId, sourceBpm=$sourceBpm',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': null,
+          'p_source_bpm': sourceBpm,
+          'p_performance_bpm': null,
+          'p_source_musical_key': null,
+          'p_performance_musical_key': null,
+          'p_source_tuning': null,
+          'p_performance_tuning': null,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated source BPM to $sourceBpm for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error updating source BPM: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates a song's performance BPM (band's version).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updatePerformanceBpm({
+    required String bandId,
+    required String songId,
+    required int performanceBpm,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (performanceBpm < 20 || performanceBpm > 300) {
+      throw ArgumentError('BPM must be between 20 and 300');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updatePerformanceBpm: songId=$songId, performanceBpm=$performanceBpm',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': null,
+          'p_source_bpm': null,
+          'p_performance_bpm': performanceBpm,
+          'p_source_musical_key': null,
+          'p_performance_musical_key': null,
+          'p_source_tuning': null,
+          'p_performance_tuning': null,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated performance BPM to $performanceBpm for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error updating performance BPM: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates a song's source musical key (original recording).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updateSourceMusicalKey({
+    required String bandId,
+    required String songId,
+    required String sourceMusicalKey,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSourceMusicalKey: songId=$songId, sourceMusicalKey=$sourceMusicalKey',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': null,
+          'p_source_bpm': null,
+          'p_performance_bpm': null,
+          'p_source_musical_key': sourceMusicalKey,
+          'p_performance_musical_key': null,
+          'p_source_tuning': null,
+          'p_performance_tuning': null,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated source musical key to $sourceMusicalKey for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] ❌ Error updating source musical key: $e',
+      );
+      rethrow;
+    }
+  }
+
+  /// Updates a song's performance musical key (band's version).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updatePerformanceMusicalKey({
+    required String bandId,
+    required String songId,
+    required String performanceMusicalKey,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updatePerformanceMusicalKey: songId=$songId, performanceMusicalKey=$performanceMusicalKey',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': null,
+          'p_source_bpm': null,
+          'p_performance_bpm': null,
+          'p_source_musical_key': null,
+          'p_performance_musical_key': performanceMusicalKey,
+          'p_source_tuning': null,
+          'p_performance_tuning': null,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated performance musical key to $performanceMusicalKey for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] ❌ Error updating performance musical key: $e',
+      );
+      rethrow;
+    }
+  }
+
+  /// Updates a song's source tuning (original recording).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updateSourceTuning({
+    required String bandId,
+    required String songId,
+    required String sourceTuning,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updateSourceTuning: songId=$songId, sourceTuning=$sourceTuning',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': null,
+          'p_source_bpm': null,
+          'p_performance_bpm': null,
+          'p_source_musical_key': null,
+          'p_performance_musical_key': null,
+          'p_source_tuning': sourceTuning,
+          'p_performance_tuning': null,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated source tuning to $sourceTuning for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error updating source tuning: $e');
+      rethrow;
+    }
+  }
+
+  /// Updates a song's performance tuning (band's version).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> updatePerformanceTuning({
+    required String bandId,
+    required String songId,
+    required String performanceTuning,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] updatePerformanceTuning: songId=$songId, performanceTuning=$performanceTuning',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'update_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_bpm': null,
+          'p_duration_seconds': null,
+          'p_tuning': null,
+          'p_notes': null,
+          'p_title': null,
+          'p_artist': null,
+          'p_youtube_links': null,
+          'p_lyrics': null,
+          'p_musical_key': null,
+          'p_source_bpm': null,
+          'p_performance_bpm': null,
+          'p_source_musical_key': null,
+          'p_performance_musical_key': null,
+          'p_source_tuning': null,
+          'p_performance_tuning': performanceTuning,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Updated performance tuning to $performanceTuning for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] ❌ Error updating performance tuning: $e',
+      );
+      rethrow;
+    }
+  }
+
+  // ==========================================================================
+  // CLEAR SONG DUAL-VALUE FIELDS (Phase 2.2)
+  // ==========================================================================
+
+  /// Clears a song's source BPM (sets to NULL).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> clearSourceBpm({
+    required String bandId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] clearSourceBpm: songId=$songId',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_source_bpm': true,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared source BPM for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error clearing source BPM: $e');
+      rethrow;
+    }
+  }
+
+  /// Clears a song's performance BPM (sets to NULL).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> clearPerformanceBpm({
+    required String bandId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] clearPerformanceBpm: songId=$songId',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_performance_bpm': true,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared performance BPM for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error clearing performance BPM: $e');
+      rethrow;
+    }
+  }
+
+  /// Clears a song's source musical key (sets to NULL).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> clearSourceMusicalKey({
+    required String bandId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] clearSourceMusicalKey: songId=$songId',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_source_musical_key': true,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared source musical key for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] ❌ Error clearing source musical key: $e',
+      );
+      rethrow;
+    }
+  }
+
+  /// Clears a song's performance musical key (sets to NULL).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> clearPerformanceMusicalKey({
+    required String bandId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] clearPerformanceMusicalKey: songId=$songId',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_performance_musical_key': true,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared performance musical key for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] ❌ Error clearing performance musical key: $e',
+      );
+      rethrow;
+    }
+  }
+
+  /// Clears a song's source tuning (sets to NULL).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> clearSourceTuning({
+    required String bandId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] clearSourceTuning: songId=$songId',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_source_tuning': true,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared source tuning for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint('[SetlistRepository] ❌ Error clearing source tuning: $e');
+      rethrow;
+    }
+  }
+
+  /// Clears a song's performance tuning (sets to NULL).
+  /// Uses RPC with SECURITY DEFINER to bypass RLS for legacy songs.
+  Future<void> clearPerformanceTuning({
+    required String bandId,
+    required String songId,
+  }) async {
+    if (songId.isEmpty) {
+      throw ArgumentError('songId cannot be empty');
+    }
+    if (bandId.isEmpty) {
+      throw ArgumentError('bandId is required for security');
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[SetlistRepository] clearPerformanceTuning: songId=$songId',
+      );
+    }
+
+    try {
+      final result = await supabase.rpc(
+        'clear_song_metadata',
+        params: {
+          'p_song_id': songId,
+          'p_band_id': bandId,
+          'p_clear_performance_tuning': true,
+        },
+      );
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        throw Exception(error);
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[SetlistRepository] ✓ Cleared performance tuning for song $songId',
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        '[SetlistRepository] ❌ Error clearing performance tuning: $e',
+      );
+      rethrow;
+    }
+  }
+
+  // ==========================================================================
   // DELETE SETLIST
   // ==========================================================================
 
@@ -3417,14 +4079,20 @@ class SetlistRepository {
             title,
             artist,
             bpm,
+            source_bpm,
+            performance_bpm,
             duration_seconds,
             tuning,
+            source_tuning,
+            performance_tuning,
             album_artwork,
             band_id,
             notes,
             youtube_links,
             lyrics,
-            musical_key
+            musical_key,
+            source_musical_key,
+            performance_musical_key
           ''').eq('band_id', bandId).order('title', ascending: true);
 
       if (kDebugMode) {
@@ -3474,7 +4142,7 @@ class SetlistRepository {
           params: {
             'p_song_id': songId,
             'p_band_id': bandId,
-            'p_bpm': update['bpm'],
+            'p_bpm': null,
             'p_duration_seconds': update['durationSeconds'],
             'p_tuning': null,
             'p_notes': null,
@@ -3482,7 +4150,13 @@ class SetlistRepository {
             'p_artist': null,
             'p_youtube_links': null,
             'p_lyrics': null,
-            'p_musical_key': update['musicalKey'],
+            'p_musical_key': null,
+            'p_source_bpm': update['sourceBpm'],
+            'p_performance_bpm': null,
+            'p_source_musical_key': update['sourceMusicalKey'],
+            'p_performance_musical_key': null,
+            'p_source_tuning': null,
+            'p_performance_tuning': null,
           },
         );
 
