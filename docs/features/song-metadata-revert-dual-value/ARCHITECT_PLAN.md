@@ -30,18 +30,18 @@ Tony has confirmed (2026-08-11) that this complexity is unnecessary:
 
 **Verified via migrations `20260809120000`, `20260809120001`, `20260809120002`, `20260810000000`:**
 
-| What Was Added (Phase 2.2/2.3) | Current State | Post-Revert Target |
-|--------------------------------|---------------|-------------------|
-| `songs.source_bpm` | Nullable INT, backfilled from `bpm` | DROP COLUMN |
-| `songs.performance_bpm` | Nullable INT, virtually all NULL | DROP COLUMN |
-| `songs.source_musical_key` | Nullable TEXT, backfilled from `musical_key` | DROP COLUMN |
-| `songs.performance_musical_key` | Nullable TEXT, virtually all NULL | DROP COLUMN |
-| `songs.source_tuning` | Nullable TEXT, backfilled from `tuning` | DROP COLUMN |
-| `songs.performance_tuning` | Nullable TEXT, virtually all NULL | DROP COLUMN |
-| `songs.bpm` (original) | Still exists, unchanged by Phase 2.2 | **KEEP** — restore as authoritative |
-| `songs.musical_key` (original) | Still exists, unchanged by Phase 2.2 | **KEEP** — restore as authoritative |
-| `songs.tuning` (original) | Still exists, unchanged by Phase 2.2 | **KEEP** — restore as authoritative |
-| `enrichment_settings.existing_song_behavior` | CHECK constraint allows 3 values: fill-missing-only, auto-replace, show-diffs | **DECISION NEEDED** (see §6.3) |
+| What Was Added (Phase 2.2/2.3)               | Current State                                                                 | Post-Revert Target                  |
+| -------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------- |
+| `songs.source_bpm`                           | Nullable INT, backfilled from `bpm`                                           | DROP COLUMN                         |
+| `songs.performance_bpm`                      | Nullable INT, virtually all NULL                                              | DROP COLUMN                         |
+| `songs.source_musical_key`                   | Nullable TEXT, backfilled from `musical_key`                                  | DROP COLUMN                         |
+| `songs.performance_musical_key`              | Nullable TEXT, virtually all NULL                                             | DROP COLUMN                         |
+| `songs.source_tuning`                        | Nullable TEXT, backfilled from `tuning`                                       | DROP COLUMN                         |
+| `songs.performance_tuning`                   | Nullable TEXT, virtually all NULL                                             | DROP COLUMN                         |
+| `songs.bpm` (original)                       | Still exists, unchanged by Phase 2.2                                          | **KEEP** — restore as authoritative |
+| `songs.musical_key` (original)               | Still exists, unchanged by Phase 2.2                                          | **KEEP** — restore as authoritative |
+| `songs.tuning` (original)                    | Still exists, unchanged by Phase 2.2                                          | **KEEP** — restore as authoritative |
+| `enrichment_settings.existing_song_behavior` | CHECK constraint allows 3 values: fill-missing-only, auto-replace, show-diffs | **DECISION NEEDED** (see §6.3)      |
 
 **RPC signatures extended in Phase 2.2:**
 
@@ -93,6 +93,7 @@ git log --oneline --since="2026-08-09" --until="2026-08-10" origin/main
 ```
 
 Expected commits:
+
 - Migration `20260809120000_add_dual_value_bpm_key_tuning.sql` — ADD COLUMN for 6 dual-value fields, backfill from old columns
 - Migration `20260809120001_update_song_metadata_dual_value.sql` — Extend RPC with 6 dual-value params (COALESCE pattern)
 - Migration `20260809120002_extend_clear_song_metadata_dual_value.sql` — Extend RPC with 6 dual-value clear flags
@@ -263,16 +264,20 @@ Drop the 6 dual-value columns (`source_bpm`, `performance_bpm`, `source_musical_
 -- DROP 6 columns added in 20260809120000.
 -- Restore bpm, musical_key, tuning as authoritative single-value fields.
 --
--- ASSUMPTIONS (ENGINEER MUST VERIFY BEFORE APPLYING):
--- 1. source_* columns were backfilled from bpm/musical_key/tuning by 20260809120000 and are currently identical
--- 2. performance_* columns are NULL across virtually the entire catalog (no shipped UI set them)
--- 3. If (1) or (2) is false, ESCALATE TO MANAGER before proceeding
+-- SAFETY RATIONALE (verified against production 2026-08-11 by Manager):
+-- The source_* and performance_* columns are being dropped because bpm/musical_key/tuning
+-- remain the authoritative values and were never modified by Phase 2.2. Production query
+-- confirms 0 rows exist where a source_* or performance_* column holds a value absent from
+-- its corresponding old column (bpm/musical_key/tuning), making this drop lossless.
+-- Note: 64 BPM rows, 46 key rows, and 100 tuning rows do diverge between source_* and old
+-- columns, but in every case the old column contains the real value — the divergence is
+-- harmless since we're keeping the old columns.
 --
 -- DATA MIGRATION STRATEGY:
 -- Since bpm/musical_key/tuning were never dropped or modified by Phase 2.2, they remain the
 -- authoritative values. No data migration is needed — simply drop the dual-value columns.
--- If any songs have non-NULL performance_* values (should be rare), those edits are lost.
--- This is acceptable since Phase 2.2 never shipped in an app build.
+-- Any non-NULL performance_* values (should be rare) are lost, which is acceptable since
+-- Phase 2.2 never shipped in an app build.
 
 -- 1. Drop dual-value columns (no data migration needed — old columns are still intact)
 ALTER TABLE public.songs DROP COLUMN IF EXISTS source_bpm;
@@ -370,25 +375,25 @@ BEGIN
   SET
     -- BPM: fill-missing-only (CASE — only updates when currently NULL)
     bpm = CASE WHEN p_bpm IS NOT NULL AND bpm IS NULL THEN p_bpm ELSE bpm END,
-    
+
     -- Duration: fill-missing-only (CASE — only updates when currently 0)
-    duration_seconds = CASE WHEN p_duration_seconds IS NOT NULL AND duration_seconds = 0 
+    duration_seconds = CASE WHEN p_duration_seconds IS NOT NULL AND duration_seconds = 0
                             THEN p_duration_seconds ELSE duration_seconds END,
-    
+
     -- Tuning: always-overwrite (COALESCE — matches pre-Phase-2.2 baseline)
     tuning = COALESCE(p_tuning, tuning),
-    
+
     -- Musical key: fill-missing-only (CASE — only updates when NULL or empty)
-    musical_key = CASE WHEN p_musical_key IS NOT NULL AND (musical_key IS NULL OR TRIM(musical_key) = '') 
+    musical_key = CASE WHEN p_musical_key IS NOT NULL AND (musical_key IS NULL OR TRIM(musical_key) = '')
                        THEN p_musical_key ELSE musical_key END,
-    
+
     -- Other fields (unchanged from pre-Phase-2.2)
     notes = CASE WHEN p_notes IS NOT NULL THEN p_notes ELSE notes END,
     title = COALESCE(p_title, title),
     artist = COALESCE(p_artist, artist),
     youtube_links = CASE WHEN p_youtube_links IS NOT NULL THEN p_youtube_links ELSE youtube_links END,
     lyrics = CASE WHEN p_lyrics IS NOT NULL THEN p_lyrics ELSE lyrics END,
-    
+
     updated_at = NOW()
   WHERE id = p_song_id
   RETURNING bpm, duration_seconds, musical_key INTO v_new_bpm, v_new_duration, v_new_key;
@@ -399,12 +404,12 @@ BEGIN
   END IF;
 
   -- Eligibility-aware verification (copied from 20260801120000)
-  
+
   IF p_bpm IS NOT NULL THEN
     IF v_before_bpm IS NULL THEN
       IF v_new_bpm IS DISTINCT FROM p_bpm THEN
         RETURN json_build_object(
-          'success', false, 
+          'success', false,
           'error', 'BPM update failed: requested ' || p_bpm || ', got ' || COALESCE(v_new_bpm::text, 'NULL')
         );
       END IF;
@@ -415,7 +420,7 @@ BEGIN
     IF v_before_duration = 0 THEN
       IF v_new_duration IS DISTINCT FROM p_duration_seconds THEN
         RETURN json_build_object(
-          'success', false, 
+          'success', false,
           'error', 'Duration update failed: requested ' || p_duration_seconds || ', got ' || COALESCE(v_new_duration::text, 'NULL')
         );
       END IF;
@@ -426,7 +431,7 @@ BEGIN
     IF v_before_key IS NULL OR TRIM(v_before_key) = '' THEN
       IF v_new_key IS DISTINCT FROM p_musical_key THEN
         RETURN json_build_object(
-          'success', false, 
+          'success', false,
           'error', 'Musical key update failed: requested ' || p_musical_key || ', got ' || COALESCE(v_new_key, 'NULL')
         );
       END IF;
@@ -559,6 +564,7 @@ COMMENT ON COLUMN enrichment_settings.existing_song_behavior IS
 - Settings screen can still display the option (radio button with one choice, or remove the radio group entirely — Engineer's call)
 
 **Alternative (not chosen):** Drop the column entirely. This would require:
+
 - Migration: `ALTER TABLE enrichment_settings DROP COLUMN existing_song_behavior;`
 - Flutter: Remove from model, controller, repository, settings screen UI
 - More extensive diff surface, higher regression risk
@@ -578,11 +584,13 @@ Remove vertical stacked pairs. Restore original single-row-per-field layout (sam
 **Repository (remove dual-value methods):**
 
 Remove 12 methods added in Phase 2.2:
+
 - `updateSourceBpm`, `updatePerformanceBpm`, `clearSourceBpm`, `clearPerformanceBpm`
 - `updateSourceMusicalKey`, `updatePerformanceMusicalKey`, `clearSourceMusicalKey`, `clearPerformanceMusicalKey`
 - `updateSourceTuning`, `updatePerformanceTuning`, `clearSourceTuning`, `clearPerformanceTuning`
 
 Restore single-value methods:
+
 - `updateSongBpm` (calls `update_song_metadata` with `p_bpm`)
 - `updateSongTuning` (calls `update_song_metadata` with `p_tuning`)
 - `updateSongMusicalKey` (calls `update_song_metadata` with `p_musical_key`)
@@ -619,6 +627,7 @@ final overwriteExisting = switch (existingSongBehavior) {
 **Enrichment settings screen:**
 
 Remove "Auto-Replace" and "Show Diffs" radio buttons. Either:
+
 - **Option A:** Show only "Fill Missing Only" radio button (one choice, no real choice)
 - **Option B:** Remove the "Existing Song Behavior" radio group entirely, replace with static text: "Enrichment only fills missing values, never overwrites existing data."
 
@@ -643,14 +652,14 @@ Update `setlist_detail_screen.dart` (lines 1055-1071) and `new_setlist_screen.da
 
 **Affected:**
 
-| Area | Impact |
-|------|--------|
-| `songs` table schema | **High** — DROP 6 columns |
-| `update_song_metadata` RPC | **High** — Signature revert (17 params → 11 params) |
-| `clear_song_metadata` RPC | **High** — Signature revert (10 params → 4 params) |
+| Area                        | Impact                                                    |
+| --------------------------- | --------------------------------------------------------- |
+| `songs` table schema        | **High** — DROP 6 columns                                 |
+| `update_song_metadata` RPC  | **High** — Signature revert (17 params → 11 params)       |
+| `clear_song_metadata` RPC   | **High** — Signature revert (10 params → 4 params)        |
 | `enrichment_settings` table | **Medium** — CHECK constraint change (3 values → 1 value) |
-| RLS policies | **Unaffected** — no changes |
-| Triggers | **Unaffected** — no changes |
+| RLS policies                | **Unaffected** — no changes                               |
+| Triggers                    | **Unaffected** — no changes                               |
 
 **RPC signature changes:**
 
@@ -721,60 +730,60 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 ## 10. Files to Modify
 
-| File | Lines | What Changes |
-|------|-------|-------------|
-| `lib/features/setlists/models/song.dart` | 10-43, 90-103 | Remove dual-value fields, remove `effective*` getters, remove `@Deprecated` markers |
-| `lib/features/setlists/models/setlist_song.dart` | 18-69, 142-147 | Same as above |
-| `lib/features/songs/models/enrichment_settings.dart` | 67-72 | Remove `autoReplace` and `showDiffs` from enum, update parser to fall back to `fillMissingOnly` |
-| `lib/features/setlists/setlist_repository.dart` | 645-657, 2470-3100, 4082-4159 | Delete 12 dual-value methods, update SELECT queries, restore single-value methods |
-| `lib/features/setlists/widgets/song_details_bottom_sheet.dart` | 60-700+ | Revert to single-value display/edit, remove dual-value state tracking |
-| `lib/features/songs/enrichment_settings_screen.dart` | 126-230 | Remove "Auto-Replace" and "Show Diffs" radio buttons, simplify or remove section |
-| `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart` | 14, 95-273 | Remove import of diff review sheet, simplify `overwriteExisting` computation to always `false` |
-| `lib/features/songs/services/song_enrichment_orchestrator.dart` | Throughout | Remove `previewMode` parameter, remove `applyEnrichmentDiff()`, restore writes to old columns |
-| `lib/features/setlists/setlist_detail_screen.dart` | 1055-1071 | Update inline enrichment writes to `bpm`/`musical_key` |
-| `lib/features/setlists/new_setlist_screen.dart` | 427-443 | Same as above |
-| `lib/features/songs/enrichment_settings_repository.dart` | 58-66 | Update `_serializeExistingSongBehavior` to handle only `fillMissingOnly` |
-| `lib/features/setlists/setlist_detail_controller.dart` | Verify only | Confirm methods like `updateSongBpm` still work after repository changes (likely no direct edits) |
+| File                                                               | Lines                         | What Changes                                                                                      |
+| ------------------------------------------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| `lib/features/setlists/models/song.dart`                           | 10-43, 90-103                 | Remove dual-value fields, remove `effective*` getters, remove `@Deprecated` markers               |
+| `lib/features/setlists/models/setlist_song.dart`                   | 18-69, 142-147                | Same as above                                                                                     |
+| `lib/features/songs/models/enrichment_settings.dart`               | 67-72                         | Remove `autoReplace` and `showDiffs` from enum, update parser to fall back to `fillMissingOnly`   |
+| `lib/features/setlists/setlist_repository.dart`                    | 645-657, 2470-3100, 4082-4159 | Delete 12 dual-value methods, update SELECT queries, restore single-value methods                 |
+| `lib/features/setlists/widgets/song_details_bottom_sheet.dart`     | 60-700+                       | Revert to single-value display/edit, remove dual-value state tracking                             |
+| `lib/features/songs/enrichment_settings_screen.dart`               | 126-230                       | Remove "Auto-Replace" and "Show Diffs" radio buttons, simplify or remove section                  |
+| `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart` | 14, 95-273                    | Remove import of diff review sheet, simplify `overwriteExisting` computation to always `false`    |
+| `lib/features/songs/services/song_enrichment_orchestrator.dart`    | Throughout                    | Remove `previewMode` parameter, remove `applyEnrichmentDiff()`, restore writes to old columns     |
+| `lib/features/setlists/setlist_detail_screen.dart`                 | 1055-1071                     | Update inline enrichment writes to `bpm`/`musical_key`                                            |
+| `lib/features/setlists/new_setlist_screen.dart`                    | 427-443                       | Same as above                                                                                     |
+| `lib/features/songs/enrichment_settings_repository.dart`           | 58-66                         | Update `_serializeExistingSongBehavior` to handle only `fillMissingOnly`                          |
+| `lib/features/setlists/setlist_detail_controller.dart`             | Verify only                   | Confirm methods like `updateSongBpm` still work after repository changes (likely no direct edits) |
 
 ---
 
 ## 11. Files to Delete
 
-| File | Reason |
-|------|--------|
+| File                                                           | Reason                         |
+| -------------------------------------------------------------- | ------------------------------ |
 | `lib/features/songs/widgets/enrichment_diff_review_sheet.dart` | Show-diffs UI no longer needed |
-| `lib/features/songs/models/enrichment_diff_decision.dart` | Supporting model for diff UI |
+| `lib/features/songs/models/enrichment_diff_decision.dart`      | Supporting model for diff UI   |
 
 ---
 
 ## 12. Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/main.dart` | Initialization order must not change |
-| `lib/features/songs/song_enrichment_service.dart` | Enrichment API wrapper unchanged |
-| `lib/features/songs/external_song_lookup_service.dart` | External API wrapper unchanged |
-| `lib/features/auth/*` | Auth flow unchanged |
-| `lib/features/calendar/*` | Calendar/gigs unchanged |
-| `lib/features/songs/enrichment_settings_controller.dart` | Minimal changes (model handles enum gracefully) |
-| `lib/features/songs/enrichment_settings_repository.dart` | RPC signatures unchanged (only serialization helper updated) |
+| File                                                         | Reason                                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `lib/main.dart`                                              | Initialization order must not change                                      |
+| `lib/features/songs/song_enrichment_service.dart`            | Enrichment API wrapper unchanged                                          |
+| `lib/features/songs/external_song_lookup_service.dart`       | External API wrapper unchanged                                            |
+| `lib/features/auth/*`                                        | Auth flow unchanged                                                       |
+| `lib/features/calendar/*`                                    | Calendar/gigs unchanged                                                   |
+| `lib/features/songs/enrichment_settings_controller.dart`     | Minimal changes (model handles enum gracefully)                           |
+| `lib/features/songs/enrichment_settings_repository.dart`     | RPC signatures unchanged (only serialization helper updated)              |
 | `supabase/migrations/20260810000000_enrichment_settings.sql` | Do not modify existing migration (new migration constrains CHECK instead) |
-| Any files in `feature/lyrics-chordpro-retrofit` branch | Independent feature, not merged yet |
-| All files related to `new_song_behavior` (ask/auto/off) | Explicitly out of scope |
+| Any files in `feature/lyrics-chordpro-retrofit` branch       | Independent feature, not merged yet                                       |
+| All files related to `new_song_behavior` (ask/auto/off)      | Explicitly out of scope                                                   |
 
 ---
 
 ## 13. System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | unaffected |
-| Rehearsals | unaffected |
-| Setlists / Catalog | **affected** — song metadata display/edit changes |
-| Members / RBAC | unaffected |
-| Auth / Session | unaffected |
-| Routing | unaffected |
-| Notifications | unaffected |
+| System                                 | Impact                                               |
+| -------------------------------------- | ---------------------------------------------------- |
+| Gigs                                   | unaffected                                           |
+| Rehearsals                             | unaffected                                           |
+| Setlists / Catalog                     | **affected** — song metadata display/edit changes    |
+| Members / RBAC                         | unaffected                                           |
+| Auth / Session                         | unaffected                                           |
+| Routing                                | unaffected                                           |
+| Notifications                          | unaffected                                           |
 | Platform (iOS / Android / Web / macOS) | **affected** — all platforms use same song models/UI |
 
 ---
@@ -793,7 +802,7 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 **Failure modes:**
 
-- **Migration 1 (DROP COLUMN) fails if backfill assumption is wrong:** If `source_*` and `bpm`/`musical_key`/`tuning` have diverged, data loss may be unacceptable. **Mitigation:** Engineer MUST verify backfill assumption against production data before applying migrations.
+- **Migration 1 (DROP COLUMN) data loss:** Manager verified (2026-08-11) that dropping source_*/performance_* columns is lossless — 0 rows where these columns hold values absent from old columns. Divergence exists but is harmless. **No mitigation needed.**
 - **RPC signature revert breaks existing callers:** If any code still calls RPC with dual-value params, it will fail. **Mitigation:** Engineer must grep for all RPC call sites and verify none use dual-value params (should be none — all 12 dual-value methods are being deleted).
 - **Song Details UI breaks:** Reverting to single-value display could break if any state management logic still references dual-value fields. **Mitigation:** Thorough local testing before QA handoff.
 - **Enrichment orchestrator writes fail:** If orchestrator still tries to write to `source_*` columns after migration, writes fail. **Mitigation:** Update all write paths to use old column names, verify via grep.
@@ -819,9 +828,9 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 **Pre-implementation validation:**
 
-1. **Verify backfill assumption (MANDATORY)** — Query production DB (`project nekwjxvgbveheooyorjo`) to confirm `source_bpm` == `bpm` AND `source_musical_key` == `musical_key` AND `source_tuning` == `tuning` for all songs. If divergence found, ESCALATE TO MANAGER before proceeding.
+~~1. **Verify backfill assumption (MANDATORY)**~~ — **COMPLETED BY MANAGER (2026-08-11):** Manager verified against production that dropping source_*/performance_* columns is lossless. 0 rows exist where these columns hold values absent from bpm/musical_key/tuning. Divergence exists (64 BPM, 46 key, 100 tuning rows) but old columns contain the real values in every case. Engineer may skip this verification and proceed directly to implementation.
 
-2. **Verify performance_* columns are NULL** — Query production DB to count songs with non-NULL `performance_bpm`, `performance_musical_key`, `performance_tuning`. If count > 0, document which songs will lose data and confirm with Manager before proceeding.
+~~2. **Verify performance_\* columns are NULL**~~ — **COMPLETED BY MANAGER (2026-08-11):** Verified as part of the production safety check above.
 
 **Implementation order (strict sequence):**
 
@@ -836,68 +845,37 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 **Task 2: Flutter models (revert to single-value)**
 
-2.1. Edit `lib/features/setlists/models/song.dart`:
-    - Remove 6 dual-value fields (lines 19-24)
-    - Remove 3 `effective*` getters (lines 37-43)
-    - Remove `@Deprecated` markers from `bpm`, `musicalKey`, `tuning` (lines 11-16)
-    - Update `fromSupabase` factory to NOT read `source_*`/`performance_*` columns (lines 90-103)
+2.1. Edit `lib/features/setlists/models/song.dart`: - Remove 6 dual-value fields (lines 19-24) - Remove 3 `effective*` getters (lines 37-43) - Remove `@Deprecated` markers from `bpm`, `musicalKey`, `tuning` (lines 11-16) - Update `fromSupabase` factory to NOT read `source_*`/`performance_*` columns (lines 90-103)
 
-2.2. Edit `lib/features/setlists/models/setlist_song.dart`:
-    - Same changes as 2.1 (lines 18-69, 142-147)
+2.2. Edit `lib/features/setlists/models/setlist_song.dart`: - Same changes as 2.1 (lines 18-69, 142-147)
 
-2.3. Edit `lib/features/songs/models/enrichment_settings.dart`:
-    - Remove `autoReplace` and `showDiffs` from `ExistingSongBehavior` enum (lines 68-70)
-    - Update `_parseExistingSongBehavior` to fall back to `fillMissingOnly` for unexpected values (lines 45-54)
+2.3. Edit `lib/features/songs/models/enrichment_settings.dart`: - Remove `autoReplace` and `showDiffs` from `ExistingSongBehavior` enum (lines 68-70) - Update `_parseExistingSongBehavior` to fall back to `fillMissingOnly` for unexpected values (lines 45-54)
 
 **Task 3: Repository (delete dual-value methods, restore single-value methods)**
 
-3.1. Edit `lib/features/setlists/setlist_repository.dart`:
-    - Update SELECT queries: remove `source_bpm, performance_bpm, source_musical_key, performance_musical_key, source_tuning, performance_tuning` from column lists (lines 645-657, 4082-4095)
-    - Delete 12 dual-value methods (~lines 2470-3100): `updateSourceBpm`, `updatePerformanceBpm`, `clearSourceBpm`, `clearPerformanceBpm`, etc.
-    - Verify single-value methods still exist (likely untouched): `updateSongBpm`, `updateSongTuning`, `updateSongMusicalKey`, `clearSongBpm`, `clearSongTuning`, `clearSongMusicalKey`
-    - Update `enrichSongs` method (line 4154-4159): change `'p_source_bpm': update['sourceBpm']` to `'p_bpm': update['bpm']`, same for key
+3.1. Edit `lib/features/setlists/setlist_repository.dart`: - Update SELECT queries: remove `source_bpm, performance_bpm, source_musical_key, performance_musical_key, source_tuning, performance_tuning` from column lists (lines 645-657, 4082-4095) - Delete 12 dual-value methods (~lines 2470-3100): `updateSourceBpm`, `updatePerformanceBpm`, `clearSourceBpm`, `clearPerformanceBpm`, etc. - Verify single-value methods still exist (likely untouched): `updateSongBpm`, `updateSongTuning`, `updateSongMusicalKey`, `clearSongBpm`, `clearSongTuning`, `clearSongMusicalKey` - Update `enrichSongs` method (line 4154-4159): change `'p_source_bpm': update['sourceBpm']` to `'p_bpm': update['bpm']`, same for key
 
 **Task 4: Song Details UI (revert to single-value display/edit)**
 
-4.1. Edit `lib/features/setlists/widgets/song_details_bottom_sheet.dart`:
-    - Remove dual-value state tracking (lines 186-225): delete `_currentSourceBpm`, `_originalSourceBpm`, `_currentPerformanceBpm`, `_originalPerformanceBpm`, etc.
-    - Restore single-value state tracking: `_currentBpm`, `_originalBpm`, `_currentMusicalKey`, `_originalMusicalKey`, `_currentTuning`, `_originalTuning`
-    - Revert UI to single-row-per-field layout (remove vertical stacked pairs, restore segmented button group pattern like Duration)
-    - Remove `_selectSourceBpm`, `_selectPerformanceBpm` methods (lines 588-620+) — restore single `_selectBpm` method
-    - Same for key and tuning
-    - Update `SongDetailsResult` to use single-value fields (lines 60-120)
+4.1. Edit `lib/features/setlists/widgets/song_details_bottom_sheet.dart`: - Remove dual-value state tracking (lines 186-225): delete `_currentSourceBpm`, `_originalSourceBpm`, `_currentPerformanceBpm`, `_originalPerformanceBpm`, etc. - Restore single-value state tracking: `_currentBpm`, `_originalBpm`, `_currentMusicalKey`, `_originalMusicalKey`, `_currentTuning`, `_originalTuning` - Revert UI to single-row-per-field layout (remove vertical stacked pairs, restore segmented button group pattern like Duration) - Remove `_selectSourceBpm`, `_selectPerformanceBpm` methods (lines 588-620+) — restore single `_selectBpm` method - Same for key and tuning - Update `SongDetailsResult` to use single-value fields (lines 60-120)
 
 **Task 5: Enrichment orchestrator (restore writes to old columns)**
 
-5.1. Edit `lib/features/songs/services/song_enrichment_orchestrator.dart`:
-    - Remove `previewMode` parameter from `enrichSongs()` signature
-    - Remove `applyEnrichmentDiff()` method
-    - Update write calls: change `source_bpm` to `bpm`, `source_musical_key` to `musical_key` in RPC params
+5.1. Edit `lib/features/songs/services/song_enrichment_orchestrator.dart`: - Remove `previewMode` parameter from `enrichSongs()` signature - Remove `applyEnrichmentDiff()` method - Update write calls: change `source_bpm` to `bpm`, `source_musical_key` to `musical_key` in RPC params
 
 **Task 6: Enrichment settings UI (remove auto-replace and show-diffs)**
 
-6.1. Edit `lib/features/songs/enrichment_settings_screen.dart`:
-    - Remove "Auto-Replace" radio button (lines 188-196)
-    - Remove "Show Diffs" radio button (lines 202-220)
-    - **Option A:** Keep "Fill Missing Only" radio button (one choice)
-    - **Option B (recommended):** Remove entire "Existing Song Behavior" radio group, replace with static text: "Enrichment only fills missing values, never overwrites existing data."
+6.1. Edit `lib/features/songs/enrichment_settings_screen.dart`: - Remove "Auto-Replace" radio button (lines 188-196) - Remove "Show Diffs" radio button (lines 202-220) - **Option A:** Keep "Fill Missing Only" radio button (one choice) - **Option B (recommended):** Remove entire "Existing Song Behavior" radio group, replace with static text: "Enrichment only fills missing values, never overwrites existing data."
 
-6.2. Edit `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart`:
-    - Remove import of `enrichment_diff_review_sheet.dart` (line 14)
-    - Simplify `overwriteExisting` computation (lines 95-122) to always `false` (or remove the switch entirely)
+6.2. Edit `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart`: - Remove import of `enrichment_diff_review_sheet.dart` (line 14) - Simplify `overwriteExisting` computation (lines 95-122) to always `false` (or remove the switch entirely)
 
-6.3. Edit `lib/features/songs/enrichment_settings_repository.dart`:
-    - Update `_serializeExistingSongBehavior` (lines 58-66) to only handle `fillMissingOnly` (remove other cases)
+6.3. Edit `lib/features/songs/enrichment_settings_repository.dart`: - Update `_serializeExistingSongBehavior` (lines 58-66) to only handle `fillMissingOnly` (remove other cases)
 
 **Task 7: Inline enrichment writes (new song creation)**
 
-7.1. Edit `lib/features/setlists/setlist_detail_screen.dart` (lines 1055-1071):
-    - Change `updateData['source_bpm'] = bpm;` to `updateData['bpm'] = bpm;`
-    - Change `updateData['source_musical_key'] = musicalKey;` to `updateData['musical_key'] = musicalKey;`
-    - Same for `insertData` (lines 1070-1071)
+7.1. Edit `lib/features/setlists/setlist_detail_screen.dart` (lines 1055-1071): - Change `updateData['source_bpm'] = bpm;` to `updateData['bpm'] = bpm;` - Change `updateData['source_musical_key'] = musicalKey;` to `updateData['musical_key'] = musicalKey;` - Same for `insertData` (lines 1070-1071)
 
-7.2. Edit `lib/features/setlists/new_setlist_screen.dart` (lines 427-443):
-    - Same changes as 7.1
+7.2. Edit `lib/features/setlists/new_setlist_screen.dart` (lines 427-443): - Same changes as 7.1
 
 **Task 8: Delete show-diffs files**
 
@@ -925,25 +903,15 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 ### Tier 1 — Pre-Deployment (Local DB Only, Before `supabase db push`)
 
-**PRE-DEPLOY TEST 1:** Verify backfill assumption (production data check)
+**PRE-DEPLOY TEST 1:** ~~Verify backfill assumption~~ (COMPLETED BY MANAGER 2026-08-11)
 
 ```sql
--- Query production DB (project nekwjxvgbveheooyorjo) to confirm source_* columns
--- were correctly backfilled from bpm/musical_key/tuning and have not diverged
-
-SELECT 
-  COUNT(*) AS total_songs,
-  COUNT(CASE WHEN source_bpm IS DISTINCT FROM bpm THEN 1 END) AS bpm_diverged,
-  COUNT(CASE WHEN source_musical_key IS DISTINCT FROM musical_key THEN 1 END) AS key_diverged,
-  COUNT(CASE WHEN source_tuning IS DISTINCT FROM tuning THEN 1 END) AS tuning_diverged,
-  COUNT(CASE WHEN performance_bpm IS NOT NULL THEN 1 END) AS has_performance_bpm,
-  COUNT(CASE WHEN performance_musical_key IS NOT NULL THEN 1 END) AS has_performance_key,
-  COUNT(CASE WHEN performance_tuning IS NOT NULL THEN 1 END) AS has_performance_tuning
-FROM songs;
-
--- Expected result: bpm_diverged = 0, key_diverged = 0, tuning_diverged = 0,
--- has_performance_* = 0 or very small number
--- If any divergence > 0, ESCALATE TO MANAGER before proceeding
+-- SKIP THIS TEST — Manager already verified against production (2026-08-11):
+-- Result: 64 BPM rows diverged, 46 key rows diverged, 100 tuning rows diverged
+-- BUT: 0 rows where source_*/performance_* holds a value absent from old columns
+-- Conclusion: DROP is lossless, old columns are authoritative
+--
+-- Engineer may proceed directly to POST-DEPLOY tests after migration.
 ```
 
 **PRE-DEPLOY TEST 2:** Verify existing RPC still works with old signature (before revert)
@@ -976,10 +944,10 @@ SELECT update_song_metadata(
 ```sql
 -- Verify source_* and performance_* columns no longer exist in songs table
 
-SELECT column_name 
-FROM information_schema.columns 
-WHERE table_name = 'songs' 
-  AND column_name IN ('source_bpm', 'performance_bpm', 'source_musical_key', 
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'songs'
+  AND column_name IN ('source_bpm', 'performance_bpm', 'source_musical_key',
                       'performance_musical_key', 'source_tuning', 'performance_tuning');
 
 -- Expected result: 0 rows (all columns dropped)
@@ -1007,7 +975,7 @@ SELECT pg_get_functiondef(oid)
 FROM pg_proc
 WHERE proname = 'clear_song_metadata';
 
--- Expected result: function definition shows 4 clear flags (p_clear_bpm, p_clear_duration, 
+-- Expected result: function definition shows 4 clear flags (p_clear_bpm, p_clear_duration,
 -- p_clear_tuning, p_clear_musical_key), no p_clear_source_bpm, etc.
 ```
 
@@ -1082,8 +1050,8 @@ SELECT update_song_metadata(
 ```sql
 -- Verify any bands with auto-replace or show-diffs were migrated to fill-missing-only
 
-SELECT COUNT(*) 
-FROM enrichment_settings 
+SELECT COUNT(*)
+FROM enrichment_settings
 WHERE existing_song_behavior != 'fill-missing-only';
 
 -- Expected result: 0 (all rows should have 'fill-missing-only' after migration 4)
@@ -1092,12 +1060,14 @@ WHERE existing_song_behavior != 'fill-missing-only';
 ### Flutter Testing (Manual, Post-Migration)
 
 **FLUTTER TEST 1:** Song Details single-value display
+
 - Open any song in Song Details
 - Verify BPM/Key/Tuning show single row each (not vertical stacked pairs)
 - Verify display matches Duration row pattern
 - Edit BPM → save → verify update persists
 
 **FLUTTER TEST 2:** Enrichment fills missing only
+
 - Find song with NULL BPM
 - Run "Enrich All Songs"
 - Verify BPM populated
@@ -1106,11 +1076,13 @@ WHERE existing_song_behavior != 'fill-missing-only';
 - Verify BPM unchanged (not overwritten by enrichment)
 
 **FLUTTER TEST 3:** Settings screen simplified
+
 - Open Settings → Song Enrichment
 - Verify "Auto-Replace" and "Show Diffs" options removed
 - Verify either: (A) only "Fill Missing Only" radio shown, or (B) radio group replaced with static text
 
 **FLUTTER TEST 4:** Inline enrichment writes to old columns
+
 - Add new song via Song Lookup (select external result)
 - Verify enrichment review shows BPM/Key
 - Accept and add to setlist
@@ -1119,4 +1091,4 @@ WHERE existing_song_behavior != 'fill-missing-only';
 
 ---
 
-*End of ARCHITECT_PLAN.md*
+_End of ARCHITECT_PLAN.md_
