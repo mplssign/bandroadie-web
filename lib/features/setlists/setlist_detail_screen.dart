@@ -48,6 +48,13 @@ import '../songs/widgets/enrichment_selector_bottom_sheet.dart';
 import '../songs/widgets/enrichment_results_overlay.dart';
 import '../songs/widgets/enrichment_progress_overlay.dart';
 import '../songs/enrichment_settings_controller.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/app_card.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:bandroadie/components/ui/app_text_form_field.dart';
 import '../songs/services/inline_song_enrichment_service.dart';
 
 // ============================================================================
@@ -216,7 +223,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         ),
         content: Form(
           key: formKey,
-          child: TextFormField(
+          child: AppTextFormField(
             controller: controller,
             autofocus: true,
             style:
@@ -242,22 +249,20 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           ),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style:
-                  AppTextStyles.body.copyWith(color: context.colors.textMuted),
-            ),
+            variant: AppButtonVariant.text,
           ),
-          FilledButton(
+          AppButton(
+            label: 'Save',
             onPressed: () {
               if (formKey.currentState?.validate() ?? false) {
                 Navigator.of(context).pop(controller.text.trim());
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Save'),
+            variant: AppButtonVariant.primary,
+            backgroundColor: AppColors.primary,
           ),
         ],
       ),
@@ -410,9 +415,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               '"$songTitle" is already in $targetSetlistName.',
             ),
             actions: [
-              TextButton(
+              AppButton(
+                label: 'OK',
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+                variant: AppButtonVariant.text,
               ),
             ],
           ),
@@ -857,13 +863,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.button
-                  .copyWith(color: context.colors.textMuted),
-            ),
+            variant: AppButtonVariant.text,
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -903,13 +906,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.button
-                  .copyWith(color: context.colors.textMuted),
-            ),
+            variant: AppButtonVariant.text,
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -1458,13 +1458,13 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         builder: (context) => PopScope(
           canPop: false,
           child: Center(
-            child: Card(
+            child: AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(),
+                    const AppProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
                       'Adding ${_selectedSongIds.length} ${_selectedSongIds.length == 1 ? 'song' : 'songs'}...',
@@ -1746,11 +1746,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                   SizedBox(
                     width: Spacing.space24,
                     height: Spacing.space24,
-                    child: CircularProgressIndicator(
+                    child: AppProgressIndicator(
                       strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        colors.primary,
-                      ),
+                      color: colors.primary,
                     ),
                   ),
                   const SizedBox(height: Spacing.space12),
@@ -2029,14 +2027,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               AppTextStyles.body.copyWith(color: context.colors.textSecondary),
         ),
         actions: [
-          TextButton(
+          AppButton(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-              ),
-            ),
+            variant: AppButtonVariant.text,
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -2188,7 +2182,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       }
     });
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
         child: Stack(
@@ -2306,7 +2300,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         Expanded(
           child: SizedBox(
             height: 40,
-            child: TextField(
+            child: AppTextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
               autofocus: true,
@@ -2373,8 +2367,8 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
   Widget _buildBody(SetlistDetailState state, bool canEdit) {
     if (state.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation(AppColors.primary),
+        child: AppProgressIndicator(
+          color: AppColors.primary,
         ),
       );
     }
@@ -2548,26 +2542,18 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             ],
             // Print icon - stage-optimized formatting for live performance
             // Available on all platforms (Web uses HTML, native uses PDF)
-            IconButton(
+            AppIconButton(
               onPressed: _handlePrint,
-              icon: const Icon(
-                Icons.print_rounded,
-                size: 20,
-                color: AppColors.primary,
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              icon: Icons.print_rounded,
+              size: 20,
+              color: AppColors.primary,
             ),
             // Share icon - opens share sheet with text share option
-            IconButton(
+            AppIconButton(
               onPressed: _handleShare,
-              icon: const Icon(
-                AppIcons.share,
-                size: 20,
-                color: AppColors.primary,
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              icon: AppIcons.share,
+              size: 20,
+              color: AppColors.primary,
             ),
           ],
         ),
@@ -2966,17 +2952,12 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
         children: [
           // Cancel button (text style)
           Expanded(
-            child: TextButton(
+            child: AppButton(
+              label: 'Cancel',
               onPressed: _exitSelectMode,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.button.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
+              variant: AppButtonVariant.text,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              fullWidth: true,
             ),
           ),
 
@@ -2985,28 +2966,20 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           // Move to setlist button (primary, disabled when no selection)
           Expanded(
             flex: 2,
-            child: FilledButton(
+            child: AppButton(
+              label: buttonLabel,
               onPressed: hasSelection ? _handleAddToSetlist : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: hasSelection
-                    ? AppColors.primary
-                    : AppColors.primary.withValues(alpha: 0.4),
-                disabledBackgroundColor: AppColors.primary.withValues(
-                  alpha: 0.4,
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
+              variant: AppButtonVariant.primary,
+              backgroundColor: hasSelection
+                  ? AppColors.primary
+                  : AppColors.primary.withValues(alpha: 0.4),
+              disabledBackgroundColor: AppColors.primary.withValues(
+                alpha: 0.4,
               ),
-              child: Text(
-                buttonLabel,
-                style: AppTextStyles.button.copyWith(
-                  color: hasSelection
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.6),
-                ),
-              ),
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.6),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              fullWidth: true,
             ),
           ),
         ],
@@ -3605,14 +3578,10 @@ class _DeleteSongDialog extends StatelessWidget {
         ],
       ),
       actions: [
-        TextButton(
+        AppButton(
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(
-            'Cancel',
-            style: AppTextStyles.button.copyWith(
-              color: context.colors.textSecondary,
-            ),
-          ),
+          variant: AppButtonVariant.text,
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(true),
