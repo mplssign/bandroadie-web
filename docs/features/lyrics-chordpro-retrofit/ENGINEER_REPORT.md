@@ -282,7 +282,17 @@ Command: `flutter analyze`
 
 ## Deviations From Architect Plan
 
-**None.** All tasks implemented exactly as specified in `ARCHITECT_PLAN.md`.
+**Bug Fixes (post-implementation):**
+
+1. **Lyrics editor data-loss bug** (fixed 2026-08-10) — `lyrics_editor_sheet.dart`'s `_handleSave()` originally returned `null` when clearing lyrics, which was indistinguishable from canceling (Cancel also returned `null`). This caused `song_details_bottom_sheet.dart`'s `_showLyricsEditor()` to silently wipe existing lyrics when the user tapped Cancel. **Fix:** Changed `_handleSave()` to always return `text.trim()` (even if empty), so `null` means "cancelled" and `''` means "cleared". Updated call site to treat `null` as no-op and empty string as legitimate clear. This bug was present in the original Task 3.2 implementation and deviated from the ARCHITECT_PLAN.md specification which called for always returning a String.
+
+2. **Chords silently vanish bug** (fixed 2026-08-10) — Two issues in chord rendering:
+   - `chordpro_parser.dart`'s `ParsedLyricsLine.isEmpty` only checked `text.trim().isEmpty`, ignoring chords. Chord-only lines (e.g., `[Em] [C] [G] [D]` for instrumental sections) were treated as blank spacers and never rendered.
+   - `lyrics_view_screen.dart`'s `_buildLineWithChords()` dropped trailing chords (e.g., `coming home [C]`) because they never matched any word in the `split(' ')` array.
+   
+   **Fix:** Updated `isEmpty` to check both text and chords (`text.trim().isEmpty && chords.isEmpty`). Added chord-only line rendering (displays chords as standalone text). Added trailing-chord detection logic that tracks used chords and renders orphaned chords at the end of the line.
+
+All original tasks implemented as specified in `ARCHITECT_PLAN.md`.
 
 **Minor Implementation Detail:**
 
