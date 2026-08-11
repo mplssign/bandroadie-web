@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../../setlists/models/song.dart';
 import '../../setlists/setlist_repository.dart';
 import '../external_song_lookup_service.dart';
-import '../models/enrichment_diff_decision.dart';
 import '../song_enrichment_service.dart';
 
 // ============================================================================
@@ -28,7 +27,6 @@ class SongEnrichmentDetail {
   final EnrichmentFieldResult bpmResult;
   final EnrichmentFieldResult durationResult;
   final EnrichmentFieldResult keyResult;
-  // Preview mode data (null when previewMode=false)
   final int? currentBpm;
   final String? currentKey;
   final int? currentDuration;
@@ -92,7 +90,6 @@ class SongEnrichmentOrchestrator {
   /// [enrichDuration]: Whether to enrich Duration (checked in drawer).
   /// [enrichKey]: Whether to enrich Key (checked in drawer).
   /// [overwriteExisting]: Whether to overwrite existing values (default false).
-  /// [previewMode]: Fetch enrichment data but do not write to DB (default false).
   /// [onProgress]: Callback invoked after each song completes.
   ///
   /// Returns summary with per-song details for results overlay.
@@ -103,7 +100,6 @@ class SongEnrichmentOrchestrator {
     required bool enrichDuration,
     required bool enrichKey,
     bool overwriteExisting = false,
-    bool previewMode = false,
     void Function(int completed, int total)? onProgress,
   }) async {
     // 1. Fetch song records
@@ -125,11 +121,10 @@ class SongEnrichmentOrchestrator {
 
     // 2. Filter: skip songs where all requested fields are already filled
     final songsNeedingEnrichment = songsToEnrich.where((song) {
-      final needsBpm =
-          enrichBpm && (overwriteExisting || song.sourceBpm == null);
+      final needsBpm = enrichBpm && (overwriteExisting || song.bpm == null);
       final needsDuration = enrichDuration && song.durationSeconds == 0;
       final needsKey =
-          enrichKey && (overwriteExisting || song.sourceMusicalKey == null);
+          enrichKey && (overwriteExisting || song.musicalKey == null);
       return needsBpm || needsDuration || needsKey;
     }).toList();
 
@@ -148,11 +143,10 @@ class SongEnrichmentOrchestrator {
       final song = songsToEnrich[i];
 
       // Check if this song needs enrichment
-      final needsBpm =
-          enrichBpm && (overwriteExisting || song.sourceBpm == null);
+      final needsBpm = enrichBpm && (overwriteExisting || song.bpm == null);
       final needsDuration = enrichDuration && song.durationSeconds == 0;
       final needsKey =
-          enrichKey && (overwriteExisting || song.sourceMusicalKey == null);
+          enrichKey && (overwriteExisting || song.musicalKey == null);
 
       if (!needsBpm && !needsDuration && !needsKey) {
         // All requested fields already filled
@@ -235,16 +229,16 @@ class SongEnrichmentOrchestrator {
 
       // c. Merge results and update song via RPC for whichever fields resolved.
       final updateMap = <String, dynamic>{};
-      if (fetchedBpm != null) updateMap['sourceBpm'] = fetchedBpm;
+      if (fetchedBpm != null) updateMap['bpm'] = fetchedBpm;
       if (fetchedDuration != null) {
         updateMap['durationSeconds'] = fetchedDuration;
       }
-      if (fetchedKey != null) updateMap['sourceMusicalKey'] = fetchedKey;
+      if (fetchedKey != null) updateMap['musicalKey'] = fetchedKey;
 
-      // Call RPC if we have any update (skip in preview mode)
+      // Call RPC if we have any update
       bool rpcSuccess = false;
       bool rpcFailed = false;
-      if (updateMap.isNotEmpty && !previewMode) {
+      if (updateMap.isNotEmpty) {
         try {
           final result = await _repository.enrichSongs(
             bandId: bandId,
@@ -304,13 +298,6 @@ class SongEnrichmentOrchestrator {
         bpmResult: bpmResult,
         durationResult: durationResult,
         keyResult: keyResult,
-        // Preview mode data (always populate current values, enriched values only if fetched)
-        currentBpm: previewMode ? song.sourceBpm : null,
-        currentKey: previewMode ? song.sourceMusicalKey : null,
-        currentDuration: previewMode ? song.durationSeconds : null,
-        enrichedBpm: previewMode ? fetchedBpm : null,
-        enrichedKey: previewMode ? fetchedKey : null,
-        enrichedDuration: previewMode ? fetchedDuration : null,
       ));
 
       // Update counts, allowing partial success + partial failures in one song.
@@ -351,89 +338,5 @@ class SongEnrichmentOrchestrator {
       errors: errorCount,
       details: details,
     );
-  }
-
-  /// Apply user-accepted enrichment diffs from diff review UI.
-  ///
-  /// [decisions]: Map of song ID to accepted field values.
-  ///
-  /// Returns result with per-song outcomes for results overlay.
-  Future<EnrichmentOrchestrationResult> applyEnrichmentDiff({
-    required String bandId,
-    required Map<String, EnrichmentDiffDecision> decisions,
-  }) async {
-    // Build updates map for repository
-    final updates = <String, Map<String, dynamic>>{};
-    for (final entry in decisions.entries) {
-      final songId = entry.key;
-      final decision = entry.value;
-      final songUpdates = <String, dynamic>{};
-
-      if (decision.acceptedBpm != null) {
-        songUpdates['sourceBpm'] = decision.acceptedBpm;
-      }
-      if (decision.acceptedKey != null) {
-        songUpdates['sourceMusicalKey'] = decision.acceptedKey;
-      }
-      if (decision.acceptedDuration != null) {
-        songUpdates['durationSeconds'] = decision.acceptedDuration;
-      }
-
-      if (songUpdates.isNotEmpty) {
-        updates[songId] = songUpdates;
-      }
-    }
-
-    // If no updates, return empty result
-    if (updates.isEmpty) {
-      return const EnrichmentOrchestrationResult(
-        total: 0,
-        enriched: 0,
-        notFound: 0,
-        unchanged: 0,
-        errors: 0,
-        details: [],
-      );
-    }
-
-    // Call repository to write accepted fields
-    try {
-      final results = await _repository.enrichSongs(
-        bandId: bandId,
-        updates: updates,
-      );
-
-      // Build result based on RPC outcomes
-      int enrichedCount = 0;
-      int errorCount = 0;
-
-      for (final songId in updates.keys) {
-        final success = results[songId] ?? false;
-        if (success) {
-          enrichedCount++;
-        } else {
-          errorCount++;
-        }
-      }
-
-      return EnrichmentOrchestrationResult(
-        total: updates.length,
-        enriched: enrichedCount,
-        notFound: 0,
-        unchanged: 0,
-        errors: errorCount,
-        details: [], // Not populated for apply diff (results overlay doesn't need it)
-      );
-    } catch (e) {
-      debugPrint('[SongEnrichmentOrchestrator] Apply diff error: $e');
-      return EnrichmentOrchestrationResult(
-        total: updates.length,
-        enriched: 0,
-        notFound: 0,
-        unchanged: 0,
-        errors: updates.length,
-        details: [],
-      );
-    }
   }
 }

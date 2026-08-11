@@ -56,14 +56,8 @@ class EnrichmentSettingsRepository {
   }
 
   String _serializeExistingSongBehavior(ExistingSongBehavior behavior) {
-    switch (behavior) {
-      case ExistingSongBehavior.fillMissingOnly:
-        return 'fill-missing-only';
-      case ExistingSongBehavior.autoReplace:
-        return 'auto-replace';
-      case ExistingSongBehavior.showDiffs:
-        return 'show-diffs';
-    }
+    // After Phase 2.2 revert: only fillMissingOnly is valid
+    return 'fill-missing-only';
   }
 }
 

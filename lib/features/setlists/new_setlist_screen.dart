@@ -425,8 +425,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
       final songId = result[0]['id'] as String;
       if (bpm != null || musicalKey != null) {
         final updateData = <String, dynamic>{};
-        if (bpm != null) updateData['source_bpm'] = bpm;
-        if (musicalKey != null) updateData['source_musical_key'] = musicalKey;
+        if (bpm != null) updateData['bpm'] = bpm;
+        if (musicalKey != null) updateData['musical_key'] = musicalKey;
 
         if (updateData.isNotEmpty) {
           await supabase.from('songs').update(updateData).eq('id', songId);
@@ -440,8 +440,8 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
       'title': title.trim(),
       'artist': artist.trim(),
     };
-    if (bpm != null) insertData['source_bpm'] = bpm;
-    if (musicalKey != null) insertData['source_musical_key'] = musicalKey;
+    if (bpm != null) insertData['bpm'] = bpm;
+    if (musicalKey != null) insertData['musical_key'] = musicalKey;
 
     final inserted =
         await supabase.from('songs').insert(insertData).select('id').single();

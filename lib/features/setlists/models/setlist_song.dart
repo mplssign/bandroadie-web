@@ -14,20 +14,14 @@ import '../tuning/tuning_helpers.dart';
 /// - songs.id -> id
 /// - songs.title -> title
 /// - songs.artist -> artist
-/// - songs.bpm -> bpm (deprecated)
-/// - songs.source_bpm -> sourceBpm (Phase 2.2)
-/// - songs.performance_bpm -> performanceBpm (Phase 2.2)
+/// - songs.bpm -> bpm
 /// - songs.duration_seconds -> durationSeconds
-/// - songs.tuning -> tuning (deprecated)
-/// - songs.source_tuning -> sourceTuning (Phase 2.2)
-/// - songs.performance_tuning -> performanceTuning (Phase 2.2)
+/// - songs.tuning -> tuning
 /// - songs.album_artwork -> albumArtwork
 /// - songs.notes -> notes
 /// - songs.youtube_links -> youtubeLinks
 /// - songs.lyrics -> lyrics
-/// - songs.musical_key -> musicalKey (deprecated)
-/// - songs.source_musical_key -> sourceMusicalKey (Phase 2.2)
-/// - songs.performance_musical_key -> performanceMusicalKey (Phase 2.2)
+/// - songs.musical_key -> musicalKey
 ///
 /// DATA MAPPING (from setlist_songs table):
 /// - setlist_songs.position -> position
@@ -35,38 +29,15 @@ class SetlistSong {
   final String id;
   final String title;
   final String artist;
-
-  // OLD single-value fields (deprecated in Phase 2.2, kept for backward compat during rollout)
-  @Deprecated('Use sourceBpm/performanceBpm instead')
   final int? bpm;
-  @Deprecated('Use sourceMusicalKey/performanceMusicalKey instead')
   final String? musicalKey;
-  @Deprecated('Use sourceTuning/performanceTuning instead')
   final String? tuning;
-
-  // NEW dual-value fields (Phase 2.2)
-  final int? sourceBpm;
-  final int? performanceBpm;
-  final String? sourceMusicalKey;
-  final String? performanceMusicalKey;
-  final String? sourceTuning;
-  final String? performanceTuning;
-
   final int durationSeconds;
   final String? albumArtwork;
   final String? notes;
   final String? youtubeLinks; // JSON string of YouTube links
   final String? lyrics; // JSON string of LyricsData
   final int position;
-
-  /// Get the effective BPM to display (performance if set, else source)
-  int? get effectiveBpm => performanceBpm ?? sourceBpm;
-
-  /// Get the effective key to display (performance if set, else source)
-  String? get effectiveMusicalKey => performanceMusicalKey ?? sourceMusicalKey;
-
-  /// Get the effective tuning to display (performance if set, else source)
-  String? get effectiveTuning => performanceTuning ?? sourceTuning;
 
   const SetlistSong({
     required this.id,
@@ -75,12 +46,6 @@ class SetlistSong {
     this.bpm,
     this.musicalKey,
     this.tuning,
-    this.sourceBpm,
-    this.performanceBpm,
-    this.sourceMusicalKey,
-    this.performanceMusicalKey,
-    this.sourceTuning,
-    this.performanceTuning,
     required this.durationSeconds,
     this.albumArtwork,
     this.notes,
@@ -100,11 +65,11 @@ class SetlistSong {
   }
 
   /// Format BPM as "XXX BPM" or "- BPM" if null/invalid
-  /// Uses shared formatBpm helper for consistency (uses effective BPM)
-  String get formattedBpm => formatBpm(effectiveBpm);
+  /// Uses shared formatBpm helper for consistency
+  String get formattedBpm => formatBpm(bpm);
 
   /// Whether BPM is a placeholder (null or 0/invalid)
-  bool get isBpmPlaceholder => effectiveBpm == null || effectiveBpm! <= 0;
+  bool get isBpmPlaceholder => bpm == null || bpm! <= 0;
 
   /// Create from Supabase join result
   /// Expected structure from query:
@@ -134,17 +99,9 @@ class SetlistSong {
       id: songData['id'] as String,
       title: songData['title'] as String? ?? 'Untitled',
       artist: songData['artist'] as String? ?? 'Unknown Artist',
-      // Old fields (kept for rollout, deprecated)
       bpm: songData['bpm'] as int?,
       musicalKey: songData['musical_key'] as String?,
       tuning: songData['tuning'] as String?,
-      // New dual-value fields
-      sourceBpm: songData['source_bpm'] as int?,
-      performanceBpm: songData['performance_bpm'] as int?,
-      sourceMusicalKey: songData['source_musical_key'] as String?,
-      performanceMusicalKey: songData['performance_musical_key'] as String?,
-      sourceTuning: songData['source_tuning'] as String?,
-      performanceTuning: songData['performance_tuning'] as String?,
       durationSeconds: songData['duration_seconds'] as int? ?? 0,
       albumArtwork: songData['album_artwork'] as String?,
       notes: songData['notes'] as String?,
@@ -172,19 +129,6 @@ class SetlistSong {
     bool clearLyrics = false,
     String? musicalKey,
     bool clearMusicalKey = false,
-    // Phase 2.2: Dual-value parameters
-    int? sourceBpm,
-    bool clearSourceBpm = false,
-    int? performanceBpm,
-    bool clearPerformanceBpm = false,
-    String? sourceMusicalKey,
-    bool clearSourceMusicalKey = false,
-    String? performanceMusicalKey,
-    bool clearPerformanceMusicalKey = false,
-    String? sourceTuning,
-    bool clearSourceTuning = false,
-    String? performanceTuning,
-    bool clearPerformanceTuning = false,
   }) {
     return SetlistSong(
       id: id,
@@ -199,21 +143,6 @@ class SetlistSong {
           clearYoutubeLinks ? null : (youtubeLinks ?? this.youtubeLinks),
       lyrics: clearLyrics ? null : (lyrics ?? this.lyrics),
       musicalKey: clearMusicalKey ? null : (musicalKey ?? this.musicalKey),
-      // Phase 2.2: Dual-value fields with clear flag support
-      sourceBpm: clearSourceBpm ? null : (sourceBpm ?? this.sourceBpm),
-      performanceBpm:
-          clearPerformanceBpm ? null : (performanceBpm ?? this.performanceBpm),
-      sourceMusicalKey: clearSourceMusicalKey
-          ? null
-          : (sourceMusicalKey ?? this.sourceMusicalKey),
-      performanceMusicalKey: clearPerformanceMusicalKey
-          ? null
-          : (performanceMusicalKey ?? this.performanceMusicalKey),
-      sourceTuning:
-          clearSourceTuning ? null : (sourceTuning ?? this.sourceTuning),
-      performanceTuning: clearPerformanceTuning
-          ? null
-          : (performanceTuning ?? this.performanceTuning),
       position: position ?? this.position,
     );
   }

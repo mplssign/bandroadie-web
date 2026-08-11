@@ -43,16 +43,9 @@ class EnrichmentSettings {
   }
 
   static ExistingSongBehavior _parseExistingSongBehavior(String value) {
-    switch (value) {
-      case 'fill-missing-only':
-        return ExistingSongBehavior.fillMissingOnly;
-      case 'auto-replace':
-        return ExistingSongBehavior.autoReplace;
-      case 'show-diffs':
-        return ExistingSongBehavior.showDiffs;
-      default:
-        return ExistingSongBehavior.fillMissingOnly; // fallback
-    }
+    // Only fill-missing-only is valid after revert migration
+    // Fall back to fillMissingOnly for any unexpected values
+    return ExistingSongBehavior.fillMissingOnly;
   }
 }
 
@@ -64,8 +57,7 @@ enum NewSongBehavior {
 }
 
 /// Enum for existing song enrichment behavior
+/// After Phase 2.2 revert, only fillMissingOnly is allowed
 enum ExistingSongBehavior {
-  fillMissingOnly, // Only update NULL source_* fields
-  autoReplace, // Update all source_* fields regardless of current value
-  showDiffs, // (Phase 2.3b) Show diff review UI before updating
+  fillMissingOnly, // Only update NULL fields (enrichment never overwrites)
 }
