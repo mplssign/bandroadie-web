@@ -509,7 +509,6 @@ class ChordProParser {
 |------|---------|-----------|
 | **`lib/features/setlists/widgets/reorderable_song_card.dart`** | **Replace:** `LyricsData.fromJsonString(song.lyrics).isNotEmpty`<br>**With:** `song.lyrics?.trim().isNotEmpty ?? false`<br><br>Context: Lyrics icon badge display logic (lines ~74). | Post-migration, `song.lyrics` is plain text (not JSON). Simple non-empty check suffices. Avoids calling deprecated `LyricsData` parser. |
 | **`lib/features/setlists/widgets/song_card.dart`** | **Replace:** `LyricsData.fromJsonString(song.lyrics).isNotEmpty`<br>**With:** `song.lyrics?.trim().isNotEmpty ?? false`<br><br>Context: Lyrics icon badge display logic (lines ~44). | Same as above — plain-text check replaces JSON parser call. |
-| **`lib/features/setlists/new_setlist_screen.dart`** | **Replace:** `LyricsData.fromJsonString(song.lyrics).isNotEmpty`<br>**With:** `song.lyrics?.trim().isNotEmpty ?? false`<br><br>Context: Lyrics icon badge display logic (lines ~1218). | Same as above. |
 
 ---
 
@@ -824,9 +823,6 @@ class ChordProParser {
 
 **Task 6.2:** Update `song_card.dart`
 - Same pattern as 6.1 (~line 44)
-
-**Task 6.3:** Update `new_setlist_screen.dart`
-- Same pattern as 6.1 (~line 1218)
 
 ---
 
