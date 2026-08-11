@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../setlists/models/song.dart';
 import '../../setlists/setlist_repository.dart';
 import '../external_song_lookup_service.dart';
+import '../models/enrichment_diff_decision.dart';
 import '../song_enrichment_service.dart';
 
 // ============================================================================
@@ -27,6 +28,13 @@ class SongEnrichmentDetail {
   final EnrichmentFieldResult bpmResult;
   final EnrichmentFieldResult durationResult;
   final EnrichmentFieldResult keyResult;
+  // Preview mode data (null when previewMode=false)
+  final int? currentBpm;
+  final String? currentKey;
+  final int? currentDuration;
+  final int? enrichedBpm;
+  final String? enrichedKey;
+  final int? enrichedDuration;
 
   const SongEnrichmentDetail({
     required this.songId,
@@ -35,6 +43,12 @@ class SongEnrichmentDetail {
     required this.bpmResult,
     required this.durationResult,
     required this.keyResult,
+    this.currentBpm,
+    this.currentKey,
+    this.currentDuration,
+    this.enrichedBpm,
+    this.enrichedKey,
+    this.enrichedDuration,
   });
 }
 
@@ -78,6 +92,7 @@ class SongEnrichmentOrchestrator {
   /// [enrichDuration]: Whether to enrich Duration (checked in drawer).
   /// [enrichKey]: Whether to enrich Key (checked in drawer).
   /// [overwriteExisting]: Whether to overwrite existing values (default false).
+  /// [previewMode]: Fetch enrichment data but do not write to DB (default false).
   /// [onProgress]: Callback invoked after each song completes.
   ///
   /// Returns summary with per-song details for results overlay.
@@ -88,6 +103,7 @@ class SongEnrichmentOrchestrator {
     required bool enrichDuration,
     required bool enrichKey,
     bool overwriteExisting = false,
+    bool previewMode = false,
     void Function(int completed, int total)? onProgress,
   }) async {
     // 1. Fetch song records
@@ -225,10 +241,10 @@ class SongEnrichmentOrchestrator {
       }
       if (fetchedKey != null) updateMap['sourceMusicalKey'] = fetchedKey;
 
-      // Call RPC if we have any update
+      // Call RPC if we have any update (skip in preview mode)
       bool rpcSuccess = false;
       bool rpcFailed = false;
-      if (updateMap.isNotEmpty) {
+      if (updateMap.isNotEmpty && !previewMode) {
         try {
           final result = await _repository.enrichSongs(
             bandId: bandId,
@@ -288,6 +304,13 @@ class SongEnrichmentOrchestrator {
         bpmResult: bpmResult,
         durationResult: durationResult,
         keyResult: keyResult,
+        // Preview mode data (always populate current values, enriched values only if fetched)
+        currentBpm: previewMode ? song.sourceBpm : null,
+        currentKey: previewMode ? song.sourceMusicalKey : null,
+        currentDuration: previewMode ? song.durationSeconds : null,
+        enrichedBpm: previewMode ? fetchedBpm : null,
+        enrichedKey: previewMode ? fetchedKey : null,
+        enrichedDuration: previewMode ? fetchedDuration : null,
       ));
 
       // Update counts, allowing partial success + partial failures in one song.
@@ -328,5 +351,89 @@ class SongEnrichmentOrchestrator {
       errors: errorCount,
       details: details,
     );
+  }
+
+  /// Apply user-accepted enrichment diffs from diff review UI.
+  ///
+  /// [decisions]: Map of song ID to accepted field values.
+  ///
+  /// Returns result with per-song outcomes for results overlay.
+  Future<EnrichmentOrchestrationResult> applyEnrichmentDiff({
+    required String bandId,
+    required Map<String, EnrichmentDiffDecision> decisions,
+  }) async {
+    // Build updates map for repository
+    final updates = <String, Map<String, dynamic>>{};
+    for (final entry in decisions.entries) {
+      final songId = entry.key;
+      final decision = entry.value;
+      final songUpdates = <String, dynamic>{};
+
+      if (decision.acceptedBpm != null) {
+        songUpdates['sourceBpm'] = decision.acceptedBpm;
+      }
+      if (decision.acceptedKey != null) {
+        songUpdates['sourceMusicalKey'] = decision.acceptedKey;
+      }
+      if (decision.acceptedDuration != null) {
+        songUpdates['durationSeconds'] = decision.acceptedDuration;
+      }
+
+      if (songUpdates.isNotEmpty) {
+        updates[songId] = songUpdates;
+      }
+    }
+
+    // If no updates, return empty result
+    if (updates.isEmpty) {
+      return const EnrichmentOrchestrationResult(
+        total: 0,
+        enriched: 0,
+        notFound: 0,
+        unchanged: 0,
+        errors: 0,
+        details: [],
+      );
+    }
+
+    // Call repository to write accepted fields
+    try {
+      final results = await _repository.enrichSongs(
+        bandId: bandId,
+        updates: updates,
+      );
+
+      // Build result based on RPC outcomes
+      int enrichedCount = 0;
+      int errorCount = 0;
+
+      for (final songId in updates.keys) {
+        final success = results[songId] ?? false;
+        if (success) {
+          enrichedCount++;
+        } else {
+          errorCount++;
+        }
+      }
+
+      return EnrichmentOrchestrationResult(
+        total: updates.length,
+        enriched: enrichedCount,
+        notFound: 0,
+        unchanged: 0,
+        errors: errorCount,
+        details: [], // Not populated for apply diff (results overlay doesn't need it)
+      );
+    } catch (e) {
+      debugPrint('[SongEnrichmentOrchestrator] Apply diff error: $e');
+      return EnrichmentOrchestrationResult(
+        total: updates.length,
+        enriched: 0,
+        notFound: 0,
+        unchanged: 0,
+        errors: updates.length,
+        details: [],
+      );
+    }
   }
 }

@@ -422,7 +422,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   Future<void> _refreshAndRebaselineMetadata(
     String bandId,
-    SongEnrichmentDetail detail,
+    SongEnrichmentDetail? detail,
   ) async {
     try {
       final row = await Supabase.instance.client
@@ -440,15 +440,19 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
       setState(() {
         // Selective merge: only apply fields where enrichment returned 'updated'
-        if (detail.bpmResult == EnrichmentFieldResult.updated) {
+        // If detail is null (Show Diffs mode), refresh all fields unconditionally
+        if (detail == null ||
+            detail.bpmResult == EnrichmentFieldResult.updated) {
           _currentBpm = refreshedBpm;
           _originalBpm = refreshedBpm;
         }
-        if (detail.durationResult == EnrichmentFieldResult.updated) {
+        if (detail == null ||
+            detail.durationResult == EnrichmentFieldResult.updated) {
           _currentDurationSeconds = refreshedDurationSeconds;
           _originalDurationSeconds = refreshedDurationSeconds;
         }
-        if (detail.keyResult == EnrichmentFieldResult.updated) {
+        if (detail == null ||
+            detail.keyResult == EnrichmentFieldResult.updated) {
           _currentMusicalKey = refreshedMusicalKey;
           _originalMusicalKey = refreshedMusicalKey;
         }
@@ -852,10 +856,30 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     final selection = await showEnrichmentSelectorBottomSheet(
       context,
       songCount: 1,
+      bandId: bandId,
+      songIds: [widget.song.id],
     );
     if (selection == null || !mounted) return;
 
-    // Step 2: Orchestrate enrichment
+    // If Show Diffs mode handled internally, skip orchestration (already done)
+    if (selection.isShowDiffsHandledInternally) {
+      // Step 2: Rebaseline local metadata state
+      await _refreshAndRebaselineMetadata(bandId, null);
+      if (!mounted) return;
+      setState(() {
+        _justEnriched = true;
+      });
+
+      // Step 3: Broadcast updates
+      final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
+      broadcaster.broadcast(SongUpdateEvent(songId: widget.song.id));
+
+      // Step 4: Reload songs
+      await ref.read(setlistDetailProvider.notifier).loadSongs();
+      return;
+    }
+
+    // Step 2: Orchestrate enrichment (Fill Missing Only / Auto-Replace modes)
     final supabase = Supabase.instance.client;
     final repository = SetlistRepository();
     final enrichmentService = SongEnrichmentService(supabase);

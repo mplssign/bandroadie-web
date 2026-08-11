@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../shared/utils/snackbar_helper.dart';
+import '../../setlists/setlist_repository.dart';
 import '../enrichment_settings_controller.dart';
+import '../external_song_lookup_service.dart';
 import '../models/enrichment_settings.dart';
+import '../services/song_enrichment_orchestrator.dart';
+import '../song_enrichment_service.dart';
+import 'enrichment_diff_review_sheet.dart';
+import 'enrichment_results_overlay.dart';
 
 // ============================================================================
 // ENRICHMENT SELECTOR BOTTOM SHEET
@@ -17,12 +25,14 @@ class EnrichmentSelectorResult {
   final bool durationSelected;
   final bool keySelected;
   final bool overwriteExisting;
+  final bool isShowDiffsHandledInternally;
 
   const EnrichmentSelectorResult({
     required this.bpmSelected,
     required this.durationSelected,
     required this.keySelected,
     required this.overwriteExisting,
+    this.isShowDiffsHandledInternally = false,
   });
 
   bool get hasAnySelection => bpmSelected || durationSelected || keySelected;
@@ -30,10 +40,14 @@ class EnrichmentSelectorResult {
 
 /// Shows enrichment field selector bottom sheet.
 ///
-/// Returns [EnrichmentSelectorResult] if user confirms, null if cancelled.
+/// For Show Diffs mode, provide [bandId] and [songIds] to enable the
+/// diff review flow. Returns [EnrichmentSelectorResult] if user confirms,
+/// null if cancelled.
 Future<EnrichmentSelectorResult?> showEnrichmentSelectorBottomSheet(
   BuildContext context, {
   required int songCount,
+  String? bandId,
+  List<String>? songIds,
 }) async {
   return showModalBottomSheet<EnrichmentSelectorResult>(
     context: context,
@@ -42,14 +56,24 @@ Future<EnrichmentSelectorResult?> showEnrichmentSelectorBottomSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     isScrollControlled: true,
-    builder: (context) => _EnrichmentSelectorBottomSheet(songCount: songCount),
+    builder: (context) => _EnrichmentSelectorBottomSheet(
+      songCount: songCount,
+      bandId: bandId,
+      songIds: songIds ?? [],
+    ),
   );
 }
 
 class _EnrichmentSelectorBottomSheet extends ConsumerStatefulWidget {
   final int songCount;
+  final String? bandId;
+  final List<String> songIds;
 
-  const _EnrichmentSelectorBottomSheet({required this.songCount});
+  const _EnrichmentSelectorBottomSheet({
+    required this.songCount,
+    this.bandId,
+    required this.songIds,
+  });
 
   @override
   ConsumerState<_EnrichmentSelectorBottomSheet> createState() =>
@@ -88,8 +112,8 @@ class _EnrichmentSelectorBottomSheetState
         break;
       case ExistingSongBehavior.showDiffs:
         subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
-            '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
-            'values will be filled (diff review coming soon).';
+            '${widget.songCount == 1 ? "song" : "songs"}. You\'ll review '
+            'changes before they are applied.';
         break;
     }
 
@@ -187,16 +211,11 @@ class _EnrichmentSelectorBottomSheetState
                   // Enrich button (full width)
                   FilledButton(
                     onPressed: hasSelection
-                        ? () {
-                            Navigator.of(context).pop(
-                              EnrichmentSelectorResult(
-                                bpmSelected: _bpmSelected,
-                                durationSelected: _durationSelected,
-                                keySelected: _keySelected,
-                                overwriteExisting: overwriteExisting,
-                              ),
-                            );
-                          }
+                        ? () => _handleEnrichSongs(
+                              context,
+                              existingSongBehavior,
+                              overwriteExisting,
+                            )
                         : null,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
@@ -241,6 +260,167 @@ class _EnrichmentSelectorBottomSheetState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _handleEnrichSongs(
+    BuildContext context,
+    ExistingSongBehavior existingSongBehavior,
+    bool overwriteExisting,
+  ) async {
+    // For fill-missing-only and auto-replace: return selection for caller to handle
+    if (existingSongBehavior != ExistingSongBehavior.showDiffs) {
+      Navigator.of(context).pop(
+        EnrichmentSelectorResult(
+          bpmSelected: _bpmSelected,
+          durationSelected: _durationSelected,
+          keySelected: _keySelected,
+          overwriteExisting: overwriteExisting,
+        ),
+      );
+      return;
+    }
+
+    // Show Diffs mode: handle preview flow internally
+    final bandId = widget.bandId;
+    final songIds = widget.songIds;
+
+    if (bandId == null || songIds.isEmpty) {
+      // Can't do Show Diffs without bandId and songIds
+      Navigator.of(context).pop(
+        EnrichmentSelectorResult(
+          bpmSelected: _bpmSelected,
+          durationSelected: _durationSelected,
+          keySelected: _keySelected,
+          overwriteExisting: false, // fallback to fill-missing-only
+        ),
+      );
+      return;
+    }
+
+    // Create orchestrator
+    final supabase = Supabase.instance.client;
+    final repository = SetlistRepository();
+    final enrichmentService = SongEnrichmentService(supabase);
+    final lookupService = ExternalSongLookupService(supabase);
+    final orchestrator = SongEnrichmentOrchestrator(
+      repository: repository,
+      enrichmentService: enrichmentService,
+      lookupService: lookupService,
+    );
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    // Call orchestrator in preview mode
+    late final EnrichmentOrchestrationResult previewResult;
+    try {
+      previewResult = await orchestrator.enrichSongs(
+        bandId: bandId,
+        songIds: songIds,
+        enrichBpm: _bpmSelected,
+        enrichDuration: _durationSelected,
+        enrichKey: _keySelected,
+        previewMode: true,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+      showErrorSnackBar(
+        context,
+        message: 'Failed to fetch enrichment data',
+      );
+      Navigator.of(context).pop(); // Close bottom sheet
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // Close loading dialog
+
+    // Filter to songs with actual diffs
+    final songsWithDiffs = previewResult.details.where((song) {
+      final hasBpmDiff =
+          song.enrichedBpm != null && song.enrichedBpm != song.currentBpm;
+      final hasKeyDiff =
+          song.enrichedKey != null && song.enrichedKey != song.currentKey;
+      final hasDurationDiff = song.enrichedDuration != null &&
+          song.enrichedDuration != song.currentDuration;
+      return hasBpmDiff || hasKeyDiff || hasDurationDiff;
+    }).toList();
+
+    if (songsWithDiffs.isEmpty) {
+      showAppSnackBar(
+        context,
+        message: 'No enrichment changes found',
+      );
+      Navigator.of(context).pop(); // Close bottom sheet
+      return;
+    }
+
+    // Show diff review sheet
+    final decisions = await showEnrichmentDiffReviewSheet(
+      context,
+      songs: songsWithDiffs,
+    );
+
+    if (decisions == null || !mounted) {
+      Navigator.of(context).pop(); // Close bottom sheet (user cancelled)
+      return;
+    }
+
+    // Show loading indicator again
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    // Apply accepted diffs
+    late final EnrichmentOrchestrationResult applyResult;
+    try {
+      applyResult = await orchestrator.applyEnrichmentDiff(
+        bandId: bandId,
+        decisions: decisions,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+      showErrorSnackBar(
+        context,
+        message: 'Failed to apply enrichment changes',
+      );
+      Navigator.of(context).pop(); // Close bottom sheet
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pop(); // Close loading dialog
+
+    // Show results overlay
+    await showEnrichmentResultsOverlay(
+      context: context,
+      result: applyResult,
+    );
+
+    if (!mounted) return;
+
+    // Close bottom sheet with "handled internally" flag
+    Navigator.of(context).pop(
+      const EnrichmentSelectorResult(
+        bpmSelected: true,
+        durationSelected: true,
+        keySelected: true,
+        overwriteExisting: false,
+        isShowDiffsHandledInternally: true,
       ),
     );
   }
