@@ -44,8 +44,8 @@ class ParsedLyricsLine {
     required this.chords,
   });
 
-  /// True if line has no text (blank line)
-  bool get isEmpty => text.trim().isEmpty;
+  /// True if line has no text and no chords (blank line)
+  bool get isEmpty => text.trim().isEmpty && chords.isEmpty;
 
   /// True if line has chord annotations
   bool get hasChords => chords.isNotEmpty;

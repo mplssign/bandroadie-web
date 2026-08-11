@@ -1860,18 +1860,16 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
       initialData: _currentLyrics,
     );
 
+    // null = user cancelled, do nothing
+    // empty string = user saved after clearing all lyrics
+    // non-empty string = user saved new/updated lyrics
     if (result != null) {
       setState(() {
-        _currentLyrics = result;
-        _checkForChanges();
-      });
-    } else if (result == null && _currentLyrics != null) {
-      // User cleared all lyrics
-      setState(() {
-        _currentLyrics = null;
+        _currentLyrics = result.isEmpty ? null : result;
         _checkForChanges();
       });
     }
+    // If result == null, user cancelled - do nothing
   }
 
   /// Fixed bottom action area: full-width Save + centered Cancel below

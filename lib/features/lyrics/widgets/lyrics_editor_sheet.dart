@@ -71,7 +71,9 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
 
   void _handleSave() {
     final text = _textController.text.trim();
-    Navigator.of(context).pop(text.isEmpty ? null : text);
+    // Always return the trimmed text (even if empty) so caller can distinguish
+    // between "user saved" (String result) and "user cancelled" (null result)
+    Navigator.of(context).pop(text);
   }
 
   void _showChordProHelp() {

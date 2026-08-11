@@ -469,7 +469,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
   Widget _buildLyricsLine(ParsedLyricsLine line) {
     final fontSize = _settingsLoaded ? _settings.fontSize : 18.0;
 
-    // Blank line spacing
+    // Blank line spacing (no text and no chords)
     if (line.isEmpty) {
       return const SizedBox(height: 16);
     }
@@ -491,6 +491,31 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
       );
     }
 
+    // Chord-only line (e.g., instrumental intro: [Em]  [C]  [G]  [D])
+    if (line.text.trim().isEmpty && line.chords.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 4,
+          children: line.chords
+              .map(
+                (chord) => Text(
+                  chord.chord,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      );
+    }
+
     // Line has chords - parse and align
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -504,6 +529,9 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
     final words = line.text.split(' ');
     final wordWidgets = <Widget>[];
 
+    // Track which chords have been used
+    final usedChordIndices = <int>{};
+
     // Track character position for word alignment
     var charPos = 0;
 
@@ -512,14 +540,17 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
       final wordStart = charPos;
       final wordEnd = charPos + word.length;
 
-      // Find chords that apply to this word (nearest at or before word start)
+      // Find chords that apply to this word (at or before word start)
       final wordChords = <String>[];
-      for (final chord in line.chords) {
+      for (var chordIdx = 0; chordIdx < line.chords.length; chordIdx++) {
+        final chord = line.chords[chordIdx];
         if (chord.position >= wordStart && chord.position < wordEnd) {
           wordChords.add(chord.chord);
+          usedChordIndices.add(chordIdx);
         } else if (chord.position == wordStart && i == 0) {
           // Chord at start of line applies to first word
           wordChords.add(chord.chord);
+          usedChordIndices.add(chordIdx);
         }
       }
 
@@ -557,6 +588,33 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
 
       // Update character position (word + space)
       charPos = wordEnd + 1;
+    }
+
+    // Handle trailing/orphaned chords (chords after the last word)
+    // These are chords that didn't attach to any word
+    final trailingChords = <String>[];
+    for (var chordIdx = 0; chordIdx < line.chords.length; chordIdx++) {
+      if (!usedChordIndices.contains(chordIdx)) {
+        trailingChords.add(line.chords[chordIdx].chord);
+      }
+    }
+
+    // Add trailing chords as standalone text at the end
+    if (_chordsVisible && trailingChords.isNotEmpty) {
+      wordWidgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            trailingChords.join('/'),
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 1.7,
+            ),
+          ),
+        ),
+      );
     }
 
     return Wrap(
