@@ -344,6 +344,102 @@ supabase db push --linked
 
 ---
 
+## QA Fix Round
+
+**Date:** 2026-08-11  
+**QA Verdict:** ❌ REQUIRES CHANGES (see `QA_REPORT.md` for full details)
+
+### Issues Identified
+
+**Issue 1: Incomplete Dead Code Removal**  
+5 references to `isShowDiffsHandledInternally` remained in 3 files — leftover from deleted show-diffs feature, never set to `true` anywhere, purely dead code.
+
+**Issue 2: Unused Import**  
+`import '../songs/models/enrichment_settings.dart'` in setlist_detail_screen.dart line 51 — flagged by flutter analyze.
+
+### Fixes Applied
+
+#### **1. Removed `isShowDiffsHandledInternally` field (2 references)**
+
+**File:** `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart`
+
+- **Line 18:** Deleted `final bool isShowDiffsHandledInternally;` field declaration
+- **Line 25:** Deleted `this.isShowDiffsHandledInternally = false,` constructor parameter
+
+#### **2. Removed dead conditional blocks (3 references)**
+
+**File:** `lib/features/setlists/setlist_detail_screen.dart`
+
+- **Lines 1564-1578:** Deleted entire `if (selection.isShowDiffsHandledInternally) { ... }` block in selected-songs enrich handler
+- **Lines 1659-1670:** Deleted entire `if (selection.isShowDiffsHandledInternally) { ... }` block in catalog-wide enrich handler
+
+**File:** `lib/features/setlists/widgets/song_details_bottom_sheet.dart`
+
+- **Lines 639-655:** Deleted entire `if (selection.isShowDiffsHandledInternally) { ... }` block in single-song enrich handler
+
+#### **3. Removed unused import**
+
+**File:** `lib/features/setlists/setlist_detail_screen.dart`
+
+- **Line 51:** Deleted `import '../songs/models/enrichment_settings.dart';`
+
+### Verification Results
+
+#### **Grep Verification (Dead Code Removal)**
+
+```bash
+grep -r "isShowDiffsHandledInternally" lib/
+```
+
+**Result:** ✅ **No matches found** — All 5 references successfully removed.
+
+#### **Flutter Analyze (Unused Import + Baseline Check)**
+
+```bash
+flutter analyze
+```
+
+**Result:** ✅ **0 errors, 4 warnings/info (all pre-existing)**
+
+```
+warning • Unused import: 'package:supabase_flutter/supabase_flutter.dart' •
+       lib/features/setlists/widgets/add_to_setlist/bulk_entry_screen.dart:3:8 •
+       unused_import
+warning • The value of the local variable 'processedCount' isn't used •
+       lib/features/setlists/widgets/add_to_setlist/bulk_entry_screen.dart:376:11 •
+       unused_local_variable
+   info • use_build_context_synchronously •
+          lib/features/setlists/widgets/add_to_setlist/bulk_entry_screen.dart:393:13
+   info • use_build_context_synchronously •
+          lib/features/setlists/widgets/add_to_setlist/original_song_screen.dart:222:11
+
+4 issues found.
+```
+
+**Analysis:**
+
+- ✅ `enrichment_settings.dart` unused import warning is **GONE** (was present in QA report)
+- ✅ Remaining 4 warnings/info are **pre-existing baseline** (unrelated to this feature)
+- ✅ Matches QA's expected post-fix state
+
+### Files Modified (QA Fix Round)
+
+- `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart` (removed 2 lines)
+- `lib/features/setlists/setlist_detail_screen.dart` (removed 1 import + 2 dead code blocks)
+- `lib/features/setlists/widgets/song_details_bottom_sheet.dart` (removed 1 dead code block)
+
+### Summary
+
+All dead code from the show-diffs feature has been completely removed. The codebase is now fully clean of both:
+
+1. Show-diffs infrastructure (enrichment_diff_review_sheet.dart, enrichment_diff_decision.dart)
+2. Show-diffs wiring (`isShowDiffsHandledInternally` field and all conditional checks)
+
+Zero grep matches and zero new analyzer warnings confirm the revert is now 100% complete.
+
+---
+
 **Engineer Signature:** AI Agent (Tony Holmes)  
 **Report Generated:** 2026-08-11 @ 14:30 UTC  
-**Status:** ✅ **Implementation Complete — Ready for Staging Deployment + QA**
+**QA Fix Round Completed:** 2026-08-11 @ 15:45 UTC  
+**Status:** ✅ **Implementation Complete + QA Fixes Applied — Ready for Staging Deployment + QA**

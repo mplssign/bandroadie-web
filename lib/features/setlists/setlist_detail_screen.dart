@@ -48,7 +48,6 @@ import '../songs/widgets/enrichment_selector_bottom_sheet.dart';
 import '../songs/widgets/enrichment_results_overlay.dart';
 import '../songs/widgets/enrichment_progress_overlay.dart';
 import '../songs/enrichment_settings_controller.dart';
-import '../songs/models/enrichment_settings.dart';
 import '../songs/services/inline_song_enrichment_service.dart';
 
 // ============================================================================
@@ -1561,22 +1560,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     );
     if (selection == null || !mounted) return;
 
-    // If Show Diffs mode handled internally, skip orchestration (already done)
-    if (selection.isShowDiffsHandledInternally) {
-      // Step 2: Broadcast updates and reload songs
-      final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
-      for (final songId in _selectedSongIds) {
-        broadcaster.broadcast(SongUpdateEvent(songId: songId));
-      }
-
-      // Step 3: Exit select mode
-      _exitSelectMode();
-
-      // Step 4: Reload songs
-      await ref.read(setlistDetailProvider.notifier).loadSongs();
-      return;
-    }
-
     // Step 2: Orchestrate enrichment (Fill Missing Only / Auto-Replace modes)
     final supabase = Supabase.instance.client;
     final repository = SetlistRepository();
@@ -1655,19 +1638,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       songIds: state.songs.map((s) => s.id).toList(),
     );
     if (selection == null || !mounted) return;
-
-    // If Show Diffs mode handled internally, skip orchestration (already done)
-    if (selection.isShowDiffsHandledInternally) {
-      // Step 2: Broadcast updates and reload songs
-      final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
-      for (final song in state.songs) {
-        broadcaster.broadcast(SongUpdateEvent(songId: song.id));
-      }
-
-      // Step 3: Reload songs
-      await ref.read(setlistDetailProvider.notifier).loadSongs();
-      return;
-    }
 
     // Step 2: Show progress overlay for large catalogs (50+ songs)
     void Function(int completed, int total, String currentSong)? updateProgress;

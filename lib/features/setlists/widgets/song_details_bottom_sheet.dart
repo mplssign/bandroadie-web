@@ -636,24 +636,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     );
     if (selection == null || !mounted) return;
 
-    // If Show Diffs mode handled internally, skip orchestration (already done)
-    if (selection.isShowDiffsHandledInternally) {
-      // Step 2: Rebaseline local metadata state
-      await _refreshAndRebaselineMetadata(bandId, null);
-      if (!mounted) return;
-      setState(() {
-        _justEnriched = true;
-      });
-
-      // Step 3: Broadcast updates
-      final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
-      broadcaster.broadcast(SongUpdateEvent(songId: widget.song.id));
-
-      // Step 4: Reload songs
-      await ref.read(setlistDetailProvider.notifier).loadSongs();
-      return;
-    }
-
     // Step 2: Orchestrate enrichment (Fill Missing Only / Auto-Replace modes)
     final supabase = Supabase.instance.client;
     final repository = SetlistRepository();

@@ -15,14 +15,12 @@ class EnrichmentSelectorResult {
   final bool durationSelected;
   final bool keySelected;
   final bool overwriteExisting;
-  final bool isShowDiffsHandledInternally;
 
   const EnrichmentSelectorResult({
     required this.bpmSelected,
     required this.durationSelected,
     required this.keySelected,
     required this.overwriteExisting,
-    this.isShowDiffsHandledInternally = false,
   });
 
   bool get hasAnySelection => bpmSelected || durationSelected || keySelected;
