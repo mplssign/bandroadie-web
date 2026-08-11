@@ -2,37 +2,80 @@
 
 **Feature Slug:** `song-metadata-revert-dual-value`  
 **QA Agent:** AI (read-only verification)  
-**Date:** 2026-08-11  
+**Date:** 2026-08-11 (Initial Review) | 2026-08-11 (Re-Review)  
 **Branch:** `feature/song-metadata-revert-dual-value`  
 **Engineer Report:** Reviewed in full  
 **Architect Plan:** Used as validation authority
 
 ---
 
-## VERDICT: ❌ REQUIRES CHANGES
+## VERDICT: ✅ APPROVED (Pending Staging Validation)
 
-**Critical Issue:** Incomplete dead code removal — `isShowDiffsHandledInternally` field and 3 conditional checks remain in the codebase despite show-diffs feature being reverted.
+**Initial Review (2026-08-11 12:00 UTC):** ❌ REQUIRES CHANGES  
+**Re-Review (2026-08-11 16:30 UTC):** ✅ APPROVED
 
-**Minor Issue:** Unused import in [setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart#L51) flagged by flutter analyze.
+**Rationale:** All dead code removed in fix commit `76913a1`. Enrichment flow is clean, analyzer baseline improved, no regressions introduced. SQL migrations (never executed locally) require staging deployment validation before production merge.
+
+---
+
+## Re-Review Summary (Fix Commit `76913a1`)
+
+**Engineer Response:** Removed all 5 references to `isShowDiffsHandledInternally` and unused import per QA findings.
+
+### Verification Results
+
+✅ **Check 1 — Dead Code Removal:** `grep -r "isShowDiffsHandledInternally" lib/` → **0 matches** (complete)  
+✅ **Check 2 — Unused Import:** [setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart) line 51 no longer imports `enrichment_settings.dart`, confirmed no usage in file  
+✅ **Check 3 — No Regressions:** Reviewed all 3 deletion sites:
+- `enrichment_selector_bottom_sheet.dart` — `EnrichmentSelectorResult` simplified to 4 fields (no dead field)
+- `setlist_detail_screen.dart` — Both enrichment handlers flow cleanly from selector → orchestrator (no dead conditionals)
+- `song_details_bottom_sheet.dart` — Single-song enrichment flows cleanly from selector → orchestrator (no dead conditional)
+
+Enrichment flow is straightforward with no dangling references or broken control flow.
+
+✅ **Check 4 — Flutter Analyze:** 0 errors, 4 warnings/info (all pre-existing, unrelated). Unused import warning **GONE**.  
+⚠️ **Check 5 — Scope:** Fix commit touched 5 files (not 4):
+- ✅ 3 source files (all dead code removal, -50 lines total)
+- ✅ `ENGINEER_REPORT.md` (QA Fix Round section added)
+- ⚠️ `QA_REPORT.md` (initial review committed with fixes, +672 lines — documentation only, no scope creep)
+
+### Approval Conditions
+
+**Pre-Merge Requirements:**
+
+1. ✅ **Dead code removed** — Complete  
+2. ✅ **Analyzer clean** — 0 errors, improved baseline  
+3. ⚠️ **Staging deployment + smoke tests** — **REQUIRED** before production merge (migrations never executed anywhere)
+
+**Staging Test Plan:** See "Phase 10 — Staging Deployment Requirements" at end of this report.
+
+---
+
+## Initial Review Findings (2026-08-11 12:00 UTC)
+
+**Status:** Addressed in fix commit `76913a1`
+
+**Critical Issue (RESOLVED):** Incomplete dead code removal — `isShowDiffsHandledInternally` field and 3 conditional checks remained in codebase.
+
+**Minor Issue (RESOLVED):** Unused import in [setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart#L51) flagged by flutter analyze.
 
 ---
 
 ## Executive Summary
 
-This revert removes Phase 2.2 dual-value storage (`source_*`/`performance_*` columns) and Phase 2.3 enrichment settings (auto-replace/show-diffs modes) to restore pre-Phase-2.2 single-value behavior. The implementation is 95% complete but contains residual dead code from the show-diffs feature that must be removed before merge.
+This revert removes Phase 2.2 dual-value storage (`source_*`/`performance_*` columns) and Phase 2.3 enrichment settings (auto-replace/show-diffs modes) to restore pre-Phase-2.2 single-value behavior. The implementation is **100% complete** after fix commit `76913a1`.
 
-**Key Findings:**
+**Key Findings (All PASS):**
 
-✅ **PASS:** Enrichment safety requirement met — `overwriteExisting` hardcoded to `false`, no code path exists where enrichment can overwrite existing values  
-❌ **FAIL:** Incomplete revert — show-diffs infrastructure not fully removed  
-⚠️ **WARNING:** SQL migrations syntax appears correct but have **NEVER BEEN EXECUTED** anywhere (including Engineer's machine) — staging validation mandatory  
-✅ **PASS:** No unrelated files in diff  
-✅ **PASS:** 0 analyzer errors, all warnings pre-existing
+✅ **Enrichment safety** — `overwriteExisting` hardcoded to `false`, no code path exists where enrichment can overwrite existing values  
+✅ **Dead code removal** — All show-diffs infrastructure fully removed (0 grep matches)  
+✅ **SQL migrations syntax** — Appears correct (manual review), but **NEVER EXECUTED** anywhere — staging validation mandatory  
+✅ **Diff surface** — No unrelated files in implementation changes  
+✅ **Analyzer baseline** — 0 errors, 4 warnings/info (all pre-existing), unused import warning resolved
 
-**Required Changes Before Merge:**
+**Remaining Requirement:**
 
-1. Remove all 5 references to `isShowDiffsHandledInternally` from 3 files
-2. Remove unused `enrichment_settings.dart` import from [setlist_detail_screen.dart](lib/features/setlists/setlist_detail_screen.dart#L51)
+⚠️ **Staging deployment + smoke tests REQUIRED** before production merge — migrations have never run against any PostgreSQL instance
 
 ---
 
@@ -43,7 +86,11 @@ This revert removes Phase 2.2 dual-value storage (`source_*`/`performance_*` col
 ✅ **Documents loaded:**
 
 - `ARCHITECT_PLAN.md` — 831 lines, comprehensive revert specification
-- `ENGINEER_REPORT.md` — 340 lines, claims all tasks complete
+- `ENGINEER_REPORT.md` — 440 lines (includes QA Fix Round section)
+
+---
+
+**NOTE:** The following detailed review sections (Phases 2-9) are from the initial QA review and remain valid. Fix commit `76913a1` only touched 3 source files for dead code removal and did not modify migrations, models, repository, orchestrator, or any other previously-reviewed implementation. These findings are preserved below for completeness.
 
 ---
 
@@ -653,20 +700,71 @@ After Engineer implements required changes:
 
 ---
 
+## Phase 10 — Staging Deployment Requirements
+
+**Status:** NOT YET PERFORMED — Required before production merge
+
+### Migration Validation Plan
+
+Deploy to staging environment via:
+
+```bash
+cd supabase
+supabase db push --linked
+```
+
+### Smoke Tests (Mandatory)
+
+**1. Database Schema Verification**
+- Verify `songs` table has 6 columns dropped: `source_bpm`, `performance_bpm`, `source_musical_key`, `performance_musical_key`, `source_tuning`, `performance_tuning`
+- Verify `update_song_metadata` RPC signature: 11 params (not 17)
+- Verify `clear_song_metadata` RPC signature: 6 params (not 12)
+- Verify all `enrichment_settings` rows have `existing_song_behavior = 'fill-missing-only'`
+
+**2. Song Details Sheet**
+- Open any song → Details button
+- Verify BPM, Key, Tuning each display as single row (not stacked pairs)
+- Edit BPM → Save → Verify writes to `bpm` column (query DB to confirm)
+- Edit Key → Save → Verify writes to `musical_key` column
+- Clear Tuning → Verify clears `tuning` column
+
+**3. Enrichment Flow (Fill-Missing-Only)**
+- Open Catalog → 3-dot menu → Enrich Songs
+- Verify selector shows only "Fill Missing Only" behavior text
+- Select BPM, Key → Enrich
+- Verify only songs with NULL bpm/musical_key get updated (query DB before/after)
+- Verify songs with existing values remain unchanged
+
+**4. Enrichment Settings UI**
+- Settings → Band Settings → Enrichment
+- Verify only "Fill Missing Only" radio button exists (no Auto-Replace or Show Diffs options)
+
+**5. Inline Enrichment** (via bulk song add)
+- Add songs via "Add Multiple Songs" with enrichment enabled
+- Verify BPM/Key writes to `bpm`/`musical_key` columns for new songs
+- Verify existing songs only get updated if bpm/musical_key is NULL
+
+**Acceptance Criteria:**
+- All 4 migrations execute successfully without errors
+- All 5 smoke tests pass
+- No RPC signature errors in logs
+- No data corruption or unexpected NULL values
+
+---
+
 ## Conclusion
 
-This revert is **95% complete** but contains residual dead code from the show-diffs feature that must be removed. The SQL migrations appear syntactically correct but require staging validation since they've never executed. Enrichment safety is verified — no code path exists where `overwriteExisting` can be true.
+This revert is **100% complete** after fix commit `76913a1`. All dead code removed, enrichment flow simplified, and SQL migrations prepared. The implementation matches the Architect plan and maintains backward compatibility via RLS-bypassing SECURITY DEFINER functions.
 
-**Next steps:**
+**Enrichment safety verified:** No code path exists where `overwriteExisting` can be true — enrichment only fills NULL fields, never overwrites existing values.
 
-1. Engineer removes 7 lines of dead code (5 references across 3 files) + 1 unused import
-2. Engineer pushes fixes
-3. QA re-verifies via grep + flutter analyze
-4. Staging deployment + smoke tests
-5. If staging tests pass → APPROVED for production merge
+**Staging validation required:** SQL migrations have correct syntax (manual review) but have never executed against any PostgreSQL instance. Staging deployment + smoke tests are mandatory before production merge.
+
+**Approval granted pending staging tests** — if all 5 smoke tests pass on staging, this branch is **APPROVED** for production merge.
 
 ---
 
 **QA Agent Signature:** AI (read-only verification)  
-**Report Generated:** 2026-08-11  
-**Status:** ❌ **REQUIRES CHANGES** (dead code removal mandatory before merge)
+**Initial Review:** 2026-08-11 @ 12:00 UTC (REQUIRES CHANGES)  
+**Re-Review:** 2026-08-11 @ 16:30 UTC (APPROVED pending staging validation)  
+**Status:** ✅ **APPROVED (Pending Staging Validation)** — Dead code removal complete, ready for staging deployment
