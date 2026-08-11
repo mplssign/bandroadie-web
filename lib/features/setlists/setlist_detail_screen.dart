@@ -1556,10 +1556,28 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final selection = await showEnrichmentSelectorBottomSheet(
       context,
       songCount: _selectedSongIds.length,
+      bandId: bandId,
+      songIds: _selectedSongIds.toList(),
     );
     if (selection == null || !mounted) return;
 
-    // Step 2: Orchestrate enrichment
+    // If Show Diffs mode handled internally, skip orchestration (already done)
+    if (selection.isShowDiffsHandledInternally) {
+      // Step 2: Broadcast updates and reload songs
+      final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
+      for (final songId in _selectedSongIds) {
+        broadcaster.broadcast(SongUpdateEvent(songId: songId));
+      }
+
+      // Step 3: Exit select mode
+      _exitSelectMode();
+
+      // Step 4: Reload songs
+      await ref.read(setlistDetailProvider.notifier).loadSongs();
+      return;
+    }
+
+    // Step 2: Orchestrate enrichment (Fill Missing Only / Auto-Replace modes)
     final supabase = Supabase.instance.client;
     final repository = SetlistRepository();
     final enrichmentService = SongEnrichmentService(supabase);
@@ -1633,8 +1651,23 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final selection = await showEnrichmentSelectorBottomSheet(
       context,
       songCount: state.songs.length,
+      bandId: bandId,
+      songIds: state.songs.map((s) => s.id).toList(),
     );
     if (selection == null || !mounted) return;
+
+    // If Show Diffs mode handled internally, skip orchestration (already done)
+    if (selection.isShowDiffsHandledInternally) {
+      // Step 2: Broadcast updates and reload songs
+      final broadcaster = ref.read(songUpdateBroadcasterProvider.notifier);
+      for (final song in state.songs) {
+        broadcaster.broadcast(SongUpdateEvent(songId: song.id));
+      }
+
+      // Step 3: Reload songs
+      await ref.read(setlistDetailProvider.notifier).loadSongs();
+      return;
+    }
 
     // Step 2: Show progress overlay for large catalogs (50+ songs)
     void Function(int completed, int total, String currentSong)? updateProgress;

@@ -198,7 +198,7 @@ class EnrichmentSettingsScreen extends ConsumerWidget {
 
         _RadioTile(
           title: 'Show Diffs',
-          subtitle: 'Review changes before updating (coming in Phase 2.3b)',
+          subtitle: 'Review changes before updating existing songs',
           value: ExistingSongBehavior.showDiffs,
           groupValue: settings.existingSongBehavior,
           onChanged: (value) => _updateSettings(
@@ -210,35 +210,6 @@ class EnrichmentSettingsScreen extends ConsumerWidget {
         ),
 
         const SizedBox(height: Spacing.space16),
-
-        // Note for Show Diffs
-        if (settings.existingSongBehavior == ExistingSongBehavior.showDiffs)
-          Container(
-            padding: const EdgeInsets.all(Spacing.space12),
-            decoration: BoxDecoration(
-              color: context.colors.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: context.colors.border),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  AppIcons.info,
-                  color: context.colors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: Spacing.space12),
-                Expanded(
-                  child: Text(
-                    'Diff review UI coming in Phase 2.3b — currently falls back to Fill Missing Only',
-                    style: AppTextStyles.footnote.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }
