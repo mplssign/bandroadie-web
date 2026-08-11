@@ -802,7 +802,7 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 **Failure modes:**
 
-- **Migration 1 (DROP COLUMN) data loss:** Manager verified (2026-08-11) that dropping source_*/performance_* columns is lossless — 0 rows where these columns hold values absent from old columns. Divergence exists but is harmless. **No mitigation needed.**
+- **Migration 1 (DROP COLUMN) data loss:** Manager verified (2026-08-11) that dropping source*\*/performance*\* columns is lossless — 0 rows where these columns hold values absent from old columns. Divergence exists but is harmless. **No mitigation needed.**
 - **RPC signature revert breaks existing callers:** If any code still calls RPC with dual-value params, it will fail. **Mitigation:** Engineer must grep for all RPC call sites and verify none use dual-value params (should be none — all 12 dual-value methods are being deleted).
 - **Song Details UI breaks:** Reverting to single-value display could break if any state management logic still references dual-value fields. **Mitigation:** Thorough local testing before QA handoff.
 - **Enrichment orchestrator writes fail:** If orchestrator still tries to write to `source_*` columns after migration, writes fail. **Mitigation:** Update all write paths to use old column names, verify via grep.
@@ -828,9 +828,9 @@ Old callers (9 methods in setlist_repository.dart that call `update_song_metadat
 
 **Pre-implementation validation:**
 
-~~1. **Verify backfill assumption (MANDATORY)**~~ — **COMPLETED BY MANAGER (2026-08-11):** Manager verified against production that dropping source_*/performance_* columns is lossless. 0 rows exist where these columns hold values absent from bpm/musical_key/tuning. Divergence exists (64 BPM, 46 key, 100 tuning rows) but old columns contain the real values in every case. Engineer may skip this verification and proceed directly to implementation.
+~~1. **Verify backfill assumption (MANDATORY)**~~ — **COMPLETED BY MANAGER (2026-08-11):** Manager verified against production that dropping source*\*/performance*\* columns is lossless. 0 rows exist where these columns hold values absent from bpm/musical_key/tuning. Divergence exists (64 BPM, 46 key, 100 tuning rows) but old columns contain the real values in every case. Engineer may skip this verification and proceed directly to implementation.
 
-~~2. **Verify performance_\* columns are NULL**~~ — **COMPLETED BY MANAGER (2026-08-11):** Verified as part of the production safety check above.
+~~2. **Verify performance\_\* columns are NULL**~~ — **COMPLETED BY MANAGER (2026-08-11):** Verified as part of the production safety check above.
 
 **Implementation order (strict sequence):**
 
