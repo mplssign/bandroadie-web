@@ -13,7 +13,6 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
-import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import 'models/bulk_song_row.dart';
@@ -645,10 +644,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       isDraggable: isDraggable,
       onTap: () => _handleSongTap(song, readOnly: !canEdit),
       onLyricsView: () {
-        final lyrics = LyricsData.fromJsonString(song.lyrics);
         showLyricsViewScreen(
           context,
-          lyrics: lyrics,
+          lyrics: song.lyrics ?? '',
           songId: song.id,
           songTitle: song.title,
         );

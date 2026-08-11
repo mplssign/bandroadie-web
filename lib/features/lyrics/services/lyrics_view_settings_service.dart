@@ -55,6 +55,7 @@ class LyricsViewSettings {
 
 class LyricsViewSettingsService {
   static const String _keyPrefix = 'lyrics_view_';
+  static const String _chordsVisibleKey = 'lyrics_view_chords_visible_global';
 
   /// Load saved view settings for a song
   static Future<LyricsViewSettings> load(String songId) async {
@@ -74,5 +75,17 @@ class LyricsViewSettingsService {
   static Future<void> save(String songId, LyricsViewSettings settings) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('$_keyPrefix$songId', json.encode(settings.toJson()));
+  }
+
+  /// Load global chords-visible preference (default: true)
+  static Future<bool> loadChordsVisible() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_chordsVisibleKey) ?? true;
+  }
+
+  /// Save global chords-visible preference
+  static Future<void> saveChordsVisible(bool visible) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_chordsVisibleKey, visible);
   }
 }

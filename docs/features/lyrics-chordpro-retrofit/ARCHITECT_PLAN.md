@@ -1,6 +1,7 @@
 # ARCHITECT PLAN — Lyrics ChordPro Retrofit
 
 ## Feature Slug
+
 `feature/lyrics-chordpro-retrofit`
 
 ---
@@ -26,18 +27,22 @@ BandRoadie's existing lyrics feature (shipped v1.1.7, `lib/features/lyrics/`) st
 ## Reference Docs Consulted
 
 **Phase 2.4 Research:**
+
 - `docs/features/phase-2.4-lyrics-research/PROVIDER_FINDINGS.md` — Provider evaluation, ChordPro recommendation, retrofit approach, migration options
 
 **Existing Implementation:**
+
 - `lib/features/lyrics/models/lyrics_data.dart` — Current JSON data model
 - `lib/features/lyrics/widgets/lyrics_editor_sheet.dart` — Formatting toolbar, per-line highlight coloring
 - `lib/features/lyrics/widgets/lyrics_view_screen.dart` — Section-based rendering with colored backgrounds
 - `lib/features/lyrics/services/lyrics_view_settings_service.dart` — Per-song view preferences (font size, auto-scroll speed)
 
 **Database:**
+
 - `supabase/migrations/088_add_lyrics_youtube_to_update_song_rpc.sql` — `songs.lyrics` TEXT column, `update_song_metadata` RPC signature
 
 **Reference Pattern:**
+
 - `lib/features/songs/enrichment_settings_screen.dart` — Settings-based toggle pattern (reviewed, but not directly applicable — enrichment uses settings radio tiles, not runtime view toggle)
 - **Note:** Enrichment pattern is settings-based (saved preference for future behavior), whereas lyrics needs a **runtime toggle** (per-session show/hide preference with persisted default). Implementation pattern will differ.
 
@@ -48,6 +53,7 @@ BandRoadie's existing lyrics feature (shipped v1.1.7, `lib/features/lyrics/`) st
 ### Current Lyrics Feature (Shipped v1.1.7)
 
 **Data Model:**
+
 ```dart
 // lib/features/lyrics/models/lyrics_data.dart
 enum LyricsHighlight {
@@ -66,7 +72,7 @@ class LyricsData {
   final List<LyricsBlock> blocks;
   final double defaultFontSize;
   final bool defaultBold;
-  
+
   String toJsonString() // Serialize to JSON for songs.lyrics TEXT column
   factory fromJsonString(String?) // Deserialize from DB
   String get plainText // Blocks joined with '\n\n'
@@ -74,14 +80,24 @@ class LyricsData {
 ```
 
 **Storage:**
+
 - Column: `songs.lyrics` (TEXT, nullable)
 - Format: JSON string (via `LyricsData.toJsonString()`)
 - Example:
   ```json
   {
     "blocks": [
-      {"text": "When you try your best...", "highlight": "verse", "fontSize": 22},
-      {"text": "Fix you", "highlight": "chorus", "fontSize": 22, "isBold": true}
+      {
+        "text": "When you try your best...",
+        "highlight": "verse",
+        "fontSize": 22
+      },
+      {
+        "text": "Fix you",
+        "highlight": "chorus",
+        "fontSize": 22,
+        "isBold": true
+      }
     ],
     "defaultFontSize": 22.0,
     "defaultBold": false
@@ -89,6 +105,7 @@ class LyricsData {
   ```
 
 **Editor (`lyrics_editor_sheet.dart`):**
+
 - Full-screen bottom sheet modal
 - Custom `_HighlightedLyricsController` extends `TextEditingController` to render per-line text colors based on block highlights
 - Formatting toolbar (horizontal scroll):
@@ -100,6 +117,7 @@ class LyricsData {
 - On save: merges consecutive lines with same highlight into one `LyricsBlock`
 
 **Viewer (`lyrics_view_screen.dart`):**
+
 - Full-screen route (PageRouteBuilder with fade + slide)
 - Renders `LyricsBlock` list with:
   - Section label (e.g., "Verse", "Chorus") via `highlight.label`
@@ -112,6 +130,7 @@ class LyricsData {
 - Settings persisted per-song via `LyricsViewSettingsService`
 
 **Settings Service (`lyrics_view_settings_service.dart`):**
+
 - Storage: SharedPreferences
 - Key format: `lyrics_view_<songId>`
 - Fields:
@@ -125,12 +144,14 @@ class LyricsData {
 - Per-song, per-user (local device only)
 
 **Usage Points:**
+
 - `setlist_detail_screen.dart` — "View Lyrics" button (tap song card) → `showLyricsViewScreen()`
 - `song_details_bottom_sheet.dart` — "Edit Lyrics" button → `showLyricsEditor()` → saves via Supabase RPC or direct UPDATE
 - `setlist_song.dart`, `song.dart` models — `lyrics` field (String?, stores JSON)
 - `reorderable_song_card.dart`, `song_card.dart` — Lyrics icon badge (shows if `LyricsData.fromJsonString(song.lyrics).isNotEmpty`)
 
 **Current Data Flow:**
+
 1. User taps "Edit Lyrics" → `showLyricsEditor()` with `LyricsData.fromJsonString(song.lyrics)`
 2. Editor displays formatted blocks with color-coded lines
 3. User edits text, applies highlights via toolbar
@@ -145,20 +166,23 @@ class LyricsData {
 ### High-Level Retrofit Strategy
 
 **ChordPro Format:**
+
 - Plain-text storage: `songs.lyrics` column remains TEXT, but stores ChordPro plain-text instead of JSON
 - Chord annotations: `[Am]`, `[C]`, `[G]` inline before the word/syllable they apply to
 - Section labels (optional): `{start_of_chorus}`, `{end_of_chorus}` etc. (ChordPro directives)
 - Example:
+
   ```
   [Am]When you try your [C]best but you [G]don't succeed
   [Am]When you get what you [C]want but not what you [G]need
-  
+
   {start_of_chorus}
   [F]Lights will [C]guide you [G]home
   {end_of_chorus}
   ```
 
 **Migration:**
+
 - **One-time data migration** converts all existing non-null `songs.lyrics` JSON rows to plain-text ChordPro
 - **Lossy strategy** (Tony-approved, 2026-08-10):
   1. Parse JSON as `LyricsData`
@@ -170,6 +194,7 @@ class LyricsData {
 - **Timing:** Migration must execute **before** the retrofit ships to production. All users must see plain-text data post-deployment. Script is reviewable and Tony-gated.
 
 **Retrofitted Editor:**
+
 - **Remove:** Formatting toolbar (font size ±, bold, highlight color chips, per-line coloring in `TextEditingController`)
 - **Keep:** Full-screen modal presentation, save/cancel flow, `TextField` with multiline input
 - **Add:** ChordPro syntax helper
@@ -180,6 +205,7 @@ class LyricsData {
 - **Validation:** None required — any plain text is valid (brackets are optional, no strict parsing on save)
 
 **Retrofitted Viewer:**
+
 - **Remove:** Section-based rendering with colored backgrounds, section labels
 - **Keep:** Full-screen route, auto-scroll, font size ±, toolbar auto-hide, manual scroll detection, existing settings persistence
 - **Add:** ChordPro parser
@@ -206,6 +232,7 @@ class LyricsData {
   - **Key point:** Toggle is functional even if song has no chords — it's a view preference, not song-specific metadata. Songs with no `[Chord]` annotations will show no visual difference between on/off states.
 
 **Extended Settings:**
+
 ```dart
 // lib/features/lyrics/services/lyrics_view_settings_service.dart
 class LyricsViewSettings {
@@ -215,15 +242,18 @@ class LyricsViewSettings {
   final bool chordsVisible; // NEW — default true
 }
 ```
+
 - `chordsVisible` is **per-user, not per-song** — stored in SharedPreferences with global key `lyrics_view_chords_visible` (separate from per-song settings)
 - Rationale: Users who prefer chords-off likely want it off for all songs, not per-song configuration
 
 **Deprecated Model Classes:**
+
 - `LyricsData`, `LyricsBlock`, `LyricsHighlight` → Mark `@Deprecated` after migration
 - Remove after confirming zero usage via grep (post-retrofit, in a follow-up cleanup commit)
 - Keep models in codebase temporarily for rollback safety (in case migration needs to revert)
 
 **UI/UX Messaging:**
+
 - Editor help text: "Add chords using ChordPro format, e.g., `[G]` before a word"
 - Do NOT imply automatic chord lookup anywhere (no "Fetch Chords" button, no Musixmatch/Ultimate Guitar references)
 - Existing songs without chords: Toggle has no visible effect until user manually adds `[Chord]` annotations
@@ -235,26 +265,31 @@ class LyricsViewSettings {
 **Schema Changes:** None required
 
 **Existing Column:**
+
 - `songs.lyrics` (TEXT, nullable) — already exists, no DDL changes
 - Current: Stores JSON string
 - After retrofit: Stores plain-text ChordPro
 - Migration is data-only (UPDATE content format), not schema-only (no ALTER TABLE)
 
 **RLS Policies:** Not affected
+
 - `songs` table RLS already permits band members to read/write lyrics
 - No new RLS policies required
 
 **RPC Functions:**
+
 - `update_song_metadata(p_song_id, p_band_id, ..., p_lyrics TEXT, ...)` — already supports `p_lyrics` parameter
 - Function signature: No changes required
 - Behavior: No changes required (RPC accepts TEXT, doesn't validate format)
 - **Note:** RPC is used for legacy songs with `NULL band_id` (requires `SECURITY DEFINER` to bypass RLS). Band-scoped songs use direct Supabase `UPDATE`. Both paths work with plain-text ChordPro — no RPC modification needed.
 
 **Triggers:** Not affected
+
 - No lyrics-specific triggers exist
 - Song update triggers (`updated_at`) already handle `lyrics` column changes
 
 **Migration Script:**
+
 - **Location:** `database/maintenance/migrate_lyrics_to_chordpro.sql`
 - **Type:** One-time data migration (not a numbered Supabase migration — run manually pre-deploy)
 - **Verification Required:** Tony must review SQL and approve execution against production DB
@@ -270,7 +305,7 @@ class LyricsViewSettings {
 ```sql
 -- migrate_lyrics_to_chordpro.sql
 -- One-time data migration: Convert songs.lyrics from JSON (LyricsData) to plain-text ChordPro
--- 
+--
 -- LOSSY CONVERSION (Tony-approved 2026-08-10):
 -- - Extracts block[].text fields from JSON
 -- - Concatenates blocks with double-newline separators
@@ -291,9 +326,9 @@ class LyricsViewSettings {
 BEGIN;
 
 -- Create a temporary backup table (optional, for rollback within session)
-CREATE TEMP TABLE lyrics_backup AS 
-SELECT id, lyrics 
-FROM songs 
+CREATE TEMP TABLE lyrics_backup AS
+SELECT id, lyrics
+FROM songs
 WHERE lyrics IS NOT NULL;
 
 -- Log pre-migration stats
@@ -343,7 +378,7 @@ DECLARE
   r RECORD;
 BEGIN
   RAISE NOTICE 'Sample conversions (first 3 songs):';
-  FOR r IN 
+  FOR r IN
     SELECT s.id, s.title, s.artist, lb.lyrics AS old_lyrics, s.lyrics AS new_lyrics
     FROM songs s
     JOIN lyrics_backup lb ON lb.id = s.id
@@ -361,7 +396,7 @@ COMMIT;
 
 -- Post-migration validation query (run separately after COMMIT)
 -- Confirms no songs lost lyrics unexpectedly
-SELECT 
+SELECT
   COUNT(*) FILTER (WHERE lyrics IS NOT NULL) AS songs_with_lyrics,
   COUNT(*) FILTER (WHERE lyrics IS NULL) AS songs_without_lyrics,
   COUNT(*) FILTER (WHERE lyrics ~ '\[.+\]') AS songs_with_chords -- Expect 0 immediately after migration
@@ -369,6 +404,7 @@ FROM songs;
 ```
 
 **Migration Timing in Deployment Pipeline:**
+
 1. **Before retrofit ships:** Migration must execute against production DB
 2. **Order:**
    - Deploy migration SQL to staging (if exists) → validate
@@ -386,12 +422,14 @@ FROM songs;
 **No new controllers or providers required.**
 
 **Modified State:**
+
 - `LyricsViewSettings` (existing service) gains `chordsVisible` field
 - `lyrics_view_screen.dart` state gains `_chordsVisible` bool (initialized from settings)
 
 ### Widgets
 
 **Modified:**
+
 - `lyrics_editor_sheet.dart` — Strip formatting toolbar, simplify controller, add ChordPro help
 - `lyrics_view_screen.dart` — Add ChordPro parser, add toggle switch, retain existing auto-scroll/font-size logic
 
@@ -400,14 +438,17 @@ FROM songs;
 ### Services
 
 **Modified:**
+
 - `lyrics_view_settings_service.dart` — Add `chordsVisible` field to `LyricsViewSettings`
 
 **New:**
+
 - `chordpro_parser.dart` — Parse `[Chord]` annotations, return structured data for rendering
 
 ### Models
 
 **Deprecated (not deleted immediately):**
+
 - `lyrics_data.dart` — `LyricsData`, `LyricsBlock`, `LyricsHighlight` marked `@Deprecated`
 - Keep in codebase post-retrofit for rollback safety (remove in follow-up cleanup PR after 2-week stability window)
 
@@ -431,6 +472,7 @@ FROM songs;
 **Justification:** Viewer needs to extract `[Chord]` annotations and align them with lyrics text. Parser logic is complex enough (regex, edge cases) to isolate into a service for testability.
 
 **Public API:**
+
 ```dart
 /// Parsed chord annotation with position metadata
 class ChordAnnotation {
@@ -448,7 +490,7 @@ class ParsedLyricsLine {
 class ChordProParser {
   /// Parse full lyrics text into lines with chord annotations
   static List<ParsedLyricsLine> parse(String lyricsText);
-  
+
   /// Extract section directives (e.g., {start_of_chorus})
   /// Returns list of (directive, lineIndex) pairs
   /// (Phase 2.4: Not used in UI, but parse for future extensibility)
@@ -457,6 +499,7 @@ class ChordProParser {
 ```
 
 **Implementation Notes:**
+
 - Regex: `\[([^\]]+)\]` to match `[Chord]`
 - Split text into lines, parse each line independently
 - Track character position of each chord before removing brackets
@@ -480,53 +523,53 @@ class ChordProParser {
 
 ## Files to Modify
 
-| File | Changes | Rationale |
-|------|---------|-----------|
-| **`lib/features/lyrics/widgets/lyrics_editor_sheet.dart`** | **Remove:** Formatting toolbar (_buildFormattingToolbar), font size ±, bold toggle, color preset chips, per-line highlight tracking (`Map<int, LyricsHighlight> _blockHighlights`), custom `_HighlightedLyricsController`.<br><br>**Simplify:** Use standard `TextEditingController` instead of custom subclass.<br><br>**Add:** ChordPro syntax helper — `IconButton` with `AppIcons.help` (or `Icons.info_outline`) in header row (between Cancel and Save). Tap → show `AlertDialog` or bottom sheet with:<br>- Title: "ChordPro Format"<br>- Body: "Add chords by typing `[Am]` before a word. Example: `[G]Hello [C]world`. Chords will appear above the lyrics when viewing."<br>- Optional: "Learn more" link to external ChordPro guide (e.g., `https://www.chordpro.org/chordpro/chordpro-introduction/`).<br><br>**Keep:** Full-screen modal presentation, save/cancel flow, `TextField` multiline input, slide-up animation. | Strip all formatting features (no longer applicable in ChordPro world). Simplify state by removing per-line color tracking. Add minimal help UI so users understand `[Chord]` syntax. |
-| **`lib/features/lyrics/widgets/lyrics_view_screen.dart`** | **Add:** `import 'package:bandroadie/features/lyrics/services/chordpro_parser.dart'`.<br><br>**Add:** `_chordsVisible` state variable (bool, default from settings).<br><br>**Add:** ChordPro parsing in `_buildLyricsContent()` (replaces section-based block rendering):<br>- Parse `widget.lyrics` (now plain text) via `ChordProParser.parse()`<br>- Render each `ParsedLyricsLine` as a `Column` of `Row` widgets:<br>  - For each chord: `Column([Text(chord), Text(word)])` if `_chordsVisible`, else just `Text(word)`<br>  - Chord style: `AppTextStyles.caption` (small), `AppColors.primary` (rose), positioned above word<br>  - Lyrics style: `AppTextStyles.body` scaled by `_settings.fontSize`<br><br>**Add:** Chords toggle in `_buildTopBar()`:<br>- Position: Between song title and font size buttons<br>- UI: `Switch` widget with label "Chords" or icon (`AppIcons.music` or similar)<br>- Behavior: Tap → toggle `_chordsVisible`, save to global settings (`LyricsViewSettingsService.saveChordsVisible()`), rebuild UI<br><br>**Remove:** Section-based rendering (colored backgrounds, section labels from `LyricsHighlight`), `LyricsBlock` iteration logic.<br><br>**Keep:** Auto-scroll, font size ±, toolbar auto-hide, manual scroll detection, all existing settings persistence. | Add ChordPro parser integration and chords-on/off toggle. Remove formatting-based rendering. Retain all existing viewer features (auto-scroll, font size, toolbar behavior). |
-| **`lib/features/lyrics/services/lyrics_view_settings_service.dart`** | **Add:** `chordsVisible` field to `LyricsViewSettings` model:<br>`final bool chordsVisible; // default true`<br><br>**Add:** Global chords-visible persistence:<br>- New key: `lyrics_view_chords_visible_global`<br>- New methods:<br>  ```dart<br>  static Future<bool> loadChordsVisible() async {<br>    final prefs = await SharedPreferences.getInstance();<br>    return prefs.getBool('lyrics_view_chords_visible_global') ?? true;<br>  }<br>  <br>  static Future<void> saveChordsVisible(bool visible) async {<br>    final prefs = await SharedPreferences.getInstance();<br>    await prefs.setBool('lyrics_view_chords_visible_global', visible);<br>  }<br>  ```<br><br>**Rationale:** `chordsVisible` is per-user preference (not per-song), so store globally. Per-song settings (`fontSize`, `scrollSpeed`) remain unchanged. | Extend existing settings service to persist chords-visible toggle state. Use global key (not per-song) because toggle is a user preference, not song-specific. |
-| **`lib/features/lyrics/models/lyrics_data.dart`** | **Add:** `@Deprecated` annotations to all classes:<br>```dart<br>@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')<br>enum LyricsHighlight { ... }<br><br>@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')<br>class LyricsBlock { ... }<br><br>@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')<br>class LyricsData { ... }<br>```<br><br>**Do NOT delete** — keep in codebase temporarily for rollback safety. Deletion deferred to follow-up cleanup PR after 2-week stability window. | Mark models as deprecated after migration (no longer used), but keep for rollback safety. Deletion requires separate cleanup commit after verifying retrofit stability in production. |
+| File                                                                 | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Rationale                                                                                                                                                                             |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`lib/features/lyrics/widgets/lyrics_editor_sheet.dart`**           | **Remove:** Formatting toolbar (\_buildFormattingToolbar), font size ±, bold toggle, color preset chips, per-line highlight tracking (`Map<int, LyricsHighlight> _blockHighlights`), custom `_HighlightedLyricsController`.<br><br>**Simplify:** Use standard `TextEditingController` instead of custom subclass.<br><br>**Add:** ChordPro syntax helper — `IconButton` with `AppIcons.help` (or `Icons.info_outline`) in header row (between Cancel and Save). Tap → show `AlertDialog` or bottom sheet with:<br>- Title: "ChordPro Format"<br>- Body: "Add chords by typing `[Am]` before a word. Example: `[G]Hello [C]world`. Chords will appear above the lyrics when viewing."<br>- Optional: "Learn more" link to external ChordPro guide (e.g., `https://www.chordpro.org/chordpro/chordpro-introduction/`).<br><br>**Keep:** Full-screen modal presentation, save/cancel flow, `TextField` multiline input, slide-up animation.                                                                                                                                                                                                                                                                                                                                                                        | Strip all formatting features (no longer applicable in ChordPro world). Simplify state by removing per-line color tracking. Add minimal help UI so users understand `[Chord]` syntax. |
+| **`lib/features/lyrics/widgets/lyrics_view_screen.dart`**            | **Add:** `import 'package:bandroadie/features/lyrics/services/chordpro_parser.dart'`.<br><br>**Add:** `_chordsVisible` state variable (bool, default from settings).<br><br>**Add:** ChordPro parsing in `_buildLyricsContent()` (replaces section-based block rendering):<br>- Parse `widget.lyrics` (now plain text) via `ChordProParser.parse()`<br>- Render each `ParsedLyricsLine` as a `Column` of `Row` widgets:<br> - For each chord: `Column([Text(chord), Text(word)])` if `_chordsVisible`, else just `Text(word)`<br> - Chord style: `AppTextStyles.caption` (small), `AppColors.primary` (rose), positioned above word<br> - Lyrics style: `AppTextStyles.body` scaled by `_settings.fontSize`<br><br>**Add:** Chords toggle in `_buildTopBar()`:<br>- Position: Between song title and font size buttons<br>- UI: `Switch` widget with label "Chords" or icon (`AppIcons.music` or similar)<br>- Behavior: Tap → toggle `_chordsVisible`, save to global settings (`LyricsViewSettingsService.saveChordsVisible()`), rebuild UI<br><br>**Remove:** Section-based rendering (colored backgrounds, section labels from `LyricsHighlight`), `LyricsBlock` iteration logic.<br><br>**Keep:** Auto-scroll, font size ±, toolbar auto-hide, manual scroll detection, all existing settings persistence. | Add ChordPro parser integration and chords-on/off toggle. Remove formatting-based rendering. Retain all existing viewer features (auto-scroll, font size, toolbar behavior).          |
+| **`lib/features/lyrics/services/lyrics_view_settings_service.dart`** | **Add:** `chordsVisible` field to `LyricsViewSettings` model:<br>`final bool chordsVisible; // default true`<br><br>**Add:** Global chords-visible persistence:<br>- New key: `lyrics_view_chords_visible_global`<br>- New methods:<br> `dart<br>  static Future<bool> loadChordsVisible() async {<br>    final prefs = await SharedPreferences.getInstance();<br>    return prefs.getBool('lyrics_view_chords_visible_global') ?? true;<br>  }<br>  <br>  static Future<void> saveChordsVisible(bool visible) async {<br>    final prefs = await SharedPreferences.getInstance();<br>    await prefs.setBool('lyrics_view_chords_visible_global', visible);<br>  }<br>  `<br><br>**Rationale:** `chordsVisible` is per-user preference (not per-song), so store globally. Per-song settings (`fontSize`, `scrollSpeed`) remain unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Extend existing settings service to persist chords-visible toggle state. Use global key (not per-song) because toggle is a user preference, not song-specific.                        |
+| **`lib/features/lyrics/models/lyrics_data.dart`**                    | **Add:** `@Deprecated` annotations to all classes:<br>`dart<br>@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')<br>enum LyricsHighlight { ... }<br><br>@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')<br>class LyricsBlock { ... }<br><br>@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')<br>class LyricsData { ... }<br>`<br><br>**Do NOT delete** — keep in codebase temporarily for rollback safety. Deletion deferred to follow-up cleanup PR after 2-week stability window.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Mark models as deprecated after migration (no longer used), but keep for rollback safety. Deletion requires separate cleanup commit after verifying retrofit stability in production. |
 
 ---
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| **`lib/main.dart`** | Initialization order must not change (Guardrails §1). No init changes required for this feature. |
-| **`lib/app/constants/app_constants.dart`** | No new app-level constants required (ChordPro regex lives in parser service, not global constants). |
-| **`lib/features/setlists/models/setlist_song.dart`**<br>**`lib/features/setlists/models/song.dart`** | Models treat `lyrics` as `String?` (no type change required). Plain-text ChordPro stores identically to JSON from model perspective. |
-| **`lib/features/setlists/setlist_repository.dart`** | Repository already saves `lyrics` as TEXT via Supabase UPDATE or RPC. No new methods required. |
-| **`lib/features/setlists/setlist_detail_screen.dart`**<br>**`lib/features/setlists/widgets/song_details_bottom_sheet.dart`** | These files call `showLyricsEditor()` and `showLyricsViewScreen()` — function signatures unchanged, no modifications required. |
-| **`lib/features/setlists/widgets/reorderable_song_card.dart`**<br>**`lib/features/setlists/widgets/song_card.dart`** | Lyrics icon badge logic (`LyricsData.fromJsonString(song.lyrics).isNotEmpty`) will break post-migration. **Engineer must update** to check for non-empty plain text instead (e.g., `song.lyrics?.trim().isNotEmpty ?? false`). This is a required change, not off-limits — moved to "Files to Modify" table above. |
-| **Supabase RLS policies** | No RLS changes required (existing policies already permit lyrics read/write for band members). |
-| **Supabase RPC functions** | `update_song_metadata` already accepts `p_lyrics TEXT` — no signature changes required. |
-| **Firebase, Edge Functions** | No provider integration, no Edge Functions required (manual-entry only). |
+| File                                                                                                                         | Reason                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`lib/main.dart`**                                                                                                          | Initialization order must not change (Guardrails §1). No init changes required for this feature.                                                                                                                                                                                                                   |
+| **`lib/app/constants/app_constants.dart`**                                                                                   | No new app-level constants required (ChordPro regex lives in parser service, not global constants).                                                                                                                                                                                                                |
+| **`lib/features/setlists/models/setlist_song.dart`**<br>**`lib/features/setlists/models/song.dart`**                         | Models treat `lyrics` as `String?` (no type change required). Plain-text ChordPro stores identically to JSON from model perspective.                                                                                                                                                                               |
+| **`lib/features/setlists/setlist_repository.dart`**                                                                          | Repository already saves `lyrics` as TEXT via Supabase UPDATE or RPC. No new methods required.                                                                                                                                                                                                                     |
+| **`lib/features/setlists/setlist_detail_screen.dart`**<br>**`lib/features/setlists/widgets/song_details_bottom_sheet.dart`** | These files call `showLyricsEditor()` and `showLyricsViewScreen()` — function signatures unchanged, no modifications required.                                                                                                                                                                                     |
+| **`lib/features/setlists/widgets/reorderable_song_card.dart`**<br>**`lib/features/setlists/widgets/song_card.dart`**         | Lyrics icon badge logic (`LyricsData.fromJsonString(song.lyrics).isNotEmpty`) will break post-migration. **Engineer must update** to check for non-empty plain text instead (e.g., `song.lyrics?.trim().isNotEmpty ?? false`). This is a required change, not off-limits — moved to "Files to Modify" table above. |
+| **Supabase RLS policies**                                                                                                    | No RLS changes required (existing policies already permit lyrics read/write for band members).                                                                                                                                                                                                                     |
+| **Supabase RPC functions**                                                                                                   | `update_song_metadata` already accepts `p_lyrics TEXT` — no signature changes required.                                                                                                                                                                                                                            |
+| **Firebase, Edge Functions**                                                                                                 | No provider integration, no Edge Functions required (manual-entry only).                                                                                                                                                                                                                                           |
 
 **Correction:** Add these to "Files to Modify" table:
 
-| File | Changes | Rationale |
-|------|---------|-----------|
+| File                                                           | Changes                                                                                                                                                                              | Rationale                                                                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **`lib/features/setlists/widgets/reorderable_song_card.dart`** | **Replace:** `LyricsData.fromJsonString(song.lyrics).isNotEmpty`<br>**With:** `song.lyrics?.trim().isNotEmpty ?? false`<br><br>Context: Lyrics icon badge display logic (lines ~74). | Post-migration, `song.lyrics` is plain text (not JSON). Simple non-empty check suffices. Avoids calling deprecated `LyricsData` parser. |
-| **`lib/features/setlists/widgets/song_card.dart`** | **Replace:** `LyricsData.fromJsonString(song.lyrics).isNotEmpty`<br>**With:** `song.lyrics?.trim().isNotEmpty ?? false`<br><br>Context: Lyrics icon badge display logic (lines ~44). | Same as above — plain-text check replaces JSON parser call. |
+| **`lib/features/setlists/widgets/song_card.dart`**             | **Replace:** `LyricsData.fromJsonString(song.lyrics).isNotEmpty`<br>**With:** `song.lyrics?.trim().isNotEmpty ?? false`<br><br>Context: Lyrics icon badge display logic (lines ~44). | Same as above — plain-text check replaces JSON parser call.                                                                             |
 
 ---
 
 ## System Impact Map
 
-| System | Impact | Details |
-|--------|--------|---------|
-| **Gigs** | Unaffected | Gigs do not reference lyrics. |
-| **Rehearsals** | Unaffected | Rehearsals do not reference lyrics. |
-| **Setlists / Catalog** | **Affected** | Lyrics viewing/editing accessed via setlist song cards. Retrofit changes editor/viewer UI. Icon badge logic updated to check plain text. |
-| **Members / RBAC** | Unaffected | Lyrics permissions unchanged (band members can read/write). |
-| **Auth / Session** | Unaffected | No auth or session changes. |
-| **Routing** | Unaffected | `showLyricsEditor()` and `showLyricsViewScreen()` remain modal/route patterns (no signature changes). |
-| **Notifications** | Unaffected | No notification triggers for lyrics edits. |
+| System                                     | Impact       | Details                                                                                                                                                  |
+| ------------------------------------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Gigs**                                   | Unaffected   | Gigs do not reference lyrics.                                                                                                                            |
+| **Rehearsals**                             | Unaffected   | Rehearsals do not reference lyrics.                                                                                                                      |
+| **Setlists / Catalog**                     | **Affected** | Lyrics viewing/editing accessed via setlist song cards. Retrofit changes editor/viewer UI. Icon badge logic updated to check plain text.                 |
+| **Members / RBAC**                         | Unaffected   | Lyrics permissions unchanged (band members can read/write).                                                                                              |
+| **Auth / Session**                         | Unaffected   | No auth or session changes.                                                                                                                              |
+| **Routing**                                | Unaffected   | `showLyricsEditor()` and `showLyricsViewScreen()` remain modal/route patterns (no signature changes).                                                    |
+| **Notifications**                          | Unaffected   | No notification triggers for lyrics edits.                                                                                                               |
 | **Platform (iOS / Android / Web / macOS)** | **Affected** | All platforms show lyrics feature. Retrofit applies uniformly (no platform-specific code). SharedPreferences used for settings (works on all platforms). |
-| **Database** | **Affected** | One-time data migration required (JSON → plain text). No schema changes. |
-| **Bulk Entry** | Unaffected | Bulk entry does not populate lyrics. |
-| **Enrichment** | Unaffected | Enrichment does not populate lyrics (no provider integration). |
+| **Database**                               | **Affected** | One-time data migration required (JSON → plain text). No schema changes.                                                                                 |
+| **Bulk Entry**                             | Unaffected   | Bulk entry does not populate lyrics.                                                                                                                     |
+| **Enrichment**                             | Unaffected   | Enrichment does not populate lyrics (no provider integration).                                                                                           |
 
 ---
 
@@ -537,12 +580,14 @@ class ChordProParser {
 **Rationale:**
 
 **Risk Factors:**
+
 1. **Data Migration:** Lossy conversion of 325 songs with existing lyrics. If migration SQL has bugs (e.g., text truncation, encoding issues), users lose data permanently. **Mitigation:** Manual SQL review by Tony, staging validation, backup before production execution.
 2. **Breaking Change:** Users who relied on section formatting (colored backgrounds, section labels) will see plain text post-migration. This is expected and accepted by Tony, but may generate support inquiries. **Mitigation:** Release notes clearly communicate breaking change, explain ChordPro benefits.
 3. **Icon Badge Regression:** If `reorderable_song_card.dart`, `song_card.dart`, `new_setlist_screen.dart` plain-text checks are missed, lyrics icon badges will disappear post-migration (false negative: song has lyrics but badge doesn't show). **Mitigation:** QA must verify icon badge visibility for migrated songs.
 4. **ChordPro Parser Edge Cases:** Parser bugs (e.g., malformed brackets, unicode chords) could crash viewer or render incorrectly. **Mitigation:** Unit tests for parser, QA manual testing with edge cases (empty lines, no chords, many chords per line, unicode).
 
 **Low-Risk Factors:**
+
 - No auth/session/routing changes
 - No RLS policy changes
 - No new database schema (column already exists)
@@ -558,16 +603,19 @@ class ChordProParser {
 ### Phase 1 — Pre-Implementation Validation
 
 **Task 1.1:** Verify clean branch from synced `main`
+
 - Confirm `git status --porcelain` is clean (untracked docs OK)
 - Confirm `git log HEAD..origin/main` returns empty (local main is up-to-date)
 - Create feature branch: `git checkout -b feature/lyrics-chordpro-retrofit`
 
 **Task 1.2:** Audit existing lyrics usage
+
 - Grep for `LyricsData` usage across codebase: `rg "LyricsData" --type dart`
 - Confirm all usage points are in files listed in "Files to Modify" table
 - Flag any unexpected usage to Architect for review
 
 **Task 1.3:** Review migration SQL
+
 - Read `database/maintenance/migrate_lyrics_to_chordpro.sql` (once created)
 - Understand lossy conversion logic
 - Identify pre-flight checks and post-flight validation queries
@@ -578,6 +626,7 @@ class ChordProParser {
 ### Phase 2 — Create ChordPro Parser Service
 
 **Task 2.1:** Implement `chordpro_parser.dart`
+
 - Create `lib/features/lyrics/services/chordpro_parser.dart`
 - Define `ChordAnnotation`, `ParsedLyricsLine` models
 - Implement `ChordProParser.parse(String)`:
@@ -591,6 +640,7 @@ class ChordProParser {
   - Malformed brackets (`[Am` without `]`) → treat as literal text
 
 **Task 2.2:** Unit test ChordPro parser (optional but recommended)
+
 - Create `test/features/lyrics/services/chordpro_parser_test.dart`
 - Test cases:
   - Plain text (no chords) → returns text unchanged
@@ -606,6 +656,7 @@ class ChordProParser {
 ### Phase 3 — Retrofit Lyrics Editor
 
 **Task 3.1:** Simplify `lyrics_editor_sheet.dart` state
+
 - Remove `_HighlightedLyricsController` class (entire class)
 - Replace with standard `TextEditingController`
 - Remove `Map<int, LyricsHighlight> _blockHighlights` state variable
@@ -617,6 +668,7 @@ class ChordProParser {
 - Remove `_blockIndexAtOffset()` helper
 
 **Task 3.2:** Remove formatting toolbar
+
 - Delete `_buildFormattingToolbar()` method
 - Remove toolbar from `build()` Column (remove `_buildFormattingToolbar()` call)
 - Remove font size ± constants (`_minFont`, `_maxFont`, `_fontStep`)
@@ -627,12 +679,14 @@ class ChordProParser {
   - No `LyricsData` construction — return plain `String`
 
 **Task 3.3:** Update function signature
+
 - Change `showLyricsEditor()` return type: `Future<String?>` (was `Future<LyricsData?>`)
 - Change `initialData` parameter type: `String?` (was `LyricsData?`)
 - Update editor initialization:
   - Initialize `_textController` with `initialData` plain text (no JSON parsing)
 
 **Task 3.4:** Add ChordPro syntax helper
+
 - Add `IconButton` to header row (between Cancel and Save):
   - Icon: `AppIcons.help` or `Icons.info_outline`
   - Color: `context.colors.textSecondary`
@@ -659,6 +713,7 @@ class ChordProParser {
     ```
 
 **Task 3.5:** Update call sites
+
 - `song_details_bottom_sheet.dart` (~line 1860):
   - Change: `showLyricsEditor(context, initialData: LyricsData.fromJsonString(_currentLyrics))`
   - To: `showLyricsEditor(context, initialData: _currentLyrics)`
@@ -670,11 +725,13 @@ class ChordProParser {
 ### Phase 4 — Retrofit Lyrics Viewer
 
 **Task 4.1:** Add ChordPro parser integration
+
 - Import `chordpro_parser.dart` at top of file
 - Change `lyrics` parameter type in `showLyricsViewScreen()`: `required String lyrics` (was `required LyricsData lyrics`)
 - Update `_LyricsViewScreen` constructor: `final String lyrics;` (was `final LyricsData lyrics;`)
 
 **Task 4.2:** Replace section-based rendering with ChordPro rendering
+
 - In `_buildLyricsContent()`:
   - Remove `LyricsBlock` iteration logic (was looping over `widget.lyrics.blocks`)
   - Parse lyrics: `final parsedLines = ChordProParser.parse(widget.lyrics);`
@@ -731,23 +788,26 @@ class ChordProParser {
   - If multiple chords apply to same word, stack them vertically or join with `/`
 
 **Task 4.3:** Add chords-on/off toggle
+
 - Add `_chordsVisible` state variable (bool, default from global settings):
+
   ```dart
   bool _chordsVisible = true;
-  
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadChordsVisible(); // NEW
   }
-  
+
   Future<void> _loadChordsVisible() async {
     final visible = await LyricsViewSettingsService.loadChordsVisible();
     if (!mounted) return;
     setState(() => _chordsVisible = visible);
   }
   ```
+
 - Add toggle switch to `_buildTopBar()`:
   - Position: Between song title and font size buttons
   - UI:
@@ -774,6 +834,7 @@ class ChordProParser {
     ```
 
 **Task 4.4:** Update call sites
+
 - `setlist_detail_screen.dart` (~line 648):
   - Change: `showLyricsViewScreen(context, lyrics: LyricsData.fromJsonString(song.lyrics), ...)`
   - To: `showLyricsViewScreen(context, lyrics: song.lyrics ?? '', ...)`
@@ -785,6 +846,7 @@ class ChordProParser {
 ### Phase 5 — Extend Settings Service
 
 **Task 5.1:** Add `chordsVisible` to `LyricsViewSettings` model
+
 - In `lyrics_view_settings_service.dart`:
   - Add field to class: `final bool chordsVisible;` (default `true` in constructor)
   - Update `toJson()`: add `'chordsVisible': chordsVisible`
@@ -792,13 +854,15 @@ class ChordProParser {
   - Update `copyWith()`: add `chordsVisible` parameter
 
 **Task 5.2:** Add global chords-visible persistence methods
+
 - Add methods:
+
   ```dart
   static Future<bool> loadChordsVisible() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('lyrics_view_chords_visible_global') ?? true;
   }
-  
+
   static Future<void> saveChordsVisible(bool visible) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('lyrics_view_chords_visible_global', visible);
@@ -810,6 +874,7 @@ class ChordProParser {
 ### Phase 6 — Update Icon Badge Logic
 
 **Task 6.1:** Update `reorderable_song_card.dart`
+
 - Find lyrics icon badge logic (~line 74)
 - Replace:
   ```dart
@@ -822,6 +887,7 @@ class ChordProParser {
   ```
 
 **Task 6.2:** Update `song_card.dart`
+
 - Same pattern as 6.1 (~line 44)
 
 ---
@@ -829,6 +895,7 @@ class ChordProParser {
 ### Phase 7 — Deprecate Old Models
 
 **Task 7.1:** Add `@Deprecated` annotations
+
 - In `lyrics_data.dart`:
   - Add to `LyricsHighlight` enum: `@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')`
   - Add to `LyricsBlock` class: Same deprecation message
@@ -840,6 +907,7 @@ class ChordProParser {
 ### Phase 8 — Create Migration Script
 
 **Task 8.1:** Write migration SQL
+
 - Create `database/maintenance/migrate_lyrics_to_chordpro.sql`
 - Copy SQL from "Database Impact" section above (complete script with pre-flight checks, backup, logging, validation)
 - Add header comment with:
@@ -849,6 +917,7 @@ class ChordProParser {
   - Post-flight validation: Query for null lyrics, sample inspection
 
 **Task 8.2:** Document migration in ENGINEER_REPORT.md
+
 - Section: "Database Migration"
 - Include:
   - Affected row count (run `SELECT COUNT(*) FROM songs WHERE lyrics IS NOT NULL` against staging)
@@ -861,10 +930,12 @@ class ChordProParser {
 ### Phase 9 — Testing & QA Handoff
 
 **Task 9.1:** Run `flutter analyze`
+
 - Confirm 0 errors
 - Confirm deprecation warnings for `LyricsData` usage are expected (only in deprecated model file itself)
 
 **Task 9.2:** Manual smoke testing (on macOS or web)
+
 - **Editor:**
   - Open song, tap "Edit Lyrics"
   - Enter plain text with chords: `[G]Hello [C]world`
@@ -887,10 +958,12 @@ class ChordProParser {
   - Open 5 migrated songs in viewer → confirm lyrics render correctly (no truncation, line breaks preserved)
 
 **Task 9.3:** Generate git diff
+
 - Run: `git diff main > /tmp/lyrics-chordpro-retrofit.diff`
 - Attach to ENGINEER_REPORT.md or save as separate file in feature docs directory
 
 **Task 9.4:** Write ENGINEER_REPORT.md
+
 - Sections:
   1. Summary of Changes (files modified, new files created)
   2. Database Migration (SQL script location, execution steps, affected row count)
@@ -899,6 +972,7 @@ class ChordProParser {
   5. QA Checklist (test cases for QA to verify)
 
 **Task 9.5:** Commit and push
+
 - Commit message: `feat(lyrics): Retrofit lyrics feature to ChordPro format with chord visibility toggle`
 - Push: `git push origin feature/lyrics-chordpro-retrofit`
 - Open PR (if applicable)
@@ -910,6 +984,7 @@ class ChordProParser {
 **Tier 1 — Pre-Deployment (must pass before Flutter deployment)**
 
 **PRE-DEPLOY TEST 1: Migration SQL Validation (Staging)**
+
 ```sql
 -- Run against staging DB first
 -- Confirm migration SQL executes without errors
@@ -925,9 +1000,11 @@ WHERE lyrics IS NOT NULL
 ORDER BY random()
 LIMIT 5;
 ```
+
 **Expected:** All songs with non-null lyrics before migration still have non-null lyrics after. Text preview shows plain text (no JSON), line breaks preserved.
 
 **PRE-DEPLOY TEST 2: Migration SQL Dry-Run Validation**
+
 ```sql
 -- Confirm backup table creation works
 -- Confirm JSON parsing logic handles all existing formats
@@ -936,9 +1013,11 @@ BEGIN;
 \i database/maintenance/migrate_lyrics_to_chordpro.sql
 ROLLBACK;
 ```
+
 **Expected:** Migration executes without errors, ROLLBACK restores original JSON.
 
 **PRE-DEPLOY TEST 3: Production Backup Verification**
+
 - Tony confirms production `songs` table backup exists (pg_dump or Supabase dashboard export)
 - Backup includes all rows with non-null `lyrics`
 - Backup is restorable (spot-check restore to test DB)
@@ -950,6 +1029,7 @@ ROLLBACK;
 **Tier 2 — Post-Deployment (run after Flutter deployment succeeds)**
 
 **POST-DEPLOY TEST 1: ChordPro Parser Correctness**
+
 - Open 5 songs with manually-entered chords in viewer
 - Verify chords render above correct words
 - Verify chord color is rose (`AppColors.primary`)
@@ -960,6 +1040,7 @@ ROLLBACK;
 **Expected:** Chords align correctly with lyrics text, toggle works in both directions.
 
 **POST-DEPLOY TEST 2: Editor Simplification**
+
 - Open lyrics editor
 - Verify formatting toolbar is removed (no font size ±, no bold, no color chips)
 - Tap help icon → verify ChordPro help dialog appears with correct text
@@ -968,12 +1049,14 @@ ROLLBACK;
 **Expected:** Editor is plain-text only, help dialog appears, save/load works correctly.
 
 **POST-DEPLOY TEST 3: Icon Badge Regression Check**
+
 - Song with lyrics → verify lyrics icon badge shows on song card (all 3 card types: `song_card.dart`, `reorderable_song_card.dart`, `new_setlist_screen.dart`)
 - Song without lyrics → verify no icon badge
 
 **Expected:** Icon badges appear correctly for songs with lyrics, absent for songs without.
 
 **POST-DEPLOY TEST 4: Migrated Songs Verification**
+
 - Open 10 randomly selected songs that had JSON lyrics pre-migration
 - Verify lyrics text is correct (no truncation, no encoding issues)
 - Verify line breaks are preserved (paragraphs intact)
@@ -982,6 +1065,7 @@ ROLLBACK;
 **Expected:** Migrated songs display correctly as plain text, no data loss or corruption.
 
 **POST-DEPLOY TEST 5: Settings Persistence**
+
 - Toggle chords off in viewer → close app → reopen same song → verify chords remain off
 - Adjust font size → close app → reopen → verify font size persisted
 - Toggle chords on → verify persists across app restarts
@@ -989,6 +1073,7 @@ ROLLBACK;
 **Expected:** `chordsVisible` global setting persists correctly, per-song settings (font size, auto-scroll) persist correctly.
 
 **POST-DEPLOY TEST 6: Cross-Platform Validation**
+
 - Test on iOS, Android, Web, macOS (all supported platforms)
 - Verify ChordPro rendering is consistent (chords above lyrics, rose color)
 - Verify toggle works on all platforms
@@ -997,6 +1082,7 @@ ROLLBACK;
 **Expected:** Feature works identically across all platforms, no platform-specific regressions.
 
 **POST-DEPLOY TEST 7: Edge Cases**
+
 - Song with no chords (plain text) → verify renders normally, toggle has no visible effect
 - Song with empty lyrics (`""` or `null`) → verify no crash, no icon badge
 - Song with malformed brackets (`[Am` without closing) → verify treated as literal text, no crash
@@ -1009,6 +1095,7 @@ ROLLBACK;
 ## Additional Context
 
 **Phase 2.5 (Future, Out of Scope):**
+
 - **Musixmatch Lyrics-Text-Only Auto-Fetch** (optional future enhancement)
 - Requires: Licensing resolution (paid partnership or free-tier-only release), attribution UI, Edge Function
 - Would provide "Fetch Lyrics Text" button (similar to existing "Enrich Song Data")
@@ -1017,11 +1104,13 @@ ROLLBACK;
 - **Do NOT implement in Phase 2.4** — manual-entry only per Tony's confirmed scope
 
 **Follow-Up Cleanup (Post-Stability Window):**
+
 - After 2-week production stability window, create follow-up PR to delete deprecated `LyricsData`/`LyricsBlock`/`LyricsHighlight` classes
 - Confirm zero usage via grep before deletion: `rg "LyricsData|LyricsBlock|LyricsHighlight" --type dart`
 - Delete `lib/features/lyrics/models/lyrics_data.dart` entirely
 
 **Known Limitations:**
+
 - ChordPro section directives (`{start_of_chorus}`, etc.) are parsed but not rendered in Phase 2.4 viewer (future extensibility)
 - Chord-to-word alignment heuristic is approximate (mid-word chords may misalign) — acceptable for manual-entry use case, refineable in future
 - No chord transposition support (future Phase 2.6 candidate)

@@ -10,7 +10,6 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/segmented_button_group.dart';
-import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
@@ -1856,22 +1855,20 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   /// Opens the lyrics editor bottom sheet
   Future<void> _showLyricsEditor() async {
-    final currentData = _currentLyrics != null && _currentLyrics!.isNotEmpty
-        ? LyricsData.fromJsonString(_currentLyrics)
-        : null;
-
     final result = await showLyricsEditor(
       context,
-      initialData: currentData,
+      initialData: _currentLyrics,
     );
 
     if (result != null) {
       setState(() {
-        if (result.isEmpty) {
-          _currentLyrics = null;
-        } else {
-          _currentLyrics = result.toJsonString();
-        }
+        _currentLyrics = result;
+        _checkForChanges();
+      });
+    } else if (result == null && _currentLyrics != null) {
+      // User cleared all lyrics
+      setState(() {
+        _currentLyrics = null;
         _checkForChanges();
       });
     }

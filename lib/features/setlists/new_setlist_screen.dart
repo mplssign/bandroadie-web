@@ -17,7 +17,6 @@ import '../../components/ui/app_text_field.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
-import '../lyrics/models/lyrics_data.dart';
 import '../lyrics/widgets/lyrics_view_screen.dart';
 import 'models/bulk_song_row.dart';
 import 'models/setlist_item_type.dart';
@@ -1215,10 +1214,9 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     sharedWidths: sharedWidths,
                     onTap: () {},
                     onLyricsView: () {
-                      final lyrics = LyricsData.fromJsonString(song.lyrics);
                       showLyricsViewScreen(
                         context,
-                        lyrics: lyrics,
+                        lyrics: song.lyrics ?? '',
                         songId: song.id,
                         songTitle: song.title,
                       );

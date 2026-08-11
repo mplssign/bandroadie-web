@@ -15,6 +15,7 @@ import 'dart:convert';
 ///
 /// [colorValue] is the background tint (20% opacity) used in the lyrics viewer.
 /// [accentColorValue] is the vivid accent used for chip borders & icons.
+@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')
 enum LyricsHighlight {
   none('none', 'None', 0x00000000, 0xFF64748B),
   intro('intro', 'Intro', 0x3322C55E, 0xFF22C55E), // green
@@ -47,6 +48,7 @@ enum LyricsHighlight {
 }
 
 /// A single block/section of lyrics with its formatting.
+@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')
 class LyricsBlock {
   final String text;
   final LyricsHighlight highlight;
@@ -93,6 +95,7 @@ class LyricsBlock {
 
 /// Top-level lyrics data for a song.
 /// Stores structured blocks + global defaults.
+@Deprecated('Use plain-text ChordPro format. Kept for rollback safety post-migration.')
 class LyricsData {
   final List<LyricsBlock> blocks;
   final double defaultFontSize;

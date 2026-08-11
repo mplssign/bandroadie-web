@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
@@ -41,8 +40,7 @@ class SongCard extends StatefulWidget {
 
   /// Whether the song has non-empty lyrics content.
   bool get hasLyrics {
-    final lyrics = LyricsData.fromJsonString(song.lyrics);
-    return lyrics.isNotEmpty;
+    return song.lyrics?.trim().isNotEmpty ?? false;
   }
 
   @override

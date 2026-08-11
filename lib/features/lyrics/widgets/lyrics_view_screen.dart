@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../models/lyrics_data.dart';
 import '../services/lyrics_view_settings_service.dart';
+import '../services/chordpro_parser.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -26,7 +26,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 /// Push the lyrics view as a full-screen route.
 void showLyricsViewScreen(
   BuildContext context, {
-  required LyricsData lyrics,
+  required String lyrics,
   required String songId,
   required String songTitle,
 }) {
@@ -62,7 +62,7 @@ void showLyricsViewScreen(
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _LyricsViewScreen extends StatefulWidget {
-  final LyricsData lyrics;
+  final String lyrics;
   final String songId;
   final String songTitle;
 
@@ -83,6 +83,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
   bool _settingsLoaded = false;
   bool _toolbarVisible = true;
   bool _isAutoScrolling = false;
+  bool _chordsVisible = true;
 
   Timer? _autoScrollTimer;
   Timer? _toolbarHideTimer;
@@ -98,6 +99,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
     _scrollController = ScrollController();
     _settings = const LyricsViewSettings();
     _loadSettings();
+    _loadChordsVisible();
   }
 
   @override
@@ -119,6 +121,16 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
 
   Future<void> _saveSettings() async {
     await LyricsViewSettingsService.save(widget.songId, _settings);
+  }
+
+  Future<void> _loadChordsVisible() async {
+    final visible = await LyricsViewSettingsService.loadChordsVisible();
+    if (!mounted) return;
+    setState(() => _chordsVisible = visible);
+  }
+
+  Future<void> _saveChordsVisible(bool visible) async {
+    await LyricsViewSettingsService.saveChordsVisible(visible);
   }
 
   // ── Auto-Scroll ───────────────────────────────────────────────────────────
@@ -290,6 +302,30 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            // Chords toggle
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Chords',
+                  style: AppTextStyles.caption.copyWith(
+                    color: context.colors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Switch(
+                  value: _chordsVisible,
+                  onChanged: (value) {
+                    setState(() => _chordsVisible = value);
+                    _saveChordsVisible(value);
+                  },
+                  activeTrackColor: AppColors.primary,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
             // Font size controls
             IconButton(
               icon: Icon(
@@ -405,7 +441,7 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
   // ── Lyrics content ────────────────────────────────────────────────────────
 
   Widget _buildLyricsContent() {
-    if (widget.lyrics.isEmpty) {
+    if (widget.lyrics.trim().isEmpty) {
       return Center(
         child: Text(
           'No lyrics added yet.',
@@ -415,6 +451,8 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
       );
     }
 
+    final parsedLines = ChordProParser.parse(widget.lyrics);
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.only(
@@ -423,63 +461,109 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
         left: Spacing.pagePadding,
         right: Spacing.pagePadding,
       ),
-      itemCount: widget.lyrics.blocks.length,
-      itemBuilder: (_, index) => _buildBlock(widget.lyrics.blocks[index]),
+      itemCount: parsedLines.length,
+      itemBuilder: (_, index) => _buildLyricsLine(parsedLines[index]),
     );
   }
 
-  Widget _buildBlock(LyricsBlock block) {
-    final fontSize = _settingsLoaded ? _settings.fontSize : block.fontSize;
+  Widget _buildLyricsLine(ParsedLyricsLine line) {
+    final fontSize = _settingsLoaded ? _settings.fontSize : 18.0;
 
-    final textWidget = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        block.text,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: block.highlight != LyricsHighlight.none
-              ? Color(block.highlight.accentColorValue)
-              : context.colors.textPrimary,
-          fontSize: fontSize,
-          fontWeight: block.isBold ? FontWeight.bold : FontWeight.normal,
-          height: 1.7,
-        ),
-      ),
-    );
+    // Blank line spacing
+    if (line.isEmpty) {
+      return const SizedBox(height: 16);
+    }
 
-    if (block.highlight != LyricsHighlight.none) {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Color(block.highlight.colorValue),
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(
-            color: Color(
-              block.highlight.accentColorValue,
-            ).withValues(alpha: 0.25),
+    // No chords in this line - render as plain text
+    if (line.chords.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Text(
+          line.text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.colors.textPrimary,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w500,
+            height: 1.7,
           ),
-        ),
-        child: Column(
-          children: [
-            // Section label
-            Text(
-              block.highlight.label.toUpperCase(),
-              style: AppTextStyles.footnote.copyWith(
-                color: Color(
-                  block.highlight.accentColorValue,
-                ).withValues(alpha: 0.7),
-                fontSize: AppFontSizes.caption,
-                letterSpacing: 1.4,
-              ),
-            ),
-            textWidget,
-          ],
         ),
       );
     }
 
-    return textWidget;
+    // Line has chords - parse and align
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: _buildLineWithChords(line, fontSize),
+    );
+  }
+
+  /// Build a line with chords aligned above words
+  Widget _buildLineWithChords(ParsedLyricsLine line, double fontSize) {
+    // Split text into words
+    final words = line.text.split(' ');
+    final wordWidgets = <Widget>[];
+
+    // Track character position for word alignment
+    var charPos = 0;
+
+    for (var i = 0; i < words.length; i++) {
+      final word = words[i];
+      final wordStart = charPos;
+      final wordEnd = charPos + word.length;
+
+      // Find chords that apply to this word (nearest at or before word start)
+      final wordChords = <String>[];
+      for (final chord in line.chords) {
+        if (chord.position >= wordStart && chord.position < wordEnd) {
+          wordChords.add(chord.chord);
+        } else if (chord.position == wordStart && i == 0) {
+          // Chord at start of line applies to first word
+          wordChords.add(chord.chord);
+        }
+      }
+
+      // Build word with optional chords above
+      wordWidgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_chordsVisible && wordChords.isNotEmpty)
+                Text(
+                  wordChords.join('/'),
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+              Text(
+                word,
+                style: TextStyle(
+                  color: context.colors.textPrimary,
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w500,
+                  height: 1.7,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Update character position (word + space)
+      charPos = wordEnd + 1;
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 0,
+      runSpacing: 4,
+      children: wordWidgets,
+    );
   }
 }

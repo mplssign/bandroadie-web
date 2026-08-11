@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_progress_indicator.dart';
-import '../../lyrics/models/lyrics_data.dart';
 import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'tuning_picker_bottom_sheet.dart';
@@ -71,8 +70,7 @@ class ReorderableSongCard extends StatefulWidget {
 
   /// Whether the song has non-empty lyrics content.
   bool get hasLyrics {
-    final lyrics = LyricsData.fromJsonString(song.lyrics);
-    return lyrics.isNotEmpty;
+    return song.lyrics?.trim().isNotEmpty ?? false;
   }
 
   @override
