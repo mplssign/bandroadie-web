@@ -180,34 +180,6 @@ class EnrichmentSettingsScreen extends ConsumerWidget {
             existingSongBehavior: value!,
           ),
         ),
-        const SizedBox(height: Spacing.space8),
-
-        _RadioTile(
-          title: 'Auto-Replace',
-          subtitle: 'Update all fields, including existing values',
-          value: ExistingSongBehavior.autoReplace,
-          groupValue: settings.existingSongBehavior,
-          onChanged: (value) => _updateSettings(
-            context,
-            ref,
-            newSongBehavior: settings.newSongBehavior,
-            existingSongBehavior: value!,
-          ),
-        ),
-        const SizedBox(height: Spacing.space8),
-
-        _RadioTile(
-          title: 'Show Diffs',
-          subtitle: 'Review changes before updating existing songs',
-          value: ExistingSongBehavior.showDiffs,
-          groupValue: settings.existingSongBehavior,
-          onChanged: (value) => _updateSettings(
-            context,
-            ref,
-            newSongBehavior: settings.newSongBehavior,
-            existingSongBehavior: value!,
-          ),
-        ),
 
         const SizedBox(height: Spacing.space16),
       ],

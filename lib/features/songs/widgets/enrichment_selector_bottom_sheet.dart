@@ -1,18 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
-import '../../../shared/utils/snackbar_helper.dart';
-import '../../setlists/setlist_repository.dart';
-import '../enrichment_settings_controller.dart';
-import '../external_song_lookup_service.dart';
-import '../models/enrichment_settings.dart';
-import '../services/song_enrichment_orchestrator.dart';
-import '../song_enrichment_service.dart';
-import 'enrichment_diff_review_sheet.dart';
-import 'enrichment_results_overlay.dart';
 
 // ============================================================================
 // ENRICHMENT SELECTOR BOTTOM SHEET
@@ -90,36 +80,13 @@ class _EnrichmentSelectorBottomSheetState
   Widget build(BuildContext context) {
     final hasSelection = _bpmSelected || _durationSelected || _keySelected;
 
-    // Read enrichment settings to determine overwrite behavior
-    final settingsAsync = ref.watch(enrichmentSettingsProvider);
-    final existingSongBehavior = settingsAsync.whenOrNull(
-          data: (settings) => settings.existingSongBehavior,
-        ) ??
-        ExistingSongBehavior.fillMissingOnly; // fallback
+    // Read enrichment settings (always fill-missing-only after revert)
+    final subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
+        '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
+        'values will be filled — existing data is never overwritten.';
 
-    // Determine subtitle text based on existing song behavior
-    final String subtitleText;
-    switch (existingSongBehavior) {
-      case ExistingSongBehavior.fillMissingOnly:
-        subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
-            '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
-            'values will be filled — existing data is never overwritten.';
-        break;
-      case ExistingSongBehavior.autoReplace:
-        subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
-            '${widget.songCount == 1 ? "song" : "songs"}. All selected '
-            'fields will be updated, including existing values.';
-        break;
-      case ExistingSongBehavior.showDiffs:
-        subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
-            '${widget.songCount == 1 ? "song" : "songs"}. You\'ll review '
-            'changes before they are applied.';
-        break;
-    }
-
-    // Determine overwriteExisting flag
-    final bool overwriteExisting =
-        existingSongBehavior == ExistingSongBehavior.autoReplace;
+    // Always use fill-missing-only behavior (never overwrite)
+    const bool overwriteExisting = false;
 
     return SafeArea(
       child: Padding(
@@ -211,11 +178,7 @@ class _EnrichmentSelectorBottomSheetState
                   // Enrich button (full width)
                   FilledButton(
                     onPressed: hasSelection
-                        ? () => _handleEnrichSongs(
-                              context,
-                              existingSongBehavior,
-                              overwriteExisting,
-                            )
+                        ? () => _handleEnrichSongs(context, overwriteExisting)
                         : null,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
@@ -266,161 +229,15 @@ class _EnrichmentSelectorBottomSheetState
 
   Future<void> _handleEnrichSongs(
     BuildContext context,
-    ExistingSongBehavior existingSongBehavior,
     bool overwriteExisting,
   ) async {
-    // For fill-missing-only and auto-replace: return selection for caller to handle
-    if (existingSongBehavior != ExistingSongBehavior.showDiffs) {
-      Navigator.of(context).pop(
-        EnrichmentSelectorResult(
-          bpmSelected: _bpmSelected,
-          durationSelected: _durationSelected,
-          keySelected: _keySelected,
-          overwriteExisting: overwriteExisting,
-        ),
-      );
-      return;
-    }
-
-    // Show Diffs mode: handle preview flow internally
-    final bandId = widget.bandId;
-    final songIds = widget.songIds;
-
-    if (bandId == null || songIds.isEmpty) {
-      // Can't do Show Diffs without bandId and songIds
-      Navigator.of(context).pop(
-        EnrichmentSelectorResult(
-          bpmSelected: _bpmSelected,
-          durationSelected: _durationSelected,
-          keySelected: _keySelected,
-          overwriteExisting: false, // fallback to fill-missing-only
-        ),
-      );
-      return;
-    }
-
-    // Create orchestrator
-    final supabase = Supabase.instance.client;
-    final repository = SetlistRepository();
-    final enrichmentService = SongEnrichmentService(supabase);
-    final lookupService = ExternalSongLookupService(supabase);
-    final orchestrator = SongEnrichmentOrchestrator(
-      repository: repository,
-      enrichmentService: enrichmentService,
-      lookupService: lookupService,
-    );
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    // Call orchestrator in preview mode
-    late final EnrichmentOrchestrationResult previewResult;
-    try {
-      previewResult = await orchestrator.enrichSongs(
-        bandId: bandId,
-        songIds: songIds,
-        enrichBpm: _bpmSelected,
-        enrichDuration: _durationSelected,
-        enrichKey: _keySelected,
-        previewMode: true,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-      showErrorSnackBar(
-        context,
-        message: 'Failed to fetch enrichment data',
-      );
-      Navigator.of(context).pop(); // Close bottom sheet
-      return;
-    }
-
-    if (!mounted) return;
-    Navigator.of(context).pop(); // Close loading dialog
-
-    // Filter to songs with actual diffs
-    final songsWithDiffs = previewResult.details.where((song) {
-      final hasBpmDiff =
-          song.enrichedBpm != null && song.enrichedBpm != song.currentBpm;
-      final hasKeyDiff =
-          song.enrichedKey != null && song.enrichedKey != song.currentKey;
-      final hasDurationDiff = song.enrichedDuration != null &&
-          song.enrichedDuration != song.currentDuration;
-      return hasBpmDiff || hasKeyDiff || hasDurationDiff;
-    }).toList();
-
-    if (songsWithDiffs.isEmpty) {
-      showAppSnackBar(
-        context,
-        message: 'No enrichment changes found',
-      );
-      Navigator.of(context).pop(); // Close bottom sheet
-      return;
-    }
-
-    // Show diff review sheet
-    final decisions = await showEnrichmentDiffReviewSheet(
-      context,
-      songs: songsWithDiffs,
-    );
-
-    if (decisions == null || !mounted) {
-      Navigator.of(context).pop(); // Close bottom sheet (user cancelled)
-      return;
-    }
-
-    // Show loading indicator again
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    // Apply accepted diffs
-    late final EnrichmentOrchestrationResult applyResult;
-    try {
-      applyResult = await orchestrator.applyEnrichmentDiff(
-        bandId: bandId,
-        decisions: decisions,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pop(); // Close loading dialog
-      showErrorSnackBar(
-        context,
-        message: 'Failed to apply enrichment changes',
-      );
-      Navigator.of(context).pop(); // Close bottom sheet
-      return;
-    }
-
-    if (!mounted) return;
-    Navigator.of(context).pop(); // Close loading dialog
-
-    // Show results overlay
-    await showEnrichmentResultsOverlay(
-      context: context,
-      result: applyResult,
-    );
-
-    if (!mounted) return;
-
-    // Close bottom sheet with "handled internally" flag
+    // Always return selection for caller to handle (fill-missing-only only after revert)
     Navigator.of(context).pop(
-      const EnrichmentSelectorResult(
-        bpmSelected: true,
-        durationSelected: true,
-        keySelected: true,
-        overwriteExisting: false,
-        isShowDiffsHandledInternally: true,
+      EnrichmentSelectorResult(
+        bpmSelected: _bpmSelected,
+        durationSelected: _durationSelected,
+        keySelected: _keySelected,
+        overwriteExisting: overwriteExisting,
       ),
     );
   }
