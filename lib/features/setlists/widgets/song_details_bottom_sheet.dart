@@ -1224,10 +1224,11 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   /// Single-row Musical Key selector
   Widget _buildKeySection() {
-    final displayKey = (_currentMusicalKey == null || _currentMusicalKey!.isEmpty)
-        ? '—'
-        : _currentMusicalKey!;
-    
+    final displayKey =
+        (_currentMusicalKey == null || _currentMusicalKey!.isEmpty)
+            ? '—'
+            : _currentMusicalKey!;
+
     return SegmentedButtonGroup(
       segments: [
         SegmentData(
