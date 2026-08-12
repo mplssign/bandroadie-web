@@ -45,6 +45,7 @@ The `setlists.position` column has no `NOT NULL` constraint, no uniqueness const
 1. **The `ensure_catalog_setlist` RPC** (called during fetch to create/maintain the Catalog) never writes the `position` column — it only ensures the row exists with `is_catalog = true` and `name = 'Catalog'`
 
 2. **The `reorderSetlists` function** in `setlists_screen.dart` (line 273) explicitly filters out the Catalog before calling the `reorder_setlists` RPC:
+
    ```dart
    final nonCatalog = state.setlists.where((s) => !s.isCatalog).toList();
    final ids = nonCatalog.map((s) => s.id).toList();
