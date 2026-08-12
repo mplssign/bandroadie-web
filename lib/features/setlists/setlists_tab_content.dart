@@ -91,7 +91,17 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
 
   @override
   void dispose() {
-    _reorderDebounceTimer?.cancel();
+    // Flush pending reorder if timer is active
+    if (_reorderDebounceTimer != null && _reorderDebounceTimer!.isActive) {
+      _reorderDebounceTimer!.cancel();
+
+      // Fire-and-forget: attempt persist even though screen is disposed.
+      // Uses the same guarded persist method to prevent data corruption.
+      // Failure won't be visible to user (acceptable — screen is gone).
+      unawaited(
+        ref.read(setlistsProvider.notifier).persistReorder(),
+      );
+    }
     _entranceController.dispose();
     super.dispose();
   }
