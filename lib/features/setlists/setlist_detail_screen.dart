@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:async' show Timer;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -184,7 +184,31 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
   @override
   void dispose() {
-    _reorderDebounceTimer?.cancel();
+    // Flush pending reorder if timer is active
+    if (_reorderDebounceTimer != null && _reorderDebounceTimer!.isActive) {
+      _reorderDebounceTimer!.cancel();
+
+      // Determine which persist method to call based on which path is active.
+      // Line 2756: `final useItems = state.items.isNotEmpty;`
+      // Line 2886: `onReorderItem: useItems ? _handleItemReorder : _handleReorder`
+      // Must mirror that logic here to avoid silent no-op for Catalog (items is empty).
+      final state = ref.read(setlistDetailProvider);
+      final shouldUseMixedItems = state.items.isNotEmpty;
+
+      // Fire-and-forget: attempt persist even though screen is disposed.
+      // Uses the same guarded persist methods to prevent double-writes.
+      // Failure won't be visible to user (acceptable — screen is gone).
+      if (shouldUseMixedItems) {
+        unawaited(
+          ref.read(setlistDetailProvider.notifier).persistItemReorder(),
+        );
+      } else {
+        // Songs-only path (Catalog or legacy)
+        unawaited(
+          ref.read(setlistDetailProvider.notifier).persistReorder(),
+        );
+      }
+    }
     _entranceController.dispose();
     _sortAnimController.dispose();
     _searchController.dispose();
