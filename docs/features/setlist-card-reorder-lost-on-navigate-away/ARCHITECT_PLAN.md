@@ -198,35 +198,35 @@ No changes to `SetlistsNotifier`. The existing `persistReorder()` method is alre
 
 ## Files to Modify
 
-| File                                                   | What changes                                                                                                                                                                                           |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `lib/features/setlists/setlists_tab_content.dart`      | Modify `dispose()` method (lines 93–97) to flush pending reorder: if `_reorderDebounceTimer` is active, cancel it and call `ref.read(setlistsProvider.notifier).persistReorder()` as an unawaited fire-and-forget call. |
+| File                                              | What changes                                                                                                                                                                                                            |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/features/setlists/setlists_tab_content.dart` | Modify `dispose()` method (lines 93–97) to flush pending reorder: if `_reorderDebounceTimer` is active, cancel it and call `ref.read(setlistsProvider.notifier).persistReorder()` as an unawaited fire-and-forget call. |
 
 ---
 
 ## Files Off-Limits
 
-| File                                              | Reason                                                            |
-| ------------------------------------------------- | ----------------------------------------------------------------- |
-| `lib/main.dart`                                   | Init order must not change (per guardrails)                       |
-| `lib/features/setlists/setlists_screen.dart`      | `SetlistsNotifier.persistReorder()` method is already correct; no controller changes needed |
-| `lib/features/setlists/setlist_repository.dart`   | Repository write path is confirmed correct                        |
-| `supabase/migrations/*.sql`                       | No database schema or RPC changes required                        |
+| File                                            | Reason                                                                                      |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `lib/main.dart`                                 | Init order must not change (per guardrails)                                                 |
+| `lib/features/setlists/setlists_screen.dart`    | `SetlistsNotifier.persistReorder()` method is already correct; no controller changes needed |
+| `lib/features/setlists/setlist_repository.dart` | Repository write path is confirmed correct                                                  |
+| `supabase/migrations/*.sql`                     | No database schema or RPC changes required                                                  |
 
 ---
 
 ## System Impact Map
 
-| System                                 | Impact                                                                                                                   |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Gigs                                   | unaffected                                                                                                               |
-| Rehearsals                             | unaffected                                                                                                               |
-| Setlists / Catalog                     | **affected** — fixes setlist card reorder persistence on Setlists tab                                                    |
-| Members / RBAC                         | unaffected                                                                                                               |
-| Auth / Session                         | unaffected                                                                                                               |
-| Routing                                | unaffected                                                                                                               |
-| Notifications                          | unaffected                                                                                                               |
-| Platform (iOS / Android / Web / macOS) | **affected** — all platforms use the same Setlists tab component                                                         |
+| System                                 | Impact                                                                |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| Gigs                                   | unaffected                                                            |
+| Rehearsals                             | unaffected                                                            |
+| Setlists / Catalog                     | **affected** — fixes setlist card reorder persistence on Setlists tab |
+| Members / RBAC                         | unaffected                                                            |
+| Auth / Session                         | unaffected                                                            |
+| Routing                                | unaffected                                                            |
+| Notifications                          | unaffected                                                            |
+| Platform (iOS / Android / Web / macOS) | **affected** — all platforms use the same Setlists tab component      |
 
 ---
 
@@ -271,15 +271,9 @@ Confirm that this file has only one reorder path (unlike the song-reorder fix wh
 
 **Expected result:** Single path confirmed — no conditional logic needed in `dispose()`.
 
-### Task 3: Import Required Symbol
+### Task 3: Import Required Symbols
 
-Add import at top of `setlists_tab_content.dart` if not already present:
-
-```dart
-import 'dart:async' show Timer, unawaited;
-```
-
-If the file already has `import 'dart:async';` without the `show` clause, update it to explicitly list `Timer` and `unawaited`.
+**Not applicable.** The file already has `import 'dart:async';` without a `show` clause (line 1), so `Timer` and `unawaited` are already fully available. No import changes needed.
 
 ### Task 4: Modify dispose() to Flush Pending Reorder
 
@@ -320,7 +314,7 @@ Run `flutter analyze` on modified file:
 flutter analyze lib/features/setlists/setlists_tab_content.dart
 ```
 
-Confirm 0 errors. (The analyzer may flag `unawaited` as unused — this is a false positive; the symbol IS used.)
+Confirm 0 errors.
 
 ### Task 6: Verify No Build Regressions
 
