@@ -72,23 +72,23 @@ Forui 0.25.0 (latest as of 2026-08-12) provides 40+ platform-agnostic widgets in
 
 ### Mapping Table: App\* Wrappers → Forui Equivalents
 
-| BandRoadie Wrapper       | Current Material Widget                                  | Forui Equivalent           | Confidence | Notes                                                                                                                                                                                 |
-| ------------------------ | -------------------------------------------------------- | -------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AppScaffold**          | Scaffold                                                 | `FScaffold`                | **HIGH**   | Similar structure: header, footer, child. Different prop names but semantically aligned.                                                                                              |
-| **AppAppBar**            | AppBar                                                   | `FHeader`                  | **MEDIUM** | Different API: `actions` becomes `prefixes`/`suffixes`, `title` is Widget not String. Adapter layer needed within wrapper.                                                            |
-| **AppButton**            | FilledButton, ElevatedButton, TextButton, OutlinedButton | `FButton`                  | **HIGH**   | Variant-based: primary, secondary, destructive, outline, ghost. Mapping straightforward.                                                                                              |
-| **AppIconButton**        | IconButton                                               | `FButton.icon`             | **HIGH**   | Direct icon-button constructor exists.                                                                                                                                                |
-| **AppTextField**         | TextField                                                | `FTextField`               | **HIGH**   | Similar API: controller, label, hint, description, error, enabled. Forui adds `size` variant.                                                                                         |
-| **AppTextFormField**     | TextFormField                                            | `FTextFormField` (implied) | **HIGH**   | Forui docs reference form-field variant. Needs API verification.                                                                                                                      |
-| **AppCard**              | Card + InkWell                                           | `FCard`                    | **HIGH**   | Builder-based API. Similar structure.                                                                                                                                                 |
-| **AppDialog**            | showDialog + AlertDialog                                 | `showFDialog` + `FDialog`  | **HIGH**   | Builder-based. Forui has adaptive (horizontal/vertical) layout.                                                                                                                       |
-| **AppBottomSheet**       | showModalBottomSheet                                     | `showFSheet`               | **HIGH**   | Forui calls it "Sheet" not "BottomSheet", but functionally equivalent.                                                                                                                |
-| **AppSwitch**            | Switch                                                   | `FSwitch`                  | **HIGH**   | Similar API: value, onChange, label, description, error.                                                                                                                              |
-| **AppCheckbox**          | Checkbox                                                 | `FCheckbox`                | **HIGH**   | Similar API: value, onChange, label, description, error.                                                                                                                              |
-| **AppDropdown**          | DropdownButton\<T>                                       | `FSelect.rich`             | **HIGH**   | `FSelect.rich()` takes `FSelectItem.item(title: Widget, value: T)` which maps to `DropdownMenuItem<T>`. Can handle current usage.                                                    |
-| **AppChip**              | Chip, FilterChip, ActionChip                             | `FBadge` + `FTappable`     | **LOW**    | **Semantic mismatch:** `FBadge` is for labels/counts. `FTappable` primitive might enable interactivity but API unclear. No confirmed Forui equivalent for interactive filter chips.   |
-| **AppSnackbar**          | ScaffoldMessenger.showSnackBar                           | `showFToast` + `FToaster`  | **MEDIUM** | Forui calls it Toast. Requires `FToaster` ancestor in widget tree. Different but manageable.                                                                                          |
-| **AppProgressIndicator** | CircularProgressIndicator, LinearProgressIndicator       | `FProgress`                | **MEDIUM** | Forui docs show linear only. Circular progress indicator existence unconfirmed. May need fallback to Material for circular.                                                           |
+| BandRoadie Wrapper       | Current Material Widget                                  | Forui Equivalent           | Confidence | Notes                                                                                                                                                                               |
+| ------------------------ | -------------------------------------------------------- | -------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AppScaffold**          | Scaffold                                                 | `FScaffold`                | **HIGH**   | Similar structure: header, footer, child. Different prop names but semantically aligned.                                                                                            |
+| **AppAppBar**            | AppBar                                                   | `FHeader`                  | **MEDIUM** | Different API: `actions` becomes `prefixes`/`suffixes`, `title` is Widget not String. Adapter layer needed within wrapper.                                                          |
+| **AppButton**            | FilledButton, ElevatedButton, TextButton, OutlinedButton | `FButton`                  | **HIGH**   | Variant-based: primary, secondary, destructive, outline, ghost. Mapping straightforward.                                                                                            |
+| **AppIconButton**        | IconButton                                               | `FButton.icon`             | **HIGH**   | Direct icon-button constructor exists.                                                                                                                                              |
+| **AppTextField**         | TextField                                                | `FTextField`               | **HIGH**   | Similar API: controller, label, hint, description, error, enabled. Forui adds `size` variant.                                                                                       |
+| **AppTextFormField**     | TextFormField                                            | `FTextFormField` (implied) | **HIGH**   | Forui docs reference form-field variant. Needs API verification.                                                                                                                    |
+| **AppCard**              | Card + InkWell                                           | `FCard`                    | **HIGH**   | Builder-based API. Similar structure.                                                                                                                                               |
+| **AppDialog**            | showDialog + AlertDialog                                 | `showFDialog` + `FDialog`  | **HIGH**   | Builder-based. Forui has adaptive (horizontal/vertical) layout.                                                                                                                     |
+| **AppBottomSheet**       | showModalBottomSheet                                     | `showFSheet`               | **HIGH**   | Forui calls it "Sheet" not "BottomSheet", but functionally equivalent.                                                                                                              |
+| **AppSwitch**            | Switch                                                   | `FSwitch`                  | **HIGH**   | Similar API: value, onChange, label, description, error.                                                                                                                            |
+| **AppCheckbox**          | Checkbox                                                 | `FCheckbox`                | **HIGH**   | Similar API: value, onChange, label, description, error.                                                                                                                            |
+| **AppDropdown**          | DropdownButton\<T>                                       | `FSelect.rich`             | **HIGH**   | `FSelect.rich()` takes `FSelectItem.item(title: Widget, value: T)` which maps to `DropdownMenuItem<T>`. Can handle current usage.                                                   |
+| **AppChip**              | Chip, FilterChip, ActionChip                             | `FBadge` + `FTappable`     | **LOW**    | **Semantic mismatch:** `FBadge` is for labels/counts. `FTappable` primitive might enable interactivity but API unclear. No confirmed Forui equivalent for interactive filter chips. |
+| **AppSnackbar**          | ScaffoldMessenger.showSnackBar                           | `showFToast` + `FToaster`  | **MEDIUM** | Forui calls it Toast. Requires `FToaster` ancestor in widget tree. Different but manageable.                                                                                        |
+| **AppProgressIndicator** | CircularProgressIndicator, LinearProgressIndicator       | `FProgress`                | **MEDIUM** | Forui docs show linear only. Circular progress indicator existence unconfirmed. May need fallback to Material for circular.                                                         |
 
 ---
 
@@ -102,26 +102,15 @@ Forui 0.25.0 (latest as of 2026-08-12) provides 40+ platform-agnostic widgets in
 
 **Verdict:** Keep AppChip as Material holdout due to API uncertainty. Low priority since unused.
 
-### Feasible Swap: AppDropdown → FSelect.rich (BLOCKER RESOLVED)
+### No-Op Swap: AppDropdown → FSelect.rich (Technically Feasible, Unused)
 
 **Initial assessment:** `FSelect` simple constructor uses `Map<String, T>` which cannot express `DropdownMenuItem<T>` richness.
 
-**Re-investigation result:** `FSelect.rich()` constructor takes `List<FSelectItem>` where items are created via `.item(title: Widget, value: T)`. The `title` parameter accepts any Widget, just like `DropdownMenuItem<T>(child: Widget)`. This means FSelect.rich() CAN handle AppDropdown's current usage.
+**Re-investigation result:** `FSelect.rich()` constructor takes `List<FSelectItem>` where items are created via `.item(title: Widget, value: T)`. The `title` parameter accepts any Widget, just like `DropdownMenuItem<T>(child: Widget)`. This means FSelect.rich() CAN handle AppDropdown's API contract.
 
-**Current AppDropdown usage in codebase:** 11 DropdownButton usages found across 5 files, all using simple Text children (no complex icons/subtitles). Example:
+**Current AppDropdown usage in codebase:** Zero call sites. No imports of `app_dropdown.dart` anywhere outside its own definition. No `AppDropdown(` invocations in `lib/features/`. The 11 DropdownButton usages found across 5 files (`add_financial_entry_bottom_sheet`, `gig_pay_bottom_sheet`, `gig_expense_subview` ×2, `event_editor_helpers`) all use raw `DropdownButton` directly, bypassing the facade layer.
 
-```dart
-DropdownButton<T>(
-  value: value,
-  items: items.map((item) => DropdownMenuItem<T>(
-    value: item,
-    child: Text(labelBuilder(item)),
-  )).toList(),
-  onChanged: onChanged,
-)
-```
-
-**Forui FSelect.rich equivalent:**
+**Forui FSelect.rich equivalent (theoretical):**
 
 ```dart
 FSelect<T>.rich(
@@ -134,7 +123,9 @@ FSelect<T>.rich(
 )
 ```
 
-**Verdict:** AppDropdown → FSelect.rich is FEASIBLE. Adapter layer within AppDropdown can convert `List<DropdownMenuItem<T>>` to FSelect.rich children without call-site changes. Blocker resolved
+**Verdict:** AppDropdown → FSelect.rich is SAFE AND FREE (nothing to break) but will NOT be visible in Tony's preview since no screen actually renders through it. Include in the 14/15 swap for completeness/future-proofing, but understand this is NOT a coverage win—it's a no-op. Same situation as AppChip.
+
+**Gap identified (out of scope for this feature):** The facade retrofit believed complete has a gap — 5 DropdownButton call sites were never migrated to AppDropdown.
 
 **Problem:** Material's `FilterChip` and `ActionChip` are interactive selection widgets with selection state and tap callbacks. Forui's `FBadge` is a static label widget (like Material's `Badge` for notification counts). It has no `onTap`, `isSelected`, or selection styling. Forui's closest interactive component is `FButton` with ghost variant, but that's semantically a button, not a chip.
 
@@ -193,9 +184,9 @@ The facade pattern assumes that the underlying design system can express the sam
 **Why this is acceptable:**
 
 - The facade layer remains intact — zero call sites change.
-- 14 of 15 wrappers (93%) use Forui, achieving the stated goal of evaluating Forui's appearance app-wide.
-- The 1 Material holdout (AppChip) is unused in the codebase (zero call sites), so visual inconsistency is non-issue for preview.
-- If Tony decides to proceed to production with Forui, AppChip can be addressed later (either via FTappable investigation or custom Forui chip widget).
+- 14 of 15 wrappers (93%) technically use Forui, but **only 12 wrappers will be visible in preview** (AppDropdown and AppChip both have zero call sites in current codebase).
+- Swapping unused wrappers (AppDropdown, AppChip) provides future-proofing but no visual coverage in this evaluation.
+- If Tony decides to proceed to production with Forui, the unused wrappers can be refined or the facade gap (5 raw DropdownButton usages) can be fixed as separate work.
 
 ### Future Work: Address AppChip (Out of Scope for This Plan)
 
@@ -357,7 +348,7 @@ MaterialApp(
 | `lib/components/ui/segmented_button_group.dart`    | Precedent component — out of scope                                               |
 | All files in `lib/features/`                       | **Zero call site changes** — facade pattern promise                              |
 | All files in `lib/shared/`                         | **Zero call site changes**                                                       |
-| `lib/app/theme/app_theme.dart`                     | Material theme still needed for holdout wrapper (AppChip)                         |
+| `lib/app/theme/app_theme.dart`                     | Material theme still needed for holdout wrapper (AppChip)                        |
 | `lib/app/theme/design_tokens.dart`                 | Unchanged — Forui theme customization is post-Cycle 1 work                       |
 | `lib/app/theme/brand_colors.dart`                  | Unchanged                                                                        |
 
@@ -789,9 +780,9 @@ The following are explicitly deferred or excluded:
 If Tony decides to proceed to production with Forui after Cycle 1 preview, the following must be resolved first:
 
 1. **Forui theme customization:** Match rose accent (`#F43F5E`), dark-only mode, and BrandRoadie's spacing/typography.
-3. **AppChip future investigation or refactoring:** If chip usage emerges, investigate FTappable API further or build custom Forui chip widget (~5-10 call sites estimated if usage appears).
-4. **Cross-platform optimization:** Address any platform-specific visual inconsistencies discovered in Cycle 1 (e.g., desktop touch targets, mobile spacing).
-5. **Widget test updates:** Update wrapper tests to verify Forui behavior instead of Material behavior.
+2. **AppChip future investigation or refactoring:** If chip usage emerges, investigate FTappable API further or build custom Forui chip widget (~5-10 call sites estimated if usage appears).
+3. **Cross-platform optimization:** Address any platform-specific visual inconsistencies discovered in Cycle 1 (e.g., desktop touch targets, mobile spacing).
+4. **Widget test updates:** Update wrapper tests to verify Forui behavior instead of Material behavior.
 
 **None of these blockers prevent Cycle 1 from proceeding.** They are follow-on work contingent on Tony's approval.
 
