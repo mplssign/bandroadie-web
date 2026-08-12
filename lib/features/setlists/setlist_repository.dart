@@ -496,12 +496,29 @@ class SetlistRepository {
         }
       }
 
-      // Sort: Catalog first, then alphabetically
-      setlists.sort((a, b) {
-        if (a.isCatalog && !b.isCatalog) return -1;
-        if (!a.isCatalog && b.isCatalog) return 1;
-        return a.name.compareTo(b.name);
-      });
+      // Sort: conditional based on position column availability
+      if (hasPositionColumn) {
+        // Position column exists — use three-tier sort:
+        // 1. Catalog always first (regardless of its position value)
+        // 2. Then by position ascending (respects manual reorder)
+        // 3. Then alphabetically (deterministic tiebreak for default position = 0)
+        setlists.sort((a, b) {
+          // Catalog always first
+          if (a.isCatalog != b.isCatalog) return a.isCatalog ? -1 : 1;
+          // Then by position
+          final posCompare = a.position.compareTo(b.position);
+          if (posCompare != 0) return posCompare;
+          // Then alphabetically (tiebreak when positions are equal/default)
+          return a.name.compareTo(b.name);
+        });
+      } else {
+        // Position column missing — fall back to alphabetical sort
+        setlists.sort((a, b) {
+          if (a.isCatalog && !b.isCatalog) return -1;
+          if (!a.isCatalog && b.isCatalog) return 1;
+          return a.name.compareTo(b.name);
+        });
+      }
 
       // ==== VERIFICATION LOGGING ====
       if (kDebugMode) {
