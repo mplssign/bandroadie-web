@@ -213,16 +213,16 @@ No changes to `SetlistDetailNotifier`. The existing `persistItemReorder()` and `
 
 ## System Impact Map
 
-| System                                 | Impact                                                                                                                                                       |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Gigs                                   | unaffected                                                                                                                                                   |
-| Rehearsals                             | unaffected                                                                                                                                                   |
-| Setlists / Catalog                     | **affected** — fixes song reorder persistence in setlist detail screen for both normal setlists (mixed-items path) and Catalog (songs-only path)            |
-| Members / RBAC                         | unaffected                                                                                                                                                   |
-| Auth / Session                         | unaffected                                                                                                                                                   |
-| Routing                                | unaffected                                                                                                                                                   |
-| Notifications                          | unaffected                                                                                                                                                   |
-| Platform (iOS / Android / Web / macOS) | **affected** — all platforms use the same setlist detail screen                                                                                              |
+| System                                 | Impact                                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Gigs                                   | unaffected                                                                                                                                       |
+| Rehearsals                             | unaffected                                                                                                                                       |
+| Setlists / Catalog                     | **affected** — fixes song reorder persistence in setlist detail screen for both normal setlists (mixed-items path) and Catalog (songs-only path) |
+| Members / RBAC                         | unaffected                                                                                                                                       |
+| Auth / Session                         | unaffected                                                                                                                                       |
+| Routing                                | unaffected                                                                                                                                       |
+| Notifications                          | unaffected                                                                                                                                       |
+| Platform (iOS / Android / Web / macOS) | **affected** — all platforms use the same setlist detail screen                                                                                  |
 
 ---
 
@@ -290,6 +290,7 @@ onReorderItem: useItems ? _handleItemReorder : _handleReorder,
 **Critical implication for dispose():**
 
 For the Catalog, `state.items` is empty. If `dispose()` unconditionally calls `persistItemReorder()`:
+
 - `persistItemReorder()` reads `state.items` (controller line 2208: `final itemIds = state.items.map((i) => i.id).toList()`)
 - Passes empty array to `_specialItemRepo.reorderItems()`
 - Repository line 304: `if (itemIdsInOrder.isEmpty) return;` — early exit, no persist
@@ -315,14 +316,14 @@ void dispose() {
   // Flush pending reorder if timer is active
   if (_reorderDebounceTimer != null && _reorderDebounceTimer!.isActive) {
     _reorderDebounceTimer!.cancel();
-    
+
     // Determine which persist method to call based on which path is active.
     // Line 2756: `final useItems = state.items.isNotEmpty;`
     // Line 2886: `onReorderItem: useItems ? _handleItemReorder : _handleReorder`
     // Must mirror that logic here to avoid silent no-op for Catalog (items is empty).
     final state = ref.read(setlistDetailProvider);
     final shouldUseMixedItems = state.items.isNotEmpty;
-    
+
     // Fire-and-forget: attempt persist even though screen is disposed.
     // Uses the same guarded persist methods to prevent double-writes.
     // Failure won't be visible to user (acceptable — screen is gone).
