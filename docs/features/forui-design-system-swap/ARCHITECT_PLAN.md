@@ -240,7 +240,7 @@ MaterialApp(
   darkTheme: AppTheme.darkTheme,
   themeMode: themeModeProvider,
   builder: (context, child) => FTheme(
-    data: FThemes.zinc.dark,  // Forui theme
+    data: FTheme.neutral.dark.touch,  // Forui theme (dark mode, touch-optimized)
     child: child!,
   ),
   home: ...,
@@ -251,7 +251,7 @@ MaterialApp(
 
 ```dart
 FTheme(
-  data: FThemes.zinc.dark,
+  data: FTheme.neutral.dark.touch,
   child: MaterialApp(
     theme: AppTheme.lightTheme,  // Still needed for Material holdouts
     darkTheme: AppTheme.darkTheme,
@@ -269,7 +269,7 @@ Forui's built-in themes (zinc, neutral, blue, etc.) likely won't match BrandRoad
 
 **Path 1 (Initial Cycle 1 Scope): Use closest built-in theme as-is**
 
-- Select `FThemes.zinc.dark` or `FThemes.neutral.dark` as baseline
+- Select `FTheme.neutral.dark.touch` as baseline
 - Accept that Forui's default styling (colors, spacing, typography) will differ from current Material theme
 - This is acceptable for a preview/evaluation — Tony wants to see what Forui looks like, not pixel-perfect brand matching
 
@@ -294,7 +294,7 @@ MaterialApp(
   darkTheme: AppTheme.darkTheme,
   themeMode: themeModeProvider,
   builder: (context, child) => FTheme(
-    data: FThemes.zinc.dark,
+    data: FTheme.neutral.dark.touch,
     child: FToaster(child: child!),  // Add FToaster here
   ),
   home: ...,
@@ -313,7 +313,7 @@ MaterialApp(
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pubspec.yaml`                                  | Add `forui: ^0.25.0` to dependencies                                                                                                                                         |
 | `lib/main.dart`                                 | Add `FTheme` wrapper with built-in theme, add `FToaster` ancestor for toast support (~10 lines)                                                                              |
-| `lib/components/ui/app_scaffold.dart`           | Replace `Scaffold` with `FScaffold`: `body` → `child`, `appBar` → `header`, `bottomNavigationBar` → `footer`, `backgroundColor` → `scaffoldStyle` delta (~30 lines)          |
+| `lib/components/ui/app_scaffold.dart`           | Replace `Scaffold` with `FScaffold`: `body` → `child`, `appBar` → `header`, `bottomNavigationBar` → `footer`, drop `backgroundColor` support for preview (~30 lines)          |
 | `lib/components/ui/app_app_bar.dart`            | Replace `AppBar` with `FHeader`: `actions` → `suffixes`, `leading` → `prefixes` (use `.nested()`), map props (~40 lines)                                                     |
 | `lib/components/ui/app_button.dart`             | Replace Material button widgets with `FButton`: `onPressed` → `onPress`, use `variant` enum (.primary/.secondary/.destructive/.outline/.ghost), map variants (~50 lines)     |
 | `lib/components/ui/app_icon_button.dart`        | Replace `IconButton` with `FButton.icon`: `onPressed` → `onPress` (~20 lines)                                                                                                |
@@ -400,6 +400,7 @@ MaterialApp(
 2. **Platform inconsistency:** Forui's touch-first design may not translate well to desktop (macOS, Web) → navigation, button sizes, spacing may feel awkward on large screens.
 3. **FProgress circular support:** If Forui's `FProgress` doesn't support circular indicators, AppProgressIndicator must fall back to Material for circular, breaking consistency.
 4. **Form field behavior drift:** FTextFormField's validation/error display may differ from Material's TextFormField → form UX may change subtly.
+5. **Custom styling props become no-ops:** For this preview cycle, `backgroundColor`, `borderRadius`, `disabledBackgroundColor`, `disabledForegroundColor`, `elevation`, `padding`, `color`, `size` props on AppButton, AppScaffold, AppCard, AppAppBar, and AppIconButton are ignored (no style parameter passed to Forui widgets). Call sites keep compiling (facade preserved), but those specific instances will render with theme-default styling instead of custom colors/spacing. Approximately 10 call sites use AppButton's backgroundColor override, ~30 use AppScaffold's backgroundColor. These instances will visually differ from their Material appearance.
 
 ---
 
@@ -416,7 +417,7 @@ Execute in strict order:
 ### Task 2: Integrate FTheme and FToaster into main.dart
 
 - **File:** `lib/main.dart`
-- **Change:** Wrap `MaterialApp` builder with `FTheme(data: FThemes.zinc.dark, child: FToaster(child: child!))`
+- **Change:** Wrap `MaterialApp` builder with `FTheme(data: FTheme.neutral.dark.touch, child: FToaster(child: child!))`
 - **Verification:** App launches, no runtime errors. Material theme still applies to existing widgets.
 
 ### Task 3: Swap AppScaffold to FScaffold
@@ -440,8 +441,9 @@ Execute in strict order:
   - `body` → `child`
   - `floatingActionButton` → Not directly supported; investigate if `footer` can be repurposed or drop this prop
   - `bottomNavigationBar` → `footer`
-  - `backgroundColor` → Apply via `scaffoldStyle: .context(backgroundColor: color)`
+  - `backgroundColor` → **Drop for preview** (no style parameter; use theme default)
   - `resizeToAvoidBottomInset` → `resizeToAvoidBottomInset` (same param name)
+- **Note:** `backgroundColor` prop becomes a no-op when Forui-styled. Call sites keep compiling (facade preserved), but instances will render with theme-default background color.
 - **Verification:** App launches, all screens using AppScaffold render correctly (header, body, footer visible)
 
 ### Task 4: Swap AppAppBar to FHeader
@@ -473,8 +475,9 @@ Execute in strict order:
   - `title` (String or Widget) → `title: Widget` (wrap String in Text if needed)
   - `leading` → `prefixes: [widget]` (use `.nested()` constructor)
   - `actions` → `suffixes` (List<Widget>)
-  - `backgroundColor` → Apply via `style` delta if needed, or drop for preview
+  - `backgroundColor` → **Drop for preview** (no style parameter; use theme default)
   - `centerTitle` → `titleAlignment` (map true → Alignment.center, false → Alignment.start, use `.nested()`)
+- **Note:** `backgroundColor` prop becomes a no-op when Forui-styled. Call sites keep compiling (facade preserved), but instances will render with theme-default header background.
 - **Implementation:** Adapter layer within AppAppBar to convert Material API to FHeader API
 - **Verification:** All screens with AppBar render correctly, title and actions visible
 
@@ -507,6 +510,8 @@ Execute in strict order:
   - `icon` → Use `FButton` with icon in child, or Row for icon+label
   - `isLoading` → Show `CircularProgressIndicator` in child (same pattern as Material)
   - `fullWidth` → Wrap in `SizedBox(width: double.infinity, child: ...)`
+  - `backgroundColor`, `borderRadius`, `disabledBackgroundColor`, `disabledForegroundColor`, `padding` → **Drop for preview** (no style parameter; use variant/theme defaults)
+- **Note:** Custom styling props become no-ops when Forui-styled. Call sites keep compiling (facade preserved), but buttons render with variant default colors/spacing.
 - **Verification:** All button variants render correctly, loading state works
 
 ### Task 6: Swap AppIconButton to FButton.icon
@@ -526,8 +531,8 @@ Execute in strict order:
 - **Props mapping:**
   - `icon` → `child: Icon(icon)`
   - `onPressed` → `onPress` (no 'ed'!)
-  - `color` → Apply via `style` delta if needed
-  - `size` → Apply via `style` delta if needed
+  - `color`, `size` → **Drop for preview** (no style parameter; use theme defaults)
+- **Note:** `color` and `size` props become no-ops when Forui-styled. Call sites keep compiling (facade preserved), but icon buttons use theme default styling.
 - **Verification:** Icon buttons render correctly, tap interaction works
 
 ### Task 7: Swap AppTextField to FTextField
@@ -606,7 +611,8 @@ Execute in strict order:
 - **Props mapping:**
   - `child` → Pass via `builder: (context, style, child) => child!` or use default
   - `onTap` → Wrap FCard in `GestureDetector` or use Forui's tappable wrapper if available
-  - `padding` → Apply via `style` delta
+  - `padding`, `elevation` → **Drop for preview** (no style parameter; use theme defaults)
+- **Note:** `padding` and `elevation` props become no-ops when Forui-styled. Call sites keep compiling (facade preserved), but cards use theme default spacing/shadow.
 - **Verification:** Cards render correctly, tap interaction works
 
 ### Task 10: Swap AppDialog to FDialog
@@ -692,7 +698,8 @@ Execute in strict order:
 - **Props mapping:**
   - `value` → `value` (same)
   - `onChanged` → `onChange` (no 'd'!)
-  - `activeColor` → Apply via `style` delta if needed
+  - `activeColor` → **Drop for preview** (no style parameter; use theme default)
+- **Note:** `activeColor` prop becomes a no-op when Forui-styled. Call sites keep compiling (facade preserved), but switches use theme default active color.
 - **Verification:** Switches render correctly, toggle interaction works
 
 ### Task 13: Swap AppCheckbox to FCheckbox
@@ -714,7 +721,8 @@ Execute in strict order:
 - **Props mapping:**
   - `value` → `value` (same)
   - `onChanged` → `onChange` (no 'd'!)
-  - `activeColor` → Apply via `style` delta if needed
+  - `activeColor` → **Drop for preview** (no style parameter; use theme default)
+- **Note:** `activeColor` prop becomes a no-op when Forui-styled. Call sites keep compiling (facade preserved), but checkboxes use theme default active color.
 - **Verification:** Checkboxes render correctly, toggle interaction works
 
 ### Task 14: Swap AppDropdown to FSelect.rich
@@ -804,7 +812,8 @@ Execute in strict order:
 - **Props mapping:**
   - `type` (circular/linear) → Use `FCircularProgress()` for circular, `FProgress()` or `FDeterminateProgress()` for linear
   - `value` → For determinate: use `FDeterminateProgress(value: value)`. For indeterminate: use `FProgress()` or `FCircularProgress()`
-  - `color` → Apply via `style` delta if needed
+  - `color` → **Drop for preview** (no style parameter; use theme default)
+- **Note:** `color` prop becomes a no-op when Forui-styled. Call sites keep compiling (facade preserved), but progress indicators use theme default color.
 - **Implementation:** Branch on type and value presence to select correct class
 - **Verification:** Linear progress renders correctly, circular progress renders correctly (Forui FCircularProgress confirmed available)
 
@@ -815,6 +824,7 @@ Execute in strict order:
   - List all 15 wrappers
   - Mark which use Forui (14) and which remain Material (1: AppChip)
   - Explain why AppChip remains Material (FTappable API unclear, no confirmed interactive chip equivalent, unused in codebase)
+  - **Document no-op props for preview cycle:** `backgroundColor`, `borderRadius`, `disabledBackgroundColor`, `disabledForegroundColor`, `elevation`, `padding`, `color`, `size` props on AppButton, AppScaffold, AppCard, AppAppBar, and AppIconButton are ignored (no style parameter passed to Forui widgets). Call sites keep compiling (facade preserved), but those instances render with theme-default styling instead of custom colors/spacing.
   - Note that this is a preview/evaluation configuration, not final
 - **Verification:** README is clear and accurate
 
