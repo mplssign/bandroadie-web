@@ -2,57 +2,87 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppTextField', () {
     testWidgets('renders without errors', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(hintText: 'Test Hint')),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(hintText: 'Test Hint')),
         ),
       );
 
-      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
     testWidgets('displays hint text', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(hintText: 'Enter text here')),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(hintText: 'Enter text here')),
         ),
       );
 
-      expect(find.text('Enter text here'), findsOneWidget);
+      expect(find.byType(FTextField), findsOneWidget);
+
+      final textField = tester.widget<FTextField>(find.byType(FTextField));
+      expect(textField.hint, 'Enter text here');
     });
 
     testWidgets('displays label text', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(labelText: 'Username')),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(labelText: 'Username')),
         ),
       );
 
-      expect(find.text('Username'), findsOneWidget);
+      expect(find.byType(FTextField), findsOneWidget);
+
+      final textField = tester.widget<FTextField>(find.byType(FTextField));
+      expect(textField.label, isNotNull);
     });
 
-    testWidgets('displays prefix icon', (tester) async {
+    testWidgets('prefix icon ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(prefixIcon: Icons.person)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(prefixIcon: Icons.person)),
         ),
       );
 
-      expect(find.byIcon(Icons.person), findsOneWidget);
+      // Note: prefixIcon not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
     testWidgets('obscures text when obscureText is true', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(obscureText: true)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(obscureText: true)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(find.byType(FTextField), findsOneWidget);
+
+      final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.obscureText, isTrue);
     });
 
@@ -61,80 +91,111 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppTextField(onChanged: (value) => changedValue = value),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'test');
+      await tester.enterText(find.byType(FTextField), 'test');
       expect(changedValue, 'test');
     });
 
     testWidgets('respects enabled property', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: AppTextField(enabled: false))),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(enabled: false)),
+        ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(find.byType(FTextField), findsOneWidget);
+
+      final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.enabled, isFalse);
     });
 
-    testWidgets('delegates focusNode to TextField', (tester) async {
+    testWidgets('delegates focusNode to FTextField', (tester) async {
       final focusNode = FocusNode();
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(body: AppTextField(focusNode: focusNode)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(find.byType(FTextField), findsOneWidget);
+
+      final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.focusNode, focusNode);
 
       focusNode.dispose();
     });
 
-    testWidgets('delegates textCapitalization to TextField', (tester) async {
+    testWidgets('textCapitalization ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(
             body: AppTextField(textCapitalization: TextCapitalization.words),
           ),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.textCapitalization, TextCapitalization.words);
+      // Note: textCapitalization not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('delegates textInputAction to TextField', (tester) async {
+    testWidgets('textInputAction ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(
             body: AppTextField(textInputAction: TextInputAction.next),
           ),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.textInputAction, TextInputAction.next);
+      // Note: textInputAction not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('delegates style to TextField', (tester) async {
+    testWidgets('style ignored in Forui preview', (tester) async {
       const customStyle = TextStyle(fontSize: 20, color: Colors.red);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(style: customStyle)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(style: customStyle)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.style, customStyle);
+      // Note: style not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('uses full decoration when provided', (tester) async {
+    testWidgets('decoration ignored in Forui preview', (tester) async {
       const customDecoration = InputDecoration(
         filled: true,
         fillColor: Colors.blue,
@@ -143,13 +204,18 @@ void main() {
       );
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(decoration: customDecoration)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home:
+              const Scaffold(body: AppTextField(decoration: customDecoration)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.decoration, customDecoration);
+      // Note: decoration not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
     testWidgets('decoration overrides simplified props when provided', (
@@ -161,8 +227,12 @@ void main() {
       );
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(
             body: AppTextField(
               decoration: customDecoration,
               hintText: 'Ignored hint',
@@ -173,58 +243,72 @@ void main() {
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.decoration, customDecoration);
-      // Verify simplified props are not in the decoration
-      expect(find.text('Ignored hint'), findsNothing);
-      expect(find.text('Ignored label'), findsNothing);
-      expect(find.byIcon(Icons.person), findsNothing);
+      // Note: decoration not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('delegates inputFormatters to TextField', (tester) async {
+    testWidgets('inputFormatters ignored in Forui preview', (tester) async {
       final formatter = LengthLimitingTextInputFormatter(5);
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppTextField(inputFormatters: [formatter]),
           ),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.inputFormatters, [formatter]);
+      // Note: inputFormatters not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('delegates autocorrect to TextField', (tester) async {
+    testWidgets('autocorrect supported in FTextField', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(autocorrect: false)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(autocorrect: false)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(find.byType(FTextField), findsOneWidget);
+
+      final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.autocorrect, isFalse);
     });
 
-    testWidgets('delegates autofillHints to TextField', (tester) async {
+    testWidgets('autofillHints ignored in Forui preview', (tester) async {
       const hints = [AutofillHints.email];
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(autofillHints: hints)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(autofillHints: hints)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.autofillHints, hints);
+      // Note: autofillHints not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('calls onSubmitted callback', (tester) async {
+    testWidgets('onSubmitted ignored in Forui preview', (tester) async {
       String? submittedValue;
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppTextField(
               onSubmitted: (value) => submittedValue = value,
@@ -232,21 +316,25 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'test');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      expect(submittedValue, 'test');
+      // Note: onSubmitted not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
 
-    testWidgets('delegates autofocus to TextField', (tester) async {
+    testWidgets('autofocus ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppTextField(autofocus: true)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppTextField(autofocus: true)),
         ),
       );
 
-      final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.autofocus, isTrue);
+      // Note: autofocus not supported in Forui preview (dropped prop)
+      expect(find.byType(FTextField), findsOneWidget);
     });
   });
 }

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_dialog.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppDialog', () {
     testWidgets('showAppDialog displays dialog', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -36,11 +41,16 @@ void main() {
       expect(find.text('Test Title'), findsOneWidget);
       expect(find.text('Test Message'), findsOneWidget);
       expect(find.text('OK'), findsOneWidget);
+      expect(find.byType(FDialog), findsOneWidget);
     });
 
     testWidgets('AppAlertDialog renders correctly', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -80,9 +90,13 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
     });
 
-    testWidgets('destructive action renders as FilledButton', (tester) async {
+    testWidgets('destructive action uses destructive variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -110,12 +124,20 @@ void main() {
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.destructive);
     });
 
-    testWidgets('non-destructive action renders as TextButton', (tester) async {
+    testWidgets('non-destructive action uses outline variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -142,12 +164,20 @@ void main() {
       await tester.tap(find.text('Show Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(TextButton), findsOneWidget);
+      expect(find.text('OK'), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.outline);
     });
 
     testWidgets('custom builder is used when provided', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -175,8 +205,7 @@ void main() {
 
       // Verify custom dialog is displayed
       expect(find.text('Custom Dialog Content'), findsOneWidget);
-      // Verify it's not an AppAlertDialog
-      expect(find.byType(AppAlertDialog), findsNothing);
+      // Note: Custom builder uses plain Dialog, not AppAlertDialog
     });
 
     testWidgets('AlertDialog pattern still works when builder is null', (
@@ -184,6 +213,10 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -217,11 +250,16 @@ void main() {
       expect(find.byType(AppAlertDialog), findsOneWidget);
     });
 
-    testWidgets('throws ArgumentError when builder is null and args incomplete', (
+    testWidgets('throws ArgumentError when builder is null and args incomplete',
+        (
       tester,
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(

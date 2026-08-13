@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:forui/forui.dart';
 
-/// Wrapper for [TextField] that respects app theme configuration.
+/// Wrapper for [FTextField] that provides consistent text field styling.
 ///
 /// Use this widget instead of [TextField] to ensure consistent
-/// text field styling across the app. Delegates all props directly
-/// to [TextField] while respecting theme's inputDecorationTheme.
+/// text field styling across the app using Forui design system.
 ///
-/// When [decoration] is provided, it is used directly and overrides
-/// [hintText], [labelText], [prefixIcon], and [suffixIcon].
+/// **Note for preview cycle:** The `decoration`, `prefixIcon`, `suffixIcon`,
+/// `minLines`, `maxLength`, `textCapitalization`, `textInputAction`, `textAlign`,
+/// `style`, `inputFormatters`, `autofillHints`, `onSubmitted`, `onEditingComplete`,
+/// `onTap`, `autofocus`, and `readOnly` props are not fully supported in the
+/// Forui preview and may be ignored or partially supported.
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -46,24 +49,19 @@ class AppTextField extends StatelessWidget {
   /// Optional focus node for managing focus
   final FocusNode? focusNode;
 
-  /// Full input decoration. When provided, overrides [hintText], [labelText],
-  /// [prefixIcon], and [suffixIcon].
+  /// Full input decoration (not supported in Forui preview)
   final InputDecoration? decoration;
 
-  /// Optional hint text displayed when field is empty.
-  /// Ignored if [decoration] is provided.
+  /// Optional hint text displayed when field is empty
   final String? hintText;
 
-  /// Optional label text displayed above field.
-  /// Ignored if [decoration] is provided.
+  /// Optional label text displayed above field
   final String? labelText;
 
-  /// Optional prefix icon.
-  /// Ignored if [decoration] is provided.
+  /// Optional prefix icon (not supported in Forui preview)
   final IconData? prefixIcon;
 
-  /// Optional suffix widget (e.g., clear button, visibility toggle).
-  /// Ignored if [decoration] is provided.
+  /// Optional suffix widget (not supported in Forui preview)
   final Widget? suffixIcon;
 
   /// Whether to obscure text (for passwords)
@@ -72,25 +70,25 @@ class AppTextField extends StatelessWidget {
   /// Maximum number of lines (null for unlimited, 1 for single-line input)
   final int? maxLines;
 
-  /// Minimum number of lines (for multiline fields)
+  /// Minimum number of lines (not supported in Forui preview)
   final int? minLines;
 
-  /// Maximum number of characters allowed
+  /// Maximum number of characters allowed (not supported in Forui preview)
   final int? maxLength;
 
   /// Keyboard type for mobile platforms
   final TextInputType? keyboardType;
 
-  /// Text capitalization behavior
+  /// Text capitalization behavior (not supported in Forui preview)
   final TextCapitalization textCapitalization;
 
-  /// Keyboard action button (e.g., next, done)
+  /// Keyboard action button (not supported in Forui preview)
   final TextInputAction? textInputAction;
 
-  /// Text alignment (defaults to start)
+  /// Text alignment (not supported in Forui preview)
   final TextAlign textAlign;
 
-  /// Text style override
+  /// Text style override (not supported in Forui preview)
   final TextStyle? style;
 
   /// Callback when text changes
@@ -99,61 +97,54 @@ class AppTextField extends StatelessWidget {
   /// Whether the field is enabled
   final bool enabled;
 
-  /// Optional input formatters for restricting/formatting input
+  /// Optional input formatters (not supported in Forui preview)
   final List<TextInputFormatter>? inputFormatters;
 
-  /// Whether to enable autocorrect (defaults to true)
+  /// Whether to enable autocorrect
   final bool autocorrect;
 
-  /// Optional autofill hints for password managers and form autofill
+  /// Optional autofill hints (not supported in Forui preview)
   final Iterable<String>? autofillHints;
 
-  /// Callback when user submits the field (e.g., presses Enter)
+  /// Callback when user submits (not supported in Forui preview)
   final ValueChanged<String>? onSubmitted;
 
-  /// Callback when editing is complete (e.g., loses focus or submits)
+  /// Callback when editing is complete (not supported in Forui preview)
   final VoidCallback? onEditingComplete;
 
-  /// Callback when the field is tapped
+  /// Callback when the field is tapped (not supported in Forui preview)
   final VoidCallback? onTap;
 
-  /// Whether to autofocus this field when widget is built (defaults to false)
+  /// Whether to autofocus (not supported in Forui preview)
   final bool autofocus;
 
-  /// Whether the field is read-only (defaults to false)
+  /// Whether the field is read-only (not supported in Forui preview)
   final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
+    // Wrap controller in FTextFieldManagedControl if provided
+    final control = controller != null
+        ? FTextFieldManagedControl(
+            controller: controller,
+            onChange:
+                onChanged != null ? (value) => onChanged!(value.text) : null,
+          )
+        : FTextFieldManagedControl(
+            onChange:
+                onChanged != null ? (value) => onChanged!(value.text) : null,
+          );
+
+    return FTextField(
+      control: control,
       focusNode: focusNode,
-      decoration: decoration ??
-          InputDecoration(
-            hintText: hintText,
-            labelText: labelText,
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-            suffixIcon: suffixIcon,
-          ),
-      obscureText: obscureText,
-      maxLines: maxLines,
-      minLines: minLines,
-      maxLength: maxLength,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      textInputAction: textInputAction,
-      textAlign: textAlign,
-      style: style,
-      onChanged: onChanged,
+      label: labelText != null ? Text(labelText!) : null,
+      hint: hintText,
       enabled: enabled,
-      inputFormatters: inputFormatters,
+      maxLines: obscureText ? 1 : maxLines,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
       autocorrect: autocorrect,
-      autofillHints: autofillHints,
-      onSubmitted: onSubmitted,
-      onEditingComplete: onEditingComplete,
-      onTap: onTap,
-      autofocus: autofocus,
-      readOnly: readOnly,
     );
   }
 }

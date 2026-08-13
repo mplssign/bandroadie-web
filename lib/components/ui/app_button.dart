@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:forui/forui.dart';
 
 /// Button style variants
 enum AppButtonVariant {
-  /// Filled button with primary color background (FilledButton)
+  /// Filled button with primary color background
   primary,
 
-  /// Elevated button with shadow (ElevatedButton)
+  /// Elevated button with shadow
   secondary,
 
-  /// Text-only button with no background (TextButton)
+  /// Text-only button with no background (maps to Forui .ghost)
   text,
 
-  /// Outlined button with border (OutlinedButton)
+  /// Outlined button with border
   outlined,
 
-  /// Error-colored filled button for dangerous actions (FilledButton with error background)
+  /// Error-colored filled button for dangerous actions
   destructive,
 }
 
-/// Wrapper for Material button widgets that respects app theme configuration.
+/// Wrapper for [FButton] that provides consistent button styling.
 ///
 /// Use this widget instead of [FilledButton], [ElevatedButton], [TextButton],
-/// or [OutlinedButton] to ensure consistent button styling across the app.
-/// Delegates to the appropriate Material button based on [variant] while
-/// respecting theme configuration.
+/// or [OutlinedButton] to ensure consistent button styling across the app
+/// using Forui design system.
+///
+/// **Note for preview cycle:** The `backgroundColor`, `borderRadius`, `elevation`,
+/// `disabledBackgroundColor`, `disabledForegroundColor`, and `padding` props
+/// are currently ignored (no style override applied). Buttons use variant default styling.
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
@@ -60,28 +63,28 @@ class AppButton extends StatelessWidget {
   /// If true, button expands to fill available width
   final bool fullWidth;
 
-  /// Optional custom background color (applies to primary/secondary variants)
+  /// Optional custom background color (ignored in Forui preview)
   final Color? backgroundColor;
 
-  /// Optional custom border radius (applies to primary/secondary variants)
+  /// Optional custom border radius (ignored in Forui preview)
   final BorderRadius? borderRadius;
 
-  /// Optional custom elevation (applies to secondary variant only)
+  /// Optional custom elevation (ignored in Forui preview)
   final double? elevation;
 
-  /// Optional custom disabled background color (applies to primary/secondary variants)
+  /// Optional custom disabled background color (ignored in Forui preview)
   final Color? disabledBackgroundColor;
 
-  /// Optional custom disabled foreground color (applies to primary/secondary variants)
+  /// Optional custom disabled foreground color (ignored in Forui preview)
   final Color? disabledForegroundColor;
 
-  /// Optional custom padding (applies to all variants)
+  /// Optional custom padding (ignored in Forui preview)
   final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     // Disable button when loading or onPressed is null
-    final effectiveOnPressed = isLoading ? null : onPressed;
+    final effectiveOnPress = isLoading ? null : onPressed;
 
     // Build button content
     final content = isLoading
@@ -101,79 +104,27 @@ class AppButton extends StatelessWidget {
               )
             : Text(label);
 
-    // Build the button based on variant
-    Widget button;
+    // Map AppButtonVariant to FButtonVariant
+    final FButtonVariant foruiVariant;
     switch (variant) {
       case AppButtonVariant.primary:
-        button = FilledButton(
-          onPressed: effectiveOnPressed,
-          style: (backgroundColor != null ||
-                  borderRadius != null ||
-                  disabledBackgroundColor != null ||
-                  disabledForegroundColor != null ||
-                  padding != null)
-              ? FilledButton.styleFrom(
-                  backgroundColor: backgroundColor,
-                  shape: borderRadius != null
-                      ? RoundedRectangleBorder(borderRadius: borderRadius!)
-                      : null,
-                  disabledBackgroundColor: disabledBackgroundColor,
-                  disabledForegroundColor: disabledForegroundColor,
-                  padding: padding,
-                )
-              : null,
-          child: content,
-        );
+        foruiVariant = FButtonVariant.primary;
       case AppButtonVariant.secondary:
-        button = ElevatedButton(
-          onPressed: effectiveOnPressed,
-          style: (backgroundColor != null ||
-                  borderRadius != null ||
-                  elevation != null ||
-                  disabledBackgroundColor != null ||
-                  disabledForegroundColor != null ||
-                  padding != null)
-              ? ElevatedButton.styleFrom(
-                  backgroundColor: backgroundColor,
-                  shape: borderRadius != null
-                      ? RoundedRectangleBorder(borderRadius: borderRadius!)
-                      : null,
-                  elevation: elevation,
-                  disabledBackgroundColor: disabledBackgroundColor,
-                  disabledForegroundColor: disabledForegroundColor,
-                  padding: padding,
-                )
-              : null,
-          child: content,
-        );
+        foruiVariant = FButtonVariant.secondary;
       case AppButtonVariant.text:
-        button = TextButton(
-          onPressed: effectiveOnPressed,
-          style:
-              padding != null ? TextButton.styleFrom(padding: padding) : null,
-          child: content,
-        );
+        foruiVariant = FButtonVariant.ghost;
       case AppButtonVariant.outlined:
-        button = OutlinedButton(
-          onPressed: effectiveOnPressed,
-          style: padding != null
-              ? OutlinedButton.styleFrom(padding: padding)
-              : null,
-          child: content,
-        );
+        foruiVariant = FButtonVariant.outline;
       case AppButtonVariant.destructive:
-        button = FilledButton(
-          onPressed: effectiveOnPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.error,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: content,
-        );
+        foruiVariant = FButtonVariant.destructive;
     }
+
+    // Build the button
+    final button = FButton(
+      onPress: effectiveOnPress,
+      variant: foruiVariant,
+      child: content,
+    );
 
     // Wrap in full-width container if needed
     if (fullWidth) {

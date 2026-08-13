@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
-/// Shows an app-themed modal bottom sheet.
+/// Shows an app-themed modal bottom sheet using Forui design system.
 ///
 /// Use this instead of [showModalBottomSheet] to ensure
 /// consistent bottom sheet styling across the app.
+///
+/// **Note for preview cycle:** The `backgroundColor`, `shape`, `isScrollControlled`,
+/// `useSafeArea`, and `barrierColor` props are not supported in Forui preview.
 ///
 /// Returns the result passed to [Navigator.pop] when the bottom sheet is dismissed.
 Future<T?> showAppBottomSheet<T>({
@@ -17,15 +21,11 @@ Future<T?> showAppBottomSheet<T>({
   bool useSafeArea = false,
   Color? barrierColor,
 }) {
-  return showModalBottomSheet<T>(
+  return showFSheet<T>(
     context: context,
     builder: builder,
-    isDismissible: isDismissible,
+    side: FLayout.btt, // Bottom-to-top sheet
+    barrierDismissible: isDismissible,
     useRootNavigator: useRootNavigator,
-    backgroundColor: backgroundColor,
-    shape: shape,
-    isScrollControlled: isScrollControlled,
-    useSafeArea: useSafeArea,
-    barrierColor: barrierColor,
   );
 }

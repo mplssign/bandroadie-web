@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
 /// Dialog action button configuration
 class DialogAction {
@@ -18,7 +19,7 @@ class DialogAction {
   final bool isDestructive;
 }
 
-/// Shows an app-themed dialog with title, message, and action buttons.
+/// Shows an app-themed dialog using Forui design system.
 ///
 /// Use this instead of [showDialog] with [AlertDialog] to ensure
 /// consistent dialog styling across the app.
@@ -38,10 +39,11 @@ Future<T?> showAppDialog<T>({
   WidgetBuilder? builder,
 }) {
   if (builder != null) {
-    return showDialog<T>(
+    // Custom builder: wrap in showFDialog with 3-param signature
+    return showFDialog<T>(
       context: context,
       barrierDismissible: barrierDismissible,
-      builder: builder,
+      builder: (context, style, animation) => builder(context),
     );
   }
 
@@ -51,15 +53,15 @@ Future<T?> showAppDialog<T>({
     );
   }
 
-  return showDialog<T>(
+  return showFDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder: (context) =>
+    builder: (context, style, animation) =>
         AppAlertDialog(title: title, message: message, actions: actions),
   );
 }
 
-/// Alert dialog widget that respects app theme configuration.
+/// Alert dialog widget using Forui design system.
 ///
 /// Typically used via [showAppDialog] helper function rather than directly.
 class AppAlertDialog extends StatelessWidget {
@@ -81,21 +83,34 @@ class AppAlertDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: actions.map((action) {
-        if (action.isDestructive) {
-          return FilledButton(
-            onPressed: action.onPressed,
-            child: Text(action.label),
-          );
-        }
-        return TextButton(
-          onPressed: action.onPressed,
-          child: Text(action.label),
-        );
-      }).toList(),
+    return FDialog(
+      builder: (context, style) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Text(message),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: actions.map((action) {
+              return Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: FButton(
+                  onPress: action.onPressed,
+                  variant: action.isDestructive
+                      ? FButtonVariant.destructive
+                      : FButtonVariant.outline,
+                  child: Text(action.label),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }
