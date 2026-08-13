@@ -7,11 +7,9 @@ import 'package:forui/forui.dart';
 /// Use this widget instead of [TextField] to ensure consistent
 /// text field styling across the app using Forui design system.
 ///
-/// **Note for preview cycle:** The `decoration`, `prefixIcon`, `suffixIcon`,
-/// `minLines`, `maxLength`, `textCapitalization`, `textInputAction`, `textAlign`,
-/// `style`, `inputFormatters`, `autofillHints`, `onSubmitted`, `onEditingComplete`,
-/// `onTap`, `autofocus`, and `readOnly` props are not fully supported in the
-/// Forui preview and may be ignored or partially supported.
+/// **Note:** The `decoration`, `prefixIcon`, and `suffixIcon` props are not
+/// fully supported in the current implementation (builder pattern required).
+/// The `style` prop is not supported (use Forui theme instead).
 class AppTextField extends StatelessWidget {
   const AppTextField({
     super.key,
@@ -58,10 +56,10 @@ class AppTextField extends StatelessWidget {
   /// Optional label text displayed above field
   final String? labelText;
 
-  /// Optional prefix icon (not supported in Forui preview)
-  final IconData? prefixIcon;
+  /// Optional prefix icon
+  final Widget? prefixIcon;
 
-  /// Optional suffix widget (not supported in Forui preview)
+  /// Optional suffix widget
   final Widget? suffixIcon;
 
   /// Whether to obscure text (for passwords)
@@ -142,9 +140,25 @@ class AppTextField extends StatelessWidget {
       hint: hintText,
       enabled: enabled,
       maxLines: obscureText ? 1 : maxLines,
+      minLines: minLines,
+      maxLength: maxLength,
       keyboardType: keyboardType,
       obscureText: obscureText,
       autocorrect: autocorrect,
+      textAlign: textAlign,
+      textCapitalization: textCapitalization,
+      textInputAction: textInputAction,
+      inputFormatters: inputFormatters,
+      autofillHints: autofillHints,
+      onSubmit: onSubmitted,
+      onEditingComplete: onEditingComplete,
+      onTap: onTap,
+      autofocus: autofocus,
+      readOnly: readOnly,
+      prefixBuilder:
+          prefixIcon != null ? (context, style, variants) => prefixIcon! : null,
+      suffixBuilder:
+          suffixIcon != null ? (context, style, variants) => suffixIcon! : null,
     );
   }
 }

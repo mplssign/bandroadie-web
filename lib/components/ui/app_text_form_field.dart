@@ -7,10 +7,9 @@ import 'package:forui/forui.dart';
 /// Use this widget instead of [TextFormField] to ensure consistent
 /// text form field styling across the app using Forui design system.
 ///
-/// **Note for preview cycle:** The `decoration`, `prefixIcon`, `suffixIcon`,
-/// `minLines`, `maxLength`, `textCapitalization`, `textInputAction`, `style`,
-/// `inputFormatters`, `autofillHints`, `onSubmitted`, and `autofocus` props
-/// are not fully supported in the Forui preview and may be ignored or partially supported.
+/// **Note:** The `decoration`, `prefixIcon`, and `suffixIcon` props are not
+/// fully supported in the current implementation (builder pattern required).
+/// The `style` prop is not supported (use Forui theme instead).
 class AppTextFormField extends StatelessWidget {
   const AppTextFormField({
     super.key,
@@ -55,10 +54,10 @@ class AppTextFormField extends StatelessWidget {
   /// Optional label text displayed above field
   final String? labelText;
 
-  /// Optional prefix icon (not supported in Forui preview)
-  final IconData? prefixIcon;
+  /// Optional prefix icon
+  final Widget? prefixIcon;
 
-  /// Optional suffix widget (not supported in Forui preview)
+  /// Optional suffix widget
   final Widget? suffixIcon;
 
   /// Whether to obscure text (for passwords)
@@ -133,11 +132,23 @@ class AppTextFormField extends StatelessWidget {
       hint: hintText,
       enabled: enabled,
       maxLines: maxLines,
+      minLines: minLines,
+      maxLength: maxLength,
       keyboardType: keyboardType,
       obscureText: obscureText,
       autocorrect: autocorrect,
       validator: validator,
       onSaved: onSaved,
+      textCapitalization: textCapitalization,
+      textInputAction: textInputAction,
+      inputFormatters: inputFormatters,
+      autofillHints: autofillHints,
+      onSubmit: onSubmitted,
+      autofocus: autofocus,
+      prefixBuilder:
+          prefixIcon != null ? (context, style, variants) => prefixIcon! : null,
+      suffixBuilder:
+          suffixIcon != null ? (context, style, variants) => suffixIcon! : null,
     );
   }
 }

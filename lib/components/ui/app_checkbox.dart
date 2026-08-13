@@ -6,9 +6,8 @@ import 'package:forui/forui.dart';
 /// Use this widget instead of [Checkbox] to ensure consistent
 /// checkbox styling across the app using Forui design system.
 ///
-/// **Note for preview cycle:** The `activeColor` prop is currently ignored
-/// (no style override applied). Checkbox uses theme default styling.
-/// Tristate (indeterminate) is not supported - null values are treated as false.
+/// **Note:** Tristate (indeterminate) is not supported - null values are
+/// treated as false.
 class AppCheckbox extends StatelessWidget {
   const AppCheckbox({
     super.key,
@@ -29,10 +28,30 @@ class AppCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FCheckbox(
-      value: value ?? false,
-      onChange: onChanged != null ? (newValue) => onChanged!(newValue) : null,
-      enabled: onChanged != null,
-    );
+    // Build StyleDelta if activeColor override provided
+    final styleDelta = activeColor != null
+        ? FCheckboxStyleDelta.delta(
+            decoration: FVariantsDelta.delta([
+              FVariantOperation.all(
+                DecorationDelta.boxDelta(color: activeColor),
+              ),
+            ]),
+          )
+        : null;
+
+    return styleDelta != null
+        ? FCheckbox(
+            value: value ?? false,
+            onChange:
+                onChanged != null ? (newValue) => onChanged!(newValue) : null,
+            enabled: onChanged != null,
+            style: styleDelta,
+          )
+        : FCheckbox(
+            value: value ?? false,
+            onChange:
+                onChanged != null ? (newValue) => onChanged!(newValue) : null,
+            enabled: onChanged != null,
+          );
   }
 }

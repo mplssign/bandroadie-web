@@ -29,99 +29,101 @@ As of 2026-08-12, **14 of 15 wrappers** have been swapped to use Forui design sy
   - **Reason:** No confirmed Forui equivalent for interactive filter chips. `FBadge` is for static labels. `FTappable` primitive has unclear gesture callback API.
   - **Impact:** Zero call sites in current codebase (unused wrapper).
 
-## Preview Cycle Limitations
+## Props Not Supported in Forui
 
-This is a **preview/evaluation configuration** to allow Tony to assess Forui's visual design before committing to production. The following limitations apply:
-
-### Props Ignored in Preview
-
-The wrappers preserve their full API contracts (call sites unchanged), but the following props are **no-ops** in the Forui preview:
+The wrappers preserve their full API contracts (call sites unchanged), but the following props have **genuine Forui limitations** and cannot be fully supported:
 
 #### AppButton
 
-- `backgroundColor`
-- `borderRadius`
-- `elevation`
-- `disabledBackgroundColor`
-- `disabledForegroundColor`
-- `padding`
+- `elevation` — Forui buttons do not expose Material-style elevation shadows
+- `disabledBackgroundColor` — Use variant styling instead
+- `disabledForegroundColor` — Use variant styling instead
 
 #### AppScaffold
 
-- `backgroundColor`
-- `floatingActionButton` (not supported by FScaffold)
+- `backgroundColor` — Not exposed in FScaffold API
+- `floatingActionButton` — FScaffold does not have FAB concept (use footer actions instead)
 
 #### AppAppBar
 
-- `backgroundColor`
+- `backgroundColor` — Not exposed in FHeader API
 
 #### AppIconButton
 
-- `color`
-- `size`
-
-#### AppCard
-
-- `padding`
+- `color` — Use variant styling instead
+- `size` — Use variant styling instead
 
 #### AppTextField / AppTextFormField
 
-- `decoration` (full InputDecoration not supported)
-- `prefixIcon`
-- `suffixIcon`
-- `minLines`
-- `maxLength`
-- `textCapitalization`
-- `textInputAction`
-- `textAlign`
-- `style`
-- `inputFormatters`
-- `autofillHints`
-- `onSubmitted`
-- `onEditingComplete`
-- `onTap`
-- `autofocus`
-- `readOnly`
+- `decoration` — Full InputDecoration not supported (Forui uses different decoration model)
+- `style` — Use Forui theme styling instead
 
 #### AppSwitch
 
-- `activeColor`
-- `activeTrackColor`
-- `useAdaptiveSwitch`
+- `useAdaptiveSwitch` — Forui handles platform adaptation automatically
 
 #### AppCheckbox
 
-- `activeColor`
-- Tristate (indeterminate) — null values treated as false
+- Tristate (indeterminate) — FCheckbox does not support null values, null is treated as false
 
 #### AppDropdown
 
-- `hint`
+- `hint` — Not exposed in FSelect API
 - Format function uses `toString()` (may not be ideal for all types)
 
 #### AppBottomSheet
 
-- `backgroundColor`
-- `shape`
-- `isScrollControlled`
-- `useSafeArea`
-- `barrierColor`
+- `backgroundColor` — StyleDelta API not publicly documented
+- `shape` — StyleDelta API not publicly documented
+- `isScrollControlled` — FSheet uses different scroll handling
+- `useSafeArea` — FSheet uses different safe area handling
+- `barrierColor` — Not exposed in FSheet API
 
 #### AppProgressIndicator
 
-- `color`
-- `strokeWidth`
-- Circular determinate mode (always indeterminate)
+- `color` — Use variant styling instead
+- `strokeWidth` — Use variant styling instead
+- Circular determinate mode — FCircularProgress always indeterminate
 
-### Why These Limitations Exist
+### Props Now Supported (Restored in This Cycle)
 
-Forui's API does not expose style override hooks in the same way Material does. Material buttons accept `ButtonStyle` objects with granular property control; Forui buttons accept `FButtonStyleDelta` but the plan explicitly says **"drop for preview"** to avoid the blocker patterns from implementation attempts 1 and 2.
+The following props were restored and now work correctly:
 
-This is acceptable for preview because:
+#### AppButton
 
-1. **Call sites don't break** — wrappers still compile with ignored props
-2. **Visual evaluation is the goal** — Tony wants to see Forui's default aesthetic
-3. **Production customization is future work** — if Tony approves Forui, a follow-up cycle will implement proper style overrides
+- `backgroundColor` ✅
+- `borderRadius` ✅
+- `padding` ✅
+
+#### AppTextField / AppTextFormField
+
+- `prefixIcon` ✅ (via builder pattern)
+- `suffixIcon` ✅ (via builder pattern)
+- `minLines` ✅
+- `maxLength` ✅
+- `textCapitalization` ✅
+- `textInputAction` ✅
+- `textAlign` ✅
+- `inputFormatters` ✅
+- `autofillHints` ✅
+- `onSubmitted` ✅ (mapped to onSubmit)
+- `onEditingComplete` ✅
+- `onTap` ✅
+- `autofocus` ✅
+- `readOnly` ✅
+
+#### AppSwitch
+
+- `activeColor` ✅
+- `activeTrackColor` ✅
+
+#### AppCheckbox
+
+- `activeColor` ✅
+
+#### AppCard
+
+- `padding` ✅
 
 ## Call Site Coverage
 
@@ -135,7 +137,7 @@ This means **12 of 14 swapped wrappers** will be visible in Tony's preview. AppD
 
 If Tony approves Forui after this preview:
 
-1. **Cycle 2:** Implement proper style override support via `FButtonStyleDelta`, `FScaffoldStyleDelta`, etc.
+1. **Cycle 2:** Address remaining StyleDelta gaps (elevation, disabled colors, etc.)
 2. **Cycle 3:** Customize Forui theme to match BandRoadie's rose accent (`#F43F5E`) and dark-only aesthetic
 3. **Cycle 4:** Address AppChip (build custom Forui chip widget or investigate FTappable API)
 4. **Cycle 5:** Fix facade gap — migrate 5 raw `DropdownButton` usages to AppDropdown

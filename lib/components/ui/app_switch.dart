@@ -6,9 +6,8 @@ import 'package:forui/forui.dart';
 /// Use this widget instead of [Switch] to ensure consistent
 /// switch styling across the app using Forui design system.
 ///
-/// **Note for preview cycle:** The `activeColor`, `activeTrackColor`, and
-/// `useAdaptiveSwitch` props are currently ignored (no style override applied).
-/// Switch uses theme default styling.
+/// **Note:** The `useAdaptiveSwitch` prop is not supported (Forui handles
+/// platform adaptation automatically).
 class AppSwitch extends StatelessWidget {
   const AppSwitch({
     super.key,
@@ -36,10 +35,33 @@ class AppSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FSwitch(
-      value: value,
-      onChange: onChanged,
-      enabled: onChanged != null,
-    );
+    // Build StyleDelta if any color overrides provided
+    final styleDelta = (activeColor != null || activeTrackColor != null)
+        ? FSwitchStyleDelta.delta(
+            thumbColor: activeColor != null
+                ? FVariantsValueDelta.delta([
+                    FVariantValueDeltaOperation.all(activeColor!),
+                  ])
+                : null,
+            trackColor: activeTrackColor != null
+                ? FVariantsValueDelta.delta([
+                    FVariantValueDeltaOperation.all(activeTrackColor!),
+                  ])
+                : null,
+          )
+        : null;
+
+    return styleDelta != null
+        ? FSwitch(
+            value: value,
+            onChange: onChanged,
+            enabled: onChanged != null,
+            style: styleDelta,
+          )
+        : FSwitch(
+            value: value,
+            onChange: onChanged,
+            enabled: onChanged != null,
+          );
   }
 }
