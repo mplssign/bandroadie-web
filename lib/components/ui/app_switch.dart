@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
-/// Wrapper for [Switch] that respects app theme configuration.
+/// Wrapper for [FSwitch] that provides consistent switch styling.
 ///
 /// Use this widget instead of [Switch] to ensure consistent
-/// switch styling across the app. Delegates all props directly
-/// to [Switch] while respecting theme's switchTheme unless
-/// explicitly overridden.
+/// switch styling across the app using Forui design system.
+///
+/// **Note for preview cycle:** The `activeColor`, `activeTrackColor`, and
+/// `useAdaptiveSwitch` props are currently ignored (no style override applied).
+/// Switch uses theme default styling.
 class AppSwitch extends StatelessWidget {
   const AppSwitch({
     super.key,
@@ -22,37 +25,21 @@ class AppSwitch extends StatelessWidget {
   /// Callback when switch state changes (null disables switch)
   final ValueChanged<bool>? onChanged;
 
-  /// Optional active thumb color override
-  /// If null, uses theme's switchTheme.thumbColor
+  /// Optional active thumb color override (ignored in Forui preview)
   final Color? activeColor;
 
-  /// Optional active track color override
-  /// If null, uses theme's switchTheme.trackColor
+  /// Optional active track color override (ignored in Forui preview)
   final Color? activeTrackColor;
 
-  /// Whether to use Switch.adaptive (Cupertino on iOS/macOS, Material on Android/Web)
-  /// Defaults to false (always use Material Switch)
+  /// Whether to use adaptive switch (ignored in Forui preview)
   final bool useAdaptiveSwitch;
 
   @override
   Widget build(BuildContext context) {
-    if (useAdaptiveSwitch) {
-      return Switch.adaptive(
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: activeColor,
-        activeTrackColor: activeTrackColor,
-      );
-    }
-
-    return Switch(
+    return FSwitch(
       value: value,
-      onChanged: onChanged,
-      thumbColor:
-          activeColor != null ? WidgetStateProperty.all(activeColor) : null,
-      trackColor: activeTrackColor != null
-          ? WidgetStateProperty.all(activeTrackColor)
-          : null,
+      onChange: onChanged,
+      enabled: onChanged != null,
     );
   }
 }

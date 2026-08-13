@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
-/// Wrapper for [IconButton] that respects app theme configuration.
+/// Wrapper for [FButton.icon] that provides consistent icon button styling.
 ///
 /// Use this widget instead of [IconButton] to ensure consistent
-/// icon button styling across the app. Delegates all props directly
-/// to [IconButton] while respecting theme's iconTheme unless
-/// explicitly overridden.
+/// icon button styling across the app using Forui design system.
+///
+/// **Note for preview cycle:** The `color` and `size` props are currently
+/// ignored (no style override applied). Icon buttons use theme default styling.
 class AppIconButton extends StatelessWidget {
   const AppIconButton({
     super.key,
@@ -21,21 +23,17 @@ class AppIconButton extends StatelessWidget {
   /// Callback when button is pressed (null disables button)
   final VoidCallback? onPressed;
 
-  /// Optional icon color override
-  /// If null, uses theme's iconTheme.color
+  /// Optional icon color override (ignored in Forui preview)
   final Color? color;
 
-  /// Optional icon size override
-  /// If null, uses theme's iconTheme.size
+  /// Optional icon size override (ignored in Forui preview)
   final double? size;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon),
-      onPressed: onPressed,
-      color: color,
-      iconSize: size,
+    return FButton.icon(
+      onPress: onPressed,
+      child: Icon(icon),
     );
   }
 }

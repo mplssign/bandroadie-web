@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
-/// Wrapper for [AppBar] that respects app theme configuration.
+/// Wrapper for [FHeader] that provides consistent app bar structure.
 ///
 /// Use this widget instead of [AppBar] to ensure consistent
-/// app bar styling across the app. Delegates all props directly
-/// to [AppBar] while respecting theme's appBarTheme unless
-/// explicitly overridden.
-class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
+/// header styling across the app using Forui design system.
+///
+/// **Note for preview cycle:** The `backgroundColor` prop is currently ignored
+/// (no style override applied). Header uses theme default background.
+class AppAppBar extends StatelessWidget {
   const AppAppBar({
     super.key,
     this.title,
@@ -25,27 +27,34 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Optional action widgets (typically icon buttons)
   final List<Widget>? actions;
 
-  /// Optional background color override
-  /// If null, uses theme's appBarTheme.backgroundColor
+  /// Optional background color override (ignored in Forui preview)
   final Color? backgroundColor;
 
   /// Whether to center the title
-  /// If null, uses theme's appBarTheme.centerTitle
   final bool? centerTitle;
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      title: title == null
-          ? null
-          : (title is String ? Text(title as String) : title as Widget),
-      leading: leading,
-      actions: actions,
-      backgroundColor: backgroundColor,
-      centerTitle: centerTitle,
+    // Convert title to Widget if it's a String
+    final Widget titleWidget = title == null
+        ? const SizedBox.shrink()
+        : (title is String ? Text(title as String) : title as Widget);
+
+    // Use .nested() constructor if we have leading widget or need to center title
+    if (leading != null || centerTitle == true) {
+      return FHeader.nested(
+        title: titleWidget,
+        prefixes: leading != null ? [leading!] : const [],
+        suffixes: actions ?? const [],
+        titleAlignment:
+            centerTitle == true ? Alignment.center : Alignment.centerLeft,
+      );
+    }
+
+    // Use main constructor for simple case (no leading, left-aligned)
+    return FHeader(
+      title: titleWidget,
+      suffixes: actions ?? const [],
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

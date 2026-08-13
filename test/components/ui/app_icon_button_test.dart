@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppIconButton', () {
     testWidgets('renders without errors', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppIconButton(icon: Icons.add, onPressed: () {}),
           ),
@@ -14,7 +19,7 @@ void main() {
       );
 
       expect(find.byIcon(Icons.add), findsOneWidget);
-      expect(find.byType(IconButton), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
     });
 
     testWidgets('responds to tap', (tester) async {
@@ -22,6 +27,10 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppIconButton(
               icon: Icons.add,
@@ -31,13 +40,18 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byType(IconButton));
+      await tester.tap(find.byType(AppIconButton));
+      await tester.pumpAndSettle();
       expect(tapped, isTrue);
     });
 
-    testWidgets('respects color override', (tester) async {
+    testWidgets('color prop is ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppIconButton(
               icon: Icons.add,
@@ -48,32 +62,43 @@ void main() {
         ),
       );
 
-      final iconButton = tester.widget<IconButton>(find.byType(IconButton));
-      expect(iconButton.color, Colors.red);
+      // Note: color is ignored in Forui preview (dropped prop)
+      expect(find.byType(FButton), findsOneWidget);
     });
 
-    testWidgets('respects size override', (tester) async {
+    testWidgets('size prop is ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppIconButton(icon: Icons.add, onPressed: () {}, size: 32.0),
           ),
         ),
       );
 
-      final iconButton = tester.widget<IconButton>(find.byType(IconButton));
-      expect(iconButton.iconSize, 32.0);
+      // Note: size is ignored in Forui preview (dropped prop)
+      expect(find.byType(FButton), findsOneWidget);
     });
 
     testWidgets('disables when onPressed is null', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppIconButton(icon: Icons.add, onPressed: null)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(
+              body: AppIconButton(icon: Icons.add, onPressed: null)),
         ),
       );
 
-      final iconButton = tester.widget<IconButton>(find.byType(IconButton));
-      expect(iconButton.onPressed, isNull);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.onPress, isNull);
     });
   });
 }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:forui/forui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/services/app_version_service.dart';
@@ -152,14 +153,16 @@ class BandRoadieApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       // Disable device text scaling - use fixed font sizes.
       // KeyboardAwareWrapper ensures focused fields scroll above the keyboard.
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.noScaling),
-          child: KeyboardAwareWrapper(child: child!),
-        );
-      },
+      builder: (context, child) => FTheme(
+        data: FTheme.neutral.dark.touch,
+        child: FToaster(
+          child: MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.noScaling),
+            child: KeyboardAwareWrapper(child: child!),
+          ),
+        ),
+      ),
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
 

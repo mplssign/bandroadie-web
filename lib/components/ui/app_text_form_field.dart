@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:forui/forui.dart';
 
-/// Wrapper for [TextFormField] that respects app theme configuration.
+/// Wrapper for [FTextFormField] that provides consistent text form field styling.
 ///
 /// Use this widget instead of [TextFormField] to ensure consistent
-/// text form field styling across the app. Delegates all props directly
-/// to [TextFormField] while respecting theme's inputDecorationTheme.
+/// text form field styling across the app using Forui design system.
 ///
-/// When [decoration] is provided, it is used directly and overrides
-/// [hintText], [labelText], [prefixIcon], and [suffixIcon].
+/// **Note for preview cycle:** The `decoration`, `prefixIcon`, `suffixIcon`,
+/// `minLines`, `maxLength`, `textCapitalization`, `textInputAction`, `style`,
+/// `inputFormatters`, `autofillHints`, `onSubmitted`, and `autofocus` props
+/// are not fully supported in the Forui preview and may be ignored or partially supported.
 class AppTextFormField extends StatelessWidget {
   const AppTextFormField({
     super.key,
@@ -44,24 +46,19 @@ class AppTextFormField extends StatelessWidget {
   /// Optional focus node for managing focus
   final FocusNode? focusNode;
 
-  /// Full input decoration. When provided, overrides [hintText], [labelText],
-  /// [prefixIcon], and [suffixIcon].
+  /// Full input decoration (not supported in Forui preview)
   final InputDecoration? decoration;
 
-  /// Optional hint text displayed when field is empty.
-  /// Ignored if [decoration] is provided.
+  /// Optional hint text displayed when field is empty
   final String? hintText;
 
-  /// Optional label text displayed above field.
-  /// Ignored if [decoration] is provided.
+  /// Optional label text displayed above field
   final String? labelText;
 
-  /// Optional prefix icon.
-  /// Ignored if [decoration] is provided.
+  /// Optional prefix icon (not supported in Forui preview)
   final IconData? prefixIcon;
 
-  /// Optional suffix widget (e.g., clear button, visibility toggle).
-  /// Ignored if [decoration] is provided.
+  /// Optional suffix widget (not supported in Forui preview)
   final Widget? suffixIcon;
 
   /// Whether to obscure text (for passwords)
@@ -70,22 +67,22 @@ class AppTextFormField extends StatelessWidget {
   /// Maximum number of lines (1 for single-line input)
   final int maxLines;
 
-  /// Minimum number of lines (for multiline fields)
+  /// Minimum number of lines (not supported in Forui preview)
   final int? minLines;
 
-  /// Maximum number of characters allowed
+  /// Maximum number of characters allowed (not supported in Forui preview)
   final int? maxLength;
 
   /// Keyboard type for mobile platforms
   final TextInputType? keyboardType;
 
-  /// Text capitalization behavior
+  /// Text capitalization behavior (not supported in Forui preview)
   final TextCapitalization textCapitalization;
 
-  /// Keyboard action button (e.g., next, done)
+  /// Keyboard action button (not supported in Forui preview)
   final TextInputAction? textInputAction;
 
-  /// Text style override
+  /// Text style override (not supported in Forui preview)
   final TextStyle? style;
 
   /// Callback when text changes
@@ -100,50 +97,47 @@ class AppTextFormField extends StatelessWidget {
   /// Callback when form is saved
   final FormFieldSetter<String>? onSaved;
 
-  /// Optional input formatters for restricting/formatting input
+  /// Optional input formatters (not supported in Forui preview)
   final List<TextInputFormatter>? inputFormatters;
 
-  /// Whether to enable autocorrect (defaults to true)
+  /// Whether to enable autocorrect
   final bool autocorrect;
 
-  /// Optional autofill hints for password managers and form autofill
+  /// Optional autofill hints (not supported in Forui preview)
   final Iterable<String>? autofillHints;
 
-  /// Callback when user submits the field (e.g., presses Enter)
+  /// Callback when user submits (not supported in Forui preview)
   final ValueChanged<String>? onSubmitted;
 
-  /// Whether to autofocus this field when widget is built (defaults to false)
+  /// Whether to autofocus (not supported in Forui preview)
   final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
+    // Wrap controller in FTextFieldManagedControl if provided
+    final control = controller != null
+        ? FTextFieldManagedControl(
+            controller: controller,
+            onChange:
+                onChanged != null ? (value) => onChanged!(value.text) : null,
+          )
+        : FTextFieldManagedControl(
+            onChange:
+                onChanged != null ? (value) => onChanged!(value.text) : null,
+          );
+
+    return FTextFormField(
+      control: control,
       focusNode: focusNode,
-      decoration: decoration ??
-          InputDecoration(
-            hintText: hintText,
-            labelText: labelText,
-            prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-            suffixIcon: suffixIcon,
-          ),
-      obscureText: obscureText,
-      maxLines: maxLines,
-      minLines: minLines,
-      maxLength: maxLength,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      textInputAction: textInputAction,
-      style: style,
-      onChanged: onChanged,
+      label: labelText != null ? Text(labelText!) : null,
+      hint: hintText,
       enabled: enabled,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      autocorrect: autocorrect,
       validator: validator,
       onSaved: onSaved,
-      inputFormatters: inputFormatters,
-      autocorrect: autocorrect,
-      autofillHints: autofillHints,
-      onFieldSubmitted: onSubmitted,
-      autofocus: autofocus,
     );
   }
 }

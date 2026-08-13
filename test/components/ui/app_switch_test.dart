@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_switch.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppSwitch', () {
     testWidgets('renders without errors', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(body: AppSwitch(value: false, onChanged: (_) {})),
         ),
       );
 
-      expect(find.byType(Switch), findsOneWidget);
+      expect(find.byType(FSwitch), findsOneWidget);
     });
 
     testWidgets('reflects value state', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(body: AppSwitch(value: true, onChanged: (_) {})),
         ),
       );
 
-      final switchWidget = tester.widget<Switch>(find.byType(Switch));
+      expect(find.byType(FSwitch), findsOneWidget);
+
+      final switchWidget = tester.widget<FSwitch>(find.byType(FSwitch));
       expect(switchWidget.value, isTrue);
     });
 
@@ -30,6 +41,10 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) => AppSwitch(
@@ -43,15 +58,19 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byType(AppSwitch));
       await tester.pumpAndSettle();
 
       expect(value, isTrue);
     });
 
-    testWidgets('respects activeColor override', (tester) async {
+    testWidgets('activeColor prop is ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppSwitch(
               value: true,
@@ -62,19 +81,26 @@ void main() {
         ),
       );
 
-      // Verify the switch was created with the custom color prop
-      expect(find.byType(Switch), findsOneWidget);
+      // Note: activeColor is ignored in Forui preview (dropped prop)
+      expect(find.byType(FSwitch), findsOneWidget);
     });
 
     testWidgets('disables when onChanged is null', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppSwitch(value: false, onChanged: null)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(body: AppSwitch(value: false, onChanged: null)),
         ),
       );
 
-      final switchWidget = tester.widget<Switch>(find.byType(Switch));
-      expect(switchWidget.onChanged, isNull);
+      expect(find.byType(FSwitch), findsOneWidget);
+
+      final switchWidget = tester.widget<FSwitch>(find.byType(FSwitch));
+      expect(switchWidget.onChange, isNull);
+      expect(switchWidget.enabled, isFalse);
     });
   });
 }

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppButton', () {
-    testWidgets('renders primary variant as FilledButton', (tester) async {
+    testWidgets('renders primary variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -18,12 +23,20 @@ void main() {
       );
 
       expect(find.text('Test Button'), findsOneWidget);
-      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.primary);
+      expect(button.onPress, isNotNull);
     });
 
-    testWidgets('renders secondary variant as ElevatedButton', (tester) async {
+    testWidgets('renders secondary variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -34,12 +47,19 @@ void main() {
         ),
       );
 
-      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.secondary);
     });
 
-    testWidgets('renders text variant as TextButton', (tester) async {
+    testWidgets('renders text variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -50,12 +70,19 @@ void main() {
         ),
       );
 
-      expect(find.byType(TextButton), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.ghost);
     });
 
-    testWidgets('renders outlined variant as OutlinedButton', (tester) async {
+    testWidgets('renders outlined variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -66,7 +93,10 @@ void main() {
         ),
       );
 
-      expect(find.byType(OutlinedButton), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.outline);
     });
 
     testWidgets('shows loading indicator when isLoading is true', (
@@ -74,6 +104,10 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -84,13 +118,18 @@ void main() {
         ),
       );
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // Loading state shows CircularProgressIndicator, label hidden
       expect(find.text('Test Button'), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
     testWidgets('renders icon when provided', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -107,6 +146,10 @@ void main() {
     testWidgets('expands to full width when fullWidth is true', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Test Button',
@@ -117,30 +160,41 @@ void main() {
         ),
       );
 
+      // fullWidth wraps in SizedBox(width: double.infinity)
+      expect(find.text('Test Button'), findsOneWidget);
       final sizedBox = tester.widget<SizedBox>(find.byType(SizedBox));
       expect(sizedBox.width, double.infinity);
     });
 
     testWidgets('disables button when onPressed is null', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: const Scaffold(
             body: AppButton(label: 'Test Button', onPressed: null),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
-      final filledButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(filledButton.onPressed, isNull);
+      expect(find.text('Test Button'), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
+
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.onPress, isNull);
     });
 
-    testWidgets(
-        'renders destructive variant as FilledButton with error styling',
+    testWidgets('renders destructive variant with error styling',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Delete',
@@ -150,20 +204,24 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Delete'), findsOneWidget);
-      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.byType(FButton), findsOneWidget);
 
-      final filledButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(filledButton.style, isNotNull);
+      final button = tester.widget<FButton>(find.byType(FButton));
+      expect(button.variant, FButtonVariant.destructive);
+      expect(button.onPress, isNotNull);
     });
 
     testWidgets('renders destructive variant with icon correctly',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppButton(
               label: 'Delete',
@@ -174,10 +232,10 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Delete'), findsOneWidget);
       expect(find.byIcon(Icons.delete), findsOneWidget);
-      expect(find.byType(FilledButton), findsOneWidget);
     });
   });
 }

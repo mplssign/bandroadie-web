@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_bottom_sheet.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppBottomSheet', () {
     testWidgets('showAppBottomSheet displays bottom sheet', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -35,6 +40,10 @@ void main() {
     testWidgets('respects isDismissible parameter', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -66,11 +75,15 @@ void main() {
       expect(find.text('Bottom Sheet Content'), findsOneWidget);
     });
 
-    testWidgets('passes backgroundColor to showModalBottomSheet', (
+    testWidgets('backgroundColor prop is ignored in Forui preview', (
       tester,
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -94,13 +107,18 @@ void main() {
       await tester.tap(find.text('Show Bottom Sheet'));
       await tester.pumpAndSettle();
 
-      // Verify bottom sheet is displayed
+      // Note: backgroundColor is ignored in Forui preview (dropped prop)
+      // Just verify bottom sheet is displayed
       expect(find.text('Bottom Sheet Content'), findsOneWidget);
     });
 
-    testWidgets('passes shape to showModalBottomSheet', (tester) async {
+    testWidgets('shape prop is ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -128,15 +146,20 @@ void main() {
       await tester.tap(find.text('Show Bottom Sheet'));
       await tester.pumpAndSettle();
 
-      // Verify bottom sheet is displayed
+      // Note: shape is ignored in Forui preview (dropped prop)
+      // Just verify bottom sheet is displayed
       expect(find.text('Bottom Sheet Content'), findsOneWidget);
     });
 
-    testWidgets('passes isScrollControlled to showModalBottomSheet', (
+    testWidgets('isScrollControlled prop is ignored in Forui preview', (
       tester,
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -160,7 +183,8 @@ void main() {
       await tester.tap(find.text('Show Bottom Sheet'));
       await tester.pumpAndSettle();
 
-      // Verify bottom sheet is displayed
+      // Note: isScrollControlled is ignored in Forui preview (dropped prop)
+      // Just verify bottom sheet is displayed
       expect(find.text('Bottom Sheet Content'), findsOneWidget);
     });
   });

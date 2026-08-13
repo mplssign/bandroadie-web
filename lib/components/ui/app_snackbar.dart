@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
 /// Snackbar type for styling
 enum SnackbarType {
-  /// Informational snackbar (theme default)
+  /// Informational snackbar
   info,
 
-  /// Success snackbar (green background)
+  /// Success snackbar
   success,
 
-  /// Error snackbar (red background)
+  /// Error snackbar
   error,
 }
 
-/// Shows an app-themed snackbar with message and optional action.
+/// Shows an app-themed toast using Forui design system.
 ///
 /// Use this instead of [ScaffoldMessenger.showSnackBar] to ensure
-/// consistent snackbar styling across the app.
+/// consistent toast styling across the app.
 ///
-/// The [type] parameter controls the background color:
-/// - [SnackbarType.info]: uses theme default
-/// - [SnackbarType.success]: green background
-/// - [SnackbarType.error]: red background
+/// **Note for preview cycle:** The [type] parameter maps to Forui variants:
+/// - [SnackbarType.info] and [SnackbarType.success] → .primary variant
+/// - [SnackbarType.error] → .destructive variant
 void showAppSnackbar({
   required BuildContext context,
   required String message,
@@ -28,23 +28,21 @@ void showAppSnackbar({
   Duration? duration,
   SnackbarType type = SnackbarType.info,
 }) {
-  // Determine background color based on type
-  Color? backgroundColor;
-  switch (type) {
-    case SnackbarType.info:
-      backgroundColor = null; // Use theme default
-    case SnackbarType.success:
-      backgroundColor = Colors.green;
-    case SnackbarType.error:
-      backgroundColor = Colors.red;
-  }
+  // Map SnackbarType to FToastVariant
+  final variant = type == SnackbarType.error
+      ? FToastVariant.destructive
+      : FToastVariant.primary;
 
-  final snackBar = SnackBar(
-    content: Text(message),
-    action: action,
+  showFToast(
+    context: context,
+    title: Text(message),
+    variant: variant,
     duration: duration ?? const Duration(seconds: 4),
-    backgroundColor: backgroundColor,
+    suffixBuilder: action != null
+        ? (context, entry) => TextButton(
+              onPressed: action.onPressed,
+              child: Text(action.label),
+            )
+        : null,
   );
-
-  ScaffoldMessenger.of(context).showSnackBar(snackBar);
 }

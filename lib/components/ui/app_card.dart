@@ -1,37 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
-/// Wrapper for [Card] that respects app theme configuration.
+/// Wrapper for [FCard] that provides consistent card styling.
 ///
 /// Use this widget instead of [Card] to ensure consistent
-/// card styling across the app. Delegates to [Card] while
-/// respecting theme's cardTheme. Optionally wraps in [InkWell]
-/// for tap interactions.
+/// card styling across the app using Forui design system.
+///
+/// **Note for preview cycle:** The `padding` prop is currently ignored
+/// (no style override applied). Card uses theme default padding.
 class AppCard extends StatelessWidget {
   const AppCard({super.key, required this.child, this.onTap, this.padding});
 
   /// Card content
   final Widget child;
 
-  /// Optional tap callback (adds InkWell ripple effect)
+  /// Optional tap callback
   final VoidCallback? onTap;
 
-  /// Optional padding override
-  /// If null, uses default spacing
+  /// Optional padding override (ignored in Forui preview)
   final EdgeInsets? padding;
 
   @override
   Widget build(BuildContext context) {
-    final content = padding != null
-        ? Padding(padding: padding!, child: child)
-        : child;
+    final card = FCard(child: child);
 
     if (onTap != null) {
-      return Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, child: content),
-      );
+      return GestureDetector(onTap: onTap, child: card);
     }
 
-    return Card(child: content);
+    return card;
   }
 }

@@ -1,39 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/app_checkbox.dart';
+import 'package:forui/forui.dart';
 
 void main() {
   group('AppCheckbox', () {
     testWidgets('renders without errors', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(body: AppCheckbox(value: false, onChanged: (_) {})),
         ),
       );
 
-      expect(find.byType(Checkbox), findsOneWidget);
+      expect(find.byType(FCheckbox), findsOneWidget);
     });
 
     testWidgets('reflects value state', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(body: AppCheckbox(value: true, onChanged: (_) {})),
         ),
       );
 
-      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+      expect(find.byType(FCheckbox), findsOneWidget);
+
+      final checkbox = tester.widget<FCheckbox>(find.byType(FCheckbox));
       expect(checkbox.value, isTrue);
     });
 
-    testWidgets('supports indeterminate state', (tester) async {
+    testWidgets('indeterminate state is treated as false in Forui preview',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(body: AppCheckbox(value: null, onChanged: (_) {})),
         ),
       );
 
-      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
-      expect(checkbox.value, isNull);
+      // Note: FCheckbox doesn't support tristate - null treated as false
+      expect(find.byType(AppCheckbox), findsOneWidget);
     });
 
     testWidgets('calls onChanged callback', (tester) async {
@@ -41,6 +57,10 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) => AppCheckbox(
@@ -54,15 +74,19 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byType(Checkbox));
+      await tester.tap(find.byType(AppCheckbox));
       await tester.pumpAndSettle();
 
       expect(value, isTrue);
     });
 
-    testWidgets('respects activeColor override', (tester) async {
+    testWidgets('activeColor prop is ignored in Forui preview', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
           home: Scaffold(
             body: AppCheckbox(
               value: true,
@@ -73,19 +97,27 @@ void main() {
         ),
       );
 
-      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
-      expect(checkbox.activeColor, Colors.green);
+      // Note: activeColor is ignored in Forui preview (dropped prop)
+      expect(find.byType(FCheckbox), findsOneWidget);
     });
 
     testWidgets('disables when onChanged is null', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: AppCheckbox(value: false, onChanged: null)),
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home:
+              const Scaffold(body: AppCheckbox(value: false, onChanged: null)),
         ),
       );
 
-      final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
-      expect(checkbox.onChanged, isNull);
+      expect(find.byType(FCheckbox), findsOneWidget);
+
+      final checkbox = tester.widget<FCheckbox>(find.byType(FCheckbox));
+      expect(checkbox.onChange, isNull);
+      expect(checkbox.enabled, isFalse);
     });
   });
 }
