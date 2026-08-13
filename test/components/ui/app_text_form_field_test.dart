@@ -97,19 +97,23 @@ void main() {
       expect(savedValue, 'test');
     });
 
-    testWidgets('displays prefix icon', (tester) async {
+    testWidgets('prefixIcon uses builder pattern', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => FTheme(
             data: FTheme.neutral.dark.touch,
             child: child!,
           ),
-          home: const Scaffold(body: AppTextFormField(prefixIcon: Icons.email)),
+          home: const Scaffold(
+            body: AppTextFormField(prefixIcon: Icon(Icons.email)),
+          ),
         ),
       );
 
-      // Note: prefixIcon not supported in Forui preview (dropped prop)
       expect(find.byType(FTextFormField), findsOneWidget);
+      final textField =
+          tester.widget<FTextFormField>(find.byType(FTextFormField));
+      expect(textField.prefixBuilder, isNotNull);
     });
 
     testWidgets('obscures text when obscureText is true', (tester) async {
@@ -152,7 +156,7 @@ void main() {
       focusNode.dispose();
     });
 
-    testWidgets('delegates textCapitalization to TextFormField', (
+    testWidgets('textCapitalization passes through to FTextFormField', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -169,11 +173,14 @@ void main() {
         ),
       );
 
-      // Note: textCapitalization not supported in Forui preview (dropped prop)
       expect(find.byType(FTextFormField), findsOneWidget);
+      final textField =
+          tester.widget<FTextFormField>(find.byType(FTextFormField));
+      expect(textField.textCapitalization, TextCapitalization.words);
     });
 
-    testWidgets('delegates textInputAction to TextFormField', (tester) async {
+    testWidgets('textInputAction passes through to FTextFormField',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => FTheme(
@@ -186,8 +193,10 @@ void main() {
         ),
       );
 
-      // Note: textInputAction not supported in Forui preview (dropped prop)
       expect(find.byType(FTextFormField), findsOneWidget);
+      final textField =
+          tester.widget<FTextFormField>(find.byType(FTextFormField));
+      expect(textField.textInputAction, TextInputAction.next);
     });
 
     testWidgets('delegates style to TextFormField', (tester) async {
@@ -249,7 +258,7 @@ void main() {
               decoration: customDecoration,
               hintText: 'Ignored hint',
               labelText: 'Ignored label',
-              prefixIcon: Icons.person,
+              prefixIcon: Icon(Icons.person),
             ),
           ),
         ),

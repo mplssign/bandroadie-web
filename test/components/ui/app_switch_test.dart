@@ -64,7 +64,7 @@ void main() {
       expect(value, isTrue);
     });
 
-    testWidgets('activeColor prop is ignored in Forui preview', (tester) async {
+    testWidgets('activeColor applies StyleDelta', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => FTheme(
@@ -81,8 +81,33 @@ void main() {
         ),
       );
 
-      // Note: activeColor is ignored in Forui preview (dropped prop)
       expect(find.byType(FSwitch), findsOneWidget);
+      final switchWidget = tester.widget<FSwitch>(find.byType(FSwitch));
+      // Verify style is a delta (proving activeColor was applied)
+      expect(switchWidget.style, isA<FSwitchStyleDelta>());
+    });
+
+    testWidgets('activeTrackColor applies StyleDelta', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: Scaffold(
+            body: AppSwitch(
+              value: true,
+              onChanged: (_) {},
+              activeTrackColor: Colors.blue,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(FSwitch), findsOneWidget);
+      final switchWidget = tester.widget<FSwitch>(find.byType(FSwitch));
+      // Verify style is a delta (proving activeTrackColor was applied)
+      expect(switchWidget.style, isA<FSwitchStyleDelta>());
     });
 
     testWidgets('disables when onChanged is null', (tester) async {

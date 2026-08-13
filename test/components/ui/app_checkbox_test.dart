@@ -80,7 +80,7 @@ void main() {
       expect(value, isTrue);
     });
 
-    testWidgets('activeColor prop is ignored in Forui preview', (tester) async {
+    testWidgets('activeColor applies StyleDelta', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => FTheme(
@@ -97,8 +97,10 @@ void main() {
         ),
       );
 
-      // Note: activeColor is ignored in Forui preview (dropped prop)
       expect(find.byType(FCheckbox), findsOneWidget);
+      final checkbox = tester.widget<FCheckbox>(find.byType(FCheckbox));
+      // Verify style is a delta (proving activeColor was applied)
+      expect(checkbox.style, isA<FCheckboxStyleDelta>());
     });
 
     testWidgets('disables when onChanged is null', (tester) async {

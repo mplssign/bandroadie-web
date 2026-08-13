@@ -237,5 +237,74 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
       expect(find.byIcon(Icons.delete), findsOneWidget);
     });
+
+    testWidgets('backgroundColor applies StyleDelta', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: Scaffold(
+            body: AppButton(
+              label: 'Test Button',
+              onPressed: () {},
+              backgroundColor: Colors.red,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(FButton), findsOneWidget);
+      final button = tester.widget<FButton>(find.byType(FButton));
+      // Verify style is a delta (proving backgroundColor was applied)
+      expect(button.style, isA<FButtonStyleDelta>());
+    });
+
+    testWidgets('borderRadius applies StyleDelta', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: Scaffold(
+            body: AppButton(
+              label: 'Test Button',
+              onPressed: () {},
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(FButton), findsOneWidget);
+      final button = tester.widget<FButton>(find.byType(FButton));
+      // Verify style is a delta (proving borderRadius was applied)
+      expect(button.style, isA<FButtonStyleDelta>());
+    });
+
+    testWidgets('padding applies StyleDelta', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: Scaffold(
+            body: AppButton(
+              label: 'Test Button',
+              onPressed: () {},
+              padding: const EdgeInsets.all(24),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(FButton), findsOneWidget);
+      final button = tester.widget<FButton>(find.byType(FButton));
+      // Verify style is a delta (proving padding was applied)
+      expect(button.style, isA<FButtonStyleDelta>());
+    });
   });
 }

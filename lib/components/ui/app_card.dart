@@ -5,9 +5,6 @@ import 'package:forui/forui.dart';
 ///
 /// Use this widget instead of [Card] to ensure consistent
 /// card styling across the app using Forui design system.
-///
-/// **Note for preview cycle:** The `padding` prop is currently ignored
-/// (no style override applied). Card uses theme default padding.
 class AppCard extends StatelessWidget {
   const AppCard({super.key, required this.child, this.onTap, this.padding});
 
@@ -22,7 +19,19 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = FCard(child: child);
+    // Build StyleDelta if padding override provided
+    final styleDelta = padding != null
+        ? FCardStyleDelta.delta(
+            padding: EdgeInsetsGeometryDelta.value(padding!),
+          )
+        : null;
+
+    final card = styleDelta != null
+        ? FCard(
+            style: styleDelta,
+            child: child,
+          )
+        : FCard(child: child);
 
     if (onTap != null) {
       return GestureDetector(onTap: onTap, child: card);

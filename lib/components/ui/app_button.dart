@@ -25,9 +25,8 @@ enum AppButtonVariant {
 /// or [OutlinedButton] to ensure consistent button styling across the app
 /// using Forui design system.
 ///
-/// **Note for preview cycle:** The `backgroundColor`, `borderRadius`, `elevation`,
-/// `disabledBackgroundColor`, `disabledForegroundColor`, and `padding` props
-/// are currently ignored (no style override applied). Buttons use variant default styling.
+/// **Note:** The `elevation`, `disabledBackgroundColor`, and
+/// `disabledForegroundColor` props are not fully supported (use variant styling).
 class AppButton extends StatelessWidget {
   const AppButton({
     super.key,
@@ -119,12 +118,41 @@ class AppButton extends StatelessWidget {
         foruiVariant = FButtonVariant.destructive;
     }
 
+    // Build StyleDelta if any visual overrides provided
+    final styleDelta =
+        (backgroundColor != null || borderRadius != null || padding != null)
+            ? FButtonStyleDelta.delta(
+                decoration: (backgroundColor != null || borderRadius != null)
+                    ? FVariantsDelta.delta([
+                        FVariantOperation.all(
+                          DecorationDelta.boxDelta(
+                            color: backgroundColor,
+                            borderRadius: borderRadius,
+                          ),
+                        ),
+                      ])
+                    : null,
+                contentStyle: padding != null
+                    ? FButtonContentStyleDelta.delta(
+                        padding: EdgeInsetsGeometryDelta.value(padding!),
+                      )
+                    : null,
+              )
+            : null;
+
     // Build the button
-    final button = FButton(
-      onPress: effectiveOnPress,
-      variant: foruiVariant,
-      child: content,
-    );
+    final button = styleDelta != null
+        ? FButton(
+            onPress: effectiveOnPress,
+            variant: foruiVariant,
+            style: styleDelta,
+            child: content,
+          )
+        : FButton(
+            onPress: effectiveOnPress,
+            variant: foruiVariant,
+            child: content,
+          );
 
     // Wrap in full-width container if needed
     if (fullWidth) {

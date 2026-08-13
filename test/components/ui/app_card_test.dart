@@ -20,7 +20,7 @@ void main() {
       expect(find.byType(FCard), findsOneWidget);
     });
 
-    testWidgets('applies padding when provided', (tester) async {
+    testWidgets('padding applies StyleDelta', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => FTheme(
@@ -36,9 +36,11 @@ void main() {
         ),
       );
 
-      // Note: padding prop is ignored in Forui preview (dropped prop)
       expect(find.text('Card Content'), findsOneWidget);
       expect(find.byType(FCard), findsOneWidget);
+      final card = tester.widget<FCard>(find.byType(FCard));
+      // Verify style is a delta (proving padding was applied)
+      expect(card.style, isA<FCardStyleDelta>());
     });
 
     testWidgets('adds GestureDetector when onTap is provided', (tester) async {
