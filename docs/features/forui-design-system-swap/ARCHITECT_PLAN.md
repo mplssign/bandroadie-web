@@ -72,23 +72,23 @@ Forui 0.25.0 (latest as of 2026-08-12) provides 40+ platform-agnostic widgets in
 
 ### Mapping Table: App\* Wrappers → Forui Equivalents
 
-| BandRoadie Wrapper       | Current Material Widget                                  | Forui Equivalent           | Confidence | Notes                                                                                                                                                                               |
-| ------------------------ | -------------------------------------------------------- | -------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AppScaffold**          | Scaffold                                                 | `FScaffold`                | **HIGH**   | Similar structure: header, footer, child. Different prop names but semantically aligned.                                                                                            |
-| **AppAppBar**            | AppBar                                                   | `FHeader`                  | **MEDIUM** | Different API: `actions` becomes `prefixes`/`suffixes`, `title` is Widget not String. Adapter layer needed within wrapper.                                                          |
-| **AppButton**            | FilledButton, ElevatedButton, TextButton, OutlinedButton | `FButton`                  | **HIGH**   | Variant-based: primary, secondary, destructive, outline, ghost. Mapping straightforward.                                                                                            |
-| **AppIconButton**        | IconButton                                               | `FButton.icon`             | **HIGH**   | Direct icon-button constructor exists.                                                                                                                                              |
-| **AppTextField**         | TextField                                                | `FTextField`               | **HIGH**   | Similar API: controller, label, hint, description, error, enabled. Forui adds `size` variant.                                                                                       |
-| **AppTextFormField**     | TextFormField                                            | `FTextFormField` (implied) | **HIGH**   | Forui docs reference form-field variant. Needs API verification.                                                                                                                    |
-| **AppCard**              | Card + InkWell                                           | `FCard`                    | **HIGH**   | Builder-based API. Similar structure.                                                                                                                                               |
-| **AppDialog**            | showDialog + AlertDialog                                 | `showFDialog` + `FDialog`  | **HIGH**   | Builder-based. Forui has adaptive (horizontal/vertical) layout.                                                                                                                     |
-| **AppBottomSheet**       | showModalBottomSheet                                     | `showFSheet`               | **HIGH**   | Forui calls it "Sheet" not "BottomSheet", but functionally equivalent.                                                                                                              |
-| **AppSwitch**            | Switch                                                   | `FSwitch`                  | **HIGH**   | Similar API: value, onChange, label, description, error.                                                                                                                            |
-| **AppCheckbox**          | Checkbox                                                 | `FCheckbox`                | **HIGH**   | Similar API: value, onChange, label, description, error.                                                                                                                            |
-| **AppDropdown**          | DropdownButton\<T>                                       | `FSelect.rich`             | **HIGH**   | `FSelect.rich()` takes `FSelectItem.item(title: Widget, value: T)` which maps to `DropdownMenuItem<T>`. Can handle current usage.                                                   |
-| **AppChip**              | Chip, FilterChip, ActionChip                             | `FBadge` + `FTappable`     | **LOW**    | **Semantic mismatch:** `FBadge` is for labels/counts. `FTappable` primitive might enable interactivity but API unclear. No confirmed Forui equivalent for interactive filter chips. |
-| **AppSnackbar**          | ScaffoldMessenger.showSnackBar                           | `showFToast` + `FToaster`  | **MEDIUM** | Forui calls it Toast. Requires `FToaster` ancestor in widget tree. Different but manageable.                                                                                        |
-| **AppProgressIndicator** | CircularProgressIndicator, LinearProgressIndicator       | `FProgress`                | **MEDIUM** | Forui docs show linear only. Circular progress indicator existence unconfirmed. May need fallback to Material for circular.                                                         |
+| BandRoadie Wrapper       | Current Material Widget                                  | Forui Equivalent          | Confidence | Notes                                                                                                                                                                                |
+| ------------------------ | -------------------------------------------------------- | ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **AppScaffold**          | Scaffold                                                 | `FScaffold`               | **HIGH**   | Uses `child` (not `content`), `header` (Widget not PreferredSizeWidget), `footer`, `childPad` boolean, `scaffoldStyle` param. Semantically aligned.                                  |
+| **AppAppBar**            | AppBar                                                   | `FHeader`                 | **MEDIUM** | Uses `suffixes` (not `actions`). Has `.nested()` constructor with `prefixes` for leading widgets. `title` is Widget. Adapter layer needed.                                           |
+| **AppButton**            | FilledButton, ElevatedButton, TextButton, OutlinedButton | `FButton`                 | **HIGH**   | Uses `onPress` (not `onPressed`), `variant` enum (.primary/.secondary/.destructive/.outline/.ghost), plus `style` delta for overrides. Mapping straightforward.                      |
+| **AppIconButton**        | IconButton                                               | `FButton.icon`            | **HIGH**   | Direct icon-button constructor exists.                                                                                                                                               |
+| **AppTextField**         | TextField                                                | `FTextField`              | **HIGH**   | Uses `control: FTextFieldControl` (not `controller`), but `FTextFieldManagedControl` accepts `TextEditingController` directly. Label is Widget, hint is String. Facade compatible.   |
+| **AppTextFormField**     | TextFormField                                            | `FTextFormField`          | **HIGH**   | Same as FTextField with added validator/onSaved/autovalidateMode. Form contract preserved.                                                                                           |
+| **AppCard**              | Card + InkWell                                           | `FCard`                   | **HIGH**   | Builder-based API. Similar structure.                                                                                                                                                |
+| **AppDialog**            | showDialog + AlertDialog                                 | `showFDialog` + `FDialog` | **HIGH**   | Widget builder takes `(BuildContext, FDialogStyle)`. Function builder takes `(BuildContext, FDialogStyle, Animation<double>)`. Adaptive layout supported.                            |
+| **AppBottomSheet**       | showModalBottomSheet                                     | `showFSheet`              | **HIGH**   | Requires `side: FLayout` enum param (use `.btt` for bottom-to-top). Otherwise similar API.                                                                                           |
+| **AppSwitch**            | Switch                                                   | `FSwitch`                 | **HIGH**   | Uses `onChange` (not `onChanged`). Has label, description, error widget params. Similar API.                                                                                         |
+| **AppCheckbox**          | Checkbox                                                 | `FCheckbox`               | **HIGH**   | Uses `onChange` (not `onChanged`). Has label, description, error widget params. Similar API.                                                                                         |
+| **AppDropdown**          | DropdownButton\<T>                                       | `FSelect.rich`            | **HIGH**   | `FSelect.rich()` takes `format: (T) => String` function + `children: List<FSelectItemMixin>` using `.item(title: Widget, value: T)`. Uses control pattern. Can handle current usage. |
+| **AppChip**              | Chip, FilterChip, ActionChip                             | `FBadge` + `FTappable`    | **LOW**    | **Semantic mismatch:** `FBadge` is for labels/counts. `FTappable` primitive might enable interactivity but API unclear. No confirmed Forui equivalent for interactive filter chips.  |
+| **AppSnackbar**          | ScaffoldMessenger.showSnackBar                           | `showFToast` + `FToaster` | **MEDIUM** | Uses `title: Widget` (not `message: String`), `variant` enum (.primary/.destructive), optional `description: Widget`. Requires `FToaster` ancestor in widget tree.                   |
+| **AppProgressIndicator** | CircularProgressIndicator, LinearProgressIndicator       | `FProgress`               | **HIGH**   | Separate classes: `FProgress` (linear indeterminate), `FDeterminateProgress` (linear with value), `FCircularProgress` (circular). All variants confirmed.                            |
 
 ---
 
@@ -309,23 +309,24 @@ MaterialApp(
 
 ### Cycle 1: Core Forui Swap (13 wrappers)
 
-| File                                            | Change Description                                                                              |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `pubspec.yaml`                                  | Add `forui: ^0.25.0` to dependencies                                                            |
-| `lib/main.dart`                                 | Add `FTheme` wrapper with built-in theme, add `FToaster` ancestor for toast support (~10 lines) |
-| `lib/components/ui/app_scaffold.dart`           | Replace `Scaffold` with `FScaffold` (~30 lines)                                                 |
-| `lib/components/ui/app_app_bar.dart`            | Replace `AppBar` with `FHeader`, map props (~40 lines)                                          |
-| `lib/components/ui/app_button.dart`             | Replace Material button widgets with `FButton`, map variants (~50 lines)                        |
-| `lib/components/ui/app_icon_button.dart`        | Replace `IconButton` with `FButton.icon` (~20 lines)                                            |
-| `lib/components/ui/app_text_field.dart`         | Replace `TextField` with `FTextField`, map props (~60 lines)                                    |
-| `lib/components/ui/app_text_form_field.dart`    | Replace `TextFormField` with `FTextFormField`, map props (~60 lines)                            |
-| `lib/components/ui/app_card.dart`               | Replace `Card` with `FCard`, use builder API (~30 lines)                                        |
-| `lib/components/ui/app_dialog.dart`             | Replace `showDialog`/`AlertDialog` with `showFDialog`/`FDialog` (~60 lines)                     |
-| `lib/components/ui/app_bottom_sheet.dart`       | Replace `showModalBottomSheet` with `showFSheet` (~30 lines)                                    |
-| `lib/components/ui/app_switch.dart`             | Replace `Switch` with `FSwitch` (~30 lines)                                                     |
-| `lib/components/ui/app_checkbox.dart`           | Replace `Checkbox` with `FCheckbox` (~30 lines)                                                 |
-| `lib/components/ui/app_snackbar.dart`           | Replace `ScaffoldMessenger.showSnackBar` with `showFToast` (~40 lines)                          |
-| `lib/components/ui/app_progress_indicator.dart` | Replace Material progress indicators with `FProgress`, verify circular support (~40 lines)      |
+| File                                            | Change Description                                                                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pubspec.yaml`                                  | Add `forui: ^0.25.0` to dependencies                                                                                                                                         |
+| `lib/main.dart`                                 | Add `FTheme` wrapper with built-in theme, add `FToaster` ancestor for toast support (~10 lines)                                                                              |
+| `lib/components/ui/app_scaffold.dart`           | Replace `Scaffold` with `FScaffold`: `body` → `child`, `appBar` → `header`, `bottomNavigationBar` → `footer`, `backgroundColor` → `scaffoldStyle` delta (~30 lines)          |
+| `lib/components/ui/app_app_bar.dart`            | Replace `AppBar` with `FHeader`: `actions` → `suffixes`, `leading` → `prefixes` (use `.nested()`), map props (~40 lines)                                                     |
+| `lib/components/ui/app_button.dart`             | Replace Material button widgets with `FButton`: `onPressed` → `onPress`, use `variant` enum (.primary/.secondary/.destructive/.outline/.ghost), map variants (~50 lines)     |
+| `lib/components/ui/app_icon_button.dart`        | Replace `IconButton` with `FButton.icon`: `onPressed` → `onPress` (~20 lines)                                                                                                |
+| `lib/components/ui/app_text_field.dart`         | Replace `TextField` with `FTextField`: `controller` → wrap in `FTextFieldManagedControl(controller: ...)`, `labelText` → `label: Text(...)`, `hintText` → `hint` (~60 lines) |
+| `lib/components/ui/app_text_form_field.dart`    | Replace `TextFormField` with `FTextFormField`: use control pattern, map props same as FTextField (~60 lines)                                                                 |
+| `lib/components/ui/app_card.dart`               | Replace `Card` with `FCard`, use builder API (~30 lines)                                                                                                                     |
+| `lib/components/ui/app_dialog.dart`             | Replace `showDialog`/`AlertDialog` with `showFDialog`/`FDialog`: builder signature differs (2 params for widget, 3 for function) (~60 lines)                                 |
+| `lib/components/ui/app_bottom_sheet.dart`       | Replace `showModalBottomSheet` with `showFSheet`: add required `side: .btt` param (~30 lines)                                                                                |
+| `lib/components/ui/app_switch.dart`             | Replace `Switch` with `FSwitch`: `onChanged` → `onChange` (~30 lines)                                                                                                        |
+| `lib/components/ui/app_checkbox.dart`           | Replace `Checkbox` with `FCheckbox`: `onChanged` → `onChange` (~30 lines)                                                                                                    |
+| `lib/components/ui/app_dropdown.dart`           | Replace `DropdownButton<T>` with `FSelect.rich`: requires `format: (T) => String` + `.item(title: Widget, value: T)`, use control pattern (~40 lines)                        |
+| `lib/components/ui/app_snackbar.dart`           | Replace `ScaffoldMessenger.showSnackBar` with `showFToast`: `message` → `title: Text(...)`, `type` → `variant` enum (.primary/.destructive) (~40 lines)                      |
+| `lib/components/ui/app_progress_indicator.dart` | Replace Material progress indicators with `FProgress`/`FDeterminateProgress`/`FCircularProgress`: branch on type, use correct class (~40 lines)                              |
 
 **Documentation:**
 
@@ -421,40 +422,89 @@ Execute in strict order:
 ### Task 3: Swap AppScaffold to FScaffold
 
 - **File:** `lib/components/ui/app_scaffold.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FScaffold({
+    required Widget child,              // NOT content!
+    FScaffoldStyleDelta scaffoldStyle = const .context(),  // Note: scaffoldStyle, not style
+    Widget? header,
+    Widget? sidebar,
+    Widget? footer,
+    bool childPad = true,
+    bool resizeToAvoidBottomInset = true,
+    Key? key,
+  })
+  ```
 - **Props mapping:**
   - `appBar` → `header` (type change: `PreferredSizeWidget?` → `Widget?`)
   - `body` → `child`
-  - `floatingActionButton` → Not directly supported by FScaffold; investigate if `footer` can be repurposed or if this prop must be dropped
+  - `floatingActionButton` → Not directly supported; investigate if `footer` can be repurposed or drop this prop
   - `bottomNavigationBar` → `footer`
-  - `backgroundColor` → Not directly supported by FScaffold; apply via `scaffoldStyle.backgroundColor` delta
-  - `resizeToAvoidBottomInset` → FScaffold has `resizeToAvoidBottomInset` prop, map directly
+  - `backgroundColor` → Apply via `scaffoldStyle: .context(backgroundColor: color)`
+  - `resizeToAvoidBottomInset` → `resizeToAvoidBottomInset` (same param name)
 - **Verification:** App launches, all screens using AppScaffold render correctly (header, body, footer visible)
 
 ### Task 4: Swap AppAppBar to FHeader
 
 - **File:** `lib/components/ui/app_app_bar.dart`
+- **Constructor signatures (verified from pub.dev):**
+
+  ```dart
+  // Main constructor (start-aligned title):
+  FHeader({
+    Widget title,
+    FHeaderStyleDelta style,
+    List<Widget> suffixes,            // Actions go here (NOT actions!)
+    Key? key,
+  })
+
+  // Nested constructor (with prefixes and alignment):
+  FHeader.nested({
+    Widget title,
+    AlignmentGeometry titleAlignment,
+    FHeaderStyleDelta style,
+    List<Widget> prefixes,           // Leading widgets
+    List<Widget> suffixes,           // Trailing widgets
+    Key? key,
+  })
+  ```
+
 - **Props mapping:**
-  - `title` (String or Widget) → `title` (Widget only)
-  - `leading` → `prefixes` (List<Widget>, wrap in list)
+  - `title` (String or Widget) → `title: Widget` (wrap String in Text if needed)
+  - `leading` → `prefixes: [widget]` (use `.nested()` constructor)
   - `actions` → `suffixes` (List<Widget>)
-  - `backgroundColor` → Not directly supported; apply via `style` delta if needed, or drop for preview
-  - `centerTitle` → `titleAlignment` (map true → Alignment.center, false → Alignment.start)
+  - `backgroundColor` → Apply via `style` delta if needed, or drop for preview
+  - `centerTitle` → `titleAlignment` (map true → Alignment.center, false → Alignment.start, use `.nested()`)
 - **Implementation:** Adapter layer within AppAppBar to convert Material API to FHeader API
 - **Verification:** All screens with AppBar render correctly, title and actions visible
 
 ### Task 5: Swap AppButton to FButton
 
 - **File:** `lib/components/ui/app_button.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FButton({
+    required VoidCallback? onPress,         // NOT onPressed!
+    FButtonVariant variant = .primary,      // Enum for visual style
+    FButtonSizeVariant size = .md,
+    FButtonStyleDelta style = const .context(),  // Delta for overrides
+    VoidCallback? onDisabledPress,
+    VoidCallback? onLongPress,
+    Widget? child,
+    Key? key,
+  })
+  ```
+- **FButtonVariant enum values:** `.primary`, `.secondary`, `.destructive`, `.outline`, `.ghost`
 - **Variant mapping:**
-  - `AppButtonVariant.primary` → `FButton` with default (primary) style
-  - `AppButtonVariant.secondary` → `FButton` with `.secondary` style
-  - `AppButtonVariant.text` → `FButton` with `.ghost` style (closest equivalent)
-  - `AppButtonVariant.outlined` → `FButton` with `.outline` style
-  - `AppButtonVariant.destructive` → `FButton` with `.destructive` style
+  - `AppButtonVariant.primary` → `FButton(variant: .primary, ...)`
+  - `AppButtonVariant.secondary` → `FButton(variant: .secondary, ...)`
+  - `AppButtonVariant.text` → `FButton(variant: .ghost, ...)` (closest equivalent)
+  - `AppButtonVariant.outlined` → `FButton(variant: .outline, ...)`
+  - `AppButtonVariant.destructive` → `FButton(variant: .destructive, ...)`
 - **Props mapping:**
   - `label` → `child: Text(label)`
-  - `onPressed` → `onPress`
-  - `icon` → Use `FButton` with icon in builder, or prefix icon if supported
+  - `onPressed` → `onPress` (no 'ed'!)
+  - `icon` → Use `FButton` with icon in child, or Row for icon+label
   - `isLoading` → Show `CircularProgressIndicator` in child (same pattern as Material)
   - `fullWidth` → Wrap in `SizedBox(width: double.infinity, child: ...)`
 - **Verification:** All button variants render correctly, loading state works
@@ -462,9 +512,20 @@ Execute in strict order:
 ### Task 6: Swap AppIconButton to FButton.icon
 
 - **File:** `lib/components/ui/app_icon_button.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FButton.icon({
+    required VoidCallback? onPress,         // NOT onPressed!
+    FButtonVariant variant = .outline,      // Note: default differs (.outline vs .primary)
+    FButtonSizeVariant size = .md,
+    FButtonStyleDelta style = const .context(),
+    required Widget child,                  // Icon goes here
+    Key? key,
+  })
+  ```
 - **Props mapping:**
   - `icon` → `child: Icon(icon)`
-  - `onPressed` → `onPress`
+  - `onPressed` → `onPress` (no 'ed'!)
   - `color` → Apply via `style` delta if needed
   - `size` → Apply via `style` delta if needed
 - **Verification:** Icon buttons render correctly, tap interaction works
@@ -472,31 +533,78 @@ Execute in strict order:
 ### Task 7: Swap AppTextField to FTextField
 
 - **File:** `lib/components/ui/app_text_field.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FTextField({
+    FTextFieldControl control = const .managed(),  // NOT controller!
+    FTextFieldSizeVariant size = .md,
+    FTextFieldStyleDelta style = const .context(),
+    Widget? label,                     // Widget, not String
+    String? hint,                      // String placeholder
+    Widget? description,               // Widget below field
+    Widget? error,                     // Widget for errors
+    bool enabled = true,
+    int? maxLines,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    bool autocorrect = true,
+    Key? key,
+  })
+  ```
+- **Critical:** Forui uses `control: FTextFieldControl`, NOT `controller: TextEditingController`. However, `FTextFieldManagedControl` accepts TextEditingController directly:
+  ```dart
+  FTextFieldManagedControl({
+    TextEditingController? controller,  // ✅ Accepts Material controller!
+    TextEditingValue? initial,
+    ValueChanged<TextEditingValue>? onChange,
+  })
+  ```
 - **Props mapping:**
-  - `controller` → `controller` (same)
+  - `controller` → Wrap in `FTextFieldManagedControl(controller: controller)` if provided, else use `.managed()`
   - `focusNode` → `focusNode` (same)
-  - `hintText` → `hint`
-  - `labelText` → `label: Text(labelText)`
-  - `prefixIcon` → Not directly supported by FTextField; may need custom decoration or drop for preview
+  - `hintText` → `hint: hintText` (String → String, unchanged)
+  - `labelText` → `label: Text(labelText)` (String → Widget, wrap required)
+  - `prefixIcon` → Not directly supported; may need custom decoration or drop for preview
   - `suffixIcon` → Not directly supported; may need custom decoration or drop for preview
-  - `obscureText` → Use `FTextField.password` constructor
-  - `maxLines` → Use `FTextField.multiline` if >1, else default
-  - `keyboardType` → Map to appropriate keyboard type
-  - `onChanged` → `onChanged` (same)
+  - `obscureText` → `obscureText: true` (same param)
+  - `maxLines` → Use `FTextField.multiline` constructor if >1, else default
+  - `keyboardType` → `keyboardType` (same)
+  - `onChanged` → Pass via control's `onChange` or add to widget params if supported
   - `enabled` → `enabled` (same)
 - **Verification:** Text fields render correctly, typing works, validation displays
 
 ### Task 8: Swap AppTextFormField to FTextFormField
 
 - **File:** `lib/components/ui/app_text_form_field.dart`
-- **Props mapping:** Same as AppTextField + validator/onSaved
+- **Constructor signature:** Same as FTextField with added form field params:
+  ```dart
+  FTextFormField({
+    FTextFieldControl control = const .managed(),
+    // ... all FTextField params ...
+    FormFieldValidator<String>? validator,
+    FormFieldSetter<String>? onSaved,
+    AutovalidateMode autovalidateMode,
+    Key? key,
+  })
+  ```
+- **Props mapping:** Same as AppTextField + validator/onSaved (control pattern preserved)
 - **Verification:** Form fields validate correctly, error messages display
 
 ### Task 9: Swap AppCard to FCard
 
 - **File:** `lib/components/ui/app_card.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FCard({
+    FCardStyleDelta style = const .context(),
+    Clip clipBehavior = .none,
+    ValueWidgetBuilder<FCardStyle> builder = defaultBuilder,
+    Widget? child,
+    Key? key,
+  })
+  ```
 - **Props mapping:**
-  - `child` → Pass via `builder` parameter
+  - `child` → Pass via `builder: (context, style, child) => child!` or use default
   - `onTap` → Wrap FCard in `GestureDetector` or use Forui's tappable wrapper if available
   - `padding` → Apply via `style` delta
 - **Verification:** Cards render correctly, tap interaction works
@@ -504,65 +612,203 @@ Execute in strict order:
 ### Task 10: Swap AppDialog to FDialog
 
 - **File:** `lib/components/ui/app_dialog.dart`
+- **Constructor signatures (verified from pub.dev):**
+
+  ```dart
+  // FDialog widget:
+  FDialog({
+    required Widget Function(BuildContext context, FDialogStyle style) builder,  // 2 params
+    FDialogStyleDelta style = const .context(),
+    Clip clipBehavior = .none,
+    Animation<double>? animation,
+    Key? key,
+  })
+
+  // showFDialog function:
+  Future<T?> showFDialog<T>({
+    required BuildContext context,
+    required Widget Function(
+      BuildContext context,
+      FDialogStyle style,
+      Animation<double> animation    // 3 params for function!
+    ) builder,
+    FDialogRouteStyleDelta routeStyle = const .context(),
+    FDialogStyleDelta style = const .context(),
+    bool barrierDismissible = true,
+    Key? key,
+  })
+  ```
+
 - **Helper function:** Replace `showDialog` with `showFDialog`
 - **Widget:** Replace `AlertDialog` with `FDialog` (use adaptive layout if appropriate)
 - **Props mapping:**
-  - `title` → Pass in builder
+  - `title` → Pass in builder (2 params for widget, 3 for function)
   - `message` → Pass in builder
   - `actions` → Build as buttons within dialog builder
-  - `barrierDismissible` → Map to FDialog's dismissibility settings
+  - `barrierDismissible` → `barrierDismissible` (same param name)
 - **Verification:** Dialogs display correctly, actions work, barrier dismissal behaves as expected
 
 ### Task 11: Swap AppBottomSheet to FSheet
 
 - **File:** `lib/components/ui/app_bottom_sheet.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  Future<T?> showFSheet<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    required FLayout side,               // REQUIRED: specifies direction!
+    bool useRootNavigator = false,
+    FModalSheetStyleDelta style = const .context(),
+    double? mainAxisMaxRatio = 9 / 16,
+    bool barrierDismissible = true,
+    Key? key,
+  })
+  ```
+- **FLayout enum values:** `.ltr` (left), `.rtl` (right), `.ttb` (top), `.btt` (bottom)
 - **Helper function:** Replace `showModalBottomSheet` with `showFSheet`
 - **Props mapping:**
   - `builder` → `builder` (same)
-  - `isDismissible` → Map to FSheet's dismissibility settings
-  - `useRootNavigator` → Check if FSheet supports this, may need workaround
+  - `isDismissible` → `barrierDismissible` (same concept)
+  - `useRootNavigator` → `useRootNavigator` (same)
+  - **Critical:** Must add `side: .btt` for bottom-to-top sheet (standard bottom sheet)
 - **Verification:** Bottom sheets display correctly, drag-to-dismiss works
 
 ### Task 12: Swap AppSwitch to FSwitch
 
 - **File:** `lib/components/ui/app_switch.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FSwitch({
+    bool value = false,
+    ValueChanged<bool>? onChange,    // NOT onChanged!
+    Widget? label,
+    Widget? description,
+    Widget? error,
+    bool enabled = true,
+    FSwitchStyleDelta style = const .context(),
+    Key? key,
+  })
+  ```
 - **Props mapping:**
   - `value` → `value` (same)
-  - `onChanged` → `onChange`
+  - `onChanged` → `onChange` (no 'd'!)
   - `activeColor` → Apply via `style` delta if needed
 - **Verification:** Switches render correctly, toggle interaction works
 
 ### Task 13: Swap AppCheckbox to FCheckbox
 
 - **File:** `lib/components/ui/app_checkbox.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FCheckbox({
+    bool value = false,
+    ValueChanged<bool>? onChange,    // NOT onChanged!
+    Widget? label,
+    Widget? description,
+    Widget? error,
+    bool enabled = true,
+    FCheckboxStyleDelta style = const .context(),
+    Key? key,
+  })
+  ```
 - **Props mapping:**
   - `value` → `value` (same)
-  - `onChanged` → `onChange`
+  - `onChanged` → `onChange` (no 'd'!)
   - `activeColor` → Apply via `style` delta if needed
 - **Verification:** Checkboxes render correctly, toggle interaction works
 
-### Task 14: Swap AppSnackbar to FToast
+### Task 14: Swap AppDropdown to FSelect.rich
+
+- **File:** `lib/components/ui/app_dropdown.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FSelect.rich<T>({
+    required String Function(T value) format,        // Format selected value to string
+    required List<FSelectItemMixin> children,        // Items using .item()
+    FSelectControl<T>? control,
+    FPopoverControl popoverControl = const .managed(),
+    FTextFieldSizeVariant size = .md,
+    FSelectStyleDelta style = const .context(),
+    Key? key,
+  })
+  ```
+- **Create items using:**
+  ```dart
+  .item(title: Widget, value: T)
+  ```
+- **Props mapping:**
+  - `value` → Use `FSelectManagedControl(initialValue: value)` as control
+  - `items` (List<DropdownMenuItem<T>>) → `children: items.map((item) => .item(title: item.child, value: item.value)).toList()`
+  - `onChanged` → Pass to control or use control's value stream
+  - **Critical:** Requires `format: (value) => ...` function to stringify selected value for display
+- **Note:** AppDropdown has **zero call sites** in current codebase. This swap provides future-proofing but will not be visible in Tony's preview.
+- **Verification:** Compile succeeds (no runtime verification possible since unused)
+
+### Task 15: Swap AppSnackbar to FToast
 
 - **File:** `lib/components/ui/app_snackbar.dart`
+- **Constructor signature (verified from pub.dev):**
+  ```dart
+  FToasterEntry showFToast({
+    required BuildContext context,
+    required Widget title,               // Widget, NOT String!
+    FToastVariant variant = .primary,    // Enum: .primary, .destructive
+    FToastStyleDelta style = const .context(),
+    Widget? icon,
+    Widget? description,                 // Additional text below title
+    Widget Function(BuildContext, FToasterEntry)? suffixBuilder,
+    FToastAlignment? alignment,
+    Duration? duration = const Duration(seconds: 5),
+    VoidCallback? onDismiss,
+    Key? key,
+  })
+  ```
 - **Helper function:** Replace `ScaffoldMessenger.showSnackBar` with `showFToast`
 - **Props mapping:**
-  - `message` → `title` or `description`
+  - `message` → `title: Text(message)` (String → Widget, wrap required!)
   - `action` → `suffixBuilder` for action button
   - `duration` → `duration` (same)
-  - `type` (info/success/error) → Map to Forui's toast style variants
+  - `type` (info/success/error) → `variant: .primary` or `.destructive`
 - **Verification:** Toasts display correctly, dismiss correctly, action buttons work
 
-### Task 15: Swap AppProgressIndicator to FProgress
+### Task 16: Swap AppProgressIndicator to FProgress
 
 - **File:** `lib/components/ui/app_progress_indicator.dart`
-- **Props mapping:**
-  - `type` (circular/linear) → `FProgress` for linear (confirmed); **investigate if Forui has circular progress**
-  - `value` → `value` (for determinate progress)
-  - `color` → Apply via `style` delta if needed
-- **Critical:** If Forui does not support circular progress, **fall back to Material CircularProgressIndicator** with documentation. This breaks consistency but is acceptable for Cycle 1.
-- **Verification:** Linear progress renders correctly. Circular progress either uses FProgress (if supported) or Material fallback.
+- **Constructor signatures (verified from pub.dev):**
 
-### Task 16: Document Material holdout
+  ```dart
+  // Indeterminate linear:
+  FProgress({
+    FProgressStyleDelta style = const .context(),
+    String? semanticsLabel,
+    Key? key,
+  })
+
+  // Determinate linear:
+  FDeterminateProgress({
+    required double value,           // 0.0 to 1.0
+    FDeterminateProgressStyleDelta style = const .context(),
+    String? semanticsLabel,
+    Key? key,
+  })
+
+  // Circular indeterminate:
+  FCircularProgress({
+    FCircularProgressSizeVariant size = .md,
+    FCircularProgressStyleDelta style = const .context(),
+    String? semanticsLabel,
+    Key? key,
+  })
+  ```
+
+- **Props mapping:**
+  - `type` (circular/linear) → Use `FCircularProgress()` for circular, `FProgress()` or `FDeterminateProgress()` for linear
+  - `value` → For determinate: use `FDeterminateProgress(value: value)`. For indeterminate: use `FProgress()` or `FCircularProgress()`
+  - `color` → Apply via `style` delta if needed
+- **Implementation:** Branch on type and value presence to select correct class
+- **Verification:** Linear progress renders correctly, circular progress renders correctly (Forui FCircularProgress confirmed available)
+
+### Task 17: Document Material holdout
 
 - **File:** `lib/components/ui/README.md` (create)
 - **Content:**
@@ -572,18 +818,18 @@ Execute in strict order:
   - Note that this is a preview/evaluation configuration, not final
 - **Verification:** README is clear and accurate
 
-### Task 17: Run flutter pub get
+### Task 18: Run flutter pub get
 
 - **Command:** `flutter pub get`
 - **Verification:** Forui dependency installs, no conflicts
 
-### Task 18: Run flutter analyze
+### Task 19: Run flutter analyze
 
 - **Command:** `flutter analyze`
 - **Expected output:** 0 errors, 0 warnings
 - **If errors exist:** Fix them before proceeding (likely import errors or API mismatches)
 
-### Task 19: Build app for all platforms (compile verification only)
+### Task 20: Build app for all platforms (compile verification only)
 
 **Responsibility:** Engineer
 
@@ -593,9 +839,9 @@ Execute in strict order:
   - `flutter build apk --release`
   - `flutter build macos --release`
 - **Expected output:** All builds succeed, no compile errors
-- **Note:** Forui is platform-agnostic, but this verifies no platform-specific compile errors. Does NOT include running the app or visual inspection—that's Task 20 (Tony's job).
+- **Note:** Forui is platform-agnostic, but this verifies no platform-specific compile errors. Does NOT include running the app or visual inspection—that's Task 21 (Tony's job).
 
-### Task 20: Tony's local visual verification
+### Task 21: Tony's local visual verification
 
 **Responsibility:** Tony (NOT Engineer/QA—this is explicitly Tony's job to evaluate Forui appearance)
 
@@ -790,15 +1036,15 @@ If Tony decides to proceed to production with Forui after Cycle 1 preview, the f
 
 ## Confidence Levels
 
-| Area                                                          | Confidence | Rationale                                                                                                                                             |
-| ------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **13 wrapper swaps (AppScaffold, AppButton, etc.)**           | **HIGH**   | Forui provides clean equivalents, APIs are similar enough to map within wrappers without call-site changes.                                           |
-| **AppAppBar → FHeader mapping**                               | **MEDIUM** | API differs (actions → prefixes/suffixes), but adapter layer is straightforward. Visual result may differ (Forui's header style vs. Material AppBar). |
-| **AppTextField/AppTextFormField → FTextField/FTextFormField** | **HIGH**   | APIs are very similar, form validation should work identically.                                                                                       |
-| **AppProgressIndicator circular support**                     | **LOW**    | Forui docs only show linear progress. If circular is unsupported, fallback to Material is required, breaking consistency.                             |
-| **FToaster integration**                                      | **HIGH**   | Straightforward — add FToaster wrapper in main.dart, call showFToast in AppSnackbar.                                                                  |
-| **Cross-platform visual consistency**                         | **MEDIUM** | Forui claims platform-agnostic design, but touch-first philosophy may not translate well to desktop. Verification required.                           |
-| **Rollback complexity**                                       | **HIGH**   | Rollback is clean — revert 14 file changes, remove forui dependency, redeploy. No database or backend changes to unwind.                              |
+| Area                                                          | Confidence | Rationale                                                                                                                                                                       |
+| ------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **13 wrapper swaps (AppScaffold, AppButton, etc.)**           | **HIGH**   | Forui provides clean equivalents with verified API signatures from pub.dev. Parameter mapping is straightforward within wrappers, no call-site changes required.                |
+| **AppAppBar → FHeader mapping**                               | **HIGH**   | API verified: `actions` → `suffixes`, `leading` → `prefixes` (use `.nested()`). Adapter layer straightforward. Visual result may differ but functionality preserved.            |
+| **AppTextField/AppTextFormField → FTextField/FTextFormField** | **HIGH**   | API verified: Uses control pattern, but `FTextFieldManagedControl(controller: ...)` accepts `TextEditingController` directly. Facade contract preserved, form validation works. |
+| **AppProgressIndicator circular support**                     | **HIGH**   | API verified: `FCircularProgress` exists. All three classes confirmed (FProgress, FDeterminateProgress, FCircularProgress). No Material fallback needed.                        |
+| **FToaster integration**                                      | **HIGH**   | Straightforward — add FToaster wrapper in main.dart, call showFToast in AppSnackbar.                                                                                            |
+| **Cross-platform visual consistency**                         | **MEDIUM** | Forui claims platform-agnostic design, but touch-first philosophy may not translate well to desktop. Verification required.                                                     |
+| **Rollback complexity**                                       | **HIGH**   | Rollback is clean — revert 14 file changes, remove forui dependency, redeploy. No database or backend changes to unwind.                                                        |
 
 ---
 
