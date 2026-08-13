@@ -342,7 +342,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                         TextSpan(
                           text: 'POTENTIAL GIG',
                           style: TextStyle(
-                            fontFamily: 'DM Sans',
+                            fontFamily: 'Geist',
                             fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF4A1F0F),
@@ -353,7 +353,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           TextSpan(
                             text: ': Multiple Dates',
                             style: TextStyle(
-                              fontFamily: 'DM Sans',
+                              fontFamily: 'Geist',
                               fontSize: AppFontSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF4A1F0F),
@@ -372,7 +372,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   text: _formatFullDate(_currentDate),
                   direction: _navigationDirection,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.pageTitle,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -392,7 +392,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   ),
                   direction: _navigationDirection,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -415,7 +415,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: 'DM Sans',
+                            fontFamily: 'Geist',
                             fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -427,7 +427,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                         Text(
                           ' - ${widget.gig.locationDisplay}',
                           style: TextStyle(
-                            fontFamily: 'DM Sans',
+                            fontFamily: 'Geist',
                             fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -444,7 +444,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: 'DM Sans',
+                            fontFamily: 'Geist',
                             fontSize: AppFontSizes.title,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -734,7 +734,7 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
               : Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     color: textColor,

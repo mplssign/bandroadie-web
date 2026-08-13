@@ -15,7 +15,6 @@ dependencies:
 
   # UI / Visual
   flutter_svg: ^2.2.3
-  google_fonts: ^8.0.0
   confetti: ^0.7.0
   cupertino_icons: ^1.0.8
   forui: ^0.25.0
@@ -85,13 +84,13 @@ flutter:
     - assets/images/
 
   fonts:
-    - family: DM Sans
+    - family: Geist
       fonts:
-        - asset: assets/fonts/DMSans-Regular.ttf
+        - asset: assets/fonts/Geist-Regular.ttf
           weight: 400
-        - asset: assets/fonts/DMSans-SemiBold.ttf
+        - asset: assets/fonts/Geist-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/DMSans-Bold.ttf
+        - asset: assets/fonts/Geist-Bold.ttf
           weight: 700
     - family: Noto Sans
       fonts:

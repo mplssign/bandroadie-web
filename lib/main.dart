@@ -153,16 +153,22 @@ class BandRoadieApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       // Disable device text scaling - use fixed font sizes.
       // KeyboardAwareWrapper ensures focused fields scroll above the keyboard.
-      builder: (context, child) => FTheme(
-        data: FTheme.neutral.dark.touch,
-        child: FToaster(
-          child: MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.noScaling),
-            child: KeyboardAwareWrapper(child: child!),
+      builder: (context, child) {
+        final brightness = ref.watch(themeModeProvider) == ThemeMode.light
+            ? Brightness.light
+            : Brightness.dark;
+
+        return FTheme(
+          data: AppTheme.foruiTheme(brightness),
+          child: FToaster(
+            child: MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.noScaling),
+              child: KeyboardAwareWrapper(child: child!),
+            ),
           ),
-        ),
-      ),
+        );
+      },
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
 

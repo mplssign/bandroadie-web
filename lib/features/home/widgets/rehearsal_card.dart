@@ -349,7 +349,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                         TextSpan(
                           text: 'POTENTIAL REHEARSAL',
                           style: TextStyle(
-                            fontFamily: 'DM Sans',
+                            fontFamily: 'Geist',
                             fontSize: AppFontSizes.subhead,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF4A1F0F),
@@ -360,7 +360,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                           TextSpan(
                             text: ': Multiple Dates',
                             style: TextStyle(
-                              fontFamily: 'DM Sans',
+                              fontFamily: 'Geist',
                               fontSize: AppFontSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: const Color(0xFF4A1F0F),
@@ -381,7 +381,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: widget.rehearsal.isRecurring &&
                             widget.rehearsal.recurrenceFrequency != null
                         ? 17
@@ -399,7 +399,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                   text: _formatTimeLine(widget.rehearsal),
                   direction: _navigationDirection,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -418,7 +418,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.title,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -884,7 +884,7 @@ class _FullWidthAvailabilityButton extends StatelessWidget {
               : Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
                     color: textColor,
