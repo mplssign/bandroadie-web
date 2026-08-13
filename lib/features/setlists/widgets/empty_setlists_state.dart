@@ -102,7 +102,7 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                 Text(
                   'No Setlists Yet',
                   style: TextStyle(
-                    fontFamily: 'DM Sans',
+                    fontFamily: 'Geist',
                     fontSize: AppFontSizes.title2,
                     fontWeight: FontWeight.w700,
                     color: context.colors.textPrimary,

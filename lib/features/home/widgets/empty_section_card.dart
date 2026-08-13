@@ -99,7 +99,7 @@ class _EmptySectionCardState extends State<EmptySectionCard>
           Text(
             widget.title,
             style: TextStyle(
-              fontFamily: 'DM Sans',
+              fontFamily: 'Geist',
               fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w700,
               color: context.colors.textPrimary,

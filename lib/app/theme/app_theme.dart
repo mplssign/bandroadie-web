@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'brand_colors.dart';
 import 'design_tokens.dart';
 
@@ -224,55 +225,55 @@ class AppTheme {
       // ----------------------------------------
       textTheme: TextTheme(
         headlineLarge: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.statLarge,
           fontWeight: FontWeight.w700,
         ),
         headlineMedium: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.modalTitle,
           fontWeight: FontWeight.w700,
         ),
         headlineSmall: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.sectionTitle,
           fontWeight: FontWeight.w600,
         ),
         titleLarge: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.title2,
           fontWeight: FontWeight.w600,
         ),
         titleMedium: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.body,
           fontWeight: FontWeight.w600,
         ),
         titleSmall: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
         ),
         bodyLarge: TextStyle(
-            fontFamily: 'DM Sans',
+            fontFamily: 'Geist',
             color: bc.textPrimary,
             fontSize: AppFontSizes.body),
         bodyMedium: TextStyle(
-            fontFamily: 'DM Sans',
+            fontFamily: 'Geist',
             color: bc.textSecondary,
             fontSize: AppFontSizes.subhead),
         bodySmall: TextStyle(
-            fontFamily: 'DM Sans',
+            fontFamily: 'Geist',
             color: bc.textMuted,
             fontSize: AppFontSizes.caption),
         labelLarge: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
@@ -282,7 +283,7 @@ class AppTheme {
       // ----------------------------------------
       // DEFAULT FONT FAMILY
       // ----------------------------------------
-      fontFamily: 'DM Sans',
+      fontFamily: 'Geist',
 
       // ----------------------------------------
       // DIVIDER
@@ -518,55 +519,55 @@ class AppTheme {
       // ----------------------------------------
       textTheme: TextTheme(
         headlineLarge: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.statLarge,
           fontWeight: FontWeight.w700,
         ),
         headlineMedium: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.modalTitle,
           fontWeight: FontWeight.w700,
         ),
         headlineSmall: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.sectionTitle,
           fontWeight: FontWeight.w600,
         ),
         titleLarge: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.title2,
           fontWeight: FontWeight.w600,
         ),
         titleMedium: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.body,
           fontWeight: FontWeight.w600,
         ),
         titleSmall: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
         ),
         bodyLarge: TextStyle(
-            fontFamily: 'DM Sans',
+            fontFamily: 'Geist',
             color: bc.textPrimary,
             fontSize: AppFontSizes.body),
         bodyMedium: TextStyle(
-            fontFamily: 'DM Sans',
+            fontFamily: 'Geist',
             color: bc.textSecondary,
             fontSize: AppFontSizes.subhead),
         bodySmall: TextStyle(
-            fontFamily: 'DM Sans',
+            fontFamily: 'Geist',
             color: bc.textMuted,
             fontSize: AppFontSizes.caption),
         labelLarge: TextStyle(
-          fontFamily: 'DM Sans',
+          fontFamily: 'Geist',
           color: bc.textPrimary,
           fontSize: AppFontSizes.subhead,
           fontWeight: FontWeight.w600,
@@ -576,7 +577,7 @@ class AppTheme {
       // ----------------------------------------
       // DEFAULT FONT FAMILY
       // ----------------------------------------
-      fontFamily: 'DM Sans',
+      fontFamily: 'Geist',
 
       // ----------------------------------------
       // DIVIDER
@@ -598,5 +599,33 @@ class AppTheme {
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
+  }
+
+  // ========================================
+  // FORUI THEME
+  // ========================================
+
+  /// Builds Forui theme data from Forui's Neutral preset, overriding only
+  /// the primary accent color to BandRoadie's brand color (Rose-700).
+  /// Other colors (background, surface, text, etc.) intentionally remain
+  /// Forui's stock Neutral palette — brand colors can be layered in
+  /// incrementally in a future cycle if needed.
+  static FThemeData foruiTheme(Brightness brightness) {
+    final baseColors = brightness == Brightness.light
+        ? FColors.neutralLight
+        : FColors.neutralDark;
+
+    final colors = baseColors.copyWith(
+      primary: AppColors.primary, // Rose-700 #BE123C
+      // primaryForeground stays near-white in both modes — Rose-700 is a
+      // dark, saturated color, so text/icons on top of it need a light
+      // foreground regardless of overall page brightness. Matches the
+      // existing precedent in this file's Material filledButtonTheme
+      // (light theme hardcodes Colors.white; dark theme's bc.textPrimary
+      // is #FAFAFA — both effectively near-white).
+      primaryForeground: Colors.white,
+    );
+
+    return FThemeData(colors: colors, touch: true);
   }
 }

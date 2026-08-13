@@ -138,7 +138,7 @@ This means **12 of 14 swapped wrappers** will be visible in Tony's preview. AppD
 If Tony approves Forui after this preview:
 
 1. **Cycle 2:** Address remaining StyleDelta gaps (elevation, disabled colors, etc.)
-2. **Cycle 3:** Customize Forui theme to match BandRoadie's rose accent (`#F43F5E`) and dark-only aesthetic
+2. ~~**Cycle 3:** Customize Forui theme to match BandRoadie's rose accent (Rose-700 `#BE123C`) and reactive light/dark mode~~ — **COMPLETED** in `feature/forui-theme-integration`
 3. **Cycle 4:** Address AppChip (build custom Forui chip widget or investigate FTappable API)
 4. **Cycle 5:** Fix facade gap — migrate 5 raw `DropdownButton` usages to AppDropdown
 
