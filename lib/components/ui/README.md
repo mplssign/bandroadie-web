@@ -19,7 +19,7 @@ As of 2026-08-12, **all 15 wrappers** have been swapped to use Forui design syst
 9. **AppBottomSheet** → `FSheet`
 10. **AppSwitch** → `FSwitch`
 11. **AppCheckbox** → `FCheckbox`
-12. **AppDropdown** → `FSelect.rich` (unused in codebase, future-proofed)
+12. **AppDropdown** → `FSelect.rich` (10 call sites: 6 via EventDropdown, 4 direct, includes Form integration)
 13. **AppSnackbar** → `showFToast`
 14. **AppProgressIndicator** → `FProgress` / `FCircularProgress`
 15. **AppChip** → `FBadge` + `FTappable.static` (selectable badge pattern)
@@ -67,8 +67,11 @@ The wrappers preserve their full API contracts (call sites unchanged), but the f
 
 #### AppDropdown
 
-- `hint` — Not exposed in FSelect API
-- Format function uses `toString()` (may not be ideal for all types)
+- `hint` — Not natively supported in Forui. Workaround: use explicit null-value DropdownMenuItem as first item instead (preserves functionality, drops hint API)
+- Supports custom format/labelBuilder functions for display text
+- Supports enabled/disabled state via `enabled` parameter
+- Supports Form integration via `validator`, `onSaved`, `autovalidateMode` parameters (FSelect natively implements FormField)
+- Supports grouped dropdowns via `children` prop with FSelectSection (for timezone-style headers)
 
 #### AppBottomSheet
 
@@ -126,11 +129,11 @@ The following props were restored and now work correctly:
 
 ## Call Site Coverage
 
-- **AppDropdown:** 0 call sites (unused; 5 raw `DropdownButton` usages bypass facade)
+- **AppDropdown:** 10 call sites (4 direct, 6 via EventDropdown wrapper)
 - **AppChip:** 6 indirect call sites via `EmailDomainShortcutBar` (4 in selection mode, 2 in tap-to-apply mode)
 - **All other wrappers:** Actively used across 100+ call sites in `lib/features/`
 
-This means **all 15 Forui-styled wrappers** are ready for production. AppDropdown remains unused (Cycle 5 future work).
+This means **all 15 Forui-styled wrappers** are actively used and ready for production.
 
 ## Future Work
 
@@ -139,6 +142,6 @@ If Tony approves Forui after this preview:
 1. **Cycle 2:** Address remaining StyleDelta gaps (elevation, disabled colors, etc.)
 2. ~~**Cycle 3:** Customize Forui theme to match BandRoadie's rose accent (Rose-700 `#BE123C`) and reactive light/dark mode~~ — **COMPLETED** in `feature/forui-theme-integration`
 3. ~~**Cycle 4:** Address AppChip (build custom Forui chip widget or investigate FTappable API)~~ — **COMPLETED** in `feature/domain-chip-forui-consolidation`
-4. **Cycle 5:** Fix facade gap — migrate 5 raw `DropdownButton` usages to AppDropdown
+4. ~~**Cycle 5:** Fix facade gap — migrate raw `DropdownButton` usages to AppDropdown~~ — **COMPLETED** in `feature/dropdown-facade-migration`
 
 If Tony rejects Forui, revert this branch and continue with Material-only facade.
