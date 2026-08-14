@@ -34,7 +34,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/services/auth_debug_logger.dart';
 import '../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../components/ui/domain_chip.dart';
+import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import 'auth_gate.dart';
@@ -710,28 +710,11 @@ class _LoginScreenState extends State<LoginScreen>
         position: _pillsSlide,
         child: SizedBox(
           width: maxWidth,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: emailDomainShortcuts.asMap().entries.map((entry) {
-                final index = entry.key;
-                final domain = entry.value;
-                final isSelected = _selectedDomain == domain;
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
-                  ),
-                  child: DomainChip(
-                    domain: domain,
-                    isSelected: isSelected,
-                    isEnabled: !_isLoading,
-                    onTap: () => _applyDomainShortcut(domain),
-                  ),
-                );
-              }).toList(),
-            ),
+          child: EmailDomainShortcutBar(
+            controller: _emailController,
+            selectedDomain: _selectedDomain,
+            onDomainSelected: (domain) => _applyDomainShortcut(domain),
+            enabled: !_isLoading,
           ),
         ),
       ),

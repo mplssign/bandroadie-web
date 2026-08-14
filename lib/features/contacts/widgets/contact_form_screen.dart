@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import 'package:bandroadie/components/ui/domain_chip.dart';
+import 'package:bandroadie/components/ui/email_domain_shortcut_bar.dart';
 import 'package:bandroadie/shared/utils/email_domain_helper.dart';
 import '../../../shared/utils/phone_input_formatter.dart';
 import '../../bands/active_band_controller.dart';
@@ -302,27 +302,11 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: emailDomainShortcuts.asMap().entries.map((entry) {
-                final index = entry.key;
-                final domain = entry.value;
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index < emailDomainShortcuts.length - 1 ? 8 : 0,
-                  ),
-                  child: DomainChip(
-                    domain: domain,
-                    isSelected: _selectedDomain == domain,
-                    isEnabled: !_isSaving,
-                    onTap: () => _applyDomainShortcut(domain),
-                  ),
-                );
-              }).toList(),
-            ),
+          EmailDomainShortcutBar(
+            controller: _emailController,
+            selectedDomain: _selectedDomain,
+            onDomainSelected: (domain) => _applyDomainShortcut(domain),
+            enabled: !_isSaving,
           ),
           const SizedBox(height: 16),
 

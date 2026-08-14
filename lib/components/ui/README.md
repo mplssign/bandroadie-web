@@ -4,9 +4,9 @@ This directory contains 15 wrapper widgets that provide a consistent UI abstract
 
 ## Current State (Forui Preview Cycle)
 
-As of 2026-08-12, **14 of 15 wrappers** have been swapped to use Forui design system internally:
+As of 2026-08-12, **all 15 wrappers** have been swapped to use Forui design system internally:
 
-### Forui-Styled Wrappers (14)
+### Forui-Styled Wrappers (15)
 
 1. **AppScaffold** → `FScaffold`
 2. **AppAppBar** → `FHeader`
@@ -22,12 +22,11 @@ As of 2026-08-12, **14 of 15 wrappers** have been swapped to use Forui design sy
 12. **AppDropdown** → `FSelect.rich` (unused in codebase, future-proofed)
 13. **AppSnackbar** → `showFToast`
 14. **AppProgressIndicator** → `FProgress` / `FCircularProgress`
+15. **AppChip** → `FBadge` + `FTappable.static` (selectable badge pattern)
 
-### Material-Only Wrappers (1)
+### Implementation Notes
 
-- **AppChip** — Remains Material-only (`Chip`, `FilterChip`, `ActionChip`)
-  - **Reason:** No confirmed Forui equivalent for interactive filter chips. `FBadge` is for static labels. `FTappable` primitive has unclear gesture callback API.
-  - **Impact:** Zero call sites in current codebase (unused wrapper).
+**AppChip:** Uses the recommended Forui pattern for interactive badges — `FBadge` wrapped in `FTappable.static` for selection and tap handling. Supports filter/action/default variants and enabled/disabled states. Integrated in Cycle 4 (feature/domain-chip-forui-consolidation).
 
 ## Props Not Supported in Forui
 
@@ -128,10 +127,10 @@ The following props were restored and now work correctly:
 ## Call Site Coverage
 
 - **AppDropdown:** 0 call sites (unused; 5 raw `DropdownButton` usages bypass facade)
-- **AppChip:** 0 call sites (unused; custom chip widgets exist but don't use this wrapper)
+- **AppChip:** 6 indirect call sites via `EmailDomainShortcutBar` (4 in selection mode, 2 in tap-to-apply mode)
 - **All other wrappers:** Actively used across 100+ call sites in `lib/features/`
 
-This means **12 of 14 swapped wrappers** will be visible in Tony's preview. AppDropdown and AppChip swaps provide future-proofing but no visual coverage.
+This means **all 15 Forui-styled wrappers** are ready for production. AppDropdown remains unused (Cycle 5 future work).
 
 ## Future Work
 
@@ -139,7 +138,7 @@ If Tony approves Forui after this preview:
 
 1. **Cycle 2:** Address remaining StyleDelta gaps (elevation, disabled colors, etc.)
 2. ~~**Cycle 3:** Customize Forui theme to match BandRoadie's rose accent (Rose-700 `#BE123C`) and reactive light/dark mode~~ — **COMPLETED** in `feature/forui-theme-integration`
-3. **Cycle 4:** Address AppChip (build custom Forui chip widget or investigate FTappable API)
+3. ~~**Cycle 4:** Address AppChip (build custom Forui chip widget or investigate FTappable API)~~ — **COMPLETED** in `feature/domain-chip-forui-consolidation`
 4. **Cycle 5:** Fix facade gap — migrate 5 raw `DropdownButton` usages to AppDropdown
 
 If Tony rejects Forui, revert this branch and continue with Material-only facade.
