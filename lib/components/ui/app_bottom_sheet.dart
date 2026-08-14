@@ -23,7 +23,10 @@ Future<T?> showAppBottomSheet<T>({
 }) {
   return showFSheet<T>(
     context: context,
-    builder: builder,
+    builder: (context) => Material(
+      type: MaterialType.transparency,
+      child: builder(context),
+    ),
     side: FLayout.btt, // Bottom-to-top sheet
     barrierDismissible: isDismissible,
     useRootNavigator: useRootNavigator,
