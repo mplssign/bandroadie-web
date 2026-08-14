@@ -10,7 +10,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 // Compact card rendered in the setlist list for Set Breaks and Pauses.
 // Visually distinct from song cards: shorter height, accent-tinted left bar.
 //
-// Set Break: rose accent (#BE123C), timer icon, duration in minutes.
+// Set Break: rose accent (#FF2056), timer icon, duration in minutes.
 // Pause:     amber accent (#F59E0B), pause icon, purpose chips + duration.
 // ============================================================================
 
