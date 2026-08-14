@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
-import '../../components/ui/brand_action_button.dart';
-import '../../components/ui/app_progress_indicator.dart';
 import '../../components/ui/app_button.dart';
+import '../../components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
@@ -393,10 +392,11 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     }
 
     // Single "Add Event" button for all permitted roles
-    return BrandActionButton(
+    return AppButton(
       icon: AppIcons.add,
       label: 'Add Event',
       onPressed: _handleAddEvent,
+      variant: AppButtonVariant.primary,
     );
   }
 

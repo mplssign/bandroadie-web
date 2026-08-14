@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../models/calendar_event.dart';
 import 'calendar_event_card.dart';
@@ -204,11 +204,12 @@ class DayDetailBottomSheet extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                 horizontal: Spacing.pagePadding,
               ),
-              child: BrandActionButton(
+              child: AppButton(
                 label: 'Add Event',
                 onPressed: onAddEvent,
                 icon: AppIcons.add,
                 fullWidth: true,
+                variant: AppButtonVariant.primary,
               ),
             ),
           ],

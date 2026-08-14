@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // VENUES EMPTY STATE
@@ -59,10 +59,11 @@ class VenuesEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             if (onAddTap != null)
-              BrandActionButton(
+              AppButton(
                 label: 'Add Venue',
                 onPressed: onAddTap,
                 icon: AppIcons.add,
+                variant: AppButtonVariant.primary,
               ),
           ],
         ),

@@ -5,11 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_text_field.dart';
-import '../../../components/ui/app_button.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../members/permissions/band_permissions_provider.dart';
@@ -851,10 +850,11 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
             const SizedBox(width: Spacing.space12),
             // Update button - equal width
             Expanded(
-              child: BrandActionButton(
+              child: AppButton(
                 label: 'Update',
                 isLoading: _isSaving,
                 onPressed: (_isSaving || _isDeleting) ? null : _handleSave,
+                variant: AppButtonVariant.primary,
               ),
             ),
           ],
@@ -892,10 +892,11 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           const SizedBox(width: Spacing.space12),
           // Primary button - equal width
           Expanded(
-            child: BrandActionButton(
+            child: AppButton(
               label: 'Add Block Out',
               isLoading: _isSaving,
               onPressed: _isSaving ? null : _handleSave,
+              variant: AppButtonVariant.primary,
             ),
           ),
         ],

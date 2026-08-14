@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
-import '../../../components/ui/brand_action_button.dart';
 import '../../../components/ui/app_button.dart';
 import '../models/calendar_event.dart';
 
@@ -163,10 +162,11 @@ class ViewBlockOutDrawer extends StatelessWidget {
             ),
             child: Column(
               children: [
-                BrandActionButton(
+                AppButton(
                   label: 'Done',
                   fullWidth: true,
                   onPressed: () => Navigator.of(context).pop(),
+                  variant: AppButtonVariant.primary,
                 ),
                 if (canEdit) ...[
                   const SizedBox(height: Spacing.space12),

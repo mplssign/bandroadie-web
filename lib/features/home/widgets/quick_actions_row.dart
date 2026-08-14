@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // QUICK ACTIONS ROW
@@ -47,9 +47,10 @@ class QuickActionsRow extends StatelessWidget {
 
     if (showAddEvent) {
       buttons.add(
-        BrandActionButton(
+        AppButton(
           label: '+ Add Event',
           onPressed: onAddEvent,
+          variant: AppButtonVariant.primary,
         ),
       );
     }
@@ -57,9 +58,10 @@ class QuickActionsRow extends StatelessWidget {
     if (showCreateSetlist) {
       if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
       buttons.add(
-        BrandActionButton(
+        AppButton(
           label: '+ Create Setlist',
           onPressed: onCreateSetlist,
+          variant: AppButtonVariant.primary,
         ),
       );
     }
@@ -67,9 +69,10 @@ class QuickActionsRow extends StatelessWidget {
     if (showFinancials) {
       if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
       buttons.add(
-        BrandActionButton(
+        AppButton(
           label: 'Financials',
           onPressed: onFinancials,
+          variant: AppButtonVariant.primary,
         ),
       );
     }

@@ -8,7 +8,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_button.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../auth/splash_complete_provider.dart';
 import '../bands/active_band_controller.dart';
@@ -797,10 +797,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 style: AppTextStyles.body,
               ),
               const SizedBox(height: Spacing.space40),
-              BrandActionButton(
+              AppButton(
                 label: 'Try Again',
                 icon: AppIcons.refresh,
                 onPressed: _retry,
+                variant: AppButtonVariant.primary,
               ),
             ],
           ),

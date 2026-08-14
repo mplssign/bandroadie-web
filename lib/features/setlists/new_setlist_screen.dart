@@ -8,7 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_button.dart';
 import '../../components/ui/app_scaffold.dart';
 import '../../components/ui/app_app_bar.dart';
 import '../../components/ui/app_icon_button.dart';
@@ -956,7 +956,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                   ),
                 ),
                 const SizedBox(height: Spacing.space24),
-                BrandActionButton(
+                AppButton(
                   label: 'Try Again',
                   onPressed: () {
                     setState(() {
@@ -965,6 +965,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     });
                     _createSetlist();
                   },
+                  variant: AppButtonVariant.primary,
                 ),
               ],
             ),

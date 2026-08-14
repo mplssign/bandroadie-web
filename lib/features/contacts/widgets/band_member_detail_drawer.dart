@@ -5,9 +5,8 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/phone_formatter.dart';
-import '../../../components/ui/brand_action_button.dart';
-import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
 import '../../members/member_vm.dart';
 
 // ============================================================================
@@ -254,10 +253,11 @@ class BandMemberDetailDrawer extends StatelessWidget {
             ),
             child: Column(
               children: [
-                BrandActionButton(
+                AppButton(
                   label: 'Done',
                   fullWidth: true,
                   onPressed: () => Navigator.of(context).pop(),
+                  variant: AppButtonVariant.primary,
                 ),
                 if (isAdmin) ...[
                   const SizedBox(height: Spacing.space12),

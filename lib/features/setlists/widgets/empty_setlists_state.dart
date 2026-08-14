@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
 // EMPTY SETLISTS STATE
 // Shown when user has no setlists created yet.
-// Uses BrandActionButton for consistent styling with other empty states.
+// Uses AppButton primary variant for consistent styling with other empty states.
 // ============================================================================
 
 class EmptySetlistsState extends StatefulWidget {
@@ -123,10 +123,11 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                 const SizedBox(height: Spacing.space32),
 
                 // CTA Button - consistent with other empty states
-                BrandActionButton(
+                AppButton(
                   label: '+ Create Setlist',
                   onPressed: widget.onCreateSetlist,
                   icon: AppIcons.add,
+                  variant: AppButtonVariant.primary,
                 ),
               ],
             ),

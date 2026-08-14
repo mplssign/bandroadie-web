@@ -11,7 +11,7 @@ import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_button.dart';
 import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
@@ -2152,12 +2152,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
     return Column(
       children: [
-        BrandActionButton(
+        AppButton(
           label: label,
           fullWidth: true,
           height: 52,
           isLoading: _isSubmitting,
           onPressed: isEnabled ? _submitForm : null,
+          variant: AppButtonVariant.primary,
         ),
         const SizedBox(height: Spacing.space16),
         // Cancel button
