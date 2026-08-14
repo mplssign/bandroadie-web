@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../features/members/member_vm.dart';
 import '../../members/permissions/band_permissions_provider.dart';
@@ -750,58 +751,36 @@ class _AddFinancialEntryBottomSheetState
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.background,
-                      border: Border.all(color: context.colors.border),
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String?>(
-                        value: _paidToUserId,
-                        isExpanded: true,
-                        dropdownColor: context.colors.surfaceElevated,
-                        style: AppTextStyles.callout
-                            .copyWith(color: context.colors.textPrimary),
-                        hint: Text(
+                  AppDropdown<String?>(
+                    value: _paidToUserId,
+                    onChanged: (value) {
+                      setState(() => _paidToUserId = value);
+                    },
+                    enabled: true,
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(
                           'No member selected',
                           style: AppTextStyles.callout
                               .copyWith(color: context.colors.textMuted),
                         ),
-                        onChanged: (value) {
-                          setState(() => _paidToUserId = value);
-                        },
-                        items: [
-                          DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text(
-                              'No member selected',
-                              style: AppTextStyles.callout
-                                  .copyWith(color: context.colors.textMuted),
-                            ),
-                          ),
-                          ...widget.members.map(
-                            (member) => DropdownMenuItem<String?>(
-                              value: member.userId,
-                              child: Text(member.name),
-                            ),
-                          ),
-                          DropdownMenuItem<String?>(
-                            value: _kOther,
-                            child: Text(
-                              'Other',
-                              style: AppTextStyles.callout
-                                  .copyWith(color: context.colors.textPrimary),
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
+                      ...widget.members.map(
+                        (member) => DropdownMenuItem<String?>(
+                          value: member.userId,
+                          child: Text(member.name),
+                        ),
+                      ),
+                      DropdownMenuItem<String?>(
+                        value: _kOther,
+                        child: Text(
+                          'Other',
+                          style: AppTextStyles.callout
+                              .copyWith(color: context.colors.textPrimary),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: Spacing.space12),
                   if (_isOtherPaidToSelected) ...[

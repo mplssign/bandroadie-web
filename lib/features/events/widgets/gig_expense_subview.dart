@@ -5,6 +5,7 @@ import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../shared/widgets/currency_input_field.dart';
@@ -286,40 +287,26 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
           ),
         ),
         const SizedBox(height: 6),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            border: Border.all(color: context.colors.border),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedCategory,
-              isExpanded: true,
-              dropdownColor: context.colors.surfaceElevated,
-              onChanged: widget.canEdit && !widget.isSaving
-                  ? (value) {
-                      if (value == null) return;
-                      setState(() => _selectedCategory = value);
-                    }
-                  : null,
-              items: _kPresetCategories
-                  .map(
-                    (value) => DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(
-                        value,
-                        style: AppTextStyles.callout.copyWith(
-                          color: context.colors.textPrimary,
-                        ),
-                      ),
+        AppDropdown<String>(
+          value: _selectedCategory,
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _selectedCategory = value);
+          },
+          enabled: widget.canEdit && !widget.isSaving,
+          items: _kPresetCategories
+              .map(
+                (value) => DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: AppTextStyles.callout.copyWith(
+                      color: context.colors.textPrimary,
                     ),
-                  )
-                  .toList(),
-            ),
-          ),
+                  ),
+                ),
+              )
+              .toList(),
         ),
         if (_isOtherCategory) ...[
           const SizedBox(height: Spacing.space12),
@@ -426,57 +413,43 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
           ),
         ),
         const SizedBox(height: 6),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            border: Border.all(color: context.colors.border),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String?>(
-              value: _paidByUserId,
-              isExpanded: true,
-              dropdownColor: context.colors.surfaceElevated,
-              onChanged: widget.canEdit && !widget.isSaving
-                  ? (value) {
-                      setState(() => _paidByUserId = value);
-                    }
-                  : null,
-              items: [
-                DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text(
-                    'None',
-                    style: AppTextStyles.callout.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
+        AppDropdown<String?>(
+          value: _paidByUserId,
+          onChanged: (value) {
+            setState(() => _paidByUserId = value);
+          },
+          enabled: widget.canEdit && !widget.isSaving,
+          items: [
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text(
+                'None',
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textSecondary,
                 ),
-                ...widget.members.map(
-                  (member) => DropdownMenuItem<String?>(
-                    value: member.userId,
-                    child: Text(
-                      member.name,
-                      style: AppTextStyles.callout.copyWith(
-                        color: context.colors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-                DropdownMenuItem<String?>(
-                  value: _kOther,
-                  child: Text(
-                    'Other',
-                    style: AppTextStyles.callout.copyWith(
-                      color: context.colors.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            ...widget.members.map(
+              (member) => DropdownMenuItem<String?>(
+                value: member.userId,
+                child: Text(
+                  member.name,
+                  style: AppTextStyles.callout.copyWith(
+                    color: context.colors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+            DropdownMenuItem<String?>(
+              value: _kOther,
+              child: Text(
+                'Other',
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textPrimary,
+                ),
+              ),
+            ),
+          ],
         ),
         if (_isOtherPaidBy) ...[
           const SizedBox(height: Spacing.space12),

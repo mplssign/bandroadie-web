@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_dropdown.dart';
 
 // ============================================================================
 // Shared reusable building blocks for event editor form field widgets.
@@ -119,33 +120,20 @@ class EventDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: context.colors.background,
-        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: context.colors.border),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          dropdownColor: context.colors.surfaceElevated,
-          style:
-              AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
-          icon: Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: context.colors.textSecondary,
-          ),
-          items: items.map((item) {
-            return DropdownMenuItem<T>(
-              value: item,
-              child: Text(labelBuilder(item)),
-            );
-          }).toList(),
-          onChanged: isSaving ? null : onChanged,
-        ),
-      ),
+    // Convert List<T> items to List<DropdownMenuItem<T>>
+    final dropdownItems = items.map((item) {
+      return DropdownMenuItem<T>(
+        value: item,
+        child: Text(labelBuilder(item)),
+      );
+    }).toList();
+
+    return AppDropdown<T>(
+      value: value,
+      items: dropdownItems,
+      onChanged: onChanged,
+      labelBuilder: labelBuilder,
+      enabled: !isSaving,
     );
   }
 }

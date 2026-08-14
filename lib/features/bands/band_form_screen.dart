@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +13,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/app_button.dart';
+import '../../components/ui/app_dropdown.dart';
 import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
@@ -1964,6 +1966,60 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     {'value': 'America/La_Paz', 'label': 'La Paz (GMT-4)'},
   ];
 
+  /// Builds timezone sections from _timezoneOptions by grouping entries
+  /// at isHeader: true boundaries.
+  List<FSelectSection<String>> _buildTimezoneSections(BuildContext context) {
+    final sections = <FSelectSection<String>>[];
+    String? currentHeader;
+    final currentItems = <String, String>{};
+
+    for (final entry in _timezoneOptions) {
+      final isHeader = entry['isHeader'] == true;
+
+      if (isHeader) {
+        // Save previous section if exists
+        if (currentHeader != null) {
+          sections.add(FSelectSection<String>(
+            label: Text(
+              currentHeader,
+              style: TextStyle(
+                color: context.colors.primaryLight,
+                fontSize: AppFontSizes.title,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            items: Map.from(currentItems),
+          ));
+          currentItems.clear();
+        }
+        // Start new section
+        currentHeader = entry['label'] as String;
+      } else {
+        // Add item to current section
+        final label = entry['label'] as String;
+        final value = entry['value'] as String;
+        currentItems[label] = value;
+      }
+    }
+
+    // Add final section
+    if (currentHeader != null && currentItems.isNotEmpty) {
+      sections.add(FSelectSection<String>(
+        label: Text(
+          currentHeader,
+          style: TextStyle(
+            color: context.colors.primaryLight,
+            fontSize: AppFontSizes.title,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        items: Map.from(currentItems),
+      ));
+    }
+
+    return sections;
+  }
+
   Widget _buildTimezoneSection() {
     // In create mode, the creator is always admin so always enabled
     // In edit mode, only admins/managers can edit timezone
@@ -1994,78 +2050,28 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           ),
         ),
         const SizedBox(height: Spacing.space12),
-        DropdownButtonFormField<String>(
-          initialValue: _timezoneOptions
+        AppDropdown<String>(
+          value: _timezoneOptions
                   .where((tz) => tz['value'] != null)
                   .any((tz) => tz['value'] == _selectedTimezone)
               ? _selectedTimezone
               : 'America/Chicago',
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: context.colors.surfaceElevated,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: Spacing.space16,
-              vertical: Spacing.space12,
-            ),
-          ),
-          dropdownColor: context.colors.surfaceElevated,
-          style: TextStyle(
-            color: context.colors.textPrimary,
-            fontSize: AppFontSizes.body,
-          ),
-          items: _timezoneOptions.asMap().entries.map((entry) {
-            final index = entry.key;
-            final tz = entry.value;
-            final isHeader = tz['isHeader'] == true;
-            return DropdownMenuItem<String>(
-              value: isHeader ? null : tz['value'] as String,
-              enabled: !isHeader,
-              child: isHeader
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (index > 0)
-                          Divider(
-                            color: Colors.grey.shade700,
-                            thickness: 0.5,
-                            height: 16,
-                          ),
-                        Text(
-                          tz['label'] as String,
-                          style: TextStyle(
-                            color: context.colors.primaryLight,
-                            fontSize: AppFontSizes.title,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Text(
-                      tz['label'] as String,
-                      style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontSize: AppFontSizes.subhead,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _selectedTimezone = value);
+            }
+          },
+          enabled: canEdit,
+          validator: (value) => value == null ? 'Timezone is required' : null,
+          format: (value) {
+            // Find the label for the selected value
+            final option = _timezoneOptions.firstWhere(
+              (tz) => tz['value'] == value,
+              orElse: () => {'label': value},
             );
-          }).toList(),
-          onChanged: canEdit
-              ? (value) {
-                  if (value != null) {
-                    setState(() => _selectedTimezone = value);
-                  }
-                }
-              : null,
+            return option['label'] as String;
+          },
+          children: _buildTimezoneSections(context),
         ),
         if (!canEdit)
           Padding(
