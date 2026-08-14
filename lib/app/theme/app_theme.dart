@@ -616,8 +616,8 @@ class AppTheme {
         : FColors.neutralDark;
 
     final colors = baseColors.copyWith(
-      primary: AppColors.primary, // Rose-700 #BE123C
-      // primaryForeground stays near-white in both modes — Rose-700 is a
+      primary: AppColors.primary, // shadcn/Forui Rose #FF2056
+      // primaryForeground stays near-white in both modes — shadcn/Forui Rose is a
       // dark, saturated color, so text/icons on top of it need a light
       // foreground regardless of overall page brightness. Matches the
       // existing precedent in this file's Material filledButtonTheme

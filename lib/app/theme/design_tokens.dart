@@ -142,15 +142,15 @@ String formatBpm(int? bpm) {
 /// Never use Color(0xFF...) outside this file.
 ///
 /// Palette: Tailwind Zinc (neutral, no blue tint) for surfaces/text,
-/// Rose-500 for brand, M3 tonal system for component theming.
+/// shadcn/Forui Rose primary (#FF2056) for brand, M3 tonal system for component theming.
 class AppColors {
   AppColors._();
 
   // ── Brand — Rose ───────────────────────────────────────────────────────────
 
   /// Primary CTA, active nav, links, focus rings.
-  /// Rose-500: brighter and more stage-ready than previous rose-700.
-  static const Color primary = Color(0xFFBE123C); // rose-700
+  /// shadcn/Forui Rose primary (#FF2056), aligned with reference theme.
+  static const Color primary = Color(0xFFFF2056); // shadcn/Forui Rose primary
 
   // ── Semantic ───────────────────────────────────────────────────────────────
 

@@ -57,7 +57,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     textMuted: Color(0xFF71717A),
     textDisabled: Color(0xFF52525B),
     primary: AppColors.primary,
-    primaryDim: Color(0xFFBE123C),
+    primaryDim: Color(0xFFFF2056),
     primaryContainer: Color(0xFF1C0A12),
     primaryLight: Color(0xFFFB7185),
     primarySubtle: Color(0x4DF43F5E),
@@ -79,7 +79,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     textMuted: Color(0xFF020617), // Slate 950
     textDisabled: Color(0xFFD4D4D8),
     primary: AppColors.primary,
-    primaryDim: Color(0xFFBE123C),
+    primaryDim: Color(0xFFFF2056),
     primaryContainer: Color(0xFFFFF1F2),
     primaryLight: Color(0xFFFB7185),
     primarySubtle: Color(0x1AF43F5E),
