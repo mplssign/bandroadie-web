@@ -9,7 +9,6 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_button.dart';
-import '../../../components/ui/brand_action_button.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../../app/theme/app_animations.dart';
@@ -417,10 +416,11 @@ class ViewGigDrawer extends StatelessWidget {
             ),
             child: Column(
               children: [
-                BrandActionButton(
+                AppButton(
                   label: 'Done',
                   fullWidth: true,
                   onPressed: () => Navigator.of(context).pop(),
+                  variant: AppButtonVariant.primary,
                 ),
                 if (canEdit) ...[
                   const SizedBox(height: Spacing.space12),

@@ -306,5 +306,37 @@ void main() {
       // Verify style is a delta (proving padding was applied)
       expect(button.style, isA<FButtonStyleDelta>());
     });
+
+    testWidgets('respects custom height', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: FTheme.neutral.dark.touch,
+            child: child!,
+          ),
+          home: Scaffold(
+            body: AppButton(
+              label: 'Test Button',
+              onPressed: () {},
+              variant: AppButtonVariant.primary,
+              height: 52,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(FButton), findsOneWidget);
+
+      // Find the SizedBox that wraps for height
+      final sizedBoxes = tester.widgetList<SizedBox>(find.byType(SizedBox));
+
+      // Should find a SizedBox with height: 52
+      final heightBox = sizedBoxes.firstWhere(
+        (box) => box.height == 52,
+        orElse: () => throw Exception('No SizedBox with height 52 found'),
+      );
+
+      expect(heightBox.height, 52);
+    });
   });
 }

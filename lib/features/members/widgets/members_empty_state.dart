@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -70,10 +70,11 @@ class MembersEmptyState extends StatelessWidget {
 
             // Invite button
             if (onInviteTap != null)
-              BrandActionButton(
+              AppButton(
                 label: '+ Invite Member',
                 onPressed: onInviteTap,
                 icon: AppIcons.userAdd,
+                variant: AppButtonVariant.primary,
               ),
           ],
         ),

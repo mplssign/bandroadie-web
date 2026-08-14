@@ -36,6 +36,7 @@ class AppButton extends StatelessWidget {
     this.variant = AppButtonVariant.primary,
     this.isLoading = false,
     this.fullWidth = false,
+    this.height,
     this.backgroundColor,
     this.borderRadius,
     this.elevation,
@@ -61,6 +62,9 @@ class AppButton extends StatelessWidget {
 
   /// If true, button expands to fill available width
   final bool fullWidth;
+
+  /// Optional custom height
+  final double? height;
 
   /// Optional custom background color (ignored in Forui preview)
   final Color? backgroundColor;
@@ -155,10 +159,16 @@ class AppButton extends StatelessWidget {
           );
 
     // Wrap in full-width container if needed
+    Widget result = button;
     if (fullWidth) {
-      return SizedBox(width: double.infinity, child: button);
+      result = SizedBox(width: double.infinity, child: result);
     }
 
-    return button;
+    // Wrap for height if specified
+    if (height != null) {
+      result = SizedBox(height: height, child: result);
+    }
+
+    return result;
   }
 }

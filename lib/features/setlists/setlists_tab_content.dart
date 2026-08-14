@@ -7,10 +7,9 @@ import 'package:bandroadie/app/constants/app_constants.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_button.dart';
 import '../../components/ui/confirm_action_dialog.dart';
 import '../../components/ui/app_progress_indicator.dart';
-import '../../components/ui/app_button.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
@@ -403,11 +402,12 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   ),
                 ),
                 const SizedBox(height: Spacing.space40),
-                BrandActionButton(
+                AppButton(
                   label: 'Try Again',
                   icon: AppIcons.refresh,
                   onPressed: () =>
                       ref.read(setlistsProvider.notifier).refresh(),
+                  variant: AppButtonVariant.primary,
                 ),
               ],
             ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
 // ============================================================================
@@ -130,10 +130,11 @@ class _EmptySectionCardState extends State<EmptySectionCard>
           // CTA button with scale animation
           ScaleTransition(
             scale: _buttonScale,
-            child: BrandActionButton(
+            child: AppButton(
               label: widget.buttonLabel,
               onPressed: widget.onButtonPressed,
               icon: AppIcons.add,
+              variant: AppButtonVariant.primary,
             ),
           ),
         ],

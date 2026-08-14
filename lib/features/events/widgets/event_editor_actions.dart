@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_button.dart';
-import '../../../components/ui/brand_action_button.dart';
 
 /// Bottom action buttons for the event editor: Cancel + Save.
 class EventEditorBottomActions extends StatelessWidget {
@@ -38,10 +37,11 @@ class EventEditorBottomActions extends StatelessWidget {
         const SizedBox(width: Spacing.space12),
         // Primary button - equal width
         Expanded(
-          child: BrandActionButton(
+          child: AppButton(
             label: primaryButtonLabel,
             isLoading: isSaving,
             onPressed: canSave ? onSave : null,
+            variant: AppButtonVariant.primary,
           ),
         ),
       ],

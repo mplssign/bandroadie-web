@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/brand_action_button.dart';
+import '../../../components/ui/app_button.dart';
 
 // ============================================================================
 // CONTACTS EMPTY STATE
@@ -59,10 +59,11 @@ class ContactsEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             if (onAddTap != null)
-              BrandActionButton(
+              AppButton(
                 label: 'Add Contact',
                 onPressed: onAddTap,
                 icon: AppIcons.userAdd,
+                variant: AppButtonVariant.primary,
               ),
           ],
         ),

@@ -9,7 +9,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/utils/phone_formatter.dart';
-import '../../components/ui/brand_action_button.dart';
+import '../../components/ui/app_button.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
@@ -21,7 +21,6 @@ import 'package:bandroadie/components/ui/app_app_bar.dart';
 import 'package:bandroadie/components/ui/app_icon_button.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_dialog.dart';
-import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_text_form_field.dart';
 
@@ -904,7 +903,11 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              BrandActionButton(label: 'Retry', onPressed: _loadProfile),
+              AppButton(
+                label: 'Retry',
+                onPressed: _loadProfile,
+                variant: AppButtonVariant.primary,
+              ),
             ],
           ),
         ),
@@ -1372,11 +1375,12 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                   flex: (widget.isGated && widget.onSkip != null)
                       ? 2
                       : (widget.isGated ? 1 : 2),
-                  child: BrandActionButton(
+                  child: AppButton(
                     label: 'Save Profile',
                     fullWidth: true,
                     isLoading: _isSaving,
                     onPressed: _isDirty && !_isSaving ? _saveProfile : null,
+                    variant: AppButtonVariant.primary,
                   ),
                 ),
               ],
