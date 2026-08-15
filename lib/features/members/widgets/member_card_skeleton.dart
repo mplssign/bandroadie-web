@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // MEMBER CARD SKELETON
@@ -39,47 +40,49 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     return AnimatedBuilder(
       animation: _shimmerController,
       builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: context.colors.border.withValues(alpha: 0.5),
-              width: 2,
+        return AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: context.colors.border.withValues(alpha: 0.5),
+                width: 2,
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name placeholder
-                _buildShimmerBox(width: 200, height: 32),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name placeholder
+                  _buildShimmerBox(width: 200, height: 32),
 
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
 
-                // Role pills row
-                Row(
-                  children: [
-                    _buildShimmerPill(width: 70),
-                    const SizedBox(width: 8),
-                    _buildShimmerPill(width: 60),
-                    const SizedBox(width: 8),
-                    _buildShimmerPill(width: 85),
-                  ],
-                ),
+                  // Role pills row
+                  Row(
+                    children: [
+                      _buildShimmerPill(width: 70),
+                      const SizedBox(width: 8),
+                      _buildShimmerPill(width: 60),
+                      const SizedBox(width: 8),
+                      _buildShimmerPill(width: 85),
+                    ],
+                  ),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // Contact rows
-                _buildContactRowSkeleton(),
-                const SizedBox(height: 14),
-                _buildContactRowSkeleton(width: 180),
-                const SizedBox(height: 14),
-                _buildContactRowSkeleton(width: 240),
-                const SizedBox(height: 14),
-                _buildContactRowSkeleton(width: 130),
-              ],
+                  // Contact rows
+                  _buildContactRowSkeleton(),
+                  const SizedBox(height: 14),
+                  _buildContactRowSkeleton(width: 180),
+                  const SizedBox(height: 14),
+                  _buildContactRowSkeleton(width: 240),
+                  const SizedBox(height: 14),
+                  _buildContactRowSkeleton(width: 130),
+                ],
+              ),
             ),
           ),
         );
@@ -91,7 +94,11 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: [context.colors.surface, context.colors.surfaceOverlay, context.colors.surface],
+      colors: [
+        context.colors.surface,
+        context.colors.surfaceOverlay,
+        context.colors.surface
+      ],
       stops: const [0.0, 0.5, 1.0],
     );
 
@@ -109,7 +116,11 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: [context.colors.surface, context.colors.surfaceOverlay, context.colors.surface],
+      colors: [
+        context.colors.surface,
+        context.colors.surfaceOverlay,
+        context.colors.surface
+      ],
       stops: const [0.0, 0.5, 1.0],
     );
 
@@ -127,7 +138,11 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
     final gradient = LinearGradient(
       begin: Alignment(-1.0 + 2.0 * _shimmerController.value, 0),
       end: Alignment(1.0 + 2.0 * _shimmerController.value, 0),
-      colors: [context.colors.surface, context.colors.surfaceOverlay, context.colors.surface],
+      colors: [
+        context.colors.surface,
+        context.colors.surfaceOverlay,
+        context.colors.surface
+      ],
       stops: const [0.0, 0.5, 1.0],
     );
 

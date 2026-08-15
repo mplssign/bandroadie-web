@@ -5,8 +5,8 @@ import '../../../app/models/gig.dart';
 import '../../../app/models/gig_date.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // POTENTIAL GIG CARD
@@ -47,7 +47,6 @@ class PotentialGigCard extends StatefulWidget {
 
 class _PotentialGigCardState extends State<PotentialGigCard>
     with SingleTickerProviderStateMixin {
-  late AnimationController _gradientController;
   bool _isPressed = false;
   bool _isSubmitting = false;
 
@@ -115,11 +114,6 @@ class _PotentialGigCardState extends State<PotentialGigCard>
     for (int i = 0; i < 4; i++) {
       _focusNodes.add(FocusNode());
     }
-
-    _gradientController = AnimationController(
-      duration: const Duration(seconds: 5),
-      vsync: this,
-    )..repeat(reverse: true);
   }
 
   @override
@@ -139,7 +133,6 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
   @override
   void dispose() {
-    _gradientController.dispose();
     for (var node in _focusNodes) {
       node.dispose();
     }
@@ -278,8 +271,6 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
   @override
   Widget build(BuildContext context) {
-    final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.85;
     final dates = _sortedDates;
     final canGoPrev = _currentDateIndex > 0;
     final canGoNext = _currentDateIndex < dates.length - 1;
@@ -293,259 +284,240 @@ class _PotentialGigCardState extends State<PotentialGigCard>
         scale: _isPressed ? AnimScales.cardPressed : 1.0,
         duration: AppDurations.fast,
         curve: AppCurves.ease,
-        child: AnimatedBuilder(
-          animation: _gradientController,
-          builder: (context, child) {
-            return Container(
-              width: widget.width,
-              constraints:
-                  BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFFFF6900)
-                        .withValues(alpha: gradientAlpha), // orange-500
-                    const Color(0xFFCA3500)
-                        .withValues(alpha: gradientAlpha), // orange-700
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(
-                  color: context.colors.textSecondary,
-                  width: 1,
-                ),
-              ),
-              child: child,
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Chip label — cream background, full width
-                Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF8F5),
-                    borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                  ),
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'POTENTIAL GIG',
-                          style: TextStyle(
-                            fontFamily: 'Geist',
-                            fontSize: AppFontSizes.subhead,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF4A1F0F),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        if (_isMultiDate)
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          child: Container(
+            width: widget.width,
+            constraints:
+                BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Chip label — cream background, full width
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF8F5),
+                      borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                    ),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        children: [
                           TextSpan(
-                            text: ': Multiple Dates',
+                            text: 'POTENTIAL GIG',
                             style: TextStyle(
                               fontFamily: 'Geist',
-                              fontSize: AppFontSizes.caption,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppFontSizes.subhead,
+                              fontWeight: FontWeight.w700,
                               color: const Color(0xFF4A1F0F),
-                              letterSpacing: 0.3,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                      ],
+                          if (_isMultiDate)
+                            TextSpan(
+                              text: ': Multiple Dates',
+                              style: TextStyle(
+                                fontFamily: 'Geist',
+                                fontSize: AppFontSizes.caption,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF4A1F0F),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Current date
-                AnimatedDateLabel(
-                  text: _formatFullDate(_currentDate),
-                  direction: _navigationDirection,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: AppFontSizes.pageTitle,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 1.1,
+                  // Current date
+                  AnimatedDateLabel(
+                    text: _formatFullDate(_currentDate),
+                    direction: _navigationDirection,
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: AppFontSizes.pageTitle,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                // Time (index-aware for multi-date)
-                AnimatedDateLabel(
-                  text: TimeFormatter.formatRangeLocal(
-                    _currentStartTime,
-                    widget.gig.endTime,
-                    _currentDate,
-                    widget.bandTimezone,
+                  // Time (index-aware for multi-date)
+                  AnimatedDateLabel(
+                    text: TimeFormatter.formatRangeLocal(
+                      _currentStartTime,
+                      widget.gig.endTime,
+                      _currentDate,
+                      widget.bandTimezone,
+                    ),
+                    direction: _navigationDirection,
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: AppFontSizes.title,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
                   ),
-                  direction: _navigationDirection,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: AppFontSizes.title,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    height: 1.2,
-                  ),
-                ),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // Venue name + city: "First Avenue - Minneapolis"
-                // Name truncates; city is never truncated.
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (widget.gig.name.isNotEmpty) ...[
-                      Flexible(
-                        child: Text(
-                          widget.gig.name,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: 'Geist',
-                            fontSize: AppFontSizes.title,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            height: 1.3,
-                          ),
-                        ),
-                      ),
-                      if (widget.gig.location.isNotEmpty)
-                        Text(
-                          ' - ${widget.gig.locationDisplay}',
-                          style: TextStyle(
-                            fontFamily: 'Geist',
-                            fontSize: AppFontSizes.title,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            height: 1.3,
-                          ),
-                        ),
-                    ] else
-                      Flexible(
-                        child: Text(
-                          widget.gig.location.isNotEmpty
-                              ? widget.gig.locationDisplay
-                              : 'No venue specified',
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: 'Geist',
-                            fontSize: AppFontSizes.title,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            height: 1.3,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-
-                const Spacer(),
-
-                // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
-                // else just [NO] [YES].
-                if (_isMultiDate)
+                  // Venue name + city: "First Avenue - Minneapolis"
+                  // Name truncates; city is never truncated.
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _DateNavButton(
-                        icon: Icons.chevron_left,
-                        enabled: canGoPrev,
-                        onTap: () => setState(() {
-                          _navigationDirection = -1;
-                          _currentDateIndex--;
-                        }),
-                        focusNode: _focusNodes[0],
-                        onKey: _handleKeyEvent,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _FullWidthAvailabilityButton(
-                          label: 'NO',
-                          isSelected: _currentDateResponse == 'no',
-                          isPositive: false,
-                          isSubmitting: _isSubmitting,
-                          isLoading:
-                              _savingInProgress[_currentGigDateId] ?? false,
-                          onTap: () => _handleResponse('no'),
-                          focusNode: _focusNodes[1],
-                          onKey: _handleKeyEvent,
+                      if (widget.gig.name.isNotEmpty) ...[
+                        Flexible(
+                          child: Text(
+                            widget.gig.name,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Geist',
+                              fontSize: AppFontSizes.title,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              height: 1.3,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _FullWidthAvailabilityButton(
-                          label: 'YES',
-                          isSelected: _currentDateResponse == 'yes',
-                          isPositive: true,
-                          isSubmitting: _isSubmitting,
-                          isLoading:
-                              _savingInProgress[_currentGigDateId] ?? false,
-                          onTap: () => _handleResponse('yes'),
-                          focusNode: _focusNodes[2],
-                          onKey: _handleKeyEvent,
+                        if (widget.gig.location.isNotEmpty)
+                          Text(
+                            ' - ${widget.gig.locationDisplay}',
+                            style: TextStyle(
+                              fontFamily: 'Geist',
+                              fontSize: AppFontSizes.title,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              height: 1.3,
+                            ),
+                          ),
+                      ] else
+                        Flexible(
+                          child: Text(
+                            widget.gig.location.isNotEmpty
+                                ? widget.gig.locationDisplay
+                                : 'No venue specified',
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: 'Geist',
+                              fontSize: AppFontSizes.title,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              height: 1.3,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      _DateNavButton(
-                        icon: Icons.chevron_right,
-                        enabled: canGoNext,
-                        onTap: () => setState(() {
-                          _navigationDirection = 1;
-                          _currentDateIndex++;
-                        }),
-                        focusNode: _focusNodes[3],
-                        onKey: _handleKeyEvent,
-                      ),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _FullWidthAvailabilityButton(
-                          label: 'NO',
-                          isSelected: _currentDateResponse == 'no',
-                          isPositive: false,
-                          isSubmitting: _isSubmitting,
-                          isLoading:
-                              _savingInProgress[_currentGigDateId] ?? false,
-                          onTap: () => _handleResponse('no'),
-                          focusNode: _focusNodes[1],
-                          onKey: _handleKeyEvent,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _FullWidthAvailabilityButton(
-                          label: 'YES',
-                          isSelected: _currentDateResponse == 'yes',
-                          isPositive: true,
-                          isSubmitting: _isSubmitting,
-                          isLoading:
-                              _savingInProgress[_currentGigDateId] ?? false,
-                          onTap: () => _handleResponse('yes'),
-                          focusNode: _focusNodes[2],
-                          onKey: _handleKeyEvent,
-                        ),
-                      ),
                     ],
                   ),
-              ],
+
+                  const Spacer(),
+
+                  // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
+                  // else just [NO] [YES].
+                  if (_isMultiDate)
+                    Row(
+                      children: [
+                        _DateNavButton(
+                          icon: Icons.chevron_left,
+                          enabled: canGoPrev,
+                          onTap: () => setState(() {
+                            _navigationDirection = -1;
+                            _currentDateIndex--;
+                          }),
+                          focusNode: _focusNodes[0],
+                          onKey: _handleKeyEvent,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _FullWidthAvailabilityButton(
+                            label: 'NO',
+                            isSelected: _currentDateResponse == 'no',
+                            isPositive: false,
+                            isSubmitting: _isSubmitting,
+                            isLoading:
+                                _savingInProgress[_currentGigDateId] ?? false,
+                            onTap: () => _handleResponse('no'),
+                            focusNode: _focusNodes[1],
+                            onKey: _handleKeyEvent,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _FullWidthAvailabilityButton(
+                            label: 'YES',
+                            isSelected: _currentDateResponse == 'yes',
+                            isPositive: true,
+                            isSubmitting: _isSubmitting,
+                            isLoading:
+                                _savingInProgress[_currentGigDateId] ?? false,
+                            onTap: () => _handleResponse('yes'),
+                            focusNode: _focusNodes[2],
+                            onKey: _handleKeyEvent,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _DateNavButton(
+                          icon: Icons.chevron_right,
+                          enabled: canGoNext,
+                          onTap: () => setState(() {
+                            _navigationDirection = 1;
+                            _currentDateIndex++;
+                          }),
+                          focusNode: _focusNodes[3],
+                          onKey: _handleKeyEvent,
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _FullWidthAvailabilityButton(
+                            label: 'NO',
+                            isSelected: _currentDateResponse == 'no',
+                            isPositive: false,
+                            isSubmitting: _isSubmitting,
+                            isLoading:
+                                _savingInProgress[_currentGigDateId] ?? false,
+                            onTap: () => _handleResponse('no'),
+                            focusNode: _focusNodes[1],
+                            onKey: _handleKeyEvent,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _FullWidthAvailabilityButton(
+                            label: 'YES',
+                            isSelected: _currentDateResponse == 'yes',
+                            isPositive: true,
+                            isSubmitting: _isSubmitting,
+                            isLoading:
+                                _savingInProgress[_currentGigDateId] ?? false,
+                            onTap: () => _handleResponse('yes'),
+                            focusNode: _focusNodes[2],
+                            onKey: _handleKeyEvent,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),

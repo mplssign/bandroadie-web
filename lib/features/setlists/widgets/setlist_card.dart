@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist.dart';
-import 'animated_gradient_border.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // SETLIST CARD
@@ -38,7 +38,6 @@ class _SetlistCardState extends State<SetlistCard>
   late AnimationController _tapController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
-  late GradientAnimationConfig _gradientConfig;
 
   @override
   void initState() {
@@ -55,18 +54,6 @@ class _SetlistCardState extends State<SetlistCard>
       begin: 1.0,
       end: 0.9,
     ).animate(CurvedAnimation(parent: _tapController, curve: Curves.easeInOut));
-
-    // Deterministic animation config based on setlist ID
-    _gradientConfig = GradientAnimationConfig.fromId(widget.setlist.id);
-  }
-
-  @override
-  void didUpdateWidget(SetlistCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Recalculate config if setlist ID changes
-    if (oldWidget.setlist.id != widget.setlist.id) {
-      _gradientConfig = GradientAnimationConfig.fromId(widget.setlist.id);
-    }
   }
 
   @override
@@ -154,16 +141,8 @@ class _SetlistCardState extends State<SetlistCard>
             );
           },
           child: IntrinsicHeight(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: context.colors.surface,
-                border: Border.all(
-                  color: context.colors.border,
-                  width: StandardCardBorder.width,
-                ),
-                borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
-              ),
+            child: AppCard(
+              borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
               child: Row(
                 children: [
                   // Drag handle area
@@ -210,23 +189,7 @@ class _SetlistCardState extends State<SetlistCard>
       );
     }
 
-    // ── Non-draggable variant (Catalog) — original layout ──
-    final cardContent = Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.space16),
-      decoration: widget.setlist.isCatalog
-          ? null // Catalog uses AnimatedGradientBorder
-          : BoxDecoration(
-              color: context.colors.surface,
-              borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
-              border: Border.all(
-                color: context.colors.border,
-                width: StandardCardBorder.width,
-              ),
-            ),
-      child: innerContent,
-    );
-
+    // ── Non-draggable variant (Catalog and non-Catalog) ──
     return GestureDetector(
       onTapDown: _handleTapDown,
       onTapUp: _handleTapUp,
@@ -241,12 +204,14 @@ class _SetlistCardState extends State<SetlistCard>
             child: Opacity(opacity: _opacityAnimation.value, child: child),
           );
         },
-        child: widget.setlist.isCatalog
-            ? AnimatedGradientBorder(
-                config: _gradientConfig,
-                child: cardContent,
-              )
-            : cardContent,
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
+          child: Padding(
+            padding: const EdgeInsets.all(Spacing.space16),
+            child: innerContent,
+          ),
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../models/calendar_event.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // CALENDAR EVENT CARD
@@ -98,70 +99,81 @@ class _CalendarEventCardState extends State<CalendarEventCard>
         builder: (context, child) {
           return Transform.scale(scale: _scaleAnimation.value, child: child);
         },
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 80),
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            border: Border.all(
-              color: context.colors.border,
-              width: StandardCardBorder.width,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              children: [
-                // Date badge - deep blue/indigo background
-                _DateBadge(
-                  date: widget.event.date,
-                  eventType: widget.event.type,
-                ),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 80),
+            child: IntrinsicHeight(
+              child: Row(
+                children: [
+                  // Date badge - deep blue/indigo background
+                  _DateBadge(
+                    date: widget.event.date,
+                    eventType: widget.event.type,
+                  ),
 
-                // Divider
-                Container(width: 1, color: context.colors.border),
+                  // Divider
+                  Container(width: 1, color: context.colors.border),
 
-                // Event details
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.space12,
-                      vertical: Spacing.space12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Event title with type indicator
-                        Row(
-                          children: [
-                            // Event type indicator dot
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _dotColor,
-                                shape: BoxShape.circle,
+                  // Event details
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.space12,
+                        vertical: Spacing.space12,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Event title with type indicator
+                          Row(
+                            children: [
+                              // Event type indicator dot
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _dotColor,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                widget.event.displayTitle,
-                                style: AppTextStyles.calloutEmphasized,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  widget.event.displayTitle,
+                                  style: AppTextStyles.calloutEmphasized,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+
+                          // For block outs: show reason (if any); for other events: show time range
+                          if (widget.event.isBlockOut) ...[
+                            if (widget.event.notes?.isNotEmpty ?? false)
+                              Text(
+                                widget.event.notes!,
+                                style: AppTextStyles.callout.copyWith(
+                                  color: context.colors.textSecondary,
+                                  fontSize: AppFontSizes.subhead,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-
-                        // For block outs: show reason (if any); for other events: show time range
-                        if (widget.event.isBlockOut) ...[
-                          if (widget.event.notes?.isNotEmpty ?? false)
+                          ] else ...[
+                            // Time - 12-hour format, converted to viewer's local timezone
                             Text(
-                              widget.event.notes!,
+                              TimeFormatter.formatRangeLocal(
+                                widget.event.startTime,
+                                widget.event.endTime,
+                                widget.event.date,
+                                widget.bandTimezone,
+                              ),
                               style: AppTextStyles.callout.copyWith(
                                 color: context.colors.textSecondary,
                                 fontSize: AppFontSizes.subhead,
@@ -169,48 +181,33 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                        ] else ...[
-                          // Time - 12-hour format, converted to viewer's local timezone
-                          Text(
-                            TimeFormatter.formatRangeLocal(
-                              widget.event.startTime,
-                              widget.event.endTime,
-                              widget.event.date,
-                              widget.bandTimezone,
-                            ),
-                            style: AppTextStyles.callout.copyWith(
-                              color: context.colors.textSecondary,
-                              fontSize: AppFontSizes.subhead,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
 
-                // For multi-day block outs: show end date badge instead of chevron
-                // For other events: show chevron
-                if (_isMultiDayBlockOut) ...[
-                  Container(width: 1, color: context.colors.border),
-                  _DateBadge(
-                    date: widget.event.endDate!,
-                    eventType: widget.event.type,
-                  ),
-                ] else ...[
-                  // Chevron
-                  Padding(
-                    padding: const EdgeInsets.only(right: Spacing.space12),
-                    child: Icon(
-                      AppIcons.forward,
-                      color: context.colors.textMuted,
-                      size: 24,
+                  // For multi-day block outs: show end date badge instead of chevron
+                  // For other events: show chevron
+                  if (_isMultiDayBlockOut) ...[
+                    Container(width: 1, color: context.colors.border),
+                    _DateBadge(
+                      date: widget.event.endDate!,
+                      eventType: widget.event.type,
                     ),
-                  ),
+                  ] else ...[
+                    // Chevron
+                    Padding(
+                      padding: const EdgeInsets.only(right: Spacing.space12),
+                      child: Icon(
+                        AppIcons.forward,
+                        color: context.colors.textMuted,
+                        size: 24,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../../app/models/gig.dart';
@@ -7,6 +5,7 @@ import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // CONFIRMED GIG CARD
@@ -33,28 +32,8 @@ class ConfirmedGigCard extends StatefulWidget {
   State<ConfirmedGigCard> createState() => _ConfirmedGigCardState();
 }
 
-class _ConfirmedGigCardState extends State<ConfirmedGigCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _rotationController;
+class _ConfirmedGigCardState extends State<ConfirmedGigCard> {
   bool _isPressed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Create slightly different speed for each card (3-6 seconds based on index)
-    final random = math.Random(widget.index);
-    final durationSeconds = 3 + random.nextInt(4); // 3-6 seconds
-    _rotationController = AnimationController(
-      duration: Duration(seconds: durationSeconds),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _rotationController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,25 +47,11 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
         scale: _isPressed ? AnimScales.cardPressed : 1.0,
         duration: AppDurations.fast,
         curve: AppCurves.ease,
-        child: AnimatedBuilder(
-          animation: _rotationController,
-          builder: (context, child) {
-            return CustomPaint(
-              painter: _GradientBorderPainter(
-                rotation: _rotationController.value * 2 * math.pi,
-                borderWidth: 3,
-                borderRadius: Spacing.buttonRadius,
-              ),
-              child: child,
-            );
-          },
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           child: Container(
             constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
-            margin: const EdgeInsets.all(3), // Space for gradient border
-            decoration: BoxDecoration(
-              color: context.colors.surface,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            ),
             padding: const EdgeInsets.symmetric(
               horizontal: Spacing.space20,
               vertical: Spacing.space16,
@@ -183,53 +148,5 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard>
       'December',
     ];
     return '${days[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-}
-
-/// Custom painter for rotating gradient border
-class _GradientBorderPainter extends CustomPainter {
-  final double rotation;
-  final double borderWidth;
-  final double borderRadius;
-
-  _GradientBorderPainter({
-    required this.rotation,
-    required this.borderWidth,
-    required this.borderRadius,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final rrect = RRect.fromRectAndRadius(
-      rect.deflate(borderWidth / 2),
-      Radius.circular(borderRadius),
-    );
-
-    // Seamless rotating gradient with smooth color transitions
-    final gradient = SweepGradient(
-      center: Alignment.center,
-      colors: const [
-        Color(0xFF2563EB), // blue-600
-        Color(0xFF7C3AED), // violet (midpoint blend)
-        AppColors.primary, // rose-500
-        Color(0xFF7C3AED), // violet (midpoint blend)
-        Color(0xFF2563EB), // blue-600 (seamless)
-      ],
-      stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-      transform: GradientRotation(rotation),
-    );
-
-    final paint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth;
-
-    canvas.drawRRect(rrect, paint);
-  }
-
-  @override
-  bool shouldRepaint(_GradientBorderPainter oldDelegate) {
-    return oldDelegate.rotation != rotation;
   }
 }

@@ -4,6 +4,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../members/member_vm.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // REORDERABLE BAND MEMBER CARD
@@ -93,11 +94,9 @@ class _ReorderableBandMemberCardState extends State<ReorderableBandMemberCard>
             child: Opacity(opacity: _opacityAnimation.value, child: child),
           );
         },
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(16),
           child: Stack(
             children: [
               // Content area — the Stack's only non-positioned child, so the

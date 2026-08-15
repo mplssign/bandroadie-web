@@ -4,6 +4,7 @@ import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/venue.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // VENUE CARD
@@ -28,38 +29,38 @@ class VenueCard extends StatelessWidget {
 
     return AnimatedCardPressable(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Venue Name
-            Text(
-              venue.name,
-              style: TextStyle(
-                fontSize: AppFontSizes.title,
-                fontWeight: FontWeight.w700,
-                color: context.colors.textPrimary,
-                height: 1.2,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Venue Name
+              Text(
+                venue.name,
+                style: TextStyle(
+                  fontSize: AppFontSizes.title,
+                  fontWeight: FontWeight.w700,
+                  color: context.colors.textPrimary,
+                  height: 1.2,
+                ),
               ),
-            ),
 
-            // City, State (always reserve space for uniform card height)
-            const SizedBox(height: 6),
-            Text(
-              cityState ?? '',
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w400,
-                color: context.colors.textSecondary,
-                height: 1.3,
+              // City, State (always reserve space for uniform card height)
+              const SizedBox(height: 6),
+              Text(
+                cityState ?? '',
+                style: TextStyle(
+                  fontSize: AppFontSizes.body,
+                  fontWeight: FontWeight.w400,
+                  color: context.colors.textSecondary,
+                  height: 1.3,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

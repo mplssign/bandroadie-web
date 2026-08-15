@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 class LoadMoreRehearsalsCard extends StatefulWidget {
   final int currentCount;
@@ -42,60 +43,66 @@ class _LoadMoreRehearsalsCardState extends State<LoadMoreRehearsalsCard> {
         scale: _isPressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-        child: Container(
+        child: AppCard(
+          padding: EdgeInsets.zero,
           height: Spacing.rehearsalCardHeight,
-          padding: const EdgeInsets.all(Spacing.space16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          child: Container(
+            padding: const EdgeInsets.all(Spacing.space16),
+            decoration: BoxDecoration(
               color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-              width: 2,
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.3),
+                width: 2,
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                AppIcons.add,
-                color: Theme.of(context).colorScheme.primary,
-                size: 32,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Load More',
-                style: TextStyle(
-                  fontSize: AppFontSizes.headline,
-                  fontWeight: FontWeight.w600,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  AppIcons.add,
                   color: Theme.of(context).colorScheme.primary,
+                  size: 32,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '+$nextBatch rehearsals',
-                style: TextStyle(
-                  fontSize: AppFontSizes.subhead,
-                  fontWeight: FontWeight.w400,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.7),
+                const SizedBox(height: 12),
+                Text(
+                  'Load More',
+                  style: TextStyle(
+                    fontSize: AppFontSizes.headline,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '($remaining more)',
-                style: TextStyle(
-                  fontSize: AppFontSizes.caption,
-                  fontWeight: FontWeight.w400,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.5),
+                const SizedBox(height: 4),
+                Text(
+                  '+$nextBatch rehearsals',
+                  style: TextStyle(
+                    fontSize: AppFontSizes.subhead,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.7),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  '($remaining more)',
+                  style: TextStyle(
+                    fontSize: AppFontSizes.caption,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
