@@ -110,10 +110,6 @@ class _SongCardState extends State<SongCard>
           padding: EdgeInsets.zero,
           height: 121,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(
-            color: AppColors.primary, // Rose/500 #F43F5E
-            width: StandardCardBorder.width, // 1.5px
-          ),
           child: Container(
             width: double.infinity,
             child: Stack(

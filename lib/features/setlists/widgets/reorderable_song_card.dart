@@ -184,10 +184,6 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
           padding: EdgeInsets.zero,
           height: 121,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(
-            color: StandardCardBorder.color,
-            width: StandardCardBorder.width,
-          ),
           child: Container(
             width: double.infinity,
             child: Stack(

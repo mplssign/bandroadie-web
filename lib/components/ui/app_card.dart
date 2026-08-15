@@ -36,28 +36,28 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Build StyleDelta if padding, borderRadius, or border override provided
-    final styleDelta =
-        (padding != null || borderRadius != null || border != null)
-            ? FCardStyleDelta.delta(
-                padding: padding != null
-                    ? EdgeInsetsGeometryDelta.value(padding!)
-                    : null,
-                decoration: (borderRadius != null || border != null)
-                    ? DecorationDelta.boxDelta(
-                        borderRadius: borderRadius,
-                        border: border,
-                      )
-                    : null,
-              )
-            : null;
+    // Read Forui's theme border color
+    final themeBorderColor = context.theme.colors.border;
 
-    final card = styleDelta != null
-        ? FCard(
-            style: styleDelta,
-            child: child,
-          )
-        : FCard(child: child);
+    // Default to Forui's theme border for consistent contrast across all cards
+    // (translucent white in dark mode, opaque gray in light mode). Call sites
+    // can override with explicit border: param for brand accents (e.g. rose).
+    final effectiveBorder =
+        border ?? Border.all(color: themeBorderColor, width: 1);
+
+    // Build StyleDelta with border (always present), plus optional padding and borderRadius
+    final styleDelta = FCardStyleDelta.delta(
+      padding: padding != null ? EdgeInsetsGeometryDelta.value(padding!) : null,
+      decoration: DecorationDelta.boxDelta(
+        borderRadius: borderRadius,
+        border: effectiveBorder,
+      ),
+    );
+
+    final card = FCard(
+      style: styleDelta,
+      child: child,
+    );
 
     // Wrap in SizedBox if height provided
     final cardWithHeight =

@@ -43,46 +43,38 @@ class _MemberCardSkeletonState extends State<MemberCardSkeleton>
         return AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(24),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: context.colors.border.withValues(alpha: 0.5),
-                width: 2,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name placeholder
-                  _buildShimmerBox(width: 200, height: 32),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Name placeholder
+                _buildShimmerBox(width: 200, height: 32),
 
-                  const SizedBox(height: 14),
+                const SizedBox(height: 14),
 
-                  // Role pills row
-                  Row(
-                    children: [
-                      _buildShimmerPill(width: 70),
-                      const SizedBox(width: 8),
-                      _buildShimmerPill(width: 60),
-                      const SizedBox(width: 8),
-                      _buildShimmerPill(width: 85),
-                    ],
-                  ),
+                // Role pills row
+                Row(
+                  children: [
+                    _buildShimmerPill(width: 70),
+                    const SizedBox(width: 8),
+                    _buildShimmerPill(width: 60),
+                    const SizedBox(width: 8),
+                    _buildShimmerPill(width: 85),
+                  ],
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Contact rows
-                  _buildContactRowSkeleton(),
-                  const SizedBox(height: 14),
-                  _buildContactRowSkeleton(width: 180),
-                  const SizedBox(height: 14),
-                  _buildContactRowSkeleton(width: 240),
-                  const SizedBox(height: 14),
-                  _buildContactRowSkeleton(width: 130),
-                ],
-              ),
+                // Contact rows
+                _buildContactRowSkeleton(),
+                const SizedBox(height: 14),
+                _buildContactRowSkeleton(width: 180),
+                const SizedBox(height: 14),
+                _buildContactRowSkeleton(width: 240),
+                const SizedBox(height: 14),
+                _buildContactRowSkeleton(width: 130),
+              ],
             ),
           ),
         );

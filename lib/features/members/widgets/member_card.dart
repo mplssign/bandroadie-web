@@ -24,7 +24,6 @@ class _MemberCardTokens {
 
   // Sizing
   static const double cardRadius = 24.0;
-  static const double borderWidth = 2.0;
   static const double cardPadding = 24.0;
   static const double pillRadius = 16.0;
   static const double pillPaddingH = 12.0;
@@ -87,10 +86,6 @@ class _MemberCardState extends State<MemberCard> {
     return AppCard(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(_MemberCardTokens.cardRadius),
-      border: Border.all(
-        color: _MemberCardTokens.borderRose,
-        width: _MemberCardTokens.borderWidth,
-      ),
       child: Padding(
         padding: const EdgeInsets.all(_MemberCardTokens.cardPadding),
         child: Column(
