@@ -503,7 +503,6 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         vertical: Spacing.space12,
       ),
       child: Container(
-        height: 44,
         decoration: BoxDecoration(
           color: context.colors.surfaceElevated,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -514,43 +513,26 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           focusNode: _searchFocus,
           autofocus: true,
           onChanged: _onSearchChanged,
-          style: TextStyle(
-            fontSize: AppFontSizes.body,
-            fontWeight: FontWeight.w500,
-            color: context.colors.textPrimary,
+          hintText: 'Search songs or artists',
+          prefixIcon: Icon(
+            AppIcons.search,
+            size: 22,
+            color: context.colors.textMuted,
           ),
-          decoration: InputDecoration(
-            hintText: 'Search songs or artists',
-            hintStyle: TextStyle(
-              fontSize: AppFontSizes.body,
-              fontWeight: FontWeight.w400,
-              color: context.colors.textMuted,
-            ),
-            prefixIcon: Icon(
-              AppIcons.search,
-              size: 22,
-              color: context.colors.textMuted,
-            ),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      _filterSongs('');
-                      setState(() {});
-                    },
-                    child: Icon(
-                      AppIcons.close,
-                      size: 20,
-                      color: context.colors.textMuted,
-                    ),
-                  )
-                : null,
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                    _filterSongs('');
+                    setState(() {});
+                  },
+                  child: Icon(
+                    AppIcons.close,
+                    size: 20,
+                    color: context.colors.textMuted,
+                  ),
+                )
+              : null,
         ),
       ),
     );
