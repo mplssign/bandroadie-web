@@ -292,6 +292,13 @@ class _RehearsalCardState extends State<RehearsalCard> {
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33F59E0B), // amber-500 @ 20%
+              blurRadius: 6,
+              spreadRadius: 4,
+            ),
+          ],
           child: Container(
             constraints:
                 BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
@@ -519,6 +526,13 @@ class _RehearsalCardState extends State<RehearsalCard> {
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x332563EB), // blue-600 (#2563EB) @ 20%
+              blurRadius: 6,
+              spreadRadius: 4,
+            ),
+          ],
           child: Container(
             constraints: BoxConstraints(
               minHeight: Spacing.rehearsalCardHeight,

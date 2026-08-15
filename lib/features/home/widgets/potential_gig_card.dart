@@ -287,6 +287,13 @@ class _PotentialGigCardState extends State<PotentialGigCard>
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33F59E0B), // amber-500 @ 20%
+              blurRadius: 6,
+              spreadRadius: 4,
+            ),
+          ],
           child: Container(
             width: widget.width,
             constraints:

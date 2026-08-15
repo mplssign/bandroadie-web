@@ -50,6 +50,13 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard> {
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x3322C55E), // green-500 (#22C55E) @ 20%
+              blurRadius: 6,
+              spreadRadius: 4,
+            ),
+          ],
           child: Container(
             constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
             padding: const EdgeInsets.symmetric(
