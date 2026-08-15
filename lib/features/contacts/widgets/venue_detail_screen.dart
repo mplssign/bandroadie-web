@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
@@ -11,6 +12,7 @@ import '../models/venue.dart';
 import 'venue_form_screen.dart';
 import '../../../components/ui/app_scaffold.dart';
 import '../../../components/ui/app_app_bar.dart';
+import '../../../components/ui/app_icon_button.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 
@@ -33,6 +35,11 @@ class VenueDetailScreen extends StatelessWidget {
     return AppScaffold(
       backgroundColor: context.colors.background,
       appBar: AppAppBar(
+        leading: AppIconButton(
+          icon: AppIcons.back,
+          color: context.colors.textPrimary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text('Venue Details', style: AppTextStyles.title3),
         backgroundColor: context.colors.surface,
       ),

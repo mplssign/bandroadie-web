@@ -89,6 +89,8 @@ class BlockOutDrawer extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      mainAxisMaxRatio: 1.0,
+      useSafeArea: true,
       builder: (sheetContext) {
         return BlockOutDrawer(
           bandId: bandId,
@@ -530,8 +532,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         color: Colors.transparent,
         child: Container(
           constraints: BoxConstraints(
-            maxHeight:
-                (MediaQuery.of(context).size.height - keyboardHeight) * 0.9,
+            maxHeight: MediaQuery.of(context).size.height - keyboardHeight,
           ),
           decoration: BoxDecoration(
             color: context.colors.surface,

@@ -14,6 +14,7 @@ import 'az_list_helpers.dart';
 import 'az_search_field.dart';
 import 'az_section_header.dart';
 import 'contact_card.dart';
+import 'contact_detail_drawer.dart';
 import 'contact_form_screen.dart';
 import 'contacts_empty_state.dart';
 import '../../../components/ui/app_button.dart';
@@ -116,7 +117,12 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
             delay: Duration(milliseconds: index * 50),
             child: ContactCard(
               contact: contact,
-              onTap: () => _openContactForm(context: context, contact: contact),
+              onTap: () => ContactDetailDrawer.show(
+                context,
+                contact: contact,
+                onEdit: () =>
+                    _openContactForm(context: context, contact: contact),
+              ),
             ),
           ),
         );
@@ -159,7 +165,12 @@ class _ContactsViewState extends ConsumerState<ContactsView> {
             ),
             child: ContactCard(
               contact: contact,
-              onTap: () => _openContactForm(context: context, contact: contact),
+              onTap: () => ContactDetailDrawer.show(
+                context,
+                contact: contact,
+                onEdit: () =>
+                    _openContactForm(context: context, contact: contact),
+              ),
             ),
           );
         }

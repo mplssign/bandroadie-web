@@ -2496,7 +2496,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: MediaQuery.of(context).size.height,
       ),
       decoration: BoxDecoration(
         color: context.colors.surface,
