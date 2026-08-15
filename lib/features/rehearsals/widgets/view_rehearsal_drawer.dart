@@ -144,7 +144,7 @@ class ViewRehearsalDrawer extends ConsumerWidget {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: MediaQuery.of(context).size.height * 0.95,
       ),
       decoration: BoxDecoration(
         color: context.colors.surface,

@@ -64,6 +64,8 @@ class AddEditEventBottomSheet {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      mainAxisMaxRatio: 1.0,
+      useSafeArea: true,
       builder: (context) => EventEditorDrawer(
         mode: editorMode,
         initialEventType: initialType,

@@ -42,6 +42,8 @@ class ViewGigDrawer extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      mainAxisMaxRatio: 0.95,
+      useSafeArea: true,
       builder: (_) => ViewGigDrawer(
         gig: gig,
         bandTimezone: bandTimezone,
@@ -242,7 +244,7 @@ class ViewGigDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: MediaQuery.of(context).size.height * 0.95,
       ),
       decoration: BoxDecoration(
         color: context.colors.surface,

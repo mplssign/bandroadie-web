@@ -1,39 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/phone_formatter.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
-import '../../members/member_vm.dart';
+import '../models/contact.dart';
 
 // ============================================================================
-// BAND MEMBER DETAIL DRAWER
-// Read-only bottom drawer showing a band member's full details.
-// Mirrors ViewGigDrawer's mechanics (slide-up, rounded top corners, drag
-// handle, scrollable body of conditional detail rows, fixed Done/Edit
+// CONTACT DETAIL DRAWER
+// Read-only bottom drawer showing a contact's full details.
+// Mirrors BandMemberDetailDrawer's mechanics (slide-up, rounded top corners,
+// drag handle, scrollable body of conditional detail rows, fixed Done/Edit
 // footer).
 // ============================================================================
 
-class BandMemberDetailDrawer extends StatelessWidget {
-  final MemberVM member;
-  final bool isAdmin;
-  final VoidCallback onManageRole;
+class ContactDetailDrawer extends StatelessWidget {
+  final Contact contact;
+  final VoidCallback onEdit;
 
-  const BandMemberDetailDrawer({
+  const ContactDetailDrawer({
     super.key,
-    required this.member,
-    required this.isAdmin,
-    required this.onManageRole,
+    required this.contact,
+    required this.onEdit,
   });
 
   static Future<void> show(
     BuildContext context, {
-    required MemberVM member,
-    required bool isAdmin,
-    required VoidCallback onManageRole,
+    required Contact contact,
+    required VoidCallback onEdit,
   }) {
     return showAppBottomSheet<void>(
       context: context,
@@ -41,61 +37,16 @@ class BandMemberDetailDrawer extends StatelessWidget {
       backgroundColor: Colors.transparent,
       mainAxisMaxRatio: 0.95,
       useSafeArea: true,
-      builder: (_) => BandMemberDetailDrawer(
-        member: member,
-        isAdmin: isAdmin,
-        onManageRole: onManageRole,
+      builder: (_) => ContactDetailDrawer(
+        contact: contact,
+        onEdit: onEdit,
       ),
     );
   }
 
   void _handleEdit(BuildContext context) {
     Navigator.of(context).pop();
-    onManageRole();
-  }
-
-  String _roleLabel(MemberVM member) {
-    if (member.isAdmin) return 'Admin';
-    if (member.isContributor) return 'Contributor';
-    return 'Band Member';
-  }
-
-  bool _hasAddress(MemberVM member) {
-    return (member.address != null && member.address!.isNotEmpty) ||
-        (member.city != null && member.city!.isNotEmpty) ||
-        (member.zip != null && member.zip!.isNotEmpty);
-  }
-
-  String _formatAddress(MemberVM member) {
-    final parts = <String>[];
-    if (member.address != null && member.address!.isNotEmpty) {
-      parts.add(member.address!);
-    }
-    if (member.city != null && member.city!.isNotEmpty) {
-      parts.add(member.city!);
-    }
-    if (member.zip != null && member.zip!.isNotEmpty) {
-      parts.add(member.zip!);
-    }
-    return parts.join(', ');
-  }
-
-  String _formatBirthday(DateTime birthday) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${months[birthday.month - 1]} ${birthday.day}';
+    onEdit();
   }
 
   /// Launch phone dialer with the given phone number.
@@ -167,35 +118,17 @@ class BandMemberDetailDrawer extends StatelessWidget {
                 children: [
                   const SizedBox(height: Spacing.space16),
 
-                  // Header block: role-badge icon (crown-only) + name
+                  // Header: contact name (no icon badge)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: Spacing.pagePadding,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        if (member.isAdmin)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 10),
-                            child: Icon(
-                              AppIcons.crown,
-                              size: 18,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        Expanded(
-                          child: Text(
-                            member.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(
-                                  color: context.colors.textPrimary,
-                                ),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      contact.name,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: context.colors.textPrimary,
+                              ),
                     ),
                   ),
 
@@ -203,42 +136,37 @@ class BandMemberDetailDrawer extends StatelessWidget {
                   const Divider(height: 1),
 
                   // Detail rows
-                  if (member.musicalRoles.isNotEmpty)
+                  if (contact.title != null && contact.title!.isNotEmpty)
                     _DetailRow(
-                      label: 'Band role',
-                      value: member.musicalRoles.join(', '),
+                      label: 'Title',
+                      value: contact.title!,
                     ),
 
-                  if (member.phone != null && member.phone!.isNotEmpty)
+                  if (contact.company != null && contact.company!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Company',
+                      value: contact.company!,
+                    ),
+
+                  if (contact.phone != null && contact.phone!.isNotEmpty)
                     _DetailRow(
                       label: 'Phone',
-                      value: formatPhoneNumber(member.phone!),
-                      onTap: () => _launchPhone(member.phone!),
+                      value: formatPhoneNumber(contact.phone!),
+                      onTap: () => _launchPhone(contact.phone!),
                     ),
 
-                  if (member.email.isNotEmpty)
+                  if (contact.email != null && contact.email!.isNotEmpty)
                     _DetailRow(
                       label: 'Email',
-                      value: member.email,
-                      onTap: () => _launchEmail(member.email),
+                      value: contact.email!,
+                      onTap: () => _launchEmail(contact.email!),
                     ),
 
-                  if (_hasAddress(member))
+                  if (contact.notes != null && contact.notes!.isNotEmpty)
                     _DetailRow(
-                      label: 'Address',
-                      value: _formatAddress(member),
+                      label: 'Notes',
+                      value: contact.notes!,
                     ),
-
-                  if (member.birthday != null)
-                    _DetailRow(
-                      label: 'Birthday',
-                      value: _formatBirthday(member.birthday!),
-                    ),
-
-                  _DetailRow(
-                    label: 'Access',
-                    value: _roleLabel(member),
-                  ),
 
                   const SizedBox(height: Spacing.space24),
                 ],
@@ -261,17 +189,15 @@ class BandMemberDetailDrawer extends StatelessWidget {
                   onPressed: () => Navigator.of(context).pop(),
                   variant: AppButtonVariant.primary,
                 ),
-                if (isAdmin) ...[
-                  const SizedBox(height: Spacing.space12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppButton(
-                      label: 'Edit',
-                      variant: AppButtonVariant.text,
-                      onPressed: () => _handleEdit(context),
-                    ),
+                const SizedBox(height: Spacing.space12),
+                SizedBox(
+                  width: double.infinity,
+                  child: AppButton(
+                    label: 'Edit',
+                    variant: AppButtonVariant.text,
+                    onPressed: () => _handleEdit(context),
                   ),
-                ],
+                ),
               ],
             ),
           ),
