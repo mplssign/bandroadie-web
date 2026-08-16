@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_button.dart';
 import '../models/calendar_event.dart';
 
@@ -23,7 +24,7 @@ class ViewBlockOutDrawer extends StatelessWidget {
     required bool canEdit,
     required VoidCallback onEdit,
   }) {
-    return showModalBottomSheet<void>(
+    return showAppBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
