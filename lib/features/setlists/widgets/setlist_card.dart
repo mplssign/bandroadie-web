@@ -38,7 +38,6 @@ class _SetlistCardState extends State<SetlistCard>
   late AnimationController _tapController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
-  AnimationController? _pulseController;
 
   @override
   void initState() {
@@ -55,39 +54,11 @@ class _SetlistCardState extends State<SetlistCard>
       begin: 1.0,
       end: 0.9,
     ).animate(CurvedAnimation(parent: _tapController, curve: Curves.easeInOut));
-
-    // Catalog border glow animation - only for Catalog cards
-    if (widget.setlist.isCatalog) {
-      _pulseController = AnimationController(
-        duration: const Duration(seconds: 2),
-        vsync: this,
-      )..repeat(reverse: true);
-    }
-  }
-
-  @override
-  void didUpdateWidget(SetlistCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Handle Catalog status change
-    if (widget.setlist.isCatalog != oldWidget.setlist.isCatalog) {
-      if (widget.setlist.isCatalog && _pulseController == null) {
-        // Became Catalog - create controller
-        _pulseController = AnimationController(
-          duration: const Duration(seconds: 2),
-          vsync: this,
-        )..repeat(reverse: true);
-      } else if (!widget.setlist.isCatalog && _pulseController != null) {
-        // No longer Catalog - dispose controller
-        _pulseController?.dispose();
-        _pulseController = null;
-      }
-    }
   }
 
   @override
   void dispose() {
     _tapController.dispose();
-    _pulseController?.dispose();
     super.dispose();
   }
 
@@ -236,6 +207,9 @@ class _SetlistCardState extends State<SetlistCard>
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
+          color: widget.setlist.isCatalog
+              ? AppColors.primary.withValues(alpha: 0.15)
+              : null,
           child: Padding(
             padding: const EdgeInsets.all(Spacing.space16),
             child: innerContent,
@@ -243,31 +217,6 @@ class _SetlistCardState extends State<SetlistCard>
         ),
       ),
     );
-
-    // Add pulsating border glow for Catalog setlist
-    if (widget.setlist.isCatalog && _pulseController != null && mounted) {
-      return AnimatedBuilder(
-        animation: _pulseController!,
-        builder: (context, child) {
-          if (_pulseController == null || !mounted) return child!;
-          final opacity = 0.3 + (_pulseController!.value * 0.3); // 30% to 60%
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: opacity),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: child,
-          );
-        },
-        child: cardContent,
-      );
-    }
 
     return cardContent;
   }
