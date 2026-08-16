@@ -8,6 +8,7 @@ import '../models/setlist_song.dart';
 import '../tuning/tuning_helpers.dart';
 import 'tuning_picker_bottom_sheet.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // REORDERABLE SONG CARD
@@ -179,152 +180,148 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
             child: Opacity(opacity: _opacityAnimation.value, child: child),
           );
         },
-        child: Container(
-          width: double.infinity,
+        child: AppCard(
+          padding: EdgeInsets.zero,
           height: 121,
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            border: Border.all(
-              color: StandardCardBorder.color,
-              width: StandardCardBorder.width,
-            ),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          child: Stack(
-            children: [
-              // Drag handle area - only shown when draggable
-              // For Catalog, no drag handle is shown
-              if (widget.isDraggable)
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: SongCardLayout.contentLeftPadding,
-                  child: ReorderableDragStartListener(
-                    index: widget.index,
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          left: SongCardLayout.dragHandleLeft,
-                        ),
-                        child: Icon(
-                          AppIcons.drag,
-                          size: 24,
-                          color: context.colors.textSecondary
-                              .withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          child: Container(
+            width: double.infinity,
+            child: Stack(
+              children: [
+                // Drag handle area - only shown when draggable
+                // For Catalog, no drag handle is shown
+                if (widget.isDraggable)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: SongCardLayout.contentLeftPadding,
+                    child: ReorderableDragStartListener(
+                      index: widget.index,
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: SongCardLayout.dragHandleLeft,
+                          ),
+                          child: Icon(
+                            AppIcons.drag,
+                            size: 24,
+                            color: context.colors.textSecondary
+                                .withValues(alpha: 0.6),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-              // Saving indicator
-              if (_isSaving)
-                Positioned(
-                  right: 48,
-                  top: 14,
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: AppProgressIndicator(),
-                  ),
-                ),
-
-              // Content area - wrapped in Listener to prevent drag events from bubbling
-              // This ensures only the drag handle can initiate reordering
-              Positioned(
-                left: SongCardLayout.contentLeftPadding,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: Listener(
-                  onPointerDown:
-                      (_) {}, // Absorb pointer events to prevent drag
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: SongCardLayout.cardHorizontalPadding,
-                      top: SongCardLayout.cardVerticalPadding,
-                      bottom: SongCardLayout.cardVerticalPadding,
+                // Saving indicator
+                if (_isSaving)
+                  Positioned(
+                    right: 48,
+                    top: 14,
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: AppProgressIndicator(),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ============================================
-                        // TOP ROW: Title/Artist (left) + Delete (right)
-                        // Delete icon anchored to far right edge
-                        // ============================================
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Title/Artist block - left-aligned, takes available space
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.song.title,
-                                    style: AppTextStyles.title3.copyWith(
-                                      color: context.colors.textPrimary,
+                  ),
+
+                // Content area - wrapped in Listener to prevent drag events from bubbling
+                // This ensures only the drag handle can initiate reordering
+                Positioned(
+                  left: SongCardLayout.contentLeftPadding,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Listener(
+                    onPointerDown:
+                        (_) {}, // Absorb pointer events to prevent drag
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: SongCardLayout.cardHorizontalPadding,
+                        top: SongCardLayout.cardVerticalPadding,
+                        bottom: SongCardLayout.cardVerticalPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ============================================
+                          // TOP ROW: Title/Artist (left) + Delete (right)
+                          // Delete icon anchored to far right edge
+                          // ============================================
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Title/Artist block - left-aligned, takes available space
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.song.title,
+                                      style: AppTextStyles.title3.copyWith(
+                                        color: context.colors.textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.song.artist,
-                                    style: AppTextStyles.callout,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Lyrics icon - shown only when song has lyrics
-                            // Top-aligns with title, right-aligns with tuning badge
-                            if (widget.hasLyrics)
-                              GestureDetector(
-                                onTap: widget.onLyricsView,
-                                behavior: HitTestBehavior.opaque,
-                                child: const Padding(
-                                  padding: EdgeInsets.only(left: 8),
-                                  child: Icon(
-                                    AppIcons.lyrics,
-                                    color: AppColors.primary,
-                                    size: 28,
-                                  ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      widget.song.artist,
+                                      style: AppTextStyles.callout,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
-                          ],
-                        ),
-
-                        const Spacer(),
-
-                        // Error message (if any)
-                        if (_editError != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              _editError!,
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontSize: AppFontSizes.caption,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                              // Lyrics icon - shown only when song has lyrics
+                              // Top-aligns with title, right-aligns with tuning badge
+                              if (widget.hasLyrics)
+                                GestureDetector(
+                                  onTap: widget.onLyricsView,
+                                  behavior: HitTestBehavior.opaque,
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Icon(
+                                      AppIcons.lyrics,
+                                      color: AppColors.primary,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
 
-                        // ============================================
-                        // METRICS ROW: Fixed columns for stable alignment
-                        // BPM | Duration | Key | Tuning
-                        // ============================================
-                        _buildMetricsRow(),
-                      ],
+                          const Spacer(),
+
+                          // Error message (if any)
+                          if (_editError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                _editError!,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: AppFontSizes.caption,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+
+                          // ============================================
+                          // METRICS ROW: Fixed columns for stable alignment
+                          // BPM | Duration | Key | Tuning
+                          // ============================================
+                          _buildMetricsRow(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

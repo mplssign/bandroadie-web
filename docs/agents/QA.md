@@ -200,6 +200,17 @@ Inspect `git diff` for:
 - Accidental file deletions
 - Unrelated formatting churn
 
+**AI-generated bloat (see `GUARDRAILS.md` §7a).** This will not show up as an analyzer error, so check it by reading the diff directly. Flag any of the following as a code efficiency issue:
+- Dead code: unused imports, unused variables/fields/parameters, unreachable branches
+- Redundant comments that just restate the line beneath them
+- Unnecessary abstraction: wrapper classes/functions or extra indirection introduced for a single call site
+- Defensive code for conditions that cannot occur given existing null-safety/type guarantees (redundant null checks, try/catch around code that cannot throw)
+- Duplicated logic that should have reused an existing helper or repository method
+- Over-engineered generic solutions for a narrow, one-off requirement
+- Verbose boilerplate disproportionate to what the task required
+
+Judge severity: cosmetic bloat that adds no risk is a Suggestion; bloat that adds real maintenance burden, dead code paths, or meaningfully bigger diff than the task required is a Warning or Critical (see Phase 11 issue severity).
+
 ---
 
 ### Phase 11 — Create QA_REPORT.md
@@ -258,6 +269,14 @@ Not run  /  Passed  /  Failed: (list failures)
 - Debug artifacts: none / found (list)
 - Unrelated changes: none / found (list)
 
+## Code Efficiency Review
+- Dead code / unused imports, vars, params: none found / found (list)
+- Redundant restating comments: none found / found (list)
+- Unnecessary abstraction for single call sites: none found / found (list)
+- Unneeded defensive checks (impossible-case guards, try/catch): none found / found (list)
+- Duplicated logic that should reuse existing code: none found / found (list)
+- Overall assessment: lean / acceptable / bloated
+
 ## Issues Found
 None
 
@@ -303,6 +322,7 @@ QA_REPORT.md created at:
 - Required tests pass
 - No out-of-scope or unsafe changes
 - No secrets or debug artifacts in diff
+- No Critical-level code efficiency findings (dead code, unnecessary abstraction, or bloat that adds real maintenance burden)
 
 ### REQUIRES CHANGES — any of the following:
 - Architect tasks skipped or partially implemented
@@ -314,6 +334,7 @@ QA_REPORT.md created at:
 - Implementation exceeded approved scope
 - Validation could not be completed with sufficient confidence
 - Secrets or debug artifacts found in diff
+- Critical-level AI-generated bloat found (dead code, unnecessary abstraction, or unneeded complexity — see Code Efficiency Review)
 
 ---
 

@@ -5,6 +5,7 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../pending_invite_vm.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // PENDING INVITE CARD
@@ -77,15 +78,9 @@ class _PendingInviteCardState extends State<PendingInviteCard>
         builder: (context, child) {
           return Transform.scale(scale: _scaleAnimation.value, child: child);
         },
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: context.colors.border, // gray-700
-              width: 1.5,
-            ),
-          ),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(

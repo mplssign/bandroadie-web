@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -5,11 +7,10 @@ import '../../../app/models/rehearsal.dart';
 import '../../../app/models/rehearsal_date.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'potential_gig_card.dart' show AnimatedDateLabel;
-
+import '../../../components/ui/app_card.dart';
 // ============================================================================
 // REHEARSAL CARD
 //
@@ -57,10 +58,10 @@ class RehearsalCard extends StatefulWidget {
 }
 
 class _RehearsalCardState extends State<RehearsalCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _gradientController;
+    with TickerProviderStateMixin {
   bool _isPressed = false;
   bool _isSubmitting = false;
+  AnimationController? _pulseController;
 
   /// Current date index within _sortedDates.
   int _currentDateIndex = 0;
@@ -125,10 +126,15 @@ class _RehearsalCardState extends State<RehearsalCard>
       _focusNodes.add(FocusNode());
     }
 
-    _gradientController = AnimationController(
-      duration: const Duration(seconds: 6),
-      vsync: this,
-    )..repeat(reverse: true);
+    // Pulse controller for potential cards - randomized duration (400-1600ms)
+    if (widget.rehearsal.isPotential) {
+      final random = Random();
+      final durationMs = 400 + random.nextInt(1200); // 400-1600ms
+      _pulseController = AnimationController(
+        duration: Duration(milliseconds: durationMs),
+        vsync: this,
+      )..repeat(reverse: true);
+    }
   }
 
   @override
@@ -144,11 +150,28 @@ class _RehearsalCardState extends State<RehearsalCard>
       });
       _localResponses = newResponses;
     }
+
+    // Handle isPotential transitions (potential ↔ confirmed) on already-mounted widget
+    if (widget.rehearsal.isPotential != oldWidget.rehearsal.isPotential) {
+      if (widget.rehearsal.isPotential && _pulseController == null) {
+        // Transitioning to potential: create controller
+        final random = Random();
+        final durationMs = 400 + random.nextInt(1200);
+        _pulseController = AnimationController(
+          duration: Duration(milliseconds: durationMs),
+          vsync: this,
+        )..repeat(reverse: true);
+      } else if (!widget.rehearsal.isPotential && _pulseController != null) {
+        // Transitioning to confirmed: dispose controller
+        _pulseController?.dispose();
+        _pulseController = null;
+      }
+    }
   }
 
   @override
   void dispose() {
-    _gradientController.dispose();
+    _pulseController?.dispose();
     for (var node in _focusNodes) {
       node.dispose();
     }
@@ -289,8 +312,16 @@ class _RehearsalCardState extends State<RehearsalCard>
   // ---------------------------------------------------------------------------
 
   Widget _buildPotentialCard(BuildContext context) {
-    final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.85;
+    // Defensive null-safety: ensure controller exists before building animated content
+    if (_pulseController == null) {
+      // Lazily create controller if somehow missing (should not happen with proper lifecycle)
+      final random = Random();
+      final durationMs = 400 + random.nextInt(1200);
+      _pulseController = AnimationController(
+        duration: Duration(milliseconds: durationMs),
+        vsync: this,
+      )..repeat(reverse: true);
+    }
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -302,152 +333,222 @@ class _RehearsalCardState extends State<RehearsalCard>
         duration: AppDurations.fast,
         curve: AppCurves.ease,
         child: AnimatedBuilder(
-          animation: _gradientController,
+          animation: _pulseController!,
           builder: (context, child) {
-            return Container(
-              constraints:
-                  BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFFFF6900)
-                        .withValues(alpha: gradientAlpha), // orange-500
-                    const Color(0xFFCA3500)
-                        .withValues(alpha: gradientAlpha), // orange-700
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(
-                  color: context.colors.textSecondary,
-                  width: 1,
-                ),
+            // Neon-style pulse: animate both alpha and color temperature
+            final pulseValue = _pulseController!.value;
+            final alpha = 0.4 + (pulseValue * 0.6);
+
+            // Lerp from amber-500 to amber-300 for "hot" neon effect at peak
+            const baseColor = Color(0xFFF59E0B); // amber-500
+            const hotColor = Color(0xFFFCD34D); // amber-300
+            final borderColor = Color.lerp(baseColor, hotColor, pulseValue)!
+                .withValues(alpha: alpha);
+
+            return AppCard(
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(Spacing.cardRadius),
+              color: const Color(0xFFB45309), // amber-700 background (static)
+              border: Border.all(
+                color: borderColor,
+                width: 1.5,
               ),
-              child: child,
+              boxShadow: [
+                // Tight inner glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.4 + (pulseValue * 0.5)),
+                  blurRadius: 4,
+                  spreadRadius: 0,
+                ),
+                // Mid glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.3 + (pulseValue * 0.4)),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+                // Outer soft glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.15 + (pulseValue * 0.25)),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                ),
+              ],
+              child: child!,
             );
           },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Chip label with cream background - full width
-                Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF8F5),
-                    borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                  ),
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'POTENTIAL REHEARSAL',
-                          style: TextStyle(
-                            fontFamily: 'Geist',
-                            fontSize: AppFontSizes.subhead,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF4A1F0F),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        if (_isMultiDate)
+          child: Container(
+            constraints:
+                BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Chip label with cream background - full width
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF8F5),
+                      borderRadius: BorderRadius.circular(Spacing.cardRadius),
+                    ),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        children: [
                           TextSpan(
-                            text: ': Multiple Dates',
+                            text: 'POTENTIAL REHEARSAL',
                             style: TextStyle(
                               fontFamily: 'Geist',
-                              fontSize: AppFontSizes.caption,
-                              fontWeight: FontWeight.w600,
+                              fontSize: AppFontSizes.subhead,
+                              fontWeight: FontWeight.w700,
                               color: const Color(0xFF4A1F0F),
-                              letterSpacing: 0.3,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                      ],
+                          if (_isMultiDate)
+                            TextSpan(
+                              text: ': Multiple Dates',
+                              style: TextStyle(
+                                fontFamily: 'Geist',
+                                fontSize: AppFontSizes.caption,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF4A1F0F),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Date (with recurring frequency prefix if applicable)
-                AnimatedDateLabel(
-                  text: _formatDateWithRecurrence(),
-                  direction: _navigationDirection,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: widget.rehearsal.isRecurring &&
-                            widget.rehearsal.recurrenceFrequency != null
-                        ? 17
-                        : 21,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 1.1,
+                  // Date (with recurring frequency prefix if applicable)
+                  AnimatedDateLabel(
+                    text: _formatDateWithRecurrence(),
+                    direction: _navigationDirection,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: widget.rehearsal.isRecurring &&
+                              widget.rehearsal.recurrenceFrequency != null
+                          ? 17
+                          : 21,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                // Time
-                AnimatedDateLabel(
-                  text: _formatTimeLine(widget.rehearsal),
-                  direction: _navigationDirection,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: AppFontSizes.title,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    height: 1.2,
+                  // Time
+                  AnimatedDateLabel(
+                    text: _formatTimeLine(widget.rehearsal),
+                    direction: _navigationDirection,
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: AppFontSizes.title,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // Location
-                Text(
-                  widget.rehearsal.location.isNotEmpty
-                      ? widget.rehearsal.location
-                      : 'No location specified',
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Geist',
-                    fontSize: AppFontSizes.title,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                    height: 1.3,
+                  // Location
+                  Text(
+                    widget.rehearsal.location.isNotEmpty
+                        ? widget.rehearsal.location
+                        : 'No location specified',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Geist',
+                      fontSize: AppFontSizes.title,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.3,
+                    ),
                   ),
-                ),
 
-                const Spacer(),
+                  const Spacer(),
 
-                // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
-                // else just [NO] [YES].
-                if (_isMultiDate)
-                  Builder(builder: (context) {
-                    final dates = _sortedDates;
-                    final canGoPrev = _currentDateIndex > 0;
-                    final canGoNext = _currentDateIndex < dates.length - 1;
-                    return Row(
+                  // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
+                  // else just [NO] [YES].
+                  if (_isMultiDate)
+                    Builder(builder: (context) {
+                      final dates = _sortedDates;
+                      final canGoPrev = _currentDateIndex > 0;
+                      final canGoNext = _currentDateIndex < dates.length - 1;
+                      return Row(
+                        children: [
+                          _RehearsalDateNavButton(
+                            icon: Icons.chevron_left,
+                            enabled: canGoPrev,
+                            onTap: () => setState(() {
+                              _navigationDirection = -1;
+                              _currentDateIndex--;
+                            }),
+                            focusNode: _focusNodes[0],
+                            onKey: _handleKeyEvent,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _FullWidthAvailabilityButton(
+                              label: 'NO',
+                              isSelected: _currentDateResponse == 'no',
+                              isPositive: false,
+                              isSubmitting: _isSubmitting,
+                              isLoading:
+                                  _savingInProgress[_currentRehearsalDateId] ??
+                                      false,
+                              onTap: () => _handleResponse('no'),
+                              focusNode: _focusNodes[1],
+                              onKey: _handleKeyEvent,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _FullWidthAvailabilityButton(
+                              label: 'YES',
+                              isSelected: _currentDateResponse == 'yes',
+                              isPositive: true,
+                              isSubmitting: _isSubmitting,
+                              isLoading:
+                                  _savingInProgress[_currentRehearsalDateId] ??
+                                      false,
+                              onTap: () => _handleResponse('yes'),
+                              focusNode: _focusNodes[2],
+                              onKey: _handleKeyEvent,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          _RehearsalDateNavButton(
+                            icon: Icons.chevron_right,
+                            enabled: canGoNext,
+                            onTap: () => setState(() {
+                              _navigationDirection = 1;
+                              _currentDateIndex++;
+                            }),
+                            focusNode: _focusNodes[3],
+                            onKey: _handleKeyEvent,
+                          ),
+                        ],
+                      );
+                    })
+                  else
+                    Row(
                       children: [
-                        _RehearsalDateNavButton(
-                          icon: Icons.chevron_left,
-                          enabled: canGoPrev,
-                          onTap: () => setState(() {
-                            _navigationDirection = -1;
-                            _currentDateIndex--;
-                          }),
-                          focusNode: _focusNodes[0],
-                          onKey: _handleKeyEvent,
-                        ),
-                        const SizedBox(width: 12),
                         Expanded(
                           child: _FullWidthAvailabilityButton(
                             label: 'NO',
@@ -477,55 +578,10 @@ class _RehearsalCardState extends State<RehearsalCard>
                             onKey: _handleKeyEvent,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        _RehearsalDateNavButton(
-                          icon: Icons.chevron_right,
-                          enabled: canGoNext,
-                          onTap: () => setState(() {
-                            _navigationDirection = 1;
-                            _currentDateIndex++;
-                          }),
-                          focusNode: _focusNodes[3],
-                          onKey: _handleKeyEvent,
-                        ),
                       ],
-                    );
-                  })
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _FullWidthAvailabilityButton(
-                          label: 'NO',
-                          isSelected: _currentDateResponse == 'no',
-                          isPositive: false,
-                          isSubmitting: _isSubmitting,
-                          isLoading:
-                              _savingInProgress[_currentRehearsalDateId] ??
-                                  false,
-                          onTap: () => _handleResponse('no'),
-                          focusNode: _focusNodes[1],
-                          onKey: _handleKeyEvent,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _FullWidthAvailabilityButton(
-                          label: 'YES',
-                          isSelected: _currentDateResponse == 'yes',
-                          isPositive: true,
-                          isSubmitting: _isSubmitting,
-                          isLoading:
-                              _savingInProgress[_currentRehearsalDateId] ??
-                                  false,
-                          onTap: () => _handleResponse('yes'),
-                          focusNode: _focusNodes[2],
-                          onKey: _handleKeyEvent,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -538,9 +594,6 @@ class _RehearsalCardState extends State<RehearsalCard>
   // ---------------------------------------------------------------------------
 
   Widget _buildConfirmedCard(BuildContext context) {
-    final gradientAlpha =
-        Theme.of(context).brightness == Brightness.light ? 1.0 : 0.50;
-
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
@@ -550,126 +603,111 @@ class _RehearsalCardState extends State<RehearsalCard>
         scale: _isPressed ? AnimScales.cardPressed : 1.0,
         duration: AppDurations.fast,
         curve: AppCurves.ease,
-        child: AnimatedBuilder(
-          animation: _gradientController,
-          builder: (context, child) {
-            return Container(
-              constraints: BoxConstraints(
-                minHeight: Spacing.rehearsalCardHeight,
-              ),
-              clipBehavior: Clip.hardEdge,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    const Color(0xFF2B7FFF)
-                        .withValues(alpha: gradientAlpha), // blue-500
-                    const Color(0xFF1447E6)
-                        .withValues(alpha: gradientAlpha), // blue-700
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          border: Border.all(
+            color: const Color(0x330EA5E9), // sky-500 @ 20% alpha
+            width: 1.5,
+          ),
+          color: const Color(0x140EA5E9), // sky-500 @ ~8% alpha background tint
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: Spacing.rehearsalCardHeight,
+            ),
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.space16, // left
+              Spacing.space16, // top
+              Spacing.space16, // right
+              Spacing.space8, // bottom
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top section: Date + Time
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _formatDateLine(_currentDate),
+                      style: AppTextStyles.title3.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _formatTimeLine(widget.rehearsal),
+                      style: TextStyle(
+                        fontSize: AppFontSizes.body,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.75),
+                        height: 1.2,
+                      ),
+                    ),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(
-                  color: context.colors.textSecondary,
-                  width: 1,
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.space16, // left
-                Spacing.space16, // top
-                Spacing.space16, // right
-                Spacing.space8, // bottom
-              ),
-              child: child,
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top section: Date + Time
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _formatDateLine(_currentDate),
-                    style: AppTextStyles.title3.copyWith(
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatTimeLine(widget.rehearsal),
-                    style: TextStyle(
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.75),
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: Spacing.space16),
+                const SizedBox(height: Spacing.space16),
 
-              // Bottom: Location + Setlist
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        AppIcons.location,
-                        size: 14,
-                        color: Colors.white.withValues(alpha: 0.75),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.rehearsal.location.isNotEmpty
-                            ? widget.rehearsal.location
-                            : 'TBD',
-                        style: TextStyle(
-                          fontSize: AppFontSizes.body,
-                          fontWeight: FontWeight.w400,
+                // Bottom: Location + Setlist
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          AppIcons.location,
+                          size: 14,
                           color: Colors.white.withValues(alpha: 0.75),
-                          height: 1.2,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.rehearsal.location.isNotEmpty
+                              ? widget.rehearsal.location
+                              : 'TBD',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.body,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.75),
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (widget.rehearsal.setlistId != null &&
+                        widget.setlistName != null) ...[
+                      const SizedBox(height: 8),
+                      IntrinsicWidth(
+                        child: Container(
+                          height: 32,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius:
+                                BorderRadius.circular(Spacing.chipRadius),
+                            border: Border.all(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _truncatedSetlistName(widget.setlistName!),
+                            style: AppTextStyles.footnote.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                  if (widget.rehearsal.setlistId != null &&
-                      widget.setlistName != null) ...[
-                    const SizedBox(height: 8),
-                    IntrinsicWidth(
-                      child: Container(
-                        height: 32,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius:
-                              BorderRadius.circular(Spacing.chipRadius),
-                          border: Border.all(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _truncatedSetlistName(widget.setlistName!),
-                          style: AppTextStyles.footnote.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
                   ],
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

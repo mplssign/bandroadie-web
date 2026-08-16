@@ -6,6 +6,7 @@ import '../member_vm.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // MEMBER CARD
@@ -23,7 +24,6 @@ class _MemberCardTokens {
 
   // Sizing
   static const double cardRadius = 24.0;
-  static const double borderWidth = 2.0;
   static const double cardPadding = 24.0;
   static const double pillRadius = 16.0;
   static const double pillPaddingH = 12.0;
@@ -83,79 +83,46 @@ class _MemberCardState extends State<MemberCard> {
   @override
   Widget build(BuildContext context) {
     // No card-level tap handler - contact rows handle their own taps (phone, email)
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(_MemberCardTokens.cardRadius),
-        border: Border.all(
-          color: _MemberCardTokens.borderRose,
-          width: _MemberCardTokens.borderWidth,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-          _MemberCardTokens.cardRadius - _MemberCardTokens.borderWidth,
-        ),
-        child: Stack(
+    return AppCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(_MemberCardTokens.cardRadius),
+      child: Padding(
+        padding: const EdgeInsets.all(_MemberCardTokens.cardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Subtle gradient wash overlay
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      _MemberCardTokens.borderRose.withValues(alpha: 0.05),
-                      Colors.transparent,
-                      _MemberCardTokens.borderRose.withValues(alpha: 0.03),
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
+            // Header row: Name + kebab menu
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_normalizedBandRole != 'member')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, right: 10),
+                    child: _buildRoleIcon(),
+                  ),
+                Expanded(
+                  child: Text(
+                    widget.member.name,
+                    style: _MemberCardTokens.nameStyle.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
+                if (widget.showAdminActions) _buildAdminButton(),
+              ],
             ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(_MemberCardTokens.cardPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header row: Name + kebab menu
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_normalizedBandRole != 'member')
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6, right: 10),
-                          child: _buildRoleIcon(),
-                        ),
-                      Expanded(
-                        child: Text(
-                          widget.member.name,
-                          style: _MemberCardTokens.nameStyle.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (widget.showAdminActions) _buildAdminButton(),
-                    ],
-                  ),
 
-                  const SizedBox(height: 10),
+            const SizedBox(height: 10),
 
-                  // Role pills
-                  _buildRolePills(),
+            // Role pills
+            _buildRolePills(),
 
-                  const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-                  // Contact info rows
-                  _buildContactRows(),
-                ],
-              ),
-            ),
+            // Contact info rows
+            _buildContactRows(),
           ],
         ),
       ),

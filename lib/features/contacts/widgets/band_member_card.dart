@@ -5,6 +5,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../members/member_vm.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // BAND MEMBER CARD
@@ -27,56 +28,56 @@ class BandMemberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedCardPressable(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row: crown-only role badge + name
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    member.name,
-                    style: TextStyle(
-                      fontSize: AppFontSizes.title,
-                      fontWeight: FontWeight.w700,
-                      color: context.colors.textPrimary,
-                      height: 1.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (member.isAdmin)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6, left: 10),
-                    child: Icon(
-                      AppIcons.crown,
-                      size: 18,
-                      color: AppColors.primary,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row: crown-only role badge + name
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      member.name,
+                      style: TextStyle(
+                        fontSize: AppFontSizes.title,
+                        fontWeight: FontWeight.w700,
+                        color: context.colors.textPrimary,
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-              ],
-            ),
-
-            // Musical roles (always reserve space for uniform card height)
-            const SizedBox(height: 6),
-            Text(
-              member.musicalRoles.join(', '),
-              style: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w400,
-                color: context.colors.textSecondary,
-                height: 1.3,
+                  if (member.isAdmin)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6, left: 10),
+                      child: Icon(
+                        AppIcons.crown,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                ],
               ),
-            ),
-          ],
+
+              // Musical roles (always reserve space for uniform card height)
+              const SizedBox(height: 6),
+              Text(
+                member.musicalRoles.join(', '),
+                style: TextStyle(
+                  fontSize: AppFontSizes.body,
+                  fontWeight: FontWeight.w400,
+                  color: context.colors.textSecondary,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

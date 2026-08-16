@@ -6,7 +6,17 @@ import 'package:forui/forui.dart';
 /// Use this widget instead of [Card] to ensure consistent
 /// card styling across the app using Forui design system.
 class AppCard extends StatelessWidget {
-  const AppCard({super.key, required this.child, this.onTap, this.padding});
+  const AppCard({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.padding,
+    this.height,
+    this.borderRadius,
+    this.border,
+    this.boxShadow,
+    this.color,
+  });
 
   /// Card content
   final Widget child;
@@ -17,26 +27,56 @@ class AppCard extends StatelessWidget {
   /// Optional padding override (ignored in Forui preview)
   final EdgeInsets? padding;
 
+  /// Optional fixed height (e.g., 121 for song cards)
+  final double? height;
+
+  /// Optional border radius override (e.g., BorderRadius.circular(8))
+  final BorderRadius? borderRadius;
+
+  /// Optional border (e.g., Border.all(color: AppColors.primary, width: 1.5))
+  final BoxBorder? border;
+
+  /// Optional box shadow (e.g., [BoxShadow(color: ..., blurRadius: 24)])
+  final List<BoxShadow>? boxShadow;
+
+  /// Optional background color (e.g., Color(0x140EA5E9) for subtle tint)
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
-    // Build StyleDelta if padding override provided
-    final styleDelta = padding != null
-        ? FCardStyleDelta.delta(
-            padding: EdgeInsetsGeometryDelta.value(padding!),
-          )
-        : null;
+    // Read Forui's theme border color
+    final themeBorderColor = context.theme.colors.border;
 
-    final card = styleDelta != null
-        ? FCard(
-            style: styleDelta,
-            child: child,
-          )
-        : FCard(child: child);
+    // Default to Forui's theme border for consistent contrast across all cards
+    // (translucent white in dark mode, opaque gray in light mode). Call sites
+    // can override with explicit border: param for brand accents (e.g. rose).
+    final effectiveBorder =
+        border ?? Border.all(color: themeBorderColor, width: 1);
+
+    // Build StyleDelta with border (always present), plus optional padding and borderRadius
+    final styleDelta = FCardStyleDelta.delta(
+      padding: padding != null ? EdgeInsetsGeometryDelta.value(padding!) : null,
+      decoration: DecorationDelta.boxDelta(
+        color: color,
+        borderRadius: borderRadius,
+        border: effectiveBorder,
+        boxShadow: boxShadow,
+      ),
+    );
+
+    final card = FCard(
+      style: styleDelta,
+      child: child,
+    );
+
+    // Wrap in SizedBox if height provided
+    final cardWithHeight =
+        height != null ? SizedBox(height: height, child: card) : card;
 
     if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: card);
+      return GestureDetector(onTap: onTap, child: cardWithHeight);
     }
 
-    return card;
+    return cardWithHeight;
   }
 }

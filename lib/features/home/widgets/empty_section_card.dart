@@ -4,6 +4,7 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_button.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // EMPTY SECTION CARD
@@ -69,75 +70,75 @@ class _EmptySectionCardState extends State<EmptySectionCard>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(Spacing.space24),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(Spacing.cardRadius),
-        border: Border.all(color: context.colors.borderStrong, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon with subtle background (only if icon is provided)
-          if (widget.icon != null) ...[
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: context.colors.surface,
-                borderRadius: BorderRadius.circular(16),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(Spacing.cardRadius),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(Spacing.space24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon with subtle background (only if icon is provided)
+            if (widget.icon != null) ...[
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: context.colors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(widget.icon,
+                    color: context.colors.textMuted, size: 28),
               ),
-              child:
-                  Icon(widget.icon, color: context.colors.textMuted, size: 28),
-            ),
-            const SizedBox(height: Spacing.space16),
-          ],
+              const SizedBox(height: Spacing.space16),
+            ],
 
-          // Title (matches SectionHeader style: 16px bold)
-          Text(
-            widget.title,
-            style: TextStyle(
-              fontFamily: 'Geist',
-              fontSize: AppFontSizes.body,
-              fontWeight: FontWeight.w700,
-              color: context.colors.textPrimary,
-              height: 1.25,
-            ),
-          ),
-
-          const SizedBox(height: Spacing.space8),
-
-          // Subtitle (optional)
-          if (widget.subtitle != null) ...[
+            // Title (matches SectionHeader style: 16px bold)
             Text(
-              widget.subtitle!,
-              textAlign: TextAlign.left,
+              widget.title,
               style: TextStyle(
+                fontFamily: 'Geist',
                 fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w400,
-                color: context.colors.textMuted,
-                height: 1.4,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textPrimary,
+                height: 1.25,
               ),
             ),
-            const SizedBox(height: Spacing.space20),
-          ],
 
-          // Spacing after title (when no subtitle)
-          if (widget.subtitle == null) const SizedBox(height: Spacing.space20),
+            const SizedBox(height: Spacing.space8),
 
-          // CTA button with scale animation
-          ScaleTransition(
-            scale: _buttonScale,
-            child: AppButton(
-              label: widget.buttonLabel,
-              onPressed: widget.onButtonPressed,
-              icon: AppIcons.add,
-              variant: AppButtonVariant.primary,
+            // Subtitle (optional)
+            if (widget.subtitle != null) ...[
+              Text(
+                widget.subtitle!,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  fontSize: AppFontSizes.body,
+                  fontWeight: FontWeight.w400,
+                  color: context.colors.textMuted,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: Spacing.space20),
+            ],
+
+            // Spacing after title (when no subtitle)
+            if (widget.subtitle == null)
+              const SizedBox(height: Spacing.space20),
+
+            // CTA button with scale animation
+            ScaleTransition(
+              scale: _buttonScale,
+              child: AppButton(
+                label: widget.buttonLabel,
+                onPressed: widget.onButtonPressed,
+                icon: AppIcons.add,
+                variant: AppButtonVariant.primary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

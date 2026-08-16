@@ -8,6 +8,7 @@ import '../tuning/tuning_helpers.dart';
 import '../services/custom_tuning_service.dart';
 import 'animated_value_text.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import '../../../components/ui/app_card.dart';
 
 // ============================================================================
 // SONG CARD
@@ -105,96 +106,92 @@ class _SongCardState extends State<SongCard>
             child: Opacity(opacity: _opacityAnimation.value, child: child),
           );
         },
-        child: Container(
-          width: double.infinity,
+        child: AppCard(
+          padding: EdgeInsets.zero,
           height: 121,
-          clipBehavior: Clip.hardEdge,
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            border: Border.all(
-              color: AppColors.primary, // Rose/500 #F43F5E
-              width: StandardCardBorder.width, // 1.5px - matches Setlist cards
-            ),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius), // 8px
-          ),
-          child: Stack(
-            children: [
-              // Drag handle icon - positioned 6px from left, 13px from top
-              if (widget.showDragHandle)
-                Positioned(
-                  left: SongCardLayout.dragHandleLeft,
-                  top: 13,
-                  child: Icon(
-                    AppIcons.drag,
-                    size: 24,
-                    color: context.colors.textSecondary.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          child: Container(
+            width: double.infinity,
+            child: Stack(
+              children: [
+                // Drag handle icon - positioned 6px from left, 13px from top
+                if (widget.showDragHandle)
+                  Positioned(
+                    left: SongCardLayout.dragHandleLeft,
+                    top: 13,
+                    child: Icon(
+                      AppIcons.drag,
+                      size: 24,
+                      color:
+                          context.colors.textSecondary.withValues(alpha: 0.6),
+                    ),
                   ),
-                ),
 
-              // Content area with shared padding
-              Padding(
-                padding: EdgeInsets.only(
-                  left: SongCardLayout.contentLeftPadding,
-                  right: SongCardLayout.cardHorizontalPadding,
-                  top: SongCardLayout.cardVerticalPadding,
-                  bottom: SongCardLayout.cardVerticalPadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top row: title/artist left + trash right
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title/Artist block
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.song.title,
-                                style: AppTextStyles.title3.copyWith(
-                                  color: context.colors.textPrimary,
+                // Content area with shared padding
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: SongCardLayout.contentLeftPadding,
+                    right: SongCardLayout.cardHorizontalPadding,
+                    top: SongCardLayout.cardVerticalPadding,
+                    bottom: SongCardLayout.cardVerticalPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top row: title/artist left + trash right
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title/Artist block
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.song.title,
+                                  style: AppTextStyles.title3.copyWith(
+                                    color: context.colors.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.song.artist,
-                                style: AppTextStyles.callout,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Lyrics icon - shown only when song has lyrics
-                        // Top-aligns with title, right-aligns with tuning badge
-                        if (widget.showDeleteIcon && widget.hasLyrics)
-                          GestureDetector(
-                            onTap: widget.onLyricsView,
-                            behavior: HitTestBehavior.opaque,
-                            child: const Padding(
-                              padding: EdgeInsets.only(left: 8),
-                              child: Icon(
-                                AppIcons.lyrics,
-                                color: AppColors.primary,
-                                size: 28,
-                              ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.song.artist,
+                                  style: AppTextStyles.callout,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
+                          // Lyrics icon - shown only when song has lyrics
+                          // Top-aligns with title, right-aligns with tuning badge
+                          if (widget.showDeleteIcon && widget.hasLyrics)
+                            GestureDetector(
+                              onTap: widget.onLyricsView,
+                              behavior: HitTestBehavior.opaque,
+                              child: const Padding(
+                                padding: EdgeInsets.only(left: 8),
+                                child: Icon(
+                                  AppIcons.lyrics,
+                                  color: AppColors.primary,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
 
-                    const Spacer(),
+                      const Spacer(),
 
-                    // Metrics row with fixed columns
-                    _buildMetricsRow(),
-                  ],
+                      // Metrics row with fixed columns
+                      _buildMetricsRow(),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
