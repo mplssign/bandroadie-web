@@ -105,6 +105,22 @@ Any change must respect these per-platform constraints.
 
 ---
 
+## 7a. No AI-Generated Bloat
+
+AI-authored code has recognizable failure modes distinct from human sloppiness. Both Engineer and QA must actively screen for these — they pass `flutter analyze` cleanly, so the analyzer will not catch them:
+
+- Dead code: unused imports, unused variables/fields, unreachable branches, unused parameters kept "for future use"
+- Redundant comments that restate what the line already says (e.g. `// increment counter` above `counter++`)
+- Unnecessary abstraction: wrapper classes, interfaces, or helper functions created for a single call site with no reuse
+- Defensive code for cases that cannot occur given existing null-safety/type guarantees (redundant null checks, try/catch around code that cannot throw)
+- Duplicated logic that should reuse an existing helper/repository method instead of reimplementing it
+- Over-engineered generic solutions for a narrow, one-off requirement
+- Verbose boilerplate a human familiar with the codebase would not write by hand
+
+The standard: every line should earn its place. If a block can be deleted without changing behavior, it must be deleted. Prefer the most direct, minimal implementation that satisfies the plan.
+
+---
+
 ## 8. File Size Targets
 
 | File type            | Target maximum |

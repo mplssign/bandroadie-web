@@ -93,6 +93,8 @@ Implementation discipline:
 - No "while I'm here" changes
 - No speculative improvements
 - No new dependencies without Architect approval
+- No AI-generated bloat (see `GUARDRAILS.md` §7a): no dead code, unused imports/variables/parameters, redundant comments that restate the code, unnecessary wrapper functions/abstractions for a single call site, or defensive checks for cases that cannot occur
+- Write the most direct, minimal-line implementation that satisfies the plan — do not pad with boilerplate a human wouldn't write by hand
 
 ---
 
@@ -115,6 +117,8 @@ Run tests only if the Architect plan explicitly requires them or they clearly co
 ```bash
 flutter test
 ```
+
+**Self-audit for bloat.** `flutter analyze` will not catch AI-typical bloat — it passes clean code that is still wasteful. Before moving to Phase 6, re-read every changed hunk in `git diff` and confirm none of the following crept in: unused imports/variables/parameters, dead/unreachable code, comments that just restate the line beneath them, one-off wrapper functions or abstractions with a single call site, or null checks / try-catch around conditions that cannot occur. Remove anything that doesn't earn its place. Record what you checked in the Engineer report (Phase 7).
 
 ---
 
@@ -166,6 +170,9 @@ Result: 0 errors / N warnings (list any new warnings)
 
 ## Test Results
 Not run  /  Passed  /  Failed (list failures)
+
+## Code Efficiency / Bloat Check
+Confirmed no dead code, unused imports/variables/parameters, redundant restating comments, single-use wrapper abstractions, or unnecessary defensive checks in the diff  /  (list anything found and removed, or found and left with justification)
 
 ## Verification
 Manual steps performed:
