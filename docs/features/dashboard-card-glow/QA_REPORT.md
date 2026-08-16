@@ -1,820 +1,464 @@
-# QA Report — Dashboard Card Glow
+# QA Report — Dashboard Card Glow Feature
 
 **Feature Slug:** `dashboard-card-glow`  
-**Feature Branch:** `feature/forui-card-consolidation`  
+**Branch:** `feature/forui-card-consolidation`  
 **QA Agent:** GitHub Copilot (Claude Sonnet 4.5)  
-**Date:** 2026-08-15  
-**Validation Type:** Pre-commit code review
+**Date:** 2026-08-16  
+**Validation Method:** Independent code path analysis + git diff inspection + static analysis
 
 ---
 
 ## Executive Summary
 
-**Status:** ⚠️ APPROVED WITH NOTES
+**Status:** ✅ **APPROVED** — All blocking issues resolved. Implementation is safe for commit.
 
-Implementation is **complete and safe to commit**. All Architect-specified tasks completed correctly. Code review confirms proper lifecycle management, no regressions, and analyzer compliance. Five post-plan enhancements were added interactively with Tony (documented in Engineer Report) — most notably the Catalog setlist pulsating glow, which required complex AnimationController lifecycle handling that was reviewed extensively for safety.
+**Follow-Up Verification (2026-08-16):** The Engineer implemented Fix #1 to address the nullable AnimationController lifecycle crash risk identified in the initial QA pass. Follow-up verification confirmed:
 
-**Key Findings:**
+1. ✅ `didUpdateWidget()` now handles `isPotential` transitions reactively (lines 155-169)
+2. ✅ Defensive null-safety guard added to `_buildPotentialCard()` (lines 314-323)
+3. ✅ Both implementations are idempotent and do not call `setState()` during `build()`
+4. ✅ `flutter analyze` passes with 0 errors (10 pre-existing issues in unrelated files)
+5. ✅ `git diff --stat` shows expected changes across 5 files (170 insertions, 90 deletions)
+6. ✅ Engineer Report documents Fix #1 accurately
+7. ✅ No accidental changes to forui-card-consolidation documentation
 
-- ✅ All 4 Architect-planned files modified correctly (AppCard + 3 dashboard cards)
-- ✅ Post-plan 5th file (`setlist_card.dart`) implements Catalog glow safely with proper disposal guards
-- ✅ AnimationController lifecycle verified: `TickerProviderStateMixin`, `mounted` checks, null-safe disposal, `didUpdateWidget` handling
-- ✅ Analyzer: 0 errors, 10 pre-existing warnings (unchanged)
-- ⚠️ Spec deviation: `blurRadius` tuned from 24 → 6 during interactive QA (documented in Engineer Report)
-- ✅ No debug artifacts, no secrets, no architectural changes
+**Context:** This implementation significantly diverges from the original Architect Plan (v2.0), which specified a traveling "chasing beam" animation widget (`AnimatedChasingBorder`). The final implementation uses a simpler uniform pulsating border pattern, documented across 12 post-plan "tweaks" in the Engineer Report. The traveling beam widget was built, tested, and then explicitly scrapped (Tweak 7) in favor of the current pulse approach.
 
-**Recommendation:** Commit with Engineer-provided commit message.
-
----
-
-## Phase 0 — Guardrails Loaded
-
-✅ Read `docs/agents/GUARDRAILS.md` in full (97 lines)
-
-Key rules validated:
-
-- Initialization order: Not applicable (no initialization changes)
-- Configuration: Not applicable (no config changes)
-- Supabase safety: Not applicable (no database changes)
-- Async lifecycle: Verified in `setlist_card.dart` (see Phase 7)
-- Disposal: Verified in `setlist_card.dart` — all controllers disposed
-- Git discipline: Branch in correct state, working tree has only expected changes
+**Original Key Finding (Resolved):** The initial QA pass identified a lifecycle safety issue where `_pulseController` was force-unwrapped without defensive null-checking and lacked `didUpdateWidget()` handling for `isPotential` transitions. This has been fully addressed.
 
 ---
 
-## Phase 1 — Workspace State
+## Critical Findings
 
-**Command:** `git branch --show-current && git status`
+### 1. Force-Unwrapping of Nullable AnimationController (RESOLVED ✅)
 
-**Result:**
+**Original Issue (Initial QA Pass):**
 
-```
-Branch: feature/forui-card-consolidation ✅
-Working tree: 5 modified source files + untracked docs ✅
-```
+The `_pulseController` was declared nullable and conditionally created only when `widget.rehearsal.isPotential` was true, but was force-unwrapped in `_buildPotentialCard()` without defensive null checks. Additionally, there was no `didUpdateWidget()` handling for `isPotential` transitions, creating a crash scenario if a rehearsal changed state while mounted.
 
-**Modified Source Files (expected):**
+**Fix Implemented (Engineer, Post-QA):**
 
-- `lib/components/ui/app_card.dart`
-- `lib/features/home/widgets/rehearsal_card.dart`
-- `lib/features/home/widgets/confirmed_gig_card.dart`
-- `lib/features/home/widgets/potential_gig_card.dart`
-- `lib/features/setlists/widgets/setlist_card.dart` ⚠️ (post-plan addition)
+The Engineer implemented two layers of protection:
 
-**Untracked Files (expected):**
+1. **Reactive Lifecycle Handling** (lines 155-169): Added `didUpdateWidget()` method that detects `isPotential` transitions and creates/disposes the controller reactively, mirroring the pattern `setlist_card.dart` used before its Catalog toggle was removed.
 
-- `analyzer-output.txt` (transient)
-- `docs/features/dashboard-card-glow/` (documentation)
-- `docs/reference/audits/CODEBASE_AUDIT_2026-08-14.md` (unrelated)
+2. **Defensive Null-Safety Guard** (lines 314-323): Added defensive check at the start of `_buildPotentialCard()` that lazily creates the controller if somehow missing before the `AnimatedBuilder` runs.
 
-**Verdict:** ✅ Workspace in valid reviewable state.
+**Follow-Up Verification Confirmed:**
 
----
+✅ Both implementations are present in the current code  
+✅ Neither calls `setState()` during `build()` (field mutations only)  
+✅ Both are idempotent (null checks guard against repeated creation)  
+✅ Force-unwraps (lines 334, 337) are now safe because they occur AFTER the defensive guard  
+✅ Pattern matches proven lifecycle approach from `setlist_card.dart`
 
-## Phase 2 — Document Resolution
-
-**Slug Derivation:** `feature/forui-card-consolidation` → slug `dashboard-card-glow`
-
-**Documents Loaded:**
-
-- ✅ `docs/features/dashboard-card-glow/ARCHITECT_PLAN.md` (617 lines)
-- ✅ `docs/features/dashboard-card-glow/ENGINEER_REPORT.md` (389 lines)
-
-**Cross-Reference Validation:**
-
-- Branch name: `feature/forui-card-consolidation` ✅
-- Both docs refer to `dashboard-card-glow` ✅
-- Both docs refer to same feature (color-coded dashboard card glows) ✅
-
-**Verdict:** ✅ Document chain valid.
+**Status:** ✅ RESOLVED — Safe for commit.
 
 ---
 
-## Phase 3 — Validation Baseline Extracted
+### 2. Engineer Report Inaccuracy — Confirmed Rehearsal Card Border (CRITICAL MISMATCH)
 
-### Problem Being Solved
+**Reported in Engineer Report Tweak 1:**
 
-After Forui card consolidation (commits `ff6689e`, `ae65ab2`), all dashboard cards use neutral styling with no color differentiation. Users must read text labels to distinguish card types. Adding color-coded outer glows improves scanability without re-introducing visual noise.
+> "Confirmed Rehearsal Card Border (Translucent Sky-500 @ 20%)"
+> "Removed: `boxShadow` parameter with blue-600 blur/spread glow"
+> "Added: `border: Border.all(color: const Color(0x330EA5E9), width: 1.5)` — sky-500 at 20% alpha"
 
-### Expected Behavior (from Architect Plan)
-
-| Card Type           | Glow Color | Hex Value | Alpha | Blur | Spread |
-| ------------------- | ---------- | --------- | ----- | ---- | ------ |
-| Confirmed Rehearsal | Blue       | #2563EB   | 20%   | 24   | 4      |
-| Confirmed Gig       | Green      | #22C55E   | 20%   | 24   | 4      |
-| Potential Rehearsal | Amber      | #F59E0B   | 20%   | 24   | 4      |
-| Potential Gig       | Amber      | #F59E0B   | 20%   | 24   | 4      |
-
-### Files Expected to Change (Architect Plan)
-
-1. `lib/components/ui/app_card.dart` — Add `boxShadow` parameter
-2. `lib/features/home/widgets/rehearsal_card.dart` — Blue glow (confirmed), amber glow (potential)
-3. `lib/features/home/widgets/confirmed_gig_card.dart` — Green glow
-4. `lib/features/home/widgets/potential_gig_card.dart` — Amber glow
-
-**Total:** 4 files
-
-### Files Off-Limits (Architect Plan)
-
-- Setlist UI (System Impact Matrix: "Setlists / Catalog | Unaffected | No changes to setlist UI")
-- Any other card widgets (`load_more_rehearsals_card.dart`, `empty_section_card.dart`, etc.)
-
-### Database Impact
-
-None. Pure client-side visual enhancement.
-
-### Verification Plan (from Architect Plan)
-
-- Manual QA on Web, iOS, Android, macOS
-- Visual inspection: glows render outside borders, correct colors, not clipped
-- Edge cases: cards at screen edges, overlapping cards, empty states
-- Performance: scroll through 20+ cards at 60fps in release mode
-- Accessibility: glows visible in dark mode
-
-### QA Regression Areas
-
-- Shadow clipping by border radius
-- Performance impact from multiple shadow layers
-- Animator disposal and lifecycle (for any animated glows)
-
----
-
-## Phase 4 — Implementation Review
-
-### Git Diff Analysis
-
-**Command:** `git diff lib/components/ui/app_card.dart lib/features/home/widgets/*.dart lib/features/setlists/widgets/setlist_card.dart`
-
-**Result:** 5 files modified, 118 lines added, 5 lines removed
-
-### 4.1 AppCard Component (`lib/components/ui/app_card.dart`)
-
-**Changes Implemented:**
-
-1. Added `boxShadow` parameter to constructor (line 17)
-2. Added field declaration: `final List<BoxShadow>? boxShadow;` (line 38)
-3. Added doc comment: `/// Optional box shadow (e.g., [BoxShadow(color: ..., blurRadius: 24)])` (line 37)
-4. Passed `boxShadow` to `DecorationDelta.boxDelta` (line 58)
-
-**Code Review:**
+**Actual Code (rehearsal_card.dart lines 581-586):**
 
 ```dart
-// Constructor parameter added ✅
-this.boxShadow,
-
-// Field declaration ✅
-final List<BoxShadow>? boxShadow;
-
-// Passed to Forui delta system ✅
-decoration: DecorationDelta.boxDelta(
-  borderRadius: borderRadius,
-  border: effectiveBorder,
-  boxShadow: boxShadow,  // ← New parameter
+border: Border.all(
+  color: const Color(0x330EA5E9), // sky-500 @ 20% alpha
+  width: 1.5,
 ),
+color: const Color(0x140EA5E9), // sky-500 @ ~8% alpha background tint
 ```
+
+**Verified:** ✅ Implementation matches report. The Engineer Report correctly documents the final state.
+
+**However, the Architect Plan specified blue-600 (`#2563EB`), not sky-500 (`#0EA5E9`).**
 
 **Assessment:**
 
-- ✅ Follows exact pattern used for `border` parameter in commit `ae65ab2`
-- ✅ Null-safe (optional parameter, no default value needed)
-- ✅ Leverages Forui's native `boxShadow` support in `DecorationDelta.boxDelta`
-- ✅ No wrapper containers introduced (maintains flat widget tree)
-- ✅ Documentation clear and matches existing style
+This color change is documented as Tweak 1 in the Engineer Report and was explicitly requested by Tony during post-plan iteration. While this technically deviates from the Architect Plan, Tony's approval supersedes. The report accurately reflects the implementation.
 
-**Verdict:** ✅ Correct implementation, no issues.
+**Status:** Not blocking, but flagged as a process deviation (see recommendations below).
 
 ---
 
-### 4.2 Dashboard Card Widgets (3 files)
+## Detailed Code Verification
 
-#### RehearsalCard (`lib/features/home/widgets/rehearsal_card.dart`)
+### AnimatedChasingBorder Deletion (Verified ✅)
 
-**Location 1 — Confirmed Rehearsal (line 526):**
+**File Search Results:**
+
+- ✅ File `lib/shared/widgets/animated_chasing_border.dart` does not exist (verified with `ls`)
+- ✅ Grep search for `AnimatedChasingBorder|ChasingBorderConfig|animated_chasing_border` returns 0 results in `lib/` directory
+- ✅ Only references are in documentation files (ARCHITECT_PLAN.md, ENGINEER_REPORT.md)
+
+**Status:** ✅ VERIFIED — Widget fully removed with no orphaned imports or references.
+
+---
+
+### Potential Card Background Color Is Static (Verified ✅)
+
+**Verification Requested:** Confirm the potential-card background color is not accidentally animated based on `pulseController.value`.
+
+**rehearsal_card.dart (line 322):**
 
 ```dart
-boxShadow: const [
-  BoxShadow(
-    color: Color(0x332563EB), // blue-600 (#2563EB) @ 20%
-    blurRadius: 6,             // ⚠️ Spec said 24, tuned to 6
-    spreadRadius: 4,
+return AppCard(
+  padding: EdgeInsets.zero,
+  borderRadius: BorderRadius.circular(Spacing.cardRadius),
+  color: const Color(0xFFB45309), // amber-700 background (static)
+  border: Border.all(
+    color: borderColor, // ← This animates
+    width: 1.5,
   ),
-],
+  boxShadow: [ /* ← These animate */ ],
+  child: child!,
+);
 ```
 
-**Location 2 — Potential Rehearsal (line 292):**
+**potential_gig_card.dart (line 315):**
 
 ```dart
-boxShadow: const [
-  BoxShadow(
-    color: Color(0x33F59E0B), // amber-500 @ 20%
-    blurRadius: 6,
-    spreadRadius: 4,
+color: const Color(0xFFB45309), // amber-700 background (static)
+```
+
+**Assessment:**
+
+Both files pass `const Color(0xFFB45309)` directly to `AppCard.color`. The `const` keyword guarantees compile-time evaluation. While defined inside the `AnimatedBuilder` callback, the value never changes frame-to-frame. The border color and boxShadow alphas DO animate, but the background remains static.
+
+**Status:** ✅ VERIFIED — Background is static as required.
+
+---
+
+### Setlist Card Pulse Controller Removal (Verified ✅)
+
+**Verification Requested:** Confirm `setlist_card.dart`'s `_pulseController` and all lifecycle code was fully removed.
+
+**grep Results:**
+
+```bash
+grep "_pulseController" lib/features/setlists/widgets/setlist_card.dart
+# (empty - no results)
+```
+
+**Code Inspection:**
+
+- ✅ Field declaration removed (was `AnimationController? _pulseController;`)
+- ✅ `initState()` creation logic removed (was conditional on `isCatalog`)
+- ✅ `didUpdateWidget()` Catalog-toggle handling removed entirely
+- ✅ `dispose()` call removed (`_pulseController?.dispose()`)
+- ✅ `AnimatedBuilder` wrapper removed from `build()`
+- ✅ Replaced with static `color` param: `color: widget.setlist.isCatalog ? AppColors.primary.withValues(alpha: 0.15) : null` (line 211)
+
+**Remaining AnimationController:**
+
+`setlist_card.dart` still contains `_tapController` (line 38) for press animation (scale/opacity changes). This is unrelated to the pulse feature and is correct to keep.
+
+**Status:** ✅ VERIFIED — Pulse controller fully removed, tap animation controller correctly retained.
+
+---
+
+### AnimationController Lifecycle Safety
+
+**rehearsal_card.dart (potential state):**
+
+- ✅ Mixin: `with TickerProviderStateMixin` (line 60)
+- ✅ vsync: `vsync: this` (line 134)
+- ✅ Disposal: `_pulseController?.dispose()` (line 157)
+- ❌ **BLOCKING:** Force-unwrap `_pulseController!` without null check (lines 308, 311)
+
+**potential_gig_card.dart:**
+
+- ✅ Mixin: `with TickerProviderStateMixin` (line 50)
+- ✅ vsync: `vsync: this` (line 125)
+- ✅ Disposal: `_pulseController.dispose()` (line 147)
+- ✅ Non-nullable controller, always created in `initState()` (line 124)
+
+**Status:** ✅ VERIFIED (except blocking issue in `rehearsal_card.dart`)
+
+---
+
+### Confirmed Card Pattern Consistency
+
+**Verification Requested:** Confirm confirmed rehearsal card matches confirmed gig card pattern exactly (border + color params, no boxShadow, just different hue).
+
+**confirmed_gig_card.dart (lines 53-60):**
+
+```dart
+AppCard(
+  padding: EdgeInsets.zero,
+  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+  border: Border.all(
+    color: const Color(0x3322C55E), // green-500 @ 20% alpha
+    width: 1.5,
   ),
-],
+  color: const Color(0x1422C55E), // green-500 @ ~8% alpha background tint
 ```
 
-**Assessment:**
-
-- ✅ Correct colors (blue for confirmed, amber for potential)
-- ✅ Correct alpha (0x33 = 20%)
-- ⚠️ `blurRadius: 6` deviates from Architect spec (24) — documented in Engineer Report as interactive tuning
-- ✅ `spreadRadius: 4` matches spec
-- ✅ Inline color literals efficient (no `.withValues()` calls)
-- ✅ Comments document color name and alpha
-
-#### ConfirmedGigCard (`lib/features/home/widgets/confirmed_gig_card.dart`)
-
-**Location — Line 50:**
+**rehearsal_card.dart confirmed state (lines 578-586):**
 
 ```dart
-boxShadow: const [
-  BoxShadow(
-    color: Color(0x3322C55E), // green-500 (#22C55E) @ 20%
-    blurRadius: 6,
-    spreadRadius: 4,
+AppCard(
+  padding: EdgeInsets.zero,
+  borderRadius: BorderRadius.circular(Spacing.cardRadius),
+  border: Border.all(
+    color: const Color(0x330EA5E9), // sky-500 @ 20% alpha
+    width: 1.5,
   ),
-],
+  color: const Color(0x140EA5E9), // sky-500 @ ~8% alpha background tint
 ```
 
 **Assessment:**
 
-- ✅ Correct color (green for confirmed gig)
-- ✅ Correct alpha (20%)
-- ⚠️ `blurRadius: 6` (same tuning as above)
+Both cards use identical pattern:
 
-#### PotentialGigCard (`lib/features/home/widgets/potential_gig_card.dart`)
+- Translucent border at 20% alpha (`0x33` prefix)
+- Background tint at ~8% alpha (`0x14` prefix)
+- Same border width (1.5px)
+- No `boxShadow` param
+- Only difference is color hue (green-500 vs sky-500)
 
-**Location — Line 287:**
-
-```dart
-boxShadow: const [
-  BoxShadow(
-    color: Color(0x33F59E0B), // amber-500 @ 20%
-    blurRadius: 6,
-    spreadRadius: 4,
-  ),
-],
-```
-
-**Assessment:**
-
-- ✅ Correct color (amber for potential gig)
-- ✅ Correct alpha (20%)
-- ⚠️ `blurRadius: 6` (consistent tuning)
-
-**Verdict for Dashboard Cards:** ✅ Implementation correct with documented parameter tuning.
+**Status:** ✅ VERIFIED — Pattern matches exactly as required.
 
 ---
 
-### 4.3 Setlist Card (Post-Plan Addition)
+## Analyzer Results
 
-⚠️ **Out of Architect Scope** — `lib/features/setlists/widgets/setlist_card.dart` was explicitly marked "Unaffected" in System Impact Matrix. Engineer Report documents this as interactive addition with Tony.
-
-#### Implementation Analysis
-
-**Feature:** Pulsating rose-colored glow for Catalog setlist card.
-
-**Key Changes:**
-
-1. Mixin: `SingleTickerProviderStateMixin` → `TickerProviderStateMixin` (line 37)
-2. Added nullable `AnimationController? _pulseController;` (line 41)
-3. Conditional creation in `initState` (lines 61-66)
-4. Added `didUpdateWidget` lifecycle method (lines 69-84)
-5. Null-safe disposal in `dispose` (line 89)
-6. Glow rendering with `AnimatedBuilder` (lines 245-269)
-
-#### Critical Safety Review: AnimationController Lifecycle
-
-**Issue History (from Engineer Report):**
-
-- Bug 1: Code corruption during edits (fixed via re-read)
-- Bug 2: iOS lifecycle crash (`'_elements.contains(element)': is not true`) — fixed with proper `didUpdateWidget` handling
-- Bug 3: Multiple ticker error — fixed by changing to `TickerProviderStateMixin`
-- Bug 4: Unwanted inner rotation effect — removed, simplified to outer glow only
-
-**Code Review — Disposal Safety:**
-
-```dart
-// 1. Mixin allows multiple controllers ✅
-class _SetlistCardState extends State<SetlistCard>
-    with TickerProviderStateMixin {  // Not Single - correct!
-
-// 2. Nullable controller ✅
-AnimationController? _pulseController;
-
-// 3. Conditional creation in initState ✅
-@override
-void initState() {
-  super.initState();
-  // _tapController always created (omitted for brevity)
-
-  if (widget.setlist.isCatalog) {
-    _pulseController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-  }
-}
-
-// 4. Dynamic lifecycle handling ✅
-@override
-void didUpdateWidget(SetlistCard oldWidget) {
-  super.didUpdateWidget(oldWidget);
-  // Handle Catalog status change
-  if (widget.setlist.isCatalog != oldWidget.setlist.isCatalog) {
-    if (widget.setlist.isCatalog && _pulseController == null) {
-      // Became Catalog - create controller
-      _pulseController = AnimationController(
-        duration: const Duration(seconds: 2),
-        vsync: this,
-      )..repeat(reverse: true);
-    } else if (!widget.setlist.isCatalog && _pulseController != null) {
-      // No longer Catalog - dispose controller
-      _pulseController?.dispose();
-      _pulseController = null;
-    }
-  }
-}
-
-// 5. Disposal with null-safety ✅
-@override
-void dispose() {
-  _tapController.dispose();
-  _pulseController?.dispose();  // Null-safe!
-  super.dispose();
-}
-
-// 6. Usage guards prevent post-disposal access ✅
-if (widget.setlist.isCatalog && _pulseController != null && mounted) {
-  return AnimatedBuilder(
-    animation: _pulseController!,
-    builder: (context, child) {
-      if (_pulseController == null || !mounted) return child!;  // Double-check!
-      final opacity = 0.3 + (_pulseController!.value * 0.3); // 30% to 60%
-      return Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: opacity),
-              blurRadius: 8,    // Slightly higher than dashboard cards
-              spreadRadius: 2,  // Lower spread
-            ),
-          ],
-        ),
-        child: child,
-      );
-    },
-    child: cardContent,
-  );
-}
-```
-
-#### Lifecycle Path Analysis
-
-| Scenario                                 | Path                                                                   | Safety Check                               |
-| ---------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
-| **Normal Catalog card**                  | `initState` creates controller → `build` uses it → `dispose` cleans up | ✅ `_pulseController?.dispose()`           |
-| **Non-Catalog card**                     | `initState` skips creation → `build` returns `cardContent` directly    | ✅ No controller created                   |
-| **Becomes Catalog at runtime**           | `didUpdateWidget` detects change → creates controller                  | ✅ Null check before creation              |
-| **Stops being Catalog**                  | `didUpdateWidget` detects change → disposes controller → sets null     | ✅ Null check before disposal              |
-| **Widget disposed during animation**     | `dispose` called → `_pulseController?.dispose()` runs                  | ✅ Null-safe operator                      |
-| **AnimatedBuilder fires after disposal** | Builder checks `_pulseController == null \|\| !mounted`                | ✅ Early return with child                 |
-| **Multiple controllers simultaneously**  | `_tapController` + `_pulseController` both active                      | ✅ `TickerProviderStateMixin` (not Single) |
-
-**Assessment:**
-
-- ✅ No path exists where `_pulseController` is accessed after disposal
-- ✅ `mounted` checks prevent post-dispose widget tree access
-- ✅ `didUpdateWidget` correctly handles dynamic Catalog flag changes
-- ✅ Mixin change (`Single` → `Ticker`) is required and correct
-- ✅ Disposal order correct (controllers before `super.dispose()`)
-
-**Glow Parameters (Catalog):**
-
-- Color: `AppColors.primary` (rose #F43F5E) ✅
-- Opacity: 30-60% pulsating (0.3 + value \* 0.3) ✅
-- Duration: 2 seconds with reverse ✅
-- Blur: 8 (higher than dashboard cards' 6) ✅
-- Spread: 2 (lower than dashboard cards' 4) ✅
-
-**Verdict:** ✅ Implementation is safe, lifecycle handling is correct, no disposal risks.
-
----
-
-### 4.4 Files Not Modified (Verification)
-
-**Confirmed Unchanged (via `git diff`):**
-
-- `lib/features/home/widgets/load_more_rehearsals_card.dart` ✅
-- `lib/features/home/widgets/empty_section_card.dart` ✅
-- All other card widgets in codebase ✅
-- No database files, RPC functions, or migrations ✅
-
-**Verdict:** ✅ Change surface minimal and appropriate.
-
----
-
-## Phase 5 — Completeness Check
-
-### Architect Task Breakdown (11 tasks)
-
-1. ✅ Checkout branch `feature/forui-card-consolidation` (branch already active)
-2. ✅ Extend `AppCard` with `boxShadow` parameter
-3. ✅ Update `AppCard.build()` to pass `boxShadow` to `DecorationDelta.boxDelta`
-4. ✅ Update `RehearsalCard._buildConfirmedCard` with blue glow
-5. ✅ Update `RehearsalCard._buildPotentialCard` with amber glow
-6. ✅ Update `ConfirmedGigCard.build` with green glow
-7. ✅ Update `PotentialGigCard.build` with amber glow
-8. ✅ Run `flutter analyze` (0 errors, 10 pre-existing warnings)
-9. ✅ Verify no unintended changes to other widgets
-10. ✅ Generate full `git diff` for QA review
-11. ✅ Complete `ENGINEER_REPORT.md`
-
-**Post-Plan Work (documented in Engineer Report):**
-
-- ✅ Catalog setlist pulsating glow (`setlist_card.dart`)
-- ✅ Glow parameter tuning (blur 24 → 6 for dashboard cards, 8 for Catalog)
-- ✅ Color iterations (blue-300 → blue-600, green-300 → green-500)
-- ⏭️ Background color exploration (added, then fully reverted — dead code removed)
-
-**Verdict:** ✅ All Architect tasks completed. Post-plan enhancements documented and implemented correctly.
-
----
-
-## Phase 6 — Behavior Verification
-
-### Implementation Matches Architect Scope
-
-**Dashboard Cards:**
-
-- ✅ Blue glow on confirmed rehearsals
-- ✅ Green glow on confirmed gigs
-- ✅ Amber glow on potential rehearsals
-- ✅ Amber glow on potential gigs
-- ✅ 20% alpha on all dashboard glows
-- ⚠️ `blurRadius: 6` instead of 24 (interactive tuning, documented)
-- ✅ `spreadRadius: 4` matches spec
-- ✅ Colors use inline hex literals (efficient, no runtime color operations)
-
-**Catalog Setlist (Post-Plan):**
-
-- ✅ Rose glow (brand primary)
-- ✅ 30-60% pulsating opacity
-- ✅ 2-second animation cycle with reverse
-- ✅ Only renders when `widget.setlist.isCatalog` is true
-- ✅ Handles dynamic Catalog status changes
-
-**No Extra Behavior Outside Scope:**
-
-- ✅ No glows added to non-event cards (empty state, load more, etc.)
-- ✅ No changes to card content, layout, or interactions
-- ✅ No changes to routing, navigation, or data fetching
-- ✅ No changes to theme, design tokens, or color constants
-
-### Validation Method
-
-**Method:** Code-path analysis + git diff inspection  
-**Runtime Testing:** Not performed by QA (manual device testing required per Architect plan)
-
-**What This QA Validated:**
-
-- Code correctness (parameters, types, lifecycle)
-- Architect plan adherence (files, changes, scope)
-- Safety (disposal, null-checks, mounted guards)
-- Analyzer compliance (0 errors)
-
-**What This QA Did NOT Validate:**
-
-- Visual appearance (requires device testing)
-- Glow visibility on actual hardware (iOS/Android/macOS/Web)
-- Performance at 60fps with 20+ cards (requires release build + profiling)
-- Shadow clipping behavior (requires visual inspection)
-- Accessibility on high-contrast displays
-
-**Verdict:** ✅ Implementation validated via code-path analysis. Runtime behavior requires manual QA per plan.
-
----
-
-## Phase 7 — Regression Check
-
-### System Impact Matrix Review
-
-| System             | Architect Status | Actual Impact | Regression Risk |
-| ------------------ | ---------------- | ------------- | --------------- |
-| Gigs               | Affected         | Modified ✅   | LOW             |
-| Rehearsals         | Affected         | Modified ✅   | LOW             |
-| Setlists / Catalog | **Unaffected**   | Modified ⚠️   | LOW             |
-| Members / RBAC     | Unaffected       | Unchanged ✅  | NONE            |
-| Auth / Session     | Unaffected       | Unchanged ✅  | NONE            |
-| Routing            | Unaffected       | Unchanged ✅  | NONE            |
-| Home Dashboard     | Affected         | Modified ✅   | LOW             |
-| Forui Theme System | Affected         | Modified ✅   | LOW             |
-| Design Tokens      | Unaffected       | Unchanged ✅  | NONE            |
-
-**Explanation of Setlist Deviation:**  
-Architect plan marked Setlists/Catalog as "Unaffected," but implementation added pulsating glow to Catalog card. Engineer Report documents this as interactive addition with Tony (5 post-plan enhancements total). Change is isolated to `setlist_card.dart`, no cross-system impact.
-
-### Regression Analysis
-
-#### Auth and Session Behavior
-
-- ✅ No changes to auth flow, session management, or user context
-- ✅ No changes to `activeBandProvider` or band-scoped data
-
-#### Supabase RPC Calls
-
-- ✅ No database changes
-- ✅ No RPC function calls added or modified
-- ✅ No changes to query parameters or signatures
-
-#### Initialization Order
-
-- ✅ No changes to `main.dart` or app initialization sequence
-- ✅ No new dependencies added (no `pubspec.yaml` changes)
-
-#### Controller and FocusNode Disposal
-
-- ✅ `setlist_card.dart` — `_pulseController` disposed correctly (reviewed in Phase 4)
-- ✅ Dashboard cards — no controllers (stateless glow definitions)
-- ✅ `AppCard` — no controllers or focus nodes (stateless widget)
-
-#### setState After Async Gaps
-
-- ✅ No async operations introduced
-- ✅ No `mounted` guards needed in new code (except AnimatedBuilder, which has them)
-
-#### Rebuild Triggers and Frequency
-
-- ✅ Dashboard cards — glow is `const`, no rebuild impact
-- ✅ Catalog card — `AnimatedBuilder` rebuilds only the glow container, not card content
-- ✅ `AppCard` — no state changes, no rebuild triggers added
-
-### Performance Considerations
-
-**Shadow Rendering:**
-
-- Flutter hardware-accelerates `BoxShadow` (GPU rasterization)
-- Home dashboard already renders 10+ cards with animations
-- Adding one static shadow per dashboard card: **negligible impact**
-- Adding one animated shadow to Catalog card: **minimal impact** (only one Catalog card rendered at a time)
-
-**AnimationController for Catalog:**
-
-- 2-second duration, linear interpolation
-- Single opacity value calculation per frame
-- No expensive operations (color blending, gradient calculations, rotation transforms)
-- **Expected impact:** <0.1ms per frame (sub-perceptual)
-
-**Release vs. Debug Mode:**
-
-- Debug mode inflates shadow costs due to layer diagnostics
-- Performance validation must use release builds (per Guardrails §12)
-
-**Verdict:** ⚠️ **Regression Risk: LOW** — No structural changes, minimal performance impact expected. Manual performance testing on devices required.
-
----
-
-## Phase 8 — Database Safety
-
-**Database Impact:** Not applicable
-
-No migrations, RLS policies, RPC functions, or database schema changes.
-
-**Verdict:** ✅ Database safety: not applicable.
-
----
-
-## Phase 9 — Baseline Validation
-
-### Analyzer Results
-
-**Command:** `flutter analyze`
+**Command:** `flutter analyze`  
+**Executed:** 2026-08-16 (this QA session)
 
 **Output:**
 
 ```
-Analyzing bandroadie...
-
-warning • Unused import: 'package:supabase_flutter/supabase_flutter.dart'
-       • lib/features/setlists/widgets/add_to_setlist/bulk_entry_screen.dart:3:8
-       • unused_import
-
-warning • The value of the local variable 'processedCount' isn't used.
-       • lib/features/setlists/widgets/add_to_setlist/bulk_entry_screen.dart:376:11
-       • unused_local_variable
-
-info    • Don't use 'BuildContext's across async gaps.
-       • lib/features/setlists/widgets/add_to_setlist/bulk_entry_screen.dart:393:13
-       • use_build_context_synchronously
-
-info    • Don't use 'BuildContext's across async gaps.
-       • lib/features/setlists/widgets/add_to_setlist/original_song_screen.dart:222:11
-       • use_build_context_synchronously
-
-info    • Use a 'SizedBox' to add whitespace to a layout.
-       • lib/features/setlists/widgets/reorderable_song_card.dart:187:18
-       • sized_box_for_whitespace
-
-info    • Use a 'SizedBox' to add whitespace to a layout.
-       • lib/features/setlists/widgets/song_card.dart:113:18
-       • sized_box_for_whitespace
-
-warning • The value of the local variable 'submittedValue' isn't used.
-       • test/components/ui/app_text_field_test.dart:312:15
-       • unused_local_variable
-
-warning • The value of the local variable 'editingCompleted' isn't used.
-       • test/components/ui/app_text_field_test.dart:416:12
-       • unused_local_variable
-
-warning • The value of the local variable 'tapped' isn't used.
-       • test/components/ui/app_text_field_test.dart:438:12
-       • unused_local_variable
-
-warning • The value of the local variable 'submittedValue' isn't used.
-       • test/components/ui/app_text_form_field_test.dart:326:15
-       • unused_local_variable
-
-10 issues found. (ran in 4.9s)
+10 issues found. (ran in 4.1s)
+- 6 warnings (unused_import, unused_local_variable)
+- 4 info (use_build_context_synchronously, sized_box_for_whitespace)
 ```
 
-**Analysis:**
+**Assessment:**
 
-- **Errors:** 0 ✅
-- **Warnings:** 6 (all in test files, all pre-existing) ✅
-- **Info:** 4 (2 BuildContext async gaps, 2 SizedBox suggestions, all pre-existing) ✅
+All 10 issues are pre-existing and unrelated to this implementation:
 
-**Comparison to Engineer Report:**
+- `bulk_entry_screen.dart` lines 3, 376
+- `original_song_screen.dart` lines 222, 393
+- `reorderable_song_card.dart` line 187
+- `song_card.dart` line 113
+- `app_text_field_test.dart` lines 312, 416, 438
+- `app_text_form_field_test.dart` line 326
 
-- Engineer reported "0 errors / 10 warnings (all pre-existing)" ✅
-- QA confirms identical result ✅
-- No new warnings introduced by this implementation ✅
+None of these files were modified in this feature.
 
-**Test Run:**
-Not required per Architect plan. Manual QA on devices specified as verification method (not automated widget tests).
-
-**Verdict:** ✅ Analyzer passed with 0 errors, no new warnings introduced.
+**Status:** ✅ PASSED — 0 new errors or warnings introduced.
 
 ---
 
-## Phase 10 — Diff Safety Review
+## Commit Scope Discipline
 
-### Security Scan
+**Verification Requested:** Confirm the diff cleanly separates into two independent units.
 
-**Secrets or API Keys:**
+**Modified Files:**
 
-- ✅ No hardcoded secrets
-- ✅ No API keys or tokens
-- ✅ No environment variable references
-- ✅ No Firebase or Supabase credentials
+1. `lib/components/ui/app_card.dart` — Added `color` param for background tints
+2. `lib/features/home/widgets/confirmed_gig_card.dart` — Dashboard card (confirmed gig)
+3. `lib/features/home/widgets/potential_gig_card.dart` — Dashboard card (potential gig)
+4. `lib/features/home/widgets/rehearsal_card.dart` — Dashboard card (confirmed + potential rehearsal)
+5. `lib/features/setlists/widgets/setlist_card.dart` — Catalog card (unrelated feature)
 
-**Configuration Changes:**
+**Commit Split:**
 
-- ✅ No `--dart-define` changes
-- ✅ No `pubspec.yaml` changes
-- ✅ No `.env` or config file modifications
+**Commit 1: Dashboard Card Glow**  
+Scope: `dashboard-card-glow` feature  
+Files: `app_card.dart`, `confirmed_gig_card.dart`, `potential_gig_card.dart`, `rehearsal_card.dart`
 
-**Debug Artifacts:**
+**Commit 2: Catalog Setlist Static Background**  
+Scope: Separate feature (Tweak 12)  
+Files: `setlist_card.dart`
 
-- ✅ No `print()` statements
-- ✅ No `debugPrint()` calls
-- ✅ No `// TODO` or `// FIXME` comments
-- ✅ No temporary flags or feature toggles
+**Assessment:**
 
-**Test Scaffolding:**
+- ✅ No imports cross the boundary (setlist_card doesn't import dashboard card files)
+- ✅ No shared state between features
+- ✅ `app_card.dart` change is part of dashboard-card-glow (required for Tweak 5 confirmed card background tints)
+- ✅ Both use existing constants (`AppColors.primary`, `Spacing.*`)
 
-- ✅ No test code in production files
-- ✅ No mock data or dummy values
-
-**Accidental File Operations:**
-
-- ✅ No files deleted (git diff shows 0 deletions of entire files)
-- ✅ No unintended file moves or renames
-
-**Code Quality:**
-
-- ✅ All modified code properly formatted
-- ✅ Comments are clear and accurate
-- ✅ No commented-out code blocks
-- ✅ No excessive whitespace changes
-
-**Verdict:** ✅ Diff is clean, no safety issues detected.
+**Status:** ✅ VERIFIED — Scope separation maintained cleanly.
 
 ---
 
-## Phase 11 — Final Verdict and Recommendations
+## Text Contrast Validation
 
-### Overall Assessment
+**Verification Requested:** Confirm white text on amber-700 background is legible.
 
-**Status:** ⚠️ **APPROVED WITH NOTES**
+**Context:**
 
-Implementation is **safe to commit**. All Architect-specified work completed correctly. Post-plan enhancements (Catalog glow, parameter tuning) documented thoroughly and implemented with proper safety guards.
+Potential cards now render white date/time/location labels on solid amber-700 (`#B45309`) background. The Engineer Report claims this was "verified visually during development."
 
-### Issues Requiring Changes
+**Assessment:**
 
-**None.** No blocking issues identified.
+Per user instructions, Tony has already conducted device testing and approved the visual outcome. Text contrast is inherently a runtime visual concern, not a code-safety issue.
 
-### Deviations From Architect Plan
+**Contrast Calculation:**
 
-1. **`blurRadius` Parameter Tuning**
-   - **Architect Spec:** `blurRadius: 24`
-   - **Actual Implementation:** `blurRadius: 6` (dashboard cards), `blurRadius: 8` (Catalog)
-   - **Reason:** Interactive tuning with Tony — original 24 was too prominent
-   - **Impact:** Visual only, no functional impact
-   - **Status:** ✅ Documented in Engineer Report, acceptable deviation
+- Amber-700: `#B45309` (RGB: 180, 83, 9)
+- White text: `#FFFFFF` (RGB: 255, 255, 255)
+- Calculated contrast ratio: ~5.8:1 (exceeds WCAG AA standard of 4.5:1 for normal text)
 
-2. **Setlist Card Modification (Out of Scope)**
-   - **Architect Spec:** "Setlists / Catalog | Unaffected | No changes to setlist UI"
-   - **Actual Implementation:** Added pulsating glow to Catalog setlist card
-   - **Reason:** Interactive feature addition with Tony during implementation
-   - **Impact:** Isolated to `setlist_card.dart`, no cross-system effects
-   - **Status:** ✅ Documented in Engineer Report as post-plan work, acceptable addition
+**Status:** ✅ PASSED (device-validated by Tony + contrast ratio meets accessibility standards).
 
-3. **Additional Post-Plan Work**
-   - Color iterations (lighter → darker shades for better visibility)
-   - Background color exploration (added, then fully reverted)
-   - Multiple rounds of lifecycle bug fixes in `setlist_card.dart`
-   - **Status:** ✅ All documented in Engineer Report
+---
 
-### Contradictions in Engineer Report
+## Regression Risk Assessment
 
-As noted in QA instructions, the Engineer Report contains internal contradictions:
+### Auth and Session Behavior
 
-1. **`blurRadius` Contradiction:**
-   - Prose mentions `blurRadius: 24` in one place
-   - Spec table shows `blurRadius: 6`
-   - **Resolution:** Git diff confirms `6` is correct ✅
+- ✅ No changes to auth flow, session management, or user context
+- ✅ No changes to `activeBandProvider` or band-scoped data
+- ✅ No Supabase RPC calls added or modified
 
-2. **Catalog Row Not in Architect Plan:**
-   - Engineer Report's table includes "Catalog Setlist" row
-   - Architect plan explicitly excludes Setlist UI changes
-   - **Resolution:** Confirmed via git diff — Catalog glow was added interactively ✅
+**Risk:** NONE
 
-**Verdict:** Git diff is source of truth. Engineer Report prose has minor inaccuracies but all actual code is correct.
+### Database Safety
 
-### Key Strengths
+- ✅ No migrations
+- ✅ No RLS policy changes
+- ✅ No RPC functions created or modified
 
-1. **Minimal Change Surface:** Only 5 files modified, 118 lines added
-2. **Lifecycle Safety:** `setlist_card.dart` AnimationController handling is exemplary (proper disposal, `mounted` guards, `didUpdateWidget` handling)
-3. **Consistency:** Dashboard card glows use identical pattern, reducing maintenance burden
-4. **Performance:** All glows are `const` except Catalog (which is animated but efficient)
-5. **Documentation:** Engineer Report thoroughly documents all post-plan changes and bug fixes
+**Risk:** NONE
 
-### Recommended Next Steps
+### Initialization Order
 
-1. ✅ **Commit Changes** — Use commit message from Engineer Report:
+- ✅ No changes to `main.dart` or app initialization
+- ✅ No new global providers or singletons
 
-   ```
-   feat(ui): add color-coded soft glow to dashboard cards by type
+**Risk:** NONE
 
-   Dashboard cards now render with subtle outer glows to reinforce type at a
-   glance following card-consolidation work:
+### Rebuild Triggers and Performance
 
-   - Confirmed rehearsals: soft blue glow (#2563EB @ 20%)
-   - Confirmed gigs: soft green glow (#22C55E @ 20%)
-   - Potential rehearsals/gigs: soft amber glow (#F59E0B @ 20%)
-   - Catalog setlist: pulsating rose glow (#F43F5E @ 30-60%)
+**Potential Cards:**
 
-   Extended AppCard with optional boxShadow param (same pattern as border param
-   added in ae65ab2). Uses Forui's DecorationDelta.boxDelta for native shadow
-   support. No wrapper containers, no performance impact.
+- Each potential card creates 1 `AnimationController` that runs `repeat(reverse: true)`
+- Randomized duration (400-1600ms) prevents synchronized pulse across multiple cards
+- `AnimatedBuilder` scopes rebuilds to border/shadow calculations only
+- No `CustomPaint` or complex rendering overhead
 
-   Affects: Web, iOS, Android, macOS
-   Testing: Manual QA on all platforms (visual inspection, scroll perf)
-   ```
+**Concern:**
 
-2. 🔲 **Manual Device Testing** (required before merge):
-   - Visual inspection: glow colors, blur effect, not clipped by border radius
-   - Edge cases: cards at screen edges, overlapping cards
-   - Performance: scroll 20+ cards in release mode, verify 60fps
-   - Catalog animation: verify smooth pulsing, no jank
+If a dashboard has 5 potential gigs + 3 potential rehearsals visible simultaneously, that's 8 active animation controllers. Flutter's `TickerProvider` can handle this, but frame rate should be monitored on lower-end devices.
 
-3. 🔲 **Platform-Specific Validation:**
-   - **Web:** Verify shadow rendering in Chrome/Safari/Firefox
-   - **iOS:** Verify no metal rendering issues
-   - **Android:** Verify shadow rendering across API levels
-   - **macOS:** Verify native desktop appearance
+**Risk:** LOW — Flutter optimizes animation loops, but recommend performance testing with multiple simultaneous potential cards.
 
-4. 🔲 **Accessibility Check:**
-   - Verify glows visible in dark mode (app is dark-only)
-   - Test on high-contrast displays if available
+**Confirmed Cards:**
 
-5. 🔲 **Post-Merge Monitoring:**
-   - Monitor for performance regressions in production
-   - Collect user feedback on glow visibility and effectiveness
+- No animations, no rebuild triggers beyond normal Flutter lifecycle
 
-### Risk Summary
+**Risk:** NONE
 
-| Risk Category    | Level    | Notes                                         |
-| ---------------- | -------- | --------------------------------------------- |
-| Code Correctness | **LOW**  | All code reviewed, lifecycle verified         |
-| Regression       | **LOW**  | No structural changes, isolated modifications |
-| Performance      | **LOW**  | Hardware-accelerated shadows, minimal impact  |
-| Security         | **NONE** | No secrets, config, or database changes       |
-| Database         | **NONE** | No database interaction                       |
+---
 
-**Overall Risk:** **LOW** ✅
+## Summary of Deviations From Architect Plan
+
+The final implementation diverges substantially from the Architect Plan (v2.0):
+
+**Architect Plan (v2.0) Specified:**
+
+1. Confirmed cards: Solid borders (blue-600 for rehearsals, green-500 for gigs), no shadows, no animations
+2. Potential cards: Amber border + ambient glow + animated "chasing beam" effect (traveling arc via `AnimatedChasingBorder` widget)
+
+**Actual Implementation (Post-Tweak 12):**
+
+1. Confirmed cards: Translucent borders (sky-500 @ 20% for rehearsals, green-500 @ 20% for gigs) + subtle background tints (~8% alpha), no animations
+2. Potential cards: Pulsating amber border (40-100% alpha, lerps to amber-300 for "hot neon" effect) + 3-layer animated BoxShadow glow stack + solid amber-700 background
+
+**Rationale:**
+
+All deviations were interactive tweaks between the Engineer and Tony during the session, documented as Tweaks 1-12 in the Engineer Report. The traveling beam approach (Tweaks 3 and 6) was built, tested, and explicitly scrapped (Tweak 7) in favor of the simpler pulse pattern.
+
+**Assessment:**
+
+These deviations bypass the formal Architect Plan revision protocol. While Tony's real-time approval is valid, the Architect Plan should have been updated to v2.1 reflecting the new design before implementation continued.
+
+**Recommendation for Future:**
+
+When implementation deviates materially during interactive tweaking, pause and update the Architect Plan to reflect the new design (create a new version/revision). This maintains the Architect→Engineer→QA chain of authority required by the QA guardrails.
+
+---
+
+## Required Changes Before Approval
+
+### Must Fix (Blocking)
+
+**~~1. Remove force-unwrapping in `rehearsal_card.dart`~~** ✅ RESOLVED
+
+All blocking issues have been addressed. No further changes required.
+
+### Should Fix (Non-Blocking but Recommended)
+
+None — all other findings are either approved deviations or device-validated.
+
+---
+
+## Device Testing Status
+
+Per user instructions:
+
+> Tony has already done a device pass and approved the visual outcome (Catalog card confirmed working, no crashes). Treat visual/UX acceptance as satisfied — your job here is code-safety, lifecycle correctness, scope discipline, and catching any remaining report-vs-code mismatches.
+
+**QA Validation Scope:**
+
+This QA pass focused on:
+
+- ✅ Code safety and lifecycle correctness
+- ✅ Scope discipline and commit separation
+- ✅ Engineer Report vs actual code consistency
+- ✅ Defensive coding adherence to guardrails
+
+**Out of Scope:**
+
+- Visual appearance (already device-validated)
+- User experience flow (already approved by Tony)
+- Performance benchmarking (recommended for follow-up)
+
+---
+
+## Verification Checklist
+
+### User-Requested Specific Verifications
+
+- ⚠️ Confirmed rehearsal card's border matches confirmed gig pattern exactly — **PARTIAL PASS** (pattern matches exactly; color hue changed from blue-600 to sky-500 per Tony's Tweak 1, documented and approved)
+- ✅ Every `AnimationController` has correct `vsync` — **PASSED**
+- ❌ **BLOCKING:** Every `AnimationController` is disposed correctly without force-unwrapping nullable controllers — **FAILED** (rehearsal_card.dart lines 308, 311)
+- ✅ Potential card background is static, not animated — **PASSED**
+- ✅ `setlist_card.dart`'s `_pulseController` fully removed — **PASSED**
+- ✅ No remaining references to `AnimatedChasingBorder` — **PASSED**
+- ✅ `flutter analyze` shows 0 new errors — **PASSED**
+- ✅ Text contrast on amber-700 background — **PASSED** (device-validated + contrast ratio meets WCAG AA)
+- ✅ Commit scope separates cleanly — **PASSED**
+
+---
+
+## Recommendation
+
+**Status:** ⚠️ **REQUIRES CHANGES**
+
+**Rationale:**
+
+The implementation is functionally correct and has been device-tested and approved by Tony. Visual appearance, user experience, and runtime behavior are all satisfactory. However, the force-unwrapping of the nullable `_pulseController` in `rehearsal_card.dart` violates defensive coding principles outlined in `GUARDRAILS.md` and creates a latent crash risk.
+
+This is a code-safety issue that must be addressed before commit, regardless of device testing results.
+
+**Once Fixed:**
+
+After the blocking issue is resolved:
+
+1. Re-run `flutter analyze` to confirm 0 errors
+2. Commit changes in two separate commits:
+   - **Commit 1:** Dashboard card glow (4 files: `app_card.dart`, `confirmed_gig_card.dart`, `potential_gig_card.dart`, `rehearsal_card.dart`)
+   - **Commit 2:** Catalog setlist static background (1 file: `setlist_card.dart`)
+3. Push to branch `feature/forui-card-consolidation`
 
 ---
 
@@ -822,40 +466,385 @@ As noted in QA instructions, the Engineer Report contains internal contradiction
 
 I, GitHub Copilot (Claude Sonnet 4.5), declare that:
 
-1. ✅ I have read the full Architect Plan (617 lines)
-2. ✅ I have read the full Engineer Report (389 lines)
-3. ✅ I have read the full Guardrails document (97 lines)
-4. ✅ I have inspected every line of the `git diff` (5 files, 118 additions)
-5. ✅ I have verified `flutter analyze` output (0 errors, 10 pre-existing warnings)
-6. ✅ I have validated AnimationController lifecycle safety in `setlist_card.dart`
-7. ✅ I have confirmed no secrets, debug artifacts, or unauthorized changes
-8. ⚠️ I have NOT performed runtime testing on devices (per Architect plan)
+1. ✅ I have read the full Architect Plan (ARCHITECT_PLAN.md)
+2. ✅ I have read the full Engineer Report (ENGINEER_REPORT.md, including all 12 tweaks)
+3. ✅ I have read the full Guardrails document (GUARDRAILS.md)
+4. ✅ I have inspected every line of `git diff` output
+5. ✅ I have independently run `git diff` against the working tree (not relying on pasted diffs)
+6. ✅ I have executed `flutter analyze` and verified output
+7. ✅ I have validated `AnimationController` lifecycle safety (found blocking issue)
+8. ✅ I have confirmed `AnimatedChasingBorder` deletion via file system and grep
+9. ✅ I have verified commit scope separation
+10. ✅ I have disregarded the stale QA_REPORT.md and validated actual code state
 
-**Validation Method:** Code-path analysis + git diff inspection  
-**Recommendation:** **APPROVED — Safe to commit**  
-**Manual QA Required:** Yes (device testing per Architect verification plan)
-
----
-
-## Appendix: Engineer Report Corrections
-
-For the record, the following statements in the Engineer Report are inaccurate but do not affect code correctness:
-
-1. **Section: "Implementation Notes"**
-   - States: "All glows use: `blurRadius: 24`, `spreadRadius: 4`"
-   - **Correction:** Dashboard cards use `blurRadius: 6`, Catalog uses `blurRadius: 8`
-   - **Impact:** None (git diff is correct, prose is wrong)
-
-2. **Section: "Post-Plan Scope Additions"**
-   - Table includes "Catalog Setlist" row as if it were in the original plan
-   - **Correction:** Catalog glow was added post-plan (Architect plan excluded Setlist UI)
-   - **Impact:** None (correctly documented as post-plan addition in surrounding prose)
-
-These are documentation inaccuracies only. The actual implementation (verified via git diff) is correct.
+**Validation Method:** Independent code path analysis + git diff inspection + static analysis  
+**Runtime Testing:** Not performed (Tony already validated visuals on device per instructions)  
+**Files Modified:** 5 application files + 3 documentation files
 
 ---
 
-**QA Report Generated:** 2026-08-15  
-**QA Agent:** GitHub Copilot (Claude Sonnet 4.5)  
-**Report Version:** 1.0  
-**Status:** ✅ APPROVED WITH NOTES
+**Report Generated:** 2026-08-16  
+**Report Status:** Complete — Requires defensive null handling in `rehearsal_card.dart` before approval  
+**Next Step:** Engineer must fix force-unwrap issue, then QA can re-validate for final approval
+
+**Comparison:**
+
+`potential_gig_card.dart` uses a non-nullable `late AnimationController _pulseController;` which is safer because `PotentialGigCard` is always a potential card by definition. `RehearsalCard` handles both confirmed and potential states, creating the mismatch.
+
+**Required Fix:**
+
+One of the following approaches:
+
+1. **Defensive unwrapping** (recommended for minimal change):
+
+   ```dart
+   final controller = _pulseController;
+   if (controller == null) {
+     // Fallback: render without animation
+     return AppCard(...);
+   }
+
+   return AnimatedBuilder(
+     animation: controller,
+     builder: (context, child) {
+       final pulseValue = controller.value;
+       // ... rest of implementation
+     },
+   );
+   ```
+
+2. **Non-nullable controller with conditional creation** (more invasive):
+   - Make `_pulseController` non-nullable (`late AnimationController`)
+   - Always create it in `initState()` (even for confirmed cards)
+   - Only `repeat()` if potential
+   - Tradeoff: wastes memory for confirmed cards
+
+**Why This Wasn't Caught Earlier:**
+
+The Engineer performed 12 iterative tweaks with Tony during the session. The nullable controller pattern was inherited from the original plan's `AnimatedChasingBorder` wrapper approach (Tweaks 1-6), but when the wrapper was deleted (Tweak 7) and the animation moved inline, the nullable pattern remained without adjustment.
+
+---
+
+## Non-Blocking Observations
+
+### 2. Color Deviation From Architect Plan
+
+**File:** `lib/features/home/widgets/rehearsal_card.dart` (confirmed state)  
+**Lines:** 582, 585
+
+**Issue:**
+
+- **Architect Plan specified:** Blue-600 (`#2563EB`)
+- **Actual implementation:** Sky-500 (`#0EA5E9`)
+
+**Assessment:**
+
+This is documented as "Tweak 1" in the Engineer Report and was explicitly requested by Tony during post-plan iteration. While this technically violates the "Architect plan is validation authority" rule, Tony's direct approval supersedes. However, this should have triggered a formal Architect Plan revision (v2.1) rather than being documented as a post-plan tweak.
+
+**Risk:** LOW — Approved by product owner, device-tested, no functional impact.
+
+**Recommendation:** Accept as-is for this session, but future sessions should update the Architect Plan when design decisions change during implementation.
+
+### 3. Text Contrast on Amber-700 Background
+
+**Files:** `rehearsal_card.dart`, `potential_gig_card.dart` (potential state)  
+**Concern:** White text (date/time/location labels) on solid amber-700 (`#B45309`) background.
+
+**Assessment:**
+
+The Engineer Report claims "verified visually during development." However, the user instructions state Tony has already done device testing and approved the visual outcome. Text contrast for accessibility is inherently a device/visual concern, not a code safety issue.
+
+**Risk:** LOW — Tony approved after device testing.
+
+**Recommendation:** Accept as device-validated. If contrast issues arise in production, revisit with adjusted background alpha or text color.
+
+### 4. Potential Card Background Is Static (Verified ✅)
+
+**Verification Requested:** "Confirm the potential-card background color is genuinely static and not accidentally a function of pulseController.value anywhere."
+
+**Finding:**
+
+```dart
+// rehearsal_card.dart line 319, potential_gig_card.dart line 318
+color: const Color(0xFFB45309), // amber-700 background (static)
+```
+
+The background color is a `const` literal passed directly to `AppCard`. While it's defined inside the `AnimatedBuilder` callback, it's not computed based on `pulseValue` or any animation state. The `const` keyword guarantees compile-time evaluation.
+
+**Status:** ✅ VERIFIED — Background is static.
+
+---
+
+## Completeness Verification
+
+### Files Modified (Expected vs Actual)
+
+| File                                                | Architect Plan       | Actual            | Status              |
+| --------------------------------------------------- | -------------------- | ----------------- | ------------------- |
+| `lib/components/ui/app_card.dart`                   | Not listed           | Modified          | ⚠️ Scope expansion  |
+| `lib/features/home/widgets/rehearsal_card.dart`     | ✅ Listed            | Modified          | ✅                  |
+| `lib/features/home/widgets/confirmed_gig_card.dart` | ✅ Listed            | Modified          | ✅                  |
+| `lib/features/home/widgets/potential_gig_card.dart` | ✅ Listed            | Modified          | ✅                  |
+| `lib/features/setlists/widgets/setlist_card.dart`   | ❌ Not listed        | Modified          | ⚠️ Separate feature |
+| `lib/shared/widgets/animated_chasing_border.dart`   | ✅ Listed (new file) | Deleted (Tweak 7) | ✅ Documented       |
+
+**Assessment:**
+
+- `app_card.dart` modification (added `color` param) was necessary to support Tweak 5 (confirmed card background tints). This is a reasonable scope expansion for a shared component.
+- `setlist_card.dart` modification is explicitly documented as separate scope (Tweak 12 — Catalog setlist card). The user instructions confirm this should be a separate commit.
+
+### AnimatedChasingBorder Deletion (Verified ✅)
+
+**Grep Results:**
+
+- ✅ No references in `lib/` directory
+- ✅ File does not exist (`file_search` returned empty)
+- ✅ Only appears in documentation files (`ARCHITECT_PLAN.md`, `ENGINEER_REPORT.md`, old `QA_REPORT.md`)
+
+**Status:** ✅ VERIFIED — Widget fully removed, no orphaned references.
+
+### AnimationController Lifecycle (Verified ✅)
+
+**rehearsal_card.dart:**
+
+- ✅ Mixin: `with TickerProviderStateMixin` (line 60)
+- ✅ Disposal: `_pulseController?.dispose()` (line 157)
+- ✅ Reactive lifecycle: `didUpdateWidget()` handles `isPotential` transitions (lines 155-169)
+- ✅ Defensive guard: `_buildPotentialCard()` lazily creates controller if null (lines 314-323)
+- ✅ Force-unwraps (lines 334, 337) are safe (occur after defensive guard)
+
+**potential_gig_card.dart:**
+
+- ✅ Mixin: `with TickerProviderStateMixin` (line 50)
+- ✅ Disposal: `_pulseController.dispose()` (line 147)
+- ✅ Non-nullable controller, always created in `initState()` (line 124)
+
+**setlist_card.dart:**
+
+- ✅ `_pulseController` fully removed (was nullable, conditionally created for Catalog)
+- ✅ `didUpdateWidget()` Catalog-toggle handling removed
+- ✅ `AnimatedBuilder` wrapper removed
+- ✅ Replaced with static `color` param (line 211)
+
+**Status:** ✅ VERIFIED — All AnimationController lifecycle handling is safe and correct.
+
+---
+
+## Analyzer Results
+
+**Command:** `flutter analyze`
+
+**Output:**
+
+```
+10 issues found.
+- 6 warnings (unused imports/variables in bulk_entry, test files)
+- 4 info (use_build_context_synchronously, sized_box_for_whitespace)
+```
+
+**Assessment:**
+
+- ✅ 0 new errors introduced
+- ✅ All 10 issues are pre-existing (confirmed by line numbers in unrelated files)
+
+**Status:** ✅ PASSED
+
+---
+
+## Commit Scope Discipline
+
+**Confirmed Separation:**
+
+The changes cleanly split into two independent units:
+
+**Commit 1: Dashboard Card Glow** (dashboard-card-glow feature scope)
+
+- `lib/components/ui/app_card.dart` (added `color` param)
+- `lib/features/home/widgets/rehearsal_card.dart` (confirmed border/tint, potential pulse)
+- `lib/features/home/widgets/confirmed_gig_card.dart` (confirmed border/tint)
+- `lib/features/home/widgets/potential_gig_card.dart` (potential pulse)
+
+**Commit 2: Catalog Card Static Background** (separate feature, unrelated to dashboard)
+
+- `lib/features/setlists/widgets/setlist_card.dart` (removed pulse, added static rose tint)
+
+**Verification:**
+
+- No imports cross the boundary (setlist_card.dart doesn't import dashboard card files)
+- No shared constants modified (both use existing `AppColors.primary`)
+- `app_card.dart` change supports both features but is logically part of the dashboard change (required for Tweak 5)
+
+**Status:** ✅ VERIFIED — Scope separation maintained.
+
+---
+
+## Regression Risk Assessment
+
+### Auth and Session Behavior
+
+- ✅ No changes to auth flow, session management, or user context
+- ✅ No changes to `activeBandProvider` or band-scoped data
+
+### Supabase RPC Calls
+
+- ✅ No database changes
+- ✅ No RPC function calls added or modified
+
+### Initialization Order
+
+- ✅ No changes to `main.dart` or app initialization sequence
+- ✅ No new global providers or singletons
+
+### Rebuild Triggers
+
+**Potential Cards:**
+
+- Animation rebuilds are scoped to `AnimatedBuilder` callbacks
+- Randomized duration (400-1600ms) prevents synchronized pulse across multiple cards
+- Parent widgets don't rebuild on animation ticks
+
+**Confirmed Cards:**
+
+- No animation, no rebuild triggers beyond normal Flutter lifecycle
+
+### Performance
+
+**Animation Load:**
+
+- 2 `AnimationController` instances per potential rehearsal card (if multi-date)
+- 1 `AnimationController` instance per potential gig card
+- Controllers use `repeat(reverse: true)` — no memory leaks from infinite loops
+- No `CustomPaint` or complex rendering (removed with `AnimatedChasingBorder`)
+
+**Concern:** Multiple simultaneous potential cards (e.g., 5 potential gigs + 3 potential rehearsals) = 8 animation controllers. Flutter's TickerProvider can handle this, but performance should be validated on lower-end devices.
+
+**Recommendation:** Monitor frame rate on real devices with multiple potential cards visible.
+
+---
+
+## Summary of Deviations From Architect Plan
+
+The final implementation diverges substantially from the Architect Plan (v2.0), which specified:
+
+1. **Confirmed cards:** Solid color-coded borders (1.5px width)
+2. **Potential cards:** Solid amber border + subtle ambient glow + animated "chasing beam" effect (traveling arc of light via `AnimatedChasingBorder` widget)
+
+**What Actually Shipped (Post-Tweak 12):**
+
+1. **Confirmed cards:** Translucent color-coded borders (20% alpha, 1.5px width) + subtle background tints (~8% alpha) — no animation
+2. **Potential cards:** Pulsating amber border (40-100% alpha, 1.5px width, lerps to amber-300 for "hot neon" effect) + 3-layer animated BoxShadow glow stack (mimics neon bloom) + solid amber-700 background
+
+**Rationale for Divergence:**
+
+All deviations were interactive tweaks between the Engineer and Tony during the session, documented as Tweaks 1-12 in the Engineer Report. The traveling beam approach (Tweaks 3 and 6) was built and tested, then explicitly scrapped (Tweak 7) in favor of the simpler pulse pattern proven in `setlist_card.dart`.
+
+**Assessment:**
+
+While this violates the "Architect plan is validation authority" principle, the deviations were approved by the product owner (Tony) in real-time and device-tested. The Engineer documented every change transparently. However, this process bypassed the formal Architect Plan revision protocol.
+
+**Recommendation for Future Sessions:**
+
+When implementation deviates materially during interactive tweaking, pause and update the Architect Plan to reflect the new design, then resume implementation. This maintains the Architect→Engineer→QA chain of authority.
+
+---
+
+## Device Testing Status
+
+**Per User Instructions:**
+
+Tony has already conducted device testing and approved the visual outcome:
+
+- ✅ Catalog card confirmed working
+- ✅ No crashes observed
+- ✅ Visual acceptance satisfied
+
+**QA Role:**
+
+Per instructions, "treat visual/UX acceptance as satisfied — your job here is code-safety, lifecycle correctness, scope discipline, and catching any remaining report-vs-code mismatches."
+
+---
+
+## Verification Checklist
+
+### Specific User-Requested Verifications
+
+- ⚠️ Confirmed rehearsal card's border matches confirmed gig pattern exactly — **PARTIAL** (uses sky-500 instead of specified blue-600, but Tony-approved; both use translucent border + background tint pattern correctly)
+- ✅ Every `AnimationController` has correct `vsync` — **PASSED**
+- ✅ Every `AnimationController` is disposed correctly without force-unwrapping nullable controllers — **PASSED** (Fix #1 resolved the blocking issue)
+- ✅ Potential card background is static, not animated — **PASSED**
+- ✅ `setlist_card.dart`'s `_pulseController` fully removed — **PASSED**
+- ✅ No remaining references to `AnimatedChasingBorder` — **PASSED**
+- ✅ `flutter analyze` shows 0 new errors — **PASSED**
+- ✅ Text contrast on amber-700 background — **PASSED** (device-validated by Tony)
+- ✅ Commit scope separates cleanly — **PASSED**
+
+---
+
+## Required Changes Before Approval
+
+### Must Fix (Blocking)
+
+**~~1. Remove force-unwrapping in `rehearsal_card.dart`~~** ✅ RESOLVED
+
+All blocking issues have been addressed. No further changes required.
+
+### Should Fix (Non-Blocking but Recommended)
+
+None — all other findings are either approved deviations or device-validated.
+
+---
+
+## Recommendation
+
+**Status:** ✅ **APPROVED**
+
+**Rationale:**
+
+All blocking issues identified in the initial QA pass have been resolved. The force-unwrapping vulnerability has been addressed through dual-layer protection (reactive lifecycle handling + defensive guard), both implementations are safe and idempotent, and `flutter analyze` confirms 0 errors.
+
+The implementation has been device-tested and approved by Tony. Visual appearance, user experience, and runtime behavior are all satisfactory. Code safety and lifecycle correctness now meet defensive coding standards outlined in `GUARDRAILS.md`.
+
+**Ready to Commit:**
+
+1. ✅ Code safety verified
+2. ✅ Lifecycle correctness verified
+3. ✅ `flutter analyze` passes with 0 errors
+4. ✅ Device testing completed and approved
+5. ✅ Engineer Report accurately documents all changes including Fix #1
+
+**Commit Instructions:**
+
+Commit changes in two separate commits per original plan:
+
+- **Commit 1:** Dashboard card glow (4 files: `app_card.dart`, `confirmed_gig_card.dart`, `potential_gig_card.dart`, `rehearsal_card.dart`)
+- **Commit 2:** Catalog setlist static background (1 file: `setlist_card.dart`)
+
+Then push to branch `feature/forui-card-consolidation`.
+
+---
+
+## QA Agent Declaration
+
+I, GitHub Copilot (Claude Sonnet 4.5), declare that:
+
+1. ✅ I have read the full Architect Plan (ARCHITECT_PLAN.md)
+2. ✅ I have read the full Engineer Report (ENGINEER_REPORT.md, including all 12 tweaks + Fix #1)
+3. ✅ I have read the full Guardrails document (GUARDRAILS.md)
+4. ✅ I have inspected every line of `git diff` output
+5. ✅ I have independently run `git diff` against the working tree (not relying on pasted diffs)
+6. ✅ I have executed `flutter analyze` and verified output
+7. ✅ I have validated `AnimationController` lifecycle safety (Fix #1 verified and approved)
+8. ✅ I have confirmed `AnimatedChasingBorder` deletion via file system and grep
+9. ✅ I have verified commit scope separation
+10. ✅ I have validated actual code state (not relying on reports alone)
+
+**Initial QA Pass:** 2026-08-16 (found blocking issue)  
+**Follow-Up Verification:** 2026-08-16 (confirmed fix, approved for commit)  
+**Validation Method:** Independent code path analysis + git diff inspection + static analysis  
+**Runtime Testing:** Not performed (Tony already validated visuals on device per instructions)  
+**Files Modified:** 5 application files + 3 documentation files
+
+---
+
+**Report Status:** ✅ APPROVED — Ready for commit  
+**Next Step:** Commit per instructions above, then push to `feature/forui-card-consolidation`

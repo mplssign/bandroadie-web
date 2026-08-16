@@ -15,6 +15,7 @@ class AppCard extends StatelessWidget {
     this.borderRadius,
     this.border,
     this.boxShadow,
+    this.color,
   });
 
   /// Card content
@@ -38,6 +39,9 @@ class AppCard extends StatelessWidget {
   /// Optional box shadow (e.g., [BoxShadow(color: ..., blurRadius: 24)])
   final List<BoxShadow>? boxShadow;
 
+  /// Optional background color (e.g., Color(0x140EA5E9) for subtle tint)
+  final Color? color;
+
   @override
   Widget build(BuildContext context) {
     // Read Forui's theme border color
@@ -53,6 +57,7 @@ class AppCard extends StatelessWidget {
     final styleDelta = FCardStyleDelta.delta(
       padding: padding != null ? EdgeInsetsGeometryDelta.value(padding!) : null,
       decoration: DecorationDelta.boxDelta(
+        color: color,
         borderRadius: borderRadius,
         border: effectiveBorder,
         boxShadow: boxShadow,

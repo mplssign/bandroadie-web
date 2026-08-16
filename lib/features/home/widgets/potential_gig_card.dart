@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -46,9 +48,10 @@ class PotentialGigCard extends StatefulWidget {
 }
 
 class _PotentialGigCardState extends State<PotentialGigCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _isPressed = false;
   bool _isSubmitting = false;
+  late AnimationController _pulseController;
 
   /// Current date index within _sortedDates.
   int _currentDateIndex = 0;
@@ -114,6 +117,14 @@ class _PotentialGigCardState extends State<PotentialGigCard>
     for (int i = 0; i < 4; i++) {
       _focusNodes.add(FocusNode());
     }
+
+    // Pulse controller for border animation - randomized duration (400-1600ms)
+    final random = Random();
+    final durationMs = 400 + random.nextInt(1200); // 400-1600ms
+    _pulseController = AnimationController(
+      duration: Duration(milliseconds: durationMs),
+      vsync: this,
+    )..repeat(reverse: true);
   }
 
   @override
@@ -133,6 +144,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
   @override
   void dispose() {
+    _pulseController.dispose();
     for (var node in _focusNodes) {
       node.dispose();
     }
@@ -284,16 +296,53 @@ class _PotentialGigCardState extends State<PotentialGigCard>
         scale: _isPressed ? AnimScales.cardPressed : 1.0,
         duration: AppDurations.fast,
         curve: AppCurves.ease,
-        child: AppCard(
-          padding: EdgeInsets.zero,
-          borderRadius: BorderRadius.circular(Spacing.cardRadius),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33F59E0B), // amber-500 @ 20%
-              blurRadius: 6,
-              spreadRadius: 4,
-            ),
-          ],
+        child: AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, child) {
+            // Neon-style pulse: animate both alpha and color temperature
+            final pulseValue = _pulseController.value;
+            final alpha = 0.4 + (pulseValue * 0.6);
+
+            // Lerp from amber-500 to amber-300 for "hot" neon effect at peak
+            const baseColor = Color(0xFFF59E0B); // amber-500
+            const hotColor = Color(0xFFFCD34D); // amber-300
+            final borderColor = Color.lerp(baseColor, hotColor, pulseValue)!
+                .withValues(alpha: alpha);
+
+            return AppCard(
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(Spacing.cardRadius),
+              color: const Color(0xFFB45309), // amber-700 background (static)
+              border: Border.all(
+                color: borderColor,
+                width: 1.5,
+              ),
+              boxShadow: [
+                // Tight inner glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.4 + (pulseValue * 0.5)),
+                  blurRadius: 4,
+                  spreadRadius: 0,
+                ),
+                // Mid glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.3 + (pulseValue * 0.4)),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+                // Outer soft glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.15 + (pulseValue * 0.25)),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                ),
+              ],
+              child: child!,
+            );
+          },
           child: Container(
             width: widget.width,
             constraints:

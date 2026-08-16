@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -55,9 +57,11 @@ class RehearsalCard extends StatefulWidget {
   State<RehearsalCard> createState() => _RehearsalCardState();
 }
 
-class _RehearsalCardState extends State<RehearsalCard> {
+class _RehearsalCardState extends State<RehearsalCard>
+    with TickerProviderStateMixin {
   bool _isPressed = false;
   bool _isSubmitting = false;
+  AnimationController? _pulseController;
 
   /// Current date index within _sortedDates.
   int _currentDateIndex = 0;
@@ -121,6 +125,16 @@ class _RehearsalCardState extends State<RehearsalCard> {
     for (int i = 0; i < 4; i++) {
       _focusNodes.add(FocusNode());
     }
+
+    // Pulse controller for potential cards - randomized duration (400-1600ms)
+    if (widget.rehearsal.isPotential) {
+      final random = Random();
+      final durationMs = 400 + random.nextInt(1200); // 400-1600ms
+      _pulseController = AnimationController(
+        duration: Duration(milliseconds: durationMs),
+        vsync: this,
+      )..repeat(reverse: true);
+    }
   }
 
   @override
@@ -136,10 +150,28 @@ class _RehearsalCardState extends State<RehearsalCard> {
       });
       _localResponses = newResponses;
     }
+
+    // Handle isPotential transitions (potential ↔ confirmed) on already-mounted widget
+    if (widget.rehearsal.isPotential != oldWidget.rehearsal.isPotential) {
+      if (widget.rehearsal.isPotential && _pulseController == null) {
+        // Transitioning to potential: create controller
+        final random = Random();
+        final durationMs = 400 + random.nextInt(1200);
+        _pulseController = AnimationController(
+          duration: Duration(milliseconds: durationMs),
+          vsync: this,
+        )..repeat(reverse: true);
+      } else if (!widget.rehearsal.isPotential && _pulseController != null) {
+        // Transitioning to confirmed: dispose controller
+        _pulseController?.dispose();
+        _pulseController = null;
+      }
+    }
   }
 
   @override
   void dispose() {
+    _pulseController?.dispose();
     for (var node in _focusNodes) {
       node.dispose();
     }
@@ -280,6 +312,17 @@ class _RehearsalCardState extends State<RehearsalCard> {
   // ---------------------------------------------------------------------------
 
   Widget _buildPotentialCard(BuildContext context) {
+    // Defensive null-safety: ensure controller exists before building animated content
+    if (_pulseController == null) {
+      // Lazily create controller if somehow missing (should not happen with proper lifecycle)
+      final random = Random();
+      final durationMs = 400 + random.nextInt(1200);
+      _pulseController = AnimationController(
+        duration: Duration(milliseconds: durationMs),
+        vsync: this,
+      )..repeat(reverse: true);
+    }
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
@@ -289,16 +332,53 @@ class _RehearsalCardState extends State<RehearsalCard> {
         scale: _isPressed ? AnimScales.cardPressed : 1.0,
         duration: AppDurations.fast,
         curve: AppCurves.ease,
-        child: AppCard(
-          padding: EdgeInsets.zero,
-          borderRadius: BorderRadius.circular(Spacing.cardRadius),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33F59E0B), // amber-500 @ 20%
-              blurRadius: 6,
-              spreadRadius: 4,
-            ),
-          ],
+        child: AnimatedBuilder(
+          animation: _pulseController!,
+          builder: (context, child) {
+            // Neon-style pulse: animate both alpha and color temperature
+            final pulseValue = _pulseController!.value;
+            final alpha = 0.4 + (pulseValue * 0.6);
+
+            // Lerp from amber-500 to amber-300 for "hot" neon effect at peak
+            const baseColor = Color(0xFFF59E0B); // amber-500
+            const hotColor = Color(0xFFFCD34D); // amber-300
+            final borderColor = Color.lerp(baseColor, hotColor, pulseValue)!
+                .withValues(alpha: alpha);
+
+            return AppCard(
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(Spacing.cardRadius),
+              color: const Color(0xFFB45309), // amber-700 background (static)
+              border: Border.all(
+                color: borderColor,
+                width: 1.5,
+              ),
+              boxShadow: [
+                // Tight inner glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.4 + (pulseValue * 0.5)),
+                  blurRadius: 4,
+                  spreadRadius: 0,
+                ),
+                // Mid glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.3 + (pulseValue * 0.4)),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+                // Outer soft glow
+                BoxShadow(
+                  color: const Color(0xFFF59E0B)
+                      .withValues(alpha: 0.15 + (pulseValue * 0.25)),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                ),
+              ],
+              child: child!,
+            );
+          },
           child: Container(
             constraints:
                 BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
@@ -526,13 +606,11 @@ class _RehearsalCardState extends State<RehearsalCard> {
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x332563EB), // blue-600 (#2563EB) @ 20%
-              blurRadius: 6,
-              spreadRadius: 4,
-            ),
-          ],
+          border: Border.all(
+            color: const Color(0x330EA5E9), // sky-500 @ 20% alpha
+            width: 1.5,
+          ),
+          color: const Color(0x140EA5E9), // sky-500 @ ~8% alpha background tint
           child: Container(
             constraints: BoxConstraints(
               minHeight: Spacing.rehearsalCardHeight,
