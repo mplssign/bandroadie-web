@@ -25,6 +25,7 @@ Replace the bespoke 705-line `calendar_grid.dart` (custom spring-physics swipe n
 
 **Current State:**  
 `calendar_grid.dart` reimplements calendar grid functionality that Forui provides natively:
+
 - Custom `GestureDetector` with `onHorizontalDrag*` handlers (~100 lines)
 - Custom `SpringSimulation` animation for swipe transitions (~50 lines)
 - Manual day-cell grid layout with `Row`/`Column` (~200 lines)
@@ -33,6 +34,7 @@ Replace the bespoke 705-line `calendar_grid.dart` (custom spring-physics swipe n
 
 **Forui Capability:**  
 `FCalendar.wheel` (version 0.25.0) provides:
+
 - `FWheelCalendarController` with bounded date range (start/end), `currentMonth` property, `toggleMonthYearPicker()` method
 - Built-in `dayBuilder` callback for custom per-day content (can render event markers via `CalendarState.getMarkers(date)`)
 - Built-in `onDayPress` / `onDayLongPress` callbacks (no selection state required via `selectionControl: .none()`)
@@ -58,6 +60,7 @@ Adopting Forui requires migrating navigation state ownership. Today, `calendarPr
 **File:** Create `lib/features/calendar/calendar_colors.dart`
 
 **Action:** Extract `CalendarColors` class from `calendar_grid.dart` (lines 23-37) to new file. Keep exact hex values (Figma-pinned):
+
 - `gigIndicator` = `#65A30D`
 - `rehearsalIndicator` = `#2563EB`
 - `blockOutIndicator` = `#F43F5E`
@@ -72,6 +75,7 @@ Adopting Forui requires migrating navigation state ownership. Today, `calendarPr
 **File:** `lib/features/calendar/widgets/calendar_grid.dart`
 
 **Current:**
+
 ```dart
 class CalendarGrid extends StatefulWidget {
   final DateTime selectedMonth;
@@ -84,6 +88,7 @@ class CalendarGrid extends StatefulWidget {
 ```
 
 **New:**
+
 ```dart
 class CalendarGrid extends StatefulWidget {
   final FWheelCalendarController controller;  // NEW: Forui controller
@@ -111,6 +116,7 @@ class CalendarGrid extends StatefulWidget {
    )
    ```
 3. **Custom `dayBuilder`:**
+
    ```dart
    Widget _buildDayWithMarkers(
      BuildContext context,
@@ -144,6 +150,7 @@ class CalendarGrid extends StatefulWidget {
      );
    }
    ```
+
 4. **Preserve marker rendering logic:** Extract `_buildGigMarker()`, `_buildRehearsalMarker()`, `_buildBlockOutMarker()`, `_buildPotentialMarker()` methods from current `_DayCell` class. Stack them in `_buildMarkerStack()` using `calendarState.eventsForDate(date)` to determine order (by start time, block-outs last).
 5. **Delete:** All custom swipe handling (`_onHorizontalDrag*`, `_animateToOffset`, `_dragOffset`, `SpringSimulation`), custom month header (`_MonthHeader`), custom grid layout (`_CalendarDaysGrid`, `_DayCell`), custom day headers (`_DayHeaders` — Forui renders these).
 
@@ -160,6 +167,7 @@ class CalendarGrid extends StatefulWidget {
 **Changes:**
 
 1. **Create `FWheelCalendarController` in `_CalendarScreenState.initState()`:**
+
    ```dart
    late FWheelCalendarController _calendarController;
 
@@ -187,6 +195,7 @@ class CalendarGrid extends StatefulWidget {
      super.dispose();
    }
    ```
+
 2. **Pass `controller` to `CalendarGrid`:**
    ```dart
    CalendarGrid(
@@ -232,6 +241,7 @@ class CalendarGrid extends StatefulWidget {
    }
    ```
 2. **Mark as deprecated or remove (decision required):**
+
    ```dart
    // Option A: Mark deprecated (keep for programmatic control if needed later)
    @Deprecated('Use FWheelCalendarController.animateToDayPicker() instead')
@@ -257,12 +267,14 @@ class CalendarGrid extends StatefulWidget {
 **Files:** `calendar_screen.dart`, `calendar_tab_content.dart`, `calendar_grid.dart`
 
 **Add:**
+
 ```dart
 import 'package:forui/forui.dart';
 import 'package:bandroadie/features/calendar/calendar_colors.dart';  // New file
 ```
 
 **Remove from `calendar_grid.dart`:**
+
 ```dart
 import 'package:flutter/physics.dart';  // No longer using SpringSimulation
 ```
@@ -271,13 +283,13 @@ import 'package:flutter/physics.dart';  // No longer using SpringSimulation
 
 ## Files Modified
 
-| File | Action | Lines Changed | Description |
-|------|--------|---------------|-------------|
-| `lib/features/calendar/calendar_colors.dart` | **Create** | +40 | Extract CalendarColors constants |
-| `lib/features/calendar/widgets/calendar_grid.dart` | **Replace** | -600, +150 | Swap custom grid for FCalendar.wheel |
-| `lib/features/calendar/calendar_screen.dart` | **Modify** | ~10 | Add controller, remove prev/next callbacks |
-| `lib/features/calendar/calendar_tab_content.dart` | **Modify** | ~10 | Same as calendar_screen |
-| `lib/features/calendar/calendar_controller.dart` | **Modify** | ~5 | Add setSelectedMonth, remove navigation methods |
+| File                                               | Action      | Lines Changed | Description                                     |
+| -------------------------------------------------- | ----------- | ------------- | ----------------------------------------------- |
+| `lib/features/calendar/calendar_colors.dart`       | **Create**  | +40           | Extract CalendarColors constants                |
+| `lib/features/calendar/widgets/calendar_grid.dart` | **Replace** | -600, +150    | Swap custom grid for FCalendar.wheel            |
+| `lib/features/calendar/calendar_screen.dart`       | **Modify**  | ~10           | Add controller, remove prev/next callbacks      |
+| `lib/features/calendar/calendar_tab_content.dart`  | **Modify**  | ~10           | Same as calendar_screen                         |
+| `lib/features/calendar/calendar_controller.dart`   | **Modify**  | ~5            | Add setSelectedMonth, remove navigation methods |
 
 **Total:** 5 files modified/created
 
@@ -294,28 +306,28 @@ import 'package:flutter/physics.dart';  // No longer using SpringSimulation
 
 ## System Impact Matrix
 
-| System | Impact | Rationale |
-|--------|--------|-----------|
-| Calendar | **Affected** | Direct modification — calendar grid rendering and navigation state ownership |
-| Gigs | **Unaffected** | CalendarGrid consumes `CalendarState.getMarkers()` and `eventsForDate()` — API unchanged |
-| Rehearsals | **Unaffected** | Same as Gigs |
-| Block Outs | **Unaffected** | Same as Gigs |
-| Members / RBAC | **Unaffected** | Calendar screen RBAC logic (`canCreateGigs`) unmodified |
-| Auth / Session | **Unaffected** | No auth flow changes |
-| Routing | **Unaffected** | No route changes |
-| Setlists | **Unaffected** | No shared state |
-| Theming | **Potentially affected** | FCalendar.wheel uses Forui theme — verify rose accent and dark mode apply correctly |
+| System         | Impact                   | Rationale                                                                                |
+| -------------- | ------------------------ | ---------------------------------------------------------------------------------------- |
+| Calendar       | **Affected**             | Direct modification — calendar grid rendering and navigation state ownership             |
+| Gigs           | **Unaffected**           | CalendarGrid consumes `CalendarState.getMarkers()` and `eventsForDate()` — API unchanged |
+| Rehearsals     | **Unaffected**           | Same as Gigs                                                                             |
+| Block Outs     | **Unaffected**           | Same as Gigs                                                                             |
+| Members / RBAC | **Unaffected**           | Calendar screen RBAC logic (`canCreateGigs`) unmodified                                  |
+| Auth / Session | **Unaffected**           | No auth flow changes                                                                     |
+| Routing        | **Unaffected**           | No route changes                                                                         |
+| Setlists       | **Unaffected**           | No shared state                                                                          |
+| Theming        | **Potentially affected** | FCalendar.wheel uses Forui theme — verify rose accent and dark mode apply correctly      |
 
 ---
 
 ## Platform-Specific Considerations
 
-| Platform | Behavior | Fallback Required? |
-|----------|----------|-------------------|
-| **iOS** | Native swipe gestures via PageView.builder | No |
-| **Android** | Native swipe gestures via PageView.builder | No |
-| **Web** | Mouse drag may not trigger swipe; header prev/next arrows functional | No (Forui header provides arrows) |
-| **macOS** | Trackpad swipe may work; header arrows functional | No |
+| Platform    | Behavior                                                             | Fallback Required?                |
+| ----------- | -------------------------------------------------------------------- | --------------------------------- |
+| **iOS**     | Native swipe gestures via PageView.builder                           | No                                |
+| **Android** | Native swipe gestures via PageView.builder                           | No                                |
+| **Web**     | Mouse drag may not trigger swipe; header prev/next arrows functional | No (Forui header provides arrows) |
+| **macOS**   | Trackpad swipe may work; header arrows functional                    | No                                |
 
 **Verification:** Test swipe on iOS/Android physical device, verify header arrows work on Web/macOS desktop.
 
@@ -408,6 +420,7 @@ If QA fails or critical visual regression detected:
 **Web Docs Reference:** https://forui.dev/docs/widgets/data/calendar#month-year-wheel (client-rendered, used as guidance only — installed package source is ground truth)
 
 **Known Limitations:**
+
 - Forui's `dayBuilder` receives a `Set<FCalendarDayVariant>` for styling variants (today, selected, disabled, etc.). Current implementation does not use selection state, so only `today` variant is relevant.
 - Marker rendering logic must fit within Forui's day cell layout constraints (likely ~40px × 40px cell + space below for markers). If markers don't fit, reduce marker count or size (acceptable per Tony's guidance).
 - `FWheelCalendarController.currentMonth` is read-only — to programmatically navigate, use `controller.animateToDayPicker(targetMonth)` or `controller.jumpToDayPicker(targetMonth)`.
