@@ -9,6 +9,7 @@ import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/event_permission_helper.dart';
@@ -2884,12 +2885,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _selectBlockOutStartDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) => _blockOutDatePickerTheme(child),
     );
     if (picked != null) {
       setState(() {
@@ -2905,32 +2905,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _selectBlockOutUntilDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _blockOutUntilDate ?? _selectedDate,
       firstDate: _selectedDate,
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) => _blockOutDatePickerTheme(child),
     );
     if (picked != null) {
       setState(() => _blockOutUntilDate = picked);
       _markDirty();
       HapticFeedback.selectionClick();
     }
-  }
-
-  Widget _blockOutDatePickerTheme(Widget? child) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppColors.primary,
-              surface: context.colors.surface,
-              onSurface: context.colors.textPrimary,
-            ),
-        dialogTheme: DialogThemeData(backgroundColor: context.colors.surface),
-      ),
-      child: child!,
-    );
   }
 
   String _formatBlockOutDate(DateTime date) {
@@ -2953,23 +2938,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showAdditionalDatePicker(int index) async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _additionalDates[index].date,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primary,
-                  surface: context.colors.surface,
-                  onSurface: context.colors.textPrimary,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null && mounted) {
@@ -2979,22 +2952,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showDatePicker() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primary,
-                  surface: context.colors.surface,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -3124,22 +3086,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   }
 
   Future<void> _showUntilDatePicker() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _untilDate ?? _selectedDate.add(const Duration(days: 30)),
       firstDate: _selectedDate,
       lastDate: _selectedDate.add(const Duration(days: 730)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primary,
-                  surface: context.colors.surface,
-                ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {

@@ -10,9 +10,10 @@
 
 ## Problem Statement
 
-Event creation and editing (`lib/features/events/widgets/event_editor_drawer.dart`) uses Flutter's stock Material `showDatePicker` dialog with manual theme override (`Theme(...).copyWith(colorScheme: ...)`), inconsistent with the rest of the app's Forui migration. The calendar display was successfully migrated to Forui's `FCalendar.wheel` (feature `calendar-forui-wheel-grid`, merged 2026-08-17, commit `37fc61a4`), but date *selection* for event creation/editing still uses Material's default date picker.
+Event creation and editing (`lib/features/events/widgets/event_editor_drawer.dart`) uses Flutter's stock Material `showDatePicker` dialog with manual theme override (`Theme(...).copyWith(colorScheme: ...)`), inconsistent with the rest of the app's Forui migration. The calendar display was successfully migrated to Forui's `FCalendar.wheel` (feature `calendar-forui-wheel-grid`, merged 2026-08-17, commit `37fc61a4`), but date _selection_ for event creation/editing still uses Material's default date picker.
 
 **Scope:** Three date picker call sites in `event_editor_drawer.dart`:
+
 1. Primary event date (`_showDatePicker`)
 2. Recurring event until-date (`_showUntilDatePicker`)
 3. Multi-date gig additional dates (`_showAdditionalDatePicker`)
@@ -51,6 +52,7 @@ Future<void> _showDatePicker() async {          // Line ~2981
 ```
 
 Identical pattern repeated in:
+
 - `_showUntilDatePicker()` (line ~3127) — recurring event end date
 - `_showAdditionalDatePicker(int index)` (line ~2956) — multi-date gig additional dates
 
@@ -73,7 +75,7 @@ Forui v0.25.0 (installed, confirmed in `pubspec.yaml`) provides:
 - **`showFDialog`** (already wrapped by `lib/components/ui/app_dialog.dart`)
 - **`FDateField.calendar`** (form field with popover picker — not applicable here, events use modal dialogs)
 
-The app already uses Forui dialogs via `showAppDialog` wrapper. The calendar display uses `FCalendar.wheel` with `selectionControl: FDateSelectionControl.none()` (display-only). This feature adds *selection* capability to the date picker flow via `FDateSelectionControl.managedSingle()`.
+The app already uses Forui dialogs via `showAppDialog` wrapper. The calendar display uses `FCalendar.wheel` with `selectionControl: FDateSelectionControl.none()` (display-only). This feature adds _selection_ capability to the date picker flow via `FDateSelectionControl.managedSingle()`.
 
 **Why This Needs Fixing:**
 
@@ -296,48 +298,48 @@ Future<void> _showAdditionalDatePicker(int index) async {
 
 ## Files to Create
 
-| File | Justification |
-|------|---------------|
+| File                                     | Justification                                                                                                                                                                                                                                                   |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/components/ui/app_date_picker.dart` | Reusable wrapper for Forui date picker dialog, follows precedent of `app_dialog.dart`, `app_bottom_sheet.dart`, `app_button.dart` in same directory. Drop-in replacement for Material `showDatePicker` ensures consistency across future date picker use cases. |
 
 ---
 
 ## Files to Modify
 
-| File | What Changes |
-|------|-------------|
+| File                                                   | What Changes                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lib/features/events/widgets/event_editor_drawer.dart` | Add import for `app_date_picker.dart`. Replace 3 date picker methods: `_showDatePicker()`, `_showUntilDatePicker()`, `_showAdditionalDatePicker(int)` — each replaces `showDatePicker` call + custom theme builder with single `showAppDatePicker` call. Result-handling logic unchanged. Net reduction ~30-40 lines. |
 
 ---
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| `lib/features/events/widgets/event_form_fields.dart` | Renders date picker buttons (triggers callbacks), does not call `showDatePicker` directly — no changes needed |
+| File                                                                       | Reason                                                                                                                                  |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/features/events/widgets/event_form_fields.dart`                       | Renders date picker buttons (triggers callbacks), does not call `showDatePicker` directly — no changes needed                           |
 | `lib/features/events/widgets/event_editor_drawer.dart` (block-out pickers) | `_selectBlockOutStartDate()`, `_selectBlockOutUntilDate()` methods explicitly out of scope (lines ~2887/2908) — separate feature domain |
-| `lib/features/calendar/widgets/add_block_out_drawer.dart` | 2 `showDatePicker` calls for block-out dates — explicitly out of scope |
-| `lib/features/events/widgets/gig_expense_subview.dart` | 2 `showDatePicker` calls for expense/reimbursement dates — explicitly out of scope |
-| `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart` | 1 `showDatePicker` call for entry date — explicitly out of scope |
-| `lib/features/financials/widgets/gig_pay_bottom_sheet.dart` | 1 `showDatePicker` call for pay date — explicitly out of scope |
-| `lib/features/calendar/widgets/calendar_grid.dart` | Already migrated to Forui (`FCalendar.wheel`) in `calendar-forui-wheel-grid` feature — do not touch |
-| `lib/main.dart` | Initialization order must not change (GUARDRAILS.md section 1) |
-| Any migration, edge function, or database file | UI-only change, no backend impact |
+| `lib/features/calendar/widgets/add_block_out_drawer.dart`                  | 2 `showDatePicker` calls for block-out dates — explicitly out of scope                                                                  |
+| `lib/features/events/widgets/gig_expense_subview.dart`                     | 2 `showDatePicker` calls for expense/reimbursement dates — explicitly out of scope                                                      |
+| `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`    | 1 `showDatePicker` call for entry date — explicitly out of scope                                                                        |
+| `lib/features/financials/widgets/gig_pay_bottom_sheet.dart`                | 1 `showDatePicker` call for pay date — explicitly out of scope                                                                          |
+| `lib/features/calendar/widgets/calendar_grid.dart`                         | Already migrated to Forui (`FCalendar.wheel`) in `calendar-forui-wheel-grid` feature — do not touch                                     |
+| `lib/main.dart`                                                            | Initialization order must not change (GUARDRAILS.md section 1)                                                                          |
+| Any migration, edge function, or database file                             | UI-only change, no backend impact                                                                                                       |
 
 ---
 
 ## System Impact Map
 
-| System | Impact | Detail |
-|--------|--------|--------|
-| Gigs | **affected** | Date selection UI for creating/editing gigs (primary date, additional dates) |
-| Rehearsals | **affected** | Date selection UI for creating/editing rehearsals (primary date, recurring until-date) |
-| Setlists / Catalog | **unaffected** | No date picker usage in setlist flows |
-| Members / RBAC | **unaffected** | No permission or role changes |
-| Auth / Session | **unaffected** | No authentication or session flow changes |
-| Routing | **unaffected** | No route changes |
-| Notifications | **unaffected** | No notification triggers or delivery changes |
-| Platform (iOS / Android / Web / macOS) | **affected** | UI change visible on all platforms — date picker dialog appearance/behavior |
+| System                                 | Impact         | Detail                                                                                 |
+| -------------------------------------- | -------------- | -------------------------------------------------------------------------------------- |
+| Gigs                                   | **affected**   | Date selection UI for creating/editing gigs (primary date, additional dates)           |
+| Rehearsals                             | **affected**   | Date selection UI for creating/editing rehearsals (primary date, recurring until-date) |
+| Setlists / Catalog                     | **unaffected** | No date picker usage in setlist flows                                                  |
+| Members / RBAC                         | **unaffected** | No permission or role changes                                                          |
+| Auth / Session                         | **unaffected** | No authentication or session flow changes                                              |
+| Routing                                | **unaffected** | No route changes                                                                       |
+| Notifications                          | **unaffected** | No notification triggers or delivery changes                                           |
+| Platform (iOS / Android / Web / macOS) | **affected**   | UI change visible on all platforms — date picker dialog appearance/behavior            |
 
 ---
 
@@ -398,7 +400,7 @@ Execute in order. Stop and report blockers immediately.
 
 ---
 
-### Task 2: Migrate _showDatePicker()
+### Task 2: Migrate \_showDatePicker()
 
 **File:** `lib/features/events/widgets/event_editor_drawer.dart`
 
@@ -424,7 +426,7 @@ Execute in order. Stop and report blockers immediately.
 
 ---
 
-### Task 3: Migrate _showUntilDatePicker()
+### Task 3: Migrate \_showUntilDatePicker()
 
 **File:** `lib/features/events/widgets/event_editor_drawer.dart`
 
@@ -449,7 +451,7 @@ Execute in order. Stop and report blockers immediately.
 
 ---
 
-### Task 4: Migrate _showAdditionalDatePicker(int index)
+### Task 4: Migrate \_showAdditionalDatePicker(int index)
 
 **File:** `lib/features/events/widgets/event_editor_drawer.dart`
 

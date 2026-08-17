@@ -7,6 +7,7 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../shared/utils/event_permission_helper.dart';
@@ -450,12 +451,11 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Future<void> _selectStartDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _startDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) => _datePickerTheme(child),
     );
 
     if (picked != null) {
@@ -471,12 +471,11 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   }
 
   Future<void> _selectUntilDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _untilDate ?? _startDate,
       firstDate: _startDate,
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-      builder: (context, child) => _datePickerTheme(child),
     );
 
     if (picked != null) {
@@ -485,20 +484,6 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
       });
       HapticFeedback.selectionClick();
     }
-  }
-
-  Widget _datePickerTheme(Widget? child) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppColors.primary,
-              surface: context.colors.surface,
-              onSurface: context.colors.textPrimary,
-            ),
-        dialogTheme: DialogThemeData(backgroundColor: context.colors.surface),
-      ),
-      child: child!,
-    );
   }
 
   String _formatDate(DateTime date) {

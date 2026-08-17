@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../features/members/member_vm.dart';
@@ -346,12 +347,11 @@ class _AddFinancialEntryBottomSheetState
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _entryDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
     );
     if (!mounted || picked == null) return;
     setState(() => _entryDate = picked);
