@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 
 import 'package:bandroadie/app/services/supabase_client.dart';
 import '../../components/ui/app_button.dart';
@@ -50,10 +51,19 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
   late AnimationController _entranceController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late FWheelCalendarController _calendarController;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize Forui calendar controller
+    _calendarController = FWheelCalendarController(
+      initial: DateTime.now(),
+      start: DateTime.utc(2015, 1, 1),
+      end: DateTime.utc(2050, 12, 31),
+    );
+    _calendarController.day.addListener(_syncMonthToRiverpod);
 
     // Entrance animation controller
     _entranceController = AnimationController(
@@ -80,8 +90,16 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
     });
   }
 
+  void _syncMonthToRiverpod() {
+    // Sync controller's month to Riverpod state (read-only)
+    final newMonth = _calendarController.currentMonth;
+    ref.read(calendarProvider.notifier).setSelectedMonth(newMonth);
+  }
+
   @override
   void dispose() {
+    _calendarController.day.removeListener(_syncMonthToRiverpod);
+    _calendarController.dispose();
     _entranceController.dispose();
     super.dispose();
   }
@@ -454,12 +472,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
 
             // Calendar grid with swipe and day tap support
             CalendarGrid(
-              selectedMonth: calendarState.selectedMonth,
+              controller: _calendarController,
               calendarState: calendarState,
-              onPreviousMonth: () =>
-                  ref.read(calendarProvider.notifier).previousMonth(),
-              onNextMonth: () =>
-                  ref.read(calendarProvider.notifier).nextMonth(),
               onDayTap: _handleDayTap,
             ),
 

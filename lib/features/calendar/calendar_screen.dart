@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
@@ -62,6 +63,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
   late AnimationController _entranceController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late FWheelCalendarController _calendarController;
 
   // Drawer state
   bool _isDrawerOpen = false;
@@ -74,6 +76,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
   @override
   void initState() {
     super.initState();
+
+    // Initialize Forui calendar controller
+    _calendarController = FWheelCalendarController(
+      initial: DateTime.now(),
+      start: DateTime.utc(2015, 1, 1),
+      end: DateTime.utc(2050, 12, 31),
+    );
+    _calendarController.day.addListener(_syncMonthToRiverpod);
 
     // Entrance animation controller
     _entranceController = AnimationController(
@@ -103,6 +113,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     });
   }
 
+  void _syncMonthToRiverpod() {
+    // Sync controller's month to Riverpod state (read-only)
+    final newMonth = _calendarController.currentMonth;
+    ref.read(calendarProvider.notifier).setSelectedMonth(newMonth);
+  }
+
   Future<void> _loadUserProfile() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -127,6 +143,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
   @override
   void dispose() {
+    _calendarController.day.removeListener(_syncMonthToRiverpod);
+    _calendarController.dispose();
     _entranceController.dispose();
     super.dispose();
   }
@@ -469,11 +487,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
           // Calendar grid with swipe and day tap support
           CalendarGrid(
-            selectedMonth: calendarState.selectedMonth,
+            controller: _calendarController,
             calendarState: calendarState,
-            onPreviousMonth: () =>
-                ref.read(calendarProvider.notifier).previousMonth(),
-            onNextMonth: () => ref.read(calendarProvider.notifier).nextMonth(),
             onDayTap: _handleDayTap,
           ),
 

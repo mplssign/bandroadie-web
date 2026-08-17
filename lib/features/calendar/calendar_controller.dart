@@ -451,25 +451,9 @@ class CalendarNotifier extends Notifier<CalendarState> {
     }
   }
 
-  void previousMonth() {
-    final current = state.selectedMonth;
-
+  void setSelectedMonth(DateTime month) {
     state = state.copyWith(
-      selectedMonth: DateTime(current.year, current.month - 1, 1),
-    );
-  }
-
-  void nextMonth() {
-    final current = state.selectedMonth;
-
-    state = state.copyWith(
-      selectedMonth: DateTime(current.year, current.month + 1, 1),
-    );
-  }
-
-  void goToToday() {
-    state = state.copyWith(
-      selectedMonth: DateTime.now(),
+      selectedMonth: DateTime(month.year, month.month, 1),
     );
   }
 
