@@ -38,7 +38,9 @@ class CalendarGrid extends StatelessWidget {
       builder: (context, constraints) {
         // Compute responsive day cell size to fill container width
         // Subtract FCalendar's internal horizontal padding (12px left + 12px right = 24px total)
-        final availableWidth = constraints.maxWidth - 24;
+        // Clamp to 0 minimum to prevent negative width when drawer overlay restricts constraints
+        final availableWidth =
+            (constraints.maxWidth - 24).clamp(0.0, double.infinity);
         final cellWidth = availableWidth / 7;
 
         // Cell height reduced by 30% from Amendment 2 baseline (cellWidth + 11)

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -62,30 +62,36 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
         trigger: 'onAuthStateChange:${data.event.name}',
       );
 
-      switch (data.event) {
-        case supabase.AuthChangeEvent.signedIn:
-          state = AppAuthState(session: data.session);
-          break;
-        case supabase.AuthChangeEvent.tokenRefreshed:
-          state = AppAuthState(session: data.session);
-          break;
-        case supabase.AuthChangeEvent.userUpdated:
-          state = AppAuthState(session: data.session);
-          break;
-
-        case supabase.AuthChangeEvent.signedOut:
-          state = const AppAuthState(session: null);
-          break;
-
-        case supabase.AuthChangeEvent.initialSession:
-          state = AppAuthState(session: data.session);
-          break;
-
-        default:
-          if (data.session != null) {
+      // Defer state mutation to post-frame callback to avoid
+      // "Tried to build dirty widget in the wrong build scope" crash
+      // when auth changes happen during widget tree teardown.
+      // Applies to ALL auth events (signedIn, signedOut, tokenRefreshed, etc.)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        switch (data.event) {
+          case supabase.AuthChangeEvent.signedIn:
             state = AppAuthState(session: data.session);
-          }
-      }
+            break;
+          case supabase.AuthChangeEvent.tokenRefreshed:
+            state = AppAuthState(session: data.session);
+            break;
+          case supabase.AuthChangeEvent.userUpdated:
+            state = AppAuthState(session: data.session);
+            break;
+
+          case supabase.AuthChangeEvent.signedOut:
+            state = const AppAuthState(session: null);
+            break;
+
+          case supabase.AuthChangeEvent.initialSession:
+            state = AppAuthState(session: data.session);
+            break;
+
+          default:
+            if (data.session != null) {
+              state = AppAuthState(session: data.session);
+            }
+        }
+      });
     });
 
     ref.onDispose(() {
