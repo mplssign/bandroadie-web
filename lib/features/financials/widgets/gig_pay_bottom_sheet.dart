@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
 import '../../../features/members/member_vm.dart';
 import '../../../shared/widgets/currency_input_field.dart';
@@ -103,15 +104,11 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _paymentDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (context, child) => Theme(
-        data: Theme.of(context),
-        child: child!,
-      ),
     );
     if (!mounted) return;
     if (picked != null) {

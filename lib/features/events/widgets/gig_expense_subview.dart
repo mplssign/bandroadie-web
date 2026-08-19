@@ -5,6 +5,7 @@ import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
@@ -183,12 +184,11 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _entryDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
     );
     if (!mounted || picked == null) return;
     setState(() => _entryDate = picked);
@@ -196,12 +196,11 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
 
   Future<void> _pickReimbursedDate() async {
     final initialDate = _reimbursedDate ?? DateTime.now();
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
     );
     if (!mounted || picked == null) return;
     setState(() => _reimbursedDate = picked);
