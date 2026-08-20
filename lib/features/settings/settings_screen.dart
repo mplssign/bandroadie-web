@@ -476,49 +476,52 @@ class _SettingsListItem extends StatelessWidget {
     final iconColor =
         item.isDestructive ? AppColors.error : context.colors.textSecondary;
 
-    return InkWell(
-      onTap: item.onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          children: [
-            Icon(item.icon, color: iconColor, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (item.subtitle != null) ...[
-                    const SizedBox(height: 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: item.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Icon(item.icon, color: iconColor, size: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      item.subtitle!,
+                      item.label,
                       style: TextStyle(
-                        color: item.isDestructive
-                            ? AppColors.error.withValues(alpha: 0.7)
-                            : context.colors.textSecondary,
-                        fontSize: AppFontSizes.caption,
+                        color: textColor,
+                        fontSize: AppFontSizes.body,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (item.subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        item.subtitle!,
+                        style: TextStyle(
+                          color: item.isDestructive
+                              ? AppColors.error.withValues(alpha: 0.7)
+                              : context.colors.textSecondary,
+                          fontSize: AppFontSizes.caption,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            Icon(
-              AppIcons.forward,
-              color: item.isDestructive
-                  ? AppColors.error.withValues(alpha: 0.5)
-                  : context.colors.textSecondary.withValues(alpha: 0.5),
-              size: 24,
-            ),
-          ],
+              Icon(
+                AppIcons.forward,
+                color: item.isDestructive
+                    ? AppColors.error.withValues(alpha: 0.5)
+                    : context.colors.textSecondary.withValues(alpha: 0.5),
+                size: 24,
+              ),
+            ],
+          ),
         ),
       ),
     );

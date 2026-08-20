@@ -14,6 +14,7 @@ import '../../components/ui/app_icon_button.dart';
 import '../../components/ui/app_progress_indicator.dart';
 import '../../components/ui/app_button.dart';
 import '../../components/ui/app_checkbox.dart';
+import '../../components/ui/app_switch.dart';
 
 // ============================================================================
 // ONE CALENDAR SETTINGS SCREEN
@@ -299,7 +300,7 @@ class _MasterToggleCard extends StatelessWidget {
               ],
             ),
           ),
-          Switch.adaptive(
+          AppSwitch(
             value: enabled,
             onChanged: onChanged,
             activeTrackColor: AppColors.primary,
@@ -327,36 +328,39 @@ class _ApplyToRadioTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.space16,
-        vertical: Spacing.space12,
-      ),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border.all(
-          color: isSelected ? AppColors.primary : context.colors.border,
-          width: isSelected ? 2 : 1,
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.space16,
+          vertical: Spacing.space12,
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Radio<ApplyToMode>(
-            value: value,
-            activeColor: AppColors.primary,
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          border: Border.all(
+            color: isSelected ? AppColors.primary : context.colors.border,
+            width: isSelected ? 2 : 1,
           ),
-          const SizedBox(width: Spacing.space8),
-          Expanded(
-            child: Text(
-              label,
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textPrimary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Radio<ApplyToMode>(
+              value: value,
+              activeColor: AppColors.primary,
+            ),
+            const SizedBox(width: Spacing.space8),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -449,7 +453,7 @@ class _AutoConflictToggleCard extends StatelessWidget {
               ),
             ),
           ),
-          Switch.adaptive(
+          AppSwitch(
             value: enabled,
             onChanged: onChanged,
             activeTrackColor: AppColors.primary,

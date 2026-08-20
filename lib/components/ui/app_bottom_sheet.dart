@@ -29,7 +29,7 @@ Future<T?> showAppBottomSheet<T>({
   return showFSheet<T>(
     context: context,
     builder: (context) => Material(
-      type: MaterialType.transparency,
+      color: Colors.transparent,
       child: builder(context),
     ),
     side: FLayout.btt, // Bottom-to-top sheet
