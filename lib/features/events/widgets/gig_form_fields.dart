@@ -626,13 +626,13 @@ class GigFormFields extends ConsumerWidget {
               alignment: Alignment.topLeft,
               child: Material(
                 elevation: 4,
+                color: context.colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 200),
                   width: MediaQuery.of(context).size.width -
                       (Spacing.pagePadding * 2),
                   decoration: BoxDecoration(
-                    color: context.colors.surfaceElevated,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     border: Border.all(color: context.colors.border),
                   ),
@@ -771,13 +771,13 @@ class GigFormFields extends ConsumerWidget {
               alignment: Alignment.topLeft,
               child: Material(
                 elevation: 4,
+                color: context.colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 200),
                   width: MediaQuery.of(context).size.width -
                       (Spacing.pagePadding * 2),
                   decoration: BoxDecoration(
-                    color: context.colors.surfaceElevated,
                     borderRadius: BorderRadius.circular(Spacing.buttonRadius),
                     border: Border.all(color: context.colors.border),
                   ),
