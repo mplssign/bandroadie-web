@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/app_switch.dart';
-import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/title_case_formatter.dart';
 import '../models/event_form_data.dart';
@@ -23,11 +23,10 @@ class RehearsalFormFields extends ConsumerWidget {
     super.key,
     required this.isSaving,
     // Location autocomplete
-    required this.locationController,
     required this.locationHintController,
     required this.locationSuggestions,
+    required this.onLocationTextChanged,
     // Field validation
-    required this.locationKey,
     required this.fieldErrors,
     // Potential rehearsal toggle
     required this.isPotential,
@@ -69,12 +68,11 @@ class RehearsalFormFields extends ConsumerWidget {
   final bool isSaving;
 
   // --- Location autocomplete ---
-  final TextEditingController locationController;
   final FieldHintController locationHintController;
   final List<String> locationSuggestions;
+  final ValueChanged<String> onLocationTextChanged;
 
   // --- Field validation ---
-  final GlobalKey locationKey;
   final Map<String, String> fieldErrors;
 
   // --- Potential rehearsal toggle ---
@@ -178,127 +176,30 @@ class RehearsalFormFields extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Autocomplete<String>(
-          key: locationKey,
-          initialValue: TextEditingValue(text: locationController.text),
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
-              return const Iterable<String>.empty();
-            }
-            final query = textEditingValue.text.toLowerCase();
+        FAutocomplete.text(
+          items: locationSuggestions,
+          control: FAutocompleteControl.managed(
+            onChange: (value) {
+              onLocationTextChanged(value.text);
+            },
+          ),
+          filter: (query) {
+            if (query.isEmpty) return const Iterable<String>.empty();
+            final lowerQuery = query.toLowerCase();
             return locationSuggestions
-                .where((location) => location.toLowerCase().contains(query))
+                .where(
+                    (location) => location.toLowerCase().contains(lowerQuery))
                 .take(8);
           },
-          onSelected: (String selection) {
-            locationController.text = selection;
-            debugPrint('[RehearsalLocation] selected suggestion: $selection');
-          },
-          fieldViewBuilder: (
-            BuildContext context,
-            TextEditingController fieldController,
-            FocusNode focusNode,
-            VoidCallback onFieldSubmitted,
-          ) {
-            fieldController.addListener(() {
-              locationController.text = fieldController.text;
-            });
-            return AppTextField(
-              controller: fieldController,
-              focusNode: focusNode,
-              enabled: !isSaving,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [TitleCaseTextFormatter()],
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: 'e.g., Studio, Venue Address',
-                hintStyle: AppTextStyles.callout.copyWith(
-                  color: context.colors.textMuted,
-                ),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : context.colors.border,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : context.colors.border,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : AppColors.primary,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.error),
-                ),
-                errorText: null, // We'll show error below the field instead
-              ),
-            );
-          },
-          optionsViewBuilder: (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  decoration: BoxDecoration(
-                    color: context.colors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: context.colors.border),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          option,
-                          style: AppTextStyles.callout.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
-                        ),
-                        onTap: () => onSelected(option),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
+          hint: 'e.g., Studio, Venue Address',
+          enabled: !isSaving,
+          textCapitalization: TextCapitalization.words,
+          inputFormatters: [TitleCaseTextFormatter()],
+          forceErrorText: hasError ? errorText : null,
+          onItemPress: (selection) {
+            // No additional callback needed - text captured via onChange
           },
         ),
-        if (hasError && errorText != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            errorText,
-            style: AppTextStyles.footnote.copyWith(
-              color: AppColors.error,
-            ),
-          ),
-        ],
         FieldHint(
           text: "We'll remember locations you've used before.",
           controller: locationHintController,
