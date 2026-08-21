@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -26,21 +27,17 @@ class GigFormFields extends ConsumerWidget {
     required this.isEditMode,
     required this.existingEventId,
     // Gig name autocomplete
-    required this.nameController,
     required this.venueHintController,
-    required this.gigNameFocusNode,
     required this.gigNameSuggestions,
     required this.onGigNameChanged,
     required this.onGigNameSelected,
-    required this.gigNameKey,
+    required this.onGigNameTextChanged,
     required this.fieldErrors,
     // City autocomplete
-    required this.locationController,
     required this.cityHintController,
-    required this.gigCityFocusNode,
     required this.gigCitySuggestions,
     required this.onGigCityChanged,
-    required this.gigLocationKey,
+    required this.onGigCityTextChanged,
     // Address field
     required this.addressController,
     required this.addressHintController,
@@ -93,22 +90,18 @@ class GigFormFields extends ConsumerWidget {
   final String? existingEventId;
 
   // --- Gig name autocomplete ---
-  final TextEditingController nameController;
   final FieldHintController venueHintController;
-  final FocusNode gigNameFocusNode;
   final List<String> gigNameSuggestions;
   final ValueChanged<String> onGigNameChanged;
   final ValueChanged<String> onGigNameSelected;
-  final GlobalKey gigNameKey;
+  final ValueChanged<String> onGigNameTextChanged;
   final Map<String, String> fieldErrors;
 
   // --- City autocomplete ---
-  final TextEditingController locationController;
   final FieldHintController cityHintController;
-  final FocusNode gigCityFocusNode;
   final List<String> gigCitySuggestions;
   final ValueChanged<String> onGigCityChanged;
-  final GlobalKey gigLocationKey;
+  final ValueChanged<String> onGigCityTextChanged;
 
   // --- Address field ---
   final TextEditingController addressController;
@@ -546,126 +539,29 @@ class GigFormFields extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        RawAutocomplete<String>(
-          key: gigNameKey,
-          textEditingController: nameController,
-          focusNode: gigNameFocusNode,
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            onGigNameChanged(textEditingValue.text);
-            if (textEditingValue.text.length < 2) {
-              return const Iterable<String>.empty();
-            }
-            return gigNameSuggestions;
+        FAutocomplete.text(
+          items: gigNameSuggestions,
+          control: FAutocompleteControl.managed(
+            onChange: (value) {
+              onGigNameTextChanged(value.text);
+              onMarkDirty();
+            },
+          ),
+          filter: (query) {
+            onGigNameChanged(query);
+            if (query.length < 2) return const Iterable<String>.empty();
+            return gigNameSuggestions.where(
+                (name) => name.toLowerCase().contains(query.toLowerCase()));
           },
-          onSelected: (String selection) {
-            nameController.text = selection;
-            nameController.selection = TextSelection.collapsed(
-              offset: selection.length,
-            );
+          hint: 'e.g., The Blue Note, SummerFest 2026',
+          enabled: !isSaving,
+          textCapitalization: TextCapitalization.sentences,
+          forceErrorText: hasError ? errorText : null,
+          onItemPress: (selection) {
             onGigNameSelected(selection);
-          },
-          fieldViewBuilder: (
-            BuildContext context,
-            TextEditingController controller,
-            FocusNode focusNode,
-            VoidCallback onFieldSubmitted,
-          ) {
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              enabled: !isSaving,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.done,
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textPrimary,
-              ),
-              onChanged: (_) => onMarkDirty(),
-              decoration: InputDecoration(
-                hintText: 'e.g., The Blue Note, SummerFest 2026',
-                hintStyle: AppTextStyles.callout.copyWith(
-                  color: context.colors.textMuted,
-                ),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : context.colors.border,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : context.colors.border,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : AppColors.primary,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.error),
-                ),
-              ),
-            );
-          },
-          optionsViewBuilder: (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            if (options.isEmpty) return const SizedBox.shrink();
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                color: context.colors.surfaceElevated,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  width: MediaQuery.of(context).size.width -
-                      (Spacing.pagePadding * 2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: context.colors.border),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          option,
-                          style: AppTextStyles.callout.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
-                        ),
-                        onTap: () => onSelected(option),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
+            onMarkDirty();
           },
         ),
-        if (hasError && errorText != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            errorText,
-            style: AppTextStyles.footnote.copyWith(color: AppColors.error),
-          ),
-        ],
         FieldHint(
           text: "Start typing to reuse past venues.",
           controller: venueHintController,
@@ -692,125 +588,31 @@ class GigFormFields extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        RawAutocomplete<String>(
-          key: gigLocationKey,
-          textEditingController: locationController,
-          focusNode: gigCityFocusNode,
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            onGigCityChanged(textEditingValue.text);
-            if (textEditingValue.text.length < 2) {
-              return const Iterable<String>.empty();
-            }
+        FAutocomplete.textBuilder(
+          control: FAutocompleteControl.managed(
+            onChange: (value) {
+              onGigCityTextChanged(value.text);
+              onMarkDirty();
+            },
+          ),
+          filter: (query) async {
+            onGigCityChanged(query);
+            if (query.length < 2) return const Iterable<String>.empty();
+            // Wait briefly for parent's debounced query to update gigCitySuggestions
+            await Future.delayed(const Duration(milliseconds: 350));
             return gigCitySuggestions;
           },
-          onSelected: (String selection) {
-            locationController.text = selection;
-            locationController.selection = TextSelection.collapsed(
-              offset: selection.length,
-            );
+          hint: 'e.g., Chicago',
+          enabled: !isSaving,
+          textCapitalization: TextCapitalization.sentences,
+          forceErrorText: hasError ? errorText : null,
+          onItemPress: (selection) {
+            onMarkDirty();
           },
-          fieldViewBuilder: (
-            BuildContext context,
-            TextEditingController controller,
-            FocusNode focusNode,
-            VoidCallback onFieldSubmitted,
-          ) {
-            return AppTextField(
-              controller: controller,
-              focusNode: focusNode,
-              enabled: !isSaving,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.done,
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textPrimary,
-              ),
-              onChanged: (_) => onMarkDirty(),
-              decoration: InputDecoration(
-                hintText: 'e.g., Chicago',
-                hintStyle: AppTextStyles.callout.copyWith(
-                  color: context.colors.textMuted,
-                ),
-                filled: true,
-                fillColor: context.colors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : context.colors.border,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : context.colors.border,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(
-                    color: hasError ? AppColors.error : AppColors.primary,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: const BorderSide(color: AppColors.error),
-                ),
-              ),
-            );
-          },
-          optionsViewBuilder: (
-            BuildContext context,
-            AutocompleteOnSelected<String> onSelected,
-            Iterable<String> options,
-          ) {
-            if (options.isEmpty) return const SizedBox.shrink();
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4,
-                color: context.colors.surfaceElevated,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  width: MediaQuery.of(context).size.width -
-                      (Spacing.pagePadding * 2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    border: Border.all(color: context.colors.border),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final option = options.elementAt(index);
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          option,
-                          style: AppTextStyles.callout.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
-                        ),
-                        onTap: () => onSelected(option),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
+          contentBuilder: (context, query, values) => [
+            for (final value in values) FAutocompleteItem.item(value: value),
+          ],
         ),
-        if (hasError && errorText != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            errorText,
-            style: AppTextStyles.footnote.copyWith(color: AppColors.error),
-          ),
-        ],
         FieldHint(
           text: "Auto-fills based on past gigs.",
           controller: cityHintController,
