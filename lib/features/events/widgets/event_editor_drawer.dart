@@ -126,9 +126,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   int? _loadInHour;
   int? _loadInMinutes;
   bool? _loadInIsPM;
-  final _locationController = TextEditingController();
-  final _nameController = TextEditingController();
   final _notesController = TextEditingController();
+
+  // Autocomplete text values (captured from FAutocomplete widgets)
+  String? _gigNameText;
+  String? _gigCityText;
+  String? _rehearsalLocationText;
 
   // Field hint controllers
   final _venueHintController = FieldHintController();
@@ -199,19 +202,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   // Linked venue state
   String? _selectedVenueId;
 
-  // Focus nodes for autocomplete fields (must be persistent, not created inline)
-  final _gigNameFocusNode = FocusNode();
-  final _gigCityFocusNode = FocusNode();
-  final _gigLocationFocusNode = FocusNode();
+  // Controllers still needed for address field (not autocomplete)
   final _addressController = TextEditingController();
   final _addressHintController = FieldHintController();
   final _gigAddressFocusNode = FocusNode();
   final _stateController = TextEditingController();
-
-  // GlobalKeys for validation scroll-to-error
-  final _locationKey = GlobalKey();
-  final _gigNameKey = GlobalKey();
-  final _gigLocationKey = GlobalKey();
 
   // ScrollController for form scrolling
   final _scrollController = ScrollController();
@@ -267,9 +262,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _loadInMinutes = data.loadInMinutes;
         _loadInIsPM = data.loadInIsPM;
       }
-      _locationController.text = data.location;
+      _rehearsalLocationText = data.location;
+      _gigCityText = data.location; // For gigs, location field is city
       _addressController.text = data.address ?? '';
-      if (data.name != null) _nameController.text = data.name!;
+      if (data.name != null) _gigNameText = data.name;
       if (data.notes != null) _notesController.text = data.notes!;
       _isRecurring = data.isRecurring;
       if (data.recurrence != null) {
@@ -406,40 +402,26 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     // Initialize field hint controllers
     final isEdit = widget.existingEvent != null;
     _venueHintController.initialize(
-      hasInitialValue: isEdit && _nameController.text.isNotEmpty,
+      hasInitialValue:
+          isEdit && _gigNameText != null && _gigNameText!.isNotEmpty,
     );
     _cityHintController.initialize(
-      hasInitialValue: isEdit && _locationController.text.isNotEmpty,
+      hasInitialValue:
+          isEdit && _gigCityText != null && _gigCityText!.isNotEmpty,
     );
     _addressHintController.initialize(
       hasInitialValue: isEdit && _addressController.text.isNotEmpty,
     );
     _locationHintController.initialize(
-      hasInitialValue: isEdit && _locationController.text.isNotEmpty,
+      hasInitialValue: isEdit &&
+          _rehearsalLocationText != null &&
+          _rehearsalLocationText!.isNotEmpty,
     );
     _notesHintController.initialize(
       hasInitialValue: isEdit && _notesController.text.isNotEmpty,
     );
 
-    // Add text controller listeners to track changes and clear field errors
-    _locationController.addListener(() {
-      _markDirty();
-      // Clear field errors when user types
-      if (_eventType == EventType.rehearsal &&
-          _fieldErrors.containsKey('location')) {
-        setState(() => _fieldErrors.remove('location'));
-      } else if (_eventType == EventType.gig &&
-          _fieldErrors.containsKey('city')) {
-        setState(() => _fieldErrors.remove('city'));
-      }
-    });
-    _nameController.addListener(() {
-      _markDirty();
-      // Clear gig name error when user types
-      if (_fieldErrors.containsKey('name')) {
-        setState(() => _fieldErrors.remove('name'));
-      }
-    });
+    // Add text controller listeners to track changes
     _notesController.addListener(_markDirty);
     _addressController.addListener(_markDirty);
     _stateController.addListener(_markDirty);
@@ -449,17 +431,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   void dispose() {
     _gigNameDebounceTimer?.cancel();
     _gigCityDebounceTimer?.cancel();
-    _locationController.dispose();
-    _nameController.dispose();
     _notesController.dispose();
     _venueHintController.dispose();
     _cityHintController.dispose();
     _locationHintController.dispose();
     _notesHintController.dispose();
     _recurringAnimController.dispose();
-    _gigNameFocusNode.dispose();
-    _gigCityFocusNode.dispose();
-    _gigLocationFocusNode.dispose();
     _addressController.dispose();
     _addressHintController.dispose();
     _gigAddressFocusNode.dispose();
@@ -756,7 +733,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     Venue selectedVenue = nameMatches.first;
     if (nameMatches.length > 1) {
-      final currentCity = _locationController.text.trim().toLowerCase();
+      final currentCity = (_gigCityText?.trim() ?? '').toLowerCase();
       final cityMatchedVenue = nameMatches.cast<Venue?>().firstWhere(
             (v) => (v!.city?.toLowerCase() ?? '') == currentCity,
             orElse: () => null,
@@ -777,15 +754,15 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
         if (isSwitchingVenues) {
           // Switching from one venue to another — always sync to new venue's values
-          _locationController.text = selectedVenue.city ?? '';
+          _gigCityText = selectedVenue.city ?? '';
           _addressController.text = selectedVenue.address ?? '';
           _stateController.text = selectedVenue.state?.toUpperCase() ?? '';
         } else {
           // Initial link — only fill empty fields to preserve user-entered values
           if (selectedVenue.city != null &&
               selectedVenue.city!.isNotEmpty &&
-              _locationController.text.trim().isEmpty) {
-            _locationController.text = selectedVenue.city!;
+              (_gigCityText?.trim().isEmpty ?? true)) {
+            _gigCityText = selectedVenue.city!;
           }
 
           if (selectedVenue.address != null &&
@@ -822,7 +799,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
       // Compare form values with venue's current values
       final formAddress = _addressController.text.trim();
-      final formCity = _locationController.text.trim();
+      final formCity = _gigCityText?.trim() ?? '';
       final formState = _stateController.text.trim().toUpperCase();
 
       final venueAddress = venue.address ?? '';
@@ -856,9 +833,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         'address': _addressController.text.trim().isEmpty
             ? null
             : _addressController.text.trim(),
-        'city': _locationController.text.trim().isEmpty
+        'city': (_gigCityText?.trim().isEmpty ?? true)
             ? null
-            : _locationController.text.trim(),
+            : _gigCityText!.trim(),
         'state': _stateController.text.trim().isEmpty
             ? null
             : _stateController.text.trim().toUpperCase(),
@@ -1030,13 +1007,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       minutes: _selectedMinutes,
       isPM: _isPM,
       duration: _durationMinutesToEnum(_durationMinutes),
-      location: _locationController.text.trim(),
+      location: (_eventType == EventType.rehearsal
+          ? (_rehearsalLocationText?.trim() ?? '')
+          : (_gigCityText?.trim() ?? '')),
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
-      name: _nameController.text.trim().isEmpty
-          ? null
-          : _nameController.text.trim(),
+      name: _gigNameText?.trim().isEmpty ?? true ? null : _gigNameText!.trim(),
       isRecurring: _isRecurring,
       recurrence: _isRecurring
           ? RecurrenceConfig(
@@ -1646,20 +1623,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
     // Client-side validation: check rehearsal location before building form data
     if (_eventType == EventType.rehearsal &&
-        _locationController.text.trim().isEmpty) {
+        (_rehearsalLocationText?.trim().isEmpty ?? true)) {
       setState(() {
         _fieldErrors['location'] = 'Location is required';
         _errorMessage = 'Location is required';
       });
-      // Scroll to location field
-      if (_locationKey.currentContext != null) {
-        await Scrollable.ensureVisible(
-          _locationKey.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          alignment: 0.15,
-        );
-      }
+      // Note: Scroll-to-error removed - FAutocomplete manages its own state without GlobalKeys
       return;
     }
 
@@ -1681,23 +1650,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _errorMessage = errors.first;
       });
 
-      // Scroll to first failing field
-      GlobalKey? firstFailingKey;
-      if (_fieldErrors.containsKey('name')) {
-        firstFailingKey = _gigNameKey;
-      } else if (_fieldErrors.containsKey('city')) {
-        firstFailingKey = _gigLocationKey;
-      }
-
-      if (firstFailingKey?.currentContext != null) {
-        await Scrollable.ensureVisible(
-          firstFailingKey!.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          alignment: 0.15,
-        );
-      }
-
+      // Note: Scroll-to-error removed - FAutocomplete manages its own state without GlobalKeys
       return;
     }
 
@@ -1745,10 +1698,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       // Auto-create venue if user typed a name that doesn't match an existing venue
       if (_eventType == EventType.gig &&
           _selectedVenueId == null &&
-          _nameController.text.trim().isNotEmpty) {
+          _gigNameText != null &&
+          _gigNameText!.trim().isNotEmpty) {
         // Check if venue already exists (band-scoped, case-insensitive name + city match)
-        final venueName = _nameController.text.trim();
-        final venueCity = _locationController.text.trim();
+        final venueName = _gigNameText!.trim();
+        final venueCity = _gigCityText?.trim() ?? '';
 
         // Build null-safe query: when city is empty, match venues where city IS NULL
         final query = supabase
@@ -2228,10 +2182,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   RehearsalFormFields _createRehearsalFormFields() {
     return RehearsalFormFields(
       isSaving: _isSaving,
-      locationController: _locationController,
       locationHintController: _locationHintController,
       locationSuggestions: _locationSuggestions,
-      locationKey: _locationKey,
+      onLocationTextChanged: (text) {
+        setState(() {
+          _rehearsalLocationText = text;
+          // Clear field errors when user types
+          if (_fieldErrors.containsKey('location')) {
+            _fieldErrors.remove('location');
+          }
+        });
+        _markDirty();
+      },
       fieldErrors: _fieldErrors,
       isPotential: _isPotentialGig,
       onPotentialToggled: _togglePotentialGig,
@@ -2295,20 +2257,34 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       isSaving: _isSaving,
       isEditMode: _isEditMode,
       existingEventId: widget.existingEventId,
-      nameController: _nameController,
       venueHintController: _venueHintController,
-      gigNameFocusNode: _gigNameFocusNode,
       gigNameSuggestions: _gigNameSuggestions,
       onGigNameChanged: _fetchGigNameSuggestions,
       onGigNameSelected: _handleGigNameSelected,
-      gigNameKey: _gigNameKey,
+      onGigNameTextChanged: (text) {
+        setState(() {
+          _gigNameText = text;
+          // Clear gig name error when user types
+          if (_fieldErrors.containsKey('name')) {
+            _fieldErrors.remove('name');
+          }
+        });
+        _markDirty();
+      },
       fieldErrors: _fieldErrors,
-      locationController: _locationController,
       cityHintController: _cityHintController,
-      gigCityFocusNode: _gigCityFocusNode,
       gigCitySuggestions: _gigCitySuggestions,
       onGigCityChanged: _fetchGigCitySuggestions,
-      gigLocationKey: _gigLocationKey,
+      onGigCityTextChanged: (text) {
+        setState(() {
+          _gigCityText = text;
+          // Clear city error when user types
+          if (_fieldErrors.containsKey('city')) {
+            _fieldErrors.remove('city');
+          }
+        });
+        _markDirty();
+      },
       isPotentialGig: _isPotentialGig,
       forcePotentialOnly: _forcePotentialOnly,
       onPotentialGigToggled: _togglePotentialGig,
@@ -2397,9 +2373,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         defaultPaymentDate: _selectedDate,
         bandId: widget.bandId,
         members: members,
-        defaultPayerName: _nameController.text.trim().isEmpty
+        defaultPayerName: (_gigNameText?.trim().isEmpty ?? true)
             ? null
-            : _nameController.text.trim(),
+            : _gigNameText!.trim(),
         initialDetails: initialDetails,
         viewOnly: widget.viewOnly,
       ),
