@@ -73,6 +73,19 @@ class DataBackupService {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) throw const DataBackupException('Not logged in');
 
+    // Server-side authorization check (admin and member only)
+    final isAuthorized = await supabase.rpc(
+      'check_band_export_permission',
+      params: {'p_band_id': bandId},
+    ) as bool;
+
+    if (!isAuthorized) {
+      throw const DataBackupException(
+        'You do not have permission to export this band\'s data. '
+        'Only admins and members can create backups.',
+      );
+    }
+
     final exportJson = await _buildBandExport(bandId, bandName, userId);
     final jsonString = const JsonEncoder.withIndent('  ').convert(exportJson);
 
