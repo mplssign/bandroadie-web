@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -10,7 +9,6 @@ import '../../services/bulk_song_parser.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
-import '../../../songs/models/enrichment_settings.dart';
 import '../../../songs/services/inline_song_enrichment_service.dart';
 import '../../../songs/widgets/enrichment_confirm_dialog.dart';
 
@@ -120,7 +118,6 @@ class BulkEntryScreen extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback? onClose;
   final String bandId;
-  final EnrichmentSettings? enrichmentSettings;
   final InlineSongEnrichmentService enrichmentService;
 
   const BulkEntryScreen({
@@ -129,7 +126,6 @@ class BulkEntryScreen extends StatefulWidget {
     required this.onBack,
     this.onClose,
     required this.bandId,
-    this.enrichmentSettings,
     required this.enrichmentService,
   });
 
@@ -368,61 +364,35 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         return;
       }
 
-      // Apply enrichment based on settings
+      // Apply Ask enrichment behavior (hardcoded)
       final enrichedRows = <BulkSongRow>[];
-      final settings = widget.enrichmentSettings;
-      final newSongBehavior = settings?.newSongBehavior ?? NewSongBehavior.off;
 
-      int processedCount = 0;
       for (final row in parseResult.validRows) {
-        processedCount++;
-
         // Check if song exists
         final exists = await _songExists(row.title, row.artist);
 
-        if (exists || newSongBehavior == NewSongBehavior.off) {
-          // Existing song or enrichment disabled - use row as-is
+        if (exists) {
+          // Existing song - use row as-is
           enrichedRows.add(row);
           continue;
         }
 
-        // New song - apply enrichment based on behavior
-        if (newSongBehavior == NewSongBehavior.ask) {
-          // Show confirmation dialog
-          final shouldEnrich = await showEnrichmentConfirmDialog(
-            context,
-            title: row.title,
-            artist: row.artist,
-            enrichmentService: widget.enrichmentService,
-          );
+        // New song - always show confirmation dialog (Ask behavior)
+        final shouldEnrich = await showEnrichmentConfirmDialog(
+          context,
+          title: row.title,
+          artist: row.artist,
+          enrichmentService: widget.enrichmentService,
+        );
 
-          if (shouldEnrich == null) {
-            // User cancelled - abort entire submission
-            if (mounted) setState(() => _isSubmitting = false);
-            return;
-          }
+        if (shouldEnrich == null) {
+          // User cancelled - abort entire submission
+          if (mounted) setState(() => _isSubmitting = false);
+          return;
+        }
 
-          if (shouldEnrich) {
-            // Enrich the song
-            final enrichmentResult = await widget.enrichmentService.enrichSong(
-              title: row.title,
-              artist: row.artist,
-            );
-
-            enrichedRows.add(BulkSongRow(
-              artist: row.artist,
-              title: row.title,
-              bpm: enrichmentResult.bpm ?? row.bpm,
-              tuning: row.tuning,
-              tuningLabel: row.tuningLabel,
-              musicalKey: enrichmentResult.musicalKey ?? row.musicalKey,
-            ));
-          } else {
-            // Skip enrichment
-            enrichedRows.add(row);
-          }
-        } else if (newSongBehavior == NewSongBehavior.auto) {
-          // Auto-enrich in background
+        if (shouldEnrich) {
+          // Enrich the song
           final enrichmentResult = await widget.enrichmentService.enrichSong(
             title: row.title,
             artist: row.artist,
@@ -436,6 +406,9 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             tuningLabel: row.tuningLabel,
             musicalKey: enrichmentResult.musicalKey ?? row.musicalKey,
           ));
+        } else {
+          // Skip enrichment
+          enrichedRows.add(row);
         }
       }
 

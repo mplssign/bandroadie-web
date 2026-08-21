@@ -47,7 +47,6 @@ import '../songs/services/song_enrichment_orchestrator.dart';
 import '../songs/widgets/enrichment_selector_bottom_sheet.dart';
 import '../songs/widgets/enrichment_results_overlay.dart';
 import '../songs/widgets/enrichment_progress_overlay.dart';
-import '../songs/enrichment_settings_controller.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_card.dart';
 import 'package:bandroadie/components/ui/app_icon_button.dart';
@@ -732,14 +731,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
     final bandId = ref.read(activeBandIdProvider);
 
-    // Fetch enrichment settings
-    final enrichmentSettingsAsync = ref.read(enrichmentSettingsProvider);
-    final enrichmentSettings = enrichmentSettingsAsync.when(
-      data: (settings) => settings,
-      loading: () => null,
-      error: (_, __) => null,
-    );
-
     // Create enrichment service
     final enrichmentService = InlineSongEnrichmentService(
       SongEnrichmentService(supabase),
@@ -777,7 +768,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       savedSetBreaks: savedSetBreaks,
       savedPauses: savedPauses,
       bandId: bandId,
-      enrichmentSettings: enrichmentSettings,
       enrichmentService: enrichmentService,
       onOriginalSongsSubmitted: (songs) async {
         if (bandId == null) return 0;
@@ -1163,14 +1153,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final bandName = ref.read(activeBandProvider).activeBand?.name ?? '';
     if (bandId == null) return;
 
-    // Fetch enrichment settings
-    final enrichmentSettingsAsync = ref.read(enrichmentSettingsProvider);
-    final enrichmentSettings = enrichmentSettingsAsync.when(
-      data: (settings) => settings,
-      loading: () => null,
-      error: (_, __) => null,
-    );
-
     // Create enrichment service
     final enrichmentService = InlineSongEnrichmentService(
       SongEnrichmentService(supabase),
@@ -1197,7 +1179,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 child: OriginalSongScreen(
                   bandId: bandId,
-                  enrichmentSettings: enrichmentSettings,
                   enrichmentService: enrichmentService,
                   defaultArtist: bandName,
                   onSubmit: (songs) async {
@@ -1242,14 +1223,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) return;
 
-    // Fetch enrichment settings
-    final enrichmentSettingsAsync = ref.read(enrichmentSettingsProvider);
-    final enrichmentSettings = enrichmentSettingsAsync.when(
-      data: (settings) => settings,
-      loading: () => null,
-      error: (_, __) => null,
-    );
-
     // Create enrichment service
     final enrichmentService = InlineSongEnrichmentService(
       SongEnrichmentService(supabase),
@@ -1276,7 +1249,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
                 child: BulkEntryScreen(
                   bandId: bandId,
-                  enrichmentSettings: enrichmentSettings,
                   enrichmentService: enrichmentService,
                   onSubmit: (validRows) async {
                     final result =
