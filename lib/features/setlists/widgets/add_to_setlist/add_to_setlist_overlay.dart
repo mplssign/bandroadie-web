@@ -5,7 +5,6 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../models/bulk_song_row.dart';
 import '../../models/setlist_item_type.dart';
 import '../../models/special_item.dart';
-import '../../../songs/models/enrichment_settings.dart';
 import '../../../songs/services/inline_song_enrichment_service.dart';
 import 'bulk_entry_screen.dart';
 import 'category_screen.dart';
@@ -66,7 +65,6 @@ Future<void> showAddToSetlistOverlay({
   List<SpecialItem> savedPauses = const [],
   List<SpecialItem> savedSetBreaks = const [],
   String? bandId,
-  EnrichmentSettings? enrichmentSettings,
   InlineSongEnrichmentService? enrichmentService,
 }) {
   return showGeneralDialog(
@@ -98,7 +96,6 @@ Future<void> showAddToSetlistOverlay({
         savedPauses: savedPauses,
         savedSetBreaks: savedSetBreaks,
         bandId: bandId,
-        enrichmentSettings: enrichmentSettings,
         enrichmentService: enrichmentService,
       );
     },
@@ -137,7 +134,6 @@ class _AddToSetlistOverlay extends StatefulWidget {
   final List<SpecialItem> savedPauses;
   final List<SpecialItem> savedSetBreaks;
   final String? bandId;
-  final EnrichmentSettings? enrichmentSettings;
   final InlineSongEnrichmentService? enrichmentService;
 
   const _AddToSetlistOverlay({
@@ -154,7 +150,6 @@ class _AddToSetlistOverlay extends StatefulWidget {
     this.savedPauses = const [],
     this.savedSetBreaks = const [],
     this.bandId,
-    this.enrichmentSettings,
     this.enrichmentService,
   });
 
@@ -335,7 +330,6 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
           onBack: _handleBack,
           onClose: () => Navigator.of(context).pop(),
           bandId: widget.bandId!,
-          enrichmentSettings: widget.enrichmentSettings,
           enrichmentService: widget.enrichmentService!,
         );
       case AddToSetlistCategory.bulk:
@@ -349,7 +343,6 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
           onBack: _handleBack,
           onClose: () => Navigator.of(context).pop(),
           bandId: widget.bandId!,
-          enrichmentSettings: widget.enrichmentSettings,
           enrichmentService: widget.enrichmentService!,
         );
       case AddToSetlistCategory.setBreak:

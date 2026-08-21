@@ -6,7 +6,6 @@ import '../../../../app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
-import '../../../songs/models/enrichment_settings.dart';
 import '../../../songs/services/inline_song_enrichment_service.dart';
 import '../../../songs/widgets/enrichment_confirm_dialog.dart';
 
@@ -75,7 +74,6 @@ class OriginalSongScreen extends StatefulWidget {
   final VoidCallback onBack;
   final VoidCallback? onClose;
   final String bandId;
-  final EnrichmentSettings? enrichmentSettings;
   final InlineSongEnrichmentService enrichmentService;
 
   const OriginalSongScreen({
@@ -85,7 +83,6 @@ class OriginalSongScreen extends StatefulWidget {
     required this.onBack,
     this.onClose,
     required this.bandId,
-    this.enrichmentSettings,
     required this.enrichmentService,
   });
 
@@ -191,9 +188,6 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
       _isSubmitting = true;
     });
 
-    final settings = widget.enrichmentSettings;
-    final newSongBehavior = settings?.newSongBehavior ?? NewSongBehavior.off;
-
     final enrichedSongs =
         <({String title, String artist, int? bpm, String? musicalKey})>[];
 
@@ -204,8 +198,8 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
       // Check if song exists
       final exists = await _songExists(title, artist);
 
-      if (exists || newSongBehavior == NewSongBehavior.off) {
-        // Existing song or enrichment disabled
+      if (exists) {
+        // Existing song
         enrichedSongs.add((
           title: title,
           artist: artist,
@@ -215,46 +209,22 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
         continue;
       }
 
-      // New song - apply enrichment based on behavior
-      if (newSongBehavior == NewSongBehavior.ask) {
-        // Show confirmation dialog
-        final shouldEnrich = await showEnrichmentConfirmDialog(
-          context,
-          title: title,
-          artist: artist,
-          enrichmentService: widget.enrichmentService,
-        );
+      // New song - always show confirmation dialog (Ask behavior)
+      final shouldEnrich = await showEnrichmentConfirmDialog(
+        context,
+        title: title,
+        artist: artist,
+        enrichmentService: widget.enrichmentService,
+      );
 
-        if (shouldEnrich == null) {
-          // User cancelled - abort entire submission
-          if (mounted) setState(() => _isSubmitting = false);
-          return;
-        }
+      if (shouldEnrich == null) {
+        // User cancelled - abort entire submission
+        if (mounted) setState(() => _isSubmitting = false);
+        return;
+      }
 
-        if (shouldEnrich) {
-          // Enrich the song
-          final enrichmentResult = await widget.enrichmentService.enrichSong(
-            title: title,
-            artist: artist,
-          );
-
-          enrichedSongs.add((
-            title: title,
-            artist: artist,
-            bpm: enrichmentResult.bpm,
-            musicalKey: enrichmentResult.musicalKey,
-          ));
-        } else {
-          // Skip enrichment
-          enrichedSongs.add((
-            title: title,
-            artist: artist,
-            bpm: null,
-            musicalKey: null,
-          ));
-        }
-      } else if (newSongBehavior == NewSongBehavior.auto) {
-        // Auto-enrich in background
+      if (shouldEnrich) {
+        // Enrich the song
         final enrichmentResult = await widget.enrichmentService.enrichSong(
           title: title,
           artist: artist,
@@ -265,6 +235,14 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
           artist: artist,
           bpm: enrichmentResult.bpm,
           musicalKey: enrichmentResult.musicalKey,
+        ));
+      } else {
+        // Skip enrichment
+        enrichedSongs.add((
+          title: title,
+          artist: artist,
+          bpm: null,
+          musicalKey: null,
         ));
       }
     }

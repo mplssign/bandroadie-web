@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/services/supabase_client.dart';
 import '../../app/theme/brand_colors.dart';
@@ -10,7 +9,6 @@ import '../../app/theme/theme_mode_controller.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../notifications/notification_settings_screen.dart';
 import '../calendar/one_calendar_settings_screen.dart';
-import '../songs/enrichment_settings_screen.dart';
 import '../bands/active_band_controller.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
@@ -65,18 +63,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         subtitle: 'Manage push notifications',
         onTap: _openNotifications,
       ),
-      SettingsItem(
-        icon: AppIcons.music,
-        label: 'Song Enrichment',
-        subtitle:
-            'Configure how songs are enriched with BPM, Duration, and Key',
-        onTap: _openEnrichmentSettings,
-      ),
-      SettingsItem(
-        icon: AppIcons.music,
-        label: 'Song tempo & key data via GetSongBPM.com',
-        onTap: _openGetSongBpmAttribution,
-      ),
     ];
 
     // Conditionally add One Calendar (only if user has 2+ bands)
@@ -113,15 +99,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  /// Navigate to enrichment settings
-  void _openEnrichmentSettings() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const EnrichmentSettingsScreen(),
-      ),
-    );
-  }
-
   /// Navigate to One Calendar settings
   void _openOneCalendar() {
     Navigator.of(context).push(
@@ -129,14 +106,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         builder: (context) => const OneCalendarSettingsScreen(),
       ),
     );
-  }
-
-  /// Open the GetSongBPM attribution link (required by their API terms).
-  Future<void> _openGetSongBpmAttribution() async {
-    final uri = Uri.parse('https://getsongbpm.com');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 
   /// Show confirmation dialog for account deletion
