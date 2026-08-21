@@ -892,11 +892,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         // prefix-matched, case-insensitive
         final response = await supabase
             .from('gigs')
-            .select('city, date')
+            .select('location, date')
             .eq('band_id', widget.bandId)
-            .not('city', 'is', null)
-            .neq('city', '')
-            .ilike('city', '$query%')
+            .not('location', 'is', null)
+            .neq('location', '')
+            .ilike('location', '$query%')
             .order('date', ascending: false)
             .limit(30);
 
@@ -904,12 +904,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         final Set<String> seenLower = {};
         final List<String> suggestions = [];
         for (final row in response) {
-          final city = row['city'] as String?;
-          if (city != null && city.isNotEmpty) {
-            final lower = city.toLowerCase();
+          final location = row['location'] as String?;
+          if (location != null && location.isNotEmpty) {
+            final lower = location.toLowerCase();
             if (!seenLower.contains(lower)) {
               seenLower.add(lower);
-              suggestions.add(city);
+              suggestions.add(location);
               if (suggestions.length >= 15) break;
             }
           }
