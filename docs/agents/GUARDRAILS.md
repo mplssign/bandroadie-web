@@ -43,12 +43,12 @@ Never hardcode Supabase or Firebase credentials in source code.
 
 ## 3. Platform Differences (Do Not Blur)
 
-| Area       | Native (iOS / macOS / Android) | Web                                          |
-| ---------- | ------------------------------ | -------------------------------------------- |
-| Config     | `--dart-define` only           | `--dart-define` only                         |
+| Area       | Native (iOS / macOS / Android) | Web                                                      |
+| ---------- | ------------------------------ | -------------------------------------------------------- |
+| Config     | `--dart-define` only           | `--dart-define` only                                     |
 | Auth flow  | PKCE                           | PKCE (migrated from implicit — April 2026, DECISION-001) |
-| Firebase   | Initialized                    | Not initialized                              |
-| Deep links | Handled via DeepLinkService    | Not applicable                               |
+| Firebase   | Initialized                    | Not initialized                                          |
+| Deep links | Handled via DeepLinkService    | Not applicable                                           |
 
 Any change must respect these per-platform constraints.
 
@@ -62,6 +62,7 @@ Any change must respect these per-platform constraints.
 - Pass all parameters explicitly, use `null` for unused optional fields.
 - Never create RLS policies that query the table they protect (infinite recursion — PostgreSQL error 42P17). Use SECURITY DEFINER helper functions instead.
 - When adding SECURITY DEFINER functions, always include `SET search_path = public`.
+- **ACL discipline (function grants):** PostgreSQL grants EXECUTE to PUBLIC by default on `CREATE FUNCTION`. Always pair `REVOKE ALL FROM PUBLIC, anon` with explicit `GRANT EXECUTE ... TO authenticated` (or service_role for backend-only functions). Never leave anon-callable functions unless explicitly required for public endpoints. Migrations that modify function ACLs must document exact pre-migration state for rollback (see `feature/security-definer-revoke-public/PRE_MIGRATION_ACL_STATE.md` pattern). When verifying function ACLs, use `has_function_privilege(role, oid, 'EXECUTE')` — never string-match the raw ACL array for a named grantee, as a PUBLIC grant makes every role's effective privilege true even with no explicit named entry (this caused an incorrect "special case" classification for `is_band_member_with_role` during the security-definer-revoke-public feature's implementation).
 
 ---
 
