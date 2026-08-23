@@ -2215,7 +2215,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       if (_itemReorderPendingAfterFlight) {
         _itemReorderPendingAfterFlight = false;
         debugPrint('[SetlistDetail] Re-persisting queued item reorder');
-        return persistItemReorder();
+        return await persistItemReorder();
       }
 
       state = state.copyWith(

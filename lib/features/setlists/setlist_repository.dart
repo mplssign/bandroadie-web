@@ -445,7 +445,7 @@ class SetlistRepository {
           try {
             await deduplicateCatalogs(bandId);
             // Re-fetch to get clean data
-            return _fetchSetlistsForBandInternal(bandId, depth + 1);
+            return await _fetchSetlistsForBandInternal(bandId, depth + 1);
           } catch (e) {
             if (kDebugMode) {
               debugPrint(
@@ -464,7 +464,7 @@ class SetlistRepository {
           try {
             await ensureCatalogSetlist(bandId);
             // Re-fetch to include the new Catalog
-            return _fetchSetlistsForBandInternal(bandId, depth + 1);
+            return await _fetchSetlistsForBandInternal(bandId, depth + 1);
           } catch (e) {
             // Log but don't fail - continue with existing setlists
             if (kDebugMode) {
@@ -483,7 +483,7 @@ class SetlistRepository {
             try {
               await _ensureCatalogMetadata(catalog.id, catalog.name);
               // Re-fetch to get updated name
-              return _fetchSetlistsForBandInternal(bandId, depth + 1);
+              return await _fetchSetlistsForBandInternal(bandId, depth + 1);
             } catch (e) {
               if (kDebugMode) {
                 debugPrint(
