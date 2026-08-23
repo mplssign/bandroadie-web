@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import 'dart:nonexistent';  // Intentional error for CI negative test
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
