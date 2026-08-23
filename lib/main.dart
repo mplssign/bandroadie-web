@@ -28,6 +28,9 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/utils/timezone_helper.dart';
 import 'shared/widgets/keyboard_aware_wrapper.dart';
 
+// NEGATIVE TEST: This should cause analyzer to fail
+final nonExistentVariable = undefinedIdentifier;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
