@@ -15,12 +15,14 @@ Both are backend-only SQL hardening with no intended change in authorization log
 ## Root Cause
 
 **RLS policy performance issue:**
+
 - **Cause:** RLS policies call `auth.uid()` and `auth.role()` directly in USING/WITH CHECK clauses without wrapping them in `(select ...)` subselects.
-- **Mechanism:** PostgreSQL's query planner treats bare auth.* function calls as volatile (non-immutable) and creates an InitPlan node that executes once per row. Wrapping in `(select auth.uid())` forces evaluation at plan time and caches the result for the query's lifetime, changing evaluation timing from per-row to per-query.
+- **Mechanism:** PostgreSQL's query planner treats bare auth.\* function calls as volatile (non-immutable) and creates an InitPlan node that executes once per row. Wrapping in `(select auth.uid())` forces evaluation at plan time and caches the result for the query's lifetime, changing evaluation timing from per-row to per-query.
 - **Affected:** 124 policies with `auth.uid()`, 2 policies with `auth.role()` (both on `songs` table), across 32 tables.
 - **Confidence:** `HIGH` — confirmed via `SELECT COUNT(*) FROM pg_policies WHERE schemaname='public' AND (qual LIKE '%auth.uid()%' OR with_check LIKE '%auth.uid()%')` returning 124 rows across 32 distinct tables, plus 2 additional rows for `auth.role()`.
 
 **Function search_path issue:**
+
 - **Cause:** `get_user_band_role` function was created in migration `20260302000000_band_user_roles.sql` without `SET search_path` attribute and was not included in the Aug 14, 2026 search_path hardening migrations.
 - **Mechanism:** Functions without explicit `search_path` configuration can be subject to search_path injection attacks or namespace confusion. GUARDRAILS.md §4 mandates `SET search_path = public` for all production functions (both SECURITY DEFINER and SECURITY INVOKER).
 - **Confidence:** `HIGH` — confirmed via `SELECT prosecdef, proconfig FROM pg_proc WHERE proname='get_user_band_role'` returning `prosecdef=false, proconfig=null`, and verified no subsequent migrations modified this function's search_path.
@@ -28,6 +30,7 @@ Both are backend-only SQL hardening with no intended change in authorization log
 ## Reference Docs Consulted
 
 **Architecture and database conventions:**
+
 - `docs/reference/architecture/database_schema.md` — RLS policy inventory, RBAC conventions, function signatures
 - `docs/reference/architecture/supabase_functions.md` — Edge function list (confirmed no RPC dependencies on policy evaluation)
 - `docs/reference/architecture/architecture.md` — Init order, platform differences, RBAC enforcement (RLS as final authority)
@@ -35,7 +38,8 @@ Both are backend-only SQL hardening with no intended change in authorization log
 - `docs/agents/OPERATING_MODEL.md` — Pipeline gates, production deployment protocol, safety non-negotiables
 
 **Precedent feature for migration pattern:**
-- `docs/features/security-definer-revoke-public/ARCHITECT_PLAN.md` — Established pattern for batched ACL migrations with PRE_MIGRATION_*_STATE.md companion file for rollback
+
+- `docs/features/security-definer-revoke-public/ARCHITECT_PLAN.md` — Established pattern for batched ACL migrations with PRE*MIGRATION*\*\_STATE.md companion file for rollback
 - `docs/features/security-definer-revoke-public/PRE_MIGRATION_ACL_STATE.md` — Example of capturing exact pre-migration state from live database for rollback plans
 
 **No domain-specific notification docs required** — this feature is database-only performance/security hardening with no connection to notification delivery, setlist ordering, or other business logic.
@@ -64,6 +68,7 @@ The `auth.uid()` call is bare — not wrapped in a subselect. PostgreSQL treats 
 bands, band_members, band_invitations, gigs, gig_responses, rehearsals, rehearsal_dates, setlists, songs, setlist_songs, setlist_special_items, song_notes, notifications, notification_preferences, device_tokens, band_calendar_subscriptions, venues, venue_contacts, contacts, block_dates, contributor_permissions, financial_entries, financial_entry_splits, print_templates, profiles, users, user_band_roles, band_access_events, gig_dates, enrichment_settings, app_config, feedback
 
 **Auth function calls:**
+
 - `auth.uid()` appears in 124 policy expressions
 - `auth.role()` appears in 2 policy expressions (both on `songs` table for authenticated-only access)
 
@@ -81,6 +86,7 @@ $$ LANGUAGE sql STABLE;
 ```
 
 **Attributes:**
+
 - `prosecdef = false` (SECURITY INVOKER — intentional per migration comment)
 - `proconfig = null` (no SET search_path)
 - Created: `20260302000000_band_user_roles.sql`
@@ -91,12 +97,14 @@ The function is SECURITY INVOKER by design (the migration comment explicitly exp
 ### Why These Issues Exist
 
 **RLS policy pattern:**
+
 - No migration template or linting rule enforces subselect wrapping
 - Postgres accepts the bare call syntax — no compile-time error
 - Performance impact is query-dependent (only visible on scans of many rows)
 - Developer intent (authorization logic) is correct; only evaluation timing is suboptimal
 
 **`get_user_band_role` search_path gap:**
+
 - Aug 14, 2026 hardening sweep used explicit function name lists (`ALTER FUNCTION <name>(...) SET search_path = public`)
 - `get_user_band_role` was not included in either `20260814120003` (33 functions) or `20260814120005` (7 functions)
 - No automated inventory or advisor query was run to find remaining functions without `search_path`
@@ -128,11 +136,13 @@ The function is SECURITY INVOKER by design (the migration comment explicitly exp
    - Rollback: `ALTER FUNCTION public.get_user_band_role(uuid) RESET search_path;`
 
 **Why two migrations, not one:**
+
 - Logical separation: RLS policy performance optimization vs. function security hardening
 - Granular rollback: If policy migration encounters issues, function hardening can still proceed (or vice versa)
 - Clearer git history and QA verification surface
 
 **Why not batched (like security-definer-revoke-public):**
+
 - RLS policy changes are atomic — all 126 policies are replaced in a single transaction with identical mechanical transformation
 - No functional interdependencies between policies
 - Single migration file keeps the transformation visually verifiable (side-by-side old-vs-new in one diff)
@@ -141,6 +151,7 @@ The function is SECURITY INVOKER by design (the migration comment explicitly exp
 ### Example Side-by-Side Transformation
 
 **Before (one of 124 auth.uid() policies):**
+
 ```sql
 CREATE POLICY "Band members can view gigs" ON public.gigs
 FOR SELECT USING (
@@ -154,6 +165,7 @@ FOR SELECT USING (
 ```
 
 **After:**
+
 ```sql
 CREATE POLICY "Band members can view gigs" ON public.gigs
 FOR SELECT USING (
@@ -167,6 +179,7 @@ FOR SELECT USING (
 ```
 
 **Before (one of 2 auth.role() policies):**
+
 ```sql
 CREATE POLICY "Songs are viewable by authenticated users" ON public.songs
 FOR SELECT USING (
@@ -175,6 +188,7 @@ FOR SELECT USING (
 ```
 
 **After:**
+
 ```sql
 CREATE POLICY "Songs are viewable by authenticated users" ON public.songs
 FOR SELECT USING (
@@ -189,17 +203,20 @@ FOR SELECT USING (
 **Migrations:** Required — 2 new migration files as described above.
 
 **RLS Policies:**
+
 - Affected — all 126 policies replaced (124 with `auth.uid()`, 2 with `auth.role()`)
 - Authorization logic unchanged — only evaluation timing changes (per-query vs per-row)
 - Tables: 32 of 35 tables in public schema
 
 **RPC Functions:**
+
 - Affected — `get_user_band_role` receives `SET search_path = public` attribute
 - Signature unchanged, body unchanged, only function attributes modified via ALTER FUNCTION
 
 **Triggers:** Not applicable — no trigger logic changes.
 
 **Performance Impact:**
+
 - Expected improvement on queries scanning many rows (e.g., setlist with 100+ songs, gig list with 50+ events)
 - Impact is query-plan-dependent — queries scanning 1-10 rows may see no measurable difference
 - Worst case: no performance improvement (optimizer chooses same plan) — no regression expected
@@ -210,42 +227,42 @@ None — this is a database-only change. No Dart code, state management, widgets
 
 ## Files to Create
 
-| File | Justification |
-|------|-------------|
-| `docs/features/rls-policy-performance-hardening/ARCHITECT_PLAN.md` | This plan — required per ARCHITECT.md Phase 12 |
-| `docs/features/rls-policy-performance-hardening/PRE_MIGRATION_RLS_STATE.md` | Rollback reference — captures exact CREATE POLICY definitions for all 126 affected policies before migration execution. Follows precedent from `security-definer-revoke-public` feature's PRE_MIGRATION_ACL_STATE.md pattern. |
-| `supabase/migrations/20260823120000_wrap_rls_auth_functions.sql` | Replace all 126 RLS policies with auth function calls wrapped in subselects. Must include complete rollback plan in comments. |
-| `supabase/migrations/20260823120001_harden_get_user_band_role_search_path.sql` | Add SET search_path = public to `get_user_band_role` function. |
+| File                                                                           | Justification                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/features/rls-policy-performance-hardening/ARCHITECT_PLAN.md`             | This plan — required per ARCHITECT.md Phase 12                                                                                                                                                                                |
+| `docs/features/rls-policy-performance-hardening/PRE_MIGRATION_RLS_STATE.md`    | Rollback reference — captures exact CREATE POLICY definitions for all 126 affected policies before migration execution. Follows precedent from `security-definer-revoke-public` feature's PRE_MIGRATION_ACL_STATE.md pattern. |
+| `supabase/migrations/20260823120000_wrap_rls_auth_functions.sql`               | Replace all 126 RLS policies with auth function calls wrapped in subselects. Must include complete rollback plan in comments.                                                                                                 |
+| `supabase/migrations/20260823120001_harden_get_user_band_role_search_path.sql` | Add SET search_path = public to `get_user_band_role` function.                                                                                                                                                                |
 
 ## Files to Modify
 
-| File | What changes |
-|------|-------------|
+| File | What changes                                                                                                                                                                                                                                              |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | None | No existing files require modification — this is a pure-addition migration feature with new SQL files only. GUARDRAILS.md already contains the correct rule ("always include SET search_path = public") from the Aug 14 hardening work; no update needed. |
 
 ## Files Off-Limits
 
-| File | Reason |
-|------|--------|
-| All files under `lib/` | Flutter code unchanged — database-only change per plan scope |
-| All files under `supabase/functions/` | Edge functions unchanged — no RPC or RLS dependencies affected |
-| All existing migration files | Approved migrations — never modify post-deployment |
-| `lib/main.dart` | Init order must not change (GUARDRAILS.md §1) |
-| `.github/copilot-instructions.md` | Coding instructions unchanged — no new architectural patterns introduced |
+| File                                  | Reason                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------ |
+| All files under `lib/`                | Flutter code unchanged — database-only change per plan scope             |
+| All files under `supabase/functions/` | Edge functions unchanged — no RPC or RLS dependencies affected           |
+| All existing migration files          | Approved migrations — never modify post-deployment                       |
+| `lib/main.dart`                       | Init order must not change (GUARDRAILS.md §1)                            |
+| `.github/copilot-instructions.md`     | Coding instructions unchanged — no new architectural patterns introduced |
 
 ## System Impact Map
 
-| System | Impact |
-|--------|--------|
-| Gigs | Affected — RLS policies updated (auth function wrapping only), authorization logic unchanged, performance may improve on large gig lists |
-| Rehearsals | Affected — RLS policies updated (auth function wrapping only), authorization logic unchanged |
-| Setlists / Catalog | Affected — RLS policies updated (auth function wrapping only), authorization logic unchanged, performance may improve on catalog queries (1,733 songs in production) |
-| Members / RBAC | Affected — `get_user_band_role` receives search_path hardening; RLS policies on `band_members` updated; authorization logic unchanged |
-| Auth / Session | Unaffected — authentication flows use built-in Supabase auth, not these policies or functions |
-| Routing | Unaffected — no routing logic changes |
-| Notifications | Affected — RLS policies on `notifications`, `notification_preferences`, `device_tokens` updated; authorization logic unchanged |
-| Platform (iOS / Android / Web / macOS) | Affected (all) — all platforms may benefit from performance optimization on queries scanning many rows; no behavior change expected |
-| Financial Entries | Affected — RLS policies updated; authorization logic unchanged |
+| System                                 | Impact                                                                                                                                                               |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gigs                                   | Affected — RLS policies updated (auth function wrapping only), authorization logic unchanged, performance may improve on large gig lists                             |
+| Rehearsals                             | Affected — RLS policies updated (auth function wrapping only), authorization logic unchanged                                                                         |
+| Setlists / Catalog                     | Affected — RLS policies updated (auth function wrapping only), authorization logic unchanged, performance may improve on catalog queries (1,733 songs in production) |
+| Members / RBAC                         | Affected — `get_user_band_role` receives search_path hardening; RLS policies on `band_members` updated; authorization logic unchanged                                |
+| Auth / Session                         | Unaffected — authentication flows use built-in Supabase auth, not these policies or functions                                                                        |
+| Routing                                | Unaffected — no routing logic changes                                                                                                                                |
+| Notifications                          | Affected — RLS policies on `notifications`, `notification_preferences`, `device_tokens` updated; authorization logic unchanged                                       |
+| Platform (iOS / Android / Web / macOS) | Affected (all) — all platforms may benefit from performance optimization on queries scanning many rows; no behavior change expected                                  |
+| Financial Entries                      | Affected — RLS policies updated; authorization logic unchanged                                                                                                       |
 
 ## Regression Risk
 
@@ -254,6 +271,7 @@ None — this is a database-only change. No Dart code, state management, widgets
 **Rationale:**
 
 **-Risk (LOW):**
+
 - Pure performance/security optimization — no intended authorization logic changes
 - Database-only changes — no client code, UI, state management, or routing modifications
 - Mechanically verifiable transformation — `auth.uid()` → `(select auth.uid())` can be verified via simple text diff
@@ -264,15 +282,18 @@ None — this is a database-only change. No Dart code, state management, widgets
 - Rollback is mechanical — PRE_MIGRATION_RLS_STATE.md captures exact CREATE POLICY statements for restoration
 
 **+Risk (MEDIUM):**
+
 - 126 policies affected — any typo in policy name, table name, or predicate expression could change authorization behavior
 - No staging environment — changes apply directly to production database serving 100+ bands' live data
 - Zero automated test coverage on RLS policies — manual verification is the only safety net
 
 **+Risk (LOW):**
+
 - Manual migration authoring — policies must be transcribed from pg_policies output; copy-paste errors possible
 - Search-and-replace risk — if Engineer uses blind find/replace instead of policy-by-policy review, subtle predicate differences could be missed
 
 **Mitigations in place:**
+
 - PRE_MIGRATION_RLS_STATE.md capture before implementation — complete rollback path
 - Side-by-side old-vs-new comparison required in migration comments for at least 3 example policies per table
 - Post-migration verification query that diffs policy definitions excluding whitespace/parens
@@ -280,6 +301,7 @@ None — this is a database-only change. No Dart code, state management, widgets
 - Two-stage verification: Tier 1 (syntax-only SQL validation) and Tier 2 (post-deployment behavioral check)
 
 **Why risk is LOW, not MEDIUM:**
+
 - The transformation is purely additive parentheses — no logic rewrites, no new predicates, no table joins changed
 - RLS policies are fail-closed — if a policy is incorrect post-migration, users will see "no data" or "permission denied," not data leakage across bands
 - Authorization logic testing already happens implicitly via production use — 100+ bands querying data daily; any regression would surface immediately
@@ -296,9 +318,11 @@ Execute in strict order. Do not skip. Do not parallelize.
 **Goal:** Create `PRE_MIGRATION_RLS_STATE.md` with exact CREATE POLICY definitions for all 126 affected policies.
 
 **Steps:**
+
 1. Query live database via `supabase db query --linked` to extract all policies with auth function calls:
+
    ```sql
-   SELECT 
+   SELECT
      schemaname,
      tablename,
      policyname,
@@ -315,6 +339,7 @@ Execute in strict order. Do not skip. Do not parallelize.
    ```
 
 2. For each row, construct the exact `CREATE POLICY` statement:
+
    ```sql
    CREATE POLICY "<policyname>" ON public.<tablename>
    FOR <cmd>
@@ -337,6 +362,7 @@ Execute in strict order. Do not skip. Do not parallelize.
 **Goal:** Create `supabase/migrations/20260823120000_wrap_rls_auth_functions.sql`.
 
 **Structure:**
+
 ```sql
 -- ============================================================================
 -- Wrap auth function calls in RLS policies for performance optimization
@@ -383,6 +409,7 @@ FOR SELECT USING (
 ```
 
 **Critical requirements:**
+
 - Every policy must include a comment showing the old and new auth function call side-by-side
 - Policies must be grouped by table with clear section headers
 - Rollback plan must reference PRE_MIGRATION_RLS_STATE.md (not inline the full rollback SQL — file would be 10,000+ lines)
@@ -395,6 +422,7 @@ FOR SELECT USING (
 **Goal:** Create `supabase/migrations/20260823120001_harden_get_user_band_role_search_path.sql`.
 
 **Structure:**
+
 ```sql
 -- ============================================================================
 -- Add SET search_path to get_user_band_role function
@@ -422,6 +450,7 @@ ALTER FUNCTION public.get_user_band_role(uuid) SET search_path = public;
 ### Task 4: Write ENGINEER_REPORT.md
 
 Document:
+
 - Tasks completed
 - Migration files created with line counts
 - `PRE_MIGRATION_RLS_STATE.md` with policy count
@@ -444,10 +473,11 @@ Document:
 **Tests:**
 
 **PRE-DEPLOY TEST 1: Verify policy capture completeness**
+
 ```sql
 -- Run against live production (read-only)
 -- Confirm PRE_MIGRATION_RLS_STATE.md captured all affected policies
-SELECT 
+SELECT
   COUNT(*) as captured_policy_count
 FROM pg_policies
 WHERE schemaname = 'public'
@@ -458,20 +488,22 @@ WHERE schemaname = 'public'
 ```
 
 **PRE-DEPLOY TEST 2: Verify get_user_band_role current state**
+
 ```sql
 -- Run against live production (read-only)
 -- Confirm function currently lacks search_path
-SELECT 
+SELECT
   proname,
   prosecdef as is_security_definer,
   proconfig as current_search_path_config
-FROM pg_proc 
-WHERE proname = 'get_user_band_role' 
+FROM pg_proc
+WHERE proname = 'get_user_band_role'
   AND pronamespace = 'public'::regnamespace;
 -- Expected: prosecdef = false, proconfig = null
 ```
 
 **PRE-DEPLOY TEST 3: Syntax validation (local dry-run)**
+
 ```bash
 # Parse migration SQL locally without executing
 cat supabase/migrations/20260823120000_wrap_rls_auth_functions.sql | psql --dry-run
@@ -480,6 +512,7 @@ cat supabase/migrations/20260823120001_harden_get_user_band_role_search_path.sql
 ```
 
 **PRE-DEPLOY TEST 4: Transformation pattern verification**
+
 ```bash
 # Count auth function calls in migration file
 # Every bare auth.uid() should become (select auth.uid())
@@ -496,6 +529,7 @@ grep -c "(select auth\.role())" supabase/migrations/20260823120000_wrap_rls_auth
 ```
 
 **Tier 1 completion criteria:**
+
 - All 4 pre-deploy tests pass
 - PRE_MIGRATION_RLS_STATE.md contains exactly 126 policies
 - Migration files parse without syntax errors
@@ -510,10 +544,11 @@ grep -c "(select auth\.role())" supabase/migrations/20260823120000_wrap_rls_auth
 **Tests:**
 
 **POST-DEPLOY TEST 1: Verify policy replacement succeeded**
+
 ```sql
 -- Run against live production (read-only)
 -- Confirm all policies now have wrapped auth function calls
-SELECT 
+SELECT
   COUNT(*) as wrapped_policy_count
 FROM pg_policies
 WHERE schemaname = 'public'
@@ -522,7 +557,7 @@ WHERE schemaname = 'public'
 -- Expected: 126 (matching pre-migration count)
 
 -- Confirm no policies still have bare auth function calls
-SELECT 
+SELECT
   COUNT(*) as bare_call_count
 FROM pg_policies
 WHERE schemaname = 'public'
@@ -536,18 +571,20 @@ WHERE schemaname = 'public'
 ```
 
 **POST-DEPLOY TEST 2: Verify get_user_band_role search_path hardened**
+
 ```sql
 -- Run against live production (read-only)
-SELECT 
+SELECT
   proname,
   proconfig
-FROM pg_proc 
-WHERE proname = 'get_user_band_role' 
+FROM pg_proc
+WHERE proname = 'get_user_band_role'
   AND pronamespace = 'public'::regnamespace;
 -- Expected: proconfig = {"search_path=public"}
 ```
 
 **POST-DEPLOY TEST 3: Behavioral smoke test — same-band access allowed**
+
 ```sql
 -- Run against live production (read-only)
 -- Confirm a known band member can still read their band's gigs
@@ -562,6 +599,7 @@ WHERE band_id = '<real-band-uuid-where-user-is-member>';
 ```
 
 **POST-DEPLOY TEST 4: Behavioral smoke test — cross-band access denied**
+
 ```sql
 -- Run against live production (read-only)
 -- Confirm user cannot read gigs from a band they're not a member of
@@ -575,6 +613,7 @@ WHERE band_id = '<different-band-uuid-where-user-is-not-member>';
 ```
 
 **POST-DEPLOY TEST 5: Verify Performance Advisor warnings cleared**
+
 ```sql
 -- Run against live production (read-only)
 -- Note: This test may require MCP Supabase get_advisors tool
@@ -589,6 +628,7 @@ GROUP BY category;
 ```
 
 **POST-DEPLOY TEST 6: Verify Security Advisor warnings cleared**
+
 ```sql
 -- Run against live production (read-only)
 -- Check via MCP Supabase get_advisors tool or Dashboard → Advisors → Security
@@ -602,11 +642,13 @@ GROUP BY category;
 ```
 
 **Tier 2 completion criteria:**
+
 - All 6 post-deploy tests pass
 - Authorization behavior unchanged (same-band allowed, cross-band denied)
 - Performance and Security Advisors report 0 warnings for auth_rls_initplan and function_search_path_mutable
 
 **If any Tier 2 test fails:**
+
 1. Manager executes rollback plan from PRE_MIGRATION_RLS_STATE.md
 2. Engineer investigates failure cause
 3. Migration is revised and re-submitted for QA review
@@ -648,6 +690,7 @@ QA must verify the following areas remain functionally unchanged after migration
 11. **Gig list with 50+ events** — observe load time (should not regress)
 
 QA should report:
+
 - Any authorization regression (user sees data they shouldn't, or cannot see data they should)
 - Any functional workflow failure (CRUD operation that previously worked now fails)
 - Any performance regression (observable delay increase on large queries)
@@ -659,6 +702,7 @@ QA should report:
 The live Supabase project `nekwjxvgbveheooyorjo` serves 100+ real bands' production data. `bandroadie-staging-2` was permanently deleted 2026-08-09. This migration applies directly to production after QA APPROVED.
 
 **Pre-deployment:**
+
 1. Engineer implements migrations and captures PRE_MIGRATION_RLS_STATE.md (Tasks 1-3)
 2. Engineer runs Tier 1 verification (pre-deploy tests 1-4)
 3. Engineer writes ENGINEER_REPORT.md and signals QA
@@ -668,6 +712,7 @@ The live Supabase project `nekwjxvgbveheooyorjo` serves 100+ real bands' product
 7. If APPROVED, Manager proceeds to Release Gate
 
 **At Release Gate (Manager applies migration):**
+
 1. Manager verifies git branch is up to date with main and ENGINEER_REPORT.md shows all Tier 1 tests passed
 2. Manager runs `supabase db push --linked` to apply both migration files to production
 3. If push fails, Manager executes rollback plan and escalates to Engineer
@@ -679,6 +724,7 @@ The live Supabase project `nekwjxvgbveheooyorjo` serves 100+ real bands' product
 9. If QA confirms no regression, Manager merges feature branch to main and deletes branch
 
 **Rollback procedure (if needed):**
+
 1. Manager opens `PRE_MIGRATION_RLS_STATE.md`
 2. For each of 126 policies, Manager runs:
    ```sql
@@ -694,6 +740,7 @@ The live Supabase project `nekwjxvgbveheooyorjo` serves 100+ real bands' product
 5. Manager escalates to Architect for plan revision
 
 **Timeline:**
+
 - Engineer implementation: 2-4 hours (policy capture + migration authoring)
 - Tier 1 verification: 30 minutes
 - QA review: 1-2 hours
