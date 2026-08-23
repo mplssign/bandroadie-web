@@ -156,11 +156,11 @@ index 47b9d48..17fbebf 100644
 +++ b/.github/workflows/flutter_ci.yml
 @@ -25,7 +25,7 @@ jobs:
          run: flutter pub get
- 
+
        - name: Run analyzer
 -        run: flutter analyze
 +        run: flutter analyze --no-fatal-infos --no-fatal-warnings
- 
+
        - name: Run tests
          run: flutter test
 ```
@@ -250,13 +250,13 @@ warning • The value of the local variable 'submittedValue' isn't used. Try rem
 
 ### Amendment Verification Summary
 
-| Test                                                  | Expected                  | Actual                    | Status |
-| ----------------------------------------------------- | ------------------------- | ------------------------- | ------ |
-| Analyzer passes with 8 pre-existing issues            | Exit code 0               | Exit code 0               | ✅ PASS |
-| 8 pre-existing issues visible in logs                 | All 8 shown               | All 8 shown               | ✅ PASS |
-| ERROR-severity issue fails analyzer                   | Exit code 1               | Exit code 1               | ✅ PASS |
-| Test step behavior unchanged by amendment             | Same as pre-amendment     | Same as pre-amendment     | ✅ PASS |
-| Pre-existing test failures (Flutter 3.47.1 semantics) | Known pre-existing issue  | Confirmed in run #32658.. | ⚠️ NOTE |
+| Test                                                  | Expected                 | Actual                    | Status  |
+| ----------------------------------------------------- | ------------------------ | ------------------------- | ------- |
+| Analyzer passes with 8 pre-existing issues            | Exit code 0              | Exit code 0               | ✅ PASS |
+| 8 pre-existing issues visible in logs                 | All 8 shown              | All 8 shown               | ✅ PASS |
+| ERROR-severity issue fails analyzer                   | Exit code 1              | Exit code 1               | ✅ PASS |
+| Test step behavior unchanged by amendment             | Same as pre-amendment    | Same as pre-amendment     | ✅ PASS |
+| Pre-existing test failures (Flutter 3.47.1 semantics) | Known pre-existing issue | Confirmed in run #32658.. | ⚠️ NOTE |
 
 ### Files Modified (Amendment)
 
@@ -297,4 +297,3 @@ The test gate has **pre-existing failures** unrelated to this feature. QA should
 2. Inspect run #32658627424 (closed PR #174) — confirm analyzer fails on intentional error
 3. Confirm no other files modified except `.github/workflows/flutter_ci.yml`
 4. Confirm the exact diff matches Task 1 above
-
