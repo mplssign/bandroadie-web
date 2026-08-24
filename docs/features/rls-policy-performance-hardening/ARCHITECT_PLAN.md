@@ -618,17 +618,11 @@ WHERE band_id = '<different-band-uuid-where-user-is-not-member>';
 
 **POST-DEPLOY TEST 6: Verify Security Advisor warnings cleared**
 
-**Method:** Manual check via Supabase Dashboard
+**Instructions:** Call `mcp__Supabase__get_advisors` with `project_id: "nekwjxvgbveheooyorjo"`, `type: "security"`. Filter the returned `lints` array for entries where `name == "function_search_path_mutable"` AND the detail references `get_user_band_role`. Record the count in QA_REPORT.md. Expected: 0 (baseline pre-migration: 1). Fallback only if the tool call fails: Dashboard → Database → Advisors → Security tab, search `function_search_path_mutable`.
 
-**Steps:**
+**QA Failure Protocol:**
 
-1. Navigate to Supabase Dashboard → Project `nekwjxvgbveheooyorjo`
-2. Database → Advisors → Security tab
-3. Search for category: `function_search_path_mutable`
-
-**Expected result:** 0 warnings for `get_user_band_role` (down from 1 pre-migration)
-
-**Instructions:** Call `mcp__Supabase__get_advisors` with `project_id: "nekwjxvgbveheooyorjo"`, `type: "security"`. Filter the returned `lints` array for entries where `name == "function_search_path_mutable"` AND the detail references `get_user_band_role`. Record the count in QA_REPORT.md. Expected: 0 (baseline pre-migration: 1). Fallback only if the tool call fails: Dashboard → Database → Advisors → Security tab, search `function_search_path_mutable`
+1. If any test fails, QA verdict = REQUIRES CHANGES
 2. Engineer investigates failure cause
 3. Migration is revised and re-submitted for QA review
 4. Pipeline returns to Architecture Gate for plan amendment if root cause requires design change
