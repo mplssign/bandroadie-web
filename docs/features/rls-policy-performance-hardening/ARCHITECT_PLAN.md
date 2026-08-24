@@ -620,9 +620,15 @@ WHERE band_id = '<different-band-uuid-where-user-is-not-member>';
 
 **Instructions:** Call `mcp__Supabase__get_advisors` with `project_id: "nekwjxvgbveheooyorjo"`, `type: "security"`. Filter the returned `lints` array for entries where `name == "function_search_path_mutable"` AND the detail references `get_user_band_role`. Record the count in QA_REPORT.md. Expected: 0 (baseline pre-migration: 1). Fallback only if the tool call fails: Dashboard → Database → Advisors → Security tab, search `function_search_path_mutable`.
 
-**QA Failure Protocol:**
+**Tier 2 completion criteria:**
 
-1. If any test fails, QA verdict = REQUIRES CHANGES
+- All 6 post-deploy tests pass
+- Authorization behavior unchanged (same-band allowed, cross-band denied)
+- Performance and Security Advisors report 0 warnings for auth_rls_initplan and function_search_path_mutable
+
+**If any Tier 2 test fails:**
+
+1. Manager executes rollback plan from PRE_MIGRATION_RLS_STATE.md
 2. Engineer investigates failure cause
 3. Migration is revised and re-submitted for QA review
 4. Pipeline returns to Architecture Gate for plan amendment if root cause requires design change
