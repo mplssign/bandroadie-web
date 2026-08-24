@@ -92,11 +92,52 @@ Apply only `20260824173132` migration via direct `psql` connection to branch, by
 2. **Impact:** Cannot execute Architect plan's branch-based verification workflow (Phase 2, steps 5-10)
 3. **Proposed Resolution:** Direct production deployment with immediate post-deploy Tier 2 verification (see Recommended Path Forward above)
 
+## Production Verification Preparation
+
+### Approach: Direct Production Testing
+Given infrastructure constraints (branch-based verification blocked by migration replay conflicts), prepared consolidated SQL script for direct production verification per Architect request.
+
+### Files Created for Verification
+- `docs/features/band-create-catalog-trigger-race/PRODUCTION_VERIFICATION.sql` — Consolidated script containing:
+  - Tier 1 tests (1.1-1.4) — Pre-migration verification against current production state
+  - Migration SQL — Full function replacement with bypass clause
+  - Tier 2 tests (2.1-2.5) — Post-migration verification including critical security regression check (Test 2.3)
+- `docs/features/band-create-catalog-trigger-race/PRODUCTION_ROLLBACK.sql` — Emergency rollback script to restore 2026-08-22 state if any Tier 2 test fails
+
+### Verification Status: AWAITING PRODUCTION RESULTS
+
+**Script prepared for manual execution in Supabase Dashboard SQL Editor (project `nekwjxvgbveheooyorjo`).**
+
+⚠️ **WARNING:** This will run directly against production (no branching/staging available). Rollback script is ready for immediate use if needed.
+
+**Pending Action:** Tony (Architect) will execute PRODUCTION_VERIFICATION.sql in Dashboard SQL Editor and paste actual query results for each test section. Engineer will update this report with real results (not placeholders) once received.
+
+**Expected Outcomes:**
+- Tier 1 (Tests 1.1-1.4): All return TRUE
+- Tier 2 (Test 2.1): Returns TRUE
+- Tier 2 (Test 2.2): NOTICE "Test 2.2 PASSED"
+- Tier 2 (Test 2.3): NOTICE "Test 2.3 PASSED" ⚠️ CRITICAL — Security regression check
+- Tier 2 (Test 2.4): 0 rows returned
+- Tier 2 (Test 2.5): NOTICE "Test 2.5 PASSED" or "Test 2.5 SKIPPED"
+
+If Test 2.3 fails, immediate rollback required via PRODUCTION_ROLLBACK.sql.
+
+### Tier 1 Pre-Migration Test Results
+*(Awaiting Tony's execution results)*
+
+### Migration Execution Results
+*(Awaiting Tony's execution results)*
+
+### Tier 2 Post-Migration Test Results
+*(Awaiting Tony's execution results)*
+
 ## Ready For QA
-**Conditional Yes** — Migration file is correct and committed. QA can proceed **after**:
-1. Architect approves Option A (direct production deployment) 
-2. Migration is applied to production
-3. Engineer confirms all Tier 2 verification tests pass (Tests 2.1-2.5)
+**No** — Awaiting production verification results from Tony. QA can proceed **after**:
+1. Tony executes PRODUCTION_VERIFICATION.sql in Dashboard
+2. Engineer reviews actual output and confirms all tests pass
+3. Engineer updates this report with real results
+4. If all tests pass: Ready for QA
+5. If any test fails: Rollback executed, not ready for QA
 
 If Architect rejects Option A, feature is **blocked** pending infrastructure resolution.
 
