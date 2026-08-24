@@ -614,42 +614,21 @@ WHERE band_id = '<different-band-uuid-where-user-is-not-member>';
 
 **POST-DEPLOY TEST 5: Verify Performance Advisor warnings cleared**
 
-```sql
--- Run against live production (read-only)
--- Note: This test may require MCP Supabase get_advisors tool
--- or manual check via Supabase Dashboard → Database → Advisors → Performance
-SELECT
-  category,
-  COUNT(*) as count
-FROM extensions.index_advisor('performance')
-WHERE category = 'auth_rls_initplan'
-GROUP BY category;
--- Expected: 0 rows (warning should be cleared)
-```
+**Instructions:** Call `mcp__Supabase__get_advisors` with `project_id: "nekwjxvgbveheooyorjo"`, `type: "performance"`. Filter the returned `lints` array for entries where `name == "auth_rls_initplan"`. Record the count in QA_REPORT.md. Expected: 0 (baseline pre-migration: 124). Fallback only if the tool call fails: Dashboard → Database → Advisors → Performance tab, search `auth_rls_initplan`.
 
 **POST-DEPLOY TEST 6: Verify Security Advisor warnings cleared**
 
-```sql
--- Run against live production (read-only)
--- Check via MCP Supabase get_advisors tool or Dashboard → Advisors → Security
-SELECT
-  category,
-  COUNT(*) as count
-FROM extensions.index_advisor('security')
-WHERE category = 'function_search_path_mutable'
-GROUP BY category;
--- Expected: 0 rows (warning should be cleared)
-```
+**Method:** Manual check via Supabase Dashboard
 
-**Tier 2 completion criteria:**
+**Steps:**
 
-- All 6 post-deploy tests pass
-- Authorization behavior unchanged (same-band allowed, cross-band denied)
-- Performance and Security Advisors report 0 warnings for auth_rls_initplan and function_search_path_mutable
+1. Navigate to Supabase Dashboard → Project `nekwjxvgbveheooyorjo`
+2. Database → Advisors → Security tab
+3. Search for category: `function_search_path_mutable`
 
-**If any Tier 2 test fails:**
+**Expected result:** 0 warnings for `get_user_band_role` (down from 1 pre-migration)
 
-1. Manager executes rollback plan from PRE_MIGRATION_RLS_STATE.md
+**Instructions:** Call `mcp__Supabase__get_advisors` with `project_id: "nekwjxvgbveheooyorjo"`, `type: "security"`. Filter the returned `lints` array for entries where `name == "function_search_path_mutable"` AND the detail references `get_user_band_role`. Record the count in QA_REPORT.md. Expected: 0 (baseline pre-migration: 1). Fallback only if the tool call fails: Dashboard → Database → Advisors → Security tab, search `function_search_path_mutable`
 2. Engineer investigates failure cause
 3. Migration is revised and re-submitted for QA review
 4. Pipeline returns to Architecture Gate for plan amendment if root cause requires design change
