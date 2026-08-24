@@ -378,6 +378,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         }
 
         // New song - always show confirmation dialog (Ask behavior)
+        if (!mounted) return;
         final shouldEnrich = await showEnrichmentConfirmDialog(
           context,
           title: row.title,

@@ -210,6 +210,7 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
       }
 
       // New song - always show confirmation dialog (Ask behavior)
+      if (!mounted) return;
       final shouldEnrich = await showEnrichmentConfirmDialog(
         context,
         title: title,
