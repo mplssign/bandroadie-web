@@ -30,6 +30,7 @@ python3 /tmp/verify_diff.py  # Script filters out comment lines (--) and checks 
 ```
 
 **Script logic:**
+
 ```python
 # For each line in the diff:
 # - Skip diff headers (@@, diff, index, ---, +++)
@@ -89,6 +90,7 @@ python3 /tmp/verify_no_unprefixed.py
 ```
 
 **Script logic:**
+
 ```python
 # Track state: are we inside a comment block?
 # - Set flag when encountering comment headers (-- Old USING:, etc.)
@@ -117,6 +119,7 @@ Unprefixed continuation lines found: 0
 ## Check #4: Task 3 Waiver Evaluation
 
 **Requirement:** Independently evaluate the Task 3 waiver on its own merits. Confirm:
+
 1. Migration 073 references a table with no CREATE TABLE anywhere in supabase/migrations/
 2. This file was present in the repo's initial commit (or very early commits)
 
@@ -129,6 +132,7 @@ cat supabase/migrations/073_fix_gig_responses_unique_constraint.sql
 ```
 
 **Result:** Migration 073 performs the following operations on the `gig_responses` table:
+
 - `ALTER TABLE gig_responses DROP CONSTRAINT IF EXISTS gig_responses_gig_user_unique;`
 - `CREATE UNIQUE INDEX gig_responses_gig_user_date_unique ON gig_responses (...);`
 - `COMMENT ON INDEX gig_responses_gig_user_date_unique IS '...';`
@@ -203,6 +207,7 @@ git diff main --stat
 ```
 
 **Analysis:** Exactly 3 files modified:
+
 1. `docs/features/rls-migration-comment-escaping/ARCHITECT_PLAN.md` (new)
 2. `docs/features/rls-migration-comment-escaping/ENGINEER_REPORT.md` (new)
 3. `supabase/migrations/20260823120000_wrap_rls_auth_functions.sql` (modified)
@@ -244,6 +249,7 @@ All Architect tasks accounted for:
 **System Impact Map (from Architect plan):** All systems marked `unaffected` — this is a migration file syntax fix with no application behavior changes.
 
 **Regression risk for affected areas:**
+
 - **Supabase migrations:** MEDIUM — migration file now syntactically valid, but not yet applied to any database. Future risk: if policy transformation logic has unforeseen behavioral differences (though logic is byte-identical per Check #1), it will only manifest post-deployment when this migration is applied.
 - **RLS policies (post-deployment):** LOW — transformation is logic-preserving (confirmed in original `rls-policy-performance-hardening` QA), only evaluation timing changes (per-query vs per-row for auth function calls).
 - **All other systems:** NONE — no code changes outside migration file.
