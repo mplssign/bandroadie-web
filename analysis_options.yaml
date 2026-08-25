@@ -14,6 +14,12 @@ analyzer:
     # Swift Package Manager checkouts under build/ contain third-party Dart
     # files (e.g. swift-protobuf examples) that must not be analyzed.
     - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

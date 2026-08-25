@@ -77,11 +77,9 @@ class NotificationPermissionState {
 /// Provider for notification permission service
 /// Access notifier methods via: ref.read(notificationPermissionProvider.notifier)
 /// Watch state via: ref.watch(notificationPermissionProvider)
-final notificationPermissionProvider =
-    NotifierProvider<
-      NotificationPermissionService,
-      NotificationPermissionState
-    >(NotificationPermissionService.new);
+final notificationPermissionProvider = NotifierProvider<
+    NotificationPermissionService,
+    NotificationPermissionState>(NotificationPermissionService.new);
 
 class NotificationPermissionService
     extends Notifier<NotificationPermissionState> {
@@ -146,8 +144,8 @@ class NotificationPermissionService
   /// Get iOS permission status using Firebase Messaging
   Future<NotificationPermissionStatus> _getIOSPermissionStatus() async {
     try {
-      final settings = await FirebaseMessaging.instance
-          .getNotificationSettings();
+      final settings =
+          await FirebaseMessaging.instance.getNotificationSettings();
 
       switch (settings.authorizationStatus) {
         case AuthorizationStatus.notDetermined:
@@ -157,6 +155,8 @@ class NotificationPermissionService
           return NotificationPermissionStatus.granted;
         case AuthorizationStatus.denied:
           return NotificationPermissionStatus.denied;
+        case AuthorizationStatus.deniedPermanently:
+          return NotificationPermissionStatus.permanentlyDenied;
       }
     } catch (e) {
       // Firebase not initialized yet - this is normal on first launch
@@ -344,7 +344,7 @@ class NotificationPermissionService
 
       final granted =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
+              settings.authorizationStatus == AuthorizationStatus.provisional;
 
       return granted;
     } catch (e) {
