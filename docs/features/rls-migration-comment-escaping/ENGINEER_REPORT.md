@@ -16,7 +16,7 @@ Repair syntax error in `supabase/migrations/20260823120000_wrap_rls_auth_functio
 
 - [x] **Task 1** — Fix inline comment blocks: Collapsed 348 unprefixed continuation lines into single-line comment headers. Used Python script to process all `-- Old USING:`, `-- New USING:`, `-- Old WITH CHECK:`, `-- New WITH CHECK:` blocks.
 - [x] **Task 2** — Verify file structure integrity: Confirmed line count reduction (1938 → 1590), policy counts unchanged (126 CREATE, 126 DROP), no unprefixed lines remain, no bare auth calls in policy bodies.
-- [⚠️] **Task 3** — Supabase branch verification: **BLOCKED** — Branch creation infrastructure does not support copying parent schema. Two branch creation attempts completed (both deleted), cost confirmed ($0.01344/hr), but cannot proceed with Tier 1/Tier 2 verification without full schema. See Blockers Encountered section.
+- [x] **Task 3** — Supabase branch verification: **WAIVED per Manager review** — MCP/CLI tools and branch creation worked correctly. Blocked by a pre-existing repo gap (tracked migration history missing baseline schema for tables like gig_responses, predating this branch — see Blockers Encountered section), not a Supabase limitation. File-level verification (Tasks 1-2) stands as QA basis.
 
 ## Files Created
 
@@ -143,9 +143,9 @@ awk '/^CREATE POLICY/,/^;$/' supabase/migrations/20260823120000_wrap_rls_auth_fu
 
 1. **Branch cost confirmed:** $0.01344/hour (well under $2/hr approval threshold) ✅
 2. **Branch creation attempts:**
-   - Branch ID `bfd448f5-9ed4-4a4d-90ba-5a3c402bef8b` (project ref `dcxyqtonngqkshvbdtas`): Created empty (`with_data=false`), attempted to push all 107 migrations, failed on first migration due to missing `gig_responses` table. **Deleted.**
-   - Branch ID `7b4ed73f-f010-44bc-88b1-58aee1f809da` (project ref `seycjicxrumuqmrbznzp`): Created empty via CLI (`with_data=false`), same issue - no parent schema copied. **Deleted.**
-3. **Root cause:** Supabase CLI `branches create` command creates empty databases without copying parent schema (`with_data: false` in response JSON). The MCP `create_branch` tool does not support a `with_data` parameter.
+   - Branch ID `bfd448f5-9ed4-4a4d-90ba-5a3c402bef8b` (project ref `dcxyqtonngqkshvbdtas`): Created empty, attempted to push all 107 migrations, failed on first migration due to missing `gig_responses` table. **Deleted.**
+   - Branch ID `7b4ed73f-f010-44bc-88b1-58aee1f809da` (project ref `seycjicxrumuqmrbznzp`): Created empty via CLI, same issue - confirms tracked migration history cannot be replayed from empty (see root cause below). **Deleted.**
+3. **Initial hypothesis (later disproven — see Architect Plan Requirement section below for the confirmed root cause):** branch creation behavior was initially suspected as the cause. Investigation confirmed the actual cause is this repository's incomplete tracked migration history, not Supabase branch behavior.
 4. **Consequence:** Cannot apply only the RLS migration to an empty branch - it requires the full schema from 107 prior migrations. Attempting to push all migrations to empty branch fails on migrations that expect tables to already exist (e.g., `073_fix_gig_responses_unique_constraint.sql` expects `gig_responses` table).
 5. **Manual SQL execution attempt:** `cat supabase/migrations/20260823120000_wrap_rls_auth_functions.sql | supabase db query --linked` failed with `ERROR: 42P01: relation "public.band_access_events" does not exist` (confirming branch has no schema).
 
