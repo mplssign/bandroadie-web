@@ -122,7 +122,7 @@ awk '/^CREATE POLICY/,/^;$/' supabase/migrations/20260823120000_wrap_rls_auth_fu
 
 ## Deviations From Architect Plan
 
-- **Task 3 incomplete:** Could not complete Supabase branch verification due to network connectivity issues and branch auto-migration failures. The Architect plan states: "If MCP tools are unavailable: Escalate to Tony immediately — this verification step is non-negotiable." While CLI tools are available, branch connectivity is not, creating a similar blocker.
+- **Task 3 incomplete:** Supabase branch verification could not be completed. Root cause (confirmed): this repository's tracked migration history is missing a baseline schema — see Task 3 section below for details. Waived per Manager review.
 
 ## Blockers Encountered
 
@@ -162,14 +162,14 @@ awk '/^CREATE POLICY/,/^;$/' supabase/migrations/20260823120000_wrap_rls_auth_fu
 
 > "**If MCP tools are unavailable:** Escalate to Tony immediately — this verification step is non-negotiable and cannot be substituted with grep/awk pattern matching."
 
-While the MCP and CLI tools are technically available, the Supabase branch creation infrastructure does not support creating branches with parent schema pre-loaded via these tools. The verification as specified cannot be completed.
+MCP and CLI tools both worked correctly. The actual cause is a pre-existing gap in this repository: migrations 001-072 were never committed to version control (the earliest tracked migration, 073_fix_gig_responses_unique_constraint.sql, already assumes tables no tracked migration creates — confirmed present unchanged since the initial commit 18f4e35). Branch creation correctly provisions an empty database and correctly replays the tracked migration history — that history is simply incomplete. This is not a Supabase platform limitation.
 
 **Production database baseline (verified):**
 
 - Latest migration applied: `20260822120103_add_membership_check_reorder_items.sql`
 - RLS migration `20260823120000_wrap_rls_auth_functions.sql` has **NOT** been applied to production yet (confirmed via `schema_migrations` query)
 
-**Note on testing approach:** The Architect plan assumes branches can be created with full parent schema for isolated testing. The Supabase platform's current branch creation behavior (empty databases) blocks this approach.
+**Note on testing approach:** The Architect plan assumed the tracked migration history was complete enough to replay from empty. It isn't, for reasons predating this branch. Branch-based testing will remain blocked for any future migration until a baseline schema migration is added to the repo (recommended as a separate backlog item).
 
 ## Ready For QA
 
@@ -178,6 +178,7 @@ While the MCP and CLI tools are technically available, the Supabase branch creat
 Task 3 (Supabase branch verification) is waived per Manager review. Root cause confirmed: this repository's migration history is missing a baseline schema — the earliest tracked migration (073_fix_gig_responses_unique_constraint.sql) already assumes tables that no tracked migration ever creates, and this predates this branch entirely (confirmed present in the initial commit, 18f4e35). This is a pre-existing repo gap unrelated to this fix, and it blocks branch-based testing for any migration, not just this one — not a Supabase platform limitation.
 
 File-level verification stands as the basis for QA:
+
 - Task 1: migration file syntax fix complete and committed (3c8c18e)
 - Task 2: file structure integrity verified (policy counts unchanged at 126, zero unprefixed lines outside tracked statement spans)
 - SQL content confirmed byte-identical (logic-wise) to the version previously QA-approved — only documentation comments were collapsed
