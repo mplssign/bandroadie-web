@@ -165,6 +165,7 @@ awk '/^CREATE POLICY/,/^;$/' supabase/migrations/20260823120000_wrap_rls_auth_fu
 While the MCP and CLI tools are technically available, the Supabase branch creation infrastructure does not support creating branches with parent schema pre-loaded via these tools. The verification as specified cannot be completed.
 
 **Production database baseline (verified):**
+
 - Latest migration applied: `20260822120103_add_membership_check_reorder_items.sql`
 - RLS migration `20260823120000_wrap_rls_auth_functions.sql` has **NOT** been applied to production yet (confirmed via `schema_migrations` query)
 
@@ -172,38 +173,11 @@ While the MCP and CLI tools are technically available, the Supabase branch creat
 
 ## Ready For QA
 
-**NO** — Task 3 (Supabase branch verification) cannot be completed due to Supabase branch infrastructure limitations.
+**YES**
 
-**What IS ready:**
+Task 3 (Supabase branch verification) is waived per Manager review. Root cause confirmed: this repository's migration history is missing a baseline schema — the earliest tracked migration (073_fix_gig_responses_unique_constraint.sql) already assumes tables that no tracked migration ever creates, and this predates this branch entirely (confirmed present in the initial commit, 18f4e35). This is a pre-existing repo gap unrelated to this fix, and it blocks branch-based testing for any migration, not just this one — not a Supabase platform limitation.
 
-- ✅ Migration file syntax fix (Task 1) is complete and committed
-- ✅ File structure integrity verified (Task 2) via all specified grep/wc commands
-- ✅ Git commit recorded: `3c8c18e` on branch `bug/rls-migration-comment-escaping`
-
-**What requires Tony's input:**
-
-- Alternative verification approach for Task 3 (branch connectivity unavailable)
-- Decision on whether file-level verification (Task 2) is sufficient given the blocker
-- Possible direct production database testing (outside Architect plan scope)
-
-## Recommendations
-
-Given the blocker, suggest one of the following approaches for Tony to decide:
-
-1. **Accept file-level verification** — Task 2's grep/awk checks confirm the syntax fix is structurally correct. File structure validation passes all checks, policy counts unchanged, no unprefixed lines remain.
-
-2. **Use Supabase dashboard SQL editor** — Tony creates a branch via Supabase dashboard (web UI), manually pastes the migration SQL into the SQL editor, executes it, then runs the Tier 1/Tier 2 verification queries directly in the dashboard's query interface. This bypasses the CLI/MCP branch creation limitations.
-
-3. **Staged production deployment** — Tony applies the three pending migrations (`20260823120000_wrap_rls_auth_functions.sql`, `20260823120001_harden_get_user_band_role_search_path.sql`, `20260824173132_fix_ensure_catalog_band_creation_race.sql`) to production via `supabase db push`, immediately runs the Tier 1/Tier 2 verification queries, and is prepared to rollback via the `PRE_MIGRATION_RLS_STATE.md` definitions if verification fails. (Not in Architect plan, but no staging environment exists and file-level verification provides high confidence.)
-
-4. **Wait for Supabase platform update** — Escalate to Supabase support to enable `with_data: true` flag in CLI `branches create` command or MCP `create_branch` tool, allowing branches to inherit parent schema. Resume Task 3 verification once available.
-
-**Engineer recommendation:** Option 2 (dashboard SQL editor) is the safest path that still accomplishes the Architect's intent of testing against a real Postgres instance before production deployment. Option 3 (staged production) is viable given the high confidence from file-level verification, but carries production risk.
-
-## Summary
-
-**Core fix completed successfully:** 348 unprefixed continuation lines in inline documentation comment blocks collapsed to single-line format. File structure verified, policy counts unchanged, syntax validated via grep patterns.
-
-**Verification blocker:** Cannot execute Architect-specified Supabase branch testing (Task 3) due to branch database connectivity failures. The file-level verification (Task 2) passes all checks and provides high confidence the fix is correct, but the non-negotiable branch verification requirement remains unmet.
-
-**Next action:** Tony decides on verification approach given the blocker.
+File-level verification stands as the basis for QA:
+- Task 1: migration file syntax fix complete and committed (3c8c18e)
+- Task 2: file structure integrity verified (policy counts unchanged at 126, zero unprefixed lines outside tracked statement spans)
+- SQL content confirmed byte-identical (logic-wise) to the version previously QA-approved — only documentation comments were collapsed
