@@ -904,7 +904,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
         child: Container(
           margin: EdgeInsets.only(bottom: bottomPadding),
           constraints: BoxConstraints(
-            maxHeight: screenHeight * 0.85,
+            maxHeight: screenHeight * (widget.isReadOnly ? 0.85 : 0.95),
             minHeight: screenHeight * 0.6,
           ),
           decoration: BoxDecoration(
