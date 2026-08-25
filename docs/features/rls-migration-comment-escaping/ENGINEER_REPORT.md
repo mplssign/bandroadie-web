@@ -182,3 +182,18 @@ File-level verification stands as the basis for QA:
 - Task 1: migration file syntax fix complete and committed (3c8c18e)
 - Task 2: file structure integrity verified (policy counts unchanged at 126, zero unprefixed lines outside tracked statement spans)
 - SQL content confirmed byte-identical (logic-wise) to the version previously QA-approved — only documentation comments were collapsed
+
+## Pre-Commit Checks
+
+**Command:** `flutter analyze`
+
+**Result:** 6 issues found (0 errors, 2 info, 4 warnings) — all pre-existing, none related to this change
+
+```
+   info • Use a 'SizedBox' to add whitespace (reorderable_song_card.dart:187)
+   info • Use a 'SizedBox' to add whitespace (song_card.dart:113)
+warning • unused_local_variable (app_text_field_test.dart:312, 416, 438)
+warning • unused_local_variable (app_text_form_field_test.dart:326)
+```
+
+**Note:** This change touches no Dart files — only `supabase/migrations/*.sql` and `docs/features/rls-migration-comment-escaping/` documentation files. All analyzer issues are in files not modified by this branch.
