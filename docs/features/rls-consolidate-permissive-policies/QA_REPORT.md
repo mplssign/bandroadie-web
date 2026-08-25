@@ -65,36 +65,43 @@ Pre-migration TO public policy count: 46 policies scoped TO public across the 11
 **Method:** Executed each of the 7 flagged non-equivalent policy pairs as its own isolated transaction (BEGIN...ROLLBACK) with the correct test user identity for that specific Note. Each transaction applied only the relevant table's consolidated policies, set `SET LOCAL role = authenticated` and `SET LOCAL request.jwt.claims` to the appropriate test user UUID, then exercised the actual predicate via real DML/SELECT against production data.
 
 **NOTE 1: band_members SELECT — User can view own membership**
+
 - Test user: `011b1a1c-e6fe-431c-80df-e8211adeb570` (admin/creator)
 - Query: `SELECT EXISTS (SELECT 1 FROM band_members WHERE user_id = '011b1a1c...' AND band_id = '25759750-e676...')`
 - Result: ✅ **PASS** (true)
 
 **NOTE 2: bands DELETE — Admin/creator can delete band**
+
 - Test user: `011b1a1c-e6fe-431c-80df-e8211adeb570` (creator of band 25759750)
 - Query: `WITH deleted AS (DELETE FROM bands WHERE id = '25759750-e676...' RETURNING id) SELECT count(*) = 1 FROM deleted`
 - Result: ✅ **PASS** (true)
 
 **NOTE 3: contributor_permissions SELECT — Active member can view**
+
 - Test user: `4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925` (admin, active member of band e89bea44)
 - Query: `SELECT EXISTS (SELECT 1 FROM contributor_permissions cp JOIN band_members bm ON bm.id = cp.band_member_id WHERE bm.band_id = 'e89bea44...')`
 - Result: ✅ **PASS** (true)
 
 **NOTE 4: rehearsals DELETE — Member role can delete**
+
 - Test user: `778cd544-daef-4a5a-96a1-fbe4ea0d4ff8` (member role, not admin)
 - Query: `WITH deleted AS (DELETE FROM rehearsals WHERE id = '328857fd-f4cf...' RETURNING id) SELECT count(*) = 1 FROM deleted`
 - Result: ✅ **PASS** (true)
 
 **NOTE 5: setlist_songs SELECT — Broader policy applies**
+
 - Test user: `6bfc71fa-e2ce-4c75-b60b-a6555c38c12a` (contributor)
 - Query: `SELECT EXISTS (SELECT 1 FROM setlist_songs ss JOIN setlists s ON s.id = ss.setlist_id WHERE s.band_id = 'c4a975df...')`
 - Result: ✅ **PASS** (true)
 
 **NOTE 6: setlists DELETE — Contributor can delete (Known Issue)**
+
 - Test user: `6bfc71fa-e2ce-4c75-b60b-a6555c38c12a` (contributor)
 - Query: `WITH deleted AS (DELETE FROM setlists WHERE id = 'd180727d-5e96...' RETURNING id) SELECT count(*) = 1 FROM deleted`
 - Result: ✅ **PASS** (true) — Preserves over-permissive contributor access per Known Issue flag
 
 **NOTE 7: songs SELECT — Any authenticated can select (Known Issue)**
+
 - Test user: `011b1a1c-e6fe-431c-80df-e8211adeb570` (any authenticated user)
 - Query: `SELECT EXISTS (SELECT 1 FROM songs LIMIT 1)`
 - Result: ✅ **PASS** (true) — Unrestricted access preserved per Known Issue flag
