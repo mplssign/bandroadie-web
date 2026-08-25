@@ -48,6 +48,7 @@ class BandMemberEditDrawer extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      mainAxisMaxRatio: 0.95,
       builder: (_) => BandMemberEditDrawer(
         member: member,
         adminCount: adminCount,
