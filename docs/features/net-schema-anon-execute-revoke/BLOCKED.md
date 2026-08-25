@@ -25,7 +25,7 @@ WHERE nspname = 'net';
 Result:
 
 ```json
-[{"schema_owner":"supabase_admin"}]
+[{ "schema_owner": "supabase_admin" }]
 ```
 
 The current Postgres session can also confirm the role membership path is unavailable:
