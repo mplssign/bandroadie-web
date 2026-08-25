@@ -18,14 +18,12 @@ jobs:
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
-        # Temporary pin: forui 0.25.0 (current pinned version) is incompatible
-        # with Flutter 3.47's semantics-merge changes (Flutter flutter/flutter#191095).
-        # forui's fix (PR duobaseio/forui#1165) is merged upstream but not yet
-        # published to pub.dev as of this commit. Revert to `channel: stable`
-        # (or bump to the exact next forui release once it ships Flutter 3.47
-        # support) once forui publishes.
+        # Pin an exact stable patch version instead of floating `channel: stable`
+        # so CI upgrades are intentional and reviewed. This avoids silent breakage
+        # when a new stable release lands and upstream packages are not ready yet.
+        # Tradeoff: this requires manual version bumps to adopt newer patches.
         with:
-          flutter-version: "3.44.6"
+          flutter-version: "3.47.1"
 
       - name: Install dependencies
         run: flutter pub get
