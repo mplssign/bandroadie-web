@@ -944,13 +944,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                               ),
                             ],
                             const SizedBox(height: Spacing.space24),
-                            _buildDurationRow(),
-                            const SizedBox(height: Spacing.space16),
-                            _buildBpmSection(),
-                            const SizedBox(height: Spacing.space16),
-                            _buildKeySection(),
-                            const SizedBox(height: Spacing.space16),
-                            _buildTuningSection(),
+                            _buildMetricsRow(),
                             const SizedBox(height: Spacing.space24),
                             _buildNotesSection(),
                             const SizedBox(height: Spacing.space24),
@@ -1178,21 +1172,16 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     );
   }
 
-  /// Single-row Duration selector
-  Widget _buildDurationRow() {
-    return SegmentedButtonGroup(
-      segments: [
-        SegmentData(
-          label: 'Duration',
-          value: _formatDuration(_currentDurationSeconds),
-          onTap: widget.isReadOnly ? null : _selectDuration,
-        ),
-      ],
-    );
-  }
+  /// Single-row metrics selector showing BPM, Duration, Key, and Tuning.
+  Widget _buildMetricsRow() {
+    final displayKey =
+        (_currentMusicalKey == null || _currentMusicalKey!.isEmpty)
+            ? '—'
+            : _currentMusicalKey!;
+    final displayTuning = (_currentTuning == null || _currentTuning!.isEmpty)
+        ? '—'
+        : tuningShortLabel(_currentTuning);
 
-  /// Single-row BPM selector
-  Widget _buildBpmSection() {
     return SegmentedButtonGroup(
       segments: [
         SegmentData(
@@ -1200,36 +1189,16 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
           value: _currentBpm?.toString() ?? '—',
           onTap: widget.isReadOnly ? null : _selectBpm,
         ),
-      ],
-    );
-  }
-
-  /// Single-row Musical Key selector
-  Widget _buildKeySection() {
-    final displayKey =
-        (_currentMusicalKey == null || _currentMusicalKey!.isEmpty)
-            ? '—'
-            : _currentMusicalKey!;
-
-    return SegmentedButtonGroup(
-      segments: [
         SegmentData(
-          label: 'Musical Key',
+          label: 'Duration',
+          value: _formatDuration(_currentDurationSeconds),
+          onTap: widget.isReadOnly ? null : _selectDuration,
+        ),
+        SegmentData(
+          label: 'Key',
           value: displayKey,
           onTap: widget.isReadOnly ? null : _selectKey,
         ),
-      ],
-    );
-  }
-
-  /// Single-row Tuning selector
-  Widget _buildTuningSection() {
-    final displayTuning = (_currentTuning == null || _currentTuning!.isEmpty)
-        ? '—'
-        : tuningShortLabel(_currentTuning);
-
-    return SegmentedButtonGroup(
-      segments: [
         SegmentData(
           label: 'Tuning',
           value: displayTuning,

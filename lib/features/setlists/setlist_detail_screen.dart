@@ -2295,7 +2295,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       children: [
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: 44,
             child: AppTextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
@@ -3170,7 +3170,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
     final song = widget.song;
     final shortLabel = tuningShortLabel(song.tuning);
     final bgColor = tuningBadgeColor(song.tuning);
-    final textColor = tuningBadgeTextColor(bgColor);
+    final textColor = tuningBadgeTextColor(bgColor, tuningKey: song.tuning);
 
     return SizedBox(
       height: SongCardLayout.metricsRowHeight,
@@ -3481,7 +3481,10 @@ class _TuningSortButton extends StatelessWidget {
               Icons.sort_rounded,
               size: 16,
               color: isActive
-                  ? tuningBadgeTextColor(badgeColor)
+                  ? tuningBadgeTextColor(
+                      badgeColor,
+                      tuningKey: startingTuningId,
+                    )
                   : AppColors.primary,
             ),
             const SizedBox(width: 6),
@@ -3491,7 +3494,10 @@ class _TuningSortButton extends StatelessWidget {
                 fontSize: AppFontSizes.subhead,
                 fontWeight: FontWeight.w600,
                 color: isActive
-                    ? tuningBadgeTextColor(badgeColor)
+                    ? tuningBadgeTextColor(
+                        badgeColor,
+                        tuningKey: startingTuningId,
+                      )
                     : AppColors.primary,
                 height: 1,
               ),

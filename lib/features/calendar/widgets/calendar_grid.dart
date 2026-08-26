@@ -37,15 +37,13 @@ class CalendarGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Compute responsive day cell size to fill container width
-        // Subtract FCalendar's internal horizontal padding (12px left + 12px right = 24px total)
-        // Clamp to 0 minimum to prevent negative width when drawer overlay restricts constraints
-        final availableWidth =
-            (constraints.maxWidth - 24).clamp(0.0, double.infinity);
+        // FCalendar container padding is overridden to zero below so day cells
+        // align flush with the outer calendar border.
+        final availableWidth = constraints.maxWidth.clamp(0.0, double.infinity);
         final cellWidth = availableWidth / 7;
 
-        // Cell height reduced by 30% from Amendment 2 baseline (cellWidth + 11)
-        // With 40px minimum to prevent clipping on smallest phones (360px width)
-        final cellHeight = max((cellWidth + 11) * 0.7, 40.0);
+        // Slightly taller cells for better vertical balance.
+        final cellHeight = max((cellWidth + 11) * 0.76, 42.0);
         final daySize = Size(cellWidth, cellHeight);
 
         // Compute marker width proportional to cell size (80% of cell width)
@@ -53,33 +51,20 @@ class CalendarGrid extends StatelessWidget {
 
         // Build custom style with computed daySize and day cell borders
         final customStyle = FCalendarStyleDelta.delta(
+          padding: const EdgeInsetsGeometryDelta.value(EdgeInsets.zero),
+          headerStyle: const FCalendarHeaderStyleDelta.delta(
+            tappablePadding: EdgeInsetsGeometryDelta.add(
+              EdgeInsetsDirectional.only(start: 8),
+            ),
+          ),
           dayPickerStyle: FCalendarDayPickerStyleDelta.delta(
+            weekdayTextStyle: const TextStyleDelta.delta(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              fontSize: AppFontSizes.caption,
+            ),
             daySize: daySize,
-            dayStyles: FVariantsDelta.delta([
-              // Apply neutral border to all day cells
-              FVariantOperation.all(
-                FCalendarDayStyleDelta.delta(
-                  background: DecorationDelta.boxDelta(
-                    border: Border.all(
-                      color: context.theme.colors.border,
-                      width: 1,
-                    ),
-                  ),
-                ),
-              ),
-              // Override with rose border for today specifically
-              FVariantOperation.exact(
-                {FCalendarDayVariant.today},
-                FCalendarDayStyleDelta.delta(
-                  background: DecorationDelta.boxDelta(
-                    border: Border.all(
-                      color: AppColors.primary,
-                      width: 1,
-                    ),
-                  ),
-                ),
-              ),
-            ]),
           ),
         );
 
@@ -89,7 +74,14 @@ class CalendarGrid extends StatelessWidget {
           style: customStyle,
           dayBuilder: (context, styles, localizations, date, variants) =>
               _buildDayWithMarkers(
-                  context, styles, localizations, date, variants, markerWidth),
+            context,
+            styles,
+            localizations,
+            date,
+            variants,
+            markerWidth,
+            calendarState.selectedMonth,
+          ),
           onDayPress: (date) => onDayTap?.call(date),
           fixedWeeks: false,
         );
@@ -105,34 +97,84 @@ class CalendarGrid extends StatelessWidget {
     DateTime date,
     Set<FCalendarDayVariant> variants,
     double markerWidth,
+    DateTime displayedMonth,
   ) {
     final markers = calendarState.getMarkers(date);
     final style = styles.resolve(variants);
+    final border = _singleGridBorderForDate(
+      date,
+      displayedMonth,
+      localizations.firstDayOfWeek,
+      context.theme.colors.border,
+    );
 
     // Get events for this day, sorted by start time for marker ordering
     final eventsForDay = calendarState.eventsForDate(date);
     final sortedEventTypes = _getSortedEventTypes(eventsForDay, markers);
 
-    return DecoratedBox(
-      decoration: style.background,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Day number cell
-          DecoratedBox(
-            decoration: style.foreground,
-            child: Center(
-              child: Text(
-                DateFormat.d(localizations.localeName).format(date),
-                style: style.textStyle,
-              ),
+    Widget dayContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Day number cell
+        DecoratedBox(
+          decoration: style.foreground,
+          child: Center(
+            child: Text(
+              DateFormat.d(localizations.localeName).format(date),
+              style: style.textStyle,
             ),
           ),
-          const SizedBox(height: 2),
-          // Event marker stack
-          _buildMarkerStack(sortedEventTypes, markers, markerWidth),
-        ],
-      ),
+        ),
+        const SizedBox(height: 2),
+        // Event marker stack
+        _buildMarkerStack(sortedEventTypes, markers, markerWidth),
+      ],
+    );
+
+    if (variants.contains(FCalendarDayVariant.today)) {
+      dayContent = Padding(
+        padding: const EdgeInsets.all(1),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: AppColors.primary,
+              width: 1,
+            ),
+          ),
+          child: dayContent,
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(border: border),
+      child: dayContent,
+    );
+  }
+
+  Border _singleGridBorderForDate(
+    DateTime date,
+    DateTime displayedMonth,
+    int firstDayOfWeek,
+    Color borderColor,
+  ) {
+    final firstOfMonth = DateTime(displayedMonth.year, displayedMonth.month, 1);
+    final daysBeforeFirst =
+        (firstOfMonth.weekday - firstDayOfWeek) % DateTime.daysPerWeek;
+    final gridStart = firstOfMonth.subtract(Duration(days: daysBeforeFirst));
+
+    final columnIndex = (date.weekday - firstDayOfWeek) % DateTime.daysPerWeek;
+    final rowIndex = date.difference(gridStart).inDays ~/ DateTime.daysPerWeek;
+
+    const side = BorderSide(width: 1);
+
+    return Border(
+      top: rowIndex == 0 ? side.copyWith(color: borderColor) : BorderSide.none,
+      left: columnIndex == 0
+          ? side.copyWith(color: borderColor)
+          : BorderSide.none,
+      right: side.copyWith(color: borderColor),
+      bottom: side.copyWith(color: borderColor),
     );
   }
 
@@ -280,11 +322,12 @@ class CalendarGrid extends StatelessWidget {
   /// Build the block out marker, split into segments if multiple members
   Widget _buildBlockOutMarker(int blockOutCount, double markerWidth) {
     final count = blockOutCount > 0 ? blockOutCount : 1;
+    final safeMarkerWidth = max(markerWidth, 0.0);
 
     if (count == 1) {
       // Single block out - full width line
       return Container(
-        width: markerWidth,
+        width: safeMarkerWidth,
         height: 3,
         decoration: BoxDecoration(
           color: CalendarColors.blockOutIndicator,
@@ -293,18 +336,34 @@ class CalendarGrid extends StatelessWidget {
       );
     }
 
-    // Multiple block outs - split into segments with 1px gaps
-    const gapWidth = 1.0;
+    // Multiple block outs - split into segments with adaptive gaps so tiny
+    // cells never produce negative widths or row overflow.
+    const preferredGapWidth = 1.0;
     final totalGaps = count - 1;
-    final segmentWidth = (markerWidth - (gapWidth * totalGaps)) / count;
+    final gapWidth = totalGaps > 0
+        ? min(preferredGapWidth, safeMarkerWidth / totalGaps)
+        : 0.0;
+    final totalGapWidth = gapWidth * totalGaps;
+    final segmentWidth = max((safeMarkerWidth - totalGapWidth) / count, 0.0);
+
+    if (segmentWidth <= 0) {
+      return Container(
+        width: safeMarkerWidth,
+        height: 3,
+        decoration: BoxDecoration(
+          color: CalendarColors.blockOutIndicator,
+          borderRadius: BorderRadius.circular(1.5),
+        ),
+      );
+    }
 
     return SizedBox(
-      width: markerWidth,
+      width: safeMarkerWidth,
       height: 3,
       child: Row(
         children: [
           for (int i = 0; i < count; i++) ...[
-            if (i > 0) const SizedBox(width: gapWidth),
+            if (i > 0) SizedBox(width: gapWidth),
             Container(
               width: segmentWidth,
               height: 3,

@@ -227,7 +227,7 @@ class _SongCardState extends State<SongCard>
               SizedBox(
                 width: SongCardLayout.durationColWidth,
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: Alignment.center,
                   child: _buildDurationValue(),
                 ),
               ),
@@ -240,7 +240,7 @@ class _SongCardState extends State<SongCard>
               SizedBox(
                 width: SongCardLayout.keyColWidth,
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: Alignment.centerRight,
                   child: hasKey ? _buildKeyBadge() : const SizedBox.shrink(),
                 ),
               ),
@@ -286,21 +286,24 @@ class _SongCardState extends State<SongCard>
   /// Builds the key badge (read-only display)
   /// Only shown when musicalKey is not null and not empty
   Widget _buildKeyBadge() {
+    const keyColor = Color(0xFFF59E0B); // Amber-500
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: Spacing.space12,
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFF59E0B), // Amber-500
+        color: Colors.transparent,
+        border: Border.all(color: keyColor, width: 1.5),
         borderRadius: BorderRadius.circular(100), // Pill shape
       ),
       child: Text(
         widget.song.musicalKey!,
         style: const TextStyle(
           fontSize: AppFontSizes.subhead,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1F1F1F), // Dark text for light background
+          fontWeight: FontWeight.w700,
+          color: keyColor,
           height: 1,
         ),
       ),
@@ -319,7 +322,7 @@ class _SongCardState extends State<SongCard>
         builder: (context, snapshot) {
           final shortLabel = snapshot.data ?? 'Custom';
           final bgColor = tuningBadgeColor(tuning);
-          final textColor = tuningBadgeTextColor(bgColor);
+          final textColor = tuningBadgeTextColor(bgColor, tuningKey: tuning);
 
           return Container(
             padding: const EdgeInsets.symmetric(
@@ -350,7 +353,7 @@ class _SongCardState extends State<SongCard>
     // Standard preset tuning
     final shortLabel = tuningShortLabel(tuning);
     final bgColor = tuningBadgeColor(tuning);
-    final textColor = tuningBadgeTextColor(bgColor);
+    final textColor = tuningBadgeTextColor(bgColor, tuningKey: tuning);
 
     return Container(
       padding: const EdgeInsets.symmetric(

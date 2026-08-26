@@ -135,7 +135,7 @@ class SongMetricsRow extends StatelessWidget {
   Widget _buildTuningBadge() {
     final shortLabel = tuningShortLabel(tuning);
     final bgColor = tuningBadgeColor(tuning);
-    final textColor = tuningBadgeTextColor(bgColor);
+    final textColor = tuningBadgeTextColor(bgColor, tuningKey: tuning);
 
     return GestureDetector(
       onTap: onTuningTap,

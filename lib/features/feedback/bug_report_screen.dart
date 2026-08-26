@@ -6,6 +6,9 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import 'bug_report_email_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
 
 // ============================================================================
 // BUG REPORT SCREEN
@@ -111,179 +114,192 @@ $_fallbackReportText
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
-        title: Text('Report Bugs', style: AppTextStyles.title3),
-        leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
+        title: Text(
+          'Report Bugs',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.title2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(Spacing.space24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header text
-              Text('Help us improve BandRoadie', style: AppTextStyles.title3),
-              const SizedBox(height: Spacing.space8),
-              Text(
-                'Report a bug you encountered or suggest a new feature you\'d like to see.',
-                style: AppTextStyles.callout,
-              ),
-
-              const SizedBox(height: Spacing.space32),
-
-              // Type selector
-              Text(
-                'Type',
-                style: AppTextStyles.footnote.copyWith(
-                  color: context.colors.textSecondary,
+      body: Material(
+        color: Colors.transparent,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(Spacing.space24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header text
+                Text('Help us improve BandRoadie', style: AppTextStyles.title3),
+                const SizedBox(height: Spacing.space8),
+                Text(
+                  'Report a bug you encountered or suggest a new feature you\'d like to see.',
+                  style: AppTextStyles.callout,
                 ),
-              ),
-              const SizedBox(height: Spacing.space12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TypeChip(
-                      label: 'Bug Report',
-                      icon: AppIcons.bug,
-                      isSelected: _selectedType == _FeedbackType.bug,
-                      onTap: () =>
-                          setState(() => _selectedType = _FeedbackType.bug),
-                    ),
-                  ),
-                  const SizedBox(width: Spacing.space12),
-                  Expanded(
-                    child: _TypeChip(
-                      label: 'Feature Request',
-                      icon: Icons.lightbulb_outline_rounded,
-                      isSelected: _selectedType == _FeedbackType.feature,
-                      onTap: () =>
-                          setState(() => _selectedType = _FeedbackType.feature),
-                    ),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: Spacing.space24),
+                const SizedBox(height: Spacing.space32),
 
-              // Description field
-              Text(
-                'Description',
-                style: AppTextStyles.footnote.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: Spacing.space8),
-              TextFormField(
-                controller: _descriptionController,
-                style: const TextStyle(color: Colors.white),
-                maxLines: 6,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: _selectedType == _FeedbackType.bug
-                      ? 'What happened? What did you expect to happen? Steps to reproduce...'
-                      : 'Describe the feature and how it would help you...',
-                  hintStyle: TextStyle(color: context.colors.textMuted),
-                  filled: true,
-                  fillColor: context.colors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
-                    ),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please provide some details';
-                  }
-                  if (value.trim().length < 10) {
-                    return 'Please provide more details (at least 10 characters)';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: Spacing.space32),
-
-              // Submit button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitFeedback,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.space16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                    disabledBackgroundColor: AppColors.primary.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _selectedType == _FeedbackType.bug
-                              ? 'Submit Bug Report'
-                              : 'Submit Feature Request',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: AppFontSizes.body,
-                          ),
-                        ),
-                ),
-              ),
-
-              const SizedBox(height: Spacing.space16),
-
-              // Note about response
-              Center(
-                child: Text(
-                  'We read every submission and appreciate your feedback!',
+                // Type selector
+                Text(
+                  'Type',
                   style: AppTextStyles.footnote.copyWith(
                     color: context.colors.textSecondary,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
+                const SizedBox(height: Spacing.space12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TypeChip(
+                        label: 'Bug Report',
+                        icon: AppIcons.bug,
+                        isSelected: _selectedType == _FeedbackType.bug,
+                        onTap: () =>
+                            setState(() => _selectedType = _FeedbackType.bug),
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.space12),
+                    Expanded(
+                      child: _TypeChip(
+                        label: 'Feature Request',
+                        icon: Icons.lightbulb_outline_rounded,
+                        isSelected: _selectedType == _FeedbackType.feature,
+                        onTap: () => setState(
+                            () => _selectedType = _FeedbackType.feature),
+                      ),
+                    ),
+                  ],
+                ),
 
-              // Fallback UI when email can't be opened
-              if (_fallbackReportText != null) ...[
                 const SizedBox(height: Spacing.space24),
-                _FallbackCard(
-                  errorMessage: _fallbackErrorMessage ?? 'Unable to open email',
-                  onCopy: _copyReportToClipboard,
-                  onDismiss: _dismissFallback,
+
+                // Description field
+                Text(
+                  'Description',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
                 ),
+                const SizedBox(height: Spacing.space8),
+                TextFormField(
+                  controller: _descriptionController,
+                  style: const TextStyle(color: Colors.white),
+                  maxLines: 6,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: _selectedType == _FeedbackType.bug
+                        ? 'What happened? What did you expect to happen? Steps to reproduce...'
+                        : 'Describe the feature and how it would help you...',
+                    hintStyle: TextStyle(color: context.colors.textMuted),
+                    filled: true,
+                    fillColor: context.colors.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please provide some details';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'Please provide more details (at least 10 characters)';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: Spacing.space32),
+
+                // Submit button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submitFeedback,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: Spacing.space16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                      ),
+                      disabledBackgroundColor: AppColors.primary.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            _selectedType == _FeedbackType.bug
+                                ? 'Submit Bug Report'
+                                : 'Submit Feature Request',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: AppFontSizes.body,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: Spacing.space16),
+
+                // Note about response
+                Center(
+                  child: Text(
+                    'We read every submission and appreciate your feedback!',
+                    style: AppTextStyles.footnote.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                // Fallback UI when email can't be opened
+                if (_fallbackReportText != null) ...[
+                  const SizedBox(height: Spacing.space24),
+                  _FallbackCard(
+                    errorMessage:
+                        _fallbackErrorMessage ?? 'Unable to open email',
+                    onCopy: _copyReportToClipboard,
+                    onDismiss: _dismissFallback,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -395,7 +411,7 @@ class _TypeChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
         padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space16,
+          horizontal: Spacing.space12,
           vertical: Spacing.space14,
         ),
         decoration: BoxDecoration(
@@ -418,13 +434,17 @@ class _TypeChip extends StatelessWidget {
                   isSelected ? AppColors.primary : context.colors.textSecondary,
             ),
             const SizedBox(width: Spacing.space8),
-            Text(
-              label,
-              style: AppTextStyles.footnote.copyWith(
-                color: isSelected
-                    ? AppColors.primary
-                    : context.colors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.footnote.copyWith(
+                  color: isSelected
+                      ? AppColors.primary
+                      : context.colors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
               ),
             ),
           ],

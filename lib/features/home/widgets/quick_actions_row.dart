@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../components/ui/app_button.dart';
+import '../../../app/theme/design_tokens.dart';
 
 // ============================================================================
 // QUICK ACTIONS ROW
@@ -47,10 +47,9 @@ class QuickActionsRow extends StatelessWidget {
 
     if (showAddEvent) {
       buttons.add(
-        AppButton(
+        _buildQuickActionButton(
           label: '+ Add Event',
           onPressed: onAddEvent,
-          variant: AppButtonVariant.primary,
         ),
       );
     }
@@ -58,10 +57,9 @@ class QuickActionsRow extends StatelessWidget {
     if (showCreateSetlist) {
       if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
       buttons.add(
-        AppButton(
+        _buildQuickActionButton(
           label: '+ Create Setlist',
           onPressed: onCreateSetlist,
-          variant: AppButtonVariant.primary,
         ),
       );
     }
@@ -69,10 +67,9 @@ class QuickActionsRow extends StatelessWidget {
     if (showFinancials) {
       if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
       buttons.add(
-        AppButton(
+        _buildQuickActionButton(
           label: 'Financials',
           onPressed: onFinancials,
-          variant: AppButtonVariant.primary,
         ),
       );
     }
@@ -84,6 +81,28 @@ class QuickActionsRow extends StatelessWidget {
         clipBehavior: Clip.none,
         children: buttons,
       ),
+    );
+  }
+
+  Widget _buildQuickActionButton({
+    required String label,
+    required VoidCallback? onPressed,
+  }) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(
+          color: AppColors.primary,
+          width: 1,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+      child: Text(label),
     );
   }
 }
