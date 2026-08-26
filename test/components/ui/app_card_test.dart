@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/components/ui/app_card.dart';
 import 'package:forui/forui.dart';
 
@@ -8,10 +9,9 @@ void main() {
     testWidgets('renders without errors', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          builder: (context, child) => FTheme(
-            data: FTheme.neutral.dark.touch,
-            child: child!,
-          ),
+          theme: AppTheme.darkTheme,
+          builder: (context, child) =>
+              FTheme(data: FTheme.neutral.dark.touch, child: child!),
           home: const Scaffold(body: AppCard(child: Text('Card Content'))),
         ),
       );
@@ -23,10 +23,9 @@ void main() {
     testWidgets('padding applies StyleDelta', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          builder: (context, child) => FTheme(
-            data: FTheme.neutral.dark.touch,
-            child: child!,
-          ),
+          theme: AppTheme.darkTheme,
+          builder: (context, child) =>
+              FTheme(data: FTheme.neutral.dark.touch, child: child!),
           home: const Scaffold(
             body: AppCard(
               padding: EdgeInsets.all(24),
@@ -48,10 +47,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          builder: (context, child) => FTheme(
-            data: FTheme.neutral.dark.touch,
-            child: child!,
-          ),
+          theme: AppTheme.darkTheme,
+          builder: (context, child) =>
+              FTheme(data: FTheme.neutral.dark.touch, child: child!),
           home: Scaffold(
             body: AppCard(
               onTap: () => tapped = true,
@@ -70,14 +68,14 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('does not add GestureDetector when onTap is null',
-        (tester) async {
+    testWidgets('does not add GestureDetector when onTap is null', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
-          builder: (context, child) => FTheme(
-            data: FTheme.neutral.dark.touch,
-            child: child!,
-          ),
+          theme: AppTheme.darkTheme,
+          builder: (context, child) =>
+              FTheme(data: FTheme.neutral.dark.touch, child: child!),
           home: const Scaffold(body: AppCard(child: Text('Card Content'))),
         ),
       );
