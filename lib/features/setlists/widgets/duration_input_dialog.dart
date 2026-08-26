@@ -138,21 +138,59 @@ class _DurationInputDialogState extends State<_DurationInputDialog> {
           ),
         ],
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
       actions: [
-        AppButton(
-          label: 'Cancel',
-          variant: AppButtonVariant.text,
-          onPressed: _handleCancel,
-        ),
-        AppButton(
-          label: 'Clear',
-          variant: AppButtonVariant.text,
-          onPressed: _handleClear,
-        ),
-        AppButton(
-          label: 'Save',
-          variant: AppButtonVariant.text,
-          onPressed: _handleSave,
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: _handleCancel,
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.colors.textSecondary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.space12,
+                      vertical: Spacing.space8,
+                    ),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: AppTextStyles.title3.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _handleClear,
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.colors.textSecondary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.space12,
+                      vertical: Spacing.space8,
+                    ),
+                  ),
+                  child: Text(
+                    'Clear',
+                    style: AppTextStyles.title3.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Spacing.space12),
+            AppButton(
+              label: 'Save',
+              variant: AppButtonVariant.primary,
+              fullWidth: true,
+              backgroundColor: AppColors.primary,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              onPressed: _handleSave,
+            ),
+          ],
         ),
       ],
     );

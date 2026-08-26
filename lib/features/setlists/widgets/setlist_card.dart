@@ -76,6 +76,11 @@ class _SetlistCardState extends State<SetlistCard>
 
   @override
   Widget build(BuildContext context) {
+    final catalogBorder = Border.all(
+      color: context.colors.border.withValues(alpha: 0.55),
+      width: 1,
+    );
+
     final innerContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -143,6 +148,7 @@ class _SetlistCardState extends State<SetlistCard>
           child: IntrinsicHeight(
             child: AppCard(
               borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
+              border: widget.setlist.isCatalog ? catalogBorder : null,
               child: Row(
                 children: [
                   // Drag handle area
@@ -207,6 +213,7 @@ class _SetlistCardState extends State<SetlistCard>
         child: AppCard(
           padding: EdgeInsets.zero,
           borderRadius: BorderRadius.circular(SetlistCardBorder.radius),
+          border: widget.setlist.isCatalog ? catalogBorder : null,
           color: widget.setlist.isCatalog
               ? AppColors.primary.withValues(alpha: 0.15)
               : null,

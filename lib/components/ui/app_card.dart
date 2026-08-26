@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:bandroadie/app/theme/brand_colors.dart';
 
 /// Wrapper for [FCard] that provides consistent card styling.
 ///
@@ -44,20 +45,20 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Read Forui's theme border color
-    final themeBorderColor = context.theme.colors.border;
-
-    // Default to Forui's theme border for consistent contrast across all cards
-    // (translucent white in dark mode, opaque gray in light mode). Call sites
-    // can override with explicit border: param for brand accents (e.g. rose).
+    // Default to a stronger brand border so card outlines are easier to see.
+    // Call sites can still override via explicit border: for special cases.
     final effectiveBorder =
-        border ?? Border.all(color: themeBorderColor, width: 1);
+        border ?? Border.all(color: context.colors.borderStrong, width: 1);
+
+    // Keep cards opaque by default so overlapping drag states do not show
+    // content through neighboring cards.
+    final effectiveColor = color ?? context.colors.background;
 
     // Build StyleDelta with border (always present), plus optional padding and borderRadius
     final styleDelta = FCardStyleDelta.delta(
       padding: padding != null ? EdgeInsetsGeometryDelta.value(padding!) : null,
       decoration: DecorationDelta.boxDelta(
-        color: color,
+        color: effectiveColor,
         borderRadius: borderRadius,
         border: effectiveBorder,
         boxShadow: boxShadow,

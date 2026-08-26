@@ -520,11 +520,11 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         );
       },
       child: DraggableScrollableSheet(
-        initialChildSize: 0.75,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
+        initialChildSize: 0.95,
+        minChildSize: 0.6,
+        maxChildSize: 0.95,
         snap: true,
-        snapSizes: const [0.4, 0.75, 0.9],
+        snapSizes: const [0.6, 0.95],
         builder: (context, scrollController) {
           return Container(
             decoration: BoxDecoration(

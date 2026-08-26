@@ -626,7 +626,10 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
     // Get tuning badge color
     final tuningColor =
         row.tuning != null ? tuningBadgeColor(row.tuning) : AppColors.primary;
-    final tuningTextColor = tuningBadgeTextColor(tuningColor);
+    final tuningTextColor = tuningBadgeTextColor(
+      tuningColor,
+      tuningKey: row.tuning,
+    );
 
     return Container(
       padding: const EdgeInsets.all(12),

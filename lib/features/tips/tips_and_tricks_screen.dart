@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
+import 'package:bandroadie/components/ui/app_icon_button.dart';
+import 'package:bandroadie/components/ui/app_scaffold.dart';
 
 // ============================================================================
 // TIPS & TRICKS SCREEN
@@ -71,13 +74,21 @@ class TipsAndTricksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
+      appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
-        title: Text('Tips & Tricks', style: AppTextStyles.title3),
-        leading: IconButton(
-          icon: const Icon(AppIcons.arrowLeft, color: AppColors.primary),
+        title: Text(
+          'Tips & Tricks',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.title2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),

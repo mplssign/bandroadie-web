@@ -120,22 +120,16 @@ class TipsAndTricksOverlay extends StatelessWidget {
                   vertical: Spacing.space8,
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Tips & Tricks', style: AppTextStyles.title3),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(
-                        AppIcons.close,
-                        color: context.colors.textMuted,
-                        size: 24,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
+                      icon: const Icon(
+                        AppIcons.arrowLeft,
+                        color: AppColors.primary,
                       ),
                     ),
+                    const SizedBox(width: Spacing.space8),
+                    Text('Tips & Tricks', style: AppTextStyles.title3),
                   ],
                 ),
               ),

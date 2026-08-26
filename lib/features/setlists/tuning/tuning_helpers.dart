@@ -10,7 +10,7 @@ import '../services/custom_tuning_service.dart';
 // - tuningShortLabel(option) → badge-friendly label
 // - tuningShortLabelAsync(option) → badge-friendly label with custom tuning lookup
 // - tuningBadgeColor(tuningName) → Color for badge fill
-// - tuningBadgeTextColor(Color) → readable text color for badge
+// - tuningBadgeTextColor(Color, tuningKey: ...) → readable text color for badge
 // ============================================================================
 
 // =============================================================================
@@ -309,7 +309,16 @@ Color tuningBadgeColor(String? tuningKey) {
 
 /// Get readable text color for a badge background
 /// Returns white for dark backgrounds, dark for light backgrounds
-Color tuningBadgeTextColor(Color backgroundColor) {
+/// Nashville is a special case: always use the app's dark background tone for
+/// its label text.
+Color tuningBadgeTextColor(Color backgroundColor, {String? tuningKey}) {
+  if (tuningKey != null && tuningKey.isNotEmpty) {
+    final baseTuning = parseCapoTuning(tuningKey).tuningId ?? tuningKey;
+    if (baseTuning.trim().toLowerCase() == 'nashville') {
+      return const Color(0xFF09090B);
+    }
+  }
+
   // Calculate relative luminance
   final luminance = backgroundColor.computeLuminance();
   // Use white text for dark backgrounds (luminance < 0.5)
