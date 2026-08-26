@@ -1,26 +1,21 @@
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// Service to provide app version info dynamically from pubspec.yaml
+/// Service to provide app version info dynamically from pubspec.yaml.
 ///
-/// Versioning Strategy:
-/// - MAJOR (1.x.x): Breaking changes, major feature overhauls, significant UI redesigns
-///   Example: 1.0.0 → 2.0.0 when completely redesigning the app
-///
-/// - MINOR (x.1.x): New features, significant improvements, non-breaking changes
-///   Example: 1.0.0 → 1.1.0 when adding a new screen or major capability
-///
-/// - PATCH (x.x.1): Bug fixes, minor improvements, small UI tweaks
-///   Example: 1.0.0 → 1.0.1 when fixing bugs or small refinements
-///
-/// - BUILD (+n): Incremented for each App Store/Play Store submission
-///   Example: 1.0.2+3 → 1.0.2+4 for the next store submission
-///   The build number must always increase for store submissions
+/// Versioning strategy:
+/// - Display version uses the release date in YY.M.D format with no month/day zero-padding.
+///   Example: 26.8.26 for Aug 26, 2026.
+/// - Build numbers follow the date-based formula date_num * 100 + same_day_counter,
+///   where date_num = YY * 10000 + MM * 100 + DD and same_day_counter starts at 01.
+///   Example: 26.8.26+26082601 and then 26.8.26+26082602 on the same day.
+/// - The runtime code remains format-agnostic: it reads the platform package metadata
+///   and prints the version/build values without parsing semver or date math.
 ///
 /// DEPLOYMENT IDENTIFIER (Web only):
 /// On web builds, a commit SHA suffix is appended to help identify the exact
 /// deployment. This is injected via --dart-define at build time and is the
 /// source of truth for which code is running in the browser. Format:
-///   "Version X.Y.Z (Build N) • abc123"
+///   "Version YY.M.D (Build N) • abc123"
 /// where abc123 is the first 6 chars of the Git commit SHA.
 class AppVersionService {
   static PackageInfo? _packageInfo;
