@@ -29,14 +29,14 @@ The Feature Input says to confirm `feature/song-enrichment-overwrite-existing` h
   states "Restores fill-missing-only CASE logic for bpm/musical_key (**write-once behavior**),"
   and the function body confirms it: `bpm` only updates `WHEN p_bpm IS NOT NULL AND bpm IS NULL`,
   and `musical_key` only updates `WHEN p_musical_key IS NOT NULL AND (musical_key IS NULL OR
-  TRIM(musical_key) = '')`. **Existing non-null bpm/musical_key values cannot be overwritten.**
+TRIM(musical_key) = '')`. **Existing non-null bpm/musical_key values cannot be overwritten.**
 - The bpm/musical_key **overwrite (write-once) bug is therefore still fully open on `main`.** It
   is not fixed, not merged, and not present anywhere in the base this feature branches from.
 - The separate `bug/song-duration-edit-silently-fails` branch (migration
   `20260827120000_fix_song_duration_write_once.sql`) fixes the **duration** write-once case only —
   it does not touch the bpm/musical_key CASE gates.
 - Note: `SongEnrichmentOrchestrator.enrichSongs()` exposes an `overwriteExisting` client-side
-  parameter, but that only controls whether the client *sends* a value; the RPC still refuses to
+  parameter, but that only controls whether the client _sends_ a value; the RPC still refuses to
   overwrite non-null bpm/musical_key server-side. Client intent and server behavior diverge.
 
 **Conclusion:** There is no stale-base merge conflict risk, because the sibling branch does not
