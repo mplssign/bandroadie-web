@@ -1,11 +1,15 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:forui/forui.dart';
 
-import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/time_formatter.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_card.dart';
+import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_snackbar.dart';
 import '../gig_response_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -35,18 +39,15 @@ class AvailabilityPromptModal extends StatefulWidget {
     required this.onRespond,
   });
 
-  /// Show the modal and return the user's response.
-  /// Returns null if modal was somehow dismissed without response (shouldn't happen).
   static Future<AvailabilityResponse?> show(
     BuildContext context, {
     required PendingPotentialGig gig,
     required String bandTimezone,
     required Future<void> Function(AvailabilityResponse response) onRespond,
   }) {
-    return showDialog<AvailabilityResponse>(
+    return showAppDialog<AvailabilityResponse>(
       context: context,
-      barrierDismissible: false, // Cannot tap outside to dismiss
-      barrierColor: Colors.black.withValues(alpha: 0.85),
+      barrierDismissible: false,
       builder: (context) => AvailabilityPromptModal(
         gig: gig,
         bandTimezone: bandTimezone,
@@ -60,34 +61,50 @@ class AvailabilityPromptModal extends StatefulWidget {
       _AvailabilityPromptModalState();
 }
 
-class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
+class _AvailabilityPromptModalState extends State<AvailabilityPromptModal>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  AvailabilityResponse? _selectedResponse;
   bool _isSubmitting = false;
 
-  Future<void> _handleResponse(AvailabilityResponse response) async {
-    debugPrint('[AvailabilityPromptModal] Button pressed: $response');
-    debugPrint('[AvailabilityPromptModal] _isSubmitting: $_isSubmitting');
+  @override
+  void initState() {
+    super.initState();
+    final random = Random();
+    final durationMs = 1000 + random.nextInt(2000);
+    _pulseController = AnimationController(
+      duration: Duration(milliseconds: durationMs),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
 
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleResponse(AvailabilityResponse response) async {
     if (_isSubmitting) {
-      debugPrint('[AvailabilityPromptModal] Already submitting, returning');
       return;
     }
 
-    setState(() => _isSubmitting = true);
-    debugPrint('[AvailabilityPromptModal] Starting submission...');
-
-    // Haptic feedback
+    setState(() {
+      _isSubmitting = true;
+      _selectedResponse = response;
+    });
     HapticFeedback.mediumImpact();
 
     try {
-      debugPrint('[AvailabilityPromptModal] Calling onRespond...');
       await widget.onRespond(response);
-      debugPrint('[AvailabilityPromptModal] onRespond completed successfully');
       if (mounted) {
         Navigator.of(context).pop(response);
       }
     } on GigResponseError catch (e) {
-      debugPrint('[AvailabilityPromptModal] GigResponseError: ${e.message}');
-      setState(() => _isSubmitting = false);
+      setState(() {
+        _isSubmitting = false;
+        _selectedResponse = null;
+      });
       if (mounted) {
         showAppSnackbar(
           context: context,
@@ -98,8 +115,10 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
     } catch (e, stackTrace) {
       debugPrint('[AvailabilityPromptModal] Error submitting response: $e');
       debugPrint('[AvailabilityPromptModal] Stack trace: $stackTrace');
-      setState(() => _isSubmitting = false);
-      // Show error but keep modal open
+      setState(() {
+        _isSubmitting = false;
+        _selectedResponse = null;
+      });
       if (mounted) {
         showAppSnackbar(
           context: context,
@@ -112,182 +131,175 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
 
   @override
   Widget build(BuildContext context) {
-    // Block Android back button
     return PopScope(
       canPop: false,
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                blurRadius: 20,
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with gradient
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFF77800), // orange
-                      Color(0xFFE11D48), // rose-600
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
+      child: FDialog(
+        builder: (context, dialogStyle) => AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, child) {
+            final pulseValue = _pulseController.value;
+            final borderColor = Color.lerp(
+              const Color(0xFFF97316),
+              const Color(0xFFFB923C),
+              pulseValue,
+            )!
+                .withValues(alpha: 0.35 + pulseValue * 0.45);
+            final glowColor = Color.lerp(
+              const Color(0xFFF97316),
+              const Color(0xFFFB923C),
+              pulseValue,
+            )!
+                .withValues(alpha: 0.18 + (pulseValue * 0.27));
+
+            return Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              decoration: BoxDecoration(
+                color: context.colors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: borderColor,
+                  width: 1,
                 ),
-                child: Column(
-                  children: [
-                    // Icon
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        AppIcons.calendarCheck,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Potential Gig',
-                      style: TextStyle(
-                        fontSize: AppFontSizes.subhead,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Are you available?',
-                      style: TextStyle(
-                        fontSize: AppFontSizes.sectionTitle,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: glowColor,
+                    blurRadius: 10,
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
-
-              // Gig details
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    // Gig name
-                    Text(
-                      widget.gig.name,
-                      style: TextStyle(
-                        fontSize: AppFontSizes.title2,
-                        fontWeight: FontWeight.w600,
-                        color: context.colors.textPrimary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Date
-                    _DetailRow(
-                      icon: AppIcons.calendar,
-                      label: _formatDate(widget.gig.date),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Time
-                    _DetailRow(
-                      icon: AppIcons.clock,
-                      label: TimeFormatter.formatRangeLocal(
-                        widget.gig.startTime,
-                        widget.gig.endTime,
-                        widget.gig.date,
-                        widget.bandTimezone,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0x14F97316),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
                       ),
                     ),
-
-                    if (widget.gig.location.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _DetailRow(
-                        icon: AppIcons.location,
-                        label: widget.gig.location,
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // Buttons
-                    Row(
+                    child: Column(
                       children: [
-                        // NO button
-                        Expanded(
-                          child: _ResponseButton(
-                            label: 'NO',
-                            icon: AppIcons.close,
-                            isPositive: false,
-                            isLoading: _isSubmitting,
-                            onPressed: () =>
-                                _handleResponse(AvailabilityResponse.no),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: context.colors.textPrimary
+                                .withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            AppIcons.calendarCheck,
+                            color: context.colors.textPrimary,
+                            size: 28,
                           ),
                         ),
-
-                        const SizedBox(width: 12),
-
-                        // YES button
-                        Expanded(
-                          child: _ResponseButton(
-                            label: 'YES',
-                            icon: AppIcons.check,
-                            isPositive: true,
-                            isLoading: _isSubmitting,
-                            onPressed: () =>
-                                _handleResponse(AvailabilityResponse.yes),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Potential Gig',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.subhead,
+                            fontWeight: FontWeight.w600,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Are you available?',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.sectionTitle,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.textPrimary,
                           ),
                         ),
                       ],
                     ),
-
-                    // "Not Sure Yet" link - closes without saving, will show again next app open
-                    const SizedBox(height: 16),
-                    Center(
-                      child: AppButton(
-                        label: 'Not Sure Yet',
-                        variant: AppButtonVariant.text,
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                      ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Text(
+                          widget.gig.name,
+                          style: TextStyle(
+                            fontSize: AppFontSizes.title2,
+                            fontWeight: FontWeight.w600,
+                            color: context.colors.textPrimary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        _DetailCard(
+                          icon: AppIcons.calendar,
+                          text: _formatDate(widget.gig.date),
+                        ),
+                        const SizedBox(height: 8),
+                        _DetailCard(
+                          icon: AppIcons.clock,
+                          text: TimeFormatter.formatRangeLocal(
+                            widget.gig.startTime,
+                            widget.gig.endTime,
+                            widget.gig.date,
+                            widget.bandTimezone,
+                          ),
+                        ),
+                        if (widget.gig.location.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _DetailCard(
+                            icon: AppIcons.location,
+                            text: widget.gig.location,
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: AppButton(
+                                label: 'NO',
+                                icon: AppIcons.close,
+                                variant: AppButtonVariant.destructive,
+                                isLoading: _isSubmitting,
+                                onPressed: () =>
+                                    _handleResponse(AvailabilityResponse.no),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: AppButton(
+                                label: 'YES',
+                                icon: AppIcons.check,
+                                variant: AppButtonVariant.destructive,
+                                backgroundColor: _selectedResponse ==
+                                        AvailabilityResponse.yes
+                                    ? const Color(0xFF00A63E)
+                                    : null,
+                                isLoading: _isSubmitting,
+                                onPressed: () =>
+                                    _handleResponse(AvailabilityResponse.yes),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: AppButton(
+                            label: 'Not Sure Yet',
+                            variant: AppButtonVariant.text,
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -313,97 +325,37 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal> {
   }
 }
 
-/// Detail row with icon and label
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
+class _DetailCard extends StatelessWidget {
+  const _DetailCard({required this.icon, required this.text});
 
-  const _DetailRow({required this.icon, required this.label});
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 18, color: context.colors.textMuted),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: AppFontSizes.body,
-              color: context.colors.textSecondary,
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(
+        color: AppColors.primary.withValues(alpha: 0.18),
+        width: 1,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18, color: context.colors.textMuted),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: AppFontSizes.body,
+                color: context.colors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Response button (YES or NO) with press animation feedback.
-class _ResponseButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isPositive;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  const _ResponseButton({
-    required this.label,
-    required this.icon,
-    required this.isPositive,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isPositive
-        ? context.colors.success // green-500
-        : AppColors.error; // red-500
-
-    // Wrap with AnimatedPressable for subtle press feedback
-    return AnimatedPressable(
-      enabled: !isLoading,
-      onTap: onPressed,
-      child: AnimatedContainer(
-        // Smooth background/border transitions for state changes
-        duration: AppDurations.fast,
-        curve: AppCurves.ease,
-        height: 56,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
-        ),
-        child: Center(
-          child: isLoading
-              ? SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: color,
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, color: color, size: 24),
-                    const SizedBox(width: 8),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: AppFontSizes.title,
-                        fontWeight: FontWeight.w700,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                ),
-        ),
+        ],
       ),
     );
   }
