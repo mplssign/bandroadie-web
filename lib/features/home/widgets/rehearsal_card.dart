@@ -126,10 +126,10 @@ class _RehearsalCardState extends State<RehearsalCard>
       _focusNodes.add(FocusNode());
     }
 
-    // Pulse controller for potential cards - randomized duration (400-1600ms)
+    // Pulse controller for potential cards - randomized duration (1000-3000ms)
     if (widget.rehearsal.isPotential) {
       final random = Random();
-      final durationMs = 400 + random.nextInt(1200); // 400-1600ms
+      final durationMs = 1000 + random.nextInt(2000); // 1000-3000ms
       _pulseController = AnimationController(
         duration: Duration(milliseconds: durationMs),
         vsync: this,
@@ -156,7 +156,7 @@ class _RehearsalCardState extends State<RehearsalCard>
       if (widget.rehearsal.isPotential && _pulseController == null) {
         // Transitioning to potential: create controller
         final random = Random();
-        final durationMs = 400 + random.nextInt(1200);
+        final durationMs = 1000 + random.nextInt(2000);
         _pulseController = AnimationController(
           duration: Duration(milliseconds: durationMs),
           vsync: this,
@@ -316,7 +316,7 @@ class _RehearsalCardState extends State<RehearsalCard>
     if (_pulseController == null) {
       // Lazily create controller if somehow missing (should not happen with proper lifecycle)
       final random = Random();
-      final durationMs = 400 + random.nextInt(1200);
+      final durationMs = 1000 + random.nextInt(2000);
       _pulseController = AnimationController(
         duration: Duration(milliseconds: durationMs),
         vsync: this,
@@ -335,45 +335,34 @@ class _RehearsalCardState extends State<RehearsalCard>
         child: AnimatedBuilder(
           animation: _pulseController!,
           builder: (context, child) {
-            // Neon-style pulse: animate both alpha and color temperature
+            // Subtle pulse: animate border alpha and color temperature
             final pulseValue = _pulseController!.value;
-            final alpha = 0.4 + (pulseValue * 0.6);
+            final alpha = 0.35 + (pulseValue * 0.45);
 
-            // Lerp from amber-500 to amber-300 for "hot" neon effect at peak
-            const baseColor = Color(0xFFF59E0B); // amber-500
-            const hotColor = Color(0xFFFCD34D); // amber-300
+            // Lerp from orange-500 to orange-400 for a subtle attention cue
+            const baseColor = Color(0xFFF97316); // orange-500
+            const hotColor = Color(0xFFFB923C); // orange-400
             final borderColor = Color.lerp(baseColor, hotColor, pulseValue)!
                 .withValues(alpha: alpha);
 
             return AppCard(
               padding: EdgeInsets.zero,
               borderRadius: BorderRadius.circular(Spacing.cardRadius),
-              color: const Color(0xFFB45309), // amber-700 background (static)
+              color: const Color(0x14F97316), // orange-500 tint background
               border: Border.all(
                 color: borderColor,
                 width: 1.5,
               ),
               boxShadow: [
-                // Tight inner glow
                 BoxShadow(
-                  color: const Color(0xFFF59E0B)
-                      .withValues(alpha: 0.4 + (pulseValue * 0.5)),
-                  blurRadius: 4,
-                  spreadRadius: 0,
-                ),
-                // Mid glow
-                BoxShadow(
-                  color: const Color(0xFFF59E0B)
-                      .withValues(alpha: 0.3 + (pulseValue * 0.4)),
+                  color: Color.lerp(
+                    const Color(0xFFF97316),
+                    const Color(0xFFFB923C),
+                    pulseValue,
+                  )!
+                      .withValues(alpha: 0.18 + (pulseValue * 0.27)),
                   blurRadius: 10,
-                  spreadRadius: 1,
-                ),
-                // Outer soft glow
-                BoxShadow(
-                  color: const Color(0xFFF59E0B)
-                      .withValues(alpha: 0.15 + (pulseValue * 0.25)),
-                  blurRadius: 18,
-                  spreadRadius: 2,
+                  spreadRadius: 0,
                 ),
               ],
               child: child!,
