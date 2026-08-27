@@ -39,17 +39,21 @@ The RPC has no parameter to signal "allow overwrite for enrichment." Even if the
 ## Client-Side (Secondary/Incomplete)
 
 1. **UI hardcoded to false**: `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart:87`
+
    ```dart
    const bool overwriteExisting = false;
    ```
+
    Comment says: "Always use fill-missing-only behavior (never overwrite)"
 
 2. **Orchestrator incomplete for duration**: `lib/features/songs/services/song_enrichment_orchestrator.dart:124-127`
+
    ```dart
    final needsBpm = enrichBpm && (overwriteExisting || song.bpm == null);
    final needsDuration = enrichDuration && song.durationSeconds == 0;  // BUG: doesn't check overwriteExisting
    final needsKey = enrichKey && (overwriteExisting || song.musicalKey == null);
    ```
+
    Duration skips songs with non-zero values even if `overwriteExisting` is true.
 
 3. **EnrichmentSelectorResult exists but unused**: The `overwriteExisting` field exists and is plumbed through to the orchestrator, but it has no effect because of (1) and (2).
@@ -65,6 +69,7 @@ The unmerged branch `bug/song-duration-edit-silently-fails` (commit `872789f`, m
 **Reconciliation Strategy:**
 
 This feature will **rebase on top of (or merge after)** the bug branch, treating duration as already solved:
+
 - Bug branch: makes `duration_seconds` always overwrite for everyone (fixes manual edits)
 - This feature: adds optional `p_allow_enrich_overwrite` param for **BPM and Key only**
 - Net result: Duration always overwrites (correct for both use cases), BPM/Key overwrite only when enrichment explicitly requests it
@@ -97,6 +102,7 @@ This avoids duplicating or conflicting with the bug branch's migration. The Engi
 ## Call Sites for update_song_metadata
 
 `lib/features/setlists/setlist_repository.dart` has ~9 call sites:
+
 - `enrichSongs()` (~line 3490) - batch enrichment, passes multiple fields
 - `updateSongBpmOverride()` (~line 1551) - manual single-field edit
 - `updateSongDurationOverride()` (~line 1869) - manual single-field edit
@@ -112,9 +118,10 @@ This avoids duplicating or conflicting with the bug branch's migration. The Engi
 ## Design
 
 Add optional `p_allow_enrich_overwrite BOOLEAN DEFAULT FALSE` parameter to `update_song_metadata` RPC. When `true`:
+
 - **BPM**: overwrite if `p_bpm IS NOT NULL` (regardless of current value)
 - **Musical Key**: overwrite if `p_musical_key IS NOT NULL` (regardless of current value)
-- **Duration**: already always-overwrites after bug branch merge (no change needed)
+- **Duration**: change to always-overwrite (COALESCE) for all callers (incorporated from bug branch)
 - **Tuning**: already always-overwrites (COALESCE, no change)
 
 When `false` (default): preserve current fill-once behavior for BPM/Key (backward compatible).
@@ -124,30 +131,35 @@ When `false` (default): preserve current fill-once behavior for BPM/Key (backwar
 ### 1. Database (Migration)
 
 Create `supabase/migrations/20260827_HHMMSS_add_enrich_overwrite_param.sql`:
+
+- **Explicit DROP to avoid PGRST203:** Add `DROP FUNCTION IF EXISTS update_song_metadata(UUID, UUID, INTEGER, INTEGER, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);` before CREATE OR REPLACE (codebase has hit "Multiple function overloads exist" from this function multiple times — see setlist_repository.dart log strings)
 - Add `p_allow_enrich_overwrite BOOLEAN DEFAULT FALSE` parameter to `update_song_metadata`
+- **Fold duration fix:** Change `duration_seconds` from fill-once (CASE) to always-overwrite (COALESCE) for all callers (incorporates bug branch's intent)
 - Modify BPM and Key assignments:
+
   ```sql
-  bpm = CASE 
-    WHEN p_bpm IS NOT NULL AND (p_allow_enrich_overwrite OR bpm IS NULL) 
-    THEN p_bpm 
-    ELSE bpm 
+  bpm = CASE
+    WHEN p_bpm IS NOT NULL AND (p_allow_enrich_overwrite OR bpm IS NULL)
+    THEN p_bpm
+    ELSE bpm
   END
-  
+
+  duration_seconds = COALESCE(p_duration_seconds, duration_seconds),  -- ALWAYS-OVERWRITE (fixes manual edits)
+
   musical_key = CASE
     WHEN p_musical_key IS NOT NULL AND (p_allow_enrich_overwrite OR musical_key IS NULL OR TRIM(musical_key) = '')
     THEN p_musical_key
     ELSE musical_key
   END
   ```
-- Update verification logic to match
-- Keep duration as COALESCE (assuming bug branch has merged)
-- Drop and recreate function (includes new param in signature)
+
+- Update verification logic: duration must verify unconditionally when `p_duration_seconds IS NOT NULL` (not just when previously zero)
 - Keep `GRANT EXECUTE ... TO authenticated` unchanged
-- Update COMMENT to document new param
+- Update COMMENT to document new param and duration behavior change
 
 **Migration Dependencies:**
-- MUST be applied after `20260827120000_fix_song_duration_write_once.sql` OR incorporate its changes if bug branch hasn't merged yet
-- Engineer must check migration order and coordinate with Tony if conflict
+
+- **None:** Single self-contained migration superseding the unmerged bug branch
 
 ### 2. Client - Repository Layer
 
@@ -156,6 +168,7 @@ Create `supabase/migrations/20260827_HHMMSS_add_enrich_overwrite_param.sql`:
 **Method:** `enrichSongs()` (line ~3490)
 
 Add `p_allow_enrich_overwrite: true` to RPC params (enrichment always wants overwrite):
+
 ```dart
 final result = await supabase.rpc(
   'update_song_metadata',
@@ -185,6 +198,7 @@ final result = await supabase.rpc(
 **Line:** ~127 (duration check)
 
 Fix duration to respect `overwriteExisting`:
+
 ```dart
 // BEFORE
 final needsDuration = enrichDuration && song.durationSeconds == 0;
@@ -202,6 +216,7 @@ Repeat same fix at line ~149 (second occurrence in same method).
 **Line:** ~87
 
 Remove hardcoded `const bool overwriteExisting = false`:
+
 ```dart
 // BEFORE
 const bool overwriteExisting = false;
@@ -213,6 +228,7 @@ final bool overwriteExisting = true;  // Checkbox consent = allow overwrite
 **Line:** ~85-87 (subtitle text)
 
 Update subtitle to reflect new behavior:
+
 ```dart
 // BEFORE
 final subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
@@ -230,45 +246,53 @@ final subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
 # Database Impact
 
 ## RLS Policies
+
 - **No impact:** RPC uses `SECURITY DEFINER`, RLS is already bypassed for legacy songs
 
 ## Migrations
-- **New migration required:** Add `p_allow_enrich_overwrite` param to `update_song_metadata`
-- **Dependency:** Must apply after (or incorporate) `20260827120000_fix_song_duration_write_once.sql` from bug branch
+
+- **New migration required:** Combined migration adding `p_allow_enrich_overwrite` param AND changing `duration_seconds` to always-overwrite
+- **Dependency:** None (single self-contained migration, supersedes unmerged bug branch)
 
 ## RPC Signature
+
 - **Additive change:** New optional param with safe default (`FALSE`)
 - **Backward compatible:** All existing calls work unchanged (omitted param defaults to `false`)
-- **No PostgREST overload risk:** Only one signature for `update_song_metadata` (11 params → 12 params)
+- **Overload prevention:** Explicit DROP before CREATE ensures only one signature exists (11 params → 12 params)
+- **Historical context:** This function has caused PGRST203 "Multiple function overloads exist" errors multiple times (see setlist_repository.dart error handling); explicit DROP is critical
 
 ## Tables
+
 - **No schema changes:** Only function logic modified
 
 ## Triggers
+
 - **No impact:** No triggers on `songs` table for this operation
 
 ---
 
 # System Impact
 
-| System | Impact | Reason |
-|--------|--------|--------|
-| Gigs | unaffected | Does not modify gig creation or response logic |
-| Rehearsals | unaffected | Does not modify rehearsal persistence |
+| System             | Impact       | Reason                                                                                                        |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------- |
+| Gigs               | unaffected   | Does not modify gig creation or response logic                                                                |
+| Rehearsals         | unaffected   | Does not modify rehearsal persistence                                                                         |
 | Setlists / Catalog | **affected** | Song metadata updates broadcast via `songUpdateBroadcasterProvider`; all open setlists refresh enriched songs |
-| Members / RBAC | unaffected | Uses existing band membership check in RPC; no permission changes |
-| Auth / Session | unaffected | Uses existing `auth.uid()` check in RPC |
-| Routing | unaffected | No navigation changes |
-| Notifications | unaffected | No notification triggers for song enrichment |
+| Members / RBAC     | unaffected   | Uses existing band membership check in RPC; no permission changes                                             |
+| Auth / Session     | unaffected   | Uses existing `auth.uid()` check in RPC                                                                       |
+| Routing            | unaffected   | No navigation changes                                                                                         |
+| Notifications      | unaffected   | No notification triggers for song enrichment                                                                  |
 
 ---
 
 # Files to Modify
 
 ## Database
+
 1. `supabase/migrations/20260827_HHMMSS_add_enrich_overwrite_param.sql` (NEW)
 
 ## Client - Dart
+
 2. `lib/features/setlists/setlist_repository.dart` (modify `enrichSongs()` only)
 3. `lib/features/songs/services/song_enrichment_orchestrator.dart` (fix duration check, 2 locations)
 4. `lib/features/songs/widgets/enrichment_selector_bottom_sheet.dart` (remove hardcoded false, update subtitle)
@@ -280,24 +304,27 @@ final subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
 # Off-Limits
 
 Per Feature Input:
+
 - ❌ `supabase/functions/getsongbpm_lookup/index.ts` (Phase A work, already shipped)
 - ❌ `supabase/functions/getsongbpm_lookup/index.test.ts` (Phase A work)
 
 Additional constraints:
+
 - ❌ Do not modify manual-edit call sites (`updateSongBpmOverride`, etc.) - they must preserve current behavior
 - ❌ Do not resurrect dual-value columns or diff-review sheets (Phase 2.2 was reverted Aug 2026)
 - ❌ Do not add a separate confirmation dialog - checkbox itself is user consent
 
 ---
 
-# Manual Edit Behavior (Unchanged)
+# Manual Edit Behavior (Changed for Duration Only)
 
 Manual edits (inline BPM/Duration/Key edits in Song Details UI) call the same RPC but **omit** the new `p_allow_enrich_overwrite` parameter, so it defaults to `false`:
+
 - **BPM manual edit:** Fill-once (unchanged)
-- **Duration manual edit:** Always-overwrite (changed by bug branch, not this feature)
+- **Duration manual edit:** Always-overwrite (CHANGED BY THIS FEATURE — fixes bug/song-duration-edit-silently-fails)
 - **Key manual edit:** Fill-once (unchanged)
 
-This preserves existing behavior for non-enrichment flows. Only the "Enrich Song Data" action explicitly passes `p_allow_enrich_overwrite: true`.
+Duration behavior change affects all callers (manual edits can now overwrite existing durations). BPM/Key preserve fill-once semantics unless enrichment explicitly passes `p_allow_enrich_overwrite: true`.
 
 ---
 
@@ -339,6 +366,7 @@ The checkbox itself serves as explicit user consent for overwriting. Product rul
 ## Automated Tests
 
 Not required (project has minimal test coverage per `GUARDRAILS.md`). If Engineer adds tests, target:
+
 - `song_enrichment_orchestrator.dart` - unit test `needsDuration` logic respects `overwriteExisting`
 
 ---
@@ -348,6 +376,7 @@ Not required (project has minimal test coverage per `GUARDRAILS.md`). If Enginee
 If production issues arise:
 
 1. **Revert migration:**
+
    ```sql
    -- Restore 11-param signature from 20260811120001
    CREATE OR REPLACE FUNCTION update_song_metadata(
@@ -364,11 +393,9 @@ If production issues arise:
 
 # Migration Timing
 
-**Recommended:** Apply after `bug/song-duration-edit-silently-fails` merges to `main`. If that branch hasn't merged yet, Engineer must either:
-- Wait for merge, then rebase this feature branch
-- Or incorporate the duration COALESCE change from `20260827120000_fix_song_duration_write_once.sql` into this feature's migration (single combined migration)
+**Confirmed:** The `bug/song-duration-edit-silently-fails` branch is NOT merged into `main`. This migration incorporates the duration fix directly (single combined migration).
 
-Tony must confirm merge status before Engineer proceeds.
+**No coordination required** — proceed directly with implementation.
 
 ---
 
@@ -384,6 +411,7 @@ Tony must confirm merge status before Engineer proceeds.
 # Brand Voice (UI Copy)
 
 Updated subtitle in enrichment selector:
+
 > "Select data to auto-enrich for N songs. Checked fields will be updated with fresh data, overwriting existing values if necessary."
 
 Shorter, clearer, removes the incorrect "never overwritten" claim.
@@ -405,7 +433,6 @@ Shorter, clearer, removes the incorrect "never overwritten" claim.
 # Architect Sign-Off
 
 **Diagnosis Confidence:** HIGH (directly observed in code)  
-**Solution Risk:** LOW (additive change, backward compatible)  
-**Merge Blocker:** Confirm `bug/song-duration-edit-silently-fails` merge status before starting  
-
-This plan is ready for Engineer implementation.
+**Solution Risk:** LOW (additive change, backward compatible, incorporates bug fix)  
+**Migration Strategy:** Single combined migration with explicit DROP to prevent PGRST203 overload errors  
+**No blockers:** Ready for Engineer implementation immediately
