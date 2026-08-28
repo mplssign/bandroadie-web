@@ -62,6 +62,24 @@ interface LookupResult {
     bpm: number | null;
     musicalKey: string | null;
     confidence: 'medium' | 'none';
+    bpmConfidence: number | null;
+    keyConfidence: number | null;
+    matchTitle: string | null;
+    versionType: string | null;
+}
+
+interface ItunesCorroboration {
+    title: string | null;
+    artist: string | null;
+}
+
+interface ConfidenceSignals {
+    titleSimilarity: 'exact' | 'fallback' | 'contains' | 'none';
+    artistMatch: 'exact' | 'variant' | 'none';
+    secondaryTitleMatch: boolean;
+    secondaryArtistMatch: boolean;
+    hasBpm: boolean;
+    hasKey: boolean;
 }
 
 /// Normalize a GetSongBPM `key_of` value (e.g. "D#", "Fm", "m") to the app's
@@ -222,8 +240,93 @@ function titleSimilarity(requestTitle: string, candidateTitle: string): 'exact' 
     return 'none';
 }
 
+/// Fetch iTunes search results for title+artist corroboration.
+/// Returns null on any failure (timeout, network error, parse error).
+/// Uses a short timeout and contributes zero to confidence on failure.
+async function fetchItunesCorroboration(
+    title: string,
+    artist: string,
+): Promise<ItunesCorroboration | null> {
+    try {
+        const searchUrl = new URL('https://itunes.apple.com/search');
+        searchUrl.searchParams.set('term', `${title} ${artist}`);
+        searchUrl.searchParams.set('entity', 'song');
+        searchUrl.searchParams.set('limit', '5');
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const response = await fetch(searchUrl.toString(), {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/json' },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        const results = data?.results;
+
+        if (!Array.isArray(results) || results.length === 0) {
+            return null;
+        }
+
+        const firstResult = results[0];
+        return {
+            title: typeof firstResult?.trackName === 'string' ? firstResult.trackName : null,
+            artist: typeof firstResult?.artistName === 'string' ? firstResult.artistName : null,
+        };
+    } catch (error) {
+        return null;
+    }
+}
+
+/// Compute numeric confidence scores from matching signals.
+/// Returns values in [0, 100] or null when the corresponding field is absent.
+function computeConfidence(signals: ConfidenceSignals): {
+    bpmConfidence: number | null;
+    keyConfidence: number | null;
+} {
+    if (!signals.hasBpm && !signals.hasKey) {
+        return { bpmConfidence: null, keyConfidence: null };
+    }
+
+    const titleWeight = signals.titleSimilarity === 'exact' ? 40
+        : signals.titleSimilarity === 'fallback' ? 30
+        : signals.titleSimilarity === 'contains' ? 20
+        : 0;
+
+    const artistWeight = signals.artistMatch === 'exact' ? 30
+        : signals.artistMatch === 'variant' ? 20
+        : 0;
+
+    const secondaryTitleWeight = signals.secondaryTitleMatch ? 15 : 0;
+    const secondaryArtistWeight = signals.secondaryArtistMatch ? 10 : 0;
+
+    const baseScore = titleWeight + artistWeight + secondaryTitleWeight +
+        secondaryArtistWeight;
+
+    const clampedScore = Math.max(0, Math.min(100, baseScore));
+
+    return {
+        bpmConfidence: signals.hasBpm ? clampedScore : null,
+        keyConfidence: signals.hasKey ? clampedScore : null,
+    };
+}
+
 function noneResult(): LookupResult {
-    return { bpm: null, musicalKey: null, confidence: 'none' };
+    return {
+        bpm: null,
+        musicalKey: null,
+        confidence: 'none',
+        bpmConfidence: null,
+        keyConfidence: null,
+        matchTitle: null,
+        versionType: null,
+    };
 }
 
 function parseTempo(raw: unknown): number | null {
@@ -282,7 +385,12 @@ async function lookupGetSongBpmForTitle(
     title: string,
     artist: string,
     attempt: 'first' | 'fallback',
-): Promise<LookupResult> {
+): Promise<{
+    result: LookupResult;
+    matchedCandidate: any | null;
+    titleSim: 'exact' | 'fallback' | 'contains' | 'none';
+    artistMatchType: 'exact' | 'variant' | 'none';
+}> {
     const lookup = `song:${title} artist:${artist}`;
     // GetSongBPM API expects spaces encoded as '+' (application/x-www-form-urlencoded),
     // not '%20' (encodeURIComponent). Replace spaces after encoding.
@@ -297,7 +405,12 @@ async function lookupGetSongBpmForTitle(
     // (400), or any other non-2xx all degrade to a "not found" result.
     if (!response.ok) {
         console.log(`[getsongbpm_lookup] attempt=${attempt} reason=provider_non_2xx status=${response.status}`);
-        return noneResult();
+        return {
+            result: noneResult(),
+            matchedCandidate: null,
+            titleSim: 'none',
+            artistMatchType: 'none',
+        };
     }
 
     const data = await response.json();
@@ -307,7 +420,12 @@ async function lookupGetSongBpmForTitle(
     // an array. Only treat a real array as candidates.
     if (!Array.isArray(search)) {
         console.log(`[getsongbpm_lookup] attempt=${attempt} reason=no_usable_match detail=no_search_array`);
-        return noneResult();
+        return {
+            result: noneResult(),
+            matchedCandidate: null,
+            titleSim: 'none',
+            artistMatchType: 'none',
+        };
     }
 
     const normalizedRequestArtist = normalizeArtistName(artist);
@@ -351,10 +469,31 @@ async function lookupGetSongBpmForTitle(
         console.log(
             `[getsongbpm_lookup] attempt=${attempt} reason=exact_artist_match matches=${exactArtistMatches.length} selected_index=${bestExactArtistMatch.index} has_bpm=${bestExactArtistMatch.hasNumericTempo} has_key=${bestExactArtistMatch.hasNormalizableKey}`,
         );
+
+        const matchedCandidate = exactArtistMatches[bestExactArtistMatch.index];
+        const matchedTitle = getCandidateTitle(matchedCandidate);
+        const titleSim = matchedTitle ? titleSimilarity(title, matchedTitle) : 'none';
+        const versionTypeFlags = matchedTitle ? detectVersionType(matchedTitle) : { live: false, remix: false, acoustic: false, cover: false, demo: false };
+        const versionTypeLabels: string[] = [];
+        if (versionTypeFlags.live) versionTypeLabels.push('live');
+        if (versionTypeFlags.remix) versionTypeLabels.push('remix');
+        if (versionTypeFlags.acoustic) versionTypeLabels.push('acoustic');
+        if (versionTypeFlags.cover) versionTypeLabels.push('cover');
+        if (versionTypeFlags.demo) versionTypeLabels.push('demo');
+
         return {
-            bpm: bestExactArtistMatch.bpm,
-            musicalKey: bestExactArtistMatch.musicalKey,
-            confidence: 'medium',
+            result: {
+                bpm: bestExactArtistMatch.bpm,
+                musicalKey: bestExactArtistMatch.musicalKey,
+                confidence: 'medium',
+                bpmConfidence: null,
+                keyConfidence: null,
+                matchTitle: matchedTitle,
+                versionType: versionTypeLabels.length > 0 ? versionTypeLabels.join(', ') : null,
+            },
+            matchedCandidate,
+            titleSim,
+            artistMatchType: 'exact',
         };
     }
 
@@ -395,23 +534,54 @@ async function lookupGetSongBpmForTitle(
             console.log(
                 `[getsongbpm_lookup] attempt=${attempt} reason=artist_variant_match matches=${artistVariantMatches.length} selected_index=${bestArtistVariantMatch.index} has_bpm=${bestArtistVariantMatch.hasNumericTempo} has_key=${bestArtistVariantMatch.hasNormalizableKey}`,
             );
+
+            const matchedCandidate = artistVariantMatches[bestArtistVariantMatch.index];
+            const matchedTitle = getCandidateTitle(matchedCandidate);
+            const titleSim = 'exact';
+            const versionTypeFlags = matchedTitle ? detectVersionType(matchedTitle) : { live: false, remix: false, acoustic: false, cover: false, demo: false };
+            const versionTypeLabels: string[] = [];
+            if (versionTypeFlags.live) versionTypeLabels.push('live');
+            if (versionTypeFlags.remix) versionTypeLabels.push('remix');
+            if (versionTypeFlags.acoustic) versionTypeLabels.push('acoustic');
+            if (versionTypeFlags.cover) versionTypeLabels.push('cover');
+            if (versionTypeFlags.demo) versionTypeLabels.push('demo');
+
             return {
-                bpm: bestArtistVariantMatch.bpm,
-                musicalKey: bestArtistVariantMatch.musicalKey,
-                confidence: 'medium',
+                result: {
+                    bpm: bestArtistVariantMatch.bpm,
+                    musicalKey: bestArtistVariantMatch.musicalKey,
+                    confidence: 'medium',
+                    bpmConfidence: null,
+                    keyConfidence: null,
+                    matchTitle: matchedTitle,
+                    versionType: versionTypeLabels.length > 0 ? versionTypeLabels.join(', ') : null,
+                },
+                matchedCandidate,
+                titleSim,
+                artistMatchType: 'variant',
             };
         }
 
         console.log(
             `[getsongbpm_lookup] attempt=${attempt} reason=no_usable_match total_candidates=${search.length} exact_matches=0 variant_matches=${artistVariantMatches.length}`,
         );
-        return noneResult();
+        return {
+            result: noneResult(),
+            matchedCandidate: null,
+            titleSim: 'none',
+            artistMatchType: 'none',
+        };
     }
 
     console.log(
         `[getsongbpm_lookup] attempt=${attempt} reason=no_usable_match total_candidates=${search.length} exact_matches=${exactArtistMatches.length} variant_matches=0`,
     );
-    return noneResult();
+    return {
+        result: noneResult(),
+        matchedCandidate: null,
+        titleSim: 'none',
+        artistMatchType: 'none',
+    };
 }
 
 async function lookupGetSongBpm(
@@ -419,22 +589,53 @@ async function lookupGetSongBpm(
     title: string,
     artist: string,
 ): Promise<LookupResult> {
-    const firstAttemptResult = await lookupGetSongBpmForTitle(apiKey, title, artist, 'first');
-    if (firstAttemptResult.confidence !== 'none') {
-        console.log('[getsongbpm_lookup] fallback_attempted=false result_attempt=first');
-        return firstAttemptResult;
+    const firstAttempt = await lookupGetSongBpmForTitle(apiKey, title, artist, 'first');
+    
+    let finalAttempt = firstAttempt;
+    let fallbackAttempted = false;
+
+    if (firstAttempt.result.confidence === 'none') {
+        const fallbackTitle = getPrimaryTitleFallback(title);
+        if (fallbackTitle !== title) {
+            console.log(`[getsongbpm_lookup] fallback_attempted=true fallback_title="${fallbackTitle}"`);
+            fallbackAttempted = true;
+            const fallbackAttempt = await lookupGetSongBpmForTitle(apiKey, fallbackTitle, artist, 'fallback');
+            finalAttempt = fallbackAttempt;
+        }
     }
 
-    const fallbackTitle = getPrimaryTitleFallback(title);
-    if (fallbackTitle === title) {
-        console.log('[getsongbpm_lookup] fallback_attempted=false result_attempt=first');
-        return firstAttemptResult;
+    console.log(`[getsongbpm_lookup] fallback_attempted=${fallbackAttempted} result_attempt=${fallbackAttempted && finalAttempt.result.confidence !== 'none' ? 'fallback' : 'first'}`);
+
+    if (finalAttempt.result.confidence === 'none') {
+        return finalAttempt.result;
     }
 
-    console.log(`[getsongbpm_lookup] fallback_attempted=true fallback_title="${fallbackTitle}"`);
-    const fallbackAttemptResult = await lookupGetSongBpmForTitle(apiKey, fallbackTitle, artist, 'fallback');
-    console.log('[getsongbpm_lookup] fallback_attempted=true result_attempt=fallback');
-    return fallbackAttemptResult;
+    const corroboration = await fetchItunesCorroboration(title, artist);
+
+    const secondaryTitleMatch = corroboration?.title
+        ? titleSimilarity(title, corroboration.title) !== 'none'
+        : false;
+
+    const secondaryArtistMatch = corroboration?.artist
+        ? normalizeArtistName(artist) === normalizeArtistName(corroboration.artist)
+        : false;
+
+    const signals: ConfidenceSignals = {
+        titleSimilarity: finalAttempt.titleSim,
+        artistMatch: finalAttempt.artistMatchType,
+        secondaryTitleMatch,
+        secondaryArtistMatch,
+        hasBpm: finalAttempt.result.bpm !== null,
+        hasKey: finalAttempt.result.musicalKey !== null,
+    };
+
+    const confidenceScores = computeConfidence(signals);
+
+    return {
+        ...finalAttempt.result,
+        bpmConfidence: confidenceScores.bpmConfidence,
+        keyConfidence: confidenceScores.keyConfidence,
+    };
 }
 
 serve(async (req) => {

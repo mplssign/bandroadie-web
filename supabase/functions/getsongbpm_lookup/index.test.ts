@@ -286,3 +286,178 @@ Deno.test("Version-type filtering - both plain accepted", () => {
     }
     assertEquals(shouldReject, false);
 });
+
+// Phase B: Confidence scoring tests
+
+// Copy helper functions from Phase B implementation
+const VALID_MAJOR_KEYS = new Set(['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']);
+const VALID_MINOR_KEYS = new Set(['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'Abm', 'Am', 'Bbm', 'Bm']);
+
+interface ConfidenceSignals {
+    titleSimilarity: 'exact' | 'fallback' | 'contains' | 'none';
+    artistMatch: 'exact' | 'variant' | 'none';
+    secondaryTitleMatch: boolean;
+    secondaryArtistMatch: boolean;
+    hasBpm: boolean;
+    hasKey: boolean;
+}
+
+function computeConfidence(signals: ConfidenceSignals): {
+    bpmConfidence: number | null;
+    keyConfidence: number | null;
+} {
+    if (!signals.hasBpm && !signals.hasKey) {
+        return { bpmConfidence: null, keyConfidence: null };
+    }
+
+    const titleWeight = signals.titleSimilarity === 'exact' ? 40
+        : signals.titleSimilarity === 'fallback' ? 30
+        : signals.titleSimilarity === 'contains' ? 20
+        : 0;
+
+    const artistWeight = signals.artistMatch === 'exact' ? 30
+        : signals.artistMatch === 'variant' ? 20
+        : 0;
+
+    const secondaryTitleWeight = signals.secondaryTitleMatch ? 15 : 0;
+    const secondaryArtistWeight = signals.secondaryArtistMatch ? 10 : 0;
+
+    const baseScore = titleWeight + artistWeight + secondaryTitleWeight +
+        secondaryArtistWeight;
+
+    const clampedScore = Math.max(0, Math.min(100, baseScore));
+
+    return {
+        bpmConfidence: signals.hasBpm ? clampedScore : null,
+        keyConfidence: signals.hasKey ? clampedScore : null,
+    };
+}
+
+Deno.test("computeConfidence - exact title + exact artist + full secondary corroboration", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'exact',
+        artistMatch: 'exact',
+        secondaryTitleMatch: true,
+        secondaryArtistMatch: true,
+        hasBpm: true,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 95);
+    assertEquals(result.keyConfidence, 95);
+});
+
+Deno.test("computeConfidence - exact title + exact artist + no secondary", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'exact',
+        artistMatch: 'exact',
+        secondaryTitleMatch: false,
+        secondaryArtistMatch: false,
+        hasBpm: true,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 70);
+    assertEquals(result.keyConfidence, 70);
+});
+
+Deno.test("computeConfidence - fallback title + exact artist + partial secondary", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'fallback',
+        artistMatch: 'exact',
+        secondaryTitleMatch: true,
+        secondaryArtistMatch: true,
+        hasBpm: true,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 85);
+    assertEquals(result.keyConfidence, 85);
+});
+
+Deno.test("computeConfidence - contains title + variant artist + no secondary", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'contains',
+        artistMatch: 'variant',
+        secondaryTitleMatch: false,
+        secondaryArtistMatch: false,
+        hasBpm: true,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 40);
+    assertEquals(result.keyConfidence, 40);
+});
+
+Deno.test("computeConfidence - null when BPM absent", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'exact',
+        artistMatch: 'exact',
+        secondaryTitleMatch: true,
+        secondaryArtistMatch: true,
+        hasBpm: false,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, null);
+    assertEquals(result.keyConfidence, 95);
+});
+
+Deno.test("computeConfidence - null when key absent", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'exact',
+        artistMatch: 'exact',
+        secondaryTitleMatch: true,
+        secondaryArtistMatch: true,
+        hasBpm: true,
+        hasKey: false,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 95);
+    assertEquals(result.keyConfidence, null);
+});
+
+Deno.test("computeConfidence - both null when neither field present", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'exact',
+        artistMatch: 'exact',
+        secondaryTitleMatch: true,
+        secondaryArtistMatch: true,
+        hasBpm: false,
+        hasKey: false,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, null);
+    assertEquals(result.keyConfidence, null);
+});
+
+Deno.test("computeConfidence - clamps to 0 when all signals are none/false", () => {
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'none',
+        artistMatch: 'none',
+        secondaryTitleMatch: false,
+        secondaryArtistMatch: false,
+        hasBpm: true,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 0);
+    assertEquals(result.keyConfidence, 0);
+});
+
+Deno.test("computeConfidence - max real score is 95 (exact+exact+both secondary)", () => {
+    // Real weights: title(exact)=40 + artist(exact)=30 + secondary title=15 + secondary artist=10 = 95
+    // This is the maximum achievable score with current signal weights.
+    const signals: ConfidenceSignals = {
+        titleSimilarity: 'exact',
+        artistMatch: 'exact',
+        secondaryTitleMatch: true,
+        secondaryArtistMatch: true,
+        hasBpm: true,
+        hasKey: true,
+    };
+    const result = computeConfidence(signals);
+    assertEquals(result.bpmConfidence, 95);
+    assertEquals(result.keyConfidence, 95);
+});
+
