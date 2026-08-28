@@ -377,39 +377,8 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           enabled: !_isSaving,
           autocorrect: false,
           textCapitalization: TextCapitalization.characters,
+          hintText: 'E A D G B E',
           inputFormatters: [_StringsInputFormatter()],
-          decoration: InputDecoration(
-            hintText: 'E A D G B E',
-            hintStyle: TextStyle(color: context.colors.textMuted),
-            errorText: _stringsError,
-            filled: true,
-            fillColor: context.colors.background,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: Colors.red.shade400),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: Spacing.space16,
-              vertical: Spacing.space12,
-            ),
-          ),
-          style: TextStyle(
-            fontSize: AppFontSizes.body,
-            color: context.colors.textPrimary,
-            letterSpacing: 1.2,
-          ),
         ),
       ],
     );
@@ -434,35 +403,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           enabled: !_isSaving,
           autocorrect: true,
           textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            hintText: 'My Custom Tuning',
-            hintStyle: TextStyle(color: context.colors.textMuted),
-            errorText: _nameError,
-            filled: true,
-            fillColor: context.colors.background,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: Colors.red.shade400),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: Spacing.space16,
-              vertical: Spacing.space12,
-            ),
-          ),
-          style: TextStyle(
-              fontSize: AppFontSizes.body, color: context.colors.textPrimary),
+          hintText: 'My Custom Tuning',
         ),
       ],
     );

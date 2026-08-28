@@ -274,28 +274,6 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
     }
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: context.colors.textMuted),
-      filled: true,
-      fillColor: context.colors.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: context.colors.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: context.colors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-    );
-  }
-
   List<TextInputFormatter> _getPhoneFormatters() {
     final tz = ref.read(activeBandProvider).activeBand?.timezone;
     return isUSTimezone(tz) ? [USPhoneInputFormatter(isUSTimezone: true)] : [];
@@ -354,17 +332,13 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           AppTextField(
             controller: _nameController,
             focusNode: _nameFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Name *'),
+            labelText: 'Name *',
           ),
           const SizedBox(height: 16),
           AppTextField(
             controller: _addressController,
             focusNode: _addressFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Address'),
+            labelText: 'Address',
           ),
           const SizedBox(height: 16),
           Row(
@@ -373,10 +347,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                 child: AppTextField(
                   controller: _cityController,
                   focusNode: _cityFocus,
-                  style: TextStyle(
-                      color: context.colors.textPrimary,
-                      fontSize: AppFontSizes.body),
-                  decoration: _inputDecoration('City'),
+                  labelText: 'City',
                 ),
               ),
               if (_showStateField()) ...[
@@ -386,10 +357,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                   child: AppTextField(
                     controller: _stateController,
                     focusNode: _stateFocus,
-                    style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontSize: AppFontSizes.body),
-                    decoration: _inputDecoration(_getStateLabel()),
+                    labelText: _getStateLabel(),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: _getStateFormatters(),
                   ),
@@ -401,9 +369,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           AppTextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Phone'),
+            labelText: 'Phone',
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
           ),
@@ -411,9 +377,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
           AppTextField(
             controller: _notesController,
             focusNode: _notesFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Notes'),
+            labelText: 'Notes',
             maxLines: 3,
           ),
 

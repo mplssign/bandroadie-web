@@ -464,26 +464,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           child: AppTextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              labelText: 'Email address',
-              labelStyle: const TextStyle(color: Colors.white54),
-              errorText: _emailError,
-              filled: true,
-              fillColor: context.colors.surfaceElevated,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-            ),
+            labelText: 'Email address',
             onSubmitted: (_) => _sendMagicLink(),
           ),
         ),

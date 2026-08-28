@@ -459,33 +459,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                 AppTextField(
                   controller: controller,
                   autofocus: true,
-                  style: TextStyle(color: context.colors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Rhythm Guitar',
-                    hintStyle: TextStyle(color: context.colors.textMuted),
-                    errorText: errorText,
-                    filled: true,
-                    fillColor: context.colors.background,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: context.colors.surfaceOverlay,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: context.colors.surfaceOverlay,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(
-                        color: context.colors.primaryDim,
-                        width: 2,
-                      ),
-                    ),
-                  ),
+                  hintText: 'e.g. Rhythm Guitar',
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) {
                     _validateAndSubmitRole(
@@ -1054,7 +1028,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           controller: controller,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
-          style: TextStyle(color: context.colors.textPrimary),
+          hintText: hint,
           onChanged: (value) {
             setState(() {}); // Trigger dirty check
             onChanged?.call(value);
@@ -1068,40 +1042,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                       return null;
                     }
                   : null),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: context.colors.textMuted),
-            errorText: errorText,
-            filled: true,
-            fillColor: context.colors.surface,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: context.colors.surfaceOverlay),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: context.colors.surfaceOverlay),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: context.colors.primaryDim,
-                width: 2,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
-            ),
-          ),
         ),
       ],
     );

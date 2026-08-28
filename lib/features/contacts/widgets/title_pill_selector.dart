@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
-import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_text_field.dart';
 
 // ============================================================================
@@ -165,31 +164,7 @@ class _TitlePillSelectorState extends State<TitlePillSelector> {
           const SizedBox(height: 12),
           AppTextField(
             controller: _customController,
-            style: TextStyle(
-              color: context.colors.textPrimary,
-              fontSize: AppFontSizes.body,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Enter custom title',
-              hintStyle: TextStyle(color: context.colors.textMuted),
-              filled: true,
-              fillColor: context.colors.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            ),
+            hintText: 'Enter custom title',
             onChanged: _onCustomSubmitted,
             onSubmitted: _onCustomSubmitted,
           ),

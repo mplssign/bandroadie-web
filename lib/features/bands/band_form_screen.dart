@@ -14,6 +14,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/app_button.dart';
 import '../../components/ui/app_dropdown.dart';
+import '../../components/ui/app_text_form_field.dart';
 import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../components/ui/frosted_glass_bar.dart';
@@ -1690,48 +1691,14 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     List<TextInputFormatter>? inputFormatters,
     FocusNode? focusNode,
   }) {
-    return TextFormField(
+    return AppTextFormField(
       controller: controller,
       focusNode: focusNode,
       validator: validator,
       textCapitalization: textCapitalization,
+      hintText: hintText,
       onChanged: onChanged,
       inputFormatters: inputFormatters,
-      style: TextStyle(
-        fontSize: AppFontSizes.body,
-        fontWeight: FontWeight.w400,
-        color: context.colors.textPrimary,
-      ),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(
-          fontSize: AppFontSizes.body,
-          fontWeight: FontWeight.w400,
-          color: context.colors.textMuted,
-        ),
-        filled: true,
-        fillColor: context.colors.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space16,
-          vertical: Spacing.space14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          borderSide: const BorderSide(color: AppColors.error, width: 1),
-        ),
-      ),
     );
   }
 
@@ -2092,44 +2059,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     return Row(
       children: [
         Expanded(
-          child: TextFormField(
+          child: AppTextFormField(
             controller: _emailController,
             focusNode: _emailFocusNode,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => _addEmail(),
-            style: TextStyle(
-              fontSize: AppFontSizes.body,
-              fontWeight: FontWeight.w400,
-              color: context.colors.textPrimary,
-            ),
-            decoration: InputDecoration(
-              hintText: 'name@example.com',
-              hintStyle: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w400,
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: context.colors.surface,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: Spacing.space16,
-                vertical: Spacing.space14,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 2),
-              ),
-            ),
+            onSubmitted: (_) => _addEmail(),
+            hintText: 'name@example.com',
           ),
         ),
         const SizedBox(width: Spacing.space12),

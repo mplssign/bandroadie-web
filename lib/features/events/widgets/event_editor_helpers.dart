@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_dropdown.dart';
+import '../../../components/ui/app_text_field.dart';
 
 // ============================================================================
 // Shared reusable building blocks for event editor form field widgets.
@@ -43,11 +44,12 @@ class EventTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        TextField(
+        AppTextField(
           controller: controller,
           enabled: !isSaving,
           maxLines: isMultiline ? null : maxLines,
           minLines: isMultiline ? maxLines : null,
+          hintText: hint,
           keyboardType:
               isMultiline ? TextInputType.multiline : TextInputType.text,
           textInputAction:
@@ -55,39 +57,7 @@ class EventTextField extends StatelessWidget {
           textCapitalization: isMultiline
               ? TextCapitalization.sentences
               : TextCapitalization.none,
-          style:
-              AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
           onChanged: onChanged != null ? (_) => onChanged!() : null,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: context.colors.textMuted,
-            ),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(
-                color: error != null ? AppColors.error : context.colors.border,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(
-                color: error != null ? AppColors.error : context.colors.border,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(
-                color: error != null ? AppColors.error : AppColors.primary,
-              ),
-            ),
-          ),
         ),
         if (error != null) ...[
           const SizedBox(height: 4),

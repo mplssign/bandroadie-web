@@ -121,28 +121,6 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
     });
   }
 
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: context.colors.textMuted),
-      filled: true,
-      fillColor: context.colors.surface,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: context.colors.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: context.colors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -178,9 +156,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           AppTextField(
             controller: _nameController,
             focusNode: _nameFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Name'),
+            labelText: 'Name',
           ),
           const SizedBox(height: 16),
 
@@ -207,9 +183,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           AppTextField(
             controller: _phoneController,
             focusNode: _phoneFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Phone'),
+            labelText: 'Phone',
             keyboardType: TextInputType.phone,
             inputFormatters: _getPhoneFormatters(),
           ),
@@ -219,9 +193,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           AppTextField(
             controller: _emailController,
             focusNode: _emailFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Email'),
+            labelText: 'Email',
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 8),
@@ -237,9 +209,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           AppTextField(
             controller: _notesController,
             focusNode: _notesFocus,
-            style: TextStyle(
-                color: context.colors.textPrimary, fontSize: AppFontSizes.body),
-            decoration: _inputDecoration('Notes'),
+            labelText: 'Notes',
             maxLines: 2,
           ),
         ],

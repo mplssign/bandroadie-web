@@ -744,58 +744,10 @@ class _SongEntryGroupState extends State<_SongEntryGroup>
             focusNode: focusNode,
             enabled: enabled,
             textInputAction: textInputAction,
+            hintText:
+                label == 'Song Name' ? 'Enter song name' : 'Enter artist name',
             onSubmitted: onSubmitted,
             onChanged: onChanged,
-            style: AppTextStyles.body.copyWith(
-              color: context.colors.textPrimary,
-              fontSize: AppFontSizes.subhead,
-            ),
-            decoration: InputDecoration(
-              hintText: label == 'Song Name'
-                  ? 'Enter song name'
-                  : 'Enter artist name',
-              hintStyle: AppTextStyles.body.copyWith(
-                color: context.colors.textMuted,
-                fontSize: AppFontSizes.subhead,
-              ),
-              filled: true,
-              fillColor: context.colors.background,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(
-                  SongCardLayout.inputBorderRadius,
-                ),
-                borderSide: BorderSide(
-                  color: hasError
-                      ? AppColors.primary
-                      : SongCardLayout.inputBorderColor,
-                  width: hasError ? 1.5 : SongCardLayout.inputBorderWidth,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(
-                  SongCardLayout.inputBorderRadius,
-                ),
-                borderSide: BorderSide(
-                  color: hasError
-                      ? AppColors.primary
-                      : SongCardLayout.inputBorderColor,
-                  width: hasError ? 1.5 : SongCardLayout.inputBorderWidth,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(
-                  SongCardLayout.inputBorderRadius,
-                ),
-                borderSide: BorderSide(
-                  color: hasError ? AppColors.primary : AppColors.primary,
-                  width: 1.5,
-                ),
-              ),
-            ),
           ),
         ),
       ],

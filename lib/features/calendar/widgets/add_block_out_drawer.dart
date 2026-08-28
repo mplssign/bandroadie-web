@@ -762,37 +762,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           controller: controller,
           enabled: !_isSaving && !_isDeleting,
           maxLines: maxLines,
-          style: AppTextStyles.callout.copyWith(
-            color: context.colors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: context.colors.textSecondary.withValues(alpha: 0.6),
-            ),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-          ),
+          hintText: hint,
         ),
       ],
     );

@@ -492,25 +492,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         textInputAction: TextInputAction.newline,
         maxLines: null,
         minLines: 8,
-        style: TextStyle(
-          fontSize: AppFontSizes.subhead,
-          fontFamily: 'monospace',
-          fontWeight: FontWeight.w400,
-          color: context.colors.textPrimary,
-          height: 1.5,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Example: The Beatles, Come Together, 82, Standard',
-          hintStyle: TextStyle(
-            fontSize: AppFontSizes.subhead,
-            fontFamily: 'monospace',
-            fontWeight: FontWeight.w400,
-            color: context.colors.textMuted.withValues(alpha: 0.6),
-            height: 1.5,
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(Spacing.space16),
-        ),
+        hintText: 'Example: The Beatles, Come Together, 82, Standard',
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/components/ui/app_text_field.dart';
 
 // ============================================================================
 // CURRENCY INPUT FIELD
@@ -365,54 +366,29 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
           ),
           const SizedBox(height: 6),
         ],
-        TextField(
+        AppTextField(
           controller: _textController,
           focusNode: _focusNode,
           enabled: widget.enabled,
           keyboardType: TextInputType.number,
+          hintText: widget.hint,
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             _CurrencyInputFormatter(widget.controller),
           ],
-          style:
-              AppTextStyles.callout.copyWith(color: context.colors.textPrimary),
           onChanged: _onChanged,
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: context.colors.textMuted,
-            ),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-            suffixIcon: widget.controller.isNotEmpty && widget.enabled
-                ? IconButton(
-                    icon: const Icon(AppIcons.close, size: 18),
-                    color: context.colors.textMuted,
-                    onPressed: () {
-                      widget.controller.clear();
-                      _textController.clear();
-                      widget.onChanged?.call();
-                      setState(() {});
-                    },
-                  )
-                : null,
-          ),
+          suffixIcon: widget.controller.isNotEmpty && widget.enabled
+              ? IconButton(
+                  icon: const Icon(AppIcons.close, size: 18),
+                  color: context.colors.textMuted,
+                  onPressed: () {
+                    widget.controller.clear();
+                    _textController.clear();
+                    widget.onChanged?.call();
+                    setState(() {});
+                  },
+                )
+              : null,
         ),
       ],
     );
