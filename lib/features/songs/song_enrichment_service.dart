@@ -12,11 +12,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SongEnrichmentResult {
   final int? bpm;
   final String? musicalKey; // normalized to the app's 24-key set, or null
+  final int? bpmConfidence;
+  final int? keyConfidence;
   final String confidence; // 'medium' | 'none'
 
   const SongEnrichmentResult({
     this.bpm,
     this.musicalKey,
+    this.bpmConfidence,
+    this.keyConfidence,
     required this.confidence,
   });
 
@@ -100,6 +104,8 @@ class SongEnrichmentService {
       return SongEnrichmentResult(
         bpm: result['bpm'] as int?,
         musicalKey: result['musicalKey'] as String?,
+        bpmConfidence: result['bpmConfidence'] as int?,
+        keyConfidence: result['keyConfidence'] as int?,
         confidence: result['confidence'] as String? ?? 'none',
       );
     } catch (e) {
