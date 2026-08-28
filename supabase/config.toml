@@ -118,3 +118,9 @@ verify_jwt = false
 [functions.calendar-feed]
 # Public calendar URL authenticated via per-band token parameter — no JWT
 verify_jwt = false
+
+[functions.getsongbpm_lookup]
+verify_jwt = true
+
+[functions.itunes_search]
+verify_jwt = true
