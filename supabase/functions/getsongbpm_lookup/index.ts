@@ -3,6 +3,11 @@
 // Expects: { title: string, artist: string, duration_seconds?: number, isrc?: string }
 // Returns: { ok: boolean, data?: { bpm: number|null, musicalKey: string|null, confidence: 'medium'|'none' }, error?: string }
 //
+// Matching accuracy improvements (feature/song-enrichment-accuracy-confidence Phase A):
+// - Exact-artist matches now require title similarity (exact/fallback/contains tier)
+// - Version-type detection (live/remix/acoustic/cover/demo) rejects mismatched candidates
+// - Both exact-artist and artist-variant paths enforce title+version filtering
+//
 // ----------------------------------------------------------------------------
 // Task 1 live API spike findings (docs/features/new-song-key-enrichment/ARCHITECT_PLAN.md §14
 // Task 1 / §6.4). Confirmed against the real API this session — supersedes the
@@ -170,6 +175,53 @@ function isArtistVariantMatch(requestArtist: string, candidateArtist: string): b
     return shorterCompact.length >= 8;
 }
 
+/// Detect version types indicated by a title's normalized word tokens.
+/// Returns flags for live/remix/acoustic/cover/demo.
+function detectVersionType(title: string): {
+    live: boolean;
+    remix: boolean;
+    acoustic: boolean;
+    cover: boolean;
+    demo: boolean;
+} {
+    const words = new Set(normalizeWords(title));
+    return {
+        live: words.has('live') || words.has('unplugged'),
+        remix: words.has('remix') || words.has('remixed'),
+        acoustic: words.has('acoustic'),
+        cover: words.has('cover'),
+        demo: words.has('demo'),
+    };
+}
+
+/// Compare title similarity in tiers: exact > fallback (parenthetical trim) > contains > none.
+/// Reuses existing normalization helpers unchanged.
+function titleSimilarity(requestTitle: string, candidateTitle: string): 'exact' | 'fallback' | 'contains' | 'none' {
+    const normalizedRequest = normalizeTitleName(requestTitle);
+    const normalizedCandidate = normalizeTitleName(candidateTitle);
+
+    if (normalizedRequest === normalizedCandidate) {
+        return 'exact';
+    }
+
+    const requestFallback = normalizeTitleName(getPrimaryTitleFallback(requestTitle));
+    const candidateFallback = normalizeTitleName(getPrimaryTitleFallback(candidateTitle));
+
+    if (requestFallback === candidateFallback) {
+        return 'fallback';
+    }
+
+    const requestWords = normalizeWords(requestTitle);
+    const candidateWords = normalizeWords(candidateTitle);
+
+    if (isContiguousWordSequence(requestWords, candidateWords) ||
+        isContiguousWordSequence(candidateWords, requestWords)) {
+        return 'contains';
+    }
+
+    return 'none';
+}
+
 function noneResult(): LookupResult {
     return { bpm: null, musicalKey: null, confidence: 'none' };
 }
@@ -260,12 +312,37 @@ async function lookupGetSongBpmForTitle(
 
     const normalizedRequestArtist = normalizeArtistName(artist);
     const normalizedRequestTitle = normalizeTitleName(title);
+    const requestVersionType = detectVersionType(title);
 
+    // Exact-artist path: require both artist match AND title similarity (not just artist).
+    // Also enforce version-type gate: reject candidates with version types the request lacks.
     const exactArtistMatches = search.filter((candidate: any) => {
         const candidateArtist = candidate?.artist?.name;
-        if (typeof candidateArtist !== 'string') return false;
-        const normalized = normalizeArtistName(candidateArtist);
-        return normalized === normalizedRequestArtist;
+        const candidateTitle = getCandidateTitle(candidate);
+        if (typeof candidateArtist !== 'string' || typeof candidateTitle !== 'string') {
+            return false;
+        }
+
+        const artistMatches = normalizeArtistName(candidateArtist) === normalizedRequestArtist;
+        if (!artistMatches) {
+            return false;
+        }
+
+        const titleSim = titleSimilarity(title, candidateTitle);
+        if (titleSim === 'none') {
+            return false;
+        }
+
+        const candidateVersionType = detectVersionType(candidateTitle);
+
+        // Reject candidate if it has a version type the request doesn't.
+        for (const versionKey of ['live', 'remix', 'acoustic', 'cover', 'demo'] as const) {
+            if (candidateVersionType[versionKey] && !requestVersionType[versionKey]) {
+                return false;
+            }
+        }
+
+        return true;
     });
 
     const bestExactArtistMatch = selectBestAvailableMatch(exactArtistMatches);
@@ -281,6 +358,7 @@ async function lookupGetSongBpmForTitle(
         };
     }
 
+    // Artist-variant path: already requires title match; add version-type gate.
     if (exactArtistMatches.length === 0) {
         const artistVariantMatches = search.filter((candidate: any) => {
             const candidateArtist = candidate?.artist?.name;
@@ -289,8 +367,26 @@ async function lookupGetSongBpmForTitle(
                 return false;
             }
 
-            return normalizeTitleName(candidateTitle) === normalizedRequestTitle &&
-                isArtistVariantMatch(artist, candidateArtist);
+            const titleMatches = normalizeTitleName(candidateTitle) === normalizedRequestTitle;
+            if (!titleMatches) {
+                return false;
+            }
+
+            const artistVariantMatches = isArtistVariantMatch(artist, candidateArtist);
+            if (!artistVariantMatches) {
+                return false;
+            }
+
+            const candidateVersionType = detectVersionType(candidateTitle);
+
+            // Reject candidate if it has a version type the request doesn't.
+            for (const versionKey of ['live', 'remix', 'acoustic', 'cover', 'demo'] as const) {
+                if (candidateVersionType[versionKey] && !requestVersionType[versionKey]) {
+                    return false;
+                }
+            }
+
+            return true;
         });
 
         const bestArtistVariantMatch = selectBestAvailableMatch(artistVariantMatches);
