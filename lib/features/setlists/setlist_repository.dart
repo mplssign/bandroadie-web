@@ -3500,6 +3500,7 @@ class SetlistRepository {
             'p_youtube_links': null,
             'p_lyrics': null,
             'p_musical_key': update['musicalKey'],
+            'p_allow_enrich_overwrite': true,
           },
         );
 
