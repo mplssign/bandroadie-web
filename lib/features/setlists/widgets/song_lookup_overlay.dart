@@ -9,7 +9,10 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../songs/enrichment_settings_controller.dart';
 import '../../songs/external_song_lookup_service.dart';
+import '../../songs/models/enrichment_settings.dart';
+import '../../songs/song_enrichment_service.dart';
 import '../models/song.dart';
 import '../setlist_repository.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -284,16 +287,41 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
   Future<void> _handleExternalSongTap(SongLookupResult result) async {
     if (_isAdding) return;
 
+    final newSongBehavior =
+        (await ref.read(enrichmentSettingsProvider.future)).newSongBehavior;
+    if (!mounted) return;
+
     int? bpm;
     int? durationSeconds = result.durationSeconds;
     String? musicalKey;
 
-    // Show review sheet (Ask behavior)
-    final review = await showSongEnrichmentReviewSheet(context, result: result);
-    if (review == null || !mounted) return;
-    bpm = review.bpm;
-    durationSeconds = review.durationSeconds;
-    musicalKey = review.musicalKey;
+    switch (newSongBehavior) {
+      case NewSongBehavior.ask:
+        final review =
+            await showSongEnrichmentReviewSheet(context, result: result);
+        if (review == null || !mounted) return;
+        bpm = review.bpm;
+        durationSeconds = review.durationSeconds;
+        musicalKey = review.musicalKey;
+        break;
+      case NewSongBehavior.auto:
+        final enrichmentService =
+            SongEnrichmentService(Supabase.instance.client);
+        final enrichment = await enrichmentService.lookup(
+          title: result.title,
+          artist: result.artist,
+          durationSeconds: result.durationSeconds,
+        );
+        if (!mounted) return;
+        bpm = enrichment.bpm;
+        musicalKey = enrichment.musicalKey;
+        break;
+      case NewSongBehavior.off:
+        bpm = null;
+        musicalKey = null;
+        durationSeconds = result.durationSeconds;
+        break;
+    }
 
     setState(() {
       _isAdding = true;
