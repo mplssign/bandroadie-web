@@ -305,39 +305,8 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
             controller: _inviteEmailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.done,
+            hintText: 'name@example.com',
             onSubmitted: (_) => _sendInvite(),
-            style: TextStyle(
-              fontSize: AppFontSizes.body,
-              fontWeight: FontWeight.w400,
-              color: context.colors.textPrimary,
-            ),
-            decoration: InputDecoration(
-              hintText: 'name@example.com',
-              hintStyle: TextStyle(
-                fontSize: AppFontSizes.body,
-                fontWeight: FontWeight.w400,
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: context.colors.surface,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: Spacing.space16,
-                vertical: Spacing.space14,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 2),
-              ),
-            ),
           ),
         ),
         const SizedBox(width: Spacing.space12),

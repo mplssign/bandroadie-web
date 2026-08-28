@@ -24,11 +24,8 @@ final userProfileProvider = FutureProvider<UserProfile?>((ref) async {
   final userId = supabase.auth.currentUser?.id;
   if (userId == null) return null;
 
-  final response = await supabase
-      .from('users')
-      .select()
-      .eq('id', userId)
-      .maybeSingle();
+  final response =
+      await supabase.from('users').select().eq('id', userId).maybeSingle();
 
   if (response == null) return null;
   return UserProfile.fromJson(response);
@@ -76,16 +73,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Not logged in');
 
-      await supabase
-          .from('users')
-          .update({
-            'first_name': _firstNameController.text.trim(),
-            'last_name': _lastNameController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'city': _cityController.text.trim(),
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', userId);
+      await supabase.from('users').update({
+        'first_name': _firstNameController.text.trim(),
+        'last_name': _lastNameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'city': _cityController.text.trim(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
 
       // Refresh the profile data
       ref.invalidate(userProfileProvider);
@@ -327,25 +321,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         AppTextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: context.colors.textMuted),
-            filled: true,
-            fillColor: context.colors.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-          ),
+          hintText: hint,
         ),
       ],
     );

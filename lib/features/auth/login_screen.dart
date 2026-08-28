@@ -632,47 +632,14 @@ class _LoginScreenState extends State<LoginScreen>
                 enabled: !_isLoading,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.done,
+                hintText: 'you@email.com',
                 autocorrect: false,
                 autofillHints: const [AutofillHints.email],
-                style: const TextStyle(color: Colors.white),
                 onChanged: (_) => setState(() {
                   _selectedDomain = null;
                   _validationError = null;
                 }),
                 onSubmitted: (_) => _handleSubmit(),
-                decoration: InputDecoration(
-                  hintText: 'you@email.com',
-                  hintStyle: TextStyle(color: context.colors.textMuted),
-                  filled: true,
-                  fillColor: context.colors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: _validationError != null
-                        ? const BorderSide(color: AppColors.error, width: 1.5)
-                        : BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: _validationError != null
-                          ? AppColors.error
-                          : AppColors.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                  disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 18,
-                  ),
-                ),
               ),
             ),
             FieldHint(

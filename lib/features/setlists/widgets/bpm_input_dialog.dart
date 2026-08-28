@@ -138,53 +138,16 @@ class _BpmInputDialogState extends State<_BpmInputDialog> {
               LengthLimitingTextInputFormatter(3),
             ],
             autofocus: true,
-            style: AppTextStyles.callout.copyWith(
-              color: Colors.white,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Enter BPM (20-300)',
-              hintStyle: AppTextStyles.callout.copyWith(
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: context.colors.border,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: context.colors.border,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: AppColors.primary,
-                  width: 2.0,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(
-                  color: AppColors.error,
-                  width: 2.0,
-                ),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(
-                  color: AppColors.error,
-                  width: 2.0,
-                ),
-              ),
-              errorText: _errorText,
-            ),
+            hintText: 'Enter BPM (20-300)',
             onChanged: (_) => _validate(),
           ),
+          if (_errorText != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorText!,
+              style: AppTextStyles.footnote.copyWith(color: AppColors.error),
+            ),
+          ],
         ],
       ),
       actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),

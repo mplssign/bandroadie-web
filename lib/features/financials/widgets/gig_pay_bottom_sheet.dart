@@ -6,6 +6,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
+import '../../../components/ui/app_text_field.dart';
 import '../../../features/members/member_vm.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../models/financial_entry.dart';
@@ -355,39 +356,12 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
-                  TextField(
+                  AppTextField(
                     controller: _payerController,
                     enabled: !widget.viewOnly,
                     textCapitalization: TextCapitalization.none,
                     textInputAction: TextInputAction.done,
-                    style: AppTextStyles.callout
-                        .copyWith(color: context.colors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'e.g., Venue Name or Organizer',
-                      hintStyle: AppTextStyles.callout
-                          .copyWith(color: context.colors.textMuted),
-                      filled: true,
-                      fillColor: context.colors.background,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: BorderSide(color: context.colors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: BorderSide(color: context.colors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                    ),
+                    hintText: 'e.g., Venue Name or Organizer',
                   ),
                   const SizedBox(height: Spacing.space16),
 
@@ -433,42 +407,12 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                     const SizedBox(height: Spacing.space12),
                     // Custom name field shown when "Other" is selected
                     if (_isOtherSelected) ...[
-                      TextField(
+                      AppTextField(
                         controller: _paidToOtherController,
                         enabled: !widget.viewOnly,
                         textCapitalization: TextCapitalization.none,
                         textInputAction: TextInputAction.done,
-                        style: AppTextStyles.callout
-                            .copyWith(color: context.colors.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: 'Enter name',
-                          hintStyle: AppTextStyles.callout
-                              .copyWith(color: context.colors.textMuted),
-                          filled: true,
-                          fillColor: context.colors.background,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Spacing.buttonRadius),
-                            borderSide:
-                                BorderSide(color: context.colors.border),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Spacing.buttonRadius),
-                            borderSide:
-                                BorderSide(color: context.colors.border),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(Spacing.buttonRadius),
-                            borderSide:
-                                const BorderSide(color: AppColors.primary),
-                          ),
-                        ),
+                        hintText: 'Enter name',
                       ),
                       const SizedBox(height: Spacing.space16),
                     ] else

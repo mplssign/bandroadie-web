@@ -9,6 +9,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
+import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../features/members/member_vm.dart';
 import '../../members/permissions/band_permissions_provider.dart';
@@ -312,15 +313,27 @@ class _AddFinancialEntryBottomSheetState
             return AlertDialog(
               backgroundColor: Theme.of(ctx).colorScheme.surface,
               title: const Text('Add Type'),
-              content: TextField(
-                controller: controller,
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                onSubmitted: (_) => submit(),
-                decoration: InputDecoration(
-                  hintText: 'e.g., Streaming Revenue',
-                  errorText: errorText,
-                ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTextField(
+                    controller: controller,
+                    autofocus: true,
+                    hintText: 'e.g., Streaming Revenue',
+                    textCapitalization: TextCapitalization.words,
+                    onSubmitted: (_) => submit(),
+                  ),
+                  if (errorText != null) ...[
+                    const SizedBox(height: Spacing.space8),
+                    Text(
+                      errorText!,
+                      style: AppTextStyles.footnote.copyWith(
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ],
               ),
               actions: [
                 TextButton(
@@ -707,40 +720,13 @@ class _AddFinancialEntryBottomSheetState
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
-                  TextField(
+                  AppTextField(
                     controller: _payerController,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
-                    style: AppTextStyles.callout
-                        .copyWith(color: context.colors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: _isIncome
-                          ? 'e.g., Bowery Electric'
-                          : 'e.g., Drum World',
-                      hintStyle: AppTextStyles.callout
-                          .copyWith(color: context.colors.textMuted),
-                      filled: true,
-                      fillColor: context.colors.background,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: BorderSide(color: context.colors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: BorderSide(color: context.colors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                    ),
+                    hintText: _isIncome
+                        ? 'e.g., Bowery Electric'
+                        : 'e.g., Drum World',
                   ),
                   const SizedBox(height: Spacing.space16),
 
@@ -784,39 +770,11 @@ class _AddFinancialEntryBottomSheetState
                   ),
                   const SizedBox(height: Spacing.space12),
                   if (_isOtherPaidToSelected) ...[
-                    TextField(
+                    AppTextField(
                       controller: _paidToOtherController,
                       textCapitalization: TextCapitalization.none,
                       textInputAction: TextInputAction.next,
-                      style: AppTextStyles.callout
-                          .copyWith(color: context.colors.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Enter name',
-                        hintStyle: AppTextStyles.callout
-                            .copyWith(color: context.colors.textMuted),
-                        filled: true,
-                        fillColor: context.colors.background,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Spacing.buttonRadius),
-                          borderSide: BorderSide(color: context.colors.border),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Spacing.buttonRadius),
-                          borderSide: BorderSide(color: context.colors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(Spacing.buttonRadius),
-                          borderSide:
-                              const BorderSide(color: AppColors.primary),
-                        ),
-                      ),
+                      hintText: 'Enter name',
                     ),
                     const SizedBox(height: Spacing.space16),
                   ] else
@@ -829,38 +787,11 @@ class _AddFinancialEntryBottomSheetState
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
-                  TextField(
+                  AppTextField(
                     controller: _descriptionController,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.done,
-                    style: AppTextStyles.callout
-                        .copyWith(color: context.colors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Purchased P.A. System',
-                      hintStyle: AppTextStyles.callout
-                          .copyWith(color: context.colors.textMuted),
-                      filled: true,
-                      fillColor: context.colors.background,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: BorderSide(color: context.colors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: BorderSide(color: context.colors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                    ),
+                    hintText: 'e.g. Purchased P.A. System',
                   ),
                   const SizedBox(height: Spacing.space16),
 

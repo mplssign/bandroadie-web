@@ -412,22 +412,7 @@ class _PauseScreenState extends State<PauseScreen> {
                             child: AppTextField(
                               controller: _customFields[i].$1,
                               focusNode: _customFields[i].$2,
-                              style: AppTextStyles.body.copyWith(
-                                color: context.colors.textPrimary,
-                                fontSize: AppFontSizes.subhead,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Custom purpose...',
-                                hintStyle: AppTextStyles.body.copyWith(
-                                  color: context.colors.textDisabled,
-                                  fontSize: AppFontSizes.subhead,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                border: InputBorder.none,
-                              ),
+                              hintText: 'Custom purpose...',
                               textInputAction: TextInputAction.done,
                               onSubmitted: (_) {
                                 // If this field has text, add another
@@ -565,28 +550,10 @@ class _PauseScreenState extends State<PauseScreen> {
                         controller: _durationController,
                         focusNode: _durationFocusNode,
                         keyboardType: TextInputType.number,
+                        hintText: '0:00',
                         textAlign: TextAlign.center,
                         onChanged: _onDurationChanged,
                         onTap: _onDurationTap,
-                        style: AppTextStyles.headline.copyWith(
-                          color: context.colors.textPrimary,
-                          fontSize: AppFontSizes.modalTitle,
-                          fontFeatures: const [
-                            FontFeature.tabularFigures(),
-                          ],
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '0:00',
-                          hintStyle: AppTextStyles.headline.copyWith(
-                            color: context.colors.textDisabled,
-                            fontSize: AppFontSizes.modalTitle,
-                            fontFeatures: const [
-                              FontFeature.tabularFigures(),
-                            ],
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.zero,
-                        ),
                       ),
                     ),
                   ),

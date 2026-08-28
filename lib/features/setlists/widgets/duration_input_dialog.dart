@@ -105,36 +105,7 @@ class _DurationInputDialogState extends State<_DurationInputDialog> {
               _DurationFormatter(),
             ],
             autofocus: true,
-            style: AppTextStyles.callout.copyWith(
-              color: Colors.white,
-            ),
-            decoration: InputDecoration(
-              hintText: 'MM:SS',
-              hintStyle: AppTextStyles.callout.copyWith(
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: context.colors.border,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: context.colors.border,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: AppColors.primary,
-                  width: 2.0,
-                ),
-              ),
-            ),
+            hintText: 'MM:SS',
           ),
         ],
       ),

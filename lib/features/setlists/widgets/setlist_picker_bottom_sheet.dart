@@ -493,41 +493,8 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             controller: _newNameController,
             focusNode: _newNameFocus,
             autofocus: true,
-            style:
-                AppTextStyles.body.copyWith(color: context.colors.textPrimary),
+            hintText: 'Setlist name',
             textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintText: 'Setlist name',
-              hintStyle: AppTextStyles.body.copyWith(
-                color: context.colors.textMuted,
-              ),
-              errorText: _validationError,
-              filled: true,
-              fillColor: context.colors.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(
-                  color: context.colors.textSecondary.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: AppColors.error, width: 1.5),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: AppColors.error, width: 1.5),
-              ),
-            ),
             onChanged: (_) {
               if (_validationError != null) {
                 setState(() {

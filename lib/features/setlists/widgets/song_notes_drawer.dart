@@ -173,21 +173,11 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
         controller: _notesController,
         maxLines: null,
         minLines: 8,
+        hintText: 'Add notes for this song...',
         textCapitalization: TextCapitalization.sentences,
         keyboardType: TextInputType.multiline,
         textInputAction: TextInputAction.newline,
         autofocus: true,
-        style: AppTextStyles.headline.copyWith(
-          color: context.colors.textPrimary,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Add notes for this song...',
-          hintStyle: AppTextStyles.headline.copyWith(
-            color: context.colors.textMuted,
-          ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
-        ),
         onChanged: (_) => setState(() {}),
       ),
     );

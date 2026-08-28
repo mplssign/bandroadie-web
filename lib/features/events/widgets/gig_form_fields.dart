@@ -219,34 +219,8 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
-          style: AppTextStyles.callout.copyWith(
-            color: context.colors.textPrimary,
-          ),
+          hintText: 'e.g., 123 Main St',
           onChanged: (_) => onMarkDirty(),
-          decoration: InputDecoration(
-            hintText: 'e.g., 123 Main St',
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: context.colors.textMuted,
-            ),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-          ),
         ),
         FieldHint(
           text: 'Street address (optional)',
@@ -477,9 +451,7 @@ class GigFormFields extends ConsumerWidget {
           textCapitalization: TextCapitalization.characters,
           textInputAction: TextInputAction.next,
           maxLength: 2,
-          style: AppTextStyles.callout.copyWith(
-            color: context.colors.textPrimary,
-          ),
+          hintText: 'ST',
           onChanged: (value) {
             // Enforce uppercase formatting
             final upperValue = value.toUpperCase();
@@ -492,30 +464,6 @@ class GigFormFields extends ConsumerWidget {
             }
             onMarkDirty();
           },
-          decoration: InputDecoration(
-            counterText: '', // Hide character counter
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: context.colors.textMuted,
-            ),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-          ),
         ),
       ],
     );

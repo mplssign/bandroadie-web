@@ -260,13 +260,6 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTextStyle = widget.textStyle ??
-        TextStyle(
-          fontSize: AppFontSizes.body,
-          fontWeight: FontWeight.w500,
-          color: context.colors.textPrimary,
-        );
-
     final effectiveBgColor =
         widget.backgroundColor ?? context.colors.surfaceElevated;
     final effectiveBorderColor = widget.borderColor ?? Colors.white;
@@ -304,15 +297,6 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
               enabled: widget.enabled,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: effectiveTextStyle,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                isDense: true,
-              ),
               // Intercept all input via inputFormatters
               inputFormatters: [
                 _DurationInputFormatter(

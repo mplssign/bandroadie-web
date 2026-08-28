@@ -514,46 +514,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
             focusNode: _csvFocusNode,
             maxLines: 5,
             minLines: showExpandedPasteField ? 3 : 1,
-            style: TextStyle(
-              fontSize: AppFontSizes.caption,
-              color: context.colors.textPrimary,
-              fontFamily: 'monospace',
-            ),
-            decoration: InputDecoration(
-              isDense: !showExpandedPasteField,
-              hintText: 'Column order: Artist, Song, BPM, Tuning, Key',
-              hintStyle: TextStyle(
-                fontSize: AppFontSizes.caption,
-                color: context.colors.textMuted.withValues(alpha: 0.5),
-                fontFamily: 'monospace',
-              ),
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.08),
-              contentPadding: showExpandedPasteField
-                  ? const EdgeInsets.all(12)
-                  : const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: context.colors.border,
-                  width: 1.5,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: context.colors.border,
-                  width: 1.5,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 2,
-                ),
-              ),
-            ),
+            hintText: 'Column order: Artist, Song, BPM, Tuning, Key',
           ),
           const SizedBox(height: Spacing.space8),
           SizedBox(
@@ -991,29 +952,9 @@ class _TableTextField extends StatelessWidget {
       controller: controller,
       focusNode: focusNode,
       keyboardType: keyboardType,
+      hintText: hint,
       inputFormatters: inputFormatters,
       textCapitalization: textCapitalization,
-      style: TextStyle(
-        fontSize: AppFontSizes.caption,
-        color: context.colors.textPrimary,
-        fontWeight: FontWeight.w400,
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          fontSize: AppFontSizes.caption,
-          color: context.colors.textMuted.withValues(alpha: 0.4),
-        ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        border: InputBorder.none,
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.transparent),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
-        ),
-      ),
     );
   }
 }

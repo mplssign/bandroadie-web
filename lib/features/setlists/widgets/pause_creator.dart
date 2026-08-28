@@ -295,22 +295,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                           child: AppTextField(
                             controller: _customPurposeController,
                             focusNode: _customPurposeFocus,
-                            style: AppTextStyles.body.copyWith(
-                              color: context.colors.textPrimary,
-                              fontSize: AppFontSizes.subhead,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Custom reason…',
-                              hintStyle: AppTextStyles.body.copyWith(
-                                color: context.colors.textDisabled,
-                                fontSize: AppFontSizes.subhead,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              border: InputBorder.none,
-                            ),
+                            hintText: 'Custom reason…',
                             textInputAction: TextInputAction.done,
                             onSubmitted: (_) => _addCustomPurpose(),
                           ),
@@ -507,24 +492,11 @@ class _DurationField extends StatelessWidget {
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
         maxLength: 2,
-        style: AppTextStyles.headline.copyWith(
-          color: context.colors.textPrimary,
-          fontSize: AppFontSizes.body,
-        ),
+        hintText: hint,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
           _MaxValueFormatter(maxValue),
         ],
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: AppTextStyles.headline.copyWith(
-            color: context.colors.textDisabled,
-            fontSize: AppFontSizes.body,
-          ),
-          counterText: '',
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-          border: InputBorder.none,
-        ),
       ),
     );
   }

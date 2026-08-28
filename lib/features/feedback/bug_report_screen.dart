@@ -9,6 +9,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_app_bar.dart';
 import 'package:bandroadie/components/ui/app_icon_button.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
+import 'package:bandroadie/components/ui/app_text_form_field.dart';
 
 // ============================================================================
 // BUG REPORT SCREEN
@@ -193,35 +194,14 @@ $_fallbackReportText
                   ),
                 ),
                 const SizedBox(height: Spacing.space8),
-                TextFormField(
+                AppTextFormField(
                   controller: _descriptionController,
-                  style: const TextStyle(color: Colors.white),
                   maxLines: 6,
                   keyboardType: TextInputType.multiline,
                   textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: _selectedType == _FeedbackType.bug
-                        ? 'What happened? What did you expect to happen? Steps to reproduce...'
-                        : 'Describe the feature and how it would help you...',
-                    hintStyle: TextStyle(color: context.colors.textMuted),
-                    filled: true,
-                    fillColor: context.colors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: BorderSide(color: context.colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: BorderSide(color: context.colors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 2,
-                      ),
-                    ),
-                  ),
+                  hintText: _selectedType == _FeedbackType.bug
+                      ? 'What happened? What did you expect to happen? Steps to reproduce...'
+                      : 'Describe the feature and how it would help you...',
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please provide some details';

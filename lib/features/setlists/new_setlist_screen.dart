@@ -1289,23 +1289,6 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           child: AppTextField(
             controller: _nameController,
             focusNode: _nameFocusNode,
-            style: AppTextStyles.title3,
-            decoration: InputDecoration(
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 2),
-              ),
-            ),
             onSubmitted: (_) => _saveSetlistName(),
             onEditingComplete: _saveSetlistName,
           ),

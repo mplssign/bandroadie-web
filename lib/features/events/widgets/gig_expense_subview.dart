@@ -313,33 +313,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
             controller: _customCategoryController,
             enabled: widget.canEdit && !widget.isSaving,
             textCapitalization: TextCapitalization.words,
-            style: AppTextStyles.callout.copyWith(
-              color: context.colors.textPrimary,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Custom category',
-              hintStyle: AppTextStyles.callout.copyWith(
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: context.colors.background,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-            ),
+            hintText: 'Custom category',
           ),
         ],
         const SizedBox(height: Spacing.space16),
@@ -456,33 +430,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
             controller: _paidByOtherController,
             enabled: widget.canEdit && !widget.isSaving,
             textCapitalization: TextCapitalization.words,
-            style: AppTextStyles.callout.copyWith(
-              color: context.colors.textPrimary,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Who paid?',
-              hintStyle: AppTextStyles.callout.copyWith(
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: context.colors.background,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: BorderSide(color: context.colors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                borderSide: const BorderSide(color: AppColors.primary),
-              ),
-            ),
+            hintText: 'Who paid?',
           ),
         ],
         const SizedBox(height: Spacing.space16),
@@ -499,33 +447,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
           textInputAction: TextInputAction.done,
           minLines: 3,
           maxLines: 4,
-          style: AppTextStyles.callout.copyWith(
-            color: context.colors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: 'Add optional details',
-            hintStyle: AppTextStyles.callout.copyWith(
-              color: context.colors.textMuted,
-            ),
-            filled: true,
-            fillColor: context.colors.background,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: BorderSide(color: context.colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              borderSide: const BorderSide(color: AppColors.primary),
-            ),
-          ),
+          hintText: 'Add optional details',
         ),
         const SizedBox(height: Spacing.space24),
         Row(

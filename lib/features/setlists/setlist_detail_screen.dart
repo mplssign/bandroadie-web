@@ -249,20 +249,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
           child: AppTextFormField(
             controller: controller,
             autofocus: true,
-            style:
-                AppTextStyles.body.copyWith(color: context.colors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Enter setlist name',
-              hintStyle: AppTextStyles.body.copyWith(
-                color: context.colors.textMuted,
-              ),
-              filled: true,
-              fillColor: context.colors.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-            ),
+            hintText: 'Enter setlist name',
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Name cannot be empty';
@@ -2300,48 +2287,26 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               controller: _searchController,
               focusNode: _searchFocusNode,
               autofocus: true,
-              onChanged: _onSearchChanged,
-              style: AppTextStyles.body
-                  .copyWith(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Filter songs...',
-                hintStyle: AppTextStyles.body.copyWith(
-                  color: context.colors.textMuted,
-                ),
-                prefixIcon: Icon(
-                  AppIcons.search,
-                  size: 20,
-                  color: context.colors.textMuted,
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? GestureDetector(
-                        onTap: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                        child: Icon(
-                          AppIcons.close,
-                          size: 18,
-                          color: context.colors.textMuted,
-                        ),
-                      )
-                    : null,
-                filled: true,
-                fillColor: context.colors.surface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-                ),
+              hintText: 'Filter songs...',
+              prefixIcon: Icon(
+                AppIcons.search,
+                size: 20,
+                color: context.colors.textMuted,
               ),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        _onSearchChanged('');
+                      },
+                      child: Icon(
+                        AppIcons.close,
+                        size: 18,
+                        color: context.colors.textMuted,
+                      ),
+                    )
+                  : null,
+              onChanged: _onSearchChanged,
             ),
           ),
         ),

@@ -169,27 +169,7 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               content: AppTextField(
                 controller: controller,
                 autofocus: true,
-                style: AppTextStyles.body
-                    .copyWith(color: context.colors.textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Layout name',
-                  hintStyle: AppTextStyles.body
-                      .copyWith(color: context.colors.textMuted),
-                  filled: true,
-                  fillColor: context.colors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: BorderSide(color: context.colors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
+                hintText: 'Layout name',
                 onChanged: (_) => setDialogState(() {}),
               ),
               actions: [

@@ -723,56 +723,14 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
             AppTextField(
               controller: titleController,
               autofocus: true,
+              hintText: 'Link name (e.g., "Live Performance")',
               textCapitalization: TextCapitalization.words,
-              style: AppTextStyles.body
-                  .copyWith(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Link name (e.g., "Live Performance")',
-                hintStyle: AppTextStyles.body.copyWith(
-                  color: context.colors.textMuted,
-                ),
-                filled: true,
-                fillColor: context.colors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.primary),
-                ),
-              ),
             ),
             const SizedBox(height: 12),
             AppTextField(
               controller: urlController,
               keyboardType: TextInputType.url,
-              style: AppTextStyles.body
-                  .copyWith(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Link URL',
-                hintStyle: AppTextStyles.body.copyWith(
-                  color: context.colors.textMuted,
-                ),
-                filled: true,
-                fillColor: context.colors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: context.colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  borderSide: BorderSide(color: AppColors.primary),
-                ),
-              ),
+              hintText: 'Link URL',
             ),
             const SizedBox(height: 20),
             AppButton(
@@ -1043,14 +1001,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                   controller: _titleController,
                   focusNode: _titleFocus,
                   textCapitalization: TextCapitalization.words,
-                  style: AppTextStyles.title3,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
                   onSubmitted: (_) => setState(() => _isEditingTitle = false),
                 ),
               )
@@ -1116,16 +1066,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                   controller: _artistController,
                   focusNode: _artistFocus,
                   textCapitalization: TextCapitalization.words,
-                  style: AppTextStyles.body.copyWith(
-                    color: context.colors.textPrimary,
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
                   onSubmitted: (_) => setState(() => _isEditingArtist = false),
                 ),
               )
@@ -1421,19 +1361,10 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
             readOnly: widget.isReadOnly,
             maxLines: null,
             minLines: 8,
+            hintText: 'Add notes for this song...',
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
-            style: AppTextStyles.headline
-                .copyWith(color: context.colors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'Add notes for this song...',
-              hintStyle: AppTextStyles.headline.copyWith(
-                color: context.colors.textMuted,
-              ),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
-            ),
           ),
         ),
       ],
