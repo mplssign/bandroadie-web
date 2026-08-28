@@ -32,6 +32,8 @@ class SongEnrichmentDetail {
   final int? currentDuration;
   final int? enrichedBpm;
   final String? enrichedKey;
+  final int? bpmConfidence;
+  final int? keyConfidence;
   final int? enrichedDuration;
 
   const SongEnrichmentDetail({
@@ -46,6 +48,8 @@ class SongEnrichmentDetail {
     this.currentDuration,
     this.enrichedBpm,
     this.enrichedKey,
+    this.bpmConfidence,
+    this.keyConfidence,
     this.enrichedDuration,
   });
 }
@@ -175,6 +179,8 @@ class SongEnrichmentOrchestrator {
       int? fetchedBpm;
       int? fetchedDuration;
       String? fetchedKey;
+      int? fetchedBpmConfidence;
+      int? fetchedKeyConfidence;
       bool bpmNotFound = false;
       bool durationNotFound = false;
       bool keyNotFound = false;
@@ -196,8 +202,14 @@ class SongEnrichmentOrchestrator {
             if (needsBpm) bpmNotFound = true;
             if (needsKey) keyNotFound = true;
           } else {
-            if (needsBpm) fetchedBpm = enrichmentResult.bpm;
-            if (needsKey) fetchedKey = enrichmentResult.musicalKey;
+            if (needsBpm) {
+              fetchedBpm = enrichmentResult.bpm;
+              fetchedBpmConfidence = enrichmentResult.bpmConfidence;
+            }
+            if (needsKey) {
+              fetchedKey = enrichmentResult.musicalKey;
+              fetchedKeyConfidence = enrichmentResult.keyConfidence;
+            }
           }
         } catch (e) {
           debugPrint(
@@ -300,6 +312,10 @@ class SongEnrichmentOrchestrator {
         bpmResult: bpmResult,
         durationResult: durationResult,
         keyResult: keyResult,
+        enrichedBpm: fetchedBpm,
+        enrichedKey: fetchedKey,
+        bpmConfidence: fetchedBpmConfidence,
+        keyConfidence: fetchedKeyConfidence,
       ));
 
       // Update counts, allowing partial success + partial failures in one song.

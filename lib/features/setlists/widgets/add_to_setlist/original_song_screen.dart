@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -6,6 +7,8 @@ import '../../../../app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
+import '../../../songs/enrichment_settings_controller.dart';
+import '../../../songs/models/enrichment_settings.dart';
 import '../../../songs/services/inline_song_enrichment_service.dart';
 import '../../../songs/widgets/enrichment_confirm_dialog.dart';
 
@@ -68,7 +71,7 @@ typedef OnOriginalSongsSubmitted = Future<int> Function(
       songs,
 );
 
-class OriginalSongScreen extends StatefulWidget {
+class OriginalSongScreen extends ConsumerStatefulWidget {
   final String defaultArtist;
   final OnOriginalSongsSubmitted onSubmit;
   final VoidCallback onBack;
@@ -87,10 +90,10 @@ class OriginalSongScreen extends StatefulWidget {
   });
 
   @override
-  State<OriginalSongScreen> createState() => _OriginalSongScreenState();
+  ConsumerState<OriginalSongScreen> createState() => _OriginalSongScreenState();
 }
 
-class _OriginalSongScreenState extends State<OriginalSongScreen>
+class _OriginalSongScreenState extends ConsumerState<OriginalSongScreen>
     with SingleTickerProviderStateMixin {
   final List<_SongEntry> _entries = [];
   bool _isSubmitting = false;
@@ -190,6 +193,8 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
 
     final enrichedSongs =
         <({String title, String artist, int? bpm, String? musicalKey})>[];
+    final newSongBehavior =
+        (await ref.read(enrichmentSettingsProvider.future)).newSongBehavior;
 
     for (final entry in _entries) {
       final title = entry.titleController.text.trim();
@@ -209,42 +214,67 @@ class _OriginalSongScreenState extends State<OriginalSongScreen>
         continue;
       }
 
-      // New song - always show confirmation dialog (Ask behavior)
       if (!mounted) return;
-      final shouldEnrich = await showEnrichmentConfirmDialog(
-        context,
-        title: title,
-        artist: artist,
-        enrichmentService: widget.enrichmentService,
-      );
 
-      if (shouldEnrich == null) {
-        // User cancelled - abort entire submission
-        if (mounted) setState(() => _isSubmitting = false);
-        return;
-      }
+      switch (newSongBehavior) {
+        case NewSongBehavior.ask:
+          final shouldEnrich = await showEnrichmentConfirmDialog(
+            context,
+            title: title,
+            artist: artist,
+            enrichmentService: widget.enrichmentService,
+          );
 
-      if (shouldEnrich) {
-        // Enrich the song
-        final enrichmentResult = await widget.enrichmentService.enrichSong(
-          title: title,
-          artist: artist,
-        );
+          if (shouldEnrich == null) {
+            // User cancelled - abort entire submission
+            if (mounted) setState(() => _isSubmitting = false);
+            return;
+          }
 
-        enrichedSongs.add((
-          title: title,
-          artist: artist,
-          bpm: enrichmentResult.bpm,
-          musicalKey: enrichmentResult.musicalKey,
-        ));
-      } else {
-        // Skip enrichment
-        enrichedSongs.add((
-          title: title,
-          artist: artist,
-          bpm: null,
-          musicalKey: null,
-        ));
+          if (shouldEnrich) {
+            // Enrich the song
+            final enrichmentResult = await widget.enrichmentService.enrichSong(
+              title: title,
+              artist: artist,
+            );
+
+            enrichedSongs.add((
+              title: title,
+              artist: artist,
+              bpm: enrichmentResult.bpm,
+              musicalKey: enrichmentResult.musicalKey,
+            ));
+          } else {
+            // Skip enrichment
+            enrichedSongs.add((
+              title: title,
+              artist: artist,
+              bpm: null,
+              musicalKey: null,
+            ));
+          }
+          break;
+        case NewSongBehavior.auto:
+          final enrichmentResult = await widget.enrichmentService.enrichSong(
+            title: title,
+            artist: artist,
+          );
+
+          enrichedSongs.add((
+            title: title,
+            artist: artist,
+            bpm: enrichmentResult.bpm,
+            musicalKey: enrichmentResult.musicalKey,
+          ));
+          break;
+        case NewSongBehavior.off:
+          enrichedSongs.add((
+            title: title,
+            artist: artist,
+            bpm: null,
+            musicalKey: null,
+          ));
+          break;
       }
     }
 

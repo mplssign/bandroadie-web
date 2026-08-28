@@ -262,6 +262,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                   context,
                   'BPM',
                   detail.bpmResult,
+                  detail.bpmConfidence,
                 ),
               ),
               const SizedBox(width: Spacing.space8),
@@ -270,6 +271,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                   context,
                   'Dur',
                   detail.durationResult,
+                  null,
                 ),
               ),
               const SizedBox(width: Spacing.space8),
@@ -278,6 +280,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
                   context,
                   'Key',
                   detail.keyResult,
+                  detail.keyConfidence,
                 ),
               ),
             ],
@@ -291,8 +294,13 @@ class EnrichmentResultsOverlay extends StatelessWidget {
     BuildContext context,
     String label,
     EnrichmentFieldResult result,
+    int? confidence,
   ) {
     final (icon, color, text) = _getResultDisplay(context, result);
+    final labelText =
+        (confidence == null || result != EnrichmentFieldResult.updated)
+            ? label
+            : '$label $confidence%';
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -313,7 +321,7 @@ class EnrichmentResultsOverlay extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
+                  labelText,
                   style: AppTextStyles.caption.copyWith(
                     color: context.colors.textMuted,
                     fontSize: 10,
