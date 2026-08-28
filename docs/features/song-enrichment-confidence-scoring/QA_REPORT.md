@@ -73,3 +73,14 @@ Passed
 ### Warning
 
 1. Remove the stale `duration_seconds` reference from the `supabase/functions/getsongbpm_lookup/index.ts` header comment so the file satisfies the requested no-reference check.
+
+---
+
+## Addendum — Tier 2 Post-Deploy Verification (2026-08-28)
+
+Runtime exercise of the deployed iTunes corroboration path — flagged above as not available pre-deploy — is now confirmed with real evidence from the live function (`getsongbpm_lookup` v19, project `nekwjxvgbveheooyorjo`):
+
+- **Known-good parenthetical case** (`Come Out And Play (Keep 'Em Separated)` / The Offspring): `bpm: 160`, `key: G`, `confidence: medium` (legacy fields unchanged), `bpmConfidence: 95`, `keyConfidence: 95` — the real ceiling, meaning the live iTunes corroboration call succeeded end-to-end (`secondaryTitleMatch`/`secondaryArtistMatch` both true), not just the isolated scoring function.
+- **Wrong-version trap** (`Every Rose Has Its Thorn` / Poison): `bpm: 70`, `key: C`, `versionType: null` — correctly the studio entry, not the adjacent "(MTV Unplugged)" candidate (BPM 143, F♯) — confirming Phase A's version-type reject rule still holds under Phase B's added scoring, with `bpmConfidence`/`keyConfidence` again at 95.
+
+Both calls returned `ok: true` with no 5xx, confirming the non-blocking/no-throw contract holds in production. This closes the runtime-verification gap noted in the original Behavior Verification section above.
