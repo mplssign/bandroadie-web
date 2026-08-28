@@ -78,13 +78,12 @@ class _EnrichmentSelectorBottomSheetState
   Widget build(BuildContext context) {
     final hasSelection = _bpmSelected || _durationSelected || _keySelected;
 
-    // Read enrichment settings (always fill-missing-only after revert)
+    // Checkbox consent = allow overwrite
     final subtitleText = 'Select data to auto-enrich for ${widget.songCount} '
-        '${widget.songCount == 1 ? "song" : "songs"}. Only missing '
-        'values will be filled — existing data is never overwritten.';
+        '${widget.songCount == 1 ? "song" : "songs"}. Checked fields will be '
+        'updated with fresh data, overwriting existing values if necessary.';
 
-    // Always use fill-missing-only behavior (never overwrite)
-    const bool overwriteExisting = false;
+    final bool overwriteExisting = true;
 
     return SafeArea(
       child: Padding(
