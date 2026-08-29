@@ -126,17 +126,11 @@ class CalendarGrid extends StatelessWidget {
     );
 
     if (variants.contains(FCalendarDayVariant.today)) {
-      dayContent = Padding(
-        padding: const EdgeInsets.all(1),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: AppColors.primary,
-              width: 1,
-            ),
-          ),
-          child: dayContent,
+      dayContent = DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.12),
         ),
+        child: dayContent,
       );
     }
 
