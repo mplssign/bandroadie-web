@@ -101,6 +101,8 @@
 	<string>BandRoadie needs permission to save photos to your library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>BandRoadie does not use your location. This permission is not requested by any app feature.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>BandRoadie does not use your location. This permission is not requested by any app feature.</string>
 
 </dict>
 </plist>
