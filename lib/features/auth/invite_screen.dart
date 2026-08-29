@@ -465,9 +465,29 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             labelText: 'Email address',
+            onChanged: (_) {
+              if (_emailError != null) {
+                setState(() {
+                  _emailError = null;
+                });
+              }
+            },
             onSubmitted: (_) => _sendMagicLink(),
           ),
         ),
+        if (_emailError != null) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 320,
+            child: Text(
+              _emailError!,
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: AppFontSizes.caption,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         EmailDomainShortcutBar(
           controller: _emailController,
