@@ -124,18 +124,21 @@ fi
 
 if [[ "$PREVIEW" == false ]]; then
 
-  step "Verifying local main is synced"
+  step "Checking local main state for PR flow"
 
   git fetch origin
 
-  LOCAL=$(git rev-parse main)
-  REMOTE=$(git rev-parse origin/main)
-
-  if [[ "$LOCAL" != "$REMOTE" ]]; then
-    fail "Local main not synced with origin/main"
+  BEHIND_COUNT=$(git rev-list --count main..origin/main || echo 0)
+  if [[ "$BEHIND_COUNT" -gt 0 ]]; then
+    fail "Local main is behind origin/main by $BEHIND_COUNT commit(s). Pull the latest main before deploying."
   fi
 
-  ok "Local branch matches origin/main"
+  AHEAD_COUNT=$(git rev-list --count origin/main..main || echo 0)
+  if [[ "$AHEAD_COUNT" -gt 0 ]]; then
+    warn "Local main is ahead of origin/main by $AHEAD_COUNT commit(s); the PR flow will preserve this version bump commit."
+  else
+    ok "Local main matches origin/main"
+  fi
 fi
 
 ok "Branch: $CURRENT_BRANCH"
@@ -217,10 +220,14 @@ ok "Versions synced"
 step "Committing version bump"
 
 git add pubspec.yaml web/version.json
-git commit -m "chore: bump build version" || true
-git push origin main
 
-ok "Version committed"
+if ! git diff --cached --quiet; then
+  git commit -m "chore: bump build version"
+  "$ROOT_DIR/tools/git_version_pr.sh"
+  ok "Version bump merged via PR"
+else
+  ok "No version bump required"
+fi
 
 # ─────────────────────────────────────────────────────────────
 # Clean build environment
