@@ -101,7 +101,7 @@ class SpecialItemCard extends StatelessWidget {
               ReorderableDragStartListener(
                 index: index,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Icon(
                     AppIcons.drag,
                     color: Colors.white.withValues(alpha: 0.5),
@@ -128,7 +128,7 @@ class SpecialItemCard extends StatelessWidget {
 
             // Spacer to balance drag handle
             if (isDraggable)
-              const SizedBox(width: 36)
+              const SizedBox(width: 44)
             else
               const SizedBox(width: 12),
           ],
@@ -171,7 +171,7 @@ class SpecialItemCard extends StatelessWidget {
               ReorderableDragStartListener(
                 index: index,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Icon(
                     AppIcons.drag,
                     color: context.colors.textMuted.withValues(alpha: 0.5),

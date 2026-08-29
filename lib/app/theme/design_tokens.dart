@@ -98,7 +98,7 @@ class SongCardLayout {
   static const double dragHandleLeft = 6.0;
 
   /// Content left padding (after drag handle)
-  static const double contentLeftPadding = 36.0;
+  static const double contentLeftPadding = 44.0;
 
   /// Trash icon size
   static const double trashIconSize = 22.0;

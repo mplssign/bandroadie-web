@@ -35,7 +35,7 @@ class ReorderableBandMemberCard extends StatefulWidget {
 
 class _ReorderableBandMemberCardState extends State<ReorderableBandMemberCard>
     with SingleTickerProviderStateMixin {
-  static const double _contentLeftPadding = 36.0;
+  static const double _contentLeftPadding = 44.0;
   static const double _dragHandleLeft = 6.0;
 
   late AnimationController _tapController;

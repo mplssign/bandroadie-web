@@ -13,6 +13,7 @@ import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../components/ui/app_button.dart';
+import '../../components/ui/app_dialog.dart';
 import '../../components/ui/app_dropdown.dart';
 import '../../components/ui/app_text_form_field.dart';
 import '../../components/ui/email_domain_shortcut_bar.dart';
@@ -819,37 +820,34 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
     if (!mounted) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(AppIcons.warning, color: context.colors.warning, size: 26),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Restore Band Data?',
-                style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: AppFontSizes.title2,
-                    fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
+      builder: (context) => FDialog(
+        builder: (context, style) => Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Icon(AppIcons.warning, color: context.colors.warning, size: 26),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Restore Band Data?',
+                    style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: AppFontSizes.title2,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             RichText(
               text: TextSpan(
                 style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: AppFontSizes.subhead),
+                    color: context.colors.textSecondary, fontSize: 14),
                 children: [
                   const TextSpan(
                       text:
@@ -858,20 +856,22 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                       text: stats.bandName,
                       style: TextStyle(
                           color: context.colors.textPrimary,
-                          fontWeight: FontWeight.w600)),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14)),
                   const TextSpan(text: '. The following will be replaced:'),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _buildRestoreRow('Members', stats.memberCount),
             _buildRestoreRow('Songs', stats.songCount),
             _buildRestoreRow('Setlists', stats.setlistCount),
             _buildRestoreRow('Gigs', stats.gigCount),
             _buildRestoreRow('Rehearsals', stats.rehearsalCount),
             _buildRestoreRow('Block-out dates', stats.blockOutCount),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: context.colors.surfaceElevated,
@@ -881,35 +881,30 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                 'This cannot be undone. Make sure you have a current backup before restoring.',
                 style: TextStyle(
                     color: AppColors.error,
-                    fontSize: AppFontSizes.subhead,
+                    fontSize: 14,
                     fontWeight: FontWeight.w500),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FButton(
+                onPress: () => Navigator.of(context).pop(true),
+                variant: FButtonVariant.destructive,
+                child: const Text('Replace Data'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FButton(
+                onPress: () => Navigator.of(context).pop(false),
+                variant: FButtonVariant.ghost,
+                child: const Text('Cancel'),
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel',
-                style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: AppFontSizes.body)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.error,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Replace Data',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: AppFontSizes.body,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
       ),
     );
 
@@ -924,18 +919,16 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       child: Row(
         children: [
           Text('• ',
-              style: TextStyle(
-                  color: context.colors.textSecondary,
-                  fontSize: AppFontSizes.subhead)),
+              style:
+                  TextStyle(color: context.colors.textSecondary, fontSize: 14)),
           Expanded(
               child: Text(label,
                   style: TextStyle(
-                      color: context.colors.textSecondary,
-                      fontSize: AppFontSizes.subhead))),
+                      color: context.colors.textSecondary, fontSize: 14))),
           Text('$count',
               style: TextStyle(
                   color: context.colors.textPrimary,
-                  fontSize: AppFontSizes.subhead,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600)),
         ],
       ),
@@ -1643,7 +1636,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
+            onTap: () {
+              if (_isEditMode) {
+                ref.read(draftBandProvider.notifier).cancelEditing();
+              }
+              Navigator.of(context).pop();
+            },
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -2107,7 +2105,12 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         TextButton(
           onPressed: (_isSubmitting || _isDeleting)
               ? null
-              : () => Navigator.of(context).pop(),
+              : () {
+                  if (_isEditMode) {
+                    ref.read(draftBandProvider.notifier).cancelEditing();
+                  }
+                  Navigator.of(context).pop();
+                },
           child: Text(
             'Cancel',
             style: TextStyle(
