@@ -110,7 +110,7 @@ class _SongCardState extends State<SongCard>
           padding: EdgeInsets.zero,
           height: 121,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          child: Container(
+          child: SizedBox(
             width: double.infinity,
             child: Stack(
               children: [

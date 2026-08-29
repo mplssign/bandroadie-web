@@ -380,6 +380,16 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           hintText: 'E A D G B E',
           inputFormatters: [_StringsInputFormatter()],
         ),
+        if (_stringsError != null) ...[
+          const SizedBox(height: Spacing.space8),
+          Text(
+            _stringsError!,
+            style: TextStyle(
+              fontSize: AppFontSizes.caption,
+              color: context.colors.error,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -405,6 +415,16 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           textCapitalization: TextCapitalization.words,
           hintText: 'My Custom Tuning',
         ),
+        if (_nameError != null) ...[
+          const SizedBox(height: Spacing.space8),
+          Text(
+            _nameError!,
+            style: TextStyle(
+              fontSize: AppFontSizes.caption,
+              color: context.colors.error,
+            ),
+          ),
+        ],
       ],
     );
   }

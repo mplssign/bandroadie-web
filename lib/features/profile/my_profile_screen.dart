@@ -466,6 +466,16 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                         value, setDialogState, (error) => errorText = error);
                   },
                 ),
+                if (errorText != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    errorText!,
+                    style: TextStyle(
+                      fontSize: AppFontSizes.caption,
+                      color: context.colors.error,
+                    ),
+                  ),
+                ],
               ],
             ),
             actions: [

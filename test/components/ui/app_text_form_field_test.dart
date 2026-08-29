@@ -323,8 +323,6 @@ void main() {
     });
 
     testWidgets('calls onSubmitted callback', (tester) async {
-      String? submittedValue;
-
       await tester.pumpWidget(
         MaterialApp(
           builder: (context, child) => FTheme(
@@ -333,7 +331,7 @@ void main() {
           ),
           home: Scaffold(
             body: AppTextFormField(
-              onSubmitted: (value) => submittedValue = value,
+              onSubmitted: (_) {},
             ),
           ),
         ),

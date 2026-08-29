@@ -59,7 +59,7 @@ Future<void> main() async {
   try {
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: supabaseAnonKey,
+      publishableKey: supabaseAnonKey,
       authOptions: FlutterAuthClientOptions(
         // All platforms use PKCE flow for secure token exchange
         // Web: code_verifier stored in localStorage; scanners cannot complete exchange
@@ -85,7 +85,7 @@ Future<void> main() async {
     // Retry initialization with clean state
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: supabaseAnonKey,
+      publishableKey: supabaseAnonKey,
       authOptions: FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
         detectSessionInUri: kIsWeb,

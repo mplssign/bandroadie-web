@@ -329,6 +329,8 @@ void main() {
       expect(find.byType(FTextField), findsOneWidget);
       final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.onSubmit, isNotNull);
+      textField.onSubmit?.call('roadie@example.com');
+      expect(submittedValue, 'roadie@example.com');
     });
 
     testWidgets('autofocus passes through to FTextField', (tester) async {
@@ -432,6 +434,8 @@ void main() {
       expect(find.byType(FTextField), findsOneWidget);
       final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.onEditingComplete, isNotNull);
+      textField.onEditingComplete?.call();
+      expect(editingCompleted, isTrue);
     });
 
     testWidgets('onTap passes through to FTextField', (tester) async {
@@ -452,6 +456,8 @@ void main() {
       expect(find.byType(FTextField), findsOneWidget);
       final textField = tester.widget<FTextField>(find.byType(FTextField));
       expect(textField.onTap, isNotNull);
+      textField.onTap?.call();
+      expect(tapped, isTrue);
     });
 
     testWidgets('prefixIcon uses prefixBuilder', (tester) async {
