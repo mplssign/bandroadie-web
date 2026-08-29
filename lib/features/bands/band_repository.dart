@@ -33,7 +33,8 @@ class BandRepository {
           .from('band_members')
           .select('bands(*)')
           .eq('user_id', userId)
-          .eq('status', 'active');
+          .eq('status', 'active')
+          .order('joined_at', ascending: true);
 
       final List<Band> bands = [];
 

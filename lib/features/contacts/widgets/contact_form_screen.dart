@@ -237,9 +237,12 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          TitlePillSelector(
-            selectedTitle: _selectedTitle,
-            onChanged: (title) => setState(() => _selectedTitle = title),
+          Padding(
+            padding: const EdgeInsets.only(right: -Spacing.pagePadding),
+            child: TitlePillSelector(
+              selectedTitle: _selectedTitle,
+              onChanged: (title) => setState(() => _selectedTitle = title),
+            ),
           ),
           const SizedBox(height: 20),
 

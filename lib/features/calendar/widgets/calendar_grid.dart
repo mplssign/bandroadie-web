@@ -101,12 +101,6 @@ class CalendarGrid extends StatelessWidget {
   ) {
     final markers = calendarState.getMarkers(date);
     final style = styles.resolve(variants);
-    final border = _singleGridBorderForDate(
-      date,
-      displayedMonth,
-      localizations.firstDayOfWeek,
-      context.theme.colors.border,
-    );
 
     // Get events for this day, sorted by start time for marker ordering
     final eventsForDay = calendarState.eventsForDate(date);
@@ -132,50 +126,15 @@ class CalendarGrid extends StatelessWidget {
     );
 
     if (variants.contains(FCalendarDayVariant.today)) {
-      dayContent = Padding(
-        padding: const EdgeInsets.all(1),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: AppColors.primary,
-              width: 1,
-            ),
-          ),
-          child: dayContent,
+      dayContent = DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.12),
         ),
+        child: dayContent,
       );
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(border: border),
-      child: dayContent,
-    );
-  }
-
-  Border _singleGridBorderForDate(
-    DateTime date,
-    DateTime displayedMonth,
-    int firstDayOfWeek,
-    Color borderColor,
-  ) {
-    final firstOfMonth = DateTime(displayedMonth.year, displayedMonth.month, 1);
-    final daysBeforeFirst =
-        (firstOfMonth.weekday - firstDayOfWeek) % DateTime.daysPerWeek;
-    final gridStart = firstOfMonth.subtract(Duration(days: daysBeforeFirst));
-
-    final columnIndex = (date.weekday - firstDayOfWeek) % DateTime.daysPerWeek;
-    final rowIndex = date.difference(gridStart).inDays ~/ DateTime.daysPerWeek;
-
-    const side = BorderSide(width: 1);
-
-    return Border(
-      top: rowIndex == 0 ? side.copyWith(color: borderColor) : BorderSide.none,
-      left: columnIndex == 0
-          ? side.copyWith(color: borderColor)
-          : BorderSide.none,
-      right: side.copyWith(color: borderColor),
-      bottom: side.copyWith(color: borderColor),
-    );
+    return dayContent;
   }
 
   /// Get event types sorted by start time for marker ordering.

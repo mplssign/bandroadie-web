@@ -319,7 +319,7 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                   const SizedBox(height: 6),
                   CurrencyTextField(
                     controller: _amountController,
-                    label: 'Amount',
+                    label: '',
                     hint: '\$0.00',
                     enabled: !widget.viewOnly,
                   ),
@@ -377,6 +377,15 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                       value: _paidToUserId,
                       onChanged: (value) {
                         setState(() => _paidToUserId = value);
+                      },
+                      labelBuilder: (value) {
+                        if (value == null) return 'No member selected';
+                        if (value == _kOther) return 'Other';
+                        return widget.members
+                                .where((m) => m.userId == value)
+                                .firstOrNull
+                                ?.name ??
+                            'Unknown';
                       },
                       enabled: !widget.viewOnly,
                       items: [

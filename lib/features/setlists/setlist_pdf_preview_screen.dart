@@ -96,6 +96,11 @@ class _SetlistPdfPreviewScreenState extends State<SetlistPdfPreviewScreen> {
       backgroundColor: context.colors.background,
       appBar: AppAppBar(
         backgroundColor: context.colors.background,
+        leading: AppIconButton(
+          icon: AppIcons.back,
+          color: context.colors.textPrimary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(
           'Print Preview',
           style:

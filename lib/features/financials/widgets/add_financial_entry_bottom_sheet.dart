@@ -742,6 +742,15 @@ class _AddFinancialEntryBottomSheetState
                     onChanged: (value) {
                       setState(() => _paidToUserId = value);
                     },
+                    labelBuilder: (value) {
+                      if (value == null) return 'No member selected';
+                      if (value == _kOther) return 'Other';
+                      return widget.members
+                              .where((m) => m.userId == value)
+                              .firstOrNull
+                              ?.name ??
+                          'Unknown';
+                    },
                     enabled: true,
                     items: [
                       DropdownMenuItem<String?>(
