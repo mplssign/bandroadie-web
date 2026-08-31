@@ -91,6 +91,7 @@ Future<SetlistPickerResult?> showSetlistPickerBottomSheet(
   return showAppBottomSheet<SetlistPickerResult>(
     context: context,
     isScrollControlled: true,
+    mainAxisMaxRatio: 0.85,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black54,
     useSafeArea: true,
@@ -249,9 +250,6 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
         padding: EdgeInsets.only(bottom: keyboardHeight),
         child: Container(
           margin: const EdgeInsets.all(16),
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
-          ),
           decoration: BoxDecoration(
             color: context.colors.surface,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),

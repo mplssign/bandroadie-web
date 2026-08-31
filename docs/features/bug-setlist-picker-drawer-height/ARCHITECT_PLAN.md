@@ -142,9 +142,10 @@ none.
 
 # Files to Modify
 
-| File                                                                                                                             | What changes                                                                                                                                                                                                                                         |
-| -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart](lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart) | On the single line inside `_SetlistPickerSheetState.build()` that sets `BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7)`, change the factor `0.7` to `0.85`. No other edits — no imports, no comments, no formatting, no reflow. |
+| File                                                                                                                             | What changes                                                                                                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart](lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart) | In `showSetlistPickerBottomSheet()`, add `mainAxisMaxRatio: 0.85` to the existing `showAppBottomSheet<SetlistPickerResult>(...)` call so the Forui outer envelope uses the intended cap.                                                                                    |
+| [lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart](lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart) | Reconcile the inner `Container.constraints.maxHeight` per the revised diagnosis decision: remove the hardcoded local height ratio constraint (or otherwise ensure there is not a second independent height ratio knob in this widget). Keep styling/layout behavior intact. |
 
 # Files Off-Limits
 
@@ -195,13 +196,14 @@ Rationale:
 # Engineer Task Breakdown
 
 1. Open [lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart](lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart).
-2. Locate the `BoxConstraints` inside `_SetlistPickerSheetState.build()` (single occurrence in the file — currently near line 253).
-3. Change the factor `0.7` to `0.85` on the `maxHeight` line. Do not modify any other characters — including whitespace, trailing commas, adjacent comments, or the surrounding `Container`/`AnimatedPadding` code.
-4. Do not add, remove, or reorder imports.
-5. Do not modify any other file.
-6. Run `flutter analyze` and confirm zero new errors, warnings, or infos attributable to this change.
-7. Run `flutter test` and confirm the full suite passes.
-8. Produce the `git diff` and confirm it shows exactly one hunk in exactly one file, changing exactly one character sequence (`0.7` → `0.85`).
+2. Locate the `showAppBottomSheet<SetlistPickerResult>(...)` call inside `showSetlistPickerBottomSheet()`.
+3. Add `mainAxisMaxRatio: 0.85` to that call so the outer Forui sheet envelope is explicitly capped at 85%.
+4. In `_SetlistPickerSheetState.build()`, remove or otherwise reconcile the inner `Container.constraints.maxHeight` hardcoded ratio per the revised diagnosis decision so there is a single authoritative height ratio in this widget.
+5. Do not add, remove, or reorder imports.
+6. Do not modify any other file.
+7. Run `flutter analyze` and confirm zero new errors, warnings, or infos attributable to this change.
+8. Run `flutter test` and confirm the full suite passes.
+9. Produce `git diff` and confirm the file-level edits match this mechanism: `mainAxisMaxRatio: 0.85` is present in the `showAppBottomSheet` call, and no second unexplained independent height ratio remains in the file.
 
 # Verification Plan
 
@@ -215,7 +217,7 @@ Because this is a client-only Flutter UI constant change with no database mutati
   1. Open the Catalog.
   2. Select two or more songs.
   3. Tap "Add To Setlist".
-  4. Confirm the "Add To Setlist" sheet's top edge sits at approximately 85% of screen height (measurably taller than before) while still clearing the status bar / notch area on the current platform.
+  4. Confirm the "Add To Setlist" sheet's top edge sits at approximately 85% of screen height and is visibly taller than the prior Forui default envelope (~56.25%) while still clearing the status bar / notch area on the current platform.
   5. Confirm the setlist list scrolls only after content exceeds the new taller cap.
 - `-- PRE-DEPLOY TEST 4:` Manual keyboard interaction check — Catalog:
   1. Open the Catalog, select songs, tap "Add To Setlist".
@@ -226,7 +228,10 @@ Because this is a client-only Flutter UI constant change with no database mutati
   2. Select one or more songs.
   3. Tap the action that triggers `_handleMoveOrCopySong` (invokes `showSetlistPickerBottomSheet` with `sourceSetlistId` set).
   4. Confirm the Move/Copy toggle in the header is present, the sheet extends to the new taller cap, and content scrolls only after exceeding it.
-- `-- PRE-DEPLOY TEST 6:` `git diff` review — confirm exactly one file changed, exactly one hunk, exactly one numeric literal replacement (`0.7` → `0.85`), and no unrelated formatting, import, or whitespace changes.
+- `-- PRE-DEPLOY TEST 6:` Static code check + `git diff` review:
+  1. Confirm `showSetlistPickerBottomSheet()` passes `mainAxisMaxRatio: 0.85` to `showAppBottomSheet`.
+  2. Confirm no second unexplained independent height ratio remains in `setlist_picker_bottom_sheet.dart`.
+  3. Confirm no unrelated formatting, import, or whitespace-only churn is present.
 
 ## Tier 2 — Post-deployment (run after release / deployment passes)
 
@@ -270,3 +275,83 @@ Not applicable. This is a client-only Flutter constant change. It ships with the
 - Any refactor to migrate this sheet to a different sizing model (e.g., `mainAxisMaxRatio` on the wrapper instead of an inner `BoxConstraints`). This can be considered in a separate feature if desired but is not part of this fix.
 - Adding tests for this widget. Existing tests must continue to pass; adding new widget tests is out of scope for a single-constant fix.
 - Any formatting, import cleanup, comment edits, or unrelated refactoring in the modified file.
+
+---
+
+## Revised Diagnosis (2026-08-31)
+
+This section is appended to preserve the original record and supersedes the earlier Root Cause and Proposed Solution sections above.
+
+### What Was Retested
+
+- Re-read `lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart` in full.
+- Re-read `lib/components/ui/app_bottom_sheet.dart` in full.
+- Verified Forui `showFSheet` behavior from installed package source:
+  - `/Users/tonyholmes/.pub-cache/hosted/pub.dev/forui-0.26.0/lib/src/widgets/sheet/modal_sheet.dart`
+  - `/Users/tonyholmes/.pub-cache/hosted/pub.dev/forui-0.26.0/lib/src/widgets/sheet/shifted_sheet.dart`
+- Reviewed prior same-class precedent:
+  - `docs/features/bug-edit-drawer-bottom-sheet-height/ARCHITECT_PLAN.md`
+- Re-checked sibling usage precedent:
+  - `lib/features/calendar/widgets/add_block_out_drawer.dart`
+  - `lib/features/events/widgets/add_edit_event_bottom_sheet.dart`
+
+### Confirmed Correct Root Cause
+
+The previously implemented change (`Container` `maxHeight` `0.7` -> `0.85`) was applied to a nested inner constraint that was not the effective limiter at runtime.
+
+`showSetlistPickerBottomSheet()` calls `showAppBottomSheet(...)` without `mainAxisMaxRatio`.
+`showAppBottomSheet` forwards `mainAxisMaxRatio: mainAxisMaxRatio ?? (9 / 16)` to Forui `showFSheet`.
+Forui then enforces the sheet's outer envelope in `ShiftedSheet.constrainChild(...)` with:
+
+- vertical sheets (`FLayout.btt`): `maxHeight = constraints.maxHeight * mainAxisMaxRatio`
+
+So the active outer cap was `9/16` (~56.25%), which is tighter than both `0.7` and `0.85`. That means the inner `Container.constraints.maxHeight` could not increase visible sheet height, so the first fix attempt had no visual effect.
+
+Confidence: HIGH (direct source verification in local code + Forui package source).
+
+### Constraint Chain Verification (No Hidden Override)
+
+- In `setlist_picker_bottom_sheet.dart`, the only explicit local height cap is the single `Container.constraints.maxHeight` line.
+- No other local `maxHeight`/`FractionallySizedBox`/`DraggableScrollableSheet` cap exists in this widget.
+- Therefore, the governing cap for visible sheet height is the outer Forui route envelope unless explicitly overridden with `mainAxisMaxRatio` in the `showAppBottomSheet(...)` call.
+
+### Revised Fix (Authoritative)
+
+Update `showSetlistPickerBottomSheet()` to pass:
+
+- `mainAxisMaxRatio: 0.85`
+
+inside the existing `showAppBottomSheet<SetlistPickerResult>(...)` call.
+
+### Decision On Inner `Container.constraints.maxHeight`
+
+Decision: reconcile to a single source of truth by removing the hardcoded inner `maxHeight` ratio constraint from this sheet.
+
+Rationale:
+
+- After adding `mainAxisMaxRatio: 0.85`, keeping a second hardcoded `0.85` locally is redundant and creates dual knobs for the same behavior.
+- A single authoritative ratio at the sheet wrapper call site is clearer, matches established project precedent for `showAppBottomSheet`-based drawers, and avoids future drift.
+- The inner container can still keep styling (`margin`, `decoration`) without owning global height policy.
+
+Implementation note: keep the `constraints:` block only if needed for non-height constraints; otherwise remove it entirely to avoid two competing magic numbers.
+
+### Revised Implementation Boundaries
+
+Files to modify (revised):
+
+- `lib/features/setlists/widgets/setlist_picker_bottom_sheet.dart`
+  - Add `mainAxisMaxRatio: 0.85` to the `showAppBottomSheet` invocation.
+  - Remove/reconcile inner hardcoded `maxHeight` ratio so only one height constant governs the sheet.
+
+Files explicitly off-limits (unchanged):
+
+- `lib/components/ui/app_bottom_sheet.dart` (do not change global default)
+- `lib/features/setlists/setlist_detail_screen.dart`
+- `lib/features/setlists/widgets/add_to_setlist/add_to_setlist_overlay.dart`
+- all backend/database files
+
+### Revised Verification Focus
+
+1. Confirm from code diff that `showSetlistPickerBottomSheet()` now passes `mainAxisMaxRatio: 0.85`.
+2. Confirm no second independent height ratio remains in this widget without explicit justification.
+3. Manual runtime check: sheet visibly taller than prior 56.25% cap in both call paths (Catalog add, non-Catalog move/copy), while safe-area and keyboard behavior remain intact.
