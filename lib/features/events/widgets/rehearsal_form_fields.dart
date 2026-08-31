@@ -23,6 +23,7 @@ class RehearsalFormFields extends ConsumerWidget {
     super.key,
     required this.isSaving,
     // Location autocomplete
+    required this.locationAutocompleteController,
     required this.locationHintController,
     required this.locationSuggestions,
     required this.onLocationTextChanged,
@@ -68,6 +69,7 @@ class RehearsalFormFields extends ConsumerWidget {
   final bool isSaving;
 
   // --- Location autocomplete ---
+  final FAutocompleteController locationAutocompleteController;
   final FieldHintController locationHintController;
   final List<String> locationSuggestions;
   final ValueChanged<String> onLocationTextChanged;
@@ -179,6 +181,7 @@ class RehearsalFormFields extends ConsumerWidget {
         FAutocomplete.text(
           items: locationSuggestions,
           control: FAutocompleteControl.managed(
+            controller: locationAutocompleteController,
             onChange: (value) {
               onLocationTextChanged(value.text);
             },
