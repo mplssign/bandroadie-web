@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 
@@ -477,6 +478,20 @@ class GigFormFields extends ConsumerWidget {
   // Gig Name Autocomplete
   // ---------------------------------------------------------------------------
 
+  Widget _adaptiveTextSelectionToolbar(
+      BuildContext context, EditableTextState state) {
+    return Localizations(
+      locale: Localizations.localeOf(context),
+      delegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      child:
+          AdaptiveTextSelectionToolbar.editableText(editableTextState: state),
+    );
+  }
+
   Widget _buildGigNameAutocomplete(BuildContext context) {
     final hasError = fieldErrors.containsKey('name');
     final errorText = hasError ? fieldErrors['name'] : null;
@@ -509,6 +524,8 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.sentences,
           forceErrorText: hasError ? errorText : null,
+          contextMenuBuilder: (context, state) =>
+              _adaptiveTextSelectionToolbar(context, state),
           onItemPress: (selection) {
             onGigNameSelected(selection);
             onMarkDirty();
@@ -558,6 +575,8 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.sentences,
           forceErrorText: hasError ? errorText : null,
+          contextMenuBuilder: (context, state) =>
+              _adaptiveTextSelectionToolbar(context, state),
           onItemPress: (selection) {
             onMarkDirty();
           },
