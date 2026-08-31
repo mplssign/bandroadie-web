@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
@@ -132,6 +133,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   String? _gigNameText;
   String? _gigCityText;
   String? _rehearsalLocationText;
+  bool _hasSkippedInitialGigNameFetch = false;
+
+  late final FAutocompleteController _gigNameAutocompleteController;
+  late final FAutocompleteController _gigCityAutocompleteController;
+  late final FAutocompleteController _rehearsalLocationAutocompleteController;
 
   // Field hint controllers
   final _venueHintController = FieldHintController();
@@ -315,6 +321,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _initialFormData = data;
     }
 
+    _gigNameAutocompleteController =
+        FAutocompleteController(text: _gigNameText ?? '');
+    _gigCityAutocompleteController =
+        FAutocompleteController(text: _gigCityText ?? '');
+    _rehearsalLocationAutocompleteController =
+        FAutocompleteController(text: _rehearsalLocationText ?? '');
+
     // Populate fields for block out edit mode
     if (widget.existingBlockOut != null) {
       _eventType = EventType.blockOut;
@@ -432,6 +445,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _gigNameDebounceTimer?.cancel();
     _gigCityDebounceTimer?.cancel();
     _notesController.dispose();
+    _gigNameAutocompleteController.dispose();
+    _gigCityAutocompleteController.dispose();
+    _rehearsalLocationAutocompleteController.dispose();
     _venueHintController.dispose();
     _cityHintController.dispose();
     _locationHintController.dispose();
@@ -698,6 +714,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   /// Fetch gig name suggestions from the band's venues list (local filter)
   void _fetchGigNameSuggestions(String query) {
+    if (!_hasSkippedInitialGigNameFetch && query == (_gigNameText ?? '')) {
+      _hasSkippedInitialGigNameFetch = true;
+      return;
+    }
+
     // Clear suggestions if query is too short
     if (query.length < 2) {
       if (_gigNameSuggestions.isNotEmpty) {
@@ -2182,9 +2203,13 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   RehearsalFormFields _createRehearsalFormFields() {
     return RehearsalFormFields(
       isSaving: _isSaving,
+      locationAutocompleteController: _rehearsalLocationAutocompleteController,
       locationHintController: _locationHintController,
       locationSuggestions: _locationSuggestions,
       onLocationTextChanged: (text) {
+        if (text == _rehearsalLocationText) {
+          return;
+        }
         setState(() {
           _rehearsalLocationText = text;
           // Clear field errors when user types
@@ -2257,11 +2282,15 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       isSaving: _isSaving,
       isEditMode: _isEditMode,
       existingEventId: widget.existingEventId,
+      gigNameAutocompleteController: _gigNameAutocompleteController,
       venueHintController: _venueHintController,
       gigNameSuggestions: _gigNameSuggestions,
       onGigNameChanged: _fetchGigNameSuggestions,
       onGigNameSelected: _handleGigNameSelected,
       onGigNameTextChanged: (text) {
+        if (text == _gigNameText) {
+          return;
+        }
         setState(() {
           _gigNameText = text;
           // Clear gig name error when user types
@@ -2272,10 +2301,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _markDirty();
       },
       fieldErrors: _fieldErrors,
+      gigCityAutocompleteController: _gigCityAutocompleteController,
       cityHintController: _cityHintController,
       gigCitySuggestions: _gigCitySuggestions,
       onGigCityChanged: _fetchGigCitySuggestions,
       onGigCityTextChanged: (text) {
+        if (text == _gigCityText) {
+          return;
+        }
         setState(() {
           _gigCityText = text;
           // Clear city error when user types

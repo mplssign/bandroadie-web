@@ -27,6 +27,7 @@ class GigFormFields extends ConsumerWidget {
     required this.isEditMode,
     required this.existingEventId,
     // Gig name autocomplete
+    required this.gigNameAutocompleteController,
     required this.venueHintController,
     required this.gigNameSuggestions,
     required this.onGigNameChanged,
@@ -34,6 +35,7 @@ class GigFormFields extends ConsumerWidget {
     required this.onGigNameTextChanged,
     required this.fieldErrors,
     // City autocomplete
+    required this.gigCityAutocompleteController,
     required this.cityHintController,
     required this.gigCitySuggestions,
     required this.onGigCityChanged,
@@ -90,6 +92,7 @@ class GigFormFields extends ConsumerWidget {
   final String? existingEventId;
 
   // --- Gig name autocomplete ---
+  final FAutocompleteController gigNameAutocompleteController;
   final FieldHintController venueHintController;
   final List<String> gigNameSuggestions;
   final ValueChanged<String> onGigNameChanged;
@@ -98,6 +101,7 @@ class GigFormFields extends ConsumerWidget {
   final Map<String, String> fieldErrors;
 
   // --- City autocomplete ---
+  final FAutocompleteController gigCityAutocompleteController;
   final FieldHintController cityHintController;
   final List<String> gigCitySuggestions;
   final ValueChanged<String> onGigCityChanged;
@@ -490,9 +494,9 @@ class GigFormFields extends ConsumerWidget {
         FAutocomplete.text(
           items: gigNameSuggestions,
           control: FAutocompleteControl.managed(
+            controller: gigNameAutocompleteController,
             onChange: (value) {
               onGigNameTextChanged(value.text);
-              onMarkDirty();
             },
           ),
           filter: (query) {
@@ -538,9 +542,9 @@ class GigFormFields extends ConsumerWidget {
         const SizedBox(height: 6),
         FAutocomplete.textBuilder(
           control: FAutocompleteControl.managed(
+            controller: gigCityAutocompleteController,
             onChange: (value) {
               onGigCityTextChanged(value.text);
-              onMarkDirty();
             },
           ),
           filter: (query) async {
