@@ -2,27 +2,21 @@ PODS:
   - flutter_local_notifications (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - printing (1.0.0):
-    - FlutterMacOS
 
 DEPENDENCIES:
   - flutter_local_notifications (from `Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - printing (from `Flutter/ephemeral/.symlinks/plugins/printing/macos`)
 
 EXTERNAL SOURCES:
   flutter_local_notifications:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  printing:
-    :path: Flutter/ephemeral/.symlinks/plugins/printing/macos
 
 SPEC CHECKSUMS:
   flutter_local_notifications: 13862b132e32eb858dea558a86d45d08daeacfe7
-  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  printing: c4cf83c78fd684f9bc318e6aadc18972aa48f617
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
 
-PODFILE CHECKSUM: 9e62df0be9443d5697d4344c5ecb46aa73832424
+PODFILE CHECKSUM: 57c29921a500c022031192cafc70e95d7117dd7a
 
 COCOAPODS: 1.16.2
