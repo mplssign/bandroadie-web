@@ -776,6 +776,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         if (isSwitchingVenues) {
           // Switching from one venue to another — always sync to new venue's values
           _gigCityText = selectedVenue.city ?? '';
+          _gigCityAutocompleteController.text = selectedVenue.city ?? '';
           _addressController.text = selectedVenue.address ?? '';
           _stateController.text = selectedVenue.state?.toUpperCase() ?? '';
         } else {
@@ -784,6 +785,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               selectedVenue.city!.isNotEmpty &&
               (_gigCityText?.trim().isEmpty ?? true)) {
             _gigCityText = selectedVenue.city!;
+            _gigCityAutocompleteController.text = selectedVenue.city!;
           }
 
           if (selectedVenue.address != null &&
