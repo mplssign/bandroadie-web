@@ -250,7 +250,7 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
         child: Container(
           margin: const EdgeInsets.all(16),
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
           decoration: BoxDecoration(
             color: context.colors.surface,
