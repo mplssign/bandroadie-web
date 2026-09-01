@@ -92,9 +92,6 @@ backend = "postgres"
 [functions.musicbrainz_search]
 verify_jwt = true
 
-[functions.acousticbrainz_bpm]
-verify_jwt = true
-
 [functions.send-band-invite]
 verify_jwt = true
 

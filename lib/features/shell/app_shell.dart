@@ -205,7 +205,6 @@ class _AppShellState extends ConsumerState<AppShell> {
           // DO NOT change to "always in tree with isOpen: false" pattern!
           // That approach causes a blank screen bug on app startup because
           // the overlay widgets don't render correctly when initialized closed.
-          // See: https://github.com/user/repo/issues/XXX (blank screen bug)
           //
           // Trade-off: No close slide-out animation, but app works reliably.
           if (overlayState == ActiveOverlay.menuDrawer)
