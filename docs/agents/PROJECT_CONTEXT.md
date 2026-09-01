@@ -113,7 +113,6 @@ Production web builds are produced locally by `tools/deploy_web.sh`, which reads
 lib/
 ├── main.dart                  # Entry point, init order, routing
 ├── app/
-│   ├── router/                # app_router.dart (currently empty — routing is in main.dart)
 │   ├── theme/                 # Design tokens: Rose accent #BE123C / #F43F5E
 │   ├── models/                # Shared data models
 │   └── services/              # AppVersionService, supabase_client
@@ -263,18 +262,19 @@ Three roles enforced at database level (PostgreSQL ENUM `band_role_type`):
 
 ## Edge Functions
 
-Located in `supabase/functions/`. All 10 deployed functions:
+Located in `supabase/functions/`.
 
 | Function                 | verify_jwt | Purpose                                                      |
 | ------------------------ | :--------: | ------------------------------------------------------------ |
-| `spotify_search`         |     ✅     | Spotify track search with token caching                      |
-| `spotify_audio_features` |     ✅     | Fetch BPM/tempo for a Spotify track ID                       |
+| `spotify_search`         |     ✅     | ⚠ verify — not found locally                                 |
+| `spotify_audio_features` |     ✅     | ⚠ verify — not found locally                                 |
 | `musicbrainz_search`     |     ✅     | Fallback song search via MusicBrainz                         |
+| `getsongbpm_lookup`      |     ✅     | Fetches BPM + musical key for a new song                     |
+| `itunes_search`          |     ✅     | iTunes song search (CORS proxy for web + native fallback)    |
 | `send-band-invite`       |     ✅     | Send band invitation email via Resend                        |
 | `send-bug-report`        |     ✅     | Send in-app bug/feature report email via Resend              |
-| `auth-confirm`           |     ✅     | PKCE token exchange handler                                  |
+| `auth-confirm`           |     ✅     | ⚠ verify — not found locally                                 |
 | `accept-invite`          |     ✅     | Process invite acceptance — validates token, adds member     |
-| `acousticbrainz_bpm`     |     ✅     | ⚠️ DEAD — AcousticBrainz API shut down Nov 2022              |
 | `send-push`              |     ❌     | FCM HTTP v1 push delivery (current production push delivery) |
 | `calendar-feed`          |     ❌     | iCal feed — public URL auth via token param                  |
 
@@ -314,7 +314,7 @@ These are documented issues the Architect should be aware of — solutions must 
 
 **Architecture debt:**
 
-- Routing logic lives in `main.dart` (not in `app_router.dart` which is empty) — do not add more routing logic to main.dart without Architect review
+- Routing logic lives in `main.dart` — do not add more routing logic to main.dart without Architect review
 - `setlist_repository.dart` is 4,027 lines — avoid adding to it; isolate changes
 - `setlist_detail_screen.dart` is 2,788 lines — same caution
 - Mixed migration naming formats in `supabase/migrations/` — use timestamp format for all new migrations
