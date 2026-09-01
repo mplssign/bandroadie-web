@@ -478,3 +478,296 @@ Expected:
 - `has_potential_recurring_body = true`
 - `keeps_rehearsal_created_type = true`
 - `introduces_forbidden_type = false`
+
+## Section Addendum 2 - Notification Title Standardization (2026-09-01)
+
+### Root Requirement (Verbatim)
+
+User-specified final title contract:
+
+"For all events: 'Potential Gig Created', 'Potential Rehearsal Created', 'Rehearsal Scheduled', 'Gig Scheduled', 'Blockout Scheduled'."
+
+This addendum supersedes earlier live title decisions from the two already-applied migrations and must ship as a third, forward-only migration.
+
+### Final Title Matrix (Target State)
+
+| Function                     | Confirmed/only state title                           | Potential state title                   |
+| ---------------------------- | ---------------------------------------------------- | --------------------------------------- |
+| `notify_gig_created()`       | `Gig Scheduled` (unchanged)                          | `Potential Gig Created` (changed)       |
+| `notify_rehearsal_created()` | `Rehearsal Scheduled` (unchanged)                    | `Potential Rehearsal Created` (changed) |
+| `notify_blockout_created()`  | `Blockout Scheduled` (changed; no potential variant) | n/a                                     |
+
+### Type-String Constraints (Must Remain Exactly As-Is)
+
+- `notify_gig_created()` keeps existing type branch logic exactly: `potential_gig_created` for potential gigs and `gig_created` for non-potential gigs.
+- `notify_rehearsal_created()` keeps a single type literal `rehearsal_created` for both potential and non-potential rehearsals.
+- `notify_blockout_created()` keeps type `blockout_created`.
+- Do not introduce any new notification type string (especially no `potential_rehearsal_created`).
+
+### Explicit Body-Wording Decision
+
+Decision: **body wording remains unchanged** in this addendum.
+
+Rationale:
+
+- Architect scope for this addendum is title standardization only.
+- Existing body copy is already semantically coherent with the creation action and date context:
+  - potential gig body already says `created a potential gig for ...`
+  - potential rehearsal body currently says `scheduled a potential rehearsal ...`, which remains acceptable because a created rehearsal is inherently scheduled on a date/recurrence in this system
+  - blockout body `is unavailable on ...` remains clear with the new title `Blockout Scheduled`
+- Keeping body strings unchanged minimizes regression risk and preserves already-verified user-facing wording behavior from prior migrations.
+
+### New Migration File (Forward-Only)
+
+Create exactly:
+
+- `supabase/migrations/20260901204500_standardize_notification_titles.sql`
+
+Do not edit:
+
+- `supabase/migrations/20260901170853_fix_notification_trigger_gaps.sql`
+- `supabase/migrations/20260901193000_fix_potential_rehearsal_title.sql`
+
+### Exact SQL (Full Verbatim Function Bodies)
+
+```sql
+-- ============================================================================
+-- Standardize notification titles across gig/rehearsal/blockout create flows
+-- Purpose: enforce final product title contract without changing type semantics.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION notify_gig_created()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor_name TEXT;
+  v_gig_date TEXT;
+  v_title TEXT;
+  v_body TEXT;
+  v_notification_type TEXT;
+BEGIN
+  SELECT COALESCE(
+    NULLIF(TRIM(first_name), ''),
+    SPLIT_PART(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''), ' ', 1),
+    'Someone'
+  ) INTO v_actor_name
+  FROM users
+  WHERE id = auth.uid();
+
+  v_gig_date := TO_CHAR(NEW.date, 'MON FMDD, YYYY');
+  v_gig_date := UPPER(v_gig_date);
+
+  IF NEW.is_potential THEN
+    v_notification_type := 'potential_gig_created';
+    v_body := v_actor_name || ' created a potential gig for ' || v_gig_date;
+    v_title := 'Potential Gig Created';
+  ELSE
+    v_notification_type := 'gig_created';
+    v_body := v_actor_name || ' created a gig for ' || v_gig_date;
+    v_title := 'Gig Scheduled';
+  END IF;
+
+  PERFORM notify_band_members(
+    NEW.band_id,
+    auth.uid(),
+    v_notification_type,
+    v_title,
+    v_body,
+    jsonb_build_object('gig_id', NEW.id, 'gig_date', NEW.date)
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION notify_rehearsal_created()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor_name TEXT;
+  v_rehearsal_date TEXT;
+  v_title TEXT;
+  v_body TEXT;
+  v_recurrence_text TEXT;
+  v_day_names TEXT[];
+BEGIN
+  IF NEW.parent_rehearsal_id IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COALESCE(
+    NULLIF(TRIM(first_name), ''),
+    SPLIT_PART(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''), ' ', 1),
+    'Someone'
+  ) INTO v_actor_name
+  FROM users
+  WHERE id = auth.uid();
+
+  v_rehearsal_date := TO_CHAR(NEW.date, 'MON FMDD, YYYY');
+  v_rehearsal_date := UPPER(v_rehearsal_date);
+
+  IF NEW.is_potential THEN
+    v_title := 'Potential Rehearsal Created';
+  ELSE
+    v_title := 'Rehearsal Scheduled';
+  END IF;
+
+  IF NEW.is_recurring AND NEW.recurrence_frequency IS NOT NULL THEN
+    v_day_names := ARRAY['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+
+    IF NEW.recurrence_days IS NOT NULL AND array_length(NEW.recurrence_days, 1) > 0 THEN
+      SELECT string_agg(v_day_names[d + 1], ', ')
+      INTO v_recurrence_text
+      FROM unnest(NEW.recurrence_days) AS d
+      ORDER BY d;
+
+      v_recurrence_text := CASE NEW.recurrence_frequency
+        WHEN 'weekly' THEN 'on ' || v_recurrence_text
+        WHEN 'biweekly' THEN 'every other ' || v_recurrence_text
+        WHEN 'monthly' THEN 'monthly on ' || v_recurrence_text
+        ELSE 'recurring'
+      END;
+    ELSE
+      v_recurrence_text := CASE NEW.recurrence_frequency
+        WHEN 'weekly' THEN 'weekly'
+        WHEN 'biweekly' THEN 'biweekly'
+        WHEN 'monthly' THEN 'monthly'
+        ELSE 'recurring'
+      END;
+    END IF;
+
+    IF NEW.is_potential THEN
+      v_body := v_actor_name || ' scheduled a potential rehearsal ' || v_recurrence_text || ' starting ' || v_rehearsal_date;
+    ELSE
+      v_body := v_actor_name || ' scheduled a rehearsal ' || v_recurrence_text || ' starting ' || v_rehearsal_date;
+    END IF;
+  ELSE
+    IF NEW.is_potential THEN
+      v_body := v_actor_name || ' scheduled a potential rehearsal for ' || v_rehearsal_date;
+    ELSE
+      v_body := v_actor_name || ' scheduled a rehearsal for ' || v_rehearsal_date;
+    END IF;
+  END IF;
+
+  PERFORM notify_band_members(
+    NEW.band_id,
+    auth.uid(),
+    'rehearsal_created',
+    v_title,
+    v_body,
+    jsonb_build_object(
+      'rehearsal_id', NEW.id,
+      'rehearsal_date', NEW.date,
+      'is_recurring', COALESCE(NEW.is_recurring, FALSE),
+      'recurrence_frequency', NEW.recurrence_frequency
+    )
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION notify_blockout_created()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor_name TEXT;
+  v_date_text TEXT;
+  v_title TEXT;
+  v_body TEXT;
+BEGIN
+  SELECT COALESCE(
+    NULLIF(TRIM(first_name), ''),
+    SPLIT_PART(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''), ' ', 1),
+    'Someone'
+  ) INTO v_actor_name
+  FROM users
+  WHERE id = auth.uid();
+
+  v_title := 'Blockout Scheduled';
+  v_date_text := TO_CHAR(NEW.date, 'MON FMDD, YYYY');
+  v_date_text := UPPER(v_date_text);
+
+  v_body := v_actor_name || ' is unavailable on ' || v_date_text;
+
+  PERFORM notify_band_members(
+    NEW.band_id,
+    auth.uid(),
+    'blockout_created',
+    v_title,
+    v_body,
+    jsonb_build_object(
+      'blockout_id', NEW.id,
+      'date', NEW.date
+    )
+  );
+
+  RETURN NEW;
+END;
+$$;
+```
+
+### Engineer Task List (Addendum 2 Scope Only)
+
+1. Create `supabase/migrations/20260901204500_standardize_notification_titles.sql` with the exact SQL above.
+2. Apply only this new migration to linked project `nekwjxvgbveheooyorjo` using the existing deployment process.
+3. Run the post-apply verification query below and capture exact output in `docs/features/notification-trigger-gaps/ENGINEER_REPORT.md`.
+4. Confirm no edits were made to previously applied migration files.
+5. Commit only addendum-2 artifacts.
+
+### Post-Apply Verification Query (All 3 Functions + Type Guardrails)
+
+```sql
+WITH f AS (
+  SELECT
+    p.proname,
+    pg_get_functiondef(p.oid) AS def
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public'
+    AND p.proname IN ('notify_gig_created', 'notify_rehearsal_created', 'notify_blockout_created')
+)
+SELECT
+  MAX((proname = 'notify_gig_created' AND def ILIKE '%Potential Gig Created%')::int)::boolean AS gig_has_potential_created_title,
+  MAX((proname = 'notify_gig_created' AND def ILIKE '%Gig Scheduled%')::int)::boolean AS gig_has_scheduled_title,
+  MAX((proname = 'notify_gig_created' AND def ILIKE '%''potential_gig_created''%')::int)::boolean AS gig_keeps_potential_gig_type,
+  MAX((proname = 'notify_gig_created' AND def ILIKE '%''gig_created''%')::int)::boolean AS gig_keeps_gig_created_type,
+
+  MAX((proname = 'notify_rehearsal_created' AND def ILIKE '%Potential Rehearsal Created%')::int)::boolean AS rehearsal_has_potential_created_title,
+  MAX((proname = 'notify_rehearsal_created' AND def ILIKE '%Rehearsal Scheduled%')::int)::boolean AS rehearsal_has_scheduled_title,
+  MAX((proname = 'notify_rehearsal_created' AND def ILIKE '%''rehearsal_created''%')::int)::boolean AS rehearsal_keeps_single_type,
+
+  MAX((proname = 'notify_blockout_created' AND def ILIKE '%Blockout Scheduled%')::int)::boolean AS blockout_has_scheduled_title,
+  MAX((proname = 'notify_blockout_created' AND def ILIKE '%''blockout_created''%')::int)::boolean AS blockout_keeps_type,
+
+  BOOL_OR(def ILIKE '%potential_rehearsal_created%') AS introduces_forbidden_potential_rehearsal_type,
+  BOOL_OR(def ILIKE '%Member Unavailable%') AS still_contains_old_blockout_title,
+  BOOL_OR(def ILIKE '%Potential Rehearsal Scheduled%') AS still_contains_old_potential_rehearsal_title,
+  BOOL_OR(def ILIKE '%COALESCE(NEW.name, ''New Gig'')%') AS still_contains_old_potential_gig_title_logic
+FROM f;
+```
+
+Expected:
+
+- `gig_has_potential_created_title = true`
+- `gig_has_scheduled_title = true`
+- `gig_keeps_potential_gig_type = true`
+- `gig_keeps_gig_created_type = true`
+- `rehearsal_has_potential_created_title = true`
+- `rehearsal_has_scheduled_title = true`
+- `rehearsal_keeps_single_type = true`
+- `blockout_has_scheduled_title = true`
+- `blockout_keeps_type = true`
+- `introduces_forbidden_potential_rehearsal_type = false`
+- `still_contains_old_blockout_title = false`
+- `still_contains_old_potential_rehearsal_title = false`
+- `still_contains_old_potential_gig_title_logic = false`
