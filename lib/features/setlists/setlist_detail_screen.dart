@@ -2288,21 +2288,27 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               focusNode: _searchFocusNode,
               autofocus: true,
               hintText: 'Filter songs...',
-              prefixIcon: Icon(
-                AppIcons.search,
-                size: 20,
-                color: context.colors.textMuted,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(Spacing.space12),
+                child: Icon(
+                  AppIcons.search,
+                  size: 20,
+                  color: context.colors.textMuted,
+                ),
               ),
               suffixIcon: _searchQuery.isNotEmpty
-                  ? GestureDetector(
-                      onTap: () {
-                        _searchController.clear();
-                        _onSearchChanged('');
-                      },
-                      child: Icon(
-                        AppIcons.close,
-                        size: 18,
-                        color: context.colors.textMuted,
+                  ? Padding(
+                      padding: const EdgeInsets.all(Spacing.space12),
+                      child: GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                        child: Icon(
+                          AppIcons.close,
+                          size: 18,
+                          color: context.colors.textMuted,
+                        ),
                       ),
                     )
                   : null,

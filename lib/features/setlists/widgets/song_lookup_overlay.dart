@@ -494,22 +494,28 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           autofocus: true,
           onChanged: _onSearchChanged,
           hintText: 'Search songs or artists',
-          prefixIcon: Icon(
-            AppIcons.search,
-            size: 22,
-            color: context.colors.textMuted,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(Spacing.space12),
+            child: Icon(
+              AppIcons.search,
+              size: 22,
+              color: context.colors.textMuted,
+            ),
           ),
           suffixIcon: _searchController.text.isNotEmpty
-              ? GestureDetector(
-                  onTap: () {
-                    _searchController.clear();
-                    _filterSongs('');
-                    setState(() {});
-                  },
-                  child: Icon(
-                    AppIcons.close,
-                    size: 20,
-                    color: context.colors.textMuted,
+              ? Padding(
+                  padding: const EdgeInsets.all(Spacing.space12),
+                  child: GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      _filterSongs('');
+                      setState(() {});
+                    },
+                    child: Icon(
+                      AppIcons.close,
+                      size: 20,
+                      color: context.colors.textMuted,
+                    ),
                   ),
                 )
               : null,
