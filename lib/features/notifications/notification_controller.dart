@@ -1,10 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'models/app_notification.dart';
-import 'models/notification_preferences.dart';
-import 'notification_repository.dart';
+import 'notification_preferences_controller.dart';
 
 // ============================================================================
 // NOTIFICATION CONTROLLER
@@ -44,11 +42,6 @@ class NotificationListState {
   }
 }
 
-/// Provider for NotificationRepository
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository(Supabase.instance.client);
-});
-
 /// Provider for unread count (lightweight, refreshable)
 final unreadNotificationCountProvider = FutureProvider.autoDispose<int>((
   ref,
@@ -56,75 +49,6 @@ final unreadNotificationCountProvider = FutureProvider.autoDispose<int>((
   final repository = ref.watch(notificationRepositoryProvider);
   return repository.getUnreadCount();
 });
-
-/// Provider for notification preferences
-final notificationPreferencesProvider =
-    AsyncNotifierProvider<
-      NotificationPreferencesNotifier,
-      NotificationPreferences
-    >(NotificationPreferencesNotifier.new);
-
-class NotificationPreferencesNotifier
-    extends AsyncNotifier<NotificationPreferences> {
-  @override
-  Future<NotificationPreferences> build() async {
-    final repository = ref.read(notificationRepositoryProvider);
-    return repository.getOrCreatePreferences();
-  }
-
-  Future<void> updatePreferences(NotificationPreferences prefs) async {
-    state = const AsyncValue.loading();
-    try {
-      final repository = ref.read(notificationRepositoryProvider);
-      await repository.updatePreferences(prefs);
-      state = AsyncValue.data(prefs);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
-  }
-
-  Future<void> toggleGigUpdates(bool value) async {
-    final current = state.value;
-    if (current != null) {
-      await updatePreferences(current.copyWith(gigsEnabled: value));
-    }
-  }
-
-  Future<void> toggleRehearsalUpdates(bool value) async {
-    final current = state.value;
-    if (current != null) {
-      await updatePreferences(current.copyWith(rehearsalsEnabled: value));
-    }
-  }
-
-  Future<void> toggleSetlistUpdates(bool value) async {
-    final current = state.value;
-    if (current != null) {
-      await updatePreferences(current.copyWith(setlistUpdates: value));
-    }
-  }
-
-  Future<void> toggleAvailabilityRequests(bool value) async {
-    final current = state.value;
-    if (current != null) {
-      await updatePreferences(current.copyWith(availabilityRequests: value));
-    }
-  }
-
-  Future<void> toggleMemberUpdates(bool value) async {
-    final current = state.value;
-    if (current != null) {
-      await updatePreferences(current.copyWith(memberUpdates: value));
-    }
-  }
-
-  Future<void> togglePushEnabled(bool value) async {
-    final current = state.value;
-    if (current != null) {
-      await updatePreferences(current.copyWith(pushEnabled: value));
-    }
-  }
-}
 
 /// Provider for notification list with pagination
 final notificationListProvider =
