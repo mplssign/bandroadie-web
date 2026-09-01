@@ -239,11 +239,9 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal>
                         const SizedBox(height: 8),
                         _DetailCard(
                           icon: AppIcons.clock,
-                          text: TimeFormatter.formatRangeLocal(
+                          text: TimeFormatter.formatRange(
                             widget.gig.startTime,
                             widget.gig.endTime,
-                            widget.gig.date,
-                            widget.bandTimezone,
                           ),
                         ),
                         if (widget.gig.location.isNotEmpty) ...[

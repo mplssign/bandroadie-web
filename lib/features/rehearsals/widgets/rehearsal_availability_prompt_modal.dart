@@ -235,11 +235,9 @@ class _RehearsalAvailabilityPromptModalState
                         const SizedBox(height: 16),
                         _DetailCard(
                           icon: AppIcons.clock,
-                          text: TimeFormatter.formatRangeLocal(
+                          text: TimeFormatter.formatRange(
                             widget.rehearsal.startTime,
                             widget.rehearsal.endTime,
-                            widget.rehearsal.date,
-                            widget.bandTimezone,
                           ),
                         ),
                         if (widget.rehearsal.location.isNotEmpty) ...[

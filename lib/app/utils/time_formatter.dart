@@ -117,9 +117,15 @@ class TimeFormatter {
     return '${start.format()} - ${end.format()}';
   }
 
-  /// Format a time range converting from band timezone to device local timezone.
+  /// Deprecated: event-time UI must display the band's wall-clock time.
   ///
-  /// Falls back to [formatRange] if conversion fails.
+  /// Use [formatRange] for gig and rehearsal display values. Device-local
+  /// conversion is not valid for event-time UI and must not be used in cards,
+  /// calendar surfaces, or availability prompts.
+  @Deprecated(
+    'Use formatRange for event-time display in the band timezone. '
+    'Device-local conversion is not valid for event UI.',
+  )
   static String formatRangeLocal(
     String? startTime,
     String? endTime,

@@ -4,8 +4,9 @@ import 'package:timezone/timezone.dart' as tz;
 
 /// Centralized timezone conversion utility.
 ///
-/// Converts stored event times (band timezone) to the viewer's local timezone
-/// for display, and to UTC for accurate future/past filtering.
+/// Event-time display must render the band timezone wall-clock value via
+/// [TimeFormatter.formatRange]. [toUtc] remains the authoritative conversion for
+/// filtering and sorting, and it is unaffected by the event-time display fix.
 class TimezoneHelper {
   static bool _initialized = false;
 
@@ -63,8 +64,15 @@ class TimezoneHelper {
     return (hour, minute);
   }
 
-  /// Convert a time string on a given date from the band's timezone to the
-  /// device's local timezone. Returns a local [DateTime].
+  /// Deprecated: do not use this for event-time display.
+  ///
+  /// The UI must render the band wall-clock value via [TimeFormatter.formatRange].
+  /// Use [toUtc] for filtering and sorting logic; this local conversion is not the
+  /// source of truth for event-time display.
+  @Deprecated(
+    'Use TimeFormatter.formatRange for event-time display. '
+    'toUtc remains the authoritative conversion for filtering/sorting.',
+  )
   static DateTime toLocal(
     DateTime eventDate,
     String timeStr24,

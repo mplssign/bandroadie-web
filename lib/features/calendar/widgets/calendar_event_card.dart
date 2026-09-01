@@ -166,13 +166,11 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                                 overflow: TextOverflow.ellipsis,
                               ),
                           ] else ...[
-                            // Time - 12-hour format, converted to viewer's local timezone
+                            // Time - 12-hour format in the band's timezone.
                             Text(
-                              TimeFormatter.formatRangeLocal(
+                              TimeFormatter.formatRange(
                                 widget.event.startTime,
                                 widget.event.endTime,
-                                widget.event.date,
-                                widget.bandTimezone,
                               ),
                               style: AppTextStyles.callout.copyWith(
                                 color: context.colors.textSecondary,

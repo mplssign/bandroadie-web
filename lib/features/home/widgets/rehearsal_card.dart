@@ -760,12 +760,7 @@ class _RehearsalCardState extends State<RehearsalCard>
   }
 
   String _formatTimeLine(Rehearsal rehearsal) {
-    return TimeFormatter.formatRangeLocal(
-      _currentStartTime,
-      rehearsal.endTime,
-      _currentDate,
-      widget.bandTimezone,
-    );
+    return TimeFormatter.formatRange(_currentStartTime, rehearsal.endTime);
   }
 
   String _formatDateWithRecurrence() {
