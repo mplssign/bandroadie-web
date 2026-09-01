@@ -234,9 +234,6 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
     final selectableSetlists =
         setlistsState.setlists.where((s) => !s.isCatalog).toList();
 
-    // Get keyboard height to push content above keyboard
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-
     return AnimatedBuilder(
       animation: _animController,
       builder: (context, child) {
@@ -245,29 +242,25 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
           child: Opacity(opacity: _fadeAnimation.value, child: child),
         );
       },
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 100),
-        padding: EdgeInsets.only(bottom: keyboardHeight),
-        child: Container(
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.colors.surface,
-            borderRadius: BorderRadius.circular(Spacing.cardRadius),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              _buildHeader(),
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            _buildHeader(),
 
-              // Content (existing setlists or create new)
-              Flexible(
-                child: _isCreatingNew
-                    ? _buildCreateNewForm()
-                    : _buildSetlistList(selectableSetlists),
-              ),
-            ],
-          ),
+            // Content (existing setlists or create new)
+            Flexible(
+              child: _isCreatingNew
+                  ? _buildCreateNewForm()
+                  : _buildSetlistList(selectableSetlists),
+            ),
+          ],
         ),
       ),
     );
