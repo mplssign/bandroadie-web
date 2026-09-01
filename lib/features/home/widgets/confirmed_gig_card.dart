@@ -108,11 +108,9 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard> {
 
                 // Time - 16px Callout/Regular, gray-400
                 Text(
-                  TimeFormatter.formatRangeLocal(
+                  TimeFormatter.formatRange(
                     widget.gig.startTime,
                     widget.gig.endTime,
-                    widget.gig.date,
-                    widget.bandTimezone,
                   ),
                   style: TextStyle(
                     fontSize: AppFontSizes.body,

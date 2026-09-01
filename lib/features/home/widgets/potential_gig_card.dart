@@ -400,11 +400,9 @@ class _PotentialGigCardState extends State<PotentialGigCard>
 
                   // Time (index-aware for multi-date)
                   AnimatedDateLabel(
-                    text: TimeFormatter.formatRangeLocal(
+                    text: TimeFormatter.formatRange(
                       _currentStartTime,
                       widget.gig.endTime,
-                      _currentDate,
-                      widget.bandTimezone,
                     ),
                     direction: _navigationDirection,
                     style: TextStyle(
