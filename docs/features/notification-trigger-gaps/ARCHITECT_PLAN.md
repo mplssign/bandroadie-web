@@ -303,3 +303,178 @@ This is the real verification for the migration: static function-text checks in 
 - UI/wording overhaul beyond specified bug fixes.
 - Device token lifecycle optimizations.
 - Any Flutter, mobile platform, or routing changes.
+
+## Section Addendum - Potential Rehearsal Title Fix (2026-09-01)
+
+### Addendum Scope
+
+This addendum extends the already-approved and already-applied notification trigger gap fix with one additional production-safe, forward-only migration.
+
+- Existing migration `supabase/migrations/20260901170853_fix_notification_trigger_gaps.sql` is already applied to production and must remain immutable.
+- Do not edit any previously applied migration file.
+- Implement this fast-follow as a new migration only.
+
+### Root Cause (New Finding)
+
+Manual QA found that potential rehearsal notifications currently render title `Rehearsal Scheduled` instead of `Potential Rehearsal Scheduled`.
+
+Confirmed cause in live function logic:
+
+- `notify_rehearsal_created()` sets `v_title := 'Rehearsal Scheduled';` unconditionally.
+- No branch exists on `NEW.is_potential` for title selection.
+
+### Required Design Constraint
+
+Keep notification type unchanged:
+
+- `v_notification_type` must remain `rehearsal_created` semantics (implemented as literal `'rehearsal_created'` in `notify_band_members(...)`) for both potential and non-potential rehearsals.
+- Do not introduce a new type such as `potential_rehearsal_created`.
+
+Reason: client enum/routing currently does not support a potential rehearsal type variant and would miscategorize unknown type strings.
+
+### Explicit Decision: Body Wording
+
+Decision: **yes, update body wording for potential rehearsals**.
+
+- Potential one-off rehearsal body: `... scheduled a potential rehearsal for ...`
+- Potential recurring rehearsal body: `... scheduled a potential rehearsal ... starting ...`
+- Non-potential wording remains `... scheduled a rehearsal ...`
+
+Rationale: title/body semantic alignment improves clarity and mirrors the existing gig pattern, while still preserving the required single notification type (`rehearsal_created`).
+
+### New Migration File (Forward-Only)
+
+Create exactly:
+
+- `supabase/migrations/20260901193000_fix_potential_rehearsal_title.sql`
+
+### Exact SQL (Full Function Body)
+
+```sql
+-- ============================================================================
+-- Fix potential rehearsal notification title/body wording
+-- Purpose: preserve notification type while differentiating potential rehearsal
+-- copy in notify_rehearsal_created().
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION notify_rehearsal_created()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor_name TEXT;
+  v_rehearsal_date TEXT;
+  v_title TEXT;
+  v_body TEXT;
+  v_recurrence_text TEXT;
+  v_day_names TEXT[];
+BEGIN
+  IF NEW.parent_rehearsal_id IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COALESCE(
+    NULLIF(TRIM(first_name), ''),
+    SPLIT_PART(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''), ' ', 1),
+    'Someone'
+  ) INTO v_actor_name
+  FROM users
+  WHERE id = auth.uid();
+
+  v_rehearsal_date := TO_CHAR(NEW.date, 'MON FMDD, YYYY');
+  v_rehearsal_date := UPPER(v_rehearsal_date);
+
+  IF NEW.is_potential THEN
+    v_title := 'Potential Rehearsal Scheduled';
+  ELSE
+    v_title := 'Rehearsal Scheduled';
+  END IF;
+
+  IF NEW.is_recurring AND NEW.recurrence_frequency IS NOT NULL THEN
+    v_day_names := ARRAY['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
+
+    IF NEW.recurrence_days IS NOT NULL AND array_length(NEW.recurrence_days, 1) > 0 THEN
+      SELECT string_agg(v_day_names[d + 1], ', ')
+      INTO v_recurrence_text
+      FROM unnest(NEW.recurrence_days) AS d
+      ORDER BY d;
+
+      v_recurrence_text := CASE NEW.recurrence_frequency
+        WHEN 'weekly' THEN 'on ' || v_recurrence_text
+        WHEN 'biweekly' THEN 'every other ' || v_recurrence_text
+        WHEN 'monthly' THEN 'monthly on ' || v_recurrence_text
+        ELSE 'recurring'
+      END;
+    ELSE
+      v_recurrence_text := CASE NEW.recurrence_frequency
+        WHEN 'weekly' THEN 'weekly'
+        WHEN 'biweekly' THEN 'biweekly'
+        WHEN 'monthly' THEN 'monthly'
+        ELSE 'recurring'
+      END;
+    END IF;
+
+    IF NEW.is_potential THEN
+      v_body := v_actor_name || ' scheduled a potential rehearsal ' || v_recurrence_text || ' starting ' || v_rehearsal_date;
+    ELSE
+      v_body := v_actor_name || ' scheduled a rehearsal ' || v_recurrence_text || ' starting ' || v_rehearsal_date;
+    END IF;
+  ELSE
+    IF NEW.is_potential THEN
+      v_body := v_actor_name || ' scheduled a potential rehearsal for ' || v_rehearsal_date;
+    ELSE
+      v_body := v_actor_name || ' scheduled a rehearsal for ' || v_rehearsal_date;
+    END IF;
+  END IF;
+
+  PERFORM notify_band_members(
+    NEW.band_id,
+    auth.uid(),
+    'rehearsal_created',
+    v_title,
+    v_body,
+    jsonb_build_object(
+      'rehearsal_id', NEW.id,
+      'rehearsal_date', NEW.date,
+      'is_recurring', COALESCE(NEW.is_recurring, FALSE),
+      'recurrence_frequency', NEW.recurrence_frequency
+    )
+  );
+
+  RETURN NEW;
+END;
+$$;
+```
+
+### Engineer Task List (Addendum-Only Scope)
+
+1. Create migration file `supabase/migrations/20260901193000_fix_potential_rehearsal_title.sql` with the exact SQL above.
+2. Apply migration to linked project (same deployment process used for this feature's prior migration).
+3. Run the scoped post-apply verification query below and capture output in Engineer report.
+4. Update `docs/features/notification-trigger-gaps/ENGINEER_REPORT.md` with addendum execution evidence and results.
+5. Commit addendum artifacts with a docs/fix-appropriate message.
+
+### Scoped Verification Query (Post-Apply)
+
+```sql
+SELECT
+  (pg_get_functiondef(p.oid) ILIKE '%Potential Rehearsal Scheduled%') AS has_potential_title,
+  (pg_get_functiondef(p.oid) ILIKE '%scheduled a potential rehearsal for%') AS has_potential_one_off_body,
+  (pg_get_functiondef(p.oid) ILIKE '%scheduled a potential rehearsal % starting %') AS has_potential_recurring_body,
+  (pg_get_functiondef(p.oid) ILIKE '%''rehearsal_created''%') AS keeps_rehearsal_created_type,
+  (pg_get_functiondef(p.oid) ILIKE '%potential_rehearsal_created%') AS introduces_forbidden_type
+FROM pg_proc p
+JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public'
+  AND p.proname = 'notify_rehearsal_created';
+```
+
+Expected:
+
+- `has_potential_title = true`
+- `has_potential_one_off_body = true`
+- `has_potential_recurring_body = true`
+- `keeps_rehearsal_created_type = true`
+- `introduces_forbidden_type = false`
