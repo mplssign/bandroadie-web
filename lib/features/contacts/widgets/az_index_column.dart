@@ -59,29 +59,35 @@ class AzIndexColumn extends StatelessWidget {
       right: 8,
       top: topOffset,
       bottom: bottomPadding,
-      child: Column(
-        children: _allLetters.map((letter) {
-          return Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onLetterTap(letter),
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: grouped.containsKey(letter)
-                        ? AppColors.primary
-                        : AppColors.primary.withValues(alpha: 0.3),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final slotHeight = constraints.maxHeight / _allLetters.length;
+          final adaptiveFontSize = (slotHeight * 0.75).clamp(10.0, 18.0);
+          return Column(
+            children: _allLetters.map((letter) {
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onLetterTap(letter),
+                  child: Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      letter,
+                      style: TextStyle(
+                        fontSize: adaptiveFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: grouped.containsKey(letter)
+                            ? AppColors.primary
+                            : AppColors.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }).toList(),
           );
-        }).toList(),
+        },
       ),
     );
   }
