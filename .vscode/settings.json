@@ -41,34 +41,56 @@
   // COPILOT MANAGER/SUBAGENT SAFETY BACKSTOP
   // ============================================================================
   // Tony wants the manager agent to decide when to merge, not him
-  // (2026-09-01) — every routine git/PR/merge operation the pipeline actually
+  // (2026-09-01) - every routine git/PR/merge operation the pipeline actually
   // issues is auto-approved. There is no VS Code confirmation-dialog
   // backstop left in this project, and this setting is NOT scoped per
-  // Copilot agent (VS Code has no such mechanism) — it approves a matching
+  // Copilot agent (VS Code has no such mechanism) - it approves a matching
   // command for architect/engineer/qa exactly as readily as for manager,
   // even though only manager is ever instructed to run these. Patterns below
-  // are deliberately narrowed to the LITERAL shape the pipeline issues, not
-  // "any git push"/"any git checkout" — this is the actual technical
-  // backstop, since manager.agent.md/qa.agent.md/engineer.agent.md's prose
-  // prohibitions are not enforced by anything else. If a legitimate command
-  // stops matching after a workflow change, narrow-and-extend the pattern —
-  // don't widen back to a bare "\\b.*" catch-all.
-  // 2026-09-02 revision: added git add/commit/pull (were missing — every
-  // pipeline run needs them, so without these the "zero clicks" pipeline
-  // stalled on the first commit); tightened checkout (was matching
-  // discard-forms like "checkout -- ." not just branch switches); tightened
-  // push (blocks --force and pushing to main); tightened gh pr merge (blocks
-  // --admin/--merge/--rebase, which bypass branch protection or produce a
-  // non-squash merge). If that ever needs a manual checkpoint again, remove
-  // the relevant line below.
+  // are exact literal shapes matching only the specific commands the four
+  // .agent.md files actually issue - this content-level narrowing is the
+  // real technical backstop, since the agents' own prose prohibitions are
+  // not enforced by anything else. If a legitimate command stops matching
+  // after a workflow change, narrow-and-extend the pattern - don't widen
+  // back to a bare "\\b.*"/".*" catch-all.
+  // 2026-09-02 revision (independent 3-pass review): the prior patterns'
+  // trailing ".*"/"\\b.*" let a compound command match in full end to end
+  // (e.g. "git status && git push --force origin main" matched the
+  // read-only pattern whole); "git branch" approved "-D"/"-M" too, not just
+  // "--show-current"; none of these matched the GIT_OPTIONAL_LOCKS=0 prefix
+  // every agent file's read-only checks actually use, so those checks were
+  // silently NOT auto-approved despite the "zero clicks" design; and git
+  // commit's "." couldn't match a real multi-line commit message. Fixed all
+  // four. Also added the git fetch/merge-base/rev-parse/--ff-only patterns
+  // the merge-base branch-freshness check now needs (see architect.agent.md/
+  // manager.agent.md - this closes a bug that recurred 7 times historically,
+  // see feedback_architect_branch_base.md), and switched gh pr create to
+  // --body-file instead of inline --body "..." so an arbitrary PR
+  // description never has to survive shell quoting.
+  // `supabase db push` is intentionally NOT in this list, and none of the
+  // four agents are instructed to run it — applying migrations to the live
+  // database is Tony's manual action, outside this pipeline entirely. Don't
+  // add it here without Tony explicitly asking for that specific change.
   "chat.tools.terminal.autoApprove": {
-    "/^git (status|diff|log|branch)\\b.*$/": true,
-    "/^git pull( origin main)?$/": true,
-    "/^git add (?!.*(?:^|\\s)(?:\\.|-A|--all)(?:\\s|$))(?:docs\\/features\\/|lib\\/|test\\/|supabase\\/|\\.vscode\\/|\\.github\\/)[^&|;]*$/": true,
-    "/^git commit -m \\\".*\\\"$/": true,
+    "/^(?:GIT_OPTIONAL_LOCKS=0 )?git status(?: --short)?$/": true,
+    "/^(?:GIT_OPTIONAL_LOCKS=0 )?git branch --show-current$/": true,
+    "/^(?:GIT_OPTIONAL_LOCKS=0 )?git diff(?: HEAD)?(?: -- [\\w./-]+)?(?: \\| (?:grep|head|tail|wc)\\b[^&|;\\n]*)*$/": true,
+    "/^(?:GIT_OPTIONAL_LOCKS=0 )?git diff main(?:\\.\\.\\.|\\s)[\\w/-]+(?: --stat)?$/": true,
+    "/^(?:GIT_OPTIONAL_LOCKS=0 )?git log --oneline(?: (?:-[0-9]+ )?[\\w./-]+)?(?: && echo \"[^\"$&|;`\\n]*\")?$/": true,
+    "/^(?:GIT_OPTIONAL_LOCKS=0 )?git show main:[\\w./-]+(?: \\| (?:grep|head|tail|wc)\\b[^&|;\\n]*)*$/": true,
+    "/^git fetch origin$/": true,
+    "/^git merge-base main [\\w/-]+$/": true,
+    "/^git rev-parse main$/": true,
+    "/^git pull(?: --ff-only)?(?: origin main)?$/": true,
+    "/^git add (?:docs\\/features\\/|lib\\/|test\\/|supabase\\/|\\.vscode\\/|\\.github\\/)[\\w./-]+(?: (?:docs\\/features\\/|lib\\/|test\\/|supabase\\/|\\.vscode\\/|\\.github\\/)[\\w./-]+)*$/": true,
+    "/^git commit -m \"[\\s\\S]*\"$/": true,
     "/^git checkout (-b )?(main|(feature|bug|rescue)\\/[a-z0-9-]+)$/": true,
     "/^git push origin (feature|bug)\\/[a-z0-9-]+$/": true,
-    "/^gh pr create\\b.*/": true,
-    "/^gh pr merge( [0-9]+)? --squash --delete-branch$/": true
+    "/^gh pr create --title \"[^\"$&|;`\\n]*\" --body-file docs/features/[\\w-]+/PR_BODY\\.md( --base main --head (?:feature|bug)/[\\w-]+)?$/": true,
+    "/^gh pr merge( [0-9]+)? --squash --delete-branch$/": true,
+    "/^cat pipeline\\.lock$/": true,
+    "/^(?:\\[ -f pipeline\\.lock \\]|test -f pipeline\\.lock)$/": true,
+    "/^echo \"(?:manager|architect|engineer|qa)\\|[\\w/-]+\\|[0-9TZ:.-]+\" > pipeline\\.lock$/": true,
+    "/^rm -f pipeline\\.lock$/": true
   }
 }

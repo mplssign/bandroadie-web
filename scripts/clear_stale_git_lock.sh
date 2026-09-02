@@ -55,8 +55,16 @@ for lock in "${LOCKS[@]}"; do
   age=$(( now - mtime ))
 
   if [ "$age" -ge "$STALE_AGE_SECONDS" ]; then
-    rm -f "$lock"
-    echo "clear_stale_git_lock: removed stale $lock (age ${age}s, no live git process)"
+    # Re-check right before deleting, not just once earlier in the loop — a
+    # git process that forked but hadn't exec'd yet when we first checked
+    # could be running by now, and this is the last chance to notice before
+    # rm actually happens.
+    if pgrep -x git >/dev/null 2>&1; then
+      echo "clear_stale_git_lock: a git process started since the first check — leaving $lock alone" >&2
+    else
+      rm -f "$lock"
+      echo "clear_stale_git_lock: removed stale $lock (age ${age}s, no live git process)"
+    fi
   else
     echo "clear_stale_git_lock: $lock is only ${age}s old — leaving it in case a process is still finishing" >&2
   fi
