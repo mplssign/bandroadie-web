@@ -35,5 +35,40 @@
     "**/.dart_tool": true,
     "**/ios/Pods": true,
     "**/macos/Pods": true
+  },
+
+  // ============================================================================
+  // COPILOT MANAGER/SUBAGENT SAFETY BACKSTOP
+  // ============================================================================
+  // Tony wants the manager agent to decide when to merge, not him
+  // (2026-09-01) — every routine git/PR/merge operation the pipeline actually
+  // issues is auto-approved. There is no VS Code confirmation-dialog
+  // backstop left in this project, and this setting is NOT scoped per
+  // Copilot agent (VS Code has no such mechanism) — it approves a matching
+  // command for architect/engineer/qa exactly as readily as for manager,
+  // even though only manager is ever instructed to run these. Patterns below
+  // are deliberately narrowed to the LITERAL shape the pipeline issues, not
+  // "any git push"/"any git checkout" — this is the actual technical
+  // backstop, since manager.agent.md/qa.agent.md/engineer.agent.md's prose
+  // prohibitions are not enforced by anything else. If a legitimate command
+  // stops matching after a workflow change, narrow-and-extend the pattern —
+  // don't widen back to a bare "\\b.*" catch-all.
+  // 2026-09-02 revision: added git add/commit/pull (were missing — every
+  // pipeline run needs them, so without these the "zero clicks" pipeline
+  // stalled on the first commit); tightened checkout (was matching
+  // discard-forms like "checkout -- ." not just branch switches); tightened
+  // push (blocks --force and pushing to main); tightened gh pr merge (blocks
+  // --admin/--merge/--rebase, which bypass branch protection or produce a
+  // non-squash merge). If that ever needs a manual checkpoint again, remove
+  // the relevant line below.
+  "chat.tools.terminal.autoApprove": {
+    "/^git (status|diff|log|branch)\\b.*$/": true,
+    "/^git pull( origin main)?$/": true,
+    "/^git add (?!.*(?:^|\\s)(?:\\.|-A|--all)(?:\\s|$))(?:docs\\/features\\/|lib\\/|test\\/|supabase\\/|\\.vscode\\/|\\.github\\/)[^&|;]*$/": true,
+    "/^git commit -m \\\".*\\\"$/": true,
+    "/^git checkout (-b )?(main|(feature|bug|rescue)\\/[a-z0-9-]+)$/": true,
+    "/^git push origin (feature|bug)\\/[a-z0-9-]+$/": true,
+    "/^gh pr create\\b.*/": true,
+    "/^gh pr merge( [0-9]+)? --squash --delete-branch$/": true
   }
 }
