@@ -218,14 +218,10 @@ class GigContactRowsController {
                           ),
                         ),
                         const SizedBox(height: Spacing.space8),
-                        Padding(
-                          padding: const EdgeInsets.only(
-                              right: -Spacing.pagePadding),
-                          child: TitlePillSelector(
-                            selectedTitle: selectedTitle,
-                            onChanged: (title) =>
-                                setDialogState(() => selectedTitle = title),
-                          ),
+                        TitlePillSelector(
+                          selectedTitle: selectedTitle,
+                          onChanged: (title) =>
+                              setDialogState(() => selectedTitle = title),
                         ),
                         const SizedBox(height: Spacing.space16),
                         AppTextField(
@@ -1432,7 +1428,9 @@ class GigFormFields extends ConsumerWidget {
               ),
             ),
             AppButton(
-              label: 'Add another',
+              label: contactAutocompleteControllers.isEmpty
+                  ? 'Add'
+                  : 'Add another',
               variant: AppButtonVariant.text,
               icon: AppIcons.add,
               onPressed: isSaving ? null : onAddContact,
@@ -1441,20 +1439,24 @@ class GigFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         if (contactAutocompleteControllers.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: context.colors.background,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(color: context.colors.border),
-            ),
-            child: Text(
-              isLoadingContacts
-                  ? 'Loading your shared contacts...'
-                  : 'Link shared band contacts to this gig.',
-              style: AppTextStyles.footnote.copyWith(
-                color: context.colors.textMuted,
+          InkWell(
+            onTap: isSaving ? null : onAddContact,
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            child: Ink(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                border: Border.all(color: context.colors.border),
+              ),
+              child: Text(
+                isLoadingContacts
+                    ? 'Loading your shared contacts...'
+                    : 'No contacts linked — tap to add one',
+                style: AppTextStyles.footnote.copyWith(
+                  color: context.colors.textMuted,
+                ),
               ),
             ),
           )
