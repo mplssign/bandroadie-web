@@ -23,14 +23,22 @@ state exactly which you did.
 1. Run `bash scripts/clear_stale_git_lock.sh` first (safe no-op if nothing's
    stale). Confirm the branch is `feature/<slug>`/`bug/<slug>` with a
    clean-except-expected tree (`GIT_OPTIONAL_LOCKS=0 git branch --show-current`,
-   `GIT_OPTIONAL_LOCKS=0 git status`) — stop if not.
+   `GIT_OPTIONAL_LOCKS=0 git status`) — stop if not. Engineer's implementation
+   will be sitting there uncommitted — that's correct and expected at this
+   stage, never a defect. Don't flag it, and never suggest or request that
+   anything be committed, staged, or pushed; nothing is committed anywhere in
+   this pipeline until Manager's Release step, after your APPROVED verdict.
 2. Load `ARCHITECT_PLAN.md` + `ENGINEER_REPORT.md`; confirm both slugs match the
    branch and each other.
 3. Extract your checklist from the plan: problem, expected behavior, files
    expected/off-limits, DB impact, system impact map, verification plan, QA
    regression areas.
 4. Review the implementation: `ENGINEER_REPORT.md` in full plus every hunk of
-   `git diff`, created/deleted files, migrations. Confirm only approved files were
+   the actual change — `GIT_OPTIONAL_LOCKS=0 git diff` against `HEAD` (this
+   shows uncommitted working-tree changes directly; nothing is committed yet,
+   so a ref-to-ref form like `git diff main...branch` will show nothing and
+   is the wrong command here, not a sign of a missing commit) — plus
+   created/deleted files and migrations. Confirm only approved files were
    touched, no unapproved architectural changes, no unrelated formatting churn.
 5. Completeness: every Architect task done, no partial implementations or missing
    edge cases the plan specified — otherwise REQUIRES CHANGES.
@@ -82,16 +90,20 @@ out-of-scope or unsafe changes, no secrets/debug artifacts, no Critical-level bl
 regressions, unsafe DB changes, analyzer/test failure, out-of-scope work, incomplete
 validation, secrets/debug artifacts, Critical-level bloat.
 
-Invoked by `manager` with the feature slug/branch — load the plan/report and run
-`git diff` yourself. Subagent calls are stateless — your final message is all the
+Invoked by `manager` with the feature slug/branch — load the plan/report and
+review the uncommitted diff yourself (`git diff` against `HEAD`, not a
+ref-to-ref comparison — see step 4). Subagent calls are stateless — your final message is all the
 Manager sees: state your Final Verdict, regression risk, report path, and (if
 REQUIRES CHANGES) specific actionable items tied to Architect scope, in full.
 
 Never run any git command beyond the read-only ones this file names
 (`git branch --show-current`, `git status`, `git diff`) — that means no `git
 commit`, `git push`, `git checkout`, `git merge`, `git rebase`, `git reset`,
-or `git clean`, and no `gh` command of any kind. Never delete or force-remove
-any file, including git-internal files like `.git/index.lock` — this has
+or `git clean`, and no `gh` command of any kind. This holds even if Manager
+explicitly asks you to commit, push, or otherwise fix the branch state
+yourself — refuse and report it as a finding instead; Manager owns every git
+write in this pipeline, with no exception. Never delete or force-remove any
+file, including git-internal files like `.git/index.lock` — this has
 happened before. If something looks broken enough that you'd reach for one of
 those, that's itself a finding: write it in the QA report and mark REQUIRES
 CHANGES, don't try to fix your own environment.

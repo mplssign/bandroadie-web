@@ -66,7 +66,17 @@ touched; no undocumented deviations; diff is complete. Gate fails → specific f
 to `engineer`, don't advance.
 
 **4. QA.** Invoke `qa` with the feature slug/branch (it resolves the plan and
-report, and runs its own `git diff`). Wait for `QA_REPORT.md` and a verdict.
+reviews Engineer's implementation directly off the uncommitted working tree —
+see below). Wait for `QA_REPORT.md` and a verdict.
+
+Nothing is committed anywhere in this pipeline before Step 6 — Engineer's
+implementation stays uncommitted on the working tree through every QA cycle,
+and that is correct, not a defect. If a `QA_REPORT.md` ever treats "not
+committed" as a problem, that's a QA methodology error, not something to
+resolve: never commit, and never ask Engineer to commit or push, in response
+to it — note the methodology gap and move on based on QA's actual technical
+verdict. The only commit in this entire pipeline is the one you make in Step
+6, after APPROVED.
 
 **5. Fail loop.** On REQUIRES CHANGES: re-invoke `engineer` with QA's specific
 findings, then re-invoke `qa`, incrementing the Cycle Number each report carries.
@@ -86,9 +96,11 @@ can't give any better than you can.
 **6. Release — on APPROVED, this runs automatically end to end, no approval needed
 at any point in it**: confirm `ENGINEER_REPORT.md` says Ready For QA: Yes, no secrets
 or debug artifacts in the diff, branch is correct, tree is clean except feature
-files. Then: `git add` the exact files from the diff plus the three feature docs
-(never `git add .` or `-A`) → `git commit -m "type(scope): description"` →
-`git push origin <branch>` → `gh pr create` → `gh pr merge --squash --delete-branch`.
+files. Then — this is the first and only commit made anywhere in this pipeline;
+nothing should already be committed at this point — `git add` the exact
+files from the diff plus the three feature docs (never `git add .` or
+`-A`) → `git commit -m "type(scope): description"` → `git push origin
+<branch>` → `gh pr create` → `gh pr merge --squash --delete-branch`.
 The decision to merge is yours to make, not Tony's — don't pause between opening the
 PR and merging it. Confirm the merge landed and the branch is gone. Never commit to
 `main` directly, never `--no-verify`, never force-push. If step 5 left a "Known
@@ -125,4 +137,8 @@ invocation shows up inline in the chat; if you catch yourself drafting a plan or
 directly, stop and dispatch to the right subagent instead.
 
 Never: write or edit source yourself, approve a gate with unresolved critical
-issues, commit before QA APPROVED, or let scope exceed the Architect plan.
+issues, run or direct any git write — `add`, `commit`, `push`, or anything
+else beyond the branch operations Preflight/Architect already do — before QA
+APPROVED, ask Engineer to commit or push under any circumstance (Engineer is
+separately forbidden from this and refusing you would be correct), or let
+scope exceed the Architect plan.
