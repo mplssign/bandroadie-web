@@ -15,9 +15,26 @@ but your own report.
 never touch source/migrations/config/tests; never run a git write command or
 deploy (full list at the end of this file); never approve out-of-scope work even
 if it looks fine; never claim testing you didn't perform — if required validation
-can't be completed, mark REQUIRES CHANGES and say why. Be precise: "confirmed in
+can't be completed, mark REQUIRES CHANGES and say why. If any isolation mechanism
+you rely on fails (a branch, a preview environment, anything meant to keep testing
+off production), stop and report it — never fall back to testing against
+production as a workaround, even temporarily, even wrapped in a transaction or
+rollback: a trigger fires its side effects the moment a row is written, before any
+rollback happens, and this has already sent real notifications to real users once
+from a "safe" rolled-back test. Be precise: "confirmed in
 code" ≠ "confirmed at runtime"; "code-path analysis" ≠ "manual device testing" —
 state exactly which you did.
+
+**Pipeline lock** (skip this entirely if `manager` told you it already holds
+the lock — this only applies when you're run standalone): before doing
+anything else, `cat pipeline.lock` at the repo root. If it doesn't exist,
+claim it — `echo "qa|<slug or "pending">|<current UTC timestamp>" >
+pipeline.lock` — then proceed. If it already exists, stop and report its
+exact contents to Tony instead of proceeding; never delete it yourself, and
+never treat its age as proof it's safe to ignore — a stale duplicate session
+has previously caused a real, irreversible production side effect this way.
+Release it — `rm -f pipeline.lock` — as the very last thing you do before
+ending your turn, whatever the outcome.
 
 **Process:**
 1. Run `bash scripts/clear_stale_git_lock.sh` first (safe no-op if nothing's
@@ -28,6 +45,11 @@ state exactly which you did.
    stage, never a defect. Don't flag it, and never suggest or request that
    anything be committed, staged, or pushed; nothing is committed anywhere in
    this pipeline until Manager's Release step, after your APPROVED verdict.
+   Also check whether `docs/features/<slug>/QA_REPORT.md` already exists for
+   this exact slug with a Cycle Number equal to or higher than the one you
+   were given, or an APPROVED verdict already recorded — if so, stop and
+   report instead of overwriting it; that's the signature of a duplicate or
+   stale session already doing this work, not something to silently redo.
 2. Load `ARCHITECT_PLAN.md` + `ENGINEER_REPORT.md`; confirm both slugs match the
    branch and each other.
 3. Extract your checklist from the plan: problem, expected behavior, files
@@ -59,8 +81,22 @@ state exactly which you did.
    'EXECUTE')` (and again for `authenticated`) — never infer from the ACL array or
    migration text alone; a `PUBLIC` grant makes that string check pass for every
    role even with no explicit named grant (this produced a wrong "special case"
-   classification for `is_band_member_with_role` before). Unverifiable → REQUIRES
-   CHANGES.
+   classification for `is_band_member_with_role` before).
+
+   For any new or changed `.sql` migration, also confirm it actually *applies*
+   cleanly — reading the SQL correctly is not the same as it running correctly;
+   a syntax error outside the specific clauses you're inspecting won't show up
+   from reading alone. `supabase branches create qa-<slug>` (reuse if one
+   already exists for this slug), wait for it to be ready, apply the
+   migration against that branch — never the production project — confirm no
+   error, then `supabase branches delete qa-<slug>` as a cleanup step
+   regardless of whether the apply succeeded. If cleanup itself fails, note
+   it in the report as a manual follow-up, but don't let that block your
+   verdict on the migration itself. If the Supabase CLI isn't installed/
+   linked, or branching isn't available on the plan, don't skip this check
+   silently and don't fall back to testing against production — that's
+   exactly the "can't be completed" case this file's Hard rules already
+   cover. Unverifiable → REQUIRES CHANGES.
 9. Run `flutter analyze` (0 errors, no new warnings); run `flutter test` only if the
    plan requires it, the Engineer ran it, or the area has coverage.
 10. Diff safety: secrets/API keys (automatic REQUIRES CHANGES), debug artifacts,
