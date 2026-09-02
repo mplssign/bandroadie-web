@@ -185,7 +185,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
 
   List<TextInputFormatter> _getPhoneFormatters() {
     final tz = ref.read(activeBandProvider).activeBand?.timezone;
-    return isUSTimezone(tz) ? [USPhoneInputFormatter(isUSTimezone: true)] : [];
+    return isUSTimezone(tz)
+        ? [const USPhoneInputFormatter(isUSTimezone: true)]
+        : [];
   }
 
   @override
@@ -237,12 +239,9 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: -Spacing.pagePadding),
-            child: TitlePillSelector(
-              selectedTitle: _selectedTitle,
-              onChanged: (title) => setState(() => _selectedTitle = title),
-            ),
+          TitlePillSelector(
+            selectedTitle: _selectedTitle,
+            onChanged: (title) => setState(() => _selectedTitle = title),
           ),
           const SizedBox(height: 20),
 
@@ -278,7 +277,7 @@ class _ContactFormScreenState extends ConsumerState<ContactFormScreen> {
           EmailDomainShortcutBar(
             controller: _emailController,
             selectedDomain: _selectedDomain,
-            onDomainSelected: (domain) => _applyDomainShortcut(domain),
+            onDomainSelected: _applyDomainShortcut,
             enabled: !_isSaving,
           ),
           const SizedBox(height: 16),
