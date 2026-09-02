@@ -38,6 +38,10 @@ const _gigSelectClause = '''
     start_time,
     created_at,
     updated_at
+  ),
+  gig_contacts (
+    contact_id,
+    contacts (*)
   )
 ''';
 
@@ -60,7 +64,7 @@ class GigRepository {
         .eq('band_id', bandId)
         .order('date', ascending: true);
 
-    return response.map<Gig>((json) => Gig.fromJson(json)).toList();
+    return response.map<Gig>(Gig.fromJson).toList();
   }
 
   /// Fetches only potential (unconfirmed) gigs for the specified band.
@@ -84,7 +88,7 @@ class GigRepository {
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
     final tz = bandTimezone ?? 'America/Chicago';
-    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
+    final gigs = response.map<Gig>(Gig.fromJson).where((gig) {
       try {
         final endDateTime = TimezoneHelper.toUtc(gig.date, gig.endTime, tz);
         return endDateTime.isAfter(now);
@@ -118,7 +122,7 @@ class GigRepository {
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
     final tz = bandTimezone ?? 'America/Chicago';
-    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
+    final gigs = response.map<Gig>(Gig.fromJson).where((gig) {
       try {
         final endDateTime = TimezoneHelper.toUtc(gig.date, gig.endTime, tz);
         return endDateTime.isAfter(now);
@@ -151,7 +155,7 @@ class GigRepository {
     // Filter client-side by end time to exclude events that have already ended
     final now = DateTime.now().toUtc();
     final tz = bandTimezone ?? 'America/Chicago';
-    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).where((gig) {
+    final gigs = response.map<Gig>(Gig.fromJson).where((gig) {
       try {
         final endDateTime = TimezoneHelper.toUtc(gig.date, gig.endTime, tz);
         return endDateTime.isAfter(now);
@@ -162,6 +166,25 @@ class GigRepository {
     }).toList();
 
     return gigs;
+  }
+
+  /// Fetch a single gig with its nested joins.
+  Future<Gig> fetchGigById({
+    required String gigId,
+    required String? bandId,
+  }) async {
+    if (bandId == null || bandId.isEmpty) {
+      throw NoBandSelectedError();
+    }
+
+    final response = await supabase
+        .from('gigs')
+        .select(_gigSelectClause)
+        .eq('id', gigId)
+        .eq('band_id', bandId)
+        .single();
+
+    return Gig.fromJson(response);
   }
 
   // ==========================================================================

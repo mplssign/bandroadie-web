@@ -15,6 +15,7 @@
 // ============================================================================
 
 import '../utils/time_formatter.dart';
+import '../../features/contacts/models/contact.dart';
 import 'gig_date.dart';
 
 class Gig {
@@ -56,6 +57,9 @@ class Gig {
   /// Empty list for single-date gigs or confirmed gigs.
   final List<GigDate> additionalDates;
 
+  /// Shared band contacts linked to this gig.
+  final List<Contact> contacts;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -78,6 +82,7 @@ class Gig {
     required this.isPotential,
     this.requiredMemberIds = const {},
     this.additionalDates = const [],
+    this.contacts = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -103,6 +108,7 @@ class Gig {
       isPotential: json['is_potential'] as bool? ?? false,
       requiredMemberIds: _parseRequiredMemberIds(json['required_member_ids']),
       additionalDates: _parseAdditionalDates(json['gig_dates']),
+      contacts: _parseContacts(json['gig_contacts']),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -165,6 +171,21 @@ class Gig {
     return [];
   }
 
+  /// Parse linked contacts from the gig_contacts join.
+  static List<Contact> _parseContacts(dynamic value) {
+    if (value is! List) return [];
+
+    final contacts = <Contact>[];
+    for (final row in value) {
+      if (row is! Map) continue;
+      final contactJson = row['contacts'];
+      if (contactJson is Map<String, dynamic>) {
+        contacts.add(Contact.fromJson(contactJson));
+      }
+    }
+    return contacts;
+  }
+
   /// Returns true if this is a confirmed (not potential) gig
   bool get isConfirmed => !isPotential;
 
@@ -225,9 +246,9 @@ class Gig {
     final dollars = gigPayCents! ~/ 100;
     final cents = gigPayCents! % 100;
     final dollarsStr = dollars.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
     return '\$$dollarsStr.${cents.toString().padLeft(2, '0')}';
   }
 

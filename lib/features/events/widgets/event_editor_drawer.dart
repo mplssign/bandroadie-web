@@ -20,6 +20,8 @@ import '../../calendar/block_out_repository.dart';
 import '../../calendar/calendar_controller.dart';
 import '../../calendar/models/calendar_event.dart';
 import '../../calendar/one_calendar_preferences_repository.dart';
+import '../../contacts/contacts_controller.dart';
+import '../../contacts/models/contact.dart';
 import '../../contacts/models/venue.dart';
 import '../../contacts/venues_controller.dart';
 import '../../financials/financial_entry_repository.dart';
@@ -205,6 +207,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Timer? _gigNameDebounceTimer;
   Timer? _gigCityDebounceTimer;
 
+  // Gig contact rows (local UI state only)
+  late final GigContactRowsController _gigContactRows;
+
   // Linked venue state
   String? _selectedVenueId;
 
@@ -327,6 +332,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         FAutocompleteController(text: _gigCityText ?? '');
     _rehearsalLocationAutocompleteController =
         FAutocompleteController(text: _rehearsalLocationText ?? '');
+    _gigContactRows = GigContactRowsController(
+      onRowBlur: (index) {
+        unawaited(_resolveGigContactRow(index, showCreateDialog: true));
+      },
+    );
 
     // Populate fields for block out edit mode
     if (widget.existingBlockOut != null) {
@@ -343,6 +353,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       ref.read(membersProvider.notifier).loadMembers(widget.bandId);
       ref.read(venuesProvider.notifier).load(widget.bandId);
       _loadLocationSuggestions();
+      unawaited(_loadBandContacts());
 
       final permissionsAsync = ref.read(currentUserPermissionsProvider);
       permissionsAsync.whenData((perms) {
@@ -457,8 +468,168 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     _addressHintController.dispose();
     _gigAddressFocusNode.dispose();
     _stateController.dispose();
+    _gigContactRows.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  List<Contact> get _availableContacts => ref.read(contactsProvider).contacts;
+
+  Future<void> _loadBandContacts() async {
+    try {
+      await ref.read(contactsProvider.notifier).load(widget.bandId);
+      if (!mounted || _eventType != EventType.gig) return;
+
+      final initialContactIds = widget.existingEvent?.contactIds ?? const [];
+      if (_gigContactRows.isEmpty && initialContactIds.isNotEmpty) {
+        _replaceGigContactRows(_contactsForIds(initialContactIds));
+      }
+
+      if (_isEditMode && widget.existingEventId != null) {
+        await _loadGigContactsForEdit();
+      }
+    } catch (_) {}
+  }
+
+  List<Contact> _contactsForIds(List<String> contactIds) {
+    if (contactIds.isEmpty) return const <Contact>[];
+
+    final contactsById = {
+      for (final contact in _availableContacts) contact.id: contact,
+    };
+
+    return [
+      for (final contactId in contactIds)
+        if (contactsById[contactId] != null) contactsById[contactId]!,
+    ];
+  }
+
+  Future<void> _loadGigContactsForEdit() async {
+    final gigId = widget.existingEventId;
+    if (gigId == null) return;
+
+    try {
+      final gig = await ref.read(gigRepositoryProvider).fetchGigById(
+            gigId: gigId,
+            bandId: widget.bandId,
+          );
+
+      if (!mounted) return;
+      if (gig.contacts.isNotEmpty || _gigContactRows.isEmpty) {
+        _replaceGigContactRows(gig.contacts);
+      }
+    } catch (_) {}
+  }
+
+  void _replaceGigContactRows(List<Contact> contacts) {
+    _gigContactRows.replaceRows(contacts);
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _addGigContactRow() {
+    setState(() {
+      _gigContactRows.addRow();
+    });
+    _markDirty();
+  }
+
+  void _removeGigContactRow(int index) {
+    if (!_gigContactRows.removeRow(index)) return;
+
+    setState(() {});
+    _markDirty();
+  }
+
+  void _handleGigContactSelected(int index, Contact contact) {
+    if (index < 0 || index >= _gigContactRows.length) return;
+
+    setState(() {
+      _gigContactRows.selectContact(index, contact);
+    });
+    _markDirty();
+  }
+
+  void _handleGigContactTextChanged(int index, String text) {
+    if (index < 0 || index >= _gigContactRows.length) return;
+    _markDirty();
+  }
+
+  Future<bool> _resolveGigContactRow(
+    int index, {
+    required bool showCreateDialog,
+  }) async {
+    if (index < 0 || index >= _gigContactRows.length) return true;
+
+    final typedName = _gigContactRows.rowTextAt(index).trim();
+    final previousContact =
+        _gigContactRows.resolvedContactForRow(index, _availableContacts);
+
+    if (typedName.isEmpty) {
+      if (_gigContactRows.resolvedContactIdAt(index) != null) {
+        setState(() {
+          _gigContactRows.setResolvedContactId(index, null);
+        });
+      }
+      return true;
+    }
+
+    if (_gigContactRows.isRowResolved(index, _availableContacts)) {
+      return true;
+    }
+
+    final matchingContact =
+        _gigContactRows.findContactByName(typedName, _availableContacts);
+    if (matchingContact != null) {
+      if (!mounted) return true;
+      setState(() {
+        _gigContactRows.selectContact(index, matchingContact);
+      });
+      return true;
+    }
+
+    if (!showCreateDialog || !mounted) {
+      return false;
+    }
+
+    final createdContact = await GigContactRowsController.showCreateDialog(
+      context,
+      ref: ref,
+      bandId: widget.bandId,
+      initialName: typedName,
+      isSaving: _isSaving,
+    );
+    if (!mounted) return false;
+
+    if (createdContact != null) {
+      setState(() {
+        _gigContactRows.selectContact(index, createdContact);
+      });
+      _markDirty();
+      return true;
+    }
+
+    setState(() {
+      _gigContactRows.setRowText(index, previousContact?.name ?? '');
+      _gigContactRows.setResolvedContactId(index, previousContact?.id);
+    });
+    return _gigContactRows.rowTextAt(index).trim().isEmpty ||
+        _gigContactRows.isRowResolved(index, _availableContacts);
+  }
+
+  Future<bool> _ensureGigContactsResolved() async {
+    for (var i = 0; i < _gigContactRows.length; i++) {
+      final resolved = await _resolveGigContactRow(
+        i,
+        showCreateDialog: true,
+      );
+      if (!resolved || !_gigContactRows.isRowResolved(i, _availableContacts)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Load past rehearsal locations for autocomplete suggestions
@@ -784,7 +955,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           if (selectedVenue.city != null &&
               selectedVenue.city!.isNotEmpty &&
               (_gigCityText?.trim().isEmpty ?? true)) {
-            _gigCityText = selectedVenue.city!;
+            _gigCityText = selectedVenue.city;
             _gigCityAutocompleteController.text = selectedVenue.city!;
           }
 
@@ -1053,6 +1224,15 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       additionalDates:
           _isMultiDate ? _additionalDates : const <AdditionalDateEntry>[],
       existingGigDateIds: _existingGigDateIds,
+      contactIds: _eventType == EventType.gig
+          ? [
+              for (var i = 0; i < _gigContactRows.length; i++)
+                if (_gigContactRows.rowTextAt(i).trim().isNotEmpty &&
+                    _gigContactRows.isRowResolved(i, _availableContacts) &&
+                    _gigContactRows.resolvedContactIdAt(i) != null)
+                  _gigContactRows.resolvedContactIdAt(i)!,
+            ]
+          : const <String>[],
       setlistId: _selectedSetlistId,
       setlistName: _selectedSetlistName,
       gigPayCents:
@@ -1527,7 +1707,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     } catch (e) {
       setState(() {
         _isSaving = false;
-        _errorMessage = mapBlockOutErrorToMessage(e, context: 'save');
+        _errorMessage = mapBlockOutErrorToMessage(e);
       });
     }
   }
@@ -1655,6 +1835,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       return;
     }
 
+    if (_eventType == EventType.gig) {
+      final contactsResolved = await _ensureGigContactsResolved();
+      if (!contactsResolved) {
+        setState(() {
+          _errorMessage =
+              'Choose an existing contact or add it to your contacts list before saving.';
+        });
+        return;
+      }
+    }
+
     // Validate via form data model
     var formData = _buildFormData();
     final errors = formData.validate();
@@ -1695,7 +1886,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               'You made changes to this venue. Do you want to update the venue\'s contact card?',
           confirmLabel: 'Yes',
           cancelLabel: 'No',
-          isDestructive: false,
         );
 
         if (shouldSync && mounted) {
@@ -2284,6 +2474,20 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       isSaving: _isSaving,
       isEditMode: _isEditMode,
       existingEventId: widget.existingEventId,
+      availableContacts: ref.watch(contactsProvider).contacts,
+      isLoadingContacts: ref.watch(contactsProvider).isLoading,
+      contactAutocompleteControllers: _gigContactRows.controllers,
+      contactFocusNodes: _gigContactRows.focusNodes,
+      onAddContact: _addGigContactRow,
+      onRemoveContact: _removeGigContactRow,
+      onContactTextChanged: _handleGigContactTextChanged,
+      onContactSelected: _handleGigContactSelected,
+      onContactEditingComplete: (index) {
+        unawaited(_resolveGigContactRow(index, showCreateDialog: true));
+      },
+      onContactSubmitted: (index, _) {
+        unawaited(_resolveGigContactRow(index, showCreateDialog: true));
+      },
       gigNameAutocompleteController: _gigNameAutocompleteController,
       venueHintController: _venueHintController,
       gigNameSuggestions: _gigNameSuggestions,
@@ -2376,7 +2580,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       showExpensesSection: canViewFinancials,
       canEditExpenses: canEditFinancials,
       gigExpenses: _pendingGigExpenses,
-      onAddExpense: () => _openExpenseEditor(),
+      onAddExpense: _openExpenseEditor,
       onExpenseTap: (expense) => _openExpenseEditor(expense: expense),
       onMarkDirty: _markDirty,
       currentUserId: supabase.auth.currentUser?.id,
@@ -2434,7 +2638,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       onDateTap: _showDatePicker,
       isPotentialGig: _isPotentialGig,
       additionalDates: _additionalDates,
-      onAdditionalDateTap: (i) => _showAdditionalDatePicker(i),
+      onAdditionalDateTap: _showAdditionalDatePicker,
       onAdditionalDateRemoved: _removeAdditionalDate,
       onAdditionalDateAdded: _addAdditionalDate,
       onAdditionalHourChanged: (i, v) => _updateAdditionalDateTime(i, hour: v),
@@ -2512,7 +2716,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       ),
       decoration: BoxDecoration(
         color: context.colors.surface,
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
@@ -2687,6 +2891,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                             gigFormFields.buildCityStateRow(context),
                             const SizedBox(height: Spacing.space16),
                             gigFormFields.buildLoadInTimeSelector(context),
+                            const SizedBox(height: Spacing.space16),
+                            gigFormFields.buildContactsSection(context),
                           ],
 
                           const SizedBox(height: Spacing.space16),
