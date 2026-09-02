@@ -127,17 +127,31 @@ findings, that means the Architect's diagnosis was wrong, not that Engineer need
 another patch — re-invoke `architect` for a fresh pass instead of repeating the
 same fix, citing the repeating category as the reason. Keep working the problem
 yourself. Once the cumulative cycle count (engineer/QA re-invocations, plus any
-Architect re-diagnoses) reaches roughly 6, that's the actual outlier case: make
-the most defensible engineering call available, document exactly why — citing the
-Cycle Number and Issue Category history — under a "Known limitation" note in the
-PR description, and proceed — don't stall the pipeline waiting on an answer Tony
-can't give any better than you can. Cycle Number keeps incrementing straight
-through an Architect re-diagnosis — tell Engineer/QA the current count explicitly
-when you re-invoke them after a fresh Architect pass; it never resets to 1, or
-the "2 straight cycles" comparison above breaks.
+Architect re-diagnoses) reaches roughly 6, that's the actual outlier case: stop and
+escalate to Tony using the BLOCKED format below, citing the Cycle Number and Issue
+Category history. Whether to keep iterating, revise the plan's scope, or accept a
+residual finding is a genuine judgment call for Tony, not a technical one you
+resolve yourself — and it is never a reason to enter Step 6. A stuck loop is not
+license to override QA's verdict and proceed to Release: Step 6 only ever runs on
+a literal APPROVED in `QA_REPORT.md` (see Step 6) — there is no cycle-count-based
+substitute for that, and a "Known limitation" note can only ever be attached to a
+`QA_REPORT.md` that already carries APPROVED, never used to justify skipping it.
+Cycle Number keeps incrementing straight through an Architect re-diagnosis — tell
+Engineer/QA the current count explicitly when you re-invoke them after a fresh
+Architect pass; it never resets to 1, or the "2 straight cycles" comparison above
+breaks.
 
-**6. Release — on APPROVED, this runs automatically end to end, no approval needed
-at any point in it**: confirm `ENGINEER_REPORT.md` says Ready For QA: Yes, no secrets
+**6. Release — gated strictly on `QA_REPORT.md`'s Final Verdict reading literally
+`APPROVED`.** Never enter this step — never commit, push, open a PR, or run `gh pr
+merge` — on any other verdict, including `REQUIRES CHANGES` or a verdict you
+personally believe is overly strict or wrong. If you think a Critical or Warning
+finding is a false positive, a stale budget estimate, or otherwise not a real
+defect, that disagreement gets resolved by re-invoking `architect` (if the plan's
+own estimate is what's wrong) or `qa` (with your specific reasoning, so QA can
+re-assess and issue its own documented verdict) — never by overriding the verdict
+yourself and proceeding anyway. Once, and only once, `QA_REPORT.md` says APPROVED,
+this runs automatically end to end, no approval needed from Tony at any point in
+it: confirm `ENGINEER_REPORT.md` says Ready For QA: Yes, no secrets
 or debug artifacts in the diff, branch is correct, tree is clean except feature
 files. Then `git add` the exact
 files from the diff plus the three feature docs (never `git add .` or
@@ -153,8 +167,8 @@ PR and merging it. Confirm the merge landed and the branch is gone. Never commit
 `main` directly, never `--no-verify`, never force-push, never `git reset
 --hard`, never `git clean`, never `git branch -D`/`-M` — `gh pr merge --squash
 --delete-branch` is the only sanctioned way a branch of this pipeline ever
-goes away. If step 5 left a "Known
-limitation" note, merge anyway (that note is informational, not a blocker) but make
+goes away. If the APPROVED `QA_REPORT.md` itself documents a residual/accepted
+limitation, merge anyway (that note is informational, not a blocker) but make
 sure it's visible in the PR description so it isn't lost.
 
 **7. Report.** Give Tony a bullet-list summary in plain English — every
@@ -170,7 +184,7 @@ it's just harder to scan). Cover, as bullets:
 - How it was verified (and by what method — reviewed in code vs. actually
   exercised — same precision QA itself has to use).
 - The PR number and that it's merged.
-- Any "Known limitation" note from step 5, restated in plain English.
+- Any residual/accepted-limitation note carried in an APPROVED `QA_REPORT.md`, restated in plain English.
 - Current state: whether this pipeline run applied any database migrations
   or shipped a new app build (it never does either — say so plainly, that's
   a true statement about this run, not a guess) — phrase it as what's still
@@ -227,4 +241,8 @@ action) or suggest that now is a good time to deploy — merging to `main` is
 the end of this pipeline's job, full stop — touch the database in any way at
 all (no `execute_sql`, no dashboard edits, no seeding, no manual data fixes,
 no `supabase db push`; applying migrations is Tony's manual action, never
-this pipeline's), or let scope exceed the Architect plan.
+this pipeline's), let scope exceed the Architect plan, or take any Step 6 action —
+commit, push, open a PR, or merge — when `QA_REPORT.md`'s Final Verdict is not
+literally `APPROVED`, no matter how confident you are that a remaining finding
+isn't a real defect; that call belongs to `qa`/`architect`, and a stuck pipeline
+escalates to Tony instead of self-overriding.
