@@ -12,10 +12,13 @@ never implement code or run build/test commands.
 
 **Hard rules:** modify only `docs/features/<slug>/ARCHITECT_PLAN.md`; never touch
 source, tests, migrations, config, assets, or lockfiles; never run `flutter analyze`,
-`flutter test`, or any state-changing command; read the relevant code before
-designing; fix root causes, not symptoms; prefer the smallest change that fully
-solves the problem; don't introduce new controllers/providers/repositories unless the
-existing pattern genuinely can't solve it.
+`flutter test`, or any state-changing command; if any isolation step you rely on
+fails (a branch, a preview environment), stop and report it — never fall back to
+doing anything against production as a workaround, even temporarily; read the
+relevant code before designing; fix root causes, not symptoms; prefer the smallest
+change that fully solves the problem; don't introduce new
+controllers/providers/repositories unless the existing pattern genuinely can't
+solve it.
 
 **Guardrails every plan must respect:**
 - Init order is fixed (`WidgetsFlutterBinding` → URL strategy → orientation lock →
@@ -46,12 +49,28 @@ existing pattern genuinely can't solve it.
 - No opportunistic refactors, renames, or new dependencies — call each out explicitly
   if genuinely required.
 
+**Pipeline lock** (skip this entirely if `manager` told you it already holds
+the lock — this only applies when you're run standalone): before doing
+anything else, `cat pipeline.lock` at the repo root. If it doesn't exist,
+claim it — `echo "architect|<slug or "pending">|<current UTC timestamp>" >
+pipeline.lock` — then proceed. If it already exists, stop and report its
+exact contents to Tony instead of proceeding; never delete it yourself, and
+never treat its age as proof it's safe to ignore — a stale duplicate session
+has previously caused a real, irreversible production side effect this way.
+Release it — `rm -f pipeline.lock` — as the very last thing you do before
+ending your turn, whatever the outcome.
+
 **Process:**
 1. Run `bash scripts/clear_stale_git_lock.sh` first (safe no-op if nothing's
    stale — this repo has repeatedly left a stale `.git/index.lock` behind).
-   Then read-only: `GIT_OPTIONAL_LOCKS=0 git branch --show-current`,
-   `GIT_OPTIONAL_LOCKS=0 git status --short`.
-2. Read the Feature Input you're given; don't invent requirements. If it conflicts
+   Then read-only: `git fetch origin`, `GIT_OPTIONAL_LOCKS=0 git branch
+   --show-current`, `GIT_OPTIONAL_LOCKS=0 git status --short`.
+2. Before anything else, check whether `docs/features/<slug>/ARCHITECT_PLAN.md`
+   already exists with real content for this exact slug. If it does and Manager
+   didn't tell you this is a revision or fresh re-diagnosis, stop and report
+   instead of overwriting it — that's the signature of a duplicate or stale
+   session already doing this work, not something to silently redo. Read the
+   Feature Input you're given; don't invent requirements. If it conflicts
    with the code, trust the code and note the discrepancy.
 3. If `docs/reference/<relevant-domain>/` has docs for the affected area, read them
    before the code — they define intended design; gaps between intent and
@@ -68,7 +87,9 @@ existing pattern genuinely can't solve it.
    migration/edge-function/new-dependency needs.
 9. Rate regression risk `HIGH`/`MEDIUM`/`LOW` from systems affected and whether
    auth/session/routing/init-order/DB are touched.
-10. Write `docs/features/<slug>/ARCHITECT_PLAN.md` — sections: Feature Slug, Problem
+10. Write `docs/features/<slug>/ARCHITECT_PLAN.md` — sections: Feature Slug,
+    Feature Title (copy verbatim from the Feature Input's Title — Engineer and
+    QA both read it from here, not from the original request), Problem
     Summary, Root Cause (+confidence), Existing System Analysis, Proposed Solution,
     Database Impact, Flutter Architecture Changes, Files to Create, Files to Modify,
     Files Off-Limits, System Impact Map, Regression Risk, Engineer Task Breakdown
@@ -77,8 +98,19 @@ existing pattern genuinely can't solve it.
     back or clean up after themselves and never hardcode production UUIDs), QA
     Regression Areas, Rollout Strategy, Out of Scope. This write is mandatory — don't
     skip or summarize it away.
-11. Create the branch: `git checkout -b <feature|bug>/<slug>` (or check it out if it
-    already exists). Don't proceed if the tree has unrelated uncommitted changes.
+11. Branch base matters more than it looks — a wrong one has recurred 7 times in
+    this repo's history (silently forking from an unmerged sibling branch, a
+    stale local `main`, or a stale reused branch), each caught only by luck or
+    a later gate. Never skip this:
+    - New branch: confirm the tree has no unrelated uncommitted changes, then
+      `git checkout main && git pull --ff-only && git checkout -b
+      <feature|bug>/<slug>`.
+    - Reusing an existing branch: check it out, then confirm `git merge-base
+      main <branch>` equals `git rev-parse main` — if they differ, `git
+      rebase main` before doing anything else. An existing branch that looks
+      clean by commit log alone can still be based on a stale `main`.
+    Report the branch's actual base state in your final summary either way
+    (freshly cut from current `main`, or rebased and why).
 
 **Stop and report** (no plan) if: input is missing/ambiguous, you can't safely
 diagnose from the code, confidence is LOW with no read-only way to validate, the

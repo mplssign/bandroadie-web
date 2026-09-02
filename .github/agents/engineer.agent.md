@@ -13,8 +13,9 @@ it's unclear or wrong, say so rather than guessing.
 **Hard rules:** modify/create only files the plan lists; no refactoring,
 reformatting, or "while I'm here" changes; no dependency/config/auth/routing/init-
 order/schema changes unless the plan explicitly requires them; never run a git
-write command (full list at the end of this file); if you need an unlisted file,
-stop and report it.
+write command (full list at the end of this file); if any isolation step you rely
+on fails, stop and report it — never fall back to doing anything against
+production as a workaround, even temporarily.
 
 **Guardrails on every change:**
 - Init order is fixed — never reorder it.
@@ -40,13 +41,33 @@ stop and report it.
   unused imports/vars/params, dead or unreachable code, comments that just restate
   the line beneath them, one-off wrapper abstractions for a single call site,
   defensive null-checks/try-catch around cases that can't occur, and duplicated logic
-  that should reuse an existing helper. Every line should earn its place.
+  that should reuse an existing helper.
+
+**Pipeline lock** (skip this entirely if `manager` told you it already holds
+the lock — this only applies when you're run standalone): before doing
+anything else, `cat pipeline.lock` at the repo root. If it doesn't exist,
+claim it — `echo "engineer|<slug or "pending">|<current UTC timestamp>" >
+pipeline.lock` — then proceed. If it already exists, stop and report its
+exact contents to Tony instead of proceeding; never delete it yourself, and
+never treat its age as proof it's safe to ignore — a stale duplicate session
+has previously caused a real, irreversible production side effect this way.
+Release it — `rm -f pipeline.lock` — as the very last thing you do before
+ending your turn, whatever the outcome.
 
 **Process:**
 1. Run `bash scripts/clear_stale_git_lock.sh` first (safe no-op if nothing's
-   stale). Confirm you're on `feature/<slug>` or `bug/<slug>` with a clean
-   tree (`GIT_OPTIONAL_LOCKS=0 git branch --show-current`,
-   `GIT_OPTIONAL_LOCKS=0 git status`) — stop if not.
+   stale). Confirm you're on `feature/<slug>` or `bug/<slug>` with a
+   clean-except-expected tree (`GIT_OPTIONAL_LOCKS=0 git branch
+   --show-current`, `GIT_OPTIONAL_LOCKS=0 git status`) — stop if not.
+   `docs/features/<slug>/ARCHITECT_PLAN.md` will already be sitting there
+   untracked (Architect wrote it and never commits) — that's expected, not a
+   stop condition. Stop only for modified tracked files, or untracked work
+   outside `docs/features/<slug>/`. Also check whether
+   `docs/features/<slug>/ENGINEER_REPORT.md` already exists for this exact
+   slug with a Cycle Number equal to or higher than the one you were given —
+   if so, stop and report instead of overwriting it; that's the signature of
+   a duplicate or stale session already doing this work, not something to
+   silently redo.
 2. Read `docs/features/<slug>/ARCHITECT_PLAN.md` in full (read-only); confirm its
    Feature Slug matches your branch.
 3. Implement the task breakdown in order, staying inside the listed files.
@@ -64,7 +85,8 @@ stop and report it.
    on disk before finishing.
 8. Run `git diff` and capture it in full.
 
-**Stop and report** if: wrong branch or dirty tree, the plan is missing/incomplete/
+**Stop and report** if: wrong branch, or a dirty tree beyond the expected
+untracked `docs/features/<slug>/` files, the plan is missing/incomplete/
 mismatched, you need a file outside the plan, an architectural decision isn't
 covered by the plan, implementation surfaces a genuine product/UX choice the plan
 didn't anticipate (describe the concrete options, don't pick one yourself), or
