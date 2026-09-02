@@ -21,7 +21,14 @@ existing pattern genuinely can't solve it.
 - Init order is fixed (`WidgetsFlutterBinding` → URL strategy → orientation lock →
   `AppVersionService.init` → `validateSupabaseConfig` → `Supabase.initialize` →
   `Firebase.initializeApp` [native only] → `DeepLinkService` → `runApp`) — flag any
-  change to this as its own explicit decision, never silent.
+  change to this as its own explicit decision, recorded in
+  `docs/reference/general/AI_DECISIONS.md` and updated in
+  `docs/reference/general/RUNTIME_CONFIG.md`, never silent.
+- Platform parity: `--dart-define` config applies to both native and web; native
+  (iOS/macOS/Android) initializes Firebase and `DeepLinkService`, web does
+  neither; auth flow is PKCE on both. Never blur these — a plan touching
+  platform-conditional code must say explicitly which platform(s) are affected
+  and confirm the other platform's behavior is unchanged.
 - Config is `--dart-define` only; never a `service_role` key or hardcoded credential
   in client code.
 - Supabase: RLS is authoritative, never bypassed client-side; never design an RLS
@@ -33,6 +40,9 @@ existing pattern genuinely can't solve it.
   ACL array, since a `PUBLIC` grant satisfies that check for every role even with no
   explicit named grant.
 - Ordering/data-integrity logic belongs in Supabase RPC, never client-side.
+  Submission flows must be idempotent — serialize cleanly, re-parse cleanly, and
+  produce identical output for identical input; the plan's verification section
+  must say how this is checked for any new/changed submission flow.
 - No opportunistic refactors, renames, or new dependencies — call each out explicitly
   if genuinely required.
 
@@ -71,8 +81,11 @@ existing pattern genuinely can't solve it.
     already exists). Don't proceed if the tree has unrelated uncommitted changes.
 
 **Stop and report** (no plan) if: input is missing/ambiguous, you can't safely
-diagnose from the code, confidence is LOW with no read-only way to validate, or the
-fix needs an architectural call these guardrails don't cover.
+diagnose from the code, confidence is LOW with no read-only way to validate, the
+fix needs an architectural call these guardrails don't cover, or diagnosis surfaces
+a genuine product/UX design choice with multiple valid answers (not a technical
+one) — describe the concrete options in your stop report, don't pick one on
+Tony's behalf.
 
 Invoked by `manager` with a Feature Input inline. Subagent calls are stateless — your
 final chat message is all the Manager sees. End with

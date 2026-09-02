@@ -53,8 +53,8 @@ Pinned against the models in Tony's Copilot picker as of 2026-09-01
 
 | Agent | Model | Why |
 |---|---|---|
-| architect | Claude Opus 4.7 (27x) | Runs once per feature. A wrong root-cause diagnosis invalidates everything downstream, so this is the one call worth paying up for. |
-| engineer | Claude Sonnet 4.6 (9x) | Can run multiple times per feature (initial + up to 3 QA fix-loops) — strong at code, 3x cheaper than Opus, keeps repeated runs affordable. |
+| architect | Claude Opus 4.7 (27x) | Usually once per feature — can be re-invoked for a fresh diagnosis if the same Issue Category survives 2 QA fix-loop cycles (manager.agent.md step 5). A wrong root-cause diagnosis invalidates everything downstream, so this is the one call worth paying up for even on a re-run. |
+| engineer | Claude Sonnet 4.6 (9x) | Can run multiple times per feature — initial pass plus QA fix-loops, up to roughly 6 cycles total (across engineer/QA and any architect re-diagnosis) before Manager makes a defensible call instead of continuing indefinitely — strong at code, 3x cheaper than Opus, keeps repeated runs affordable. |
 | qa | Claude Sonnet 4.6 (9x) | Also runs multiple times per feature; verification is checklist-driven against `ARCHITECT_PLAN.md`, so precise instruction-following matters more than frontier reasoning here. |
 | manager | Claude Sonnet 4.6 (9x) | Active for the whole session — parsing, dispatching, gate review, commit sequence — cheap-per-call matters most here. |
 
@@ -84,3 +84,13 @@ content-level narrowing is the actual technical backstop for that gap;
 supposed to touch git beyond read-only `status`/`diff`/`branch`. The only
 things standing between a feature request and a merged PR are those two
 layers plus `manager.agent.md`'s own gates.
+
+Separately, a gap with no fix available: `architect` and `qa`'s Copilot tool
+grants (`edit`, `execute`) are broader than their prompts actually use — both
+are instructed to be read-only/report-only (Architect writes only
+`ARCHITECT_PLAN.md`; QA writes only `QA_REPORT.md` and runs only
+read-only/analyzer commands), but VS Code's `.agent.md` frontmatter can't
+scope `edit` down to one file or `execute` down to specific commands. The
+prompt-level Hard rules in each file are the only thing enforcing this —
+there's no platform-level backstop for it, the way `.vscode/settings.json`
+at least partially backstops git commands.

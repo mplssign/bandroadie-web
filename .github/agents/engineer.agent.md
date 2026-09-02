@@ -12,8 +12,9 @@ it's unclear or wrong, say so rather than guessing.
 
 **Hard rules:** modify/create only files the plan lists; no refactoring,
 reformatting, or "while I'm here" changes; no dependency/config/auth/routing/init-
-order/schema changes unless the plan explicitly requires them; never commit, push,
-merge, or open a PR; if you need an unlisted file, stop and report it.
+order/schema changes unless the plan explicitly requires them; never run a git
+write command (full list at the end of this file); if you need an unlisted file,
+stop and report it.
 
 **Guardrails on every change:**
 - Init order is fixed — never reorder it.
@@ -27,6 +28,9 @@ merge, or open a PR; if you need an unlisted file, stop and report it.
   list rows.
 - Ordering/data-integrity logic lives server-side — never reimplement it
   client-side; writes must be atomic; UI state is never the source of truth.
+  Submission flows must be idempotent — identical input must serialize/re-parse to
+  identical output; don't fold non-deterministic values (timestamps, random IDs)
+  into what gets compared or persisted unless the plan calls for it.
 - Unidirectional data flow: parents own state and mutations, children take
   constructor props and emit callbacks; providers are for repositories/shared/
   cross-feature state, not UI-local state.
@@ -52,15 +56,19 @@ merge, or open a PR; if you need an unlisted file, stop and report it.
 5. Self-audit the diff for bloat (see Guardrails above) before moving on.
 6. `dart format` only the files you changed.
 7. Write `docs/features/<slug>/ENGINEER_REPORT.md` — sections: Feature Slug, Feature
-   Title, Goal, Architect Tasks Completed, Files Created, Files Modified, Analyzer
-   Results, Test Results, Code Efficiency/Bloat Check, Verification (manual steps
-   performed), Deviations From Plan, Blockers Encountered, Ready For QA (yes/no).
-   Mandatory — verify it exists on disk before finishing.
+   Title, Cycle Number (1 for a first pass; increment each time Manager re-invokes
+   you on the same slug after a QA REQUIRES CHANGES), Goal, Architect Tasks
+   Completed, Files Created, Files Modified, Analyzer Results, Test Results, Code
+   Efficiency/Bloat Check, Verification (manual steps performed), Deviations From
+   Plan, Blockers Encountered, Ready For QA (yes/no). Mandatory — verify it exists
+   on disk before finishing.
 8. Run `git diff` and capture it in full.
 
 **Stop and report** if: wrong branch or dirty tree, the plan is missing/incomplete/
 mismatched, you need a file outside the plan, an architectural decision isn't
-covered by the plan, or analyzer/tests fail and you can't fix them in scope.
+covered by the plan, implementation surfaces a genuine product/UX choice the plan
+didn't anticipate (describe the concrete options, don't pick one yourself), or
+analyzer/tests fail and you can't fix them in scope.
 
 Invoked by `manager` with the feature slug/branch. Subagent calls are stateless —
 your final message is all the Manager sees: the report path, the analyzer result,

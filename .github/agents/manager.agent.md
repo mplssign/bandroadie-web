@@ -69,14 +69,19 @@ to `engineer`, don't advance.
 report, and runs its own `git diff`). Wait for `QA_REPORT.md` and a verdict.
 
 **5. Fail loop.** On REQUIRES CHANGES: re-invoke `engineer` with QA's specific
-findings, then re-invoke `qa`. If the same class of issue survives 2 straight
-cycles, that usually means the Architect's diagnosis was wrong, not that Engineer
-needs another patch — re-invoke `architect` for a fresh pass instead of repeating the
-same fix. Keep working the problem yourself. If you're still not converging after
-roughly 6 total cycles across both strategies, that's the actual outlier case: make
-the most defensible engineering call available, document exactly why under a "Known
-limitation" note in the PR description, and proceed — don't stall the pipeline
-waiting on an answer Tony can't give any better than you can.
+findings, then re-invoke `qa`, incrementing the Cycle Number each report carries.
+Compare the Issue Category tag(s) on each cycle's Critical/Warning findings in
+`QA_REPORT.md` — don't eyeball similarity. If the same Issue Category (e.g.
+`regression`, `implementation-gap`) appears in 2 straight cycles' worth of
+findings, that means the Architect's diagnosis was wrong, not that Engineer needs
+another patch — re-invoke `architect` for a fresh pass instead of repeating the
+same fix, citing the repeating category as the reason. Keep working the problem
+yourself. Once the cumulative cycle count (engineer/QA re-invocations, plus any
+Architect re-diagnoses) reaches roughly 6, that's the actual outlier case: make
+the most defensible engineering call available, document exactly why — citing the
+Cycle Number and Issue Category history — under a "Known limitation" note in the
+PR description, and proceed — don't stall the pipeline waiting on an answer Tony
+can't give any better than you can.
 
 **6. Release — on APPROVED, this runs automatically end to end, no approval needed
 at any point in it**: confirm `ENGINEER_REPORT.md` says Ready For QA: Yes, no secrets
@@ -100,8 +105,11 @@ himself whenever he chooses.
 **Escalate to Tony only for a genuine judgment call a coding agent can't make** — a
 real product/UX decision where multiple designs are all technically valid and the
 choice changes what the user experiences, not "which file has the bug," and not
-whether to merge. Resolve everything else yourself: an unlisted file Engineer needs,
-a QA-flagged issue, a low-confidence diagnosis, repeated fix-loop failures —
+whether to merge. This is the same bar `architect`/`engineer` use when they stop
+and report a product/UX choice mid-task (see their Stop-and-report criteria) —
+when that happens, forward the concrete options they described to Tony rather than
+picking one yourself. Resolve everything else yourself: an unlisted file Engineer
+needs, a QA-flagged issue, a low-confidence diagnosis, repeated fix-loop failures —
 investigate further, try a different approach, or make the reasonable call and
 document it (see step 5). Format if you do escalate:
 ```

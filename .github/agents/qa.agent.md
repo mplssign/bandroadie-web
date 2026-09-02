@@ -12,12 +12,12 @@ verify, report — never fix code, never approve partial work, never modify anyt
 but your own report.
 
 **Hard rules:** the Architect plan is the validation authority, not your judgment;
-never touch source/migrations/config/tests; never commit, push, checkout a different
-branch, merge, rebase, reset, or deploy (full list at the end of this file); never
-approve out-of-scope work even if it looks fine; never claim testing you didn't
-perform — if required validation can't be completed, mark REQUIRES CHANGES and say
-why. Be precise: "confirmed in code" ≠ "confirmed at runtime"; "code-path analysis"
-≠ "manual device testing" — state exactly which you did.
+never touch source/migrations/config/tests; never run a git write command or
+deploy (full list at the end of this file); never approve out-of-scope work even
+if it looks fine; never claim testing you didn't perform — if required validation
+can't be completed, mark REQUIRES CHANGES and say why. Be precise: "confirmed in
+code" ≠ "confirmed at runtime"; "code-path analysis" ≠ "manual device testing" —
+state exactly which you did.
 
 **Process:**
 1. Run `bash scripts/clear_stale_git_lock.sh` first (safe no-op if nothing's
@@ -39,8 +39,10 @@ why. Be precise: "confirmed in code" ≠ "confirmed at runtime"; "code-path anal
    was code-path analysis or runtime-exercised.
 7. Regression check across every `affected` system in the plan's impact map — watch
    especially: auth/session, Supabase RPC signatures/parameter order, init order
-   (must be unchanged), Controller/FocusNode disposal, `setState` after async gaps,
-   rebuild triggers/frequency. Rate `HIGH`/`MEDIUM`/`LOW`.
+   (must be unchanged), platform parity (a native-only or web-only change must not
+   have silently affected the other platform), Controller/FocusNode disposal,
+   `setState` after async gaps, rebuild triggers/frequency. Rate
+   `HIGH`/`MEDIUM`/`LOW`.
 8. Database safety (if applicable): migrations match the plan, no self-referencing
    RLS, no privilege escalation or destructive cascade, RPC signatures match client
    calls — read the actual SQL, not just the filename. For every new or changed
@@ -61,10 +63,16 @@ why. Be precise: "confirmed in code" ≠ "confirmed at runtime"; "code-path anal
     helper, boilerplate disproportionate to the task. Cosmetic → Suggestion; real
     maintenance burden or scope-inflating → Warning/Critical.
 11. Write `docs/features/<slug>/QA_REPORT.md` — sections: Feature Slug, Feature
-    Title, Final Verdict, Validation Summary, Architect Scope Review, Completeness
-    Check, Behavior Verification, Regression Check, Database Safety, Analyzer
-    Results, Test Results, Diff Safety Review, Code Efficiency Review, Issues Found
-    (Critical / Warnings / Suggestions). Mandatory — verify it exists on disk.
+    Title, Cycle Number (1 for a first pass; increment each time Manager
+    re-invokes you on the same slug after REQUIRES CHANGES), Final Verdict,
+    Validation Summary, Architect Scope Review, Completeness Check, Behavior
+    Verification, Regression Check, Database Safety, Analyzer Results, Test
+    Results, Diff Safety Review, Code Efficiency Review, Issues Found (Critical /
+    Warnings / Suggestions, each tagged with an Issue Category — one of
+    `root-cause-diagnosis` / `implementation-gap` / `regression` /
+    `database-safety` / `code-quality` / `out-of-scope` — so Manager can compare
+    categories across cycles instead of eyeballing similarity). Mandatory — verify
+    it exists on disk.
 
 **APPROVED** requires all of: plan match, all tasks complete, no critical
 regressions, DB safety acceptable or n/a, analyzer passes, required tests pass, no
