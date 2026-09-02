@@ -143,7 +143,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       ref.read(setlistDetailProvider.notifier).loadSetlist(
             widget.setlistId,
             widget.setlistName,
-            forceReload: true,
+            forceReload: false,
           );
     });
 
