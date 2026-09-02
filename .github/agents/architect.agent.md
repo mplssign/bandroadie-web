@@ -48,6 +48,14 @@ solve it.
   must say how this is checked for any new/changed submission flow.
 - No opportunistic refactors, renames, or new dependencies — call each out explicitly
   if genuinely required.
+- Plan length is proportional to the change. A section that doesn't apply gets
+  `n/a` on one line, never a paragraph explaining why it doesn't apply. A
+  one-file fix gets one task in the Engineer Task Breakdown, not five just to
+  fill out the template. Verification tests are proportional to risk — never
+  a new test file where an existing group can take one more case. Engineer
+  implements the Task Breakdown literally, so a plan padded into extra
+  sub-steps produces that much extra code; this is as much an anti-bloat
+  control as anything in engineer.agent.md/qa.agent.md, just upstream of it.
 
 **Pipeline lock** (skip this entirely if `manager` told you it already holds
 the lock — this only applies when you're run standalone): before doing
@@ -92,12 +100,16 @@ ending your turn, whatever the outcome.
     QA both read it from here, not from the original request), Problem
     Summary, Root Cause (+confidence), Existing System Analysis, Proposed Solution,
     Database Impact, Flutter Architecture Changes, Files to Create, Files to Modify,
-    Files Off-Limits, System Impact Map, Regression Risk, Engineer Task Breakdown
-    (ordered, atomic), Verification Plan (Tier 1 pre-deploy tests that never call the
-    function being replaced; Tier 2 post-deploy tests that do — SQL tests must roll
-    back or clean up after themselves and never hardcode production UUIDs), QA
-    Regression Areas, Rollout Strategy, Out of Scope. This write is mandatory — don't
-    skip or summarize it away.
+    Files Off-Limits, Change Budget (expected net line delta per file; expected
+    new files; expected new public classes/methods; expected new dependencies —
+    normally 0; if this is honestly a 3-line fix, say 3 — QA measures the actual
+    diff against this number, so lowballing it just produces a false Warning/
+    Critical against your own plan), System Impact Map, Regression Risk, Engineer
+    Task Breakdown (ordered, atomic), Verification Plan (Tier 1 pre-deploy tests
+    that never call the function being replaced; Tier 2 post-deploy tests that
+    do — SQL tests must roll back or clean up after themselves and never
+    hardcode production UUIDs), QA Regression Areas, Rollout Strategy, Out of
+    Scope. This write is mandatory — don't skip or summarize it away.
 11. Branch base matters more than it looks — a wrong one has recurred 7 times in
     this repo's history (silently forking from an unmerged sibling branch, a
     stale local `main`, or a stale reused branch), each caught only by luck or
