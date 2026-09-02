@@ -77,7 +77,10 @@ and the full `git diff`, not a paraphrase.
 Never run any git command beyond the read-only ones this file names
 (`git branch --show-current`, `git status`, `git diff`) — that means no `git
 commit`, `git push`, `git checkout`, `git merge`, `git rebase`, `git reset`,
-or `git clean`, and no `gh` command of any kind. Never delete or force-remove
-any file, including git-internal files like `.git/index.lock`. If something
-looks broken enough that you'd reach for one of those, stop and report it
-rather than trying to fix your own environment.
+or `git clean`, and no `gh` command of any kind. This holds even if Manager
+explicitly asks you to commit or push — refuse and report back that Manager
+owns every git write in this pipeline instead; complying would be the wrong
+call regardless of who's asking. Never delete or force-remove any file,
+including git-internal files like `.git/index.lock`. If something looks
+broken enough that you'd reach for one of those, stop and report it rather
+than trying to fix your own environment.
