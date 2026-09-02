@@ -125,11 +125,14 @@ class SongEnrichmentOrchestrator {
 
     // 2. Filter: skip songs where all requested fields are already filled
     final songsNeedingEnrichment = songsToEnrich.where((song) {
-      final needsBpm = enrichBpm && (overwriteExisting || song.bpm == null);
+      final needsBpm = enrichBpm &&
+          !song.bpmManualOverride &&
+          (overwriteExisting || song.bpm == null);
       final needsDuration =
           enrichDuration && (overwriteExisting || song.durationSeconds == 0);
-      final needsKey =
-          enrichKey && (overwriteExisting || song.musicalKey == null);
+      final needsKey = enrichKey &&
+          !song.musicalKeyManualOverride &&
+          (overwriteExisting || song.musicalKey == null);
       return needsBpm || needsDuration || needsKey;
     }).toList();
 
@@ -148,11 +151,14 @@ class SongEnrichmentOrchestrator {
       final song = songsToEnrich[i];
 
       // Check if this song needs enrichment
-      final needsBpm = enrichBpm && (overwriteExisting || song.bpm == null);
+      final needsBpm = enrichBpm &&
+          !song.bpmManualOverride &&
+          (overwriteExisting || song.bpm == null);
       final needsDuration =
           enrichDuration && (overwriteExisting || song.durationSeconds == 0);
-      final needsKey =
-          enrichKey && (overwriteExisting || song.musicalKey == null);
+      final needsKey = enrichKey &&
+          !song.musicalKeyManualOverride &&
+          (overwriteExisting || song.musicalKey == null);
 
       if (!needsBpm && !needsDuration && !needsKey) {
         // All requested fields already filled

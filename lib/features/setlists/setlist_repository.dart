@@ -3441,7 +3441,9 @@ class SetlistRepository {
             notes,
             youtube_links,
             lyrics,
-            musical_key
+            musical_key,
+            bpm_manual_override,
+            musical_key_manual_override
           ''').eq('band_id', bandId).order('title', ascending: true);
 
       if (kDebugMode) {

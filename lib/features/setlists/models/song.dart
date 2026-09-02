@@ -18,6 +18,8 @@ class Song {
   final String? notes;
   final String? youtubeLinks; // JSON string of YouTube links
   final String? lyrics; // JSON string of LyricsData
+  final bool bpmManualOverride;
+  final bool musicalKeyManualOverride;
 
   const Song({
     required this.id,
@@ -34,6 +36,8 @@ class Song {
     this.notes,
     this.youtubeLinks,
     this.lyrics,
+    this.bpmManualOverride = false,
+    this.musicalKeyManualOverride = false,
   });
 
   /// Duration as Dart Duration object
@@ -70,6 +74,9 @@ class Song {
       notes: json['notes'] as String?,
       youtubeLinks: json['youtube_links'] as String?,
       lyrics: json['lyrics'] as String?,
+      bpmManualOverride: json['bpm_manual_override'] as bool? ?? false,
+      musicalKeyManualOverride:
+          json['musical_key_manual_override'] as bool? ?? false,
     );
   }
 }
