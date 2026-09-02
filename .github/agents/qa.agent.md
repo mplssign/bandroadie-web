@@ -101,21 +101,62 @@ ending your turn, whatever the outcome.
    outside this pipeline, and your APPROVED verdict is what he relies on when
    he does — if you didn't actually confirm the apply succeeded, don't imply
    you did.
-9. Run `flutter analyze` (0 errors, no new warnings); run `flutter test` only if the
-   plan requires it, the Engineer ran it, or the area has coverage.
-10. Diff safety: secrets/API keys (automatic REQUIRES CHANGES), debug artifacts,
-    leftover test scaffolding, accidental deletions, unrelated churn. **AI-bloat
-    pass** (the analyzer won't catch this): dead code/unused imports-vars-params,
-    comments restating the line below, single-call-site wrapper abstractions,
-    defensive checks for impossible cases, logic that should reuse an existing
-    helper, boilerplate disproportionate to the task. Cosmetic → Suggestion; real
-    maintenance burden or scope-inflating → Warning/Critical.
-11. Write `docs/features/<slug>/QA_REPORT.md` — sections: Feature Slug, Feature
+9. Run `flutter analyze`, filtered to the files in the diff — it must come back
+   empty at every severity, not just 0 errors (`analysis_options.yaml` promotes
+   the lints most AI-generated slop trips to error; the remaining info-level
+   ones matter here too). A pre-existing violation in a file the diff doesn't
+   touch doesn't block; one in a file the diff does touch does. Run
+   `flutter test` only if the plan requires it, the Engineer ran it, or the
+   area has coverage.
+10. Diff safety: secrets/API keys (automatic REQUIRES CHANGES); `TODO`/`FIXME`/
+    `debugPrint(` anywhere in the diff (automatic Critical — grep for it, don't
+    rely on noticing it while reading); leftover test scaffolding, accidental
+    deletions, unrelated churn.
+11. Change budget & bloat — the analyzer now handles unused
+    imports/vars/dead-code/missing-`mounted`-guards/undisposed-streams at error
+    severity, so this step is about what it can't see:
+    - Compare `git diff --numstat` against the plan's Change Budget section:
+      within ~1.5x → note actual vs. budget and move on; >1.5x → Warning
+      (`code-quality`) naming the specific excess; >2x, or any new file/public
+      class/dependency the budget didn't list → Critical. This is what makes a
+      bloat verdict arithmetic instead of a vibe.
+    - For every new symbol in the diff (helper, extension, util, private widget
+      class), independently grep `lib/` for a pre-existing equivalent — don't
+      take Engineer's "no existing helper" note on faith, and don't skip this
+      because Engineer already claims to have looked.
+    - AI-shaped code, judgment calls a lint can't make: a single-use `_buildX()`
+      method or private widget that should be inlined (or, if reused, should be
+      a real `const`-capable widget class instead of a method); a new
+      provider/notifier for state one widget owns; a `FutureBuilder`/
+      `StreamBuilder` re-fetching what a provider above already supplies;
+      hand-rolled first-match/grouping/dedupe loops `package:collection`
+      already provides; `try/catch` that logs and rethrows unchanged, or
+      catches what the call can't throw; a new field/parameter/`copyWith`
+      entry nothing reads; a barrel file for under ~5 exports; config/flags/
+      enum cases added "for future use" the plan didn't ask for; comments
+      restating the line below; a single-call-site wrapper abstraction.
+      Cosmetic → Suggestion; real maintenance burden or scope-inflating →
+      Warning/Critical.
+    - A bug fix with zero deleted lines (`git diff --numstat` shows 0 in the
+      deletions column) → Warning by default, unless `ENGINEER_REPORT.md`
+      states why nothing needed removing (e.g. the bug really was a missing
+      check). No stated reason → the Warning stands.
+    - A file over its size target with no one-line justification in
+      `ENGINEER_REPORT.md` → Warning; the target existing does nothing if
+      nobody has to explain crossing it.
+    - Findings from this step go in the same `QA_REPORT.md` as everything
+      else and ride whatever fail-loop cycle is already running — a
+      bloat-only Warning/Critical never justifies invoking Engineer a second
+      time on its own; batch it with real issues or, if it's the only issue,
+      treat it exactly like any other Critical/Warning under the verdict
+      rules below, no differently.
+12. Write `docs/features/<slug>/QA_REPORT.md` — sections: Feature Slug, Feature
     Title, Cycle Number (1 for a first pass; increment each time Manager
     re-invokes you on the same slug after REQUIRES CHANGES), Final Verdict,
     Validation Summary, Architect Scope Review, Completeness Check, Behavior
     Verification, Regression Check, Database Safety, Analyzer Results, Test
-    Results, Diff Safety Review, Code Efficiency Review, Issues Found (Critical /
+    Results, Diff Safety Review, Change Budget Review, Code Efficiency Review,
+    Issues Found (Critical /
     Warnings / Suggestions, each tagged with an Issue Category — one of
     `root-cause-diagnosis` / `implementation-gap` / `regression` /
     `database-safety` / `code-quality` / `out-of-scope` — so Manager can compare

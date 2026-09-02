@@ -285,6 +285,9 @@ class EventFormData {
   /// Maps DateTime -> record.id for additional dates that already exist in DB.
   final Map<DateTime, String> existingGigDateIds;
 
+  /// Shared contact IDs linked to a gig.
+  final List<String> contactIds;
+
   // Setlist fields (optional for both gigs and rehearsals)
   final String? setlistId;
   final String? setlistName; // For gigs - stores the name for display
@@ -334,6 +337,7 @@ class EventFormData {
     this.selectedMemberIds = const {},
     this.additionalDates = const <AdditionalDateEntry>[],
     this.existingGigDateIds = const {},
+    this.contactIds = const <String>[],
     this.setlistId,
     this.setlistName,
     this.gigPayCents,
@@ -476,6 +480,7 @@ class EventFormData {
     Set<String>? selectedMemberIds,
     List<AdditionalDateEntry>? additionalDates,
     Map<DateTime, String>? existingGigDateIds,
+    List<String>? contactIds,
     String? setlistId,
     String? setlistName,
     int? gigPayCents,
@@ -504,6 +509,7 @@ class EventFormData {
       selectedMemberIds: selectedMemberIds ?? this.selectedMemberIds,
       additionalDates: additionalDates ?? this.additionalDates,
       existingGigDateIds: existingGigDateIds ?? this.existingGigDateIds,
+      contactIds: contactIds ?? this.contactIds,
       setlistId: clearSetlist ? null : (setlistId ?? this.setlistId),
       setlistName: clearSetlist ? null : (setlistName ?? this.setlistName),
       gigPayCents: clearGigPay ? null : (gigPayCents ?? this.gigPayCents),
@@ -578,8 +584,6 @@ class EventFormData {
       location: gig.location,
       notes: gig.notes,
       name: gig.name,
-      isRecurring: false,
-      recurrence: null,
       loadInHour: loadInHour,
       loadInMinutes: loadInMinutes,
       loadInIsPM: loadInIsPM,
@@ -597,10 +601,10 @@ class EventFormData {
         );
       }).toList(),
       existingGigDateIds: gig.additionalDateIds,
+      contactIds: gig.contacts.map((contact) => contact.id).toList(),
       setlistId: gig.setlistId,
       setlistName: gig.setlistName,
       gigPayCents: gig.gigPayCents,
-      gigPayDetails: null, // lazily fetched when user taps Gig Pay button
       venueId: gig.venueId,
       address: gig.address,
       state: gig.state,
@@ -637,11 +641,9 @@ class EventFormData {
       duration: duration,
       location: rehearsal.location,
       notes: rehearsal.notes,
-      name: null,
       isRecurring: rehearsal.isRecurring,
       recurrence: recurrence,
       isPotentialGig: rehearsal.isPotential,
-      selectedMemberIds: const {},
       additionalDates: rehearsal.additionalDates.map((d) {
         final timeStr = d.startTime ?? rehearsal.startTime;
         final t = _parseTime(timeStr);
@@ -654,7 +656,6 @@ class EventFormData {
       }).toList(),
       existingGigDateIds: rehearsal.additionalDateIds,
       setlistId: rehearsal.setlistId,
-      setlistName: null, // Rehearsals don't store setlist name
       parentRehearsalId: rehearsal.parentRehearsalId,
     );
   }
@@ -679,12 +680,6 @@ class EventFormData {
       location: event.location,
       notes: event.notes,
       name: event.title,
-      isRecurring: false,
-      recurrence: null,
-      isPotentialGig: false,
-      selectedMemberIds: const {},
-      setlistId: null,
-      setlistName: null,
     );
   }
 }

@@ -35,13 +35,46 @@ production as a workaround, even temporarily.
 - Unidirectional data flow: parents own state and mutations, children take
   constructor props and emit callbacks; providers are for repositories/shared/
   cross-feature state, not UI-local state.
-- File size targets (warning, not a hard stop): Dart files 500 lines, container
-  widgets 350, feature widgets 400, helper widgets 200.
-- **No AI-generated bloat** — before finishing, re-read every changed hunk and strip:
-  unused imports/vars/params, dead or unreachable code, comments that just restate
-  the line beneath them, one-off wrapper abstractions for a single call site,
-  defensive null-checks/try-catch around cases that can't occur, and duplicated logic
-  that should reuse an existing helper.
+- File size targets: Dart files 500 lines, container widgets 350, feature
+  widgets 400, helper widgets 200. Not a hard stop, but not decoration either —
+  exceeding one requires a one-line justification in `ENGINEER_REPORT.md`
+  (Code Efficiency/Bloat Check section); QA verifies that line exists.
+- **Before adding any new helper, extension, util, or private widget class**:
+  search `lib/` for an existing equivalent first, by behavior and by likely
+  name. Reuse beats creating. Record the search in `ENGINEER_REPORT.md`: "no
+  existing helper for X" is a finding; not having looked is not.
+- **No AI-shaped code** — `flutter analyze` now catches unused
+  imports/vars/dead code/missing `mounted` guards/undisposed
+  streams/subscriptions at error severity (see `analysis_options.yaml`), so
+  don't re-derive those by eye. Re-read every changed hunk instead for what a
+  linter can't see:
+  - A `_buildX()` method or private `_Foo` widget used exactly once — inline
+    it. One used more than once should be a real widget class, not a method:
+    a method can't be `const` and rebuilds with its parent.
+  - A new provider/notifier for state a single widget owns.
+  - A `FutureBuilder`/`StreamBuilder` re-fetching what a provider above
+    already supplies.
+  - Hand-rolled first-match-or-null, grouping, or dedupe loops where
+    `package:collection` already has it.
+  - `try/catch` that logs and rethrows unchanged, or catches what the call
+    can't throw.
+  - A new model field, parameter, or `copyWith` entry nothing reads.
+  - A barrel file for fewer than ~5 exports.
+  - Config, flags, or enum cases added "for future use" that the plan didn't
+    ask for.
+  - Comments restating the line below; doc comments on one-line private
+    helpers; a one-off wrapper abstraction for a single call site.
+  - `TODO`/`FIXME`/`debugPrint(` left in the diff.
+  - A bug fix with zero deleted lines — a genuine root-cause fix usually
+    removes or replaces the defective code, so pure addition often means the
+    fix was layered on top of the bug. If that's genuinely correct here (the
+    bug really was a missing check, not a wrong existing one), say so in one
+    line in `ENGINEER_REPORT.md` instead of leaving QA to wonder.
+  Run `dart fix --dry-run` before this read-through — it's a whole-package,
+  read-only preview, so review its suggestions but apply only the ones
+  inside files the plan lists yourself; never run `dart fix --apply`
+  unscoped, since it rewrites the whole package and would touch files
+  outside the plan without you noticing.
 
 **Pipeline lock** (skip this entirely if `manager` told you it already holds
 the lock — this only applies when you're run standalone): before doing
@@ -71,9 +104,14 @@ ending your turn, whatever the outcome.
 2. Read `docs/features/<slug>/ARCHITECT_PLAN.md` in full (read-only); confirm its
    Feature Slug matches your branch.
 3. Implement the task breakdown in order, staying inside the listed files.
-4. Run `flutter analyze` — 0 errors, no new warnings. Run `flutter test` only if the
-   plan requires it or the changed area has coverage. Fix only errors your change
-   caused; if you can't without exceeding scope, stop and report.
+4. Run `flutter analyze`, filtered to the files you changed — it must come back
+   empty at every severity (not just 0 errors; `analysis_options.yaml` now
+   promotes the lints most AI-generated slop trips to error, and the info-level
+   ones matter here too). Pre-existing violations in files you didn't touch
+   don't block you; a pre-existing violation in a file you did touch does —
+   fix it if it's trivial, or report it if fixing it would exceed scope. Run
+   `flutter test` only if the plan requires it or the changed area has
+   coverage.
 5. Self-audit the diff for bloat (see Guardrails above) before moving on.
 6. `dart format` only the files you changed.
 7. Write `docs/features/<slug>/ENGINEER_REPORT.md` — sections: Feature Slug, Feature

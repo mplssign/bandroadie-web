@@ -6,18 +6,343 @@ import 'package:forui/forui.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/field_hint.dart';
+import '../../../shared/utils/snackbar_helper.dart';
+import '../../contacts/contacts_controller.dart';
 import '../../financials/models/financial_entry.dart';
 import '../../members/member_vm.dart';
 import '../../members/members_controller.dart';
+import '../../contacts/models/contact.dart';
+import '../../contacts/widgets/title_pill_selector.dart';
 import '../models/event_form_data.dart';
 import 'gig_expense_subview.dart';
 import 'button_group_grid.dart';
 import 'event_editor_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+
+class GigContactRowsController {
+  GigContactRowsController({required this.onRowBlur});
+
+  final ValueChanged<int> onRowBlur;
+  final List<FAutocompleteController> controllers = [];
+  final List<FocusNode> focusNodes = [];
+  final List<String?> _resolvedContactIds = [];
+
+  bool get isEmpty => controllers.isEmpty;
+  int get length => controllers.length;
+
+  String? resolvedContactIdAt(int index) {
+    if (index < 0 || index >= _resolvedContactIds.length) return null;
+    return _resolvedContactIds[index];
+  }
+
+  String rowTextAt(int index) {
+    if (index < 0 || index >= controllers.length) return '';
+    return controllers[index].text;
+  }
+
+  void setResolvedContactId(int index, String? contactId) {
+    if (index < 0 || index >= _resolvedContactIds.length) return;
+    _resolvedContactIds[index] = contactId;
+  }
+
+  void setRowText(int index, String text) {
+    if (index < 0 || index >= controllers.length) return;
+    controllers[index].text = text;
+  }
+
+  void selectContact(int index, Contact contact) {
+    if (index < 0 || index >= controllers.length) return;
+    controllers[index].text = contact.name;
+    _resolvedContactIds[index] = contact.id;
+  }
+
+  void dispose() {
+    for (final focusNode in focusNodes) {
+      focusNode.unfocus();
+      focusNode.dispose();
+    }
+    for (final controller in controllers) {
+      controller.dispose();
+    }
+  }
+
+  void replaceRows(List<Contact> contacts) {
+    dispose();
+    focusNodes.clear();
+    controllers.clear();
+    _resolvedContactIds.clear();
+
+    for (final contact in contacts) {
+      addRow(contact: contact);
+    }
+  }
+
+  void addRow({Contact? contact}) {
+    final controller = FAutocompleteController(text: contact?.name ?? '');
+    final focusNode = FocusNode();
+
+    focusNode.addListener(() {
+      if (!focusNode.hasFocus) {
+        final index = focusNodes.indexOf(focusNode);
+        if (index != -1) {
+          onRowBlur(index);
+        }
+      }
+    });
+
+    controllers.add(controller);
+    focusNodes.add(focusNode);
+    _resolvedContactIds.add(contact?.id);
+  }
+
+  bool removeRow(int index) {
+    if (index < 0 || index >= controllers.length) return false;
+
+    final controller = controllers.removeAt(index);
+    final focusNode = focusNodes.removeAt(index);
+    _resolvedContactIds.removeAt(index);
+
+    focusNode.unfocus();
+    focusNode.dispose();
+    controller.dispose();
+    return true;
+  }
+
+  Contact? findContactByName(String name, List<Contact> availableContacts) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return null;
+
+    for (final contact in availableContacts) {
+      if (contact.name.trim().toLowerCase() == trimmed.toLowerCase()) {
+        return contact;
+      }
+    }
+    return null;
+  }
+
+  Contact? resolvedContactForRow(int index, List<Contact> availableContacts) {
+    final resolvedId = resolvedContactIdAt(index);
+    if (resolvedId == null) return null;
+
+    for (final contact in availableContacts) {
+      if (contact.id == resolvedId) {
+        return contact;
+      }
+    }
+    return null;
+  }
+
+  bool isRowResolved(int index, List<Contact> availableContacts) {
+    if (index < 0 || index >= controllers.length) return true;
+
+    final text = controllers[index].text.trim();
+    if (text.isEmpty) return true;
+
+    final resolvedContact = resolvedContactForRow(index, availableContacts);
+    if (resolvedContact == null) return false;
+
+    return resolvedContact.name.trim().toLowerCase() == text.toLowerCase();
+  }
+
+  static Future<Contact?> showCreateDialog(
+    BuildContext context, {
+    required WidgetRef ref,
+    required String bandId,
+    required String initialName,
+    required bool isSaving,
+  }) async {
+    final nameController = TextEditingController(text: initialName);
+    final companyController = TextEditingController();
+    final phoneController = TextEditingController();
+    final emailController = TextEditingController();
+    final notesController = TextEditingController();
+    final nameFocusNode = FocusNode();
+    final companyFocusNode = FocusNode();
+    final phoneFocusNode = FocusNode();
+    final emailFocusNode = FocusNode();
+    final notesFocusNode = FocusNode();
+    String? selectedTitle;
+
+    try {
+      final draft = await showAppDialog<Map<String, String?>>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              final trimmedName = nameController.text.trim();
+
+              return FDialog(
+                builder: (dialogContext, style) => Container(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  decoration: BoxDecoration(
+                    color: dialogContext.colors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(Spacing.pagePadding),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '"$initialName" is not in your contacts list',
+                          style: AppTextStyles.title3.copyWith(
+                            color: dialogContext.colors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: Spacing.space8),
+                        Text(
+                          'Add it as a shared band contact for this gig.',
+                          style: AppTextStyles.callout.copyWith(
+                            color: dialogContext.colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                        AppTextField(
+                          controller: nameController,
+                          focusNode: nameFocusNode,
+                          labelText: 'Name *',
+                          enabled: !isSaving,
+                          onChanged: (_) => setDialogState(() {}),
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                        Text(
+                          'Title',
+                          style: AppTextStyles.footnote.copyWith(
+                            color: dialogContext.colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: Spacing.space8),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              right: -Spacing.pagePadding),
+                          child: TitlePillSelector(
+                            selectedTitle: selectedTitle,
+                            onChanged: (title) =>
+                                setDialogState(() => selectedTitle = title),
+                          ),
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                        AppTextField(
+                          controller: companyController,
+                          focusNode: companyFocusNode,
+                          labelText: 'Company',
+                          enabled: !isSaving,
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                        AppTextField(
+                          controller: phoneController,
+                          focusNode: phoneFocusNode,
+                          labelText: 'Phone',
+                          keyboardType: TextInputType.phone,
+                          enabled: !isSaving,
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                        AppTextField(
+                          controller: emailController,
+                          focusNode: emailFocusNode,
+                          labelText: 'Email',
+                          keyboardType: TextInputType.emailAddress,
+                          enabled: !isSaving,
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                        AppTextField(
+                          controller: notesController,
+                          focusNode: notesFocusNode,
+                          labelText: 'Notes',
+                          maxLines: 3,
+                          enabled: !isSaving,
+                        ),
+                        const SizedBox(height: Spacing.space20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              child: Text(
+                                'Cancel',
+                                style: AppTextStyles.calloutEmphasized.copyWith(
+                                  color: dialogContext.colors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: Spacing.space8),
+                            TextButton(
+                              onPressed: trimmedName.isEmpty
+                                  ? null
+                                  : () => Navigator.of(dialogContext).pop({
+                                        'name': trimmedName,
+                                        'title': selectedTitle,
+                                        'company':
+                                            companyController.text.trim(),
+                                        'phone': phoneController.text.trim(),
+                                        'email': emailController.text.trim(),
+                                        'notes': notesController.text.trim(),
+                                      }),
+                              child: Text(
+                                'Create Contact',
+                                style: AppTextStyles.calloutEmphasized.copyWith(
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+
+      if (draft == null) {
+        return null;
+      }
+
+      final contact = await ref.read(contactsProvider.notifier).create(
+        bandId: bandId,
+        data: {
+          'name': draft['name'],
+          'title': draft['title'],
+          'company':
+              (draft['company']?.isEmpty ?? true) ? null : draft['company'],
+          'phone': (draft['phone']?.isEmpty ?? true) ? null : draft['phone'],
+          'email': (draft['email']?.isEmpty ?? true) ? null : draft['email'],
+          'notes': (draft['notes']?.isEmpty ?? true) ? null : draft['notes'],
+        },
+      );
+
+      if (contact == null && context.mounted) {
+        showErrorSnackBar(
+          context,
+          message: 'Couldn\'t add that contact right now.',
+        );
+      }
+
+      return contact;
+    } finally {
+      nameController.dispose();
+      companyController.dispose();
+      phoneController.dispose();
+      emailController.dispose();
+      notesController.dispose();
+      nameFocusNode.dispose();
+      companyFocusNode.dispose();
+      phoneFocusNode.dispose();
+      emailFocusNode.dispose();
+      notesFocusNode.dispose();
+    }
+  }
+}
 
 /// Gig-specific form fields: venue name autocomplete, city autocomplete,
 /// potential-gig toggle with member availability, load-in time, and gig pay.
@@ -27,6 +352,16 @@ class GigFormFields extends ConsumerWidget {
     required this.isSaving,
     required this.isEditMode,
     required this.existingEventId,
+    required this.availableContacts,
+    required this.isLoadingContacts,
+    required this.contactAutocompleteControllers,
+    required this.contactFocusNodes,
+    required this.onAddContact,
+    required this.onRemoveContact,
+    required this.onContactTextChanged,
+    required this.onContactSelected,
+    required this.onContactEditingComplete,
+    required this.onContactSubmitted,
     // Gig name autocomplete
     required this.gigNameAutocompleteController,
     required this.venueHintController,
@@ -91,6 +426,18 @@ class GigFormFields extends ConsumerWidget {
   final bool isSaving;
   final bool isEditMode;
   final String? existingEventId;
+
+  // --- Gig contacts ---
+  final List<Contact> availableContacts;
+  final bool isLoadingContacts;
+  final List<FAutocompleteController> contactAutocompleteControllers;
+  final List<FocusNode> contactFocusNodes;
+  final VoidCallback onAddContact;
+  final ValueChanged<int> onRemoveContact;
+  final void Function(int index, String text) onContactTextChanged;
+  final void Function(int index, Contact contact) onContactSelected;
+  final ValueChanged<int> onContactEditingComplete;
+  final void Function(int index, String text) onContactSubmitted;
 
   // --- Gig name autocomplete ---
   final FAutocompleteController gigNameAutocompleteController;
@@ -238,6 +585,11 @@ class GigFormFields extends ConsumerWidget {
   /// Builds the load-in time selector (called from parent build method).
   Widget buildLoadInTimeSelector(BuildContext context) {
     return _buildLoadInTimeSelector(context);
+  }
+
+  /// Builds the repeatable gig contacts section.
+  Widget buildContactsSection(BuildContext context) {
+    return _buildContactsSection(context);
   }
 
   /// Builds the gig pay button (called from parent build method).
@@ -524,8 +876,7 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.sentences,
           forceErrorText: hasError ? errorText : null,
-          contextMenuBuilder: (context, state) =>
-              _adaptiveTextSelectionToolbar(context, state),
+          contextMenuBuilder: _adaptiveTextSelectionToolbar,
           onItemPress: (selection) {
             onGigNameSelected(selection);
             onMarkDirty();
@@ -575,8 +926,7 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.sentences,
           forceErrorText: hasError ? errorText : null,
-          contextMenuBuilder: (context, state) =>
-              _adaptiveTextSelectionToolbar(context, state),
+          contextMenuBuilder: _adaptiveTextSelectionToolbar,
           onItemPress: (selection) {
             onMarkDirty();
           },
@@ -744,9 +1094,7 @@ class GigFormFields extends ConsumerWidget {
               child: SizedBox(
                 width: 24,
                 height: 24,
-                child: AppProgressIndicator(
-                  type: ProgressIndicatorType.circular,
-                ),
+                child: AppProgressIndicator(),
               ),
             ),
           )
@@ -774,8 +1122,6 @@ class GigFormFields extends ConsumerWidget {
               if (response == 'no') return AvailabilityState.notAvailable;
               return AvailabilityState.notResponded;
             },
-            onTap: null,
-            columns: 4,
             buttonHeight: 48,
           ),
 
@@ -850,9 +1196,7 @@ class GigFormFields extends ConsumerWidget {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: AppProgressIndicator(
-                    type: ProgressIndicatorType.circular,
-                  ),
+                  child: AppProgressIndicator(),
                 ),
               ),
             )
@@ -900,9 +1244,7 @@ class GigFormFields extends ConsumerWidget {
           child: SizedBox(
             width: 24,
             height: 24,
-            child: AppProgressIndicator(
-              type: ProgressIndicatorType.circular,
-            ),
+            child: AppProgressIndicator(),
           ),
         ),
       );
@@ -935,8 +1277,6 @@ class GigFormFields extends ConsumerWidget {
           if (response == 'no') return AvailabilityState.notAvailable;
           return AvailabilityState.notResponded;
         },
-        onTap: null,
-        columns: 4,
         buttonHeight: 48,
       ),
     );
@@ -1074,6 +1414,111 @@ class GigFormFields extends ConsumerWidget {
     );
   }
 
+  Widget _buildContactsSection(BuildContext context) {
+    final contactNames =
+        availableContacts.map((contact) => contact.name).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Contacts',
+                style: AppTextStyles.footnote.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ),
+            AppButton(
+              label: 'Add another',
+              variant: AppButtonVariant.text,
+              icon: AppIcons.add,
+              onPressed: isSaving ? null : onAddContact,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (contactAutocompleteControllers.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: context.colors.background,
+              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              border: Border.all(color: context.colors.border),
+            ),
+            child: Text(
+              isLoadingContacts
+                  ? 'Loading your shared contacts...'
+                  : 'Link shared band contacts to this gig.',
+              style: AppTextStyles.footnote.copyWith(
+                color: context.colors.textMuted,
+              ),
+            ),
+          )
+        else
+          for (var i = 0; i < contactAutocompleteControllers.length; i++) ...[
+            if (i > 0) const SizedBox(height: Spacing.space8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: FAutocomplete.text(
+                    items: contactNames,
+                    control: FAutocompleteControl.managed(
+                      controller: contactAutocompleteControllers[i],
+                      onChange: (value) {
+                        onContactTextChanged(i, value.text);
+                      },
+                    ),
+                    filter: (query) {
+                      if (query.trim().isEmpty) {
+                        return const Iterable<String>.empty();
+                      }
+
+                      return contactNames.where(
+                        (name) =>
+                            name.toLowerCase().contains(query.toLowerCase()),
+                      );
+                    },
+                    hint: 'Start typing a shared contact name',
+                    enabled: !isSaving,
+                    focusNode: contactFocusNodes[i],
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.done,
+                    contextMenuBuilder: _adaptiveTextSelectionToolbar,
+                    onItemPress: (selection) {
+                      final selectedContact = availableContacts.firstWhere(
+                        (contact) =>
+                            contact.name.trim().toLowerCase() ==
+                            selection.trim().toLowerCase(),
+                      );
+                      onContactSelected(i, selectedContact);
+                      onMarkDirty();
+                    },
+                    onEditingComplete: () => onContactEditingComplete(i),
+                    onSubmit: (value) => onContactSubmitted(i, value),
+                  ),
+                ),
+                const SizedBox(width: Spacing.space8),
+                IconButton(
+                  onPressed: isSaving ? null : () => onRemoveContact(i),
+                  icon: Icon(
+                    AppIcons.close,
+                    size: 18,
+                    color: context.colors.textMuted,
+                  ),
+                  tooltip: 'Remove contact',
+                ),
+              ],
+            ),
+          ],
+      ],
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Member Label Helpers
   // ---------------------------------------------------------------------------
@@ -1170,7 +1615,7 @@ class GigFormFields extends ConsumerWidget {
     return MemberDisambiguation(
       line1:
           firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName,
-      line2: member.lastName!,
+      line2: member.lastName,
       requiresTwoLines: true,
     );
   }

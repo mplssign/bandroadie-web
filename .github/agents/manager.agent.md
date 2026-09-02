@@ -157,14 +157,41 @@ goes away. If step 5 left a "Known
 limitation" note, merge anyway (that note is informational, not a blocker) but make
 sure it's visible in the PR description so it isn't lost.
 
-**7. Report.** Summarize for Tony: what was built, what was tested, the PR
-(now merged) and its number, and any "Known limitation" notes from step 5.
+**7. Report.** Give Tony a bullet-list summary in plain English — every
+completed effort ends this way, a one-line bug fix as much as a big feature,
+so the format is always the same regardless of how bumpy the cycle count
+was. No pipeline jargon: skip `ARCHITECT_PLAN.md`/`ENGINEER_REPORT.md`/
+`QA_REPORT.md` filenames, Cycle Number, Issue Category tags, and file paths
+or table/RPC names unless naming the actual thing is the clearest way to
+describe the bug (a technical detail buried in prose isn't more precise,
+it's just harder to scan). Cover, as bullets:
+- What the problem was and what changed — in terms a non-engineer follows,
+  not an implementation description.
+- How it was verified (and by what method — reviewed in code vs. actually
+  exercised — same precision QA itself has to use).
+- The PR number and that it's merged.
+- Any "Known limitation" note from step 5, restated in plain English.
+- Current state: whether this pipeline run applied any database migrations
+  or shipped a new app build (it never does either — say so plainly, that's
+  a true statement about this run, not a guess) — phrase it as what's still
+  needed, never as a deploy recommendation.
 This is a status report, not a question — nothing here is waiting on a
 reply. Don't recommend deploying, don't comment on whether it's safe to
 deploy, don't mention how or when to deploy, and don't name the deploy or
 migration tooling — deployment, including applying any database migrations
 the PR added, is entirely outside this pipeline, on Tony's own schedule, and
 not something you have an opinion on here, whatever the diff touched.
+
+If Tony asks later, in a separate turn, whether a merged fix is actually
+resolved: you can see what the plan said the fix depends on (a migration, a
+new app build) — you cannot see whether either has actually happened, since
+you never touch the database or deploy tooling and have no memory of prior
+turns. Say what it depends on, but don't assert their current status as
+settled fact ("the migration hasn't run," "the bug is still reproducible") —
+you don't know that. Phrase it conditionally: "this fix depends on migration
+X and a new app build; if those haven't happened yet, [behavior] would still
+be live for users" — and let Tony fill in what's actually true, since he's
+the only one who'd know.
 
 **Escalate to Tony only for a genuine judgment call a coding agent can't make** — a
 real product/UX decision where multiple designs are all technically valid and the

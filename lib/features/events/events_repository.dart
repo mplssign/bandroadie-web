@@ -37,6 +37,22 @@ class _CacheEntry<T> {
       DateTime.now().difference(timestamp).inMinutes >= 5; // 5-minute TTL
 }
 
+const _gigSelectClause = '''
+  *,
+  gig_dates (
+    id,
+    gig_id,
+    date,
+    start_time,
+    created_at,
+    updated_at
+  ),
+  gig_contacts (
+    contact_id,
+    contacts (*)
+  )
+''';
+
 class EventsRepository {
   final AutoConflictBlockingService _autoConflictBlockingService;
 
@@ -166,8 +182,6 @@ class EventsRepository {
               userId: userId,
               eventBandId: bandId,
               eventDates: dates,
-              eventStartTime: null,
-              eventEndTime: null,
               eventName: 'Rehearsal',
               bandName: bandName,
               sourceRehearsalIdsByDate: createdRehearsalIds,
@@ -225,7 +239,7 @@ class EventsRepository {
       var monthCount = 0;
 
       while (monthCount < maxMonths) {
-        final monthStart = DateTime(year, month, 1);
+        final monthStart = DateTime(year, month);
         if (monthStart.isAfter(untilDate)) break;
 
         for (final day in recurrence.daysOfWeek) {
@@ -437,8 +451,6 @@ class EventsRepository {
             userId: userId,
             eventBandId: bandId,
             eventDates: [formData.date],
-            eventStartTime: null,
-            eventEndTime: null,
             eventName: 'Rehearsal',
             bandName: bandName,
             sourceRehearsalIdsByDate: [rehearsalId],
@@ -596,8 +608,6 @@ class EventsRepository {
             userId: userId,
             eventBandId: bandId,
             eventDates: dates,
-            eventStartTime: null,
-            eventEndTime: null,
             eventName: 'Rehearsal',
             bandName: bandName,
             sourceRehearsalIdsByDate: allRehearsalIds,
@@ -640,7 +650,7 @@ class EventsRepository {
 
     debugPrint('[EventsRepository] Fetching rehearsals for month: $key');
 
-    final startOfMonth = DateTime(month.year, month.month, 1);
+    final startOfMonth = DateTime(month.year, month.month);
     final endOfMonth = DateTime(month.year, month.month + 1, 0);
 
     final response = await supabase
@@ -652,8 +662,7 @@ class EventsRepository {
         .lte('date', endOfMonth.toIso8601String().split('T')[0])
         .order('date', ascending: true);
 
-    final rehearsals =
-        response.map<Rehearsal>((json) => Rehearsal.fromJson(json)).toList();
+    final rehearsals = response.map<Rehearsal>(Rehearsal.fromJson).toList();
 
     // Update cache
     _rehearsalCache[key] = _CacheEntry(rehearsals);
@@ -728,6 +737,12 @@ class EventsRepository {
       await _createGigDates(gigId, formData.additionalDates);
     }
 
+    await _syncGigContacts(
+      gigId: gigId,
+      bandId: bandId,
+      contactIds: formData.contactIds,
+    );
+
     invalidateCache(bandId);
 
     // Trigger automatic conflict blocking (if enabled and confirmed)
@@ -753,8 +768,6 @@ class EventsRepository {
             userId: userId,
             eventBandId: bandId,
             eventDates: allDates,
-            eventStartTime: null,
-            eventEndTime: null,
             eventName: formData.name ?? formData.displayName,
             bandName: bandName,
             sourceGigId: gigId,
@@ -769,8 +782,7 @@ class EventsRepository {
     // Fetch the gig with its dates to return complete data
     final gigWithDates = await supabase
         .from('gigs')
-        .select(
-            '*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
+        .select(_gigSelectClause)
         .eq('id', gigId)
         .single();
 
@@ -823,6 +835,12 @@ class EventsRepository {
     // Sync additional dates for multi-date potential gigs
     await _syncGigDates(gigId, formData);
 
+    await _syncGigContacts(
+      gigId: gigId,
+      bandId: bandId,
+      contactIds: formData.contactIds,
+    );
+
     // Resync auto-block dates (delete old, recreate if confirmed)
     try {
       await _autoConflictBlockingService.clearAutoBlocksForSource(
@@ -848,8 +866,6 @@ class EventsRepository {
             userId: userId,
             eventBandId: bandId,
             eventDates: allDates,
-            eventStartTime: null,
-            eventEndTime: null,
             eventName: formData.name ?? formData.displayName,
             bandName: bandName,
             sourceGigId: gigId,
@@ -865,8 +881,7 @@ class EventsRepository {
     // Fetch the gig with its dates to return complete data
     final gigWithDates = await supabase
         .from('gigs')
-        .select(
-            '*, gig_dates(id, gig_id, date, start_time, created_at, updated_at)')
+        .select(_gigSelectClause)
         .eq('id', gigId)
         .single();
 
@@ -887,6 +902,18 @@ class EventsRepository {
         .toList();
 
     await supabase.from('gig_dates').insert(rows);
+  }
+
+  Future<void> _syncGigContacts({
+    required String gigId,
+    required String bandId,
+    required List<String> contactIds,
+  }) async {
+    await supabase.rpc('sync_gig_contacts', params: {
+      'p_gig_id': gigId,
+      'p_band_id': bandId,
+      'p_contact_ids': contactIds,
+    });
   }
 
   /// Sync gig dates — add new ones, remove deleted ones, update start_time on
@@ -1031,7 +1058,7 @@ class EventsRepository {
 
     debugPrint('[EventsRepository] Fetching gigs for month: $key');
 
-    final startOfMonth = DateTime(month.year, month.month, 1);
+    final startOfMonth = DateTime(month.year, month.month);
     final endOfMonth = DateTime(month.year, month.month + 1, 0);
 
     final response = await supabase
@@ -1042,7 +1069,7 @@ class EventsRepository {
         .lte('date', endOfMonth.toIso8601String().split('T')[0])
         .order('date', ascending: true);
 
-    final gigs = response.map<Gig>((json) => Gig.fromJson(json)).toList();
+    final gigs = response.map<Gig>(Gig.fromJson).toList();
 
     // Update cache
     _gigCache[key] = _CacheEntry(gigs);

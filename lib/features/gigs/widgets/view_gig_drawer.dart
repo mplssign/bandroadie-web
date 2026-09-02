@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,11 +11,15 @@ import '../../../app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../contacts/models/contact.dart';
+import '../../contacts/widgets/contact_detail_drawer.dart';
+import '../../contacts/widgets/contact_form_screen.dart';
+import '../gig_controller.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../../app/theme/app_animations.dart';
 import 'gig_notes_sheet.dart';
 
-class ViewGigDrawer extends StatelessWidget {
+class ViewGigDrawer extends ConsumerStatefulWidget {
   final Gig gig;
   final String bandTimezone;
   final bool canEdit;
@@ -29,6 +34,9 @@ class ViewGigDrawer extends StatelessWidget {
     required this.onEdit,
     this.onSaved,
   });
+
+  @override
+  ConsumerState<ViewGigDrawer> createState() => _ViewGigDrawerState();
 
   static Future<void> show(
     BuildContext context, {
@@ -53,8 +61,38 @@ class ViewGigDrawer extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
+  late Gig _displayGig;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayGig = widget.gig;
+
+    if (widget.gig.contacts.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadHydratedGig();
+      });
+    }
+  }
+
+  Future<void> _loadHydratedGig() async {
+    try {
+      final hydratedGig = await ref.read(gigRepositoryProvider).fetchGigById(
+            gigId: widget.gig.id,
+            bandId: widget.gig.bandId,
+          );
+      if (!mounted) return;
+      setState(() {
+        _displayGig = hydratedGig;
+      });
+    } catch (_) {}
+  }
 
   Future<void> _openNavigation(BuildContext context) async {
+    final gig = _displayGig;
     final hasAddress = gig.address != null && gig.address!.trim().isNotEmpty;
     final query = hasAddress
         ? '${gig.address} ${gig.location}'
@@ -210,7 +248,35 @@ class ViewGigDrawer extends StatelessWidget {
 
   void _handleEdit(BuildContext context) {
     Navigator.of(context).pop();
-    onEdit();
+    widget.onEdit();
+  }
+
+  void _openContactDetail(BuildContext context, Contact contact) {
+    ContactDetailDrawer.show(
+      context,
+      contact: contact,
+      onEdit: () => Navigator.of(context).push(
+        fadeSlideRoute(page: ContactFormScreen(contact: contact)),
+      ),
+    );
+  }
+
+  String _contactSummary(Contact contact) {
+    final title = contact.title?.trim();
+    final company = contact.company?.trim();
+    final hasTitle = title != null && title.isNotEmpty;
+    final hasCompany = company != null && company.isNotEmpty;
+
+    if (hasCompany && hasTitle) {
+      return '$company, $title';
+    }
+    if (hasCompany) {
+      return company;
+    }
+    if (hasTitle) {
+      return title;
+    }
+    return '';
   }
 
   String _formatFullDate(DateTime date) {
@@ -242,6 +308,8 @@ class ViewGigDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gig = _displayGig;
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.95,
@@ -299,7 +367,6 @@ class ViewGigDrawer extends StatelessWidget {
                         const SizedBox(height: Spacing.space4),
                         // Location row + Navigate button
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
                               child: Text(
@@ -391,6 +458,17 @@ class ViewGigDrawer extends StatelessWidget {
                       value: gig.formattedPay ?? '',
                     ),
 
+                  if (gig.contacts.isNotEmpty)
+                    for (var i = 0; i < gig.contacts.length; i++)
+                      _DetailRow(
+                        label: i == 0 ? 'Contacts' : '',
+                        value: gig.contacts[i].name,
+                        subtitle: _contactSummary(gig.contacts[i]),
+                        showChevron: true,
+                        onTap: () =>
+                            _openContactDetail(context, gig.contacts[i]),
+                      ),
+
                   if (gig.notes != null && gig.notes!.isNotEmpty)
                     _DetailRow(
                       label: 'Notes',
@@ -422,9 +500,8 @@ class ViewGigDrawer extends StatelessWidget {
                   label: 'Done',
                   fullWidth: true,
                   onPressed: () => Navigator.of(context).pop(),
-                  variant: AppButtonVariant.primary,
                 ),
-                if (canEdit) ...[
+                if (widget.canEdit) ...[
                   const SizedBox(height: Spacing.space12),
                   AppButton(
                     label: 'Edit',
@@ -451,12 +528,14 @@ enum _NavigationApp {
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
+  final String? subtitle;
   final bool showChevron;
   final VoidCallback? onTap;
 
   const _DetailRow({
     required this.label,
     required this.value,
+    this.subtitle,
     this.showChevron = false,
     this.onTap,
   });
@@ -481,12 +560,27 @@ class _DetailRow extends StatelessWidget {
           ),
           const SizedBox(width: Spacing.space8),
           Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.start,
-              style: AppTextStyles.callout.copyWith(
-                color: context.colors.textPrimary,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  textAlign: TextAlign.start,
+                  style: AppTextStyles.callout.copyWith(
+                    color: context.colors.textPrimary,
+                  ),
+                ),
+                if (subtitle != null && subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    textAlign: TextAlign.start,
+                    style: AppTextStyles.footnote.copyWith(
+                      color: context.colors.textMuted,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           if (showChevron) ...[
