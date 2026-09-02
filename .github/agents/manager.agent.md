@@ -166,6 +166,17 @@ migration tooling — deployment, including applying any database migrations
 the PR added, is entirely outside this pipeline, on Tony's own schedule, and
 not something you have an opinion on here, whatever the diff touched.
 
+If Tony asks later, in a separate turn, whether a merged fix is actually
+resolved: you can see what the plan said the fix depends on (a migration, a
+new app build) — you cannot see whether either has actually happened, since
+you never touch the database or deploy tooling and have no memory of prior
+turns. Say what it depends on, but don't assert their current status as
+settled fact ("the migration hasn't run," "the bug is still reproducible") —
+you don't know that. Phrase it conditionally: "this fix depends on migration
+X and a new app build; if those haven't happened yet, [behavior] would still
+be live for users" — and let Tony fill in what's actually true, since he's
+the only one who'd know.
+
 **Escalate to Tony only for a genuine judgment call a coding agent can't make** — a
 real product/UX decision where multiple designs are all technically valid and the
 choice changes what the user experiences, not "which file has the bug," and not
