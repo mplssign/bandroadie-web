@@ -17,7 +17,15 @@ cd "$REPO_ROOT"
 STALE_AGE_SECONDS=30
 LOCKS=(.git/index.lock .git/HEAD.lock .git/packed-refs.lock)
 shopt -s nullglob 2>/dev/null || true
-LOCKS+=(.git/refs/heads/*.lock .git/refs/remotes/*/*.lock)
+# Branch names in this repo nest under a category (bug/<slug>, feature/<slug>,
+# chore/<slug>), so a remote-tracking ref lock can sit arbitrarily deep, e.g.
+# .git/refs/remotes/origin/bug/band-members-rls-recursion.lock — three levels
+# under refs/remotes/, not two. A fixed-depth glob (refs/remotes/*/*.lock)
+# misses this entirely (confirmed missed one in production, 2026-09-02: a
+# `git fetch --prune` failed on exactly this shape). find handles any depth.
+while IFS= read -r -d '' f; do
+  LOCKS+=("$f")
+done < <(find .git/refs -name '*.lock' -print0 2>/dev/null)
 
 file_mtime() {
   # GNU stat (-c) and BSD stat (-f) disagree on what "-f" even means, and
