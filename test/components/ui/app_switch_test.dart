@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/app/theme/event_editor_theme.dart';
 import 'package:bandroadie/components/ui/app_switch.dart';
 import 'package:forui/forui.dart';
 
@@ -163,6 +164,29 @@ void main() {
         MaterialApp(
           builder: (context, child) => FTheme(
             data: AppTheme.foruiTheme(Brightness.dark),
+            child: child!,
+          ),
+          home: Scaffold(body: AppSwitch(value: false, onChanged: (_) {})),
+        ),
+      );
+
+      expect(find.byType(FSwitch), findsOneWidget);
+      final element = tester.element(find.byType(FSwitch));
+      final switchStyle = FTheme.of(element).switchStyle;
+
+      expect(
+        switchStyle.trackColor.resolve(<FVariant>{}),
+        AppColors.switchTrackOff,
+      );
+    });
+
+    testWidgets(
+        'off-state track resolves to AppColors.switchTrackOff under buildEventEditorTheme',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => FTheme(
+            data: buildEventEditorTheme(),
             child: child!,
           ),
           home: Scaffold(body: AppSwitch(value: false, onChanged: (_) {})),

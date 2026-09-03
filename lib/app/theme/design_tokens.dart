@@ -155,8 +155,8 @@ class AppColors {
   /// Lighter rose tint for switch ON-state track (contrast with white thumb).
   static const Color primarySoft = Color(0xFFFB7185); // Tailwind rose-400
 
-  /// Medium-gray fill for switch OFF-state track (visible against dark surfaces).
-  static const Color switchTrackOff = Color(0xFF52525B); // Tailwind zinc-600
+  /// OFF-state track fill for app toggle switches — Tailwind Zinc 500, chosen to clear WCAG 2.1 SC 1.4.11 (3:1) against every dark surface the app renders switches on.
+  static const Color switchTrackOff = Color(0xFF71717A); // Tailwind zinc-500
 
   // ── Semantic ───────────────────────────────────────────────────────────────
 
