@@ -2718,7 +2718,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               ],
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildStickyHeader(context),
                 Container(height: 1, color: kEdCardBorder),
