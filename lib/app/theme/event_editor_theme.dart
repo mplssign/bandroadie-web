@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
+import 'design_tokens.dart';
 
 // Extra colour tokens scoped to the event editor drawer.
 const Color kEdSurface = Color(0xFF0C0C0E);
@@ -36,5 +37,18 @@ FThemeData buildEventEditorTheme() {
     systemOverlayStyle: SystemUiOverlayStyle.light,
   );
 
-  return FThemeData(colors: colors, touch: true);
+  return FThemeData(colors: colors, touch: true).copyWith(
+    switchStyle: FSwitchStyleDelta.delta(
+      trackColor: FVariantsValueDelta.delta([
+        FVariantValueDeltaOperation.base(AppColors.switchTrackOff),
+        FVariantValueDeltaOperation.match(
+          {FSwitchVariant.selected},
+          AppColors.primarySoft,
+        ),
+      ]),
+      thumbColor: FVariantsValueDelta.delta([
+        FVariantValueDeltaOperation.all(Colors.white),
+      ]),
+    ),
+  );
 }
