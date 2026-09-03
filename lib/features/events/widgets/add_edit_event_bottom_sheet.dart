@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
 import '../../calendar/models/calendar_event.dart';
@@ -60,11 +59,10 @@ class AddEditEventBottomSheet {
         ? EventEditorMode.edit
         : EventEditorMode.create;
 
-    return showAppBottomSheet<bool>(
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      mainAxisMaxRatio: 1.0,
       useSafeArea: true,
       builder: (context) => EventEditorDrawer(
         mode: editorMode,
