@@ -2900,7 +2900,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             _buildErrorBanner(),
             const SizedBox(height: 16),
           ],
-          _SectionCard(title: 'The gig', child: gigFormFields!),
+          _SectionCard(title: 'The Gig', child: gigFormFields!),
           const SizedBox(height: 16),
           _SectionCard(
               title: 'Schedule',
@@ -2913,7 +2913,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   context, gigFormFields, rehearsalFormFields)),
           const SizedBox(height: 16),
           _SectionCard(
-              title: 'Show prep',
+              title: 'Show Prep',
               child: _buildShowPrepSection(
                   context, gigFormFields, eventFormFields)),
           const SizedBox(height: 16),
