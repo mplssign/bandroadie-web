@@ -6,6 +6,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
+import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../features/members/member_vm.dart';
 import '../../../shared/widgets/currency_input_field.dart';
@@ -437,10 +438,8 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                         style: AppTextStyles.callout
                             .copyWith(color: context.colors.textPrimary),
                       ),
-                      Switch(
+                      AppSwitch(
                         value: _is1099Expected,
-                        activeThumbColor: AppColors.primary,
-                        activeTrackColor: AppColors.primary.withAlpha(128),
                         onChanged: widget.viewOnly
                             ? null
                             : (value) {

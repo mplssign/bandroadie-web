@@ -310,7 +310,6 @@ class _MasterToggleCard extends StatelessWidget {
           AppSwitch(
             value: enabled,
             onChanged: onChanged,
-            activeColor: AppColors.primary,
           ),
         ],
       ),

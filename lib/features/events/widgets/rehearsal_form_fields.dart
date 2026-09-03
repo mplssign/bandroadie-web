@@ -257,8 +257,6 @@ class RehearsalFormFields extends ConsumerWidget {
               AppSwitch(
                 value: isPotential,
                 onChanged: isSaving ? null : onPotentialToggled,
-                activeColor: const Color(0xFFfb2c5a),
-                activeTrackColor: const Color(0xFFfb2c5a),
               ),
             ],
           ),
@@ -600,8 +598,6 @@ class RehearsalFormFields extends ConsumerWidget {
           AppSwitch(
             value: isRecurring,
             onChanged: isSaving ? null : onRecurringToggled,
-            activeColor: const Color(0xFFfb2c5a),
-            activeTrackColor: const Color(0xFFfb2c5a),
           ),
         ],
       ),

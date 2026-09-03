@@ -1121,7 +1121,6 @@ class GigFormFields extends ConsumerWidget {
                 onChanged: (isSaving || forcePotentialOnly)
                     ? null
                     : onPotentialGigToggled,
-                activeColor: AppColors.primary,
               ),
             ],
           ),

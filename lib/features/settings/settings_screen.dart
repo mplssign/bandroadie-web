@@ -423,7 +423,6 @@ class _LightModeToggle extends ConsumerWidget {
           AppSwitch(
             value: isLight,
             onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
-            activeColor: AppColors.primary,
           ),
         ],
       ),

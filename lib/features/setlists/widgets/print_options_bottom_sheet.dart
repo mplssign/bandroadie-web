@@ -624,7 +624,6 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
               AppSwitch(
                 value: toggleValue,
                 onChanged: onToggleChanged,
-                activeTrackColor: AppColors.primary,
                 useAdaptiveSwitch: true,
               ),
           ],
@@ -696,7 +695,6 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
         AppSwitch(
           value: value,
           onChanged: onChanged,
-          activeTrackColor: AppColors.primary,
           useAdaptiveSwitch: true,
         ),
       ],

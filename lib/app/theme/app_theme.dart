@@ -626,6 +626,19 @@ class AppTheme {
       primaryForeground: Colors.white,
     );
 
-    return FThemeData(colors: colors, touch: true);
+    return FThemeData(colors: colors, touch: true).copyWith(
+      switchStyle: FSwitchStyleDelta.delta(
+        trackColor: FVariantsValueDelta.delta([
+          FVariantValueDeltaOperation.base(AppColors.switchTrackOff),
+          FVariantValueDeltaOperation.match(
+            {FSwitchVariant.selected},
+            AppColors.primarySoft,
+          ),
+        ]),
+        thumbColor: FVariantsValueDelta.delta([
+          FVariantValueDeltaOperation.all(Colors.white),
+        ]),
+      ),
+    );
   }
 }
