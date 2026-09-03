@@ -60,6 +60,7 @@ class EventTypeSelector extends StatelessWidget {
                 curve: AppCurves.ease,
                 child: FractionallySizedBox(
                   widthFactor: 1.0 / availableTypes.length,
+                  heightFactor: 1.0,
                   child: Container(
                     decoration: BoxDecoration(
                       color: isDisabled
