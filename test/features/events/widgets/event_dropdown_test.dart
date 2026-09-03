@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:bandroadie/features/events/models/event_form_data.dart';
+import 'package:bandroadie/features/events/widgets/event_editor_drawer.dart';
 import 'package:bandroadie/features/events/widgets/event_editor_helpers.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:forui/forui.dart';
@@ -189,5 +192,65 @@ void main() {
       // Verify value was updated
       expect(currentValue, 'Option 2');
     });
+  });
+
+  group('EventEditorDrawer layout', () {
+    testWidgets(
+      'EventEditorDrawer inside bottom sheet emits no layout errors on Android (rehearsal)',
+      (tester) async {
+        tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+        tester.view.devicePixelRatio = 3.0;
+
+        final errors = <FlutterErrorDetails>[];
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = errors.add;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              theme: AppTheme.darkTheme,
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () => showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const EventEditorDrawer(
+                        initialEventType: EventType.rehearsal,
+                        bandId: 'test-band-id',
+                      ),
+                    ),
+                    child: const Text('Open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open'));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+
+        FlutterError.onError = originalOnError;
+
+        // Supabase-not-initialized errors are test-harness noise; exclude them.
+        final layoutErrors = errors.where((e) {
+          final msg = e.exceptionAsString();
+          if (msg.contains('initialize the supabase instance')) return false;
+          return msg.contains('BoxConstraints forces an infinite width') ||
+              msg.contains('RenderBox was not laid out');
+        }).toList();
+
+        expect(
+          layoutErrors,
+          isEmpty,
+          reason: 'Expected zero layout errors but got ${layoutErrors.length}: '
+              '${layoutErrors.map((e) => e.exceptionAsString().substring(0, e.exceptionAsString().length.clamp(0, 80))).join('; ')}',
+        );
+      },
+    );
   });
 }

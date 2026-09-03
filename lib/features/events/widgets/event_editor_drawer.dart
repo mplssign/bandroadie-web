@@ -3238,6 +3238,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ? ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFfb2c5a),
+                // override theme's Size(double.infinity, 52) — button is in an unbounded Row slot
+                minimumSize: const Size(0, 40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -3256,6 +3258,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFfb2c5a),
                 foregroundColor: Colors.white,
+                // override theme's Size(double.infinity, 52) — button is in an unbounded Row slot
+                minimumSize: const Size(0, 40),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
