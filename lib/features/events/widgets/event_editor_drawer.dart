@@ -2701,36 +2701,31 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Widget build(BuildContext context) {
     return FTheme(
       data: buildEventEditorTheme(),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: kEdSurface,
-              border: Border.all(color: kEdCardBorder),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x8C000000),
-                  blurRadius: 60,
-                  offset: Offset(0, 24),
-                ),
-              ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: kEdSurface,
+          border: Border.all(color: kEdCardBorder),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x8C000000),
+              blurRadius: 60,
+              offset: Offset(0, 24),
             ),
-            child: Column(
-              children: [
-                _buildStickyHeader(context),
-                Container(height: 1, color: kEdCardBorder),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: _buildScrollableBody(context),
-                  ),
-                ),
-                _buildStickyFooter(context),
-              ],
+          ],
+        ),
+        child: Column(
+          children: [
+            _buildStickyHeader(context),
+            Container(height: 1, color: kEdCardBorder),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: _buildScrollableBody(context),
+              ),
             ),
-          ),
+            _buildStickyFooter(context),
+          ],
         ),
       ),
     );
