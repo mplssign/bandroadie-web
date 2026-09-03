@@ -2913,7 +2913,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   context, gigFormFields, rehearsalFormFields)),
           const SizedBox(height: 16),
           _SectionCard(
-              title: 'Show Prep',
+              title: 'Show Details',
               child: _buildShowPrepSection(
                   context, gigFormFields, eventFormFields)),
           const SizedBox(height: 16),
@@ -3094,9 +3094,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        gigFormFields!.buildContactsSection(context),
-        const SizedBox(height: Spacing.space16),
         eventFormFields.buildSetlistSelector(context, ref),
+        const SizedBox(height: Spacing.space16),
+        gigFormFields!.buildContactsSection(context),
       ],
     );
   }
