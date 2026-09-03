@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/app_switch.dart';
@@ -256,7 +257,8 @@ class RehearsalFormFields extends ConsumerWidget {
               AppSwitch(
                 value: isPotential,
                 onChanged: isSaving ? null : onPotentialToggled,
-                activeColor: AppColors.primary,
+                activeColor: const Color(0xFFfb2c5a),
+                activeTrackColor: const Color(0xFFfb2c5a),
               ),
             ],
           ),
@@ -598,7 +600,8 @@ class RehearsalFormFields extends ConsumerWidget {
           AppSwitch(
             value: isRecurring,
             onChanged: isSaving ? null : onRecurringToggled,
-            activeColor: AppColors.primary,
+            activeColor: const Color(0xFFfb2c5a),
+            activeTrackColor: const Color(0xFFfb2c5a),
           ),
         ],
       ),
@@ -729,11 +732,12 @@ class RehearsalFormFields extends ConsumerWidget {
           onTap: isSaving ? null : onUntilDateTap,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            constraints: const BoxConstraints(minHeight: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: context.colors.background,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(color: context.colors.border),
+              color: kEdInputFill,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: kEdCardBorder),
             ),
             child: Row(
               children: [

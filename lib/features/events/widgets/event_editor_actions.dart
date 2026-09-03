@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/theme/event_editor_theme.dart';
 import '../../../components/ui/app_button.dart';
 
 /// Bottom action buttons for the event editor: Cancel + Save.
@@ -13,6 +15,7 @@ class EventEditorBottomActions extends StatelessWidget {
     required this.primaryButtonLabel,
     required this.onSave,
     required this.onCancel,
+    this.summary,
   });
 
   final bool canSave;
@@ -21,28 +24,76 @@ class EventEditorBottomActions extends StatelessWidget {
   final String primaryButtonLabel;
   final VoidCallback onSave;
   final VoidCallback onCancel;
+  final String? summary;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final colors = FTheme.of(context).colors;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Cancel button - equal width
-        Expanded(
-          child: AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.outlined,
-            onPressed: (isSaving || isDeleting) ? null : onCancel,
+        if (summary != null && summary!.isNotEmpty) ...[
+          Text(
+            summary!,
+            style: TextStyle(fontSize: 14, color: kEdMutedForegroundFaint),
           ),
-        ),
-        const SizedBox(width: Spacing.space12),
-        // Primary button - equal width
-        Expanded(
-          child: AppButton(
-            label: primaryButtonLabel,
-            isLoading: isSaving,
-            onPressed: canSave ? onSave : null,
-            variant: AppButtonVariant.primary,
-          ),
+          const SizedBox(height: 8),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    side: BorderSide(color: colors.border),
+                  ),
+                  onPressed: (isSaving || isDeleting) ? null : onCancel,
+                  child: const Text('Cancel'),
+                ),
+              ),
+            ),
+            const SizedBox(width: Spacing.space12),
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: isSaving
+                    ? ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.primaryForeground,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: null,
+                        child: const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.primaryForeground,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: canSave ? onSave : null,
+                        child: Text(primaryButtonLabel),
+                      ),
+              ),
+            ),
+          ],
         ),
       ],
     );

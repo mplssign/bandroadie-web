@@ -405,6 +405,15 @@ class GigFormFields extends ConsumerWidget {
     required this.onLoadInHourChanged,
     required this.onLoadInMinutesChanged,
     required this.onLoadInAmPmChanged,
+    // Soundcheck time (optional)
+    this.soundcheckHour,
+    this.soundcheckMinutes,
+    this.soundcheckIsPM,
+    this.onSoundcheckTimeSet,
+    this.onSoundcheckTimeCleared,
+    this.onSoundcheckHourChanged,
+    this.onSoundcheckMinutesChanged,
+    this.onSoundcheckAmPmChanged,
     // Gig pay
     required this.gigPayDetails,
     required this.onGigPayTap,
@@ -490,6 +499,16 @@ class GigFormFields extends ConsumerWidget {
   final ValueChanged<int> onLoadInHourChanged;
   final ValueChanged<int> onLoadInMinutesChanged;
   final ValueChanged<bool> onLoadInAmPmChanged;
+
+  // --- Soundcheck time ---
+  final int? soundcheckHour;
+  final int? soundcheckMinutes;
+  final bool? soundcheckIsPM;
+  final VoidCallback? onSoundcheckTimeSet;
+  final VoidCallback? onSoundcheckTimeCleared;
+  final ValueChanged<int>? onSoundcheckHourChanged;
+  final ValueChanged<int>? onSoundcheckMinutesChanged;
+  final ValueChanged<bool>? onSoundcheckAmPmChanged;
 
   // --- Gig pay ---
   final GigPayDetails? gigPayDetails;
@@ -581,6 +600,118 @@ class GigFormFields extends ConsumerWidget {
   /// Builds the load-in time selector (called from parent build method).
   Widget buildLoadInTimeSelector(BuildContext context) {
     return _buildLoadInTimeSelector(context);
+  }
+
+  /// Builds the soundcheck time selector (same pattern as load-in).
+  Widget buildSoundcheckRow(BuildContext context) {
+    if (soundcheckHour == null ||
+        soundcheckMinutes == null ||
+        soundcheckIsPM == null) {
+      return GestureDetector(
+        onTap: isSaving ? null : onSoundcheckTimeSet,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: context.colors.background,
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+            border: Border.all(color: context.colors.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(AppIcons.add, color: context.colors.textSecondary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                '+ Set Soundcheck Time (Optional)',
+                style: AppTextStyles.callout.copyWith(
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Soundcheck Time',
+              style: AppTextStyles.footnote.copyWith(
+                color: context.colors.textSecondary,
+              ),
+            ),
+            GestureDetector(
+              onTap: isSaving ? null : onSoundcheckTimeCleared,
+              child: Text(
+                'Clear',
+                style: AppTextStyles.footnote.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: EventDropdown<int>(
+                value: soundcheckHour!,
+                items: List.generate(12, (i) => i + 1),
+                onChanged: (v) {
+                  if (v != null) onSoundcheckHourChanged?.call(v);
+                },
+                labelBuilder: (v) => v.toString(),
+                isSaving: isSaving,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: EventDropdown<int>(
+                value: soundcheckMinutes!,
+                items: const [0, 15, 30, 45],
+                onChanged: (v) {
+                  if (v != null) onSoundcheckMinutesChanged?.call(v);
+                },
+                labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
+                isSaving: isSaving,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: context.colors.background,
+                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AmPmToggleButton(
+                    label: 'AM',
+                    isSelected: !soundcheckIsPM!,
+                    isSaving: isSaving,
+                    onTap: () => onSoundcheckAmPmChanged?.call(false),
+                  ),
+                  AmPmToggleButton(
+                    label: 'PM',
+                    isSelected: soundcheckIsPM!,
+                    isSaving: isSaving,
+                    onTap: () => onSoundcheckAmPmChanged?.call(true),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   /// Builds the repeatable gig contacts section.
