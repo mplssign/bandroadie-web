@@ -2699,42 +2699,39 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return FTheme(
-          data: buildEventEditorTheme(),
-          child: Container(
-            width: constraints.maxWidth,
-            height: constraints.maxHeight,
-            decoration: BoxDecoration(
-              color: kEdSurface,
-              border: Border.all(color: kEdCardBorder),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x8C000000),
-                  blurRadius: 60,
-                  offset: Offset(0, 24),
-                ),
-              ],
+    return FTheme(
+      data: buildEventEditorTheme(),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height,
+        ),
+        decoration: BoxDecoration(
+          color: kEdSurface,
+          border: Border.all(color: kEdCardBorder),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x8C000000),
+              blurRadius: 60,
+              offset: Offset(0, 24),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildStickyHeader(context),
-                Container(height: 1, color: kEdCardBorder),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: _buildScrollableBody(context),
-                  ),
-                ),
-                _buildStickyFooter(context),
-              ],
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildStickyHeader(context),
+            Container(height: 1, color: kEdCardBorder),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: _buildScrollableBody(context),
+              ),
             ),
-          ),
-        );
-      },
+            _buildStickyFooter(context),
+          ],
+        ),
+      ),
     );
   }
 
