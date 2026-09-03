@@ -44,71 +44,66 @@ class EventTypeSelector extends StatelessWidget {
             border: Border.all(color: kEdSegmentedBorder),
           ),
           padding: const EdgeInsets.all(3),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final segmentWidth = constraints.maxWidth / availableTypes.length;
-              return Stack(
-                children: [
-                  // Sliding rose indicator
-                  AnimatedAlign(
-                    alignment: Alignment(
-                      availableTypes.length > 1
-                          ? -1.0 +
-                              (2.0 *
-                                  currentIndex /
-                                  (availableTypes.length - 1))
-                          : 0.0,
-                      0.0,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Sliding rose indicator
+              AnimatedAlign(
+                alignment: Alignment(
+                  availableTypes.length > 1
+                      ? -1.0 +
+                          (2.0 * currentIndex / (availableTypes.length - 1))
+                      : 0.0,
+                  0.0,
+                ),
+                duration: AppDurations.fast,
+                curve: AppCurves.ease,
+                child: FractionallySizedBox(
+                  widthFactor: 1.0 / availableTypes.length,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDisabled
+                          ? colors.primary.withValues(alpha: 0.5)
+                          : colors.primary,
+                      borderRadius: BorderRadius.circular(9),
                     ),
-                    duration: AppDurations.fast,
-                    curve: AppCurves.ease,
-                    child: Container(
-                      width: segmentWidth,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: isDisabled
-                            ? colors.primary.withValues(alpha: 0.5)
-                            : colors.primary,
-                        borderRadius: BorderRadius.circular(9),
+                  ),
+                ),
+              ),
+              // Labels
+              Row(
+                children: availableTypes.map((type) {
+                  final isSelected = selectedType == type;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: isDisabled
+                          ? null
+                          : () {
+                              onTypeChanged(type);
+                              HapticFeedback.selectionClick();
+                            },
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: AnimatedDefaultTextStyle(
+                          duration: AppDurations.fast,
+                          curve: AppCurves.ease,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? (isDisabled
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : Colors.white)
+                                : colors.secondaryForeground,
+                          ),
+                          child: Text(type.displayName),
+                        ),
                       ),
                     ),
-                  ),
-                  // Labels
-                  Row(
-                    children: availableTypes.map((type) {
-                      final isSelected = selectedType == type;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: isDisabled
-                              ? null
-                              : () {
-                                  onTypeChanged(type);
-                                  HapticFeedback.selectionClick();
-                                },
-                          behavior: HitTestBehavior.opaque,
-                          child: Center(
-                            child: AnimatedDefaultTextStyle(
-                              duration: AppDurations.fast,
-                              curve: AppCurves.ease,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? (isDisabled
-                                        ? Colors.white.withValues(alpha: 0.7)
-                                        : Colors.white)
-                                    : colors.secondaryForeground,
-                              ),
-                              child: Text(type.displayName),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              );
-            },
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         ),
         if (isEditMode) ...[
