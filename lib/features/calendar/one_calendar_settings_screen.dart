@@ -303,7 +303,6 @@ class _MasterToggleCard extends StatelessWidget {
           AppSwitch(
             value: enabled,
             onChanged: onChanged,
-            activeTrackColor: AppColors.primary,
           ),
         ],
       ),
@@ -456,7 +455,6 @@ class _AutoConflictToggleCard extends StatelessWidget {
           AppSwitch(
             value: enabled,
             onChanged: onChanged,
-            activeTrackColor: AppColors.primary,
           ),
         ],
       ),

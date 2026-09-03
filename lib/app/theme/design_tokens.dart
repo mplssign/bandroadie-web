@@ -152,6 +152,12 @@ class AppColors {
   /// shadcn/Forui Rose primary (#FF2056), aligned with reference theme.
   static const Color primary = Color(0xFFFF2056); // shadcn/Forui Rose primary
 
+  /// Lighter rose tint for switch ON-state track (contrast with white thumb).
+  static const Color primarySoft = Color(0xFFFB7185); // Tailwind rose-400
+
+  /// Medium-gray fill for switch OFF-state track (visible against dark surfaces).
+  static const Color switchTrackOff = Color(0xFF52525B); // Tailwind zinc-600
+
   // ── Semantic ───────────────────────────────────────────────────────────────
 
   static const Color error = Color(0xFFEF4444); // red-500

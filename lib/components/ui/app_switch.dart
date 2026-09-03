@@ -16,6 +16,8 @@ class AppSwitch extends StatelessWidget {
     this.activeColor,
     this.activeTrackColor,
     this.useAdaptiveSwitch = false,
+    this.label,
+    this.leadingLabel = false,
   });
 
   /// Current switch state
@@ -32,6 +34,12 @@ class AppSwitch extends StatelessWidget {
 
   /// Whether to use adaptive switch (ignored in Forui preview)
   final bool useAdaptiveSwitch;
+
+  /// Optional label displayed next to the switch.
+  final Widget? label;
+
+  /// Whether the label appears before (leading) rather than after the switch.
+  final bool leadingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -57,11 +65,15 @@ class AppSwitch extends StatelessWidget {
             onChange: onChanged,
             enabled: onChanged != null,
             style: styleDelta,
+            label: label,
+            leadingLabel: leadingLabel,
           )
         : FSwitch(
             value: value,
             onChange: onChanged,
             enabled: onChanged != null,
+            label: label,
+            leadingLabel: leadingLabel,
           );
   }
 }

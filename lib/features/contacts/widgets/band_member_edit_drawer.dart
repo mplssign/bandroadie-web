@@ -15,6 +15,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/app_switch.dart';
 
 // ============================================================================
 // BAND MEMBER EDIT DRAWER
@@ -647,8 +648,11 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: SwitchListTile(
-        title: Text(
+      child: AppSwitch(
+        value: value,
+        onChanged: onChanged,
+        leadingLabel: true,
+        label: Text(
           label,
           style: TextStyle(
             fontSize: AppFontSizes.subhead,
@@ -657,11 +661,6 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
                 : context.colors.textDisabled,
           ),
         ),
-        value: value,
-        onChanged: onChanged,
-        activeTrackColor: AppColors.primary,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-        dense: true,
       ),
     );
   }

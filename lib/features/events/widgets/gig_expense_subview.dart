@@ -343,7 +343,6 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
             ),
             AppSwitch(
               value: _isReimbursed,
-              activeColor: AppColors.primary,
               onChanged: widget.canEdit && !widget.isSaving
                   ? (value) {
                       setState(() {

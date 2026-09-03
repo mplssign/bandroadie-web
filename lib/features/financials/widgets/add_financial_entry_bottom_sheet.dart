@@ -9,6 +9,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
+import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../features/members/member_vm.dart';
@@ -820,11 +821,8 @@ class _AddFinancialEntryBottomSheetState
                               style: AppTextStyles.callout
                                   .copyWith(color: context.colors.textPrimary),
                             ),
-                            Switch(
+                            AppSwitch(
                               value: _is1099Expected,
-                              activeTrackColor: AppColors.primary,
-                              inactiveTrackColor: context.colors.surfaceOverlay,
-                              inactiveThumbColor: context.colors.textSecondary,
                               onChanged: (v) =>
                                   setState(() => _is1099Expected = v),
                             ),
@@ -845,11 +843,8 @@ class _AddFinancialEntryBottomSheetState
                           style: AppTextStyles.callout
                               .copyWith(color: context.colors.textPrimary),
                         ),
-                        Switch(
+                        AppSwitch(
                           value: _disburse,
-                          activeTrackColor: AppColors.primary,
-                          inactiveTrackColor: context.colors.surfaceOverlay,
-                          inactiveThumbColor: context.colors.textSecondary,
                           onChanged: _onDisburseToggle,
                         ),
                       ],
@@ -924,11 +919,8 @@ class _AddFinancialEntryBottomSheetState
                             ],
                           ],
                         ),
-                        Switch(
+                        AppSwitch(
                           value: _depositToSavings,
-                          activeTrackColor: AppColors.primary,
-                          inactiveTrackColor: context.colors.surfaceOverlay,
-                          inactiveThumbColor: context.colors.textSecondary,
                           onChanged: (v) {
                             setState(() {
                               _depositToSavings = v;

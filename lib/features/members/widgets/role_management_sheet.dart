@@ -9,6 +9,7 @@ import '../../../components/ui/app_app_bar.dart';
 import '../../../components/ui/app_icon_button.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_dialog.dart';
+import '../../../components/ui/app_switch.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
@@ -570,8 +571,11 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: SwitchListTile(
-        title: Text(
+      child: AppSwitch(
+        value: value,
+        onChanged: onChanged,
+        leadingLabel: true,
+        label: Text(
           label,
           style: TextStyle(
             fontSize: AppFontSizes.subhead,
@@ -580,11 +584,6 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                 : context.colors.textDisabled,
           ),
         ),
-        value: value,
-        onChanged: onChanged,
-        activeTrackColor: AppColors.primary,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-        dense: true,
       ),
     );
   }
