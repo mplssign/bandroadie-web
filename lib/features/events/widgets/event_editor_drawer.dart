@@ -2701,7 +2701,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Widget build(BuildContext context) {
     return FTheme(
       data: buildEventEditorTheme(),
-      child: DecoratedBox(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height,
+        ),
         decoration: BoxDecoration(
           color: kEdSurface,
           border: Border.all(color: kEdCardBorder),
@@ -2863,6 +2866,15 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       return _buildExpenseEditingBody(context);
     }
 
+    // Create form field widgets ONCE — avoids redundant ref.watch() calls
+    final gigFormFields =
+        _eventType == EventType.gig ? _createGigFormFields() : null;
+    final rehearsalFormFields =
+        _eventType == EventType.rehearsal ? _createRehearsalFormFields() : null;
+    final eventFormFields = _eventType != EventType.blockOut
+        ? _createEventFormFields(context)
+        : null;
+
     Widget body;
     if (_eventType == EventType.blockOut) {
       body = Column(
@@ -2887,20 +2899,30 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             _buildErrorBanner(),
             const SizedBox(height: 16),
           ],
-          _SectionCard(title: 'The gig', child: _buildGigSection(context)),
+          _SectionCard(title: 'The gig', child: gigFormFields!),
           const SizedBox(height: 16),
           _SectionCard(
-              title: 'Schedule', child: _buildScheduleSection(context)),
+              title: 'Schedule',
+              child: _buildScheduleSection(
+                  context, gigFormFields, eventFormFields!)),
           const SizedBox(height: 16),
           _SectionCard(
-              title: 'Location', child: _buildLocationSection(context)),
+              title: 'Location',
+              child: _buildLocationSection(
+                  context, gigFormFields, rehearsalFormFields)),
           const SizedBox(height: 16),
           _SectionCard(
-              title: 'Show prep', child: _buildShowPrepSection(context)),
+              title: 'Show prep',
+              child: _buildShowPrepSection(
+                  context, gigFormFields, eventFormFields)),
           const SizedBox(height: 16),
-          _SectionCard(title: 'Money', child: _buildMoneySection(context)),
+          _SectionCard(
+              title: 'Money',
+              child: _buildMoneySection(context, gigFormFields)),
           const SizedBox(height: 16),
-          _SectionCard(title: 'Notes', child: _buildNotesSection(context)),
+          _SectionCard(
+              title: 'Notes',
+              child: _buildNotesSection(context, eventFormFields)),
           if (_isEditMode && !widget.viewOnly) ...[
             const SizedBox(height: Spacing.space24),
             EventDeleteButton(
@@ -2920,12 +2942,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             const SizedBox(height: 16),
           ],
           _SectionCard(
-              title: 'Schedule', child: _buildScheduleSection(context)),
+              title: 'Schedule',
+              child: _buildScheduleSection(
+                  context, gigFormFields, eventFormFields!)),
           const SizedBox(height: 16),
           _SectionCard(
-              title: 'Location', child: _buildLocationSection(context)),
+              title: 'Location',
+              child: _buildLocationSection(
+                  context, gigFormFields, rehearsalFormFields)),
           const SizedBox(height: 16),
-          _SectionCard(title: 'Notes', child: _buildNotesSection(context)),
+          _SectionCard(
+              title: 'Notes',
+              child: _buildNotesSection(context, eventFormFields)),
           if (_isEditMode && !widget.viewOnly) ...[
             const SizedBox(height: Spacing.space24),
             EventDeleteButton(
@@ -2966,11 +2994,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
-  Widget _buildGigSection(BuildContext context) {
-    return _createGigFormFields();
-  }
-
-  Widget _buildScheduleSection(BuildContext context) {
+  Widget _buildScheduleSection(
+    BuildContext context,
+    GigFormFields? gigFormFields,
+    EventFormFields eventFormFields,
+  ) {
     final isGig = _eventType == EventType.gig;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2979,9 +3007,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           _createRehearsalFormFields().buildPotentialSection(context, ref),
           const SizedBox(height: Spacing.space16),
         ],
-        _createEventFormFields(context),
+        eventFormFields,
         if (isGig) ...[
-          _createGigFormFields().buildLoadInTimeSelector(context),
+          gigFormFields!.buildLoadInTimeSelector(context),
           const SizedBox(height: 16),
           const Text(
             'Soundcheck',
@@ -3039,46 +3067,54 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
-  Widget _buildLocationSection(BuildContext context) {
+  Widget _buildLocationSection(
+    BuildContext context,
+    GigFormFields? gigFormFields,
+    RehearsalFormFields? rehearsalFormFields,
+  ) {
     if (_eventType == EventType.gig) {
-      final gig = _createGigFormFields();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          gig.buildAddressField(context),
+          gigFormFields!.buildAddressField(context),
           const SizedBox(height: Spacing.space16),
-          gig.buildCityStateRow(context),
+          gigFormFields.buildCityStateRow(context),
         ],
       );
     }
-    return _createRehearsalFormFields();
+    return rehearsalFormFields!;
   }
 
-  Widget _buildShowPrepSection(BuildContext context) {
+  Widget _buildShowPrepSection(
+    BuildContext context,
+    GigFormFields? gigFormFields,
+    EventFormFields eventFormFields,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _createGigFormFields().buildContactsSection(context),
+        gigFormFields!.buildContactsSection(context),
         const SizedBox(height: Spacing.space16),
-        _createEventFormFields(context).buildSetlistSelector(context, ref),
+        eventFormFields.buildSetlistSelector(context, ref),
       ],
     );
   }
 
-  Widget _buildMoneySection(BuildContext context) {
-    final gig = _createGigFormFields();
+  Widget _buildMoneySection(
+      BuildContext context, GigFormFields? gigFormFields) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        gig.buildGigPayButton(context),
+        gigFormFields!.buildGigPayButton(context),
         const SizedBox(height: Spacing.space16),
-        gig.buildExpensesSection(context),
+        gigFormFields.buildExpensesSection(context),
       ],
     );
   }
 
-  Widget _buildNotesSection(BuildContext context) {
-    return _createEventFormFields(context).buildNotesSection();
+  Widget _buildNotesSection(
+      BuildContext context, EventFormFields eventFormFields) {
+    return eventFormFields.buildNotesSection();
   }
 
   Widget _buildStickyFooter(BuildContext context) {
