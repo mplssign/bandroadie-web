@@ -9,6 +9,7 @@ import 'package:forui/forui.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
@@ -129,6 +130,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   int? _loadInHour;
   int? _loadInMinutes;
   bool? _loadInIsPM;
+  // Soundcheck time state (UI-only, not persisted)
+  int? _soundcheckHour;
+  int? _soundcheckMinutes;
+  bool? _soundcheckIsPM;
   final _notesController = TextEditingController();
 
   // Autocomplete text values (captured from FAutocomplete widgets)
@@ -2694,272 +2699,40 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
-    final members = ref.watch(membersProvider).members;
-    final permsAsync = ref.watch(currentUserPermissionsProvider);
-    final perms = permsAsync.whenOrNull(data: (p) => p);
-    final canEditFinancials =
-        (perms?.canCreateFinancials ?? false) && !widget.viewOnly && !_isSaving;
-    final canDeleteExpense =
-        (perms?.canDeleteFinancials ?? false) && !widget.viewOnly && !_isSaving;
-
-    final eventFormFields = _createEventFormFields(context);
-    final gigFormFields =
-        _eventType == EventType.gig ? _createGigFormFields() : null;
-    final rehearsalFormFields =
-        _eventType == EventType.rehearsal ? _createRehearsalFormFields() : null;
-
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height,
-      ),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          // Drag handle
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
+    return FTheme(
+      data: buildEventEditorTheme(),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: DecoratedBox(
             decoration: BoxDecoration(
-              color: context.colors.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          const SizedBox(height: Spacing.space16),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.pagePadding,
-            ),
-            child: Row(
-              children: [
-                if (_isEditingExpense) ...[
-                  GestureDetector(
-                    onTap: _closeExpenseEditor,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: context.colors.background,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        AppIcons.back,
-                        size: 18,
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(
-                  child: Text(
-                    _isEditingExpense
-                        ? (_editingGigExpense == null
-                            ? 'Add Expense'
-                            : 'Edit Expense')
-                        : widget.viewOnly
-                            ? '${_eventType.displayName} Details'
-                            : widget.mode == EventEditorMode.edit
-                                ? 'Edit ${_eventType.displayName}'
-                                : 'Add Event',
-                    style: AppTextStyles.pageTitle.copyWith(
-                      color: context.colors.textPrimary,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop(false);
-                    widget.onCancelled?.call();
-                  },
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: context.colors.background,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      AppIcons.close,
-                      size: 18,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
+              color: kEdSurface,
+              border: Border.all(color: kEdCardBorder),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x8C000000),
+                  blurRadius: 60,
+                  offset: Offset(0, 24),
                 ),
               ],
             ),
-          ),
-
-          const SizedBox(height: Spacing.space16),
-
-          // Scrollable content
-          Flexible(
-            child: AbsorbPointer(
-              absorbing: widget.viewOnly,
-              child: Opacity(
-                opacity: widget.viewOnly ? 0.7 : 1.0,
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  padding: EdgeInsets.only(
-                    left: Spacing.pagePadding,
-                    right: Spacing.pagePadding,
-                    bottom: bottomPadding + safeBottom + 100,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_isEditingExpense && _eventType == EventType.gig) ...[
-                        GigExpenseSubView(
-                          members: members,
-                          defaultDate: DateTime.now(),
-                          initialExpense: _editingGigExpense,
-                          onBack: _closeExpenseEditor,
-                          onSave: _handleSaveExpense,
-                          onDelete: _editingGigExpense != null
-                              ? _handleDeleteExpense
-                              : null,
-                          canEdit: canEditFinancials,
-                          canDelete: canDeleteExpense,
-                          isSaving: _isSavingExpense,
-                          isDeleting: _isDeletingExpense,
-                        ),
-                      ] else ...[
-                        // Error banner
-                        if (_errorMessage != null) ...[
-                          _buildErrorBanner(),
-                          const SizedBox(height: Spacing.space16),
-                        ],
-
-                        // Event Type Toggle (create mode only)
-                        if (!_isEditMode) ...[
-                          EventTypeSelector(
-                            selectedType: _eventType,
-                            availableTypes: _computeAvailableTypes(),
-                            isEditMode: _isEditMode,
-                            isSaving: _isSaving,
-                            onTypeChanged: _handleTypeChanged,
-                          ),
-                          const SizedBox(height: Spacing.space20),
-                        ],
-
-                        // Gig name + potential gig (gig only)
-                        if (_eventType == EventType.gig) ...[
-                          gigFormFields!,
-                          const SizedBox(height: Spacing.space12),
-                        ],
-
-                        // Potential Rehearsal toggle (rehearsal only, before date/time)
-                        if (_eventType == EventType.rehearsal) ...[
-                          rehearsalFormFields!
-                              .buildPotentialSection(context, ref),
-                          const SizedBox(height: Spacing.space16),
-                        ],
-
-                        // Block out form
-                        if (_eventType == EventType.blockOut) ...[
-                          _buildBlockOutForm(),
-                          if (_isEditMode && !widget.viewOnly) ...[
-                            const SizedBox(height: Spacing.space24),
-                            EventDeleteButton(
-                              isSaving: _isSaving,
-                              isDeleting: _isDeleting,
-                              onDelete: _showDeleteConfirmation,
-                            ),
-                          ],
-                        ] else ...[
-                          // Shared: date (+add date when potential), time, duration
-                          eventFormFields,
-
-                          // Location/City (type-specific)
-                          if (_eventType == EventType.rehearsal) ...[
-                            // Location + recurring toggle (recurring hidden when isPotential)
-                            rehearsalFormFields!,
-                          ] else ...[
-                            gigFormFields!.buildAddressField(context),
-                            const SizedBox(height: Spacing.space16),
-                            gigFormFields.buildCityStateRow(context),
-                            const SizedBox(height: Spacing.space16),
-                            gigFormFields.buildLoadInTimeSelector(context),
-                            const SizedBox(height: Spacing.space16),
-                            gigFormFields.buildContactsSection(context),
-                          ],
-
-                          const SizedBox(height: Spacing.space16),
-
-                          // Setlist selector
-                          eventFormFields.buildSetlistSelector(context, ref),
-
-                          // Gig Pay (gigs only)
-                          if (_eventType == EventType.gig) ...[
-                            const SizedBox(height: Spacing.space16),
-                            gigFormFields!.buildGigPayButton(context),
-                            const SizedBox(height: Spacing.space16),
-                            gigFormFields.buildExpensesSection(context),
-                          ],
-
-                          const SizedBox(height: Spacing.space16),
-
-                          // Notes
-                          eventFormFields.buildNotesSection(),
-
-                          const SizedBox(height: Spacing.space20),
-
-                          // Delete button (edit mode only)
-                          if (_isEditMode && !widget.viewOnly) ...[
-                            const SizedBox(height: Spacing.space24),
-                            EventDeleteButton(
-                              isSaving: _isSaving,
-                              isDeleting: _isDeleting,
-                              onDelete: _showDeleteConfirmation,
-                            ),
-                          ],
-                        ], // end else (non-blockOut form)
-                      ],
-                    ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildStickyHeader(context),
+                Container(height: 1, color: kEdCardBorder),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildScrollableBody(context),
                   ),
                 ),
-              ),
+                _buildStickyFooter(context),
+              ],
             ),
           ),
-
-          // Bottom action buttons — padded above keyboard and system nav bar
-          Padding(
-            padding: EdgeInsets.only(bottom: bottomPadding + safeBottom),
-            child: _isEditingExpense
-                ? const SizedBox.shrink()
-                : widget.viewOnly
-                    ? EventEditorViewOnlyClose(
-                        onClose: () {
-                          Navigator.of(context).pop(false);
-                          widget.onCancelled?.call();
-                        },
-                      )
-                    : EventEditorBottomActions(
-                        canSave: !_isSaving &&
-                            !_isDeleting &&
-                            (widget.mode == EventEditorMode.create || _isDirty),
-                        isSaving: _isSaving,
-                        isDeleting: _isDeleting,
-                        primaryButtonLabel: _primaryButtonLabel,
-                        onSave: _handleSave,
-                        onCancel: () {
-                          Navigator.pop(context);
-                          widget.onCancelled?.call();
-                        },
-                      ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -2993,6 +2766,527 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStickyHeader(BuildContext context) {
+    final title = _isEditingExpense
+        ? (_editingGigExpense == null ? 'Add Expense' : 'Edit Expense')
+        : widget.viewOnly
+            ? '${_eventType.displayName} Details'
+            : widget.mode == EventEditorMode.edit
+                ? 'Edit Event'
+                : 'Add Event';
+    const subtitle = 'Fill in what you know now. You can edit any of it later.';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_isEditingExpense) ...[
+                GestureDetector(
+                  onTap: _closeExpenseEditor,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F1F23),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.arrow_back,
+                        size: 18, color: Color(0xFFA1A1AA)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFFAFAFA),
+                      ),
+                    ),
+                    if (!_isEditingExpense) ...[
+                      const SizedBox(height: 2),
+                      const Text(
+                        subtitle,
+                        style:
+                            TextStyle(fontSize: 14, color: Color(0xFF8b8b93)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: _isSaving
+                      ? null
+                      : () {
+                          widget.onCancelled?.call();
+                          Navigator.of(context).pop();
+                        },
+                  icon: const Icon(Icons.close,
+                      size: 16, color: Color(0xFFA1A1AA)),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFF1F1F23),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (!_isEditMode && !_isEditingExpense) ...[
+            const SizedBox(height: 12),
+            EventTypeSelector(
+              selectedType: _eventType,
+              availableTypes: _computeAvailableTypes(),
+              isEditMode: _isEditMode,
+              isSaving: _isSaving,
+              onTypeChanged: _handleTypeChanged,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScrollableBody(BuildContext context) {
+    if (_isEditingExpense) {
+      return _buildExpenseEditingBody(context);
+    }
+
+    Widget body;
+    if (_eventType == EventType.blockOut) {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildBlockOutForm(),
+          if (_isEditMode && !widget.viewOnly) ...[
+            const SizedBox(height: Spacing.space24),
+            EventDeleteButton(
+              isSaving: _isSaving,
+              isDeleting: _isDeleting,
+              onDelete: _showDeleteConfirmation,
+            ),
+          ],
+        ],
+      );
+    } else if (_eventType == EventType.gig) {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_errorMessage != null) ...[
+            _buildErrorBanner(),
+            const SizedBox(height: 16),
+          ],
+          _SectionCard(title: 'The gig', child: _buildGigSection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(
+              title: 'Schedule', child: _buildScheduleSection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(
+              title: 'Location', child: _buildLocationSection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(
+              title: 'Show prep', child: _buildShowPrepSection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(title: 'Money', child: _buildMoneySection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(title: 'Notes', child: _buildNotesSection(context)),
+          if (_isEditMode && !widget.viewOnly) ...[
+            const SizedBox(height: Spacing.space24),
+            EventDeleteButton(
+              isSaving: _isSaving,
+              isDeleting: _isDeleting,
+              onDelete: _showDeleteConfirmation,
+            ),
+          ],
+        ],
+      );
+    } else {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_errorMessage != null) ...[
+            _buildErrorBanner(),
+            const SizedBox(height: 16),
+          ],
+          _SectionCard(
+              title: 'Schedule', child: _buildScheduleSection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(
+              title: 'Location', child: _buildLocationSection(context)),
+          const SizedBox(height: 16),
+          _SectionCard(title: 'Notes', child: _buildNotesSection(context)),
+          if (_isEditMode && !widget.viewOnly) ...[
+            const SizedBox(height: Spacing.space24),
+            EventDeleteButton(
+              isSaving: _isSaving,
+              isDeleting: _isDeleting,
+              onDelete: _showDeleteConfirmation,
+            ),
+          ],
+        ],
+      );
+    }
+
+    if (widget.viewOnly) {
+      return AbsorbPointer(child: Opacity(opacity: 0.7, child: body));
+    }
+    return body;
+  }
+
+  Widget _buildExpenseEditingBody(BuildContext context) {
+    final members = ref.watch(membersProvider).members;
+    final permsAsync = ref.watch(currentUserPermissionsProvider);
+    final perms = permsAsync.whenOrNull(data: (p) => p);
+    final canEditFinancials =
+        (perms?.canCreateFinancials ?? false) && !widget.viewOnly && !_isSaving;
+    final canDeleteExpense =
+        (perms?.canDeleteFinancials ?? false) && !widget.viewOnly && !_isSaving;
+    return GigExpenseSubView(
+      members: members,
+      defaultDate: DateTime.now(),
+      initialExpense: _editingGigExpense,
+      onBack: _closeExpenseEditor,
+      onSave: _handleSaveExpense,
+      onDelete: _editingGigExpense != null ? _handleDeleteExpense : null,
+      canEdit: canEditFinancials,
+      canDelete: canDeleteExpense,
+      isSaving: _isSavingExpense,
+      isDeleting: _isDeletingExpense,
+    );
+  }
+
+  Widget _buildGigSection(BuildContext context) {
+    return _createGigFormFields();
+  }
+
+  Widget _buildScheduleSection(BuildContext context) {
+    final isGig = _eventType == EventType.gig;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isGig) ...[
+          _createRehearsalFormFields().buildPotentialSection(context, ref),
+          const SizedBox(height: Spacing.space16),
+        ],
+        _createEventFormFields(context),
+        if (isGig) ...[
+          _createGigFormFields().buildLoadInTimeSelector(context),
+          const SizedBox(height: 16),
+          const Text(
+            'Soundcheck',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFE4E4E7),
+            ),
+          ),
+          const SizedBox(height: 8),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 150),
+            curve: const Cubic(0.4, 0, 0.2, 1),
+            child: _soundcheckHour == null
+                ? SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _isSaving
+                          ? null
+                          : () => setState(() {
+                                _soundcheckHour = 6;
+                                _soundcheckMinutes = 0;
+                                _soundcheckIsPM = false;
+                              }),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: Color(0xFFfb2c5a),
+                          width: 1.5,
+                        ),
+                        foregroundColor: const Color(0xFFfb2c5a),
+                        minimumSize: const Size(double.infinity, 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Set soundcheck time'),
+                    ),
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: _buildSoundcheckTimePicker(context)),
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _soundcheckHour = null;
+                          _soundcheckMinutes = null;
+                          _soundcheckIsPM = null;
+                        }),
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLocationSection(BuildContext context) {
+    if (_eventType == EventType.gig) {
+      final gig = _createGigFormFields();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          gig.buildAddressField(context),
+          const SizedBox(height: Spacing.space16),
+          gig.buildCityStateRow(context),
+        ],
+      );
+    }
+    return _createRehearsalFormFields();
+  }
+
+  Widget _buildShowPrepSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _createGigFormFields().buildContactsSection(context),
+        const SizedBox(height: Spacing.space16),
+        _createEventFormFields(context).buildSetlistSelector(context, ref),
+      ],
+    );
+  }
+
+  Widget _buildMoneySection(BuildContext context) {
+    final gig = _createGigFormFields();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        gig.buildGigPayButton(context),
+        const SizedBox(height: Spacing.space16),
+        gig.buildExpensesSection(context),
+      ],
+    );
+  }
+
+  Widget _buildNotesSection(BuildContext context) {
+    return _createEventFormFields(context).buildNotesSection();
+  }
+
+  Widget _buildStickyFooter(BuildContext context) {
+    if (_isEditingExpense) return const SizedBox.shrink();
+
+    if (widget.viewOnly) {
+      return Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: kEdCardBorder)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: OutlinedButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+                widget.onCancelled?.call();
+              },
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Close'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: kEdCardBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _buildSummaryText(),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF71717A)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: _isSaving
+                  ? null
+                  : () {
+                      widget.onCancelled?.call();
+                      Navigator.of(context).pop();
+                    },
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(80, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: 8),
+            _buildPrimaryActionButton(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _buildSummaryText() {
+    final parts = <String>[];
+    if (_eventType == EventType.gig && _isPotentialGig) {
+      parts.add('Potential gig');
+    } else {
+      parts.add(_eventType.displayName);
+    }
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    parts.add('${months[_selectedDate.month - 1]} ${_selectedDate.day}');
+    final hourStr = _selectedHour.toString();
+    final minStr = _selectedMinutes.toString().padLeft(2, '0');
+    final amPm = _isPM ? 'PM' : 'AM';
+    parts.add('$hourStr:$minStr $amPm');
+    if (_durationMinutes > 0) {
+      final h = _durationMinutes ~/ 60;
+      final m = _durationMinutes % 60;
+      parts.add(
+        h > 0 && m > 0
+            ? '${h}h ${m}m'
+            : h > 0
+                ? '${h}h'
+                : '${m}m',
+      );
+    }
+    return parts.join(' · ');
+  }
+
+  Widget _buildPrimaryActionButton(BuildContext context) {
+    final canSave = !_isSaving &&
+        !_isDeleting &&
+        (widget.mode == EventEditorMode.create || _isDirty);
+    return SizedBox(
+      height: 40,
+      child: _isSaving
+          ? ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFfb2c5a),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: null,
+              child: const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFfb2c5a),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: canSave ? _handleSave : null,
+              child: Text(_primaryButtonLabel),
+            ),
+    );
+  }
+
+  Widget _buildSoundcheckTimePicker(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: EventDropdown<int>(
+            value: _soundcheckHour!,
+            items: List.generate(12, (i) => i + 1),
+            onChanged: (v) {
+              if (v != null) setState(() => _soundcheckHour = v);
+            },
+            labelBuilder: (v) => v.toString(),
+            isSaving: _isSaving,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: EventDropdown<int>(
+            value: _soundcheckMinutes!,
+            items: const [0, 15, 30, 45],
+            onChanged: (v) {
+              if (v != null) setState(() => _soundcheckMinutes = v);
+            },
+            labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
+            isSaving: _isSaving,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: context.colors.background,
+            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+          ),
+          padding: const EdgeInsets.all(4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AmPmToggleButton(
+                label: 'AM',
+                isSelected: !_soundcheckIsPM!,
+                isSaving: _isSaving,
+                onTap: () => setState(() => _soundcheckIsPM = false),
+              ),
+              AmPmToggleButton(
+                label: 'PM',
+                isSelected: _soundcheckIsPM!,
+                isSaving: _isSaving,
+                onTap: () => setState(() => _soundcheckIsPM = true),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -3317,5 +3611,41 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       });
       _markDirty();
     }
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: kEdCardBg,
+        border: Border.all(color: kEdCardBorder),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.7,
+              color: Color(0xFFFAFAFA),
+            ),
+          ),
+          const SizedBox(height: 20),
+          child,
+        ],
+      ),
+    );
   }
 }

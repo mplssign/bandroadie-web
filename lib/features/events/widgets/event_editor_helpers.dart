@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_dropdown.dart';
-import '../../../components/ui/app_text_field.dart';
 
 // ============================================================================
 // Shared reusable building blocks for event editor form field widgets.
@@ -33,6 +34,7 @@ class EventTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMultiline = maxLines > 1;
+    final colors = FTheme.of(context).colors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,12 +46,11 @@ class EventTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        AppTextField(
+        TextField(
           controller: controller,
           enabled: !isSaving,
           maxLines: isMultiline ? null : maxLines,
-          minLines: isMultiline ? maxLines : null,
-          hintText: hint,
+          minLines: isMultiline ? (maxLines > 1 ? maxLines : null) : null,
           keyboardType:
               isMultiline ? TextInputType.multiline : TextInputType.text,
           textInputAction:
@@ -58,6 +59,32 @@ class EventTextField extends StatelessWidget {
               ? TextCapitalization.sentences
               : TextCapitalization.none,
           onChanged: onChanged != null ? (_) => onChanged!() : null,
+          style: TextStyle(color: colors.foreground),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: kEdInputFill,
+            hintText: hint,
+            hintStyle: const TextStyle(color: kEdPlaceholder),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: kEdCardBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: kEdCardBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFfb2c5a)),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  BorderSide(color: kEdCardBorder.withValues(alpha: 0.5)),
+            ),
+          ),
         ),
         if (error != null) ...[
           const SizedBox(height: 4),
@@ -166,18 +193,17 @@ class AvailabilityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = isPositive
-        ? context.colors.success // green-500
-        : AppColors.error; // red-500
-
     final backgroundColor = isSelected
-        ? activeColor.withValues(alpha: 0.2)
+        ? (isPositive ? kEdSuccessBg : kEdDangerBg)
         : context.colors.background;
 
-    final borderColor = isSelected ? activeColor : context.colors.border;
+    final borderColor = isSelected
+        ? (isPositive ? kEdSuccessBorder : kEdDangerBorder)
+        : context.colors.border;
 
-    final contentColor =
-        isSelected ? activeColor : context.colors.textSecondary;
+    final contentColor = isSelected
+        ? (isPositive ? kEdSuccessIcon : AppColors.error)
+        : context.colors.textSecondary;
 
     return Material(
       color: Colors.transparent,
@@ -201,7 +227,7 @@ class AvailabilityButton extends StatelessWidget {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: activeColor,
+                      color: contentColor,
                     ),
                   )
                 : AnimatedSwitcher(

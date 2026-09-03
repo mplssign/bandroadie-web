@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 
 // ============================================================================
@@ -245,22 +246,19 @@ class _AvailabilityGridItem extends StatelessWidget {
 
     switch (state) {
       case AvailabilityState.available:
-        // Green for available
-        backgroundColor = context.colors.success; // Green-500
-        borderColor = context.colors.success;
+        backgroundColor = kEdSuccessBg;
+        borderColor = kEdSuccessBorder;
         textColor = Colors.white;
         break;
       case AvailabilityState.notAvailable:
-        // Rose for not available
-        backgroundColor = AppColors.primary; // Rose
-        borderColor = AppColors.primary;
+        backgroundColor = kEdDangerBg;
+        borderColor = kEdDangerBorder;
         textColor = Colors.white;
         break;
       case AvailabilityState.notResponded:
-        // Outlined for not responded
-        backgroundColor = context.colors.background;
-        borderColor = context.colors.border;
-        textColor = context.colors.textSecondary;
+        backgroundColor = Colors.transparent;
+        borderColor = kEdCardBorder;
+        textColor = const Color(0xFFFAFAFA);
         break;
     }
 

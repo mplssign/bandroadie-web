@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/design_tokens.dart';
+import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/field_hint.dart';
@@ -214,24 +215,26 @@ class EventFormFields extends ConsumerWidget {
           child: GestureDetector(
             onTap: onTap,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              constraints: const BoxConstraints(minHeight: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: context.colors.background,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: context.colors.border),
+                color: kEdInputFill,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kEdCardBorder),
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.calendar,
                     size: 18,
-                    color: context.colors.textSecondary,
+                    color: Color(0xFFFAFAFA),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     _formatDateDisplay(date),
                     style: AppTextStyles.callout.copyWith(
-                      color: context.colors.textPrimary,
+                      color: const Color(0xFFFAFAFA),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -456,7 +459,7 @@ class EventFormFields extends ConsumerWidget {
 
   Widget _buildDurationSelector(BuildContext context) {
     const minDuration = 15;
-    const roseColor = AppColors.primary;
+    const roseColor = Color(0xFFfb2c5a);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,26 +472,22 @@ class EventFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Row(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
               onTap: isSaving || durationMinutes <= minDuration
                   ? null
                   : onDurationDecremented,
               child: Container(
-                width: 56,
-                height: 56,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: durationMinutes <= minDuration
                         ? roseColor.withValues(alpha: 0.4)
                         : roseColor,
-                    width: 2,
                   ),
-                  color: durationMinutes > minDuration && !isSaving
-                      ? context.colors.surface
-                      : null,
                 ),
                 child: Center(
                   child: Text(
@@ -509,10 +508,10 @@ class EventFormFields extends ConsumerWidget {
               child: Center(
                 child: Text(
                   _formatDurationMinutes(durationMinutes),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: AppFontSizes.display,
                     fontWeight: FontWeight.w700,
-                    color: context.colors.textPrimary,
+                    color: Color(0xFFFAFAFA),
                   ),
                 ),
               ),
@@ -520,14 +519,15 @@ class EventFormFields extends ConsumerWidget {
             GestureDetector(
               onTap: isSaving ? null : onDurationIncremented,
               child: Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: roseColor, width: 2),
-                  color: !isSaving ? context.colors.surface : null,
+                  border: Border.fromBorderSide(
+                    BorderSide(color: roseColor),
+                  ),
                 ),
-                child: Center(
+                child: const Center(
                   child: Text(
                     '+15',
                     style: TextStyle(
