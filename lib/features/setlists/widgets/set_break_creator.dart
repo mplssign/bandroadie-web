@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -109,7 +109,7 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
         padding: EdgeInsets.only(bottom: bottomInset),
         decoration: BoxDecoration(
           color: context.colors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           top: false,
@@ -225,20 +225,10 @@ class _SetBreakCreatorSheetState extends State<_SetBreakCreatorSheet>
 
               const SizedBox(height: 40),
 
-              // ── Add button ──
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                child: AppButton(
-                  label: 'Add Set Break',
-                  variant: AppButtonVariant.secondary,
-                  fullWidth: true,
-                  onPressed: _submit,
-                ),
+              SheetFooter(
+                primaryLabel: 'Add Set Break',
+                onPrimary: _submit,
               ),
-
-              const SizedBox(height: 24),
             ],
           ),
         ),

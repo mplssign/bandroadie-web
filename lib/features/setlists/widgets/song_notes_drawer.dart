@@ -4,7 +4,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_text_field.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
 // SONG NOTES DRAWER
@@ -184,37 +184,12 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
   }
 
   Widget _buildFooter() {
-    return Padding(
-      padding: const EdgeInsets.all(Spacing.space16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_isEditing) ...[
-            // Edit mode: Save button
-            AppButton(
-              label: 'Save',
-              variant: AppButtonVariant.primary,
-              fullWidth: true,
-              onPressed: _hasChanges ? _handleSave : null,
-            ),
-          ] else ...[
-            // View mode: Edit button
-            AppButton(
-              label: 'Edit',
-              variant: AppButtonVariant.primary,
-              fullWidth: true,
-              onPressed: () => setState(() => _isEditing = true),
-            ),
-          ],
-          const SizedBox(height: 8),
-          // Cancel button (both modes)
-          AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.text,
-            onPressed: _handleCancel,
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: _isEditing ? 'Save' : 'Edit',
+      onPrimary: _isEditing
+          ? (_hasChanges ? _handleSave : null)
+          : () => setState(() => _isEditing = true),
+      onCancel: _handleCancel,
     );
   }
 }

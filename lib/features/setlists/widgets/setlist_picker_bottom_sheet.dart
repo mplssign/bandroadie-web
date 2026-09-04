@@ -11,7 +11,7 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_icon_button.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
 // SETLIST PICKER BOTTOM SHEET
@@ -473,14 +473,13 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
   }
 
   Widget _buildCreateNewForm() {
-    return Padding(
-      padding: const EdgeInsets.all(Spacing.space16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Text field
-          AppTextField(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(Spacing.space16),
+          child: AppTextField(
             controller: _newNameController,
             focusNode: _newNameFocus,
             autofocus: true,
@@ -495,38 +494,13 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             },
             onSubmitted: (_) => _handleConfirmCreate(),
           ),
-
-          const SizedBox(height: Spacing.space16),
-
-          // Action buttons
-          Row(
-            children: [
-              // Cancel
-              Expanded(
-                child: AppButton(
-                  label: 'Cancel',
-                  variant: AppButtonVariant.outlined,
-                  onPressed: _handleCancelCreate,
-                ),
-              ),
-
-              const SizedBox(width: Spacing.space12),
-
-              // Create & Add
-              Expanded(
-                child: AppButton(
-                  label: 'Create & Add',
-                  variant: AppButtonVariant.primary,
-                  onPressed: _handleConfirmCreate,
-                ),
-              ),
-            ],
-          ),
-
-          // Bottom safe area padding (keyboard handled at container level)
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
-        ],
-      ),
+        ),
+        SheetFooter(
+          primaryLabel: 'Create & Add',
+          onPrimary: _handleConfirmCreate,
+          onCancel: _handleCancelCreate,
+        ),
+      ],
     );
   }
 }

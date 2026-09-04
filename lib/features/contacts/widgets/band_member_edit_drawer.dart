@@ -16,6 +16,7 @@ import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_switch.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
 // BAND MEMBER EDIT DRAWER
@@ -511,49 +512,11 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
   }
 
   Widget _buildFixedBottomActions() {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: AppButton(
-              label: 'Save',
-              variant: AppButtonVariant.primary,
-              onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
-              isLoading: _isSaving,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(height: 8),
-          AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.text,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: 'Save',
+      onPrimary: (_hasChanges && !_isSaving) ? _saveRole : null,
+      primaryIsLoading: _isSaving,
+      onCancel: () => Navigator.of(context).pop(),
     );
   }
 

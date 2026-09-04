@@ -4,6 +4,7 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
+import 'package:bandroadie/components/ui/sheet_footer.dart';
 import 'package:bandroadie/components/ui/app_icon_button.dart';
 import 'package:bandroadie/components/ui/app_switch.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
@@ -846,55 +847,11 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
   // ---------------------------------------------------------------------------
 
   Widget _buildBottomBar() {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: AppButton(
-              label: 'Save layout',
-              onPressed: _showSaveLayoutDialog,
-              variant: AppButtonVariant.outlined,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppButton(
-              label: 'Preview',
-              onPressed: _handlePreview,
-              variant: AppButtonVariant.primary,
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              fullWidth: true,
-            ),
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: 'Preview',
+      onPrimary: _handlePreview,
+      cancelLabel: 'Save layout',
+      onCancel: _showSaveLayoutDialog,
     );
   }
 }

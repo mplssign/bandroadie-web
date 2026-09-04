@@ -9,6 +9,7 @@ import '../../members/members_controller.dart';
 import '../financials_controller.dart';
 import '../models/financial_entry.dart';
 import 'add_financial_entry_bottom_sheet.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
 // FINANCIAL ENTRY DETAILS BOTTOM SHEET
@@ -46,25 +47,27 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
     final isReimbursedExpense =
         entry.entryType == FinancialEntryType.expense && entry.isReimbursed;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: context.colors.surface,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(Spacing.cardRadius),
         ),
       ),
-      padding: EdgeInsets.only(
-        left: Spacing.pagePadding,
-        right: Spacing.pagePadding,
-        top: Spacing.space24,
-        bottom: Spacing.space24 +
-            MediaQuery.of(context).viewInsets.bottom +
-            MediaQuery.of(context).padding.bottom,
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              left: Spacing.pagePadding,
+              right: Spacing.pagePadding,
+              top: Spacing.space24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           // Drag handle
           Center(
             child: Container(
@@ -156,73 +159,63 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: Spacing.space24),
-
-          // Edit button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                final notifier = ref.read(financialsProvider.notifier);
-                final members = ref.read(membersProvider).members;
-                final savingsTotalCents = ref
-                    .read(financialsProvider)
-                    .allEntries
-                    .where((e) => e.depositToSavings == true)
-                    .fold<int>(
-                        0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
-                await showAddFinancialEntrySheet(
-                  context,
-                  initialEntry: entry,
-                  members: members,
-                  savingsTotalCents: savingsTotalCents,
-                  onSave: ({
-                    required entryType,
-                    required category,
-                    required amountCents,
-                    required entryDate,
-                    description,
-                    is1099Expected,
-                    payerName,
-                    paidToName,
-                    paidToUserId,
-                    disbursements,
-                    depositToSavings,
-                    depositToSavingsCents,
-                  }) async {
-                    await notifier.updateEntry(
-                      entryId: entry.id,
-                      entryType: entryType,
-                      category: category,
-                      amountCents: amountCents,
-                      entryDate: entryDate,
-                      description: description,
-                      is1099Expected: is1099Expected,
-                      payerName: payerName,
-                      paidToName: paidToName,
-                      paidToUserId: paidToUserId,
-                      disbursements: disbursements,
-                      depositToSavings: depositToSavings,
-                      depositToSavingsCents: depositToSavingsCents,
-                    );
-                  },
-                  onDelete: () async {
-                    await notifier.deleteEntry(entry.id);
-                  },
-                );
-              },
-              icon: const Icon(AppIcons.edit, size: 18),
-              label: const Text('Edit Entry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-            ),
+              const SizedBox(height: Spacing.space24),
+            ],
+          ),
+          ),
+          SheetFooter(
+            primaryLabel: 'Edit Entry',
+            primaryIcon: AppIcons.edit,
+            onPrimary: () async {
+              Navigator.of(context).pop();
+              final notifier = ref.read(financialsProvider.notifier);
+              final members = ref.read(membersProvider).members;
+              final savingsTotalCents = ref
+                  .read(financialsProvider)
+                  .allEntries
+                  .where((e) => e.depositToSavings == true)
+                  .fold<int>(
+                      0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
+              await showAddFinancialEntrySheet(
+                context,
+                initialEntry: entry,
+                members: members,
+                savingsTotalCents: savingsTotalCents,
+                onSave: ({
+                  required entryType,
+                  required category,
+                  required amountCents,
+                  required entryDate,
+                  description,
+                  is1099Expected,
+                  payerName,
+                  paidToName,
+                  paidToUserId,
+                  disbursements,
+                  depositToSavings,
+                  depositToSavingsCents,
+                }) async {
+                  await notifier.updateEntry(
+                    entryId: entry.id,
+                    entryType: entryType,
+                    category: category,
+                    amountCents: amountCents,
+                    entryDate: entryDate,
+                    description: description,
+                    is1099Expected: is1099Expected,
+                    payerName: payerName,
+                    paidToName: paidToName,
+                    paidToUserId: paidToUserId,
+                    disbursements: disbursements,
+                    depositToSavings: depositToSavings,
+                    depositToSavingsCents: depositToSavingsCents,
+                  );
+                },
+                onDelete: () async {
+                  await notifier.deleteEntry(entry.id);
+                },
+              );
+            },
           ),
         ],
       ),

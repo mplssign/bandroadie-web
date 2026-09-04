@@ -8,7 +8,7 @@ import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/widgets/toggle_tile.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_progress_indicator.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../calendar_subscription_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -179,6 +179,13 @@ class _CalendarSubscriptionDialogState
                 ),
               ),
             ),
+
+            // Footer
+            if (!subscriptionUrlAsync.isLoading)
+              SheetFooter(
+                primaryLabel: 'Done',
+                onPrimary: () => Navigator.of(context).pop(),
+              ),
           ],
         ),
       ),
@@ -228,12 +235,6 @@ class _CalendarSubscriptionDialogState
                 color: context.colors.textSecondary,
                 fontSize: AppFontSizes.subhead),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: Spacing.space24),
-          AppButton(
-            label: 'Close',
-            variant: AppButtonVariant.text,
-            onPressed: () => Navigator.of(context).pop(),
           ),
         ],
       ),

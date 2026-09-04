@@ -6,7 +6,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_animations.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
 import 'rehearsal_notes_sheet.dart';
@@ -265,33 +265,11 @@ class ViewRehearsalDrawer extends ConsumerWidget {
           ),
 
           // Footer
-          Padding(
-            padding: EdgeInsets.only(
-              left: Spacing.pagePadding,
-              right: Spacing.pagePadding,
-              bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
-            ),
-            child: Column(
-              children: [
-                AppButton(
-                  label: 'Done',
-                  fullWidth: true,
-                  onPressed: () => Navigator.of(context).pop(),
-                  variant: AppButtonVariant.primary,
-                ),
-                if (canEdit) ...[
-                  const SizedBox(height: Spacing.space12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppButton(
-                      label: 'Edit',
-                      variant: AppButtonVariant.text,
-                      onPressed: () => _handleEdit(context),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: canEdit ? () => _handleEdit(context) : null,
           ),
         ],
       ),

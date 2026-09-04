@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../models/calendar_event.dart';
 
 class ViewBlockOutDrawer extends StatelessWidget {
@@ -155,33 +155,11 @@ class ViewBlockOutDrawer extends StatelessWidget {
           ),
 
           // Footer
-          Padding(
-            padding: EdgeInsets.only(
-              left: Spacing.pagePadding,
-              right: Spacing.pagePadding,
-              bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
-            ),
-            child: Column(
-              children: [
-                AppButton(
-                  label: 'Done',
-                  fullWidth: true,
-                  onPressed: () => Navigator.of(context).pop(),
-                  variant: AppButtonVariant.primary,
-                ),
-                if (canEdit) ...[
-                  const SizedBox(height: Spacing.space12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppButton(
-                      label: 'Edit',
-                      variant: AppButtonVariant.text,
-                      onPressed: () => _handleEdit(context),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: canEdit ? () => _handleEdit(context) : null,
           ),
         ],
       ),

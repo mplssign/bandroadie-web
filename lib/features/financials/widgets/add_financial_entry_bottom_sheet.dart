@@ -12,6 +12,7 @@ import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
 import '../../members/permissions/band_permissions_provider.dart';
 import '../../../shared/utils/snackbar_helper.dart';
@@ -449,135 +450,27 @@ class _AddFinancialEntryBottomSheetState
   }
 
   Widget _buildFixedBottomActions() {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
     final enabled = _amountController.cents > 0;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Save and Cancel side by side
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: context.colors.border),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                  ),
-                  child: Text(
-                    'Cancel',
-                    style: AppTextStyles.body.copyWith(
-                      color: context.colors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: AppFontSizes.body,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: enabled ? _save : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: enabled
-                        ? AppColors.primary
-                        : context.colors.border.withValues(alpha: 0.3),
-                    disabledBackgroundColor:
-                        context.colors.border.withValues(alpha: 0.3),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          'Save',
-                          style: AppTextStyles.body.copyWith(
-                            color: enabled
-                                ? Colors.white
-                                : context.colors.textMuted,
-                            fontWeight: FontWeight.w700,
-                            fontSize: AppFontSizes.body,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
-          // Delete button (only when editing and user has permission)
-          if (widget.initialEntry != null && widget.onDelete != null)
-            Consumer(
-              builder: (context, ref, _) {
-                final permissionsAsync =
-                    ref.watch(currentUserPermissionsProvider);
-                final canDelete = permissionsAsync.when(
-                  data: (p) => p.canDeleteFinancials,
-                  loading: () => false,
-                  error: (_, __) => false,
-                );
-                if (!canDelete) {
-                  return const SizedBox.shrink();
-                }
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _handleDelete,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8, horizontal: 24),
-                      ),
-                      child: Text(
-                        widget.initialEntry!.isIncome
-                            ? 'Delete income'
-                            : 'Delete expense',
-                        style: AppTextStyles.body.copyWith(
-                          color: AppColors.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-        ],
-      ),
+    return Consumer(
+      builder: (context, ref, _) {
+        final canDelete = ref.watch(currentUserPermissionsProvider).when(
+          data: (p) => p.canDeleteFinancials,
+          loading: () => false,
+          error: (_, __) => false,
+        );
+        final showDestructive =
+            widget.initialEntry != null && widget.onDelete != null && canDelete;
+        return SheetFooter(
+          primaryLabel: 'Save',
+          onPrimary: enabled ? _save : null,
+          primaryIsLoading: _isSaving,
+          onCancel: () => Navigator.of(context).pop(),
+          destructiveLabel: showDestructive
+              ? (widget.initialEntry!.isIncome ? 'Delete income' : 'Delete expense')
+              : null,
+          onDestructive: showDestructive ? _handleDelete : null,
+        );
+      },
     );
   }
 

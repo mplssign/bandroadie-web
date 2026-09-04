@@ -10,6 +10,7 @@ import '../../../components/ui/app_icon_button.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_switch.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
@@ -432,51 +433,11 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
   }
 
   Widget _buildFixedBottomActions() {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: AppButton(
-              label: 'Save',
-              variant: AppButtonVariant.primary,
-              onPressed: (_hasChanges && !_isSaving) ? _saveRole : null,
-              isLoading: _isSaving,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(height: 8),
-          AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.text,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: 'Save',
+      onPrimary: (_hasChanges && !_isSaving) ? _saveRole : null,
+      primaryIsLoading: _isSaving,
+      onCancel: () => Navigator.of(context).pop(),
     );
   }
 

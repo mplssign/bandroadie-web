@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/segmented_button_group.dart';
 import '../../songs/external_song_lookup_service.dart';
 import '../../songs/song_enrichment_service.dart';
@@ -421,52 +422,10 @@ class _SongEnrichmentReviewSheetState
   }
 
   Widget _buildFixedBottomActions() {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppButton(
-            label: 'Save',
-            // Save is never gated on the enrichment fetch completing.
-            onPressed: _handleSave,
-            variant: AppButtonVariant.primary,
-            backgroundColor: AppColors.primary,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            fullWidth: true,
-          ),
-          const SizedBox(height: 8),
-          AppButton(
-            label: 'Cancel',
-            onPressed: _handleCancel,
-            variant: AppButtonVariant.text,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: 'Save',
+      onPrimary: _handleSave,
+      onCancel: _handleCancel,
     );
   }
 }

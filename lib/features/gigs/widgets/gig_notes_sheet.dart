@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 class GigNotesSheet extends StatelessWidget {
   final String notes;
@@ -93,21 +93,10 @@ class GigNotesSheet extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: Spacing.space16),
-
           // Footer
-          Padding(
-            padding: EdgeInsets.only(
-              left: Spacing.pagePadding,
-              right: Spacing.pagePadding,
-              bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
-            ),
-            child: AppButton(
-              label: 'Done',
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-              variant: AppButtonVariant.primary,
-            ),
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
           ),
         ],
       ),
