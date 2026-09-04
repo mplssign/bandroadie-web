@@ -9,7 +9,7 @@ import 'package:bandroadie/components/ui/app_button.dart';
 /// - An optional full-width destructive action above the primary/cancel row.
 /// - A row with the cancel (text, left) and primary (filled rose, right) buttons.
 ///
-/// Pass `onCancel: null` to hide the cancel slot; the primary right-anchors.
+/// Pass `onCancel: null` to hide the cancel slot; the primary spans full width.
 /// Pass both `destructiveLabel` and `onDestructive` to show the destructive row.
 class SheetFooter extends StatelessWidget {
   const SheetFooter({
@@ -62,22 +62,25 @@ class SheetFooter extends StatelessWidget {
       onPressed: primaryIsLoading ? null : onPrimary,
       icon: primaryIcon,
       isLoading: primaryIsLoading,
+      fullWidth: true,
     );
 
-    final row = Row(
-      mainAxisAlignment: onCancel != null
-          ? MainAxisAlignment.spaceBetween
-          : MainAxisAlignment.end,
-      children: [
-        if (onCancel != null)
-          AppButton(
-            label: cancelLabel,
-            onPressed: primaryIsLoading ? null : onCancel,
-            variant: AppButtonVariant.text,
-          ),
-        primary,
-      ],
-    );
+    final Widget row = onCancel != null
+        ? Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: cancelLabel,
+                  onPressed: primaryIsLoading ? null : onCancel,
+                  variant: AppButtonVariant.text,
+                  fullWidth: true,
+                ),
+              ),
+              const SizedBox(width: Spacing.space12),
+              Expanded(child: primary),
+            ],
+          )
+        : primary;
 
     final hasDestructive = destructiveLabel != null && onDestructive != null;
 

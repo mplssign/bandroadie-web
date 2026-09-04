@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/sheet_footer.dart';
 import 'package:forui/forui.dart';
@@ -272,6 +273,63 @@ void main() {
       expect(find.byIcon(Icons.edit), findsOneWidget);
       final button = tester.widgetList<AppButton>(find.byType(AppButton)).first;
       expect(button.icon, Icons.edit);
+    });
+
+    testWidgets('both actions → each button is wrapped in an Expanded',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SheetFooter(
+            primaryLabel: 'Save',
+            onPrimary: () {},
+            onCancel: () {},
+          ),
+        ),
+      );
+
+      final expandeds =
+          tester.widgetList<Expanded>(find.byType(Expanded)).toList();
+      expect(expandeds.length, 2);
+      expect(expandeds[0].child, isA<AppButton>());
+      expect(expandeds[1].child, isA<AppButton>());
+    });
+
+    testWidgets(
+        'both actions → inter-button gap is SizedBox(width: Spacing.space12)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SheetFooter(
+            primaryLabel: 'Save',
+            onPrimary: () {},
+            onCancel: () {},
+          ),
+        ),
+      );
+
+      final sizeBoxes =
+          tester.widgetList<SizedBox>(find.byType(SizedBox)).toList();
+      final gap = sizeBoxes.firstWhere(
+        (s) => s.width == Spacing.space12 && s.height == null,
+        orElse: () => throw TestFailure('No SizedBox gap found'),
+      );
+      expect(gap.width, Spacing.space12);
+    });
+
+    testWidgets('lone primary (onCancel null) → fullWidth true, no Expanded',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: null,
+          ),
+        ),
+      );
+
+      expect(find.byType(Expanded), findsNothing);
+      final button = tester.widget<AppButton>(find.byType(AppButton));
+      expect(button.fullWidth, isTrue);
     });
   });
 }
