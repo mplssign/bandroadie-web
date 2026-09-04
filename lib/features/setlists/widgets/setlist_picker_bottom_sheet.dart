@@ -11,7 +11,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_icon_button.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
@@ -249,18 +248,19 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
           color: context.colors.surface,
           borderRadius: BorderRadius.circular(Spacing.cardRadius),
         ),
-        child: CollapsingSheetScaffold(
-          header: _buildHeader(),
-          body: _isCreatingNew
-              ? _buildCreateNewForm()
-              : _buildSetlistList(selectableSetlists),
-          footer: _isCreatingNew
-              ? SheetFooter(
-                  primaryLabel: 'Create & Add',
-                  onPrimary: _handleConfirmCreate,
-                  onCancel: _handleCancelCreate,
-                )
-              : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            _buildHeader(),
+
+            // Content (existing setlists or create new)
+            Flexible(
+              child: _isCreatingNew
+                  ? _buildCreateNewForm()
+                  : _buildSetlistList(selectableSetlists),
+            ),
+          ],
         ),
       ),
     );
@@ -400,10 +400,9 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
   }
 
   Widget _buildSetlistList(List<Setlist> setlists) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         // Create New option (always first)
         _SetlistOptionTile(
           icon: AppIcons.add,
@@ -450,44 +449,58 @@ class _SetlistPickerSheetState extends ConsumerState<_SetlistPickerSheet>
             ),
           )
         else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            itemCount: setlists.length,
-            itemBuilder: (context, index) {
-              final setlist = setlists[index];
-              return _SetlistOptionTile(
-                icon: AppIcons.setlists,
-                title: setlist.name,
-                subtitle: '${setlist.songCount} songs',
-                onTap: () => _handleSelectSetlist(setlist),
-              );
-            },
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: setlists.length,
+              itemBuilder: (context, index) {
+                final setlist = setlists[index];
+                return _SetlistOptionTile(
+                  icon: AppIcons.setlists,
+                  title: setlist.name,
+                  subtitle: '${setlist.songCount} songs',
+                  onTap: () => _handleSelectSetlist(setlist),
+                );
+              },
+            ),
           ),
-        ],
-      ),
+
+        // Bottom padding
+        SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+      ],
     );
   }
 
   Widget _buildCreateNewForm() {
-    return Padding(
-      padding: const EdgeInsets.all(Spacing.space16),
-      child: AppTextField(
-        controller: _newNameController,
-        focusNode: _newNameFocus,
-        autofocus: true,
-        hintText: 'Setlist name',
-        textCapitalization: TextCapitalization.words,
-        onChanged: (_) {
-          if (_validationError != null) {
-            setState(() {
-              _validationError = null;
-            });
-          }
-        },
-        onSubmitted: (_) => _handleConfirmCreate(),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(Spacing.space16),
+          child: AppTextField(
+            controller: _newNameController,
+            focusNode: _newNameFocus,
+            autofocus: true,
+            hintText: 'Setlist name',
+            textCapitalization: TextCapitalization.words,
+            onChanged: (_) {
+              if (_validationError != null) {
+                setState(() {
+                  _validationError = null;
+                });
+              }
+            },
+            onSubmitted: (_) => _handleConfirmCreate(),
+          ),
+        ),
+        SheetFooter(
+          primaryLabel: 'Create & Add',
+          onPrimary: _handleConfirmCreate,
+          onCancel: _handleCancelCreate,
+        ),
+      ],
     );
   }
 }

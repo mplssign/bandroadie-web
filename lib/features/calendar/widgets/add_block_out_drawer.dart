@@ -10,7 +10,6 @@ import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_text_field.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../members/permissions/band_permissions_provider.dart';
@@ -526,91 +525,107 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: CollapsingSheetScaffold(
-            dragHandle: Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.border,
-                borderRadius: BorderRadius.circular(2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.colors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            header: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.pagePadding,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(_drawerTitle, style: AppTextStyles.title3),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(false),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: context.colors.background,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        AppIcons.close,
-                        size: 18,
-                        color: context.colors.textSecondary,
+
+              const SizedBox(height: Spacing.space16),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.pagePadding,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(_drawerTitle, style: AppTextStyles.title3),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(false),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: context.colors.background,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          AppIcons.close,
+                          size: 18,
+                          color: context.colors.textSecondary,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            body: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                left: Spacing.pagePadding,
-                right: Spacing.pagePadding,
-                bottom: Spacing.space16,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Error banner
-                  if (_errorMessage != null) ...[
-                    _buildErrorBanner(),
-                    const SizedBox(height: Spacing.space16),
                   ],
-
-                  // 1. Start Date (required)
-                  _buildDateField(
-                    label: 'Start Date',
-                    value: _startDate,
-                    onTap: _selectStartDate,
-                    isRequired: true,
-                  ),
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // 2. End Date (optional)
-                  _buildDateField(
-                    label: 'End Date (Optional)',
-                    value: _untilDate,
-                    onTap: _selectUntilDate,
-                    isRequired: false,
-                    placeholder: 'Last day',
-                  ),
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // 3. Reason (optional)
-                  _buildTextField(
-                    label: 'Reason (optional)',
-                    controller: _reasonController,
-                    hint: 'Out of town, vacation, etc.',
-                    maxLines: 2,
-                  ),
-                ],
+                ),
               ),
-            ),
-            footer: _buildBottomButtons(),
+
+              const SizedBox(height: Spacing.space16),
+
+              // Scrollable content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    left: Spacing.pagePadding,
+                    right: Spacing.pagePadding,
+                    bottom: Spacing.space16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Error banner
+                      if (_errorMessage != null) ...[
+                        _buildErrorBanner(),
+                        const SizedBox(height: Spacing.space16),
+                      ],
+
+                      // 1. Start Date (required)
+                      _buildDateField(
+                        label: 'Start Date',
+                        value: _startDate,
+                        onTap: _selectStartDate,
+                        isRequired: true,
+                      ),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 2. End Date (optional)
+                      _buildDateField(
+                        label: 'End Date (Optional)',
+                        value: _untilDate,
+                        onTap: _selectUntilDate,
+                        isRequired: false,
+                        placeholder: 'Last day',
+                      ),
+
+                      const SizedBox(height: Spacing.space16),
+
+                      // 3. Reason (optional)
+                      _buildTextField(
+                        label: 'Reason (optional)',
+                        controller: _reasonController,
+                        hint: 'Out of town, vacation, etc.',
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom Buttons (sticky, keyboard-aware)
+              _buildBottomButtons(),
+            ],
           ),
         ),
       ),

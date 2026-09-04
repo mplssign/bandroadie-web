@@ -12,7 +12,6 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_date_picker.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../components/ui/sheet_footer.dart';
@@ -2719,18 +2718,19 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             ),
           ],
         ),
-        child: CollapsingSheetScaffold(
-          header: Column(
-            children: [
-              _buildStickyHeader(context),
-              Container(height: 1, color: kEdCardBorder),
-            ],
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: _buildScrollableBody(context),
-          ),
-          footer: _buildStickyFooter(context),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildStickyHeader(context),
+            Container(height: 1, color: kEdCardBorder),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: _buildScrollableBody(context),
+              ),
+            ),
+            _buildStickyFooter(context),
+          ],
         ),
       ),
     );

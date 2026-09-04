@@ -9,7 +9,6 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_button.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/segmented_button_group.dart';
 import '../../lyrics/models/lyrics_data.dart';
@@ -873,23 +872,22 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               top: Radius.circular(Spacing.cardRadius),
             ),
           ),
-          child: CollapsingSheetScaffold(
-              dragHandle: _buildDragHandle(),
-              header: Column(
-                children: [
-                  _buildHeader(),
-                  Divider(color: context.colors.border, height: 1),
-                ],
-              ),
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.all(Spacing.space16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _isEditingNotes
-                      ? [_buildNotesSubView()]
-                      : [
-                          _buildSongInfo(),
-                          if (!widget.isReadOnly) ...[
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDragHandle(),
+              _buildHeader(),
+              Divider(color: context.colors.border, height: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(Spacing.space16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _isEditingNotes
+                        ? [_buildNotesSubView()]
+                        : [
+                            _buildSongInfo(),
+                            if (!widget.isReadOnly) ...[
                               const SizedBox(height: 8),
                               Center(
                                 child: AppButton(
@@ -912,7 +910,9 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                           ],
                   ),
                 ),
-              footer: _buildFixedBottomActions(),
+              ),
+              _buildFixedBottomActions(),
+            ],
           ),
         ),
       ),

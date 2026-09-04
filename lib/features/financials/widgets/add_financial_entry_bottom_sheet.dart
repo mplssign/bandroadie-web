@@ -12,7 +12,6 @@ import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
 import '../../members/permissions/band_permissions_provider.dart';
@@ -455,10 +454,10 @@ class _AddFinancialEntryBottomSheetState
     return Consumer(
       builder: (context, ref, _) {
         final canDelete = ref.watch(currentUserPermissionsProvider).when(
-              data: (p) => p.canDeleteFinancials,
-              loading: () => false,
-              error: (_, __) => false,
-            );
+          data: (p) => p.canDeleteFinancials,
+          loading: () => false,
+          error: (_, __) => false,
+        );
         final showDestructive =
             widget.initialEntry != null && widget.onDelete != null && canDelete;
         return SheetFooter(
@@ -467,9 +466,7 @@ class _AddFinancialEntryBottomSheetState
           primaryIsLoading: _isSaving,
           onCancel: () => Navigator.of(context).pop(),
           destructiveLabel: showDestructive
-              ? (widget.initialEntry!.isIncome
-                  ? 'Delete income'
-                  : 'Delete expense')
+              ? (widget.initialEntry!.isIncome ? 'Delete income' : 'Delete expense')
               : null,
           onDestructive: showDestructive ? _handleDelete : null,
         );
@@ -491,343 +488,374 @@ class _AddFinancialEntryBottomSheetState
           top: Radius.circular(Spacing.cardRadius),
         ),
       ),
-      child: CollapsingSheetScaffold(
-        body: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            left: Spacing.pagePadding,
-            right: Spacing.pagePadding,
-            top: Spacing.space24,
-            bottom: Spacing.space8,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
-              Text(
-                widget.initialEntry != null ? 'Edit Entry' : 'Add Entry',
-                style: AppTextStyles.displayMedium
-                    .copyWith(color: context.colors.textPrimary),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Scrollable form content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: Spacing.pagePadding,
+                right: Spacing.pagePadding,
+                top: Spacing.space24,
+                bottom: Spacing.space8,
               ),
-              const SizedBox(height: Spacing.space20),
-
-              // Income / Expense segmented toggle
-              _SegmentedToggle(
-                isIncome: _isIncome,
-                onChanged: _setIsIncome,
-              ),
-              const SizedBox(height: Spacing.space20),
-
-              // Entry type pills
-              Column(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: context.colors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space20),
+
+                  // Title
                   Text(
-                    'Type',
+                    widget.initialEntry != null ? 'Edit Entry' : 'Add Entry',
+                    style: AppTextStyles.displayMedium
+                        .copyWith(color: context.colors.textPrimary),
+                  ),
+                  const SizedBox(height: Spacing.space20),
+
+                  // Income / Expense segmented toggle
+                  _SegmentedToggle(
+                    isIncome: _isIncome,
+                    onChanged: _setIsIncome,
+                  ),
+                  const SizedBox(height: Spacing.space20),
+
+                  // Entry type pills
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Type',
+                        style: AppTextStyles.footnote
+                            .copyWith(color: context.colors.textSecondary),
+                      ),
+                      const SizedBox(height: 6),
+                      _TypePillRow(
+                        labels:
+                            _isIncome ? _incomeTypeLabels : _expenseTypeLabels,
+                        selected: _selectedTypeName,
+                        isDeleteMode: _isDeleteTypeMode,
+                        onSelect: (label) {
+                          if (!_isDeleteTypeMode) {
+                            setState(() => _selectedTypeName = label);
+                          }
+                        },
+                        onAdd: () {
+                          if (_isDeleteTypeMode) {
+                            setState(() => _isDeleteTypeMode = false);
+                          }
+                          _showAddTypeDialog();
+                        },
+                        onToggleDelete: () => setState(
+                            () => _isDeleteTypeMode = !_isDeleteTypeMode),
+                        onRemove: (label) => setState(() {
+                          final list = _isIncome
+                              ? _incomeTypeLabels
+                              : _expenseTypeLabels;
+                          list.remove(label);
+                          if (_selectedTypeName == label) {
+                            _selectedTypeName =
+                                list.isNotEmpty ? list.first : '';
+                          }
+                        }),
+                      ),
+                      const SizedBox(height: Spacing.space16),
+                    ],
+                  ),
+
+                  CurrencyTextField(
+                    controller: _amountController,
+                    label: 'Amount',
+                    hint: r'$0.00',
+                    enabled: true,
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // Date
+                  Text(
+                    'Date',
                     style: AppTextStyles.footnote
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
-                  _TypePillRow(
-                    labels: _isIncome ? _incomeTypeLabels : _expenseTypeLabels,
-                    selected: _selectedTypeName,
-                    isDeleteMode: _isDeleteTypeMode,
-                    onSelect: (label) {
-                      if (!_isDeleteTypeMode) {
-                        setState(() => _selectedTypeName = label);
-                      }
-                    },
-                    onAdd: () {
-                      if (_isDeleteTypeMode) {
-                        setState(() => _isDeleteTypeMode = false);
-                      }
-                      _showAddTypeDialog();
-                    },
-                    onToggleDelete: () =>
-                        setState(() => _isDeleteTypeMode = !_isDeleteTypeMode),
-                    onRemove: (label) => setState(() {
-                      final list =
-                          _isIncome ? _incomeTypeLabels : _expenseTypeLabels;
-                      list.remove(label);
-                      if (_selectedTypeName == label) {
-                        _selectedTypeName = list.isNotEmpty ? list.first : '';
-                      }
-                    }),
+                  OutlinedButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(AppIcons.calendar, size: 16),
+                    label: Text(dateStr),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: context.colors.textPrimary,
+                      side: BorderSide(color: context.colors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(Spacing.buttonRadius),
+                      ),
+                      minimumSize: const Size(double.infinity, 48),
+                      alignment: Alignment.centerLeft,
+                    ),
                   ),
                   const SizedBox(height: Spacing.space16),
-                ],
-              ),
 
-              CurrencyTextField(
-                controller: _amountController,
-                label: 'Amount',
-                hint: r'$0.00',
-                enabled: true,
-              ),
-              const SizedBox(height: Spacing.space16),
-
-              // Date
-              Text(
-                'Date',
-                style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textSecondary),
-              ),
-              const SizedBox(height: 6),
-              OutlinedButton.icon(
-                onPressed: _pickDate,
-                icon: const Icon(AppIcons.calendar, size: 16),
-                label: Text(dateStr),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: context.colors.textPrimary,
-                  side: BorderSide(color: context.colors.border),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  // Payer (income) / Paid To (expense)
+                  Text(
+                    _isIncome ? 'Payer (optional)' : 'Paid To (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
                   ),
-                  minimumSize: const Size(double.infinity, 48),
-                  alignment: Alignment.centerLeft,
-                ),
-              ),
-              const SizedBox(height: Spacing.space16),
+                  const SizedBox(height: 6),
+                  AppTextField(
+                    controller: _payerController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    hintText: _isIncome
+                        ? 'e.g., Bowery Electric'
+                        : 'e.g., Drum World',
+                  ),
+                  const SizedBox(height: Spacing.space16),
 
-              // Payer (income) / Paid To (expense)
-              Text(
-                _isIncome ? 'Payer (optional)' : 'Paid To (optional)',
-                style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textSecondary),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _payerController,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.next,
-                hintText:
-                    _isIncome ? 'e.g., Bowery Electric' : 'e.g., Drum World',
-              ),
-              const SizedBox(height: Spacing.space16),
+                  // Paid To (income) / Paid By (expense)
+                  Text(
+                    _isIncome ? 'Paid To (optional)' : 'Paid By (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  AppDropdown<String?>(
+                    value: _paidToUserId,
+                    onChanged: (value) {
+                      setState(() => _paidToUserId = value);
+                    },
+                    labelBuilder: (value) {
+                      if (value == null) return 'No member selected';
+                      if (value == _kOther) return 'Other';
+                      return widget.members
+                              .where((m) => m.userId == value)
+                              .firstOrNull
+                              ?.name ??
+                          'Unknown';
+                    },
+                    enabled: true,
+                    items: [
+                      DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text(
+                          'No member selected',
+                          style: AppTextStyles.callout
+                              .copyWith(color: context.colors.textMuted),
+                        ),
+                      ),
+                      ...widget.members.map(
+                        (member) => DropdownMenuItem<String?>(
+                          value: member.userId,
+                          child: Text(member.name),
+                        ),
+                      ),
+                      DropdownMenuItem<String?>(
+                        value: _kOther,
+                        child: Text(
+                          'Other',
+                          style: AppTextStyles.callout
+                              .copyWith(color: context.colors.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.space12),
+                  if (_isOtherPaidToSelected) ...[
+                    AppTextField(
+                      controller: _paidToOtherController,
+                      textCapitalization: TextCapitalization.none,
+                      textInputAction: TextInputAction.next,
+                      hintText: 'Enter name',
+                    ),
+                    const SizedBox(height: Spacing.space16),
+                  ] else
+                    const SizedBox(height: Spacing.space4),
 
-              // Paid To (income) / Paid By (expense)
-              Text(
-                _isIncome ? 'Paid To (optional)' : 'Paid By (optional)',
-                style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textSecondary),
-              ),
-              const SizedBox(height: 6),
-              AppDropdown<String?>(
-                value: _paidToUserId,
-                onChanged: (value) {
-                  setState(() => _paidToUserId = value);
-                },
-                labelBuilder: (value) {
-                  if (value == null) return 'No member selected';
-                  if (value == _kOther) return 'Other';
-                  return widget.members
-                          .where((m) => m.userId == value)
-                          .firstOrNull
-                          ?.name ??
-                      'Unknown';
-                },
-                enabled: true,
-                items: [
-                  DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text(
-                      'No member selected',
-                      style: AppTextStyles.callout
-                          .copyWith(color: context.colors.textMuted),
+                  // Description
+                  Text(
+                    'Description (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  AppTextField(
+                    controller: _descriptionController,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    hintText: 'e.g. Purchased P.A. System',
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // 1099 toggle (income only)
+                  Visibility(
+                    visible: _isIncome,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '1099 Expected',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textPrimary),
+                            ),
+                            AppSwitch(
+                              value: _is1099Expected,
+                              onChanged: (v) =>
+                                  setState(() => _is1099Expected = v),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Spacing.space16),
+                      ],
                     ),
                   ),
-                  ...widget.members.map(
-                    (member) => DropdownMenuItem<String?>(
-                      value: member.userId,
-                      child: Text(member.name),
-                    ),
-                  ),
-                  DropdownMenuItem<String?>(
-                    value: _kOther,
-                    child: Text(
-                      'Other',
-                      style: AppTextStyles.callout
-                          .copyWith(color: context.colors.textPrimary),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: Spacing.space12),
-              if (_isOtherPaidToSelected) ...[
-                AppTextField(
-                  controller: _paidToOtherController,
-                  textCapitalization: TextCapitalization.none,
-                  textInputAction: TextInputAction.next,
-                  hintText: 'Enter name',
-                ),
-                const SizedBox(height: Spacing.space16),
-              ] else
-                const SizedBox(height: Spacing.space4),
 
-              // Description
-              Text(
-                'Description (optional)',
-                style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textSecondary),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _descriptionController,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.done,
-                hintText: 'e.g. Purchased P.A. System',
-              ),
-              const SizedBox(height: Spacing.space16),
-
-              // 1099 toggle (income only)
-              Visibility(
-                visible: _isIncome,
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
-                child: Column(
-                  children: [
+                  // Disburse to Band toggle (income only, when members available)
+                  if (_isIncome && widget.members.isNotEmpty) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '1099 Expected',
+                          'Disburse to Band',
                           style: AppTextStyles.callout
                               .copyWith(color: context.colors.textPrimary),
                         ),
                         AppSwitch(
-                          value: _is1099Expected,
-                          onChanged: (v) => setState(() => _is1099Expected = v),
+                          value: _disburse,
+                          onChanged: _onDisburseToggle,
                         ),
                       ],
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      child: _disburse
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.only(top: Spacing.space12),
+                              child: Column(
+                                children: widget.members.map((member) {
+                                  final ctrl = _splitControllers[member.userId];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(
+                                        bottom: Spacing.space12),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _shortName(member),
+                                            style: AppTextStyles.callout
+                                                .copyWith(
+                                                    color: context
+                                                        .colors.textPrimary),
+                                          ),
+                                        ),
+                                        const SizedBox(width: Spacing.space12),
+                                        Expanded(
+                                          child: ctrl != null
+                                              ? CurrencyTextField(
+                                                  controller: ctrl,
+                                                  label: '',
+                                                  hint: r'$0.00',
+                                                  clearOnFocus: true,
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
                     const SizedBox(height: Spacing.space16),
                   ],
-                ),
-              ),
 
-              // Disburse to Band toggle (income only, when members available)
-              if (_isIncome && widget.members.isNotEmpty) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Disburse to Band',
-                      style: AppTextStyles.callout
-                          .copyWith(color: context.colors.textPrimary),
-                    ),
-                    AppSwitch(
-                      value: _disburse,
-                      onChanged: _onDisburseToggle,
-                    ),
-                  ],
-                ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  child: _disburse
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: Spacing.space12),
-                          child: Column(
-                            children: widget.members.map((member) {
-                              final ctrl = _splitControllers[member.userId];
-                              return Padding(
-                                padding: const EdgeInsets.only(
-                                    bottom: Spacing.space12),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        _shortName(member),
-                                        style: AppTextStyles.callout.copyWith(
-                                            color: context.colors.textPrimary),
-                                      ),
-                                    ),
-                                    const SizedBox(width: Spacing.space12),
-                                    Expanded(
-                                      child: ctrl != null
-                                          ? CurrencyTextField(
-                                              controller: ctrl,
-                                              label: '',
-                                              hint: r'$0.00',
-                                              clearOnFocus: true,
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                const SizedBox(height: Spacing.space16),
-              ],
-
-              // Deposit to Savings toggle (income only)
-              if (_isIncome) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                  // Deposit to Savings toggle (income only)
+                  if (_isIncome) ...[
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Deposit to Savings',
-                          style: AppTextStyles.callout
-                              .copyWith(color: context.colors.textPrimary),
+                        Row(
+                          children: [
+                            Text(
+                              'Deposit to Savings',
+                              style: AppTextStyles.callout
+                                  .copyWith(color: context.colors.textPrimary),
+                            ),
+                            if (widget.savingsTotalCents != null) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                '(${_formatSavingsCents(widget.savingsTotalCents!)})',
+                                style: AppTextStyles.callout
+                                    .copyWith(color: context.colors.success),
+                              ),
+                            ],
+                          ],
                         ),
-                        if (widget.savingsTotalCents != null) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '(${_formatSavingsCents(widget.savingsTotalCents!)})',
-                            style: AppTextStyles.callout
-                                .copyWith(color: context.colors.success),
-                          ),
-                        ],
+                        AppSwitch(
+                          value: _depositToSavings,
+                          onChanged: (v) {
+                            setState(() {
+                              _depositToSavings = v;
+                              if (v && _disburse) {
+                                final totalDisbursed = _splitControllers.values
+                                    .fold<int>(0, (sum, c) => sum + c.cents);
+                                final remaining =
+                                    _amountController.cents - totalDisbursed;
+                                if (remaining > 0) {
+                                  _depositToSavingsController.cents = remaining;
+                                }
+                              }
+                            });
+                          },
+                        ),
                       ],
                     ),
-                    AppSwitch(
-                      value: _depositToSavings,
-                      onChanged: (v) {
-                        setState(() {
-                          _depositToSavings = v;
-                          if (v && _disburse) {
-                            final totalDisbursed = _splitControllers.values
-                                .fold<int>(0, (sum, c) => sum + c.cents);
-                            final remaining =
-                                _amountController.cents - totalDisbursed;
-                            if (remaining > 0) {
-                              _depositToSavingsController.cents = remaining;
-                            }
-                          }
-                        });
-                      },
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      child: _depositToSavings
+                          ? Padding(
+                              padding:
+                                  const EdgeInsets.only(top: Spacing.space12),
+                              child: CurrencyTextField(
+                                controller: _depositToSavingsController,
+                                label: 'Savings Amount',
+                                hint: r'$0.00',
+                                clearOnFocus: true,
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
+                    const SizedBox(height: Spacing.space16),
                   ],
-                ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  child: _depositToSavings
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: Spacing.space12),
-                          child: CurrencyTextField(
-                            controller: _depositToSavingsController,
-                            label: 'Savings Amount',
-                            hint: r'$0.00',
-                            clearOnFocus: true,
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                const SizedBox(height: Spacing.space16),
-              ],
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
-        footer: _buildFixedBottomActions(),
+
+          _buildFixedBottomActions(),
+        ],
       ),
     );
   }
