@@ -4,7 +4,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/phone_formatter.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../models/contact.dart';
@@ -94,83 +93,95 @@ class ContactDetailDrawer extends StatelessWidget {
           topRight: Radius.circular(20),
         ),
       ),
-      child: CollapsingSheetScaffold(
-        dragHandle: Center(
-          child: Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.colors.border,
-              borderRadius: BorderRadius.circular(2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: Spacing.space16),
 
-              // Header: contact name (no icon badge)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                child: Text(
-                  contact.name,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: context.colors.textPrimary,
-                      ),
-                ),
+          // Scrollable body
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: Spacing.space16),
+
+                  // Header: contact name (no icon badge)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Text(
+                      contact.name,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: context.colors.textPrimary,
+                              ),
+                    ),
+                  ),
+
+                  const SizedBox(height: Spacing.space16),
+                  const Divider(height: 1),
+
+                  // Detail rows
+                  if (contact.title != null && contact.title!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Title',
+                      value: contact.title!,
+                    ),
+
+                  if (contact.company != null && contact.company!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Company',
+                      value: contact.company!,
+                    ),
+
+                  if (contact.phone != null && contact.phone!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Phone',
+                      value: formatPhoneNumber(contact.phone!),
+                      onTap: () => _launchPhone(contact.phone!),
+                    ),
+
+                  if (contact.email != null && contact.email!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Email',
+                      value: contact.email!,
+                      onTap: () => _launchEmail(contact.email!),
+                    ),
+
+                  if (contact.notes != null && contact.notes!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Notes',
+                      value: contact.notes!,
+                    ),
+
+                  const SizedBox(height: Spacing.space24),
+                ],
               ),
-
-              const SizedBox(height: Spacing.space16),
-              const Divider(height: 1),
-
-              // Detail rows
-              if (contact.title != null && contact.title!.isNotEmpty)
-                _DetailRow(
-                  label: 'Title',
-                  value: contact.title!,
-                ),
-
-              if (contact.company != null && contact.company!.isNotEmpty)
-                _DetailRow(
-                  label: 'Company',
-                  value: contact.company!,
-                ),
-
-              if (contact.phone != null && contact.phone!.isNotEmpty)
-                _DetailRow(
-                  label: 'Phone',
-                  value: formatPhoneNumber(contact.phone!),
-                  onTap: () => _launchPhone(contact.phone!),
-                ),
-
-              if (contact.email != null && contact.email!.isNotEmpty)
-                _DetailRow(
-                  label: 'Email',
-                  value: contact.email!,
-                  onTap: () => _launchEmail(contact.email!),
-                ),
-
-              if (contact.notes != null && contact.notes!.isNotEmpty)
-                _DetailRow(
-                  label: 'Notes',
-                  value: contact.notes!,
-                ),
-
-              const SizedBox(height: Spacing.space24),
-            ],
+            ),
           ),
-        ),
-        footer: SheetFooter(
-          primaryLabel: 'Done',
-          onPrimary: () => Navigator.of(context).pop(),
-          cancelLabel: 'Edit',
-          onCancel: () => _handleEdit(context),
-        ),
+
+          // Footer
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: () => _handleEdit(context),
+          ),
+        ],
       ),
     );
   }

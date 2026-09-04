@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../models/calendar_event.dart';
 
@@ -82,74 +81,87 @@ class ViewBlockOutDrawer extends StatelessWidget {
           topRight: Radius.circular(20),
         ),
       ),
-      child: CollapsingSheetScaffold(
-        dragHandle: Center(
-          child: Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.colors.border,
-              borderRadius: BorderRadius.circular(2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: Spacing.space16),
 
-              // Header block: date or date range
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Start date (or single date if not multi-day)
-                    Text(
-                      _formatFullDate(existingBlockOut.startDate),
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+          // Scrollable body
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: Spacing.space16),
+
+                  // Header block: date or date range
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Start date (or single date if not multi-day)
+                        Text(
+                          _formatFullDate(existingBlockOut.startDate),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
                                 color: context.colors.textPrimary,
                               ),
-                    ),
-                    // End date subtitle (if multi-day)
-                    if (existingBlockOut.isMultiDay) ...[
-                      const SizedBox(height: Spacing.space4),
-                      Text(
-                        'Through ${_formatFullDate(existingBlockOut.endDate)}',
-                        style: AppTextStyles.title3.copyWith(
-                          color: context.colors.textPrimary,
                         ),
-                      ),
-                    ],
-                  ],
-                ),
+                        // End date subtitle (if multi-day)
+                        if (existingBlockOut.isMultiDay) ...[
+                          const SizedBox(height: Spacing.space4),
+                          Text(
+                            'Through ${_formatFullDate(existingBlockOut.endDate)}',
+                            style: AppTextStyles.title3.copyWith(
+                              color: context.colors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: Spacing.space16),
+                  const Divider(height: 1),
+
+                  // Detail rows
+                  if (existingBlockOut.reason.isNotEmpty)
+                    _DetailRow(
+                      label: 'Reason',
+                      value: existingBlockOut.reason,
+                    ),
+
+                  const SizedBox(height: Spacing.space24),
+                ],
               ),
-
-              const SizedBox(height: Spacing.space16),
-              const Divider(height: 1),
-
-              // Detail rows
-              if (existingBlockOut.reason.isNotEmpty)
-                _DetailRow(
-                  label: 'Reason',
-                  value: existingBlockOut.reason,
-                ),
-
-              const SizedBox(height: Spacing.space24),
-            ],
+            ),
           ),
-        ),
-        footer: SheetFooter(
-          primaryLabel: 'Done',
-          onPrimary: () => Navigator.of(context).pop(),
-          cancelLabel: 'Edit',
-          onCancel: canEdit ? () => _handleEdit(context) : null,
-        ),
+
+          // Footer
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: canEdit ? () => _handleEdit(context) : null,
+          ),
+        ],
       ),
     );
   }

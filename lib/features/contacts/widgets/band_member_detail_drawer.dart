@@ -5,7 +5,6 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/phone_formatter.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../members/member_vm.dart';
@@ -143,107 +142,118 @@ class BandMemberDetailDrawer extends StatelessWidget {
           topRight: Radius.circular(20),
         ),
       ),
-      child: CollapsingSheetScaffold(
-        dragHandle: Center(
-          child: Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.colors.border,
-              borderRadius: BorderRadius.circular(2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: Spacing.space16),
 
-              // Header block: role-badge icon (crown-only) + name
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (member.isAdmin)
-                      const Padding(
-                        padding: EdgeInsets.only(right: 10),
-                        child: Icon(
-                          AppIcons.crown,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    Expanded(
-                      child: Text(
-                        member.name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(
-                              color: context.colors.textPrimary,
-                            ),
-                      ),
+          // Scrollable body
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: Spacing.space16),
+
+                  // Header block: role-badge icon (crown-only) + name
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
                     ),
-                  ],
-                ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (member.isAdmin)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 10),
+                            child: Icon(
+                              AppIcons.crown,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            member.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: context.colors.textPrimary,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: Spacing.space16),
+                  const Divider(height: 1),
+
+                  // Detail rows
+                  if (member.musicalRoles.isNotEmpty)
+                    _DetailRow(
+                      label: 'Band role',
+                      value: member.musicalRoles.join(', '),
+                    ),
+
+                  if (member.phone != null && member.phone!.isNotEmpty)
+                    _DetailRow(
+                      label: 'Phone',
+                      value: formatPhoneNumber(member.phone!),
+                      onTap: () => _launchPhone(member.phone!),
+                    ),
+
+                  if (member.email.isNotEmpty)
+                    _DetailRow(
+                      label: 'Email',
+                      value: member.email,
+                      onTap: () => _launchEmail(member.email),
+                    ),
+
+                  if (_hasAddress(member))
+                    _DetailRow(
+                      label: 'Address',
+                      value: _formatAddress(member),
+                    ),
+
+                  if (member.birthday != null)
+                    _DetailRow(
+                      label: 'Birthday',
+                      value: _formatBirthday(member.birthday!),
+                    ),
+
+                  _DetailRow(
+                    label: 'Access',
+                    value: _roleLabel(member),
+                  ),
+
+                  const SizedBox(height: Spacing.space24),
+                ],
               ),
-
-              const SizedBox(height: Spacing.space16),
-              const Divider(height: 1),
-
-              // Detail rows
-              if (member.musicalRoles.isNotEmpty)
-                _DetailRow(
-                  label: 'Band role',
-                  value: member.musicalRoles.join(', '),
-                ),
-
-              if (member.phone != null && member.phone!.isNotEmpty)
-                _DetailRow(
-                  label: 'Phone',
-                  value: formatPhoneNumber(member.phone!),
-                  onTap: () => _launchPhone(member.phone!),
-                ),
-
-              if (member.email.isNotEmpty)
-                _DetailRow(
-                  label: 'Email',
-                  value: member.email,
-                  onTap: () => _launchEmail(member.email),
-                ),
-
-              if (_hasAddress(member))
-                _DetailRow(
-                  label: 'Address',
-                  value: _formatAddress(member),
-                ),
-
-              if (member.birthday != null)
-                _DetailRow(
-                  label: 'Birthday',
-                  value: _formatBirthday(member.birthday!),
-                ),
-
-              _DetailRow(
-                label: 'Access',
-                value: _roleLabel(member),
-              ),
-
-              const SizedBox(height: Spacing.space24),
-            ],
+            ),
           ),
-        ),
-        footer: SheetFooter(
-          primaryLabel: 'Done',
-          onPrimary: () => Navigator.of(context).pop(),
-          cancelLabel: 'Edit',
-          onCancel: isAdmin ? () => _handleEdit(context) : null,
-        ),
+
+          // Footer
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: isAdmin ? () => _handleEdit(context) : null,
+          ),
+        ],
       ),
     );
   }

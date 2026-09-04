@@ -16,7 +16,6 @@ import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_switch.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
@@ -263,244 +262,251 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
           topRight: Radius.circular(20),
         ),
       ),
-      child: CollapsingSheetScaffold(
-        dragHandle: Center(
-          child: Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: context.colors.border,
-              borderRadius: BorderRadius.circular(2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.pagePadding,
-                Spacing.space16,
-                Spacing.pagePadding,
-                0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Edit',
-                    style: TextStyle(
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.member.name,
-                    style: TextStyle(
-                      fontSize: AppFontSizes.pageTitle,
-                      fontWeight: FontWeight.w700,
-                      color: context.colors.textPrimary,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _roleDisplayName(widget.member.bandRole),
-                    style: TextStyle(
-                      fontSize: AppFontSizes.subhead,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+
+          // Header: 'Edit' label + member name + current role
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.pagePadding,
+              Spacing.space16,
+              Spacing.pagePadding,
+              0,
             ),
-            const SizedBox(height: Spacing.space16),
-            const Divider(height: 1),
-          ],
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(Spacing.pagePadding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ─── Change role section ───
-              Text(
-                'Change role',
-                style: TextStyle(
-                  fontSize: AppFontSizes.body,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Role toggle buttons
-              _buildRoleButton(
-                role: 'admin',
-                label: 'Admin',
-                description: 'Full access to everything',
-                enabled: !(_isLastAdmin && _selectedRole == 'admin'),
-              ),
-              const SizedBox(height: 8),
-              _buildRoleButton(
-                role: 'member',
-                label: 'Band Member',
-                description: 'Can manage gigs and setlists',
-                enabled: !_isSelfAndLastAdmin,
-              ),
-              const SizedBox(height: 8),
-              _buildRoleButton(
-                role: 'contributor',
-                label: 'Contributor',
-                description: 'Limited access with custom permissions',
-                enabled: !_isSelfAndLastAdmin,
-              ),
-
-              // ─── Contributor sub-permissions ───
-              if (_selectedRole == 'contributor') ...[
-                const SizedBox(height: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'Contributor permissions',
+                  'Edit',
                   style: TextStyle(
                     fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w600,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.member.name,
+                  style: TextStyle(
+                    fontSize: AppFontSizes.pageTitle,
+                    fontWeight: FontWeight.w700,
                     color: context.colors.textPrimary,
+                    height: 1.3,
                   ),
                 ),
-                const SizedBox(height: 12),
-                _buildPermissionToggle(
-                  label: 'Can create gigs',
-                  value: _subPermissions.canCreateGigs,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canCreateGigs: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Potential gigs only',
-                  value: _subPermissions.canCreatePotentialGigsOnly,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canCreatePotentialGigsOnly: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view setlists',
-                  value: _subPermissions.canViewSetlists,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewSetlists: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view calendar',
-                  value: _subPermissions.canViewCalendar,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewCalendar: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view members',
-                  value: _subPermissions.canViewMembers,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewMembers: v);
-                  }),
-                ),
-                _buildPermissionToggle(
-                  label: 'Can view financials',
-                  value: _subPermissions.canViewFinancials,
-                  onChanged: (v) => setState(() {
-                    _subPermissions =
-                        _subPermissions.copyWith(canViewFinancials: v);
-                  }),
-                ),
-              ],
-
-              // ─── Last admin warning ───
-              if (_isSelfAndLastAdmin) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: context.colors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: context.colors.warning.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(AppIcons.warning,
-                          color: context.colors.warning, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'You are the only admin. You cannot change your own role.',
-                          style: TextStyle(
-                            fontSize: AppFontSizes.caption,
-                            color: context.colors.warning,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 4),
+                Text(
+                  _roleDisplayName(widget.member.bandRole),
+                  style: TextStyle(
+                    fontSize: AppFontSizes.subhead,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
-
-              // ─── Remove from band button / sole-member notice ───
-              if (_isSoleActiveMember) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: context.colors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: context.colors.warning.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(AppIcons.warning,
-                          color: context.colors.warning, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Since you are the only member in this band, you cannot leave the band, instead you must delete the band (Tap band avatar top right → Edit band → Delete)',
-                          style: TextStyle(
-                            fontSize: AppFontSizes.caption,
-                            color: context.colors.warning,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else if (!_isLastAdmin) ...[
-                const SizedBox(height: 24),
-                Center(
-                  child: AppButton(
-                    label: 'Remove from band',
-                    icon: AppIcons.userRemove,
-                    variant: AppButtonVariant.destructive,
-                    onPressed: _isRemoving ? null : _removeMember,
-                    isLoading: _isRemoving,
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
-        ),
-        footer: _buildFixedBottomActions(),
+          const SizedBox(height: Spacing.space16),
+          const Divider(height: 1),
+
+          // Scrollable body
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(Spacing.pagePadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ─── Change role section ───
+                  Text(
+                    'Change role',
+                    style: TextStyle(
+                      fontSize: AppFontSizes.body,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Role toggle buttons
+                  _buildRoleButton(
+                    role: 'admin',
+                    label: 'Admin',
+                    description: 'Full access to everything',
+                    enabled: !(_isLastAdmin && _selectedRole == 'admin'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRoleButton(
+                    role: 'member',
+                    label: 'Band Member',
+                    description: 'Can manage gigs and setlists',
+                    enabled: !_isSelfAndLastAdmin,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildRoleButton(
+                    role: 'contributor',
+                    label: 'Contributor',
+                    description: 'Limited access with custom permissions',
+                    enabled: !_isSelfAndLastAdmin,
+                  ),
+
+                  // ─── Contributor sub-permissions ───
+                  if (_selectedRole == 'contributor') ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Contributor permissions',
+                      style: TextStyle(
+                        fontSize: AppFontSizes.body,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPermissionToggle(
+                      label: 'Can create gigs',
+                      value: _subPermissions.canCreateGigs,
+                      onChanged: (v) => setState(() {
+                        _subPermissions =
+                            _subPermissions.copyWith(canCreateGigs: v);
+                      }),
+                    ),
+                    _buildPermissionToggle(
+                      label: 'Potential gigs only',
+                      value: _subPermissions.canCreatePotentialGigsOnly,
+                      onChanged: (v) => setState(() {
+                        _subPermissions = _subPermissions.copyWith(
+                            canCreatePotentialGigsOnly: v);
+                      }),
+                    ),
+                    _buildPermissionToggle(
+                      label: 'Can view setlists',
+                      value: _subPermissions.canViewSetlists,
+                      onChanged: (v) => setState(() {
+                        _subPermissions =
+                            _subPermissions.copyWith(canViewSetlists: v);
+                      }),
+                    ),
+                    _buildPermissionToggle(
+                      label: 'Can view calendar',
+                      value: _subPermissions.canViewCalendar,
+                      onChanged: (v) => setState(() {
+                        _subPermissions =
+                            _subPermissions.copyWith(canViewCalendar: v);
+                      }),
+                    ),
+                    _buildPermissionToggle(
+                      label: 'Can view members',
+                      value: _subPermissions.canViewMembers,
+                      onChanged: (v) => setState(() {
+                        _subPermissions =
+                            _subPermissions.copyWith(canViewMembers: v);
+                      }),
+                    ),
+                    _buildPermissionToggle(
+                      label: 'Can view financials',
+                      value: _subPermissions.canViewFinancials,
+                      onChanged: (v) => setState(() {
+                        _subPermissions =
+                            _subPermissions.copyWith(canViewFinancials: v);
+                      }),
+                    ),
+                  ],
+
+                  // ─── Last admin warning ───
+                  if (_isSelfAndLastAdmin) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: context.colors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: context.colors.warning.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(AppIcons.warning,
+                              color: context.colors.warning, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You are the only admin. You cannot change your own role.',
+                              style: TextStyle(
+                                fontSize: AppFontSizes.caption,
+                                color: context.colors.warning,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // ─── Remove from band button / sole-member notice ───
+                  if (_isSoleActiveMember) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: context.colors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: context.colors.warning.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(AppIcons.warning,
+                              color: context.colors.warning, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Since you are the only member in this band, you cannot leave the band, instead you must delete the band (Tap band avatar top right → Edit band → Delete)',
+                              style: TextStyle(
+                                fontSize: AppFontSizes.caption,
+                                color: context.colors.warning,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (!_isLastAdmin) ...[
+                    const SizedBox(height: 24),
+                    Center(
+                      child: AppButton(
+                        label: 'Remove from band',
+                        icon: AppIcons.userRemove,
+                        variant: AppButtonVariant.destructive,
+                        onPressed: _isRemoving ? null : _removeMember,
+                        isLoading: _isRemoving,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+
+          _buildFixedBottomActions(),
+        ],
       ),
     );
   }

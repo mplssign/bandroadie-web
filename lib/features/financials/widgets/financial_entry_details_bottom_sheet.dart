@@ -9,7 +9,6 @@ import '../../members/members_controller.dart';
 import '../financials_controller.dart';
 import '../models/financial_entry.dart';
 import 'add_financial_entry_bottom_sheet.dart';
-import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
@@ -55,9 +54,11 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
           top: Radius.circular(Spacing.cardRadius),
         ),
       ),
-      child: CollapsingSheetScaffold(
-        body: SingleChildScrollView(
-          child: Padding(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
             padding: const EdgeInsets.only(
               left: Spacing.pagePadding,
               right: Spacing.pagePadding,
@@ -67,146 +68,156 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Amount + type row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$amountPrefix${entry.formattedAmount}',
-                            style: AppTextStyles.displayLarge
-                                .copyWith(color: amountColor),
-                          ),
-                          const SizedBox(height: Spacing.space4),
-                          Wrap(
-                            spacing: Spacing.space8,
-                            runSpacing: Spacing.space8,
-                            children: [
-                              _TypeBadge(label: entry.category),
-                              if (isReimbursedExpense) const _ReimbursedBadge(),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (entry.is1099Expected == true) const _Badge1099(),
-                  ],
-                ),
-
-                const SizedBox(height: Spacing.space24),
-                const Divider(height: 1),
-                const SizedBox(height: Spacing.space16),
-
-                // Details rows
-                _DetailRow(
-                    icon: AppIcons.calendar, label: 'Date', value: dateStr),
-                const SizedBox(height: Spacing.space12),
-                _DetailRow(
-                  icon: AppIcons.user,
-                  label: 'Payer',
-                  value:
-                      (entry.payerName != null && entry.payerName!.isNotEmpty)
-                          ? entry.payerName!
-                          : '—',
-                ),
-                const SizedBox(height: Spacing.space12),
-                _DetailRow(
-                  icon: AppIcons.user,
-                  label: 'Paid To',
-                  value:
-                      (entry.paidToName != null && entry.paidToName!.isNotEmpty)
-                          ? entry.paidToName!
-                          : '—',
-                ),
-                if (isReimbursedExpense) ...[
-                  const SizedBox(height: Spacing.space12),
-                  _DetailRow(
-                    icon: AppIcons.check,
-                    label: 'Reimbursement',
-                    value: _buildReimbursementDetailLine(entry),
-                  ),
-                ],
-                if (entry.description != null &&
-                    entry.description!.isNotEmpty) ...[
-                  const SizedBox(height: Spacing.space12),
-                  _DetailRow(
-                    icon: AppIcons.edit,
-                    label: 'Description',
-                    value: entry.description!,
-                  ),
-                ],
-                if (entry.depositToSavings == true) ...[
-                  const SizedBox(height: Spacing.space12),
-                  _DetailRow(
-                    icon: AppIcons.dollar,
-                    label: 'Deposit to Savings',
-                    value: entry.depositToSavingsCents != null
-                        ? entry.formattedDepositToSavings!
-                        : 'Yes',
-                  ),
-                ],
-
-                const SizedBox(height: Spacing.space24),
-              ],
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: context.colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
-        footer: SheetFooter(
-          primaryLabel: 'Edit Entry',
-          primaryIcon: AppIcons.edit,
-          onPrimary: () async {
-            Navigator.of(context).pop();
-            final notifier = ref.read(financialsProvider.notifier);
-            final members = ref.read(membersProvider).members;
-            final savingsTotalCents = ref
-                .read(financialsProvider)
-                .allEntries
-                .where((e) => e.depositToSavings == true)
-                .fold<int>(0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
-            await showAddFinancialEntrySheet(
-              context,
-              initialEntry: entry,
-              members: members,
-              savingsTotalCents: savingsTotalCents,
-              onSave: ({
-                required entryType,
-                required category,
-                required amountCents,
-                required entryDate,
-                description,
-                is1099Expected,
-                payerName,
-                paidToName,
-                paidToUserId,
-                disbursements,
-                depositToSavings,
-                depositToSavingsCents,
-              }) async {
-                await notifier.updateEntry(
-                  entryId: entry.id,
-                  entryType: entryType,
-                  category: category,
-                  amountCents: amountCents,
-                  entryDate: entryDate,
-                  description: description,
-                  is1099Expected: is1099Expected,
-                  payerName: payerName,
-                  paidToName: paidToName,
-                  paidToUserId: paidToUserId,
-                  disbursements: disbursements,
-                  depositToSavings: depositToSavings,
-                  depositToSavingsCents: depositToSavingsCents,
-                );
-              },
-              onDelete: () async {
-                await notifier.deleteEntry(entry.id);
-              },
-            );
-          },
-        ),
+          const SizedBox(height: Spacing.space20),
+
+          // Amount + type row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$amountPrefix${entry.formattedAmount}',
+                      style: AppTextStyles.displayLarge
+                          .copyWith(color: amountColor),
+                    ),
+                    const SizedBox(height: Spacing.space4),
+                    Wrap(
+                      spacing: Spacing.space8,
+                      runSpacing: Spacing.space8,
+                      children: [
+                        _TypeBadge(label: entry.category),
+                        if (isReimbursedExpense) const _ReimbursedBadge(),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (entry.is1099Expected == true) const _Badge1099(),
+            ],
+          ),
+
+          const SizedBox(height: Spacing.space24),
+          const Divider(height: 1),
+          const SizedBox(height: Spacing.space16),
+
+          // Details rows
+          _DetailRow(icon: AppIcons.calendar, label: 'Date', value: dateStr),
+          const SizedBox(height: Spacing.space12),
+          _DetailRow(
+            icon: AppIcons.user,
+            label: 'Payer',
+            value: (entry.payerName != null && entry.payerName!.isNotEmpty)
+                ? entry.payerName!
+                : '—',
+          ),
+          const SizedBox(height: Spacing.space12),
+          _DetailRow(
+            icon: AppIcons.user,
+            label: 'Paid To',
+            value: (entry.paidToName != null && entry.paidToName!.isNotEmpty)
+                ? entry.paidToName!
+                : '—',
+          ),
+          if (isReimbursedExpense) ...[
+            const SizedBox(height: Spacing.space12),
+            _DetailRow(
+              icon: AppIcons.check,
+              label: 'Reimbursement',
+              value: _buildReimbursementDetailLine(entry),
+            ),
+          ],
+          if (entry.description != null && entry.description!.isNotEmpty) ...[
+            const SizedBox(height: Spacing.space12),
+            _DetailRow(
+              icon: AppIcons.edit,
+              label: 'Description',
+              value: entry.description!,
+            ),
+          ],
+          if (entry.depositToSavings == true) ...[
+            const SizedBox(height: Spacing.space12),
+            _DetailRow(
+              icon: AppIcons.dollar,
+              label: 'Deposit to Savings',
+              value: entry.depositToSavingsCents != null
+                  ? entry.formattedDepositToSavings!
+                  : 'Yes',
+            ),
+          ],
+
+              const SizedBox(height: Spacing.space24),
+            ],
+          ),
+          ),
+          SheetFooter(
+            primaryLabel: 'Edit Entry',
+            primaryIcon: AppIcons.edit,
+            onPrimary: () async {
+              Navigator.of(context).pop();
+              final notifier = ref.read(financialsProvider.notifier);
+              final members = ref.read(membersProvider).members;
+              final savingsTotalCents = ref
+                  .read(financialsProvider)
+                  .allEntries
+                  .where((e) => e.depositToSavings == true)
+                  .fold<int>(
+                      0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
+              await showAddFinancialEntrySheet(
+                context,
+                initialEntry: entry,
+                members: members,
+                savingsTotalCents: savingsTotalCents,
+                onSave: ({
+                  required entryType,
+                  required category,
+                  required amountCents,
+                  required entryDate,
+                  description,
+                  is1099Expected,
+                  payerName,
+                  paidToName,
+                  paidToUserId,
+                  disbursements,
+                  depositToSavings,
+                  depositToSavingsCents,
+                }) async {
+                  await notifier.updateEntry(
+                    entryId: entry.id,
+                    entryType: entryType,
+                    category: category,
+                    amountCents: amountCents,
+                    entryDate: entryDate,
+                    description: description,
+                    is1099Expected: is1099Expected,
+                    payerName: payerName,
+                    paidToName: paidToName,
+                    paidToUserId: paidToUserId,
+                    disbursements: disbursements,
+                    depositToSavings: depositToSavings,
+                    depositToSavingsCents: depositToSavingsCents,
+                  );
+                },
+                onDelete: () async {
+                  await notifier.deleteEntry(entry.id);
+                },
+              );
+            },
+          ),
+        ],
       ),
     );
   }
