@@ -6,6 +6,7 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
@@ -174,235 +175,225 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
         ),
         child: SafeArea(
           top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Drag handle
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 12, bottom: 8),
-                          child: Container(
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: context.colors.textMuted
-                                  .withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Title row
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.pagePadding,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.pause_circle_outline_rounded,
-                              color: _accent,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Pause',
-                              style:
-                                  AppTextStyles.title3.copyWith(color: _accent),
-                            ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
-                              child: Icon(
-                                AppIcons.close,
-                                color: context.colors.textMuted,
-                                size: 24,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      // Subtitle
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.pagePadding,
-                        ),
-                        child: Text(
-                          'What\'s this pause for?',
-                          style: AppTextStyles.body.copyWith(
-                            color: context.colors.textSecondary,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // ── Purpose chips ──
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.pagePadding,
-                        ),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final purpose in _predefinedPurposes)
-                              _PurposeChip(
-                                label: purpose,
-                                isSelected: _selectedPurposes.contains(purpose),
-                                accent: _accent,
-                                onTap: () => _togglePurpose(purpose),
-                              ),
-                            // Custom purpose chips
-                            for (var i = 0; i < _customPurposes.length; i++)
-                              _PurposeChip(
-                                label: _customPurposes[i],
-                                isSelected: true,
-                                accent: _accent,
-                                isCustom: true,
-                                onTap: () => _removeCustomPurpose(i),
-                              ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // ── Custom purpose input ──
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.pagePadding,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: context.colors.surface,
-                                  borderRadius: BorderRadius.circular(
-                                      Spacing.buttonRadius),
-                                  border: Border.all(
-                                    color: context.colors.border,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: AppTextField(
-                                  controller: _customPurposeController,
-                                  focusNode: _customPurposeFocus,
-                                  hintText: 'Custom reason…',
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: (_) => _addCustomPurpose(),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: _addCustomPurpose,
-                              child: Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: _accent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(
-                                      Spacing.buttonRadius),
-                                  border: Border.all(
-                                    color: _accent.withValues(alpha: 0.3),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  AppIcons.add,
-                                  color: _accent,
-                                  size: 22,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── Optional duration ──
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.pagePadding,
-                        ),
-                        child: Text(
-                          'Duration (optional)',
-                          style: AppTextStyles.label.copyWith(
-                            color: context.colors.textMuted,
-                            fontSize: AppFontSizes.caption,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.pagePadding,
-                        ),
-                        child: Row(
-                          children: [
-                            // Minutes
-                            SizedBox(
-                              width: 64,
-                              height: 42,
-                              child: _DurationField(
-                                controller: _minutesController,
-                                hint: 'M',
-                                maxValue: 59,
-                              ),
-                            ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 6),
-                              child: Text(
-                                ':',
-                                style: AppTextStyles.headline.copyWith(
-                                  color: context.colors.textMuted,
-                                  fontSize: AppFontSizes.title2,
-                                ),
-                              ),
-                            ),
-                            // Seconds
-                            SizedBox(
-                              width: 64,
-                              height: 42,
-                              child: _DurationField(
-                                controller: _secondsController,
-                                hint: 'SS',
-                                maxValue: 59,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-                    ],
+          child: CollapsingSheetScaffold(
+            dragHandle: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 8),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.colors.textMuted.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              SheetFooter(
-                primaryLabel: 'Add Pause',
-                onPrimary: _hasContent ? _submit : null,
+            ),
+            body: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.pause_circle_outline_rounded,
+                          color: _accent,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Pause',
+                          style: AppTextStyles.title3.copyWith(color: _accent),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Icon(
+                            AppIcons.close,
+                            color: context.colors.textMuted,
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // Subtitle
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Text(
+                      'What\'s this pause for?',
+                      style: AppTextStyles.body.copyWith(
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Purpose chips ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final purpose in _predefinedPurposes)
+                          _PurposeChip(
+                            label: purpose,
+                            isSelected: _selectedPurposes.contains(purpose),
+                            accent: _accent,
+                            onTap: () => _togglePurpose(purpose),
+                          ),
+                        // Custom purpose chips
+                        for (var i = 0; i < _customPurposes.length; i++)
+                          _PurposeChip(
+                            label: _customPurposes[i],
+                            isSelected: true,
+                            accent: _accent,
+                            isCustom: true,
+                            onTap: () => _removeCustomPurpose(i),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Custom purpose input ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: context.colors.surface,
+                              borderRadius:
+                                  BorderRadius.circular(Spacing.buttonRadius),
+                              border: Border.all(
+                                color: context.colors.border,
+                                width: 1,
+                              ),
+                            ),
+                            child: AppTextField(
+                              controller: _customPurposeController,
+                              focusNode: _customPurposeFocus,
+                              hintText: 'Custom reason…',
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _addCustomPurpose(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _addCustomPurpose,
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: _accent.withValues(alpha: 0.15),
+                              borderRadius:
+                                  BorderRadius.circular(Spacing.buttonRadius),
+                              border: Border.all(
+                                color: _accent.withValues(alpha: 0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              AppIcons.add,
+                              color: _accent,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ── Optional duration ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Text(
+                      'Duration (optional)',
+                      style: AppTextStyles.label.copyWith(
+                        color: context.colors.textMuted,
+                        fontSize: AppFontSizes.caption,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Row(
+                      children: [
+                        // Minutes
+                        SizedBox(
+                          width: 64,
+                          height: 42,
+                          child: _DurationField(
+                            controller: _minutesController,
+                            hint: 'M',
+                            maxValue: 59,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            ':',
+                            style: AppTextStyles.headline.copyWith(
+                              color: context.colors.textMuted,
+                              fontSize: AppFontSizes.title2,
+                            ),
+                          ),
+                        ),
+                        // Seconds
+                        SizedBox(
+                          width: 64,
+                          height: 42,
+                          child: _DurationField(
+                            controller: _secondsController,
+                            hint: 'SS',
+                            maxValue: 59,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+                ],
               ),
-            ],
+            ),
+            footer: SheetFooter(
+              primaryLabel: 'Add Pause',
+              onPrimary: _hasContent ? _submit : null,
+            ),
           ),
         ),
       ),

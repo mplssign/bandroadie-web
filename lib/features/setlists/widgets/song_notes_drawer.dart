@@ -4,6 +4,7 @@ import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
@@ -105,20 +106,19 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
                 top: Radius.circular(Spacing.cardRadius),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDragHandle(),
-                _buildHeader(),
-                Divider(color: context.colors.border, height: 1),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(Spacing.space16),
-                    child: _isEditing ? _buildEditView() : _buildViewMode(),
-                  ),
-                ),
-                _buildFooter(),
-              ],
+            child: CollapsingSheetScaffold(
+              dragHandle: _buildDragHandle(),
+              header: Column(
+                children: [
+                  _buildHeader(),
+                  Divider(color: context.colors.border, height: 1),
+                ],
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(Spacing.space16),
+                child: _isEditing ? _buildEditView() : _buildViewMode(),
+              ),
+              footer: _buildFooter(),
             ),
           ),
         ),

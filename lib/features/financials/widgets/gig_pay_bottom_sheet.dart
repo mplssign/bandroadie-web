@@ -8,6 +8,7 @@ import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
 import '../../../shared/widgets/currency_input_field.dart';
@@ -179,186 +180,167 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
           top: Radius.circular(Spacing.cardRadius),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                left: Spacing.pagePadding,
-                right: Spacing.pagePadding,
-                top: Spacing.space24,
-                bottom: Spacing.space8,
+      child: CollapsingSheetScaffold(
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.only(
+            left: Spacing.pagePadding,
+            right: Spacing.pagePadding,
+            top: Spacing.space24,
+            bottom: Spacing.space8,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              Text(
+                'Gig Pay Details',
+                style: AppTextStyles.displayMedium
+                    .copyWith(color: context.colors.textPrimary),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: context.colors.border,
-                        borderRadius: BorderRadius.circular(2),
+              const SizedBox(height: Spacing.space24),
+
+              // Amount
+              Text(
+                'Amount',
+                style: AppTextStyles.footnote
+                    .copyWith(color: context.colors.textSecondary),
+              ),
+              const SizedBox(height: 6),
+              CurrencyTextField(
+                controller: _amountController,
+                label: '',
+                hint: '\$0.00',
+                enabled: !widget.viewOnly,
+              ),
+              const SizedBox(height: Spacing.space16),
+
+              // Payment Date
+              Text(
+                'Payment Date',
+                style: AppTextStyles.footnote
+                    .copyWith(color: context.colors.textSecondary),
+              ),
+              const SizedBox(height: 6),
+              OutlinedButton.icon(
+                onPressed: widget.viewOnly ? null : _pickDate,
+                icon: const Icon(AppIcons.calendar, size: 16),
+                label: Text(dateStr),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: context.colors.textPrimary,
+                  side: BorderSide(color: context.colors.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Spacing.buttonRadius),
+                  ),
+                  minimumSize: const Size(double.infinity, 48),
+                  alignment: Alignment.centerLeft,
+                ),
+              ),
+              const SizedBox(height: Spacing.space16),
+
+              // Payer Name
+              Text(
+                'Payer Name (optional)',
+                style: AppTextStyles.footnote
+                    .copyWith(color: context.colors.textSecondary),
+              ),
+              const SizedBox(height: 6),
+              AppTextField(
+                controller: _payerController,
+                enabled: !widget.viewOnly,
+                textCapitalization: TextCapitalization.none,
+                textInputAction: TextInputAction.done,
+                hintText: 'e.g., Venue Name or Organizer',
+              ),
+              const SizedBox(height: Spacing.space16),
+
+              // Paid To Member
+              if (widget.members.isNotEmpty) ...[
+                Text(
+                  'Paid To (optional)',
+                  style: AppTextStyles.footnote
+                      .copyWith(color: context.colors.textSecondary),
+                ),
+                const SizedBox(height: 6),
+                AppDropdown<String?>(
+                  value: _paidToUserId,
+                  onChanged: (value) {
+                    setState(() => _paidToUserId = value);
+                  },
+                  labelBuilder: (value) {
+                    if (value == null) return 'No member selected';
+                    if (value == _kOther) return 'Other';
+                    return widget.members
+                            .where((m) => m.userId == value)
+                            .firstOrNull
+                            ?.name ??
+                        'Unknown';
+                  },
+                  enabled: !widget.viewOnly,
+                  items: [
+                    DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text(
+                        'No member selected',
+                        style: AppTextStyles.callout
+                            .copyWith(color: context.colors.textMuted),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: Spacing.space20),
-
-                  // Title
-                  Text(
-                    'Gig Pay Details',
-                    style: AppTextStyles.displayMedium
-                        .copyWith(color: context.colors.textPrimary),
-                  ),
-                  const SizedBox(height: Spacing.space24),
-
-                  // Amount
-                  Text(
-                    'Amount',
-                    style: AppTextStyles.footnote
-                        .copyWith(color: context.colors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
-                  CurrencyTextField(
-                    controller: _amountController,
-                    label: '',
-                    hint: '\$0.00',
-                    enabled: !widget.viewOnly,
-                  ),
-                  const SizedBox(height: Spacing.space16),
-
-                  // Payment Date
-                  Text(
-                    'Payment Date',
-                    style: AppTextStyles.footnote
-                        .copyWith(color: context.colors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
-                  OutlinedButton.icon(
-                    onPressed: widget.viewOnly ? null : _pickDate,
-                    icon: const Icon(AppIcons.calendar, size: 16),
-                    label: Text(dateStr),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: context.colors.textPrimary,
-                      side: BorderSide(color: context.colors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(Spacing.buttonRadius),
+                    ...widget.members.map(
+                      (member) => DropdownMenuItem<String?>(
+                        value: member.userId,
+                        child: Text(member.name),
                       ),
-                      minimumSize: const Size(double.infinity, 48),
-                      alignment: Alignment.centerLeft,
                     ),
-                  ),
-                  const SizedBox(height: Spacing.space16),
-
-                  // Payer Name
-                  Text(
-                    'Payer Name (optional)',
-                    style: AppTextStyles.footnote
-                        .copyWith(color: context.colors.textSecondary),
-                  ),
-                  const SizedBox(height: 6),
-                  AppTextField(
-                    controller: _payerController,
-                    enabled: !widget.viewOnly,
-                    textCapitalization: TextCapitalization.none,
-                    textInputAction: TextInputAction.done,
-                    hintText: 'e.g., Venue Name or Organizer',
-                  ),
-                  const SizedBox(height: Spacing.space16),
-
-                  // Paid To Member
-                  if (widget.members.isNotEmpty) ...[
-                    Text(
-                      'Paid To (optional)',
-                      style: AppTextStyles.footnote
-                          .copyWith(color: context.colors.textSecondary),
-                    ),
-                    const SizedBox(height: 6),
-                    AppDropdown<String?>(
-                      value: _paidToUserId,
-                      onChanged: (value) {
-                        setState(() => _paidToUserId = value);
-                      },
-                      labelBuilder: (value) {
-                        if (value == null) return 'No member selected';
-                        if (value == _kOther) return 'Other';
-                        return widget.members
-                                .where((m) => m.userId == value)
-                                .firstOrNull
-                                ?.name ??
-                            'Unknown';
-                      },
-                      enabled: !widget.viewOnly,
-                      items: [
-                        DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text(
-                            'No member selected',
-                            style: AppTextStyles.callout
-                                .copyWith(color: context.colors.textMuted),
-                          ),
-                        ),
-                        ...widget.members.map(
-                          (member) => DropdownMenuItem<String?>(
-                            value: member.userId,
-                            child: Text(member.name),
-                          ),
-                        ),
-                        DropdownMenuItem<String?>(
-                          value: _kOther,
-                          child: Text(
-                            'Other',
-                            style: AppTextStyles.callout
-                                .copyWith(color: context.colors.textPrimary),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.space12),
-                    // Custom name field shown when "Other" is selected
-                    if (_isOtherSelected) ...[
-                      AppTextField(
-                        controller: _paidToOtherController,
-                        enabled: !widget.viewOnly,
-                        textCapitalization: TextCapitalization.none,
-                        textInputAction: TextInputAction.done,
-                        hintText: 'Enter name',
-                      ),
-                      const SizedBox(height: Spacing.space16),
-                    ] else
-                      const SizedBox(height: Spacing.space16),
-                  ],
-
-                  // 1099 Toggle
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '1099 Expected',
+                    DropdownMenuItem<String?>(
+                      value: _kOther,
+                      child: Text(
+                        'Other',
                         style: AppTextStyles.callout
                             .copyWith(color: context.colors.textPrimary),
                       ),
-                      AppSwitch(
-                        value: _is1099Expected,
-                        onChanged: widget.viewOnly
-                            ? null
-                            : (value) {
-                                setState(() => _is1099Expected = value);
-                              },
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Spacing.space12),
+                // Custom name field shown when "Other" is selected
+                if (_isOtherSelected) ...[
+                  AppTextField(
+                    controller: _paidToOtherController,
+                    enabled: !widget.viewOnly,
+                    textCapitalization: TextCapitalization.none,
+                    textInputAction: TextInputAction.done,
+                    hintText: 'Enter name',
                   ),
-                  const SizedBox(height: Spacing.space8),
+                  const SizedBox(height: Spacing.space16),
+                ] else
+                  const SizedBox(height: Spacing.space16),
+              ],
+
+              // 1099 Toggle
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '1099 Expected',
+                    style: AppTextStyles.callout
+                        .copyWith(color: context.colors.textPrimary),
+                  ),
+                  AppSwitch(
+                    value: _is1099Expected,
+                    onChanged: widget.viewOnly
+                        ? null
+                        : (value) {
+                            setState(() => _is1099Expected = value);
+                          },
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: Spacing.space8),
+            ],
           ),
-          _buildFixedBottomActions(),
-        ],
+        ),
+        footer: _buildFixedBottomActions(),
       ),
     );
   }

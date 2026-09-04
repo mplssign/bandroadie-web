@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/segmented_button_group.dart';
 import '../../songs/external_song_lookup_service.dart';
@@ -255,27 +256,26 @@ class _SongEnrichmentReviewSheetState
             top: Radius.circular(Spacing.cardRadius),
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDragHandle(),
-            _buildHeader(),
-            Divider(color: context.colors.border, height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(Spacing.space16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSongInfo(),
-                    const SizedBox(height: Spacing.space24),
-                    _buildMetricsRow(),
-                  ],
-                ),
-              ),
+        child: CollapsingSheetScaffold(
+          dragHandle: _buildDragHandle(),
+          header: Column(
+            children: [
+              _buildHeader(),
+              Divider(color: context.colors.border, height: 1),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(Spacing.space16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSongInfo(),
+                const SizedBox(height: Spacing.space24),
+                _buildMetricsRow(),
+              ],
             ),
-            _buildFixedBottomActions(),
-          ],
+          ),
+          footer: _buildFixedBottomActions(),
         ),
       ),
     );

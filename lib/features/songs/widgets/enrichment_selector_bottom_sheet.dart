@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
@@ -92,101 +93,92 @@ class _EnrichmentSelectorBottomSheetState
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Handle bar
-                    Container(
-                      margin: const EdgeInsets.only(top: Spacing.space12),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.space16),
+        child: CollapsingSheetScaffold(
+          dragHandle: Container(
+            margin: const EdgeInsets.only(top: Spacing.space12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          body: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: Spacing.space16),
 
-                    // Title
-                    Text(
-                      'Enrich Song Data',
-                      style: AppTextStyles.headline.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.space12),
-
-                    // Subtitle
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.space16),
-                      child: Text(
-                        subtitleText,
-                        style: AppTextStyles.callout.copyWith(
-                          color: context.colors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: Spacing.space24),
-
-                    // Selectable fields
-                    _buildCheckboxTile(
-                      title: 'BPM',
-                      subtitle: 'Tempo in beats per minute',
-                      value: _bpmSelected,
-                      onChanged: (value) =>
-                          setState(() => _bpmSelected = value!),
-                    ),
-                    _buildCheckboxTile(
-                      title: 'Duration',
-                      subtitle: 'Song length in minutes:seconds',
-                      value: _durationSelected,
-                      onChanged: (value) =>
-                          setState(() => _durationSelected = value!),
-                    ),
-                    _buildCheckboxTile(
-                      title: 'Key',
-                      subtitle: 'Musical key (e.g., C, Am, F#)',
-                      value: _keySelected,
-                      onChanged: (value) =>
-                          setState(() => _keySelected = value!),
-                    ),
-
-                    const SizedBox(height: Spacing.space8),
-
-                    // Informational fields (not available in Phase 2.1)
-                    _buildInfoTile(
-                      title: 'Tuning',
-                      subtitle:
-                          'Tuning can vary by band and must be set manually per '
-                          'song.',
-                    ),
-                    _buildInfoTile(
-                      title: 'Lyrics',
-                      subtitle:
-                          'Lyrics require manual entry due to copyright '
-                          'restrictions.',
-                    ),
-
-                    const SizedBox(height: Spacing.space24),
-                  ],
+                // Title
+                Text(
+                  'Enrich Song Data',
+                  style: AppTextStyles.headline.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
-              ),
+                const SizedBox(height: Spacing.space12),
+
+                // Subtitle
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: Spacing.space16),
+                  child: Text(
+                    subtitleText,
+                    style: AppTextStyles.callout.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: Spacing.space24),
+
+                // Selectable fields
+                _buildCheckboxTile(
+                  title: 'BPM',
+                  subtitle: 'Tempo in beats per minute',
+                  value: _bpmSelected,
+                  onChanged: (value) => setState(() => _bpmSelected = value!),
+                ),
+                _buildCheckboxTile(
+                  title: 'Duration',
+                  subtitle: 'Song length in minutes:seconds',
+                  value: _durationSelected,
+                  onChanged: (value) =>
+                      setState(() => _durationSelected = value!),
+                ),
+                _buildCheckboxTile(
+                  title: 'Key',
+                  subtitle: 'Musical key (e.g., C, Am, F#)',
+                  value: _keySelected,
+                  onChanged: (value) => setState(() => _keySelected = value!),
+                ),
+
+                const SizedBox(height: Spacing.space8),
+
+                // Informational fields (not available in Phase 2.1)
+                _buildInfoTile(
+                  title: 'Tuning',
+                  subtitle:
+                      'Tuning can vary by band and must be set manually per '
+                      'song.',
+                ),
+                _buildInfoTile(
+                  title: 'Lyrics',
+                  subtitle: 'Lyrics require manual entry due to copyright '
+                      'restrictions.',
+                ),
+
+                const SizedBox(height: Spacing.space24),
+              ],
             ),
-            SheetFooter(
-              primaryLabel: 'Enrich Songs',
-              onPrimary: hasSelection
-                  ? () => _handleEnrichSongs(context, overwriteExisting)
-                  : null,
-              onCancel: () => Navigator.of(context).pop(),
-            ),
-          ],
+          ),
+          footer: SheetFooter(
+            primaryLabel: 'Enrich Songs',
+            onPrimary: hasSelection
+                ? () => _handleEnrichSongs(context, overwriteExisting)
+                : null,
+            onCancel: () => Navigator.of(context).pop(),
+          ),
         ),
       ),
     );
