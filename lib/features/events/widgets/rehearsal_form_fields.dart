@@ -244,13 +244,15 @@ class RehearsalFormFields extends ConsumerWidget {
                         color: context.colors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Toggle off once confirmed to make it official.',
-                      style: AppTextStyles.footnote.copyWith(
-                        color: context.colors.textSecondary,
+                    if (isPotential) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Toggle off once confirmed to make it official.',
+                        style: AppTextStyles.footnote.copyWith(
+                          color: context.colors.textSecondary,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -282,9 +284,7 @@ class RehearsalFormFields extends ConsumerWidget {
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
-                        child: AppProgressIndicator(
-                          type: ProgressIndicatorType.circular,
-                        ),
+                        child: AppProgressIndicator(),
                       ),
                     )
                   else ...[
@@ -306,7 +306,6 @@ class RehearsalFormFields extends ConsumerWidget {
                         }
                         return AvailabilityState.notResponded;
                       },
-                      onTap: null,
                     ),
                     if (isEditMode && existingEventId != null)
                       _buildUserAvailabilitySection(context),
@@ -421,9 +420,7 @@ class RehearsalFormFields extends ConsumerWidget {
         const SizedBox(height: Spacing.space8),
         if (isLoading || isLoadingPerDateAvailability)
           const Center(
-            child: AppProgressIndicator(
-              type: ProgressIndicatorType.circular,
-            ),
+            child: AppProgressIndicator(),
           )
         else if (members.isEmpty)
           Text('No members', style: AppTextStyles.footnote)
@@ -441,7 +438,6 @@ class RehearsalFormFields extends ConsumerWidget {
               if (r == 'no') return AvailabilityState.notAvailable;
               return AvailabilityState.notResponded;
             },
-            onTap: null,
           ),
         const SizedBox(height: Spacing.space8),
         Text(
@@ -574,7 +570,7 @@ class RehearsalFormFields extends ConsumerWidget {
     return MemberDisambiguation(
       line1:
           firstName.length > 10 ? '${firstName.substring(0, 9)}…' : firstName,
-      line2: member.lastName!,
+      line2: member.lastName,
       requiresTwoLines: true,
     );
   }
@@ -903,9 +899,7 @@ class RehearsalFormFields extends ConsumerWidget {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child: AppProgressIndicator(
-                    type: ProgressIndicatorType.circular,
-                  ),
+                  child: AppProgressIndicator(),
                 ),
               ),
             )
