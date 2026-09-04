@@ -9,7 +9,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../contacts/models/contact.dart';
 import '../../contacts/widgets/contact_detail_drawer.dart';
@@ -488,30 +488,11 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
           ),
 
           // Footer
-          Padding(
-            padding: EdgeInsets.only(
-              left: Spacing.pagePadding,
-              right: Spacing.pagePadding,
-              bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
-            ),
-            child: Column(
-              children: [
-                AppButton(
-                  label: 'Done',
-                  fullWidth: true,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                if (widget.canEdit) ...[
-                  const SizedBox(height: Spacing.space12),
-                  AppButton(
-                    label: 'Edit',
-                    variant: AppButtonVariant.text,
-                    fullWidth: true,
-                    onPressed: () => _handleEdit(context),
-                  ),
-                ],
-              ],
-            ),
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: widget.canEdit ? () => _handleEdit(context) : null,
           ),
         ],
       ),

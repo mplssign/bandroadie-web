@@ -14,6 +14,7 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../components/ui/field_hint.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../shared/utils/event_permission_helper.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../bands/active_band_controller.dart';
@@ -3122,151 +3123,28 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     if (_isEditingExpense) return const SizedBox.shrink();
 
     if (widget.viewOnly) {
-      return Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: kEdCardBorder)),
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            width: double.infinity,
-            height: 40,
-            child: OutlinedButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-                widget.onCancelled?.call();
-              },
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Close'),
-            ),
-          ),
-        ),
+      return SheetFooter(
+        primaryLabel: 'Close',
+        onPrimary: () {
+          Navigator.of(context).pop(false);
+          widget.onCancelled?.call();
+        },
       );
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: kEdCardBorder)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                _buildSummaryText(),
-                style: const TextStyle(fontSize: 14, color: Color(0xFF71717A)),
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: _isSaving
-                  ? null
-                  : () {
-                      widget.onCancelled?.call();
-                      Navigator.of(context).pop();
-                    },
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(80, 40),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Cancel'),
-            ),
-            const SizedBox(width: 8),
-            _buildPrimaryActionButton(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _buildSummaryText() {
-    final parts = <String>[];
-    if (_eventType == EventType.gig && _isPotentialGig) {
-      parts.add('Potential gig');
-    } else {
-      parts.add(_eventType.displayName);
-    }
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    parts.add('${months[_selectedDate.month - 1]} ${_selectedDate.day}');
-    final hourStr = _selectedHour.toString();
-    final minStr = _selectedMinutes.toString().padLeft(2, '0');
-    final amPm = _isPM ? 'PM' : 'AM';
-    parts.add('$hourStr:$minStr $amPm');
-    if (_durationMinutes > 0) {
-      final h = _durationMinutes ~/ 60;
-      final m = _durationMinutes % 60;
-      parts.add(
-        h > 0 && m > 0
-            ? '${h}h ${m}m'
-            : h > 0
-                ? '${h}h'
-                : '${m}m',
-      );
-    }
-    return parts.join(' · ');
-  }
-
-  Widget _buildPrimaryActionButton(BuildContext context) {
     final canSave = !_isSaving &&
         !_isDeleting &&
         (widget.mode == EventEditorMode.create || _isDirty);
-    return SizedBox(
-      height: 40,
-      child: _isSaving
-          ? ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFfb2c5a),
-                // override theme's Size(double.infinity, 52) — button is in an unbounded Row slot
-                minimumSize: const Size(0, 40),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: null,
-              child: const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              ),
-            )
-          : ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFfb2c5a),
-                foregroundColor: Colors.white,
-                // override theme's Size(double.infinity, 52) — button is in an unbounded Row slot
-                minimumSize: const Size(0, 40),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: canSave ? _handleSave : null,
-              child: Text(_primaryButtonLabel),
-            ),
+    return SheetFooter(
+      primaryLabel: _primaryButtonLabel,
+      onPrimary: canSave ? _handleSave : null,
+      primaryIsLoading: _isSaving,
+      onCancel: _isSaving
+          ? null
+          : () {
+              widget.onCancelled?.call();
+              Navigator.of(context).pop();
+            },
     );
   }
 

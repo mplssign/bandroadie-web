@@ -6,7 +6,7 @@ This directory contains 15 wrapper widgets that provide a consistent UI abstract
 
 As of 2026-08-12, **all 15 wrappers** have been swapped to use Forui design system internally:
 
-### Forui-Styled Wrappers (15)
+### Forui-Styled Wrappers (16)
 
 1. **AppScaffold** → `FScaffold`
 2. **AppAppBar** → `FHeader`
@@ -23,6 +23,7 @@ As of 2026-08-12, **all 15 wrappers** have been swapped to use Forui design syst
 13. **AppSnackbar** → `showFToast`
 14. **AppProgressIndicator** → `FProgress` / `FCircularProgress`
 15. **AppChip** → `FBadge` + `FTappable.static` (selectable badge pattern)
+16. **SheetFooter** — standard sticky footer for modal sheets/drawers (surface container + top border + shadow; primary filled rose right-aligned; cancel text left-aligned; optional full-width destructive row above)
 
 ### Implementation Notes
 

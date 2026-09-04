@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dialog.dart';
@@ -508,7 +508,6 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
   @override
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
 
     return GestureDetector(
       // Dismiss keyboard when tapping outside text fields
@@ -619,34 +618,16 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                         hint: 'Out of town, vacation, etc.',
                         maxLines: 2,
                       ),
-
-                      // Delete button (edit mode only - creator can delete)
-                      if (_isEditMode) ...[
-                        const SizedBox(height: Spacing.space24),
-                        _buildDeleteButton(),
-                      ],
                     ],
                   ),
                 ),
               ),
 
               // Bottom Buttons (sticky, keyboard-aware)
-              _buildBottomButtons(safeBottom, keyboardHeight),
+              _buildBottomButtons(),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Delete button (destructive text style) - only shown in edit mode for creator
-  Widget _buildDeleteButton() {
-    return Center(
-      child: AppButton(
-        label: 'Delete Block Out',
-        variant: AppButtonVariant.destructive,
-        onPressed: (_isSaving || _isDeleting) ? null : _handleDelete,
-        isLoading: _isDeleting,
       ),
     );
   }
@@ -768,95 +749,24 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     );
   }
 
-  Widget _buildBottomButtons(double safeBottom, double keyboardHeight) {
-    final bottomPadding = safeBottom;
-
-    // Edit mode: Cancel + Update buttons (matching EventEditorDrawer)
+  Widget _buildBottomButtons() {
     if (_isEditMode) {
-      return Container(
-        padding: EdgeInsets.only(
-          left: Spacing.pagePadding,
-          right: Spacing.pagePadding,
-          top: Spacing.space12,
-          bottom: bottomPadding + Spacing.space12,
-        ),
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          border: Border(
-            top: BorderSide(
-              color: context.colors.border.withValues(alpha: 0.5),
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            // Cancel button - equal width
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: AppButton(
-                  label: 'Cancel',
-                  variant: AppButtonVariant.outlined,
-                  onPressed: (_isSaving || _isDeleting)
-                      ? null
-                      : () => Navigator.pop(context),
-                ),
-              ),
-            ),
-            const SizedBox(width: Spacing.space12),
-            // Update button - equal width
-            Expanded(
-              child: AppButton(
-                label: 'Update',
-                isLoading: _isSaving,
-                onPressed: (_isSaving || _isDeleting) ? null : _handleSave,
-                variant: AppButtonVariant.primary,
-              ),
-            ),
-          ],
-        ),
+      return SheetFooter(
+        primaryLabel: 'Update',
+        onPrimary: (_isSaving || _isDeleting) ? null : _handleSave,
+        primaryIsLoading: _isSaving,
+        onCancel: (_isSaving || _isDeleting) ? null : () => Navigator.pop(context),
+        destructiveLabel: 'Delete Block Out',
+        onDestructive: _isSaving ? null : _handleDelete,
+        destructiveIsLoading: _isDeleting,
       );
     }
 
-    // Create mode: Cancel + Add Block Out buttons
-    return Container(
-      padding: EdgeInsets.only(
-        left: Spacing.pagePadding,
-        right: Spacing.pagePadding,
-        top: Spacing.space16,
-        bottom: bottomPadding + Spacing.space16,
-      ),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(color: context.colors.border.withValues(alpha: 0.5)),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Cancel button - equal width
-          Expanded(
-            child: SizedBox(
-              height: 48,
-              child: AppButton(
-                label: 'Cancel',
-                variant: AppButtonVariant.outlined,
-                onPressed: _isSaving ? null : () => Navigator.pop(context),
-              ),
-            ),
-          ),
-          const SizedBox(width: Spacing.space12),
-          // Primary button - equal width
-          Expanded(
-            child: AppButton(
-              label: 'Add Block Out',
-              isLoading: _isSaving,
-              onPressed: _isSaving ? null : _handleSave,
-              variant: AppButtonVariant.primary,
-            ),
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: 'Add Block Out',
+      onPrimary: _isSaving ? null : _handleSave,
+      primaryIsLoading: _isSaving,
+      onCancel: _isSaving ? null : () => Navigator.pop(context),
     );
   }
 }

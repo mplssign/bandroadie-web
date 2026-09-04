@@ -9,6 +9,7 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/segmented_button_group.dart';
 import '../../lyrics/models/lyrics_data.dart';
 import '../../lyrics/widgets/lyrics_editor_sheet.dart';
@@ -1465,75 +1466,40 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
     }
   }
 
-  /// Fixed bottom action area: full-width Save + centered Cancel below
   Widget _buildFixedBottomActions() {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Explanatory text when enrichment just completed
-          if (_justEnriched) ...[
-            Text(
+    if (widget.isReadOnly) {
+      return SheetFooter(
+        primaryLabel: 'Close',
+        onPrimary: () => Navigator.of(context).pop(),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_justEnriched)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.space16,
+              8,
+              Spacing.space16,
+              0,
+            ),
+            child: Text(
               '✓ Enrichment saved automatically',
               style: AppTextStyles.callout.copyWith(
                 color: context.colors.success,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-          // Full-width Save/Done button (hidden in read-only mode)
-          if (!widget.isReadOnly)
-            AppButton(
-              label: _justEnriched ? 'Done' : 'Save',
-              onPressed: _justEnriched
-                  ? () => Navigator.of(context).pop()
-                  : (_hasChanges ? _handleSave : null),
-              variant: AppButtonVariant.primary,
-              backgroundColor: (_justEnriched || _hasChanges)
-                  ? AppColors.primary
-                  : context.colors.border.withValues(alpha: 0.3),
-              disabledBackgroundColor:
-                  context.colors.border.withValues(alpha: 0.3),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              fullWidth: true,
-            ),
-          if (!widget.isReadOnly) const SizedBox(height: 8),
-          // Centered Cancel/Close text button
-          AppButton(
-            label: widget.isReadOnly ? 'Close' : 'Cancel',
-            onPressed: widget.isReadOnly
-                ? () => Navigator.of(context).pop()
-                : (_justEnriched ? null : _handleCancel),
-            variant: AppButtonVariant.text,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
           ),
-        ],
-      ),
+        SheetFooter(
+          primaryLabel: _justEnriched ? 'Done' : 'Save',
+          onPrimary: _justEnriched
+              ? () => Navigator.of(context).pop()
+              : (_hasChanges ? _handleSave : null),
+          onCancel: _justEnriched ? null : _handleCancel,
+        ),
+      ],
     );
   }
 }

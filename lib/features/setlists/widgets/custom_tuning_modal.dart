@@ -7,7 +7,7 @@ import '../services/custom_tuning_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/app_text_field.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 // ============================================================================
 // CUSTOM TUNING MODAL
@@ -264,15 +264,14 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
 
                     // Name input
                     _buildNameInput(),
-
-                    const SizedBox(height: Spacing.space32),
-
-                    // Action buttons
-                    _buildActionButtons(),
-
-                    const SizedBox(height: Spacing.space8),
                   ],
                 ),
+              ),
+              SheetFooter(
+                primaryLabel: 'Save Tuning',
+                onPrimary: (_isValid && !_isSaving) ? _handleSave : null,
+                primaryIsLoading: _isSaving,
+                onCancel: _isSaving ? null : _handleCancel,
               ),
             ],
           ),
@@ -425,40 +424,6 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
             ),
           ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Row(
-      children: [
-        // Cancel button
-        Expanded(
-          child: AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.outlined,
-            onPressed: _isSaving ? null : _handleCancel,
-          ),
-        ),
-
-        const SizedBox(width: Spacing.space12),
-
-        // Save button
-        Expanded(
-          flex: 2,
-          child: _isSaving
-              ? AppButton(
-                  label: '',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: null,
-                  isLoading: true,
-                )
-              : AppButton(
-                  label: 'Save Tuning',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: (_isValid && !_isSaving) ? _handleSave : null,
-                ),
-        ),
       ],
     );
   }

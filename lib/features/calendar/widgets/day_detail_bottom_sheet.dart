@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../models/calendar_event.dart';
 import 'calendar_event_card.dart';
@@ -86,10 +86,10 @@ class DayDetailBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: context.colors.background,
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
         ),
@@ -197,25 +197,15 @@ class DayDetailBottomSheet extends StatelessWidget {
                   ),
           ),
 
-          // Add Event button
-          if (onAddEvent != null) ...[
-            const SizedBox(height: Spacing.space16),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.pagePadding,
-              ),
-              child: AppButton(
-                label: 'Add Event',
-                onPressed: onAddEvent,
-                icon: AppIcons.add,
-                fullWidth: true,
-                variant: AppButtonVariant.primary,
-              ),
-            ),
-          ],
-
-          // Bottom padding
-          SizedBox(height: Spacing.space24 + bottomPadding),
+          // Footer
+          if (onAddEvent != null)
+            SheetFooter(
+              primaryLabel: 'Add Event',
+              primaryIcon: AppIcons.add,
+              onPrimary: onAddEvent,
+            )
+          else
+            SizedBox(height: Spacing.space24 + bottomPadding),
         ],
       ),
     );

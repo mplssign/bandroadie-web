@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../app/utils/phone_formatter.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../models/contact.dart';
 
@@ -175,31 +175,11 @@ class ContactDetailDrawer extends StatelessWidget {
           ),
 
           // Footer
-          Padding(
-            padding: EdgeInsets.only(
-              left: Spacing.pagePadding,
-              right: Spacing.pagePadding,
-              bottom: MediaQuery.of(context).padding.bottom + Spacing.space16,
-            ),
-            child: Column(
-              children: [
-                AppButton(
-                  label: 'Done',
-                  fullWidth: true,
-                  onPressed: () => Navigator.of(context).pop(),
-                  variant: AppButtonVariant.primary,
-                ),
-                const SizedBox(height: Spacing.space12),
-                SizedBox(
-                  width: double.infinity,
-                  child: AppButton(
-                    label: 'Edit',
-                    variant: AppButtonVariant.text,
-                    onPressed: () => _handleEdit(context),
-                  ),
-                ),
-              ],
-            ),
+          SheetFooter(
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: () => _handleEdit(context),
           ),
         ],
       ),

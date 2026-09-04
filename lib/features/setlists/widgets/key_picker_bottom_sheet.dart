@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/brand_colors.dart';
-import '../../../components/ui/app_button.dart';
+import '../../../components/ui/sheet_footer.dart';
 
 const _kMajorKeys = [
   'C',
@@ -159,7 +159,7 @@ class _KeyPickerBottomSheetState extends State<_KeyPickerBottomSheet> {
                   ],
                 ),
               ),
-              _buildFixedBottomActions(context),
+              _buildFixedBottomActions(),
             ],
           ),
         );
@@ -268,56 +268,11 @@ class _KeyPickerBottomSheetState extends State<_KeyPickerBottomSheet> {
     );
   }
 
-  Widget _buildFixedBottomActions(BuildContext context) {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppButton(
-            label: 'Save',
-            onPressed: _hasChanges ? _handleSave : null,
-            variant: AppButtonVariant.primary,
-            backgroundColor: _hasChanges
-                ? AppColors.primary
-                : context.colors.border.withValues(alpha: 0.3),
-            disabledBackgroundColor:
-                context.colors.border.withValues(alpha: 0.3),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            fullWidth: true,
-          ),
-          const SizedBox(height: 8),
-          AppButton(
-            label: 'Cancel',
-            onPressed: _handleCancel,
-            variant: AppButtonVariant.text,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-          ),
-        ],
-      ),
+  Widget _buildFixedBottomActions() {
+    return SheetFooter(
+      primaryLabel: 'Save',
+      onPrimary: _hasChanges ? _handleSave : null,
+      onCancel: _handleCancel,
     );
   }
 }

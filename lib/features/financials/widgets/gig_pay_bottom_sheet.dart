@@ -8,6 +8,7 @@ import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
+import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
 import '../../../shared/widgets/currency_input_field.dart';
 import '../models/financial_entry.dart';
@@ -151,116 +152,19 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
   }
 
   Widget _buildFixedBottomActions() {
-    final bottomSafe = MediaQuery.of(context).padding.bottom;
     final enabled = _amountController.cents > 0;
 
     if (widget.viewOnly) {
-      return Container(
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          border: Border(
-            top: BorderSide(
-              color: context.colors.border.withValues(alpha: 0.5),
-            ),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        padding: EdgeInsets.only(
-          left: Spacing.space16,
-          right: Spacing.space16,
-          top: 12,
-          bottom: bottomSafe + 12,
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: _cancel,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.textSecondary,
-              side: BorderSide(color: context.colors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              ),
-              minimumSize: const Size(0, 48),
-            ),
-            child: const Text('Close'),
-          ),
-        ),
+      return SheetFooter(
+        primaryLabel: 'Close',
+        onPrimary: _cancel,
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        border: Border(
-          top: BorderSide(
-            color: context.colors.border.withValues(alpha: 0.5),
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(
-        left: Spacing.space16,
-        right: Spacing.space16,
-        top: 12,
-        bottom: bottomSafe + 12,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: enabled ? _save : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: enabled
-                    ? AppColors.primary
-                    : context.colors.border.withValues(alpha: 0.3),
-                disabledBackgroundColor:
-                    context.colors.border.withValues(alpha: 0.3),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                ),
-              ),
-              child: Text(
-                'Save',
-                style: AppTextStyles.body.copyWith(
-                  color: enabled ? Colors.white : context.colors.textMuted,
-                  fontWeight: FontWeight.w700,
-                  fontSize: AppFontSizes.body,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _cancel,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: context.colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return SheetFooter(
+      primaryLabel: 'Save',
+      onPrimary: enabled ? _save : null,
+      onCancel: _cancel,
     );
   }
 
