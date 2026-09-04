@@ -619,37 +619,41 @@ class RehearsalFormFields extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: Weekday.values.map((day) {
             final isSelected = selectedDays.contains(day);
-            return GestureDetector(
-              onTap: isSaving
-                  ? null
-                  : () {
-                      onDayToggled(day);
-                      HapticFeedback.selectionClick();
-                    },
-              child: AnimatedContainer(
-                duration: AppDurations.fast,
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.primary
-                      : context.colors.background,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color:
-                        isSelected ? AppColors.primary : context.colors.border,
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  day.shortLabel,
-                  style: AppTextStyles.footnote.copyWith(
-                    color: isSelected
-                        ? Colors.white
-                        : context.colors.textSecondary,
+            return Expanded(
+              child: Center(
+                child: GestureDetector(
+                  onTap: isSaving
+                      ? null
+                      : () {
+                          onDayToggled(day);
+                          HapticFeedback.selectionClick();
+                        },
+                  child: AnimatedContainer(
+                    duration: AppDurations.fast,
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : context.colors.background,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : context.colors.border,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      day.shortLabel,
+                      style: AppTextStyles.footnote.copyWith(
+                        color: isSelected
+                            ? Colors.white
+                            : context.colors.textSecondary,
+                      ),
+                    ),
                   ),
                 ),
               ),
