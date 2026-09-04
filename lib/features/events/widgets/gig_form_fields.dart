@@ -722,9 +722,29 @@ class GigFormFields extends ConsumerWidget {
   /// Builds the gig pay button (called from parent build method).
   Widget buildGigPayButton(BuildContext context) {
     final hasDetails = gigPayDetails != null && gigPayDetails!.amountCents > 0;
-    final label = hasDetails
-        ? '${gigPayDetails!.formattedAmount}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}'
-        : 'Set Gig Pay';
+
+    if (!hasDetails) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Gig Pay (optional)',
+            style: AppTextStyles.footnote.copyWith(
+              color: context.colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          EventAddValueButton(
+            label: 'Set Gig Pay',
+            onPressed: onGigPayTap,
+            isSaving: isSaving,
+          ),
+        ],
+      );
+    }
+
+    final label =
+        '${gigPayDetails!.formattedAmount}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -739,7 +759,7 @@ class GigFormFields extends ConsumerWidget {
         AppButton(
           label: label,
           variant: AppButtonVariant.outlined,
-          icon: hasDetails ? AppIcons.edit : AppIcons.dollar,
+          icon: AppIcons.edit,
           fullWidth: true,
           onPressed: isSaving ? null : onGigPayTap,
         ),
@@ -766,30 +786,21 @@ class GigFormFields extends ConsumerWidget {
                 ),
               ),
             ),
-            AppButton(
-              label: 'Add Expense',
-              variant: AppButtonVariant.text,
-              icon: AppIcons.add,
-              onPressed: (isSaving || !canEditExpenses) ? null : onAddExpense,
-            ),
+            if (gigExpenses.isNotEmpty)
+              AppButton(
+                label: 'Add Expense',
+                variant: AppButtonVariant.text,
+                icon: AppIcons.add,
+                onPressed: (isSaving || !canEditExpenses) ? null : onAddExpense,
+              ),
           ],
         ),
         const SizedBox(height: 6),
         if (gigExpenses.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: context.colors.background,
-              borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-              border: Border.all(color: context.colors.border),
-            ),
-            child: Text(
-              'No expenses added yet.',
-              style: AppTextStyles.footnote.copyWith(
-                color: context.colors.textMuted,
-              ),
-            ),
+          EventAddValueButton(
+            label: 'Add expense',
+            onPressed: (isSaving || !canEditExpenses) ? null : onAddExpense,
+            isSaving: isSaving,
           )
         else
           ...gigExpenses.map(
@@ -1424,33 +1435,10 @@ class GigFormFields extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 6),
-          GestureDetector(
-            onTap: isSaving ? null : onLoadInTimeSet,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: context.colors.background,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: context.colors.border),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    AppIcons.add,
-                    color: context.colors.textSecondary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Set Load-in Time (Optional)',
-                    style: AppTextStyles.callout.copyWith(
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          EventAddValueButton(
+            label: 'Set load-in time',
+            onPressed: onLoadInTimeSet,
+            isSaving: isSaving,
           ),
         ],
       );
@@ -1557,39 +1545,30 @@ class GigFormFields extends ConsumerWidget {
                 ),
               ),
             ),
-            AppButton(
-              label: contactAutocompleteControllers.isEmpty
-                  ? 'Add'
-                  : 'Add another',
-              variant: AppButtonVariant.text,
-              icon: AppIcons.add,
-              onPressed: isSaving ? null : onAddContact,
-            ),
+            if (contactAutocompleteControllers.isNotEmpty)
+              AppButton(
+                label: 'Add another',
+                variant: AppButtonVariant.text,
+                icon: AppIcons.add,
+                onPressed: isSaving ? null : onAddContact,
+              ),
           ],
         ),
         const SizedBox(height: 6),
         if (contactAutocompleteControllers.isEmpty)
-          InkWell(
-            onTap: isSaving ? null : onAddContact,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            child: Ink(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.colors.background,
-                borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                border: Border.all(color: context.colors.border),
+          if (isLoadingContacts)
+            Text(
+              'Loading your shared contacts...',
+              style: AppTextStyles.footnote.copyWith(
+                color: context.colors.textMuted,
               ),
-              child: Text(
-                isLoadingContacts
-                    ? 'Loading your shared contacts...'
-                    : 'No contacts linked — tap to add one',
-                style: AppTextStyles.footnote.copyWith(
-                  color: context.colors.textMuted,
-                ),
-              ),
-            ),
-          )
+            )
+          else
+            EventAddValueButton(
+              label: 'Add contact',
+              onPressed: onAddContact,
+              isSaving: isSaving,
+            )
         else
           for (var i = 0; i < contactAutocompleteControllers.length; i++) ...[
             if (i > 0) const SizedBox(height: Spacing.space8),

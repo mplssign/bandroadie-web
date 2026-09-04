@@ -2553,10 +2553,20 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       loadInMinutes: _loadInMinutes,
       loadInIsPM: _loadInIsPM,
       onLoadInTimeSet: () {
+        final start24 = _isPM && _selectedHour != 12
+            ? _selectedHour + 12
+            : (!_isPM && _selectedHour == 12 ? 0 : _selectedHour);
+        final startTotal = start24 * 60 + _selectedMinutes;
+        final loadInTotal = (startTotal - 120 + 24 * 60) % (24 * 60);
+        final loadIn24 = loadInTotal ~/ 60;
+        final loadInMin = loadInTotal % 60;
+        final loadInPm = loadIn24 >= 12;
+        int loadIn12 = loadIn24 % 12;
+        if (loadIn12 == 0) loadIn12 = 12;
         setState(() {
-          _loadInHour = 6;
-          _loadInMinutes = 0;
-          _loadInIsPM = true;
+          _loadInHour = loadIn12;
+          _loadInMinutes = loadInMin;
+          _loadInIsPM = loadInPm;
         });
         _markDirty();
       },
@@ -3036,29 +3046,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             duration: const Duration(milliseconds: 150),
             curve: const Cubic(0.4, 0, 0.2, 1),
             child: _soundcheckHour == null
-                ? SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _isSaving
-                          ? null
-                          : () => setState(() {
-                                _soundcheckHour = 6;
-                                _soundcheckMinutes = 0;
-                                _soundcheckIsPM = false;
-                              }),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFFfb2c5a),
-                          width: 1.5,
-                        ),
-                        foregroundColor: const Color(0xFFfb2c5a),
-                        minimumSize: const Size(double.infinity, 40),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('Set soundcheck time'),
-                    ),
+                ? EventAddValueButton(
+                    label: 'Set soundcheck time',
+                    onPressed: () => setState(() {
+                      _soundcheckHour = 6;
+                      _soundcheckMinutes = 0;
+                      _soundcheckIsPM = false;
+                    }),
+                    isSaving: _isSaving,
                   )
                 : Row(
                     children: [

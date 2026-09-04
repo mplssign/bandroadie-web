@@ -135,6 +135,42 @@ class EventDropdown<T> extends StatelessWidget {
   }
 }
 
+/// Rose-outlined "add value" button matching the Soundcheck CTA style.
+class EventAddValueButton extends StatelessWidget {
+  const EventAddValueButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    required this.isSaving,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isSaving;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: isSaving ? null : onPressed,
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFFfb2c5a), width: 1.5),
+          foregroundColor: const Color(0xFFfb2c5a),
+          minimumSize: const Size(double.infinity, 40),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: AppFontSizes.subhead),
+        ),
+      ),
+    );
+  }
+}
+
 /// AM/PM toggle button (used for start time and load-in time).
 class AmPmToggleButton extends StatelessWidget {
   const AmPmToggleButton({
