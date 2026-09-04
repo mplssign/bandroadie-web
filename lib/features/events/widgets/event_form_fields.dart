@@ -479,8 +479,8 @@ class EventFormFields extends ConsumerWidget {
                   ? null
                   : onDurationDecremented,
               child: Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
@@ -519,8 +519,8 @@ class EventFormFields extends ConsumerWidget {
             GestureDetector(
               onTap: isSaving ? null : onDurationIncremented,
               child: Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.fromBorderSide(
