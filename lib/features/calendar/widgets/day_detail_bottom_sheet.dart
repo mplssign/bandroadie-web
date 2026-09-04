@@ -108,93 +108,96 @@ class DayDetailBottomSheet extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: Spacing.space16),
+          // Scrollable content: header + events list
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: Spacing.space16),
 
-          // Date header
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.pagePadding,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(_formattedDate, style: AppTextStyles.title3),
-                ),
-                // Close button
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: context.colors.background,
-                      shape: BoxShape.circle,
+                  // Date header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
                     ),
-                    child: Icon(
-                      AppIcons.close,
-                      color: context.colors.textSecondary,
-                      size: 18,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child:
+                              Text(_formattedDate, style: AppTextStyles.title3),
+                        ),
+                        // Close button
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: context.colors.background,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              AppIcons.close,
+                              color: context.colors.textSecondary,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: Spacing.space8),
+                  const SizedBox(height: Spacing.space8),
 
-          // Events count
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.pagePadding,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${events.length} ${events.length == 1 ? 'event' : 'events'}',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textMuted,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: Spacing.space16),
-
-          // Events list
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.5,
-            ),
-            child: events.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.all(Spacing.pagePadding),
-                    child: Center(
+                  // Events count
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.pagePadding,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
                       child: Text(
-                        'No events on this day',
+                        '${events.length} ${events.length == 1 ? 'event' : 'events'}',
                         style: AppTextStyles.callout.copyWith(
                           color: context.colors.textMuted,
                         ),
                       ),
                     ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.pagePadding,
-                    ),
-                    itemCount: events.length,
-                    separatorBuilder: (_, index) =>
-                        const SizedBox(height: Spacing.space12),
-                    itemBuilder: (context, index) {
-                      final event = events[index];
-                      return CalendarEventCard(
-                        event: event,
-                        bandTimezone: bandTimezone,
-                        onTap: () => onEventTap?.call(event),
-                      );
-                    },
                   ),
+
+                  const SizedBox(height: Spacing.space16),
+
+                  // Events list
+                  if (events.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(Spacing.pagePadding),
+                      child: Center(
+                        child: Text(
+                          'No events on this day',
+                          style: AppTextStyles.callout.copyWith(
+                            color: context.colors.textMuted,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    for (int i = 0; i < events.length; i++) ...[
+                      if (i > 0) const SizedBox(height: Spacing.space12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Spacing.pagePadding,
+                        ),
+                        child: CalendarEventCard(
+                          event: events[i],
+                          bandTimezone: bandTimezone,
+                          onTap: () => onEventTap?.call(events[i]),
+                        ),
+                      ),
+                    ],
+                ],
+              ),
+            ),
           ),
 
           // Footer

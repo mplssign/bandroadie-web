@@ -876,38 +876,40 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildDragHandle(),
-              _buildHeader(),
-              Divider(color: context.colors.border, height: 1),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(Spacing.space16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _isEditingNotes
-                        ? [_buildNotesSubView()]
-                        : [
-                            _buildSongInfo(),
-                            if (!widget.isReadOnly) ...[
-                              const SizedBox(height: 8),
-                              Center(
-                                child: AppButton(
-                                  label: 'Enrich Song Data',
-                                  onPressed: _handleEnrichSong,
-                                  variant: AppButtonVariant.text,
-                                  icon: Icons.auto_awesome,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 16,
+                    children: [
+                      _buildHeader(),
+                      Divider(color: context.colors.border, height: 1),
+                      ...(_isEditingNotes
+                          ? [_buildNotesSubView()]
+                          : [
+                              _buildSongInfo(),
+                              if (!widget.isReadOnly) ...[
+                                const SizedBox(height: 8),
+                                Center(
+                                  child: AppButton(
+                                    label: 'Enrich Song Data',
+                                    onPressed: _handleEnrichSong,
+                                    variant: AppButtonVariant.text,
+                                    icon: Icons.auto_awesome,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 16,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                            const SizedBox(height: Spacing.space24),
-                            _buildMetricsRow(),
-                            const SizedBox(height: Spacing.space24),
-                            _buildNotesSection(),
-                            const SizedBox(height: Spacing.space24),
-                          ],
+                              ],
+                              const SizedBox(height: Spacing.space24),
+                              _buildMetricsRow(),
+                              const SizedBox(height: Spacing.space24),
+                              _buildNotesSection(),
+                              const SizedBox(height: Spacing.space24),
+                            ]),
+                    ],
                   ),
                 ),
               ),
@@ -933,10 +935,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.space16,
-        vertical: Spacing.space12,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

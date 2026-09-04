@@ -73,7 +73,7 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
       });
     } else {
       // View mode cancel: close drawer
-      Navigator.of(context).pop(null);
+      Navigator.of(context).pop();
     }
   }
 
@@ -109,12 +109,17 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildDragHandle(),
-                _buildHeader(),
-                Divider(color: context.colors.border, height: 1),
                 Flexible(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(Spacing.space16),
-                    child: _isEditing ? _buildEditView() : _buildViewMode(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(),
+                        Divider(color: context.colors.border, height: 1),
+                        _isEditing ? _buildEditView() : _buildViewMode(),
+                      ],
+                    ),
                   ),
                 ),
                 _buildFooter(),
@@ -140,10 +145,7 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.space16,
-        vertical: Spacing.space12,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
       child: Text(
         'Notes',
         style: AppTextStyles.pageTitle,
@@ -171,7 +173,6 @@ class _SongNotesDrawerState extends State<SongNotesDrawer> {
       ),
       child: AppTextField(
         controller: _notesController,
-        maxLines: null,
         minLines: 8,
         hintText: 'Add notes for this song...',
         textCapitalization: TextCapitalization.sentences,

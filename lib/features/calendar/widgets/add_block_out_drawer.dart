@@ -541,38 +541,6 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
 
               const SizedBox(height: Spacing.space16),
 
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.pagePadding,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(_drawerTitle, style: AppTextStyles.title3),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(false),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: context.colors.background,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          AppIcons.close,
-                          size: 18,
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: Spacing.space16),
-
               // Scrollable content
               Flexible(
                 child: SingleChildScrollView(
@@ -584,6 +552,37 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Header
+                      Padding(
+                        padding: EdgeInsets.zero,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(_drawerTitle,
+                                  style: AppTextStyles.title3),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).pop(false),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: context.colors.background,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  AppIcons.close,
+                                  size: 18,
+                                  color: context.colors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: Spacing.space16),
+
                       // Error banner
                       if (_errorMessage != null) ...[
                         _buildErrorBanner(),
@@ -755,7 +754,8 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         primaryLabel: 'Update',
         onPrimary: (_isSaving || _isDeleting) ? null : _handleSave,
         primaryIsLoading: _isSaving,
-        onCancel: (_isSaving || _isDeleting) ? null : () => Navigator.pop(context),
+        onCancel:
+            (_isSaving || _isDeleting) ? null : () => Navigator.pop(context),
         destructiveLabel: 'Delete Block Out',
         onDestructive: _isSaving ? null : _handleDelete,
         destructiveIsLoading: _isDeleting,
