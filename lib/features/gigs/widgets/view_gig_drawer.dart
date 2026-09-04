@@ -9,6 +9,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../contacts/models/contact.dart';
@@ -321,180 +322,166 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
           topRight: Radius.circular(20),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: CollapsingSheetScaffold(
+        dragHandle: Center(
+          child: Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: context.colors.border,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: Spacing.space16),
 
-          // Scrollable body
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: Spacing.space16),
-
-                  // Header block: name + location + Navigate button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.pagePadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Venue/event name
-                        Text(
-                          gig.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
+              // Header block: name + location + Navigate button
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Venue/event name
+                    Text(
+                      gig.name,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: context.colors.textPrimary,
                               ),
-                        ),
-                        const SizedBox(height: Spacing.space4),
-                        // Location row + Navigate button
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                gig.fullLocationDisplay,
-                                style: AppTextStyles.callout.copyWith(
-                                  color: context.colors.textMuted,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(LucideIcons.navigation2,
-                                  color: AppColors.primary),
-                              color: AppColors.primary,
-                              iconSize: 20,
-                              onPressed: () => _openNavigation(context),
-                              tooltip: 'Navigate',
-                              style: IconButton.styleFrom(
-                                side: const BorderSide(
-                                  color: AppColors.primary,
-                                  width: BrandButton.borderWidth,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      Spacing.buttonRadius),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ),
-                  ),
-
-                  const SizedBox(height: Spacing.space16),
-
-                  // Date/Time block
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.pagePadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: Spacing.space4),
+                    // Location row + Navigate button
+                    Row(
                       children: [
-                        Text(
-                          _formatFullDate(gig.date),
-                          style: AppTextStyles.title3.copyWith(
-                            color: context.colors.textPrimary,
+                        Expanded(
+                          child: Text(
+                            gig.fullLocationDisplay,
+                            style: AppTextStyles.callout.copyWith(
+                              color: context.colors.textMuted,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: Spacing.space4),
-                        Text(
-                          gig.timeRange,
-                          style: AppTextStyles.headline.copyWith(
-                            color: context.colors.textPrimary,
+                        IconButton(
+                          icon: const Icon(LucideIcons.navigation2,
+                              color: AppColors.primary),
+                          color: AppColors.primary,
+                          iconSize: 20,
+                          onPressed: () => _openNavigation(context),
+                          tooltip: 'Navigate',
+                          style: IconButton.styleFrom(
+                            side: const BorderSide(
+                              color: AppColors.primary,
+                              width: BrandButton.borderWidth,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(Spacing.buttonRadius),
+                            ),
                           ),
                         ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: Spacing.space16),
+
+              // Date/Time block
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _formatFullDate(gig.date),
+                      style: AppTextStyles.title3.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: Spacing.space4),
+                    Text(
+                      gig.timeRange,
+                      style: AppTextStyles.headline.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: Spacing.space16),
+              const Divider(height: 1),
+
+              // Detail rows
+              if (gig.loadInTime != null)
+                _DetailRow(
+                  label: 'Load in',
+                  value: gig.loadInTime!,
+                ),
+
+              if (gig.setlistId != null)
+                _DetailRow(
+                  label: 'Setlist',
+                  value: gig.setlistName ?? 'Unnamed Setlist',
+                  showChevron: true,
+                  onTap: () => Navigator.of(context).push(
+                    fadeSlideRoute(
+                      page: SetlistDetailScreen(
+                        setlistId: gig.setlistId!,
+                        setlistName: gig.setlistName ?? 'Setlist',
+                      ),
+                    ),
+                  ),
+                ),
+
+              if (gig.gigPayCents != null)
+                _DetailRow(
+                  label: 'Gig pay',
+                  value: gig.formattedPay ?? '',
+                ),
+
+              if (gig.contacts.isNotEmpty)
+                for (var i = 0; i < gig.contacts.length; i++)
+                  _DetailRow(
+                    label: i == 0 ? 'Contacts' : '',
+                    value: gig.contacts[i].name,
+                    subtitle: _contactSummary(gig.contacts[i]),
+                    showChevron: true,
+                    onTap: () => _openContactDetail(context, gig.contacts[i]),
                   ),
 
-                  const SizedBox(height: Spacing.space16),
-                  const Divider(height: 1),
+              if (gig.notes != null && gig.notes!.isNotEmpty)
+                _DetailRow(
+                  label: 'Notes',
+                  value: '',
+                  showChevron: true,
+                  onTap: () => GigNotesSheet.show(
+                    context,
+                    notes: gig.notes!,
+                    gigName: gig.name,
+                  ),
+                ),
 
-                  // Detail rows
-                  if (gig.loadInTime != null)
-                    _DetailRow(
-                      label: 'Load in',
-                      value: gig.loadInTime!,
-                    ),
-
-                  if (gig.setlistId != null)
-                    _DetailRow(
-                      label: 'Setlist',
-                      value: gig.setlistName ?? 'Unnamed Setlist',
-                      showChevron: true,
-                      onTap: () => Navigator.of(context).push(
-                        fadeSlideRoute(
-                          page: SetlistDetailScreen(
-                            setlistId: gig.setlistId!,
-                            setlistName: gig.setlistName ?? 'Setlist',
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  if (gig.gigPayCents != null)
-                    _DetailRow(
-                      label: 'Gig pay',
-                      value: gig.formattedPay ?? '',
-                    ),
-
-                  if (gig.contacts.isNotEmpty)
-                    for (var i = 0; i < gig.contacts.length; i++)
-                      _DetailRow(
-                        label: i == 0 ? 'Contacts' : '',
-                        value: gig.contacts[i].name,
-                        subtitle: _contactSummary(gig.contacts[i]),
-                        showChevron: true,
-                        onTap: () =>
-                            _openContactDetail(context, gig.contacts[i]),
-                      ),
-
-                  if (gig.notes != null && gig.notes!.isNotEmpty)
-                    _DetailRow(
-                      label: 'Notes',
-                      value: '',
-                      showChevron: true,
-                      onTap: () => GigNotesSheet.show(
-                        context,
-                        notes: gig.notes!,
-                        gigName: gig.name,
-                      ),
-                    ),
-
-                  const SizedBox(height: Spacing.space24),
-                ],
-              ),
-            ),
+              const SizedBox(height: Spacing.space24),
+            ],
           ),
-
-          // Footer
-          SheetFooter(
-            primaryLabel: 'Done',
-            onPrimary: () => Navigator.of(context).pop(),
-            cancelLabel: 'Edit',
-            onCancel: widget.canEdit ? () => _handleEdit(context) : null,
-          ),
-        ],
+        ),
+        footer: SheetFooter(
+          primaryLabel: 'Done',
+          onPrimary: () => Navigator.of(context).pop(),
+          cancelLabel: 'Edit',
+          onCancel: widget.canEdit ? () => _handleEdit(context) : null,
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_animations.dart';
+import '../../../components/ui/collapsing_sheet_scaffold.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
@@ -153,125 +154,112 @@ class ViewRehearsalDrawer extends ConsumerWidget {
           topRight: Radius.circular(20),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: CollapsingSheetScaffold(
+        dragHandle: Center(
+          child: Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: context.colors.border,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: Spacing.space16),
 
-          // Scrollable body
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: Spacing.space16),
-
-                  // Header block: date + time + location
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.pagePadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Day/date
-                        Text(
-                          _formatFullDate(rehearsal.date),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
+              // Header block: date + time + location
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Day/date
+                    Text(
+                      _formatFullDate(rehearsal.date),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: context.colors.textPrimary,
                               ),
+                    ),
+                    const SizedBox(height: Spacing.space4),
+                    // Time range
+                    Text(
+                      rehearsal.timeRange,
+                      style: AppTextStyles.title3.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                    // Location (if present)
+                    if (rehearsal.location.isNotEmpty) ...[
+                      const SizedBox(height: Spacing.space4),
+                      Text(
+                        rehearsal.location,
+                        style: AppTextStyles.callout.copyWith(
+                          color: context.colors.textMuted,
                         ),
-                        const SizedBox(height: Spacing.space4),
-                        // Time range
-                        Text(
-                          rehearsal.timeRange,
-                          style: AppTextStyles.title3.copyWith(
-                            color: context.colors.textPrimary,
-                          ),
+                      ),
+                    ],
+                    // Recurrence indicator (if recurring)
+                    if (rehearsal.isRecurring) ...[
+                      const SizedBox(height: Spacing.space4),
+                      Text(
+                        _formatRecurrenceIndicator(),
+                        style: AppTextStyles.callout.copyWith(
+                          color: context.colors.textMuted,
                         ),
-                        // Location (if present)
-                        if (rehearsal.location.isNotEmpty) ...[
-                          const SizedBox(height: Spacing.space4),
-                          Text(
-                            rehearsal.location,
-                            style: AppTextStyles.callout.copyWith(
-                              color: context.colors.textMuted,
-                            ),
-                          ),
-                        ],
-                        // Recurrence indicator (if recurring)
-                        if (rehearsal.isRecurring) ...[
-                          const SizedBox(height: Spacing.space4),
-                          Text(
-                            _formatRecurrenceIndicator(),
-                            style: AppTextStyles.callout.copyWith(
-                              color: context.colors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: Spacing.space16),
+              const Divider(height: 1),
+
+              // Detail rows
+              if (rehearsal.setlistId != null && setlistName != null)
+                _DetailRow(
+                  label: 'Setlist',
+                  value: setlistName,
+                  showChevron: true,
+                  onTap: () => Navigator.of(context).push(
+                    fadeSlideRoute(
+                      page: SetlistDetailScreen(
+                        setlistId: rehearsal.setlistId!,
+                        setlistName: setlistName,
+                      ),
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: Spacing.space16),
-                  const Divider(height: 1),
+              if (rehearsal.notes != null && rehearsal.notes!.isNotEmpty)
+                _DetailRow(
+                  label: 'Notes',
+                  value: '',
+                  showChevron: true,
+                  onTap: () => RehearsalNotesSheet.show(
+                    context,
+                    notes: rehearsal.notes!,
+                  ),
+                ),
 
-                  // Detail rows
-                  if (rehearsal.setlistId != null && setlistName != null)
-                    _DetailRow(
-                      label: 'Setlist',
-                      value: setlistName,
-                      showChevron: true,
-                      onTap: () => Navigator.of(context).push(
-                        fadeSlideRoute(
-                          page: SetlistDetailScreen(
-                            setlistId: rehearsal.setlistId!,
-                            setlistName: setlistName,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  if (rehearsal.notes != null && rehearsal.notes!.isNotEmpty)
-                    _DetailRow(
-                      label: 'Notes',
-                      value: '',
-                      showChevron: true,
-                      onTap: () => RehearsalNotesSheet.show(
-                        context,
-                        notes: rehearsal.notes!,
-                      ),
-                    ),
-
-                  const SizedBox(height: Spacing.space24),
-                ],
-              ),
-            ),
+              const SizedBox(height: Spacing.space24),
+            ],
           ),
-
-          // Footer
-          SheetFooter(
-            primaryLabel: 'Done',
-            onPrimary: () => Navigator.of(context).pop(),
-            cancelLabel: 'Edit',
-            onCancel: canEdit ? () => _handleEdit(context) : null,
-          ),
-        ],
+        ),
+        footer: SheetFooter(
+          primaryLabel: 'Done',
+          onPrimary: () => Navigator.of(context).pop(),
+          cancelLabel: 'Edit',
+          onCancel: canEdit ? () => _handleEdit(context) : null,
+        ),
       ),
     );
   }
