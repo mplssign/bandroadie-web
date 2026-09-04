@@ -1107,6 +1107,13 @@ class GigFormFields extends ConsumerWidget {
           // Header row: Title + Toggle
           Row(
             children: [
+              AppSwitch(
+                value: isPotentialGig,
+                onChanged: (isSaving || forcePotentialOnly)
+                    ? null
+                    : onPotentialGigToggled,
+              ),
+              const SizedBox(width: Spacing.space12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1126,12 +1133,6 @@ class GigFormFields extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ),
-              AppSwitch(
-                value: isPotentialGig,
-                onChanged: (isSaving || forcePotentialOnly)
-                    ? null
-                    : onPotentialGigToggled,
               ),
             ],
           ),

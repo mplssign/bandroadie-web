@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
 import 'package:bandroadie/app/theme/app_theme.dart';
+import 'package:bandroadie/components/ui/app_switch.dart';
 import 'package:bandroadie/components/ui/field_hint.dart';
 import 'package:bandroadie/features/events/models/event_form_data.dart';
 import 'package:bandroadie/features/events/widgets/rehearsal_form_fields.dart';
@@ -99,6 +100,16 @@ void main() {
         find.text('Toggle off once confirmed to make it official.'),
         findsOneWidget,
       );
+    });
+
+    testWidgets(
+        'AppSwitch renders to the left of the Potential Rehearsal label',
+        (tester) async {
+      await _pumpPotentialSection(tester, isPotential: true);
+
+      final switchX = tester.getTopLeft(find.byType(AppSwitch)).dx;
+      final labelX = tester.getTopLeft(find.text('Potential Rehearsal')).dx;
+      expect(switchX, lessThan(labelX));
     });
   });
 }

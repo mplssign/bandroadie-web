@@ -234,6 +234,11 @@ class RehearsalFormFields extends ConsumerWidget {
         children: [
           Row(
             children: [
+              AppSwitch(
+                value: isPotential,
+                onChanged: isSaving ? null : onPotentialToggled,
+              ),
+              const SizedBox(width: Spacing.space12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,10 +260,6 @@ class RehearsalFormFields extends ConsumerWidget {
                     ],
                   ],
                 ),
-              ),
-              AppSwitch(
-                value: isPotential,
-                onChanged: isSaving ? null : onPotentialToggled,
               ),
             ],
           ),
