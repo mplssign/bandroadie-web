@@ -279,49 +279,6 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
             ),
           ),
 
-          // Header: 'Edit' label + member name + current role
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.pagePadding,
-              Spacing.space16,
-              Spacing.pagePadding,
-              0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Edit',
-                  style: TextStyle(
-                    fontSize: AppFontSizes.body,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.member.name,
-                  style: TextStyle(
-                    fontSize: AppFontSizes.pageTitle,
-                    fontWeight: FontWeight.w700,
-                    color: context.colors.textPrimary,
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _roleDisplayName(widget.member.bandRole),
-                  style: TextStyle(
-                    fontSize: AppFontSizes.subhead,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: Spacing.space16),
-          const Divider(height: 1),
-
           // Scrollable body
           Flexible(
             child: SingleChildScrollView(
@@ -329,6 +286,43 @@ class _BandMemberEditDrawerState extends ConsumerState<BandMemberEditDrawer> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Header: 'Edit' label + member name + current role
+                  Padding(
+                    padding: const EdgeInsets.only(top: Spacing.space16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Edit',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.body,
+                            fontWeight: FontWeight.w600,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.member.name,
+                          style: TextStyle(
+                            fontSize: AppFontSizes.pageTitle,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.textPrimary,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _roleDisplayName(widget.member.bandRole),
+                          style: TextStyle(
+                            fontSize: AppFontSizes.subhead,
+                            color: context.colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.space16),
+                  const Divider(height: 1),
                   // ─── Change role section ───
                   Text(
                     'Change role',

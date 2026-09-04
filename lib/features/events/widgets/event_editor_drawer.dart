@@ -2721,8 +2721,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildStickyHeader(context),
-            Container(height: 1, color: kEdCardBorder),
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -2778,7 +2776,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                 : 'Add Event';
     const subtitle = 'Fill in what you know now. You can edit any of it later.';
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 20, 16),
+      padding: const EdgeInsets.only(top: 20, bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2865,7 +2863,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 
   Widget _buildScrollableBody(BuildContext context) {
     if (_isEditingExpense) {
-      return _buildExpenseEditingBody(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildStickyHeader(context),
+          Container(height: 1, color: kEdCardBorder),
+          _buildExpenseEditingBody(context),
+        ],
+      );
     }
 
     // Create form field widgets ONCE — avoids redundant ref.watch() calls
@@ -2968,10 +2973,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       );
     }
 
+    final scrollBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStickyHeader(context),
+        Container(height: 1, color: kEdCardBorder),
+        body,
+      ],
+    );
     if (widget.viewOnly) {
-      return AbsorbPointer(child: Opacity(opacity: 0.7, child: body));
+      return AbsorbPointer(child: Opacity(opacity: 0.7, child: scrollBody));
     }
-    return body;
+    return scrollBody;
   }
 
   Widget _buildExpenseEditingBody(BuildContext context) {
@@ -3119,6 +3132,20 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return eventFormFields.buildNotesSection();
   }
 
+  bool get _canSave {
+    if (_isEditingExpense || _isSaving || _isDeleting || widget.viewOnly) {
+      return false;
+    }
+    if (widget.mode == EventEditorMode.edit) return _isDirty;
+    return switch (_eventType) {
+      EventType.gig => (_gigNameText?.trim().isNotEmpty ?? false) &&
+          (_gigCityText?.trim().isNotEmpty ?? false),
+      EventType.rehearsal =>
+        (_rehearsalLocationText?.trim().isNotEmpty ?? false),
+      EventType.blockOut => true,
+    };
+  }
+
   Widget _buildStickyFooter(BuildContext context) {
     if (_isEditingExpense) return const SizedBox.shrink();
 
@@ -3132,12 +3159,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       );
     }
 
-    final canSave = !_isSaving &&
-        !_isDeleting &&
-        (widget.mode == EventEditorMode.create || _isDirty);
     return SheetFooter(
       primaryLabel: _primaryButtonLabel,
-      onPrimary: canSave ? _handleSave : null,
+      onPrimary: _canSave ? _handleSave : null,
       primaryIsLoading: _isSaving,
       onCancel: _isSaving
           ? null

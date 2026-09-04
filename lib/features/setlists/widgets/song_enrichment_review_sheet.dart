@@ -259,14 +259,14 @@ class _SongEnrichmentReviewSheetState
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildDragHandle(),
-            _buildHeader(),
-            Divider(color: context.colors.border, height: 1),
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(Spacing.space16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildHeader(),
+                    Divider(color: context.colors.border, height: 1),
                     _buildSongInfo(),
                     const SizedBox(height: Spacing.space24),
                     _buildMetricsRow(),
@@ -295,10 +295,7 @@ class _SongEnrichmentReviewSheetState
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Spacing.space16,
-        vertical: Spacing.space12,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
       child: Row(
         children: [
           Expanded(

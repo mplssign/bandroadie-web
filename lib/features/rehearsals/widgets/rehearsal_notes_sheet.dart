@@ -54,25 +54,6 @@ class RehearsalNotesSheet extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: Spacing.space16),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.pagePadding,
-            ),
-            child: Text(
-              'Rehearsal Notes',
-              style: AppTextStyles.pageTitle.copyWith(
-                color: context.colors.textPrimary,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: Spacing.space16),
-
-          const Divider(height: 1),
-
           // Notes content — scrollable
           Flexible(
             child: SingleChildScrollView(
@@ -80,11 +61,35 @@ class RehearsalNotesSheet extends StatelessWidget {
                 horizontal: Spacing.pagePadding,
                 vertical: Spacing.space16,
               ),
-              child: Text(
-                notes,
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: Spacing.space16),
+
+                  // Header
+                  Padding(
+                    padding: EdgeInsets.zero,
+                    child: Text(
+                      'Rehearsal Notes',
+                      style: AppTextStyles.pageTitle.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: Spacing.space16),
+
+                  const Divider(height: 1),
+
+                  const SizedBox(height: Spacing.space16),
+
+                  Text(
+                    notes,
+                    style: AppTextStyles.callout.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
