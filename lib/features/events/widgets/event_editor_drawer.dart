@@ -2703,9 +2703,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return FTheme(
       data: buildEventEditorTheme(),
       child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height,
-        ),
+        height: MediaQuery.of(context).size.height,
         decoration: BoxDecoration(
           color: kEdSurface,
           border: Border.all(color: kEdCardBorder),
@@ -2719,9 +2717,8 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
+            Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: _buildScrollableBody(context),
