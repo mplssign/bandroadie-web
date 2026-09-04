@@ -735,7 +735,7 @@ class GigFormFields extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           EventAddValueButton(
-            label: 'Set Gig Pay',
+            label: 'Set gig pay',
             onPressed: onGigPayTap,
             isSaving: isSaving,
           ),
