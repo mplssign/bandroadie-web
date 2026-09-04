@@ -1124,13 +1124,15 @@ class GigFormFields extends ConsumerWidget {
                         color: context.colors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Toggle off once confirmed to make it official.',
-                      style: AppTextStyles.footnote.copyWith(
-                        color: context.colors.textSecondary,
+                    if (isPotentialGig) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Toggle off once confirmed to make it official.',
+                        style: AppTextStyles.footnote.copyWith(
+                          color: context.colors.textSecondary,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
