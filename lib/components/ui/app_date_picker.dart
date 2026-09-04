@@ -18,20 +18,33 @@ Future<DateTime?> showAppDatePicker({
     context: context,
     barrierDismissible: true,
     builder: (context, style, animation) => FDialog(
-      builder: (context, dialogStyle) => ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 340),
-        child: FCalendar.grid(
-          control: FGridCalendarControl(
-            start: firstDate,
-            end: lastDate,
-            initial: initialDate,
+      style: const FDialogStyleDelta.delta(
+        insetPadding: EdgeInsetsGeometryDelta.value(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        ),
+      ),
+      constraints: const BoxConstraints(minWidth: 280, maxWidth: 360),
+      builder: (context, dialogStyle) => FCalendar.grid(
+        control: FGridCalendarControl(
+          start: firstDate,
+          end: lastDate,
+          initial: initialDate,
+        ),
+        selectionControl: FDateSelectionControl.managedSingle(
+          initial: initialDate,
+          toggleable: false,
+          onChange: (date) => Navigator.of(context).pop(date),
+        ),
+        fixedWeeks: false,
+        headerBuilder: (context, controller, selectionController, header) =>
+            LayoutBuilder(
+          builder: (context, viewport) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: viewport.maxWidth),
+              child: IntrinsicWidth(child: header),
+            ),
           ),
-          selectionControl: FDateSelectionControl.managedSingle(
-            initial: initialDate,
-            toggleable: false,
-            onChange: (date) => Navigator.of(context).pop(date),
-          ),
-          fixedWeeks: false,
         ),
       ),
     ),
