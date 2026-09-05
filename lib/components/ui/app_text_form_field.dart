@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 
+import 'adaptive_text_selection_toolbar.dart';
+
 /// Wrapper for [FTextFormField] that provides consistent text form field styling.
 ///
 /// Use this widget instead of [TextFormField] to ensure consistent
@@ -145,6 +147,7 @@ class AppTextFormField extends StatelessWidget {
       autofillHints: autofillHints,
       onSubmit: onSubmitted,
       autofocus: autofocus,
+      contextMenuBuilder: buildLocalizedAdaptiveTextSelectionToolbar,
       prefixBuilder:
           prefixIcon != null ? (context, style, variants) => prefixIcon! : null,
       suffixBuilder:

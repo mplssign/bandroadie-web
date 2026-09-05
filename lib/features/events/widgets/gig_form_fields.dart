@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/adaptive_text_selection_toolbar.dart';
 import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_dialog.dart';
 import '../../../components/ui/app_progress_indicator.dart';
@@ -968,20 +968,6 @@ class GigFormFields extends ConsumerWidget {
   // Gig Name Autocomplete
   // ---------------------------------------------------------------------------
 
-  Widget _adaptiveTextSelectionToolbar(
-      BuildContext context, EditableTextState state) {
-    return Localizations(
-      locale: Localizations.localeOf(context),
-      delegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      child:
-          AdaptiveTextSelectionToolbar.editableText(editableTextState: state),
-    );
-  }
-
   Widget _buildGigNameAutocomplete(BuildContext context) {
     final hasError = fieldErrors.containsKey('name');
     final errorText = hasError ? fieldErrors['name'] : null;
@@ -1014,7 +1000,7 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.sentences,
           forceErrorText: hasError ? errorText : null,
-          contextMenuBuilder: _adaptiveTextSelectionToolbar,
+          contextMenuBuilder: buildLocalizedAdaptiveTextSelectionToolbar,
           onItemPress: (selection) {
             onGigNameSelected(selection);
             onMarkDirty();
@@ -1064,7 +1050,7 @@ class GigFormFields extends ConsumerWidget {
           enabled: !isSaving,
           textCapitalization: TextCapitalization.sentences,
           forceErrorText: hasError ? errorText : null,
-          contextMenuBuilder: _adaptiveTextSelectionToolbar,
+          contextMenuBuilder: buildLocalizedAdaptiveTextSelectionToolbar,
           onItemPress: (selection) {
             onMarkDirty();
           },
@@ -1602,7 +1588,8 @@ class GigFormFields extends ConsumerWidget {
                     focusNode: contactFocusNodes[i],
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.done,
-                    contextMenuBuilder: _adaptiveTextSelectionToolbar,
+                    contextMenuBuilder:
+                        buildLocalizedAdaptiveTextSelectionToolbar,
                     onItemPress: (selection) {
                       final selectedContact = availableContacts.firstWhere(
                         (contact) =>
