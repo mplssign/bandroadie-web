@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 
+import 'adaptive_text_selection_toolbar.dart';
+
 /// Wrapper for [FTextFormField] that provides consistent text form field styling.
 ///
 /// Use this widget instead of [TextFormField] to ensure consistent
@@ -37,6 +39,7 @@ class AppTextFormField extends StatelessWidget {
     this.autofillHints,
     this.onSubmitted,
     this.autofocus = false,
+    this.contextMenuBuilder,
   });
 
   /// Optional text editing controller
@@ -111,6 +114,9 @@ class AppTextFormField extends StatelessWidget {
   /// Whether to autofocus (not supported in Forui preview)
   final bool autofocus;
 
+  /// Builder for the text selection context menu.
+  final EditableTextContextMenuBuilder? contextMenuBuilder;
+
   @override
   Widget build(BuildContext context) {
     // Wrap controller in FTextFieldManagedControl if provided
@@ -145,6 +151,8 @@ class AppTextFormField extends StatelessWidget {
       autofillHints: autofillHints,
       onSubmit: onSubmitted,
       autofocus: autofocus,
+      contextMenuBuilder:
+          contextMenuBuilder ?? buildLocalizedAdaptiveTextSelectionToolbar,
       prefixBuilder:
           prefixIcon != null ? (context, style, variants) => prefixIcon! : null,
       suffixBuilder:
