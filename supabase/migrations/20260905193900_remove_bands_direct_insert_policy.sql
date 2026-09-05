@@ -1,0 +1,36 @@
+-- ============================================================================
+-- Remove direct-insert RLS policy on public.bands (spam / integrity gap)
+-- ============================================================================
+-- bands_insert_authenticated (added in 20260825120000_consolidate_permissive_rls_policies.sql)
+-- was:
+--   FOR INSERT TO authenticated WITH CHECK (created_by = auth.uid())
+--
+-- This let any authenticated or anonymous caller create arbitrary rows in
+-- public.bands directly via the REST API (POST /rest/v1/bands), bypassing
+-- create_band() entirely (skipping its setup logic, and skipping the
+-- is_demo_template/is_demo_clone semantics for anon sessions). Not a data
+-- leak like the two prior fixes, but a spam/integrity gap.
+--
+-- Confirmed no legitimate flow needs this policy:
+--   - Real band creation goes through create_band() (SECURITY DEFINER,
+--     bypasses RLS) — grep of lib/ found no direct client .insert() into
+--     'bands' anywhere.
+--   - Demo band cloning goes through provision_demo_session() (also
+--     SECURITY DEFINER).
+--   - Three edge functions reference 'bands' (send-band-invite,
+--     send-bug-report, calendar-feed) — all read-only .select(), no inserts.
+--
+-- With RLS enabled and no INSERT policy, inserts are denied by default for
+-- every non-bypass role (same pattern as archive.bands / archive.band_members,
+-- which have zero policies and are correctly locked down as a result).
+--
+-- Applied directly to prod via SQL editor on 2026-09-05 and tracked here for
+-- reproducibility.
+--
+-- Rollback reference:
+-- CREATE POLICY "bands_insert_authenticated" ON public.bands
+-- FOR INSERT TO authenticated
+-- WITH CHECK (created_by = (select auth.uid()));
+-- ============================================================================
+
+DROP POLICY IF EXISTS "bands_insert_authenticated" ON public.bands;
