@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/adaptive_text_selection_toolbar.dart';
@@ -44,6 +45,47 @@ void main() {
         formField.contextMenuBuilder,
         buildLocalizedAdaptiveTextSelectionToolbar,
       );
+    });
+
+    testWidgets(
+        'builds the toolbar on iOS without app-level Cupertino localizations',
+        (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+      final controller = TextEditingController(text: 'hello roadie');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          // Deliberately omits GlobalCupertinoLocalizations, mirroring the
+          // app's delegates, to reproduce the original crash conditions.
+          home: Scaffold(
+            body: TextField(
+              controller: controller,
+              contextMenuBuilder: buildLocalizedAdaptiveTextSelectionToolbar,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+
+      final state = tester.state<EditableTextState>(find.byType(EditableText));
+      state.userUpdateTextEditingValue(
+        controller.value.copyWith(
+          selection: const TextSelection(baseOffset: 0, extentOffset: 5),
+        ),
+        SelectionChangedCause.tap,
+      );
+      await tester.pump();
+
+      state.showToolbar();
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(AdaptiveTextSelectionToolbar), findsOneWidget);
     });
   });
 }
