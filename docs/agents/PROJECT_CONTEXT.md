@@ -329,12 +329,14 @@ These are documented issues the Architect should be aware of — solutions must 
 
 ## Brand Voice
 
-Error messages and UI copy use a friendly, musician-aware tone with 🎸 emoji where appropriate.
+Error messages and UI copy use a friendly, musician-aware tone. **No emoji, ever** (updated Sept 2026 — reverses the earlier emoji-prefixed style).
 
 Examples:
 
-- `"🎸 Couldn't fetch BPM — the tempo gods were busy."`
-- `"🎸 BPM not available for this track."`
+- `"Couldn't fetch BPM — the tempo gods were busy."`
+- `"BPM not available for this track."`
+
+The former demo-login/demo-exit legacy strings in `lib/features/auth/login_screen.dart` / `lib/features/shell/app_shell.dart` have been de-emojified (2026-09-05).
 
 ---
 

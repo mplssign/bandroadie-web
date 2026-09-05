@@ -57,7 +57,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard> {
           color:
               const Color(0x1422C55E), // green-500 @ ~8% alpha background tint
           child: Container(
-            constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
+            constraints: const BoxConstraints(minWidth: 200, maxWidth: 400),
             padding: const EdgeInsets.symmetric(
               horizontal: Spacing.space20,
               vertical: Spacing.space16,
@@ -102,6 +102,8 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard> {
                     color: context.colors.textPrimary,
                     height: 1.2,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
 
                 const SizedBox(height: 2),

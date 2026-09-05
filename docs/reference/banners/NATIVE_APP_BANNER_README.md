@@ -2,7 +2,7 @@
 
 A polished, dismissible banner that encourages mobile web users to download your native iOS or Android app.
 
-## 🎸 Features
+## Features
 
 - **Smart Detection**: Only shows on mobile browsers (iOS Safari, Android Chrome)
 - **Persistent Dismissal**: Uses localStorage to remember user preference
@@ -87,7 +87,7 @@ bool shouldShow =
 - **Position**: Top or bottom of screen
 - **Animation**: Smooth slide-in after configurable delay
 - **Layout**: 
-  - 🎸 emoji + title
+  - Icon + title
   - Subtitle with benefits
   - Primary CTA: "Download app" (rose accent)
   - Secondary CTA: "Not now" (text button)
@@ -253,4 +253,4 @@ Potential improvements:
 
 ---
 
-Built with 🎸 for Band Roadie
+Built for Band Roadie

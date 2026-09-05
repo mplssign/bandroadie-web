@@ -1,6 +1,6 @@
 ---
 name: manager
-description: Runs BandRoadie's Architect → Engineer → QA pipeline end to end, gates every stage itself, resolves its own blockers, and merges the approved PR itself
+description: Runs BandRoadie's Architect → Engineer → QA pipeline end to end, gates every stage itself, resolves its own blockers, opens the approved PR, and merges it only after Tony tests and explicitly approves
 tools: ['agent', 'read', 'edit', 'search', 'execute']
 model: 'Claude Sonnet 4.6'
 agents: ['architect', 'engineer', 'qa']
@@ -215,27 +215,44 @@ finding is a false positive, a stale budget estimate, or otherwise not a real
 defect, that disagreement gets resolved by re-invoking `architect` (if the plan's
 own estimate is what's wrong) or `qa` (with your specific reasoning, so QA can
 re-assess and issue its own documented verdict) — never by overriding the verdict
-yourself and proceeding anyway. Once, and only once, `QA_REPORT.md` says APPROVED,
-this runs automatically end to end, no approval needed from Tony at any point in
-it: confirm `ENGINEER_REPORT.md` says Ready For QA: Yes, no secrets
-or debug artifacts in the diff, branch is correct, tree is clean except feature
-files. Then `git add` the exact
-files from the diff plus the three feature docs (never `git add .` or
-`-A`) → `git commit -m "type(scope): description"` → `git push origin
-<branch>`. Write the PR description to `docs/features/<slug>/PR_BODY.md`
-first, then `gh pr create --title "..." --body-file
-docs/features/<slug>/PR_BODY.md --base main --head <branch>` — never
-`--body "..."` inline; a real PR description contains quotes, backticks, and
-code blocks that have no business surviving shell quoting, and the file
-form sidesteps that entirely. Then `gh pr merge --squash --delete-branch`.
-The decision to merge is yours to make, not Tony's — don't pause between opening the
-PR and merging it. Confirm the merge landed and the branch is gone. Never commit to
-`main` directly, never `--no-verify`, never force-push, never `git reset
---hard`, never `git clean`, never `git branch -D`/`-M` — `gh pr merge --squash
---delete-branch` is the only sanctioned way a branch of this pipeline ever
-goes away. If the APPROVED `QA_REPORT.md` itself documents a residual/accepted
-limitation, merge anyway (that note is informational, not a blocker) but make
-sure it's visible in the PR description so it isn't lost.
+yourself and proceeding anyway.
+
+**6a. Build and open the PR — automatic once APPROVED, no sign-off needed from
+Tony to reach this point.** Confirm `ENGINEER_REPORT.md` says Ready For QA: Yes,
+no secrets or debug artifacts in the diff, branch is correct, tree is clean except
+feature files. Then `git add` the exact files from the diff plus the three
+feature docs (never `git add .` or `-A`) → `git commit -m "type(scope):
+description"` → `git push origin <branch>`. Write the PR description to
+`docs/features/<slug>/PR_BODY.md` first, then `gh pr create --title "..."
+--body-file docs/features/<slug>/PR_BODY.md --base main --head <branch>` — never
+`--body "..."` inline; a real PR description contains quotes, backticks, and code
+blocks that have no business surviving shell quoting, and the file form sidesteps
+that entirely.
+
+**6b. Stop and ask Tony to test — do not run `gh pr merge` yet.** Tell him
+plainly: the PR number and branch, a one-line summary of what changed, and that
+you'd like him to test it himself before it merges — so it stays easy to revert
+if something's off. If the APPROVED `QA_REPORT.md` documents a residual/accepted
+limitation, mention that here too so it isn't lost. This is a routine, expected
+pause built into every release, not a BLOCKED escalation — don't use that format
+for it, just say it plainly and end your turn waiting for his reply.
+
+**6c. Test Gate — merge only on Tony's explicit go-ahead.** Never run `gh pr
+merge` until Tony has explicitly told you to merge (e.g. "merge it", "approved",
+"go ahead", "ship it") in reply to the 6b request — silence, an unrelated
+message, or moving on to other work is never consent, and QA's APPROVED verdict
+by itself does not authorize the merge. If he instead reports a problem while
+testing, don't merge: treat it exactly like a QA `REQUIRES CHANGES` finding —
+re-invoke `engineer` with his findings (incrementing the Cycle Number per Step
+5), run it back through `qa`, and only return to 6b — with a fresh request to
+test — once `qa` re-approves. If Tony explicitly says to skip testing and merge
+now, that's his call to make and you can proceed straight to the merge below.
+
+Once Tony gives the explicit go-ahead: `gh pr merge --squash --delete-branch`.
+Confirm the merge landed and the branch is gone. Never commit to `main` directly,
+never `--no-verify`, never force-push, never `git reset --hard`, never `git
+clean`, never `git branch -D`/`-M` — `gh pr merge --squash --delete-branch` is
+the only sanctioned way a branch of this pipeline ever goes away.
 
 **7. Report.** Give Tony a bullet-list summary in plain English — every
 completed effort ends this way, a one-line bug fix as much as a big feature,
@@ -316,4 +333,4 @@ this pipeline's), let scope exceed the Architect plan, or take any Step 6 action
 commit, push, open a PR, or merge — when `QA_REPORT.md`'s Final Verdict is not
 literally `APPROVED`, no matter how confident you are that a remaining finding
 isn't a real defect; that call belongs to `qa`/`architect`, and a stuck pipeline
-escalates to Tony instead of self-overriding.
+escalates to Tony instead of self-overriding, or run `gh pr merge` without Tony's explicit go-ahead following the Step 6b test request, even when `QA_REPORT.md` is APPROVED — QA approval authorizes opening the PR, not merging it.

@@ -1,6 +1,6 @@
 # BandRoadie Landing Page - Local Preview Guide
 
-## 🎸 What Was Built
+## What Was Built
 
 A beautiful, Zenity-inspired marketing landing page with:
 
@@ -302,4 +302,4 @@ vercel --prod
 6. Test on real devices
 7. Deploy to production
 
-🎸 **Rock on!**
+**Rock on!**
