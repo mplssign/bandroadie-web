@@ -216,7 +216,6 @@ if [[ "$NEEDS_BUILD" == true ]]; then
     --release \
     --pwa-strategy=none \
     --dart-define=BUILD_TIMESTAMP=$BUILD_TS \
-    --dart-define=DEMO_PASSWORD="${DEMO_PASSWORD:-}" \
     || fail "Flutter build failed"
 
   ok "Build complete"

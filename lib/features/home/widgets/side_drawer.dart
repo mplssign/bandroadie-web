@@ -129,6 +129,7 @@ class SideDrawer extends StatefulWidget {
   final VoidCallback onTipsAndTricksTap;
   final VoidCallback onReportBugsTap;
   final VoidCallback onLogOutTap;
+  final VoidCallback? onExitDemoTap;
   final bool isVisible;
 
   const SideDrawer({
@@ -142,6 +143,7 @@ class SideDrawer extends StatefulWidget {
     required this.onTipsAndTricksTap,
     required this.onReportBugsTap,
     required this.onLogOutTap,
+    this.onExitDemoTap,
     this.isVisible = true,
   });
 
@@ -292,6 +294,18 @@ class _SideDrawerState extends State<SideDrawer>
 
           // Gap before Log Out (Figma: 56px)
           const SizedBox(height: _DrawerTokens.sectionGap),
+
+          // Exit Demo (demo users only)
+          if (widget.onExitDemoTap != null) ...[
+            const DrawerSectionDivider(),
+            DrawerNavItem(
+              icon: AppIcons.logout,
+              iconColor: _DrawerTokens.iconAccent,
+              label: 'Exit Demo',
+              labelStyle: _DrawerTokens.navItemLogoutStyle,
+              onTap: widget.onExitDemoTap!,
+            ),
+          ],
 
           // Log Out section
           const DrawerSectionDivider(),
@@ -707,6 +721,7 @@ class DrawerOverlay extends StatefulWidget {
   final VoidCallback onTipsAndTricksTap;
   final VoidCallback onReportBugsTap;
   final VoidCallback onLogOutTap;
+  final VoidCallback? onExitDemoTap;
 
   const DrawerOverlay({
     super.key,
@@ -721,6 +736,7 @@ class DrawerOverlay extends StatefulWidget {
     required this.onTipsAndTricksTap,
     required this.onReportBugsTap,
     required this.onLogOutTap,
+    this.onExitDemoTap,
   });
 
   @override
@@ -886,6 +902,12 @@ class _DrawerOverlayState extends State<DrawerOverlay>
                 widget.onClose();
                 widget.onLogOutTap();
               },
+              onExitDemoTap: widget.onExitDemoTap != null
+                  ? () {
+                      widget.onClose();
+                      widget.onExitDemoTap!();
+                    }
+                  : null,
             ),
           ),
         ),
@@ -911,6 +933,7 @@ class DrawerOverlayContent extends StatefulWidget {
   final VoidCallback onTipsAndTricksTap;
   final VoidCallback onReportBugsTap;
   final VoidCallback onLogOutTap;
+  final VoidCallback? onExitDemoTap;
 
   const DrawerOverlayContent({
     super.key,
@@ -924,6 +947,7 @@ class DrawerOverlayContent extends StatefulWidget {
     required this.onTipsAndTricksTap,
     required this.onReportBugsTap,
     required this.onLogOutTap,
+    this.onExitDemoTap,
   });
 
   @override
@@ -1073,6 +1097,7 @@ class _DrawerOverlayContentState extends State<DrawerOverlayContent>
                   onTipsAndTricksTap: widget.onTipsAndTricksTap,
                   onReportBugsTap: widget.onReportBugsTap,
                   onLogOutTap: widget.onLogOutTap,
+                  onExitDemoTap: widget.onExitDemoTap,
                 ),
               ),
             ),

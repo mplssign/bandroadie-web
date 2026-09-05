@@ -79,7 +79,6 @@ set +a
 [[ -z "${SUPABASE_ANON_KEY:-}" ]] && fail "SUPABASE_ANON_KEY not set in .env"
 [[ -z "${FIREBASE_API_KEY:-}" ]] && fail "FIREBASE_API_KEY not set in .env"
 [[ -z "${FIREBASE_APP_ID:-}" ]] && fail "FIREBASE_APP_ID not set in .env"
-[[ -z "${DEMO_PASSWORD:-}" ]] && fail "DEMO_PASSWORD not set in .env"
 
 ok "Credentials loaded"
 
@@ -282,7 +281,6 @@ flutter build web \
   --dart-define=FIREBASE_MESSAGING_SENDER_ID="${FIREBASE_MESSAGING_SENDER_ID}" \
   --dart-define=FIREBASE_APP_ID="${FIREBASE_APP_ID}" \
   --dart-define=FIREBASE_MEASUREMENT_ID="${FIREBASE_MEASUREMENT_ID}" \
-  --dart-define=DEMO_PASSWORD="${DEMO_PASSWORD}" \
   || fail "Flutter build failed"
 
 ok "Build complete"

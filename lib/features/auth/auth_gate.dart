@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bandroadie/app/services/auth_debug_logger.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show SignOutScope;
 import '../bands/active_band_controller.dart';
 import '../notifications/notification_navigation_handler.dart';
 import '../notifications/push_notification_service.dart';
@@ -15,6 +16,7 @@ import '../profile/my_profile_screen.dart';
 import '../shell/app_shell.dart';
 import '../shell/no_band_shell.dart';
 import 'auth_state_provider.dart';
+import 'demo_session_service.dart';
 import 'login_screen.dart';
 import 'splash_screen.dart';
 import 'splash_complete_provider.dart';
@@ -46,6 +48,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
   bool _isNewUser = false;
   bool _processingPendingInvite = false;
   bool _hasCheckedPendingInvites = false;
+  bool _anonymousReconcileAttempted = false;
   String? _pendingInviteMessage;
 
   /// Track previous lifecycle state to detect meaningful transitions.
@@ -55,6 +58,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
   /// SAFEGUARD: Periodic timer to catch session state drift.
   /// This is a belt-and-suspenders approach for iPad review reliability.
   Timer? _sessionSyncTimer;
+
+  DateTime? _lastDemoHeartbeatAt;
 
   @override
   void initState() {
@@ -95,6 +100,17 @@ class _AuthGateState extends ConsumerState<AuthGate>
         );
         // Force sync
         ref.read(authStateProvider.notifier).forceRefresh();
+      }
+
+      // Keep demo clone alive while the visitor is active.
+      if (actualSession?.user.isAnonymous == true) {
+        final now = DateTime.now();
+        if (_lastDemoHeartbeatAt == null ||
+            now.difference(_lastDemoHeartbeatAt!) >=
+                const Duration(seconds: 60)) {
+          _lastDemoHeartbeatAt = now;
+          unawaited(DemoSessionService.heartbeat());
+        }
       }
     });
   }
@@ -174,6 +190,13 @@ class _AuthGateState extends ConsumerState<AuthGate>
         _registerPushToken();
       }
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          authState.isAuthenticated &&
+          supabase.auth.currentUser?.isAnonymous == true) {
+        unawaited(_reconcileOrphanedAnonymousSession());
+      }
+    });
   }
 
   /// Register FCM token for push notifications
@@ -213,6 +236,15 @@ class _AuthGateState extends ConsumerState<AuthGate>
 
   Future<void> _checkProfileComplete() async {
     if (_checkingProfile) return;
+
+    // Anonymous demo users have a pre-populated profile — no form needed.
+    if (supabase.auth.currentUser?.isAnonymous == true) {
+      setState(() {
+        _profileComplete = true;
+        _checkingProfile = false;
+      });
+      return;
+    }
 
     setState(() {
       _checkingProfile = true;
@@ -261,6 +293,30 @@ class _AuthGateState extends ConsumerState<AuthGate>
         });
         await _checkAndProcessPendingInvite();
       }
+    }
+  }
+
+  Future<void> _reconcileOrphanedAnonymousSession() async {
+    if (_anonymousReconcileAttempted) return;
+    _anonymousReconcileAttempted = true;
+    try {
+      await ref.read(activeBandProvider.notifier).loadUserBands();
+      if (!mounted) return;
+      final hasBands = ref.read(activeBandProvider).userBands.isNotEmpty;
+      final stillAnonymous = supabase.auth.currentUser?.isAnonymous == true;
+      if (!hasBands && stillAnonymous) {
+        AuthDebugLogger.error(
+          step: 'reconcileOrphanedAnonymousSession',
+          message:
+              'Orphaned anonymous session — signing out globally to break restore loop.',
+        );
+        await supabase.auth.signOut(scope: SignOutScope.global);
+      }
+    } catch (e) {
+      AuthDebugLogger.error(
+        step: 'reconcileOrphanedAnonymousSession',
+        message: 'Reconcile failed: $e',
+      );
     }
   }
 
@@ -583,12 +639,26 @@ class _AuthGateState extends ConsumerState<AuthGate>
         ),
       );
     } else if (bandState.userBands.isEmpty) {
-      AuthDebugLogger.routerTransition(
-        from: 'profile_gate',
-        to: 'no_band_shell',
-        reason: 'User has no bands',
-      );
-      mainContent = NoBandShell(isNewUser: _isNewUser);
+      // Anonymous users always have bands provisioned — empty list means
+      // provisioning is still in flight; show a spinner instead of NoBandShell.
+      if (supabase.auth.currentUser?.isAnonymous == true) {
+        mainContent = AppScaffold(
+          backgroundColor: context.colors.background,
+          body: const Center(
+            child: AppProgressIndicator(
+              type: ProgressIndicatorType.circular,
+              color: AppColors.primary,
+            ),
+          ),
+        );
+      } else {
+        AuthDebugLogger.routerTransition(
+          from: 'profile_gate',
+          to: 'no_band_shell',
+          reason: 'User has no bands',
+        );
+        mainContent = NoBandShell(isNewUser: _isNewUser);
+      }
     } else {
       AuthDebugLogger.routerTransition(
         from: 'profile_gate',

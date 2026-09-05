@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:bandroadie/app/models/band.dart';
 import '../home/widgets/animated_bottom_nav_bar.dart' show NavTabIndex;
+import '../contacts/contacts_controller.dart' show contactsProvider;
+import '../contacts/venues_controller.dart' show venuesProvider;
+import '../members/members_controller.dart' show membersProvider;
 import '../members/permissions/band_permissions_provider.dart';
 import '../setlists/setlist_detail_controller.dart'
     show selectedSetlistProvider;
@@ -217,6 +220,13 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
   BandRepository get _bandRepository => ref.read(bandRepositoryProvider);
 
+  void _invalidateBandScopedProviders() {
+    // Band-scoped caches; invalidated on band switch to prevent cross-band state bleed — members, contacts, venues.
+    ref.invalidate(membersProvider);
+    ref.invalidate(contactsProvider);
+    ref.invalidate(venuesProvider);
+  }
+
   /// Load persisted band ID from SharedPreferences
   Future<String?> _loadPersistedBandId() async {
     try {
@@ -325,6 +335,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
     state = state.copyWith(activeBand: band);
 
     ref.invalidate(currentUserPermissionsProvider);
+    _invalidateBandScopedProviders();
 
     ref.read(selectedSetlistProvider.notifier).clear();
 
@@ -375,6 +386,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
       Future.microtask(() {
         ref.invalidate(currentUserPermissionsProvider);
+        _invalidateBandScopedProviders();
         ref.read(currentTabProvider.notifier).setTab(NavTabIndex.dashboard);
       });
     } catch (e) {
@@ -415,6 +427,7 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
       }
 
       state = state.copyWith(userBands: bands, activeBand: selected);
+      _invalidateBandScopedProviders();
     } catch (e) {
       debugPrint('[ActiveBand] ⚠️ refreshBands failed: $e');
     }
