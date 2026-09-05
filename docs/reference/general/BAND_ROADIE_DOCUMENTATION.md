@@ -994,7 +994,7 @@ For local dev (all platforms), pass credentials directly via `--dart-define` or 
 - **Solution:**
   - Added "Coming Soon" badge (rose accent) next to the recurring toggle
   - Dimmed the toggle label to indicate unavailability
-  - Shows friendly snackbar "🎸 Recurring events coming soon! Stay tuned." when toggle is tapped
+  - Shows friendly snackbar "Recurring events coming soon! Stay tuned." when toggle is tapped
   - Prevents the toggle from activating
 
 #### Setlists Loading State Fix
@@ -1239,7 +1239,7 @@ For local dev (all platforms), pass credentials directly via `--dart-define` or 
 - ✅ **Notifier pattern** - Not deprecated StateNotifier
 - ✅ **ref.onDispose() for cleanup** - Prevents memory leaks
 - ✅ **User-friendly error messages** - No raw SQL errors to users
-- ✅ **Brand voice in feedback** - 🎸 emoji + roadie humor
+- ✅ **Brand voice in feedback** - roadie humor, no emoji
 
 ### 🧭 Recommended Improvements
 

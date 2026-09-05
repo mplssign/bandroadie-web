@@ -386,7 +386,6 @@ function slide_contacts() {
       <!-- Venue 1 -->
       <rect x="10" y="164" width="220" height="62" rx="10" fill="#18181b" stroke="#27272a" stroke-width="1"/>
       <rect x="20" y="176" width="32" height="32" rx="7" fill="#27272a"/>
-      <text x="28" y="198" font-family="Inter" font-size="16" fill="#f4f4f5">🎸</text>
       <text x="60" y="182" font-family="Inter" font-size="12" font-weight="600" fill="#f4f4f5">The Bowery Electric</text>
       <text x="60" y="196" font-family="Inter" font-size="10" fill="#71717a">New York, NY</text>
       <text x="60" y="210" font-family="Inter" font-size="9" fill="#52525b">Cap: 300 · Last booked May 2026</text>

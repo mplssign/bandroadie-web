@@ -219,7 +219,7 @@ After deploying, monitor these metrics for 7 days:
 
 ---
 
-## 🎸 BandRoadie-Specific Notes
+## BandRoadie-Specific Notes
 
 ### **Platform Behavior Differences**
 

@@ -128,11 +128,11 @@ LIMIT 10;
 3. **Defensive Design**: All BPM operations are wrapped in try-catch
 4. **User Control**: BPM is always editable, never locked
 
-## 🎸 Brand Voice
+## Brand Voice
 
 Error messages follow BandRoadie's style:
-- "🎸 Couldn't fetch BPM from Spotify — the tempo gods were busy."
-- "🎸 BPM not available for this track — sometimes even Spotify doesn't know!"
+- "Couldn't fetch BPM from Spotify — the tempo gods were busy."
+- "BPM not available for this track — sometimes even Spotify doesn't know!"
 
 ## ⚠️ Constraints Followed
 
