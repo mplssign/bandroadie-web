@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bandroadie/components/ui/adaptive_text_selection_toolbar.dart';
@@ -50,9 +49,6 @@ void main() {
     testWidgets(
         'builds the toolbar on iOS without app-level Cupertino localizations',
         (tester) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-      addTearDown(() => debugDefaultTargetPlatformOverride = null);
-
       final controller = TextEditingController(text: 'hello roadie');
       addTearDown(controller.dispose);
 
@@ -86,6 +82,6 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.byType(AdaptiveTextSelectionToolbar), findsOneWidget);
-    });
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
   });
 }
