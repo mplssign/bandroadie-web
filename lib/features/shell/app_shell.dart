@@ -6,12 +6,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/shared/widgets/native_app_banner.dart';
 import 'package:bandroadie/shared/widgets/restricted_tab_content.dart';
 import '../bands/active_band_controller.dart';
 import '../bands/create_band_screen.dart';
 import '../bands/edit_band_screen.dart';
 import '../calendar/calendar_tab_content.dart';
+import '../auth/demo_session_service.dart';
 import '../feedback/bug_report_screen.dart';
 import '../gigs/gig_controller.dart';
 import '../home/home_tab_content.dart';
@@ -30,6 +32,7 @@ import '../settings/settings_screen.dart';
 import '../tips/tips_and_tricks_screen.dart';
 import 'overlay_state.dart';
 import 'tab_provider.dart';
+import '../../shared/utils/snackbar_helper.dart';
 
 // ============================================================================
 // APP SHELL
@@ -46,6 +49,21 @@ import 'tab_provider.dart';
 // Re-export currentTabProvider for convenience
 export 'tab_provider.dart';
 export 'overlay_state.dart';
+
+// Tracks whether the demo exit is in progress (used to show a loading overlay).
+class _ExitingDemoNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void setExiting(bool value) => state = value;
+}
+
+// autoDispose is required: sign-out during exit unmounts AppShell (its only
+// watcher), so the flag must be discarded on unmount — otherwise a stale `true`
+// survives into the sign-in re-entry remount and renders a stuck overlay.
+final _exitingDemoProvider =
+    NotifierProvider.autoDispose<_ExitingDemoNotifier, bool>(
+  _ExitingDemoNotifier.new,
+);
 
 /// AppShell wraps all main tab screens in a single Scaffold with shared nav
 class AppShell extends ConsumerStatefulWidget {
@@ -223,6 +241,16 @@ class _AppShellState extends ConsumerState<AppShell> {
               bands: bandState.userBands,
               activeBandId: bandState.activeBand?.id,
             ),
+          // Exit demo loading overlay
+          if (ref.watch(_exitingDemoProvider)) ...[
+            const ModalBarrier(dismissible: false, color: Colors.black54),
+            Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 3,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -280,6 +308,24 @@ class _MenuDrawerLayer extends ConsumerWidget {
         onClose();
         await Supabase.instance.client.auth.signOut();
       },
+      onExitDemoTap:
+          Supabase.instance.client.auth.currentUser?.isAnonymous == true
+              ? () async {
+                  onClose();
+                  ref.read(_exitingDemoProvider.notifier).setExiting(true);
+                  try {
+                    await DemoSessionService.exit(ref);
+                  } catch (_) {
+                    ref.read(_exitingDemoProvider.notifier).setExiting(false);
+                    if (context.mounted) {
+                      showErrorSnackBar(
+                        context,
+                        message: 'Couldn\'t exit the demo — try again.',
+                      );
+                    }
+                  }
+                }
+              : null,
     );
   }
 }

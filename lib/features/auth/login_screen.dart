@@ -38,20 +38,21 @@ import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import 'auth_gate.dart';
-import '../../app/constants/demo_credentials.dart';
+import 'demo_session_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _focusNode = FocusNode();
@@ -84,12 +85,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool _reduceMotion = false;
 
-  // === DEMO LOGIN (Play Store easter egg) ===
-  /// Number of times the logo has been tapped in the current sequence.
-  int _logoTapCount = 0;
-
-  /// Auto-reset timer — clears tap count after 3 seconds of inactivity.
-  Timer? _logoTapResetTimer;
+  bool _isDemoLoading = false;
 
   // === MAGIC LINK COOLDOWN ===
   /// Cooldown timer to prevent rapid-fire magic link requests
@@ -136,65 +132,19 @@ class _LoginScreenState extends State<LoginScreen>
     _emailController.addListener(_onEmailTextChange);
   }
 
-  /// Easter egg: 7 taps on the logo triggers Play Store demo login.
-  /// Shows a subtle "X more..." hint from tap 3 onwards.
-  /// Auto-resets after 3 seconds of inactivity.
-  void _handleLogoTap() {
-    // Cancel any pending reset
-    _logoTapResetTimer?.cancel();
-
-    setState(() {
-      _logoTapCount++;
-    });
-
-    if (_logoTapCount >= 7) {
-      setState(() {
-        _logoTapCount = 0;
-      });
-      _triggerDemoLogin();
-      return;
-    }
-
-    // Schedule reset after 3 seconds of inactivity
-    _logoTapResetTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() {
-          _logoTapCount = 0;
-        });
-      }
-    });
-  }
-
-  /// Performs email+password sign-in with the Play Store demo account.
-  /// Called after 7 logo taps. AuthGate handles routing on success.
-  Future<void> _triggerDemoLogin() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-      _message = null;
-    });
-
+  Future<void> _enterDemo() async {
+    setState(() => _isDemoLoading = true);
     try {
-      await supabase.auth.signInWithPassword(
-        email: kDemoEmail,
-        password: kDemoPassword,
-      );
-      // On success, authStateProvider fires signedIn and AuthGate routes
-      // to AppShell. No further action needed here.
-    } on AuthException catch (e) {
+      await DemoSessionService.provisionAndEnter(ref);
+    } catch (_) {
       if (mounted) {
         setState(() {
-          _isLoading = false;
-          _message = 'Demo login failed: ${e.message}';
+          _message = 'Couldn\'t load the demo — try again in a bit.';
         });
       }
-    } catch (e) {
+    } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _message = 'Demo login failed. Please try again.';
-        });
+        setState(() => _isDemoLoading = false);
       }
     }
   }
@@ -318,7 +268,6 @@ class _LoginScreenState extends State<LoginScreen>
     _emailHintController.dispose();
     _animController.dispose();
     _logoShrinkController.dispose();
-    _logoTapResetTimer?.cancel();
     _cooldownTimer?.cancel();
     super.dispose();
   }
@@ -466,9 +415,8 @@ class _LoginScreenState extends State<LoginScreen>
     if (_sessionDetected) {
       return AppScaffold(
         backgroundColor: context.colors.background,
-        body: Center(
+        body: const Center(
           child: AppProgressIndicator(
-            type: ProgressIndicatorType.circular,
             color: AppColors.primary,
           ),
         ),
@@ -537,25 +485,16 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // === LOGO — centered in upper half ===
+        // === LOGO + DEMO BUTTON — upper half, button equidistant between logo and email ===
         SizedBox(
           height: availableHeight / 2,
-          child: Stack(
-            alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Center(child: _buildLogo(logoWidth: logoWidth)),
-              if (_logoTapCount >= 3 && _logoTapCount < 7)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Text(
-                    '${7 - _logoTapCount} more...',
-                    style: TextStyle(
-                      color: AppColors.primary.withValues(alpha: 0.6),
-                      fontSize: AppFontSizes.caption,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
+              _buildLogo(logoWidth: logoWidth),
+              const SizedBox(height: 12),
+              _buildDemoButton(),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -585,22 +524,18 @@ class _LoginScreenState extends State<LoginScreen>
   ///
   /// [logoWidth] is 90% of the email field width, passed from _buildContentCluster.
   Widget _buildLogo({required double logoWidth}) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _handleLogoTap,
-      child: FadeTransition(
-        opacity: _titleOpacity,
-        child: ScaleTransition(
-          scale: _titleScale,
-          child: AnimatedBuilder(
-            animation: _logoShrinkScale,
-            builder: (context, child) =>
-                Transform.scale(scale: _logoShrinkScale.value, child: child),
-            child: Image.asset(
-              'assets/images/bandroadie_logo_stacked.png',
-              width: logoWidth,
-              fit: BoxFit.contain,
-            ),
+    return FadeTransition(
+      opacity: _titleOpacity,
+      child: ScaleTransition(
+        scale: _titleScale,
+        child: AnimatedBuilder(
+          animation: _logoShrinkScale,
+          builder: (context, child) =>
+              Transform.scale(scale: _logoShrinkScale.value, child: child),
+          child: Image.asset(
+            'assets/images/bandroadie_logo_stacked.png',
+            width: logoWidth,
+            fit: BoxFit.contain,
           ),
         ),
       ),
@@ -680,7 +615,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: EmailDomainShortcutBar(
             controller: _emailController,
             selectedDomain: _selectedDomain,
-            onDomainSelected: (domain) => _applyDomainShortcut(domain),
+            onDomainSelected: _applyDomainShortcut,
             enabled: !_isLoading,
           ),
         ),
@@ -705,6 +640,33 @@ class _LoginScreenState extends State<LoginScreen>
           onPressed: isDisabled ? null : _sendMagicLink,
           isLoading: _isLoading,
           fullWidth: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDemoButton() {
+    return FadeTransition(
+      opacity: _buttonOpacity,
+      child: TextButton(
+        onPressed: _isDemoLoading ? null : _enterDemo,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Check out the demo band',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_forward,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ],
         ),
       ),
     );
