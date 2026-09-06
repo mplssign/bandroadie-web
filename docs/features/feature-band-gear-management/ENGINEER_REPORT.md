@@ -10,7 +10,21 @@ Band Gear Management
 
 ## Cycle Number
 
-10
+11
+
+## Cycle 11 revision — Financials right alignment
+
+Tony's Step 6b finding requested right alignment for the Financials table's
+date and currency columns. Exact file changed: `lib/features/financials/financials_screen.dart`.
+The `Amount` and `Date` `_HeaderCell` calls and their corresponding row
+`Text` widgets now use `TextAlign.right`; Type, From, and Paid To remain left,
+and Disbursed, Savings, and 1099 remain centered. Cycle-11 cleanup reverted
+unrelated mechanical edits and retained only these four right-alignment
+changes.
+
+Analyzer result: `flutter analyze lib/features/financials/financials_screen.dart` — 15 pre-existing info-level lint issues; no errors.
+Test result: No dedicated Financials test exists.
+Ready For QA: Yes
 
 ## Goal
 
@@ -39,9 +53,9 @@ test finding on the current PR head: "In Gear, make the table column width
 for Name 50 px wider, Purchased on column should be wide enough to display
 the date without truncating, change 'Purchased From' to 'From' and make that
 50px wider. Also all currency fields should have the decimal point built in.
-The placeholder should be '$  0.00' and when typing, the first digit typed
-is displayed like this '$  0.01', and the second number entered '$  0.12'
-and the third '$  1.23' and so on." Bump Gear table Name min-width by
+The placeholder should be '$ 0.00' and when typing, the first digit typed
+is displayed like this '$ 0.01', and the second number entered '$ 0.12'
+and the third '$ 1.23' and so on." Bump Gear table Name min-width by
 50 px (140 → 190), swap `_kPurchasedOnWidth` (was 110, fixed) for a
 dynamic width computed with the same `_measureText` pattern the Price
 column already uses so the widest formatted `MMM d, y` date never
@@ -359,7 +373,7 @@ QA validates both as a single evidence set:
   `_FilterChip` inline at the front of `_FilterRow`, whose label is
   `_ownerChipLabel(state.ownerSelection, members)` (returns `'Owner'`
   when empty, `'Band'` or a member short label when one entry, `'N
-  owners selected'` for 2+), and whose `onTap` opens
+owners selected'` for 2+), and whose `onTap` opens
   `_openOwnerFilterModal()`. `_openOwnerFilterModal()` presents a full
   `showModalBottomSheet<Set<String>>` sheet (`_OwnerFilterModal` — a
   `ConsumerStatefulWidget`) with a drag handle, header, a Band
@@ -388,7 +402,7 @@ QA validates both as a single evidence set:
   guarantees fit, so ellipsis is unreachable and would round-clip a
   measured-fit cell if hit). `_kFixedColumnsWidth` recomputed as
   `_kFromWidth + _kOwnerWidth`. Owner column width (`_kOwnerWidth =
-  110.0`) unchanged. No API change to `GearFormSheet.show(...)`; no new
+110.0`) unchanged. No API change to `GearFormSheet.show(...)`; no new
   provider; no new named route.
 - lib/features/gear/widgets/gear_form_sheet.dart — **cycle 9** cents-first
   price input + "From" label. Added import
@@ -659,8 +673,9 @@ if (minPriceWidth > maxPricePx) maxPricePx = minPriceWidth;
 — same `priceDataStyle` local (`AppTextStyles.callout.copyWith(fontWeight:
 FontWeight.w600)`) already used by the max-scan loop, and the
 existing `+16` padding buffer at `final priceColumnWidth = maxPricePx
-+ 16;` is preserved. Every other block in this file is untouched by
-Item 1.
+
+- 16;` is preserved. Every other block in this file is untouched by
+  Item 1.
 
 **Item 2 — New/Used column (client + schema).**
 
@@ -713,14 +728,14 @@ data` payload and unpack every key into the Supabase insert /
     calc reserves space for it:
     `const _kFixedColumnsWidth = _kFromWidth + _kOwnerWidth + _kNewUsedWidth;`.
   - Added a `SizedBox(width: _kNewUsedWidth, child: _HeaderCell(
-    'New/Used', borderSide: borderSide))` header cell between the
+'New/Used', borderSide: borderSide))` header cell between the
     Owner and Price header cells in `_TableHeader.build`.
   - Added a matching row cell in `_GearTableRow.build` between the
     Owner cell and the Price cell, rendering `item.isUsed ? 'Used' :
-    'New'` at `AppTextStyles.callout` with
+'New'` at `AppTextStyles.callout` with
     `context.colors.textSecondary` (identical style to the peer
     Owner cell), left-aligned, `maxLines: 1`, `overflow:
-    TextOverflow.ellipsis`. Border side matches the other columns.
+TextOverflow.ellipsis`. Border side matches the other columns.
 
 - **Model tests.** Extended
   `test/features/gear/gear_item_test.dart` with the three round-trip
@@ -832,9 +847,9 @@ Manager cycle-10 note's off-limits list byte-for-byte.
 on column should be wide enough to display the date without truncating,
 change 'Purchased From' to 'From' and make that 50px wider. Also all
 currency fields should have the decimal point built in. The placeholder
-should be '$  0.00' and when typing, the first digit typed is displayed
-like this '$  0.01', and the second number entered '$  0.12' and the
-third '$  1.23' and so on." Manager cycle-9 note authorized this as an
+should be '$ 0.00' and when typing, the first digit typed is displayed
+like this '$ 0.01', and the second number entered '$ 0.12' and the
+third '$ 1.23' and so on." Manager cycle-9 note authorized this as an
 in-branch UX-polish adjustment with all product decisions pre-made and
 enumerated five required items in scope.
 
@@ -852,7 +867,7 @@ on disk (`Set<String> ownerSelection` on `GearNotifier`,
 `_OwnerFilterModal` widget, `_ownerChipLabel` helper) but the pipeline
 never called QA on cycle 8 as its own pass. Cycle 9 keeps cycle 8's
 disk state intact and rolls it forward under the cycle-9 QA gate \u2014
-QA validates both cycles' evidence together (see **Files Modified \u2192\nCycle 8+9 combined** and **Analyzer Results \u2192 Cycle 9 T1.1**).\n\n### Task breakdown (5 items)\n\n**Item 1 \u2014 Name column +50 px min width.** In\n`lib/features/gear/gear_screen.dart` bumped `_kMinNameWidth = 140.0`\n\u2192 `_kMinNameWidth = 190.0`. The Name column stays `Expanded` on wide\nscreens (unchanged `Expanded` semantics per Manager instruction); on\nthe narrowest supported screens where `constraints.maxWidth < minWidth`,\nthe extra 50 px pushes horizontal scroll to kick in 50 px earlier and\nlets Name occupy the extra reserved space. Matches the shape\nfinancials uses to shape its Category column (fixed contribution to\nthe min-width calc for a column that's `Expanded` on wide screens).\n\n**Item 2 \u2014 Purchased On column, dynamic width matching Price.** Dropped\nthe fixed `const _kPurchasedOnWidth = 110.0` constant. Replaced with a\ndynamically-computed `purchasedOnColumnWidth` inside\n`_GearEntriesList.build` using the identical `_measureText` block the\nPrice column already uses:\n\n```dart\ndouble maxPurchasedOnPx = _measureText('Purchased On', headerStyle);\nfor (final item in items) {\n  if (item.purchasedOn == null) continue;\n  final label = DateFormat('MMM d, y').format(item.purchasedOn!);\n  final w = _measureText(label, AppTextStyles.callout);\n  if (w > maxPurchasedOnPx) maxPurchasedOnPx = w;\n}\nfinal purchasedOnColumnWidth = maxPurchasedOnPx + 16;\n```\n\nMirrors\n[`lib/features/financials/financials_screen.dart` \u00a7\\_EntriesList](../../../lib/features/financials/financials_screen.dart)\nlines 668\u2013679 shape-for-shape. The 16 px buffer (`+16`) matches\nfinancials' exact buffer: `4 px cell padding \u00d7 2 sides + 8 px extra\nsafety margin`. Header style shared with the Price column\ncomputation via a new local `headerStyle` variable (previously\n`priceHeaderStyle`, renamed since both columns now consume it \u2014\nlocal variable, no API change). `_TableHeader` and `_GearTableRow`\nboth gained a required `purchasedOnColumnWidth` parameter alongside\nthe existing `priceColumnWidth`; the Purchased On row cell also\nswitched from `overflow: TextOverflow.ellipsis` to\n`softWrap: false, overflow: TextOverflow.visible` (dynamic width\nguarantees fit at all times, so ellipsis is unreachable and would only\nfire as a false-positive round-clip on a measured-fit cell).\n\n**Item 3 \u2014 \"Purchased From\" \u2192 \"From\" (+50 px wider).** Renamed the\nconstant `_kPurchasedFromWidth = 110.0` \u2192 `_kFromWidth = 160.0`\n(+50 px). Changed the `_TableHeader` cell label\n`_HeaderCell('Purchased From', ...)` \u2192 `_HeaderCell('From', ...)`.\nUpdated all references in `_GearTableRow` (`_kPurchasedFromWidth`\n\u2192 `_kFromWidth`). Updated the `_kFixedColumnsWidth` computation to\n`_kFromWidth + _kOwnerWidth` (no longer includes `_kPurchasedOnWidth`,\nwhich is now dynamic). Also renamed the form-sheet `AppTextField`\n`labelText: 'Purchased From'` \u2192 `labelText: 'From'` to keep the\nform label in sync with the table header. The underlying database\ncolumn `band_gear.purchased_from` and the Dart field\n`GearItem.purchasedFrom` are **not** renamed \u2014 UI label change only,\nas Manager instructed.\n\n**Item 4 \u2014 Cents-first price input.** Replaced the free-text\n`AppTextField` for Price in\n`lib/features/gear/widgets/gear_form_sheet.dart` with a POS-style\nformatter that reuses the shared `CurrencyInputController` (int-cents\nstorage) from `lib/shared/widgets/currency_input_field.dart`. New\nfield declarations:\n\n```dart\nlate CurrencyInputController _priceCents;\nlate TextEditingController _priceTextController;\n```\n\nSeeded in `initState` from `item?.priceCents ?? 0`:\n\n```dart\nfinal initialCents = item?.priceCents ?? 0;\n_priceCents = CurrencyInputController(initialCents);\n_priceTextController = TextEditingController(\n  text: initialCents > 0 ? _formatPriceCentsDisplay(initialCents) : '',\n);\n```\n\nEdit mode with an existing `priceCents` (> 0) renders `$  X.YZ`\nimmediately on open; empty state (0 or null) renders the placeholder\n`$  0.00` via `hintText`. The Price `AppTextField` now uses\n`keyboardType: TextInputType.number`,\n`hintText: '\\$  0.00'`, and\n`inputFormatters: [FilteringTextInputFormatter.digitsOnly,\n_GearCurrencyFormatter(_priceCents)]` \u2014 non-digit keystrokes are\nsilently rejected, and every digit shifts cents left. Backspace shifts\nright (divides by 10, drops the rightmost cent digit) per Tony's spec.\n\n`_GearCurrencyFormatter` is copied inline into `gear_form_sheet.dart`\nrather than reusing the shared `_CurrencyInputFormatter` because the\nshared class is `_`-private inside\n`lib/shared/widgets/currency_input_field.dart` and emits `$X.XX`\n(no double space) \u2014 financials' Amount column widths are calibrated\nagainst that exact output, and changing the shared display shape\nwould visibly shift financials' `_measureText` results. The Cycle 9\nplan explicitly authorizes this copy pattern: *\"copy the formatter\nclass inline in gear if financials keeps it private.\"* The copy\ndiffers from the shared class in exactly one respect \u2014 it calls the\nnew file-private helper\n\n```dart\nString _formatPriceCentsDisplay(int cents) {\n  final dollars = cents ~/ 100;\n  final centsPart = cents % 100;\n  final dollarStr = NumberFormat('#,##0').format(dollars);\n  return '\\$  $dollarStr.${centsPart.toString().padLeft(2, '0')}';\n}\n```\n\ninstead of `controller.formattedValue`. Digit-to-display trace matches\nTony's spec exactly:\n\n| Input digits | `_priceCents.cents` | Displayed |\n|--------------|---------------------|-----------|\n| (empty)      | 0                   | (placeholder `$  0.00`) |\n| `1`          | 1                   | `$  0.01` |\n| `12`         | 12                  | `$  0.12` |\n| `123`        | 123                 | `$  1.23` |\n| `1234`       | 1234                | `$  12.34` |\n| `12345`      | 12345               | `$  123.45` |\n| `123456`     | 123456              | `$  1,234.56` |\n| `1234567`    | 1234567             | `$  12,345.67` |\n\n**Item 5 \u2014 Validation compatibility.** The cycle-3 form validation\ncontract keeps working unchanged. Empty state (0 cents) is treated as\nno-price and maps to `null` in the payload:\n\n```dart\nint? _parsePriceCents() {\n  final cents = _priceCents.cents;\n  return cents == 0 ? null : cents;\n}\n```\n\nThe old \"Price must be a valid non-negative amount\" snackbar branch is\nremoved \u2014 the new formatter guarantees a valid non-negative int at all\ntimes (no free-text price path can produce an invalid value), so that\ncheck is now unreachable. Required/optional status of the field is\nunchanged (still optional). Save writes the int (or `null`) directly to\nthe payload's `price_cents` key. Load in edit mode with existing\n`priceCents` correctly renders `$  X.YZ`; load with `null` renders the\nplaceholder.\n\n### Files touched (Cycle 9)\n\n- `lib/features/gear/gear_screen.dart` \u2014 column widths + header label\n  (Items 1, 2, 3).\n- `lib/features/gear/widgets/gear_form_sheet.dart` \u2014 cents-first\n  price input (Item 4), `From` label rename (Item 3), validation\n  helper simplification (Item 5).\n\n### Files not touched (would have been in scope if the change had\nrequired them)\n\n- `lib/features/gear/models/gear_item.dart` \u2014 no pure-Dart display\n  helper needed. `priceCents` field already existed on the model since\n  cycle 3; no JSON serialization change.\n- `lib/features/gear/gear_controller.dart` \u2014 no filter-code helper\n  needed for the wider Name column; column widths live entirely in the\n  screen file.\n- `test/features/gear/gear_item_test.dart` \u2014 no new testable helper on\n  the model (per Manager cycle-9 instruction \"extend only if you add a\n  testable helper (e.g., a cents-formatter). Otherwise leave it alone\").\n  `_formatPriceCentsDisplay` and `_GearCurrencyFormatter` are\n  file-private to `gear_form_sheet.dart`; unit-testing them would\n  require widening their visibility, which the plan does not authorize.\n  Existing model tests re-run under T1.2: 5/5 pass.\n\n## Cycle 7 revision \u2014 Gear screen table + filters (Financials parity)
+QA validates both cycles' evidence together (see **Files Modified \u2192\nCycle 8+9 combined** and **Analyzer Results \u2192 Cycle 9 T1.1**).\n\n### Task breakdown (5 items)\n\n**Item 1 \u2014 Name column +50 px min width.** In\n`lib/features/gear/gear_screen.dart` bumped `_kMinNameWidth = 140.0`\n\u2192 `_kMinNameWidth = 190.0`. The Name column stays `Expanded` on wide\nscreens (unchanged `Expanded` semantics per Manager instruction); on\nthe narrowest supported screens where `constraints.maxWidth < minWidth`,\nthe extra 50 px pushes horizontal scroll to kick in 50 px earlier and\nlets Name occupy the extra reserved space. Matches the shape\nfinancials uses to shape its Category column (fixed contribution to\nthe min-width calc for a column that's `Expanded` on wide screens).\n\n**Item 2 \u2014 Purchased On column, dynamic width matching Price.** Dropped\nthe fixed `const _kPurchasedOnWidth = 110.0` constant. Replaced with a\ndynamically-computed `purchasedOnColumnWidth` inside\n`_GearEntriesList.build` using the identical `_measureText` block the\nPrice column already uses:\n\n`dart\ndouble maxPurchasedOnPx = _measureText('Purchased On', headerStyle);\nfor (final item in items) {\n  if (item.purchasedOn == null) continue;\n  final label = DateFormat('MMM d, y').format(item.purchasedOn!);\n  final w = _measureText(label, AppTextStyles.callout);\n  if (w > maxPurchasedOnPx) maxPurchasedOnPx = w;\n}\nfinal purchasedOnColumnWidth = maxPurchasedOnPx + 16;\n`\n\nMirrors\n[`lib/features/financials/financials_screen.dart` \u00a7\\\_EntriesList](../../../lib/features/financials/financials_screen.dart)\nlines 668\u2013679 shape-for-shape. The 16 px buffer (`+16`) matches\nfinancials' exact buffer: `4 px cell padding \u00d7 2 sides + 8 px extra\nsafety margin`. Header style shared with the Price column\ncomputation via a new local `headerStyle` variable (previously\n`priceHeaderStyle`, renamed since both columns now consume it \u2014\nlocal variable, no API change). `_TableHeader` and `_GearTableRow`\nboth gained a required `purchasedOnColumnWidth` parameter alongside\nthe existing `priceColumnWidth`; the Purchased On row cell also\nswitched from `overflow: TextOverflow.ellipsis` to\n`softWrap: false, overflow: TextOverflow.visible` (dynamic width\nguarantees fit at all times, so ellipsis is unreachable and would only\nfire as a false-positive round-clip on a measured-fit cell).\n\n**Item 3 \u2014 \"Purchased From\" \u2192 \"From\" (+50 px wider).** Renamed the\nconstant `_kPurchasedFromWidth = 110.0` \u2192 `_kFromWidth = 160.0`\n(+50 px). Changed the `_TableHeader` cell label\n`_HeaderCell('Purchased From', ...)` \u2192 `_HeaderCell('From', ...)`.\nUpdated all references in `_GearTableRow` (`_kPurchasedFromWidth`\n\u2192 `_kFromWidth`). Updated the `_kFixedColumnsWidth` computation to\n`_kFromWidth + _kOwnerWidth` (no longer includes `_kPurchasedOnWidth`,\nwhich is now dynamic). Also renamed the form-sheet `AppTextField`\n`labelText: 'Purchased From'` \u2192 `labelText: 'From'` to keep the\nform label in sync with the table header. The underlying database\ncolumn `band_gear.purchased_from` and the Dart field\n`GearItem.purchasedFrom` are **not** renamed \u2014 UI label change only,\nas Manager instructed.\n\n**Item 4 \u2014 Cents-first price input.** Replaced the free-text\n`AppTextField` for Price in\n`lib/features/gear/widgets/gear_form_sheet.dart` with a POS-style\nformatter that reuses the shared `CurrencyInputController` (int-cents\nstorage) from `lib/shared/widgets/currency_input_field.dart`. New\nfield declarations:\n\n`dart\nlate CurrencyInputController _priceCents;\nlate TextEditingController _priceTextController;\n`\n\nSeeded in `initState` from `item?.priceCents ?? 0`:\n\n`dart\nfinal initialCents = item?.priceCents ?? 0;\n_priceCents = CurrencyInputController(initialCents);\n_priceTextController = TextEditingController(\n  text: initialCents > 0 ? _formatPriceCentsDisplay(initialCents) : '',\n);\n`\n\nEdit mode with an existing `priceCents` (> 0) renders `$  X.YZ`\nimmediately on open; empty state (0 or null) renders the placeholder\n`$  0.00` via `hintText`. The Price `AppTextField` now uses\n`keyboardType: TextInputType.number`,\n`hintText: '\\$  0.00'`, and\n`inputFormatters: [FilteringTextInputFormatter.digitsOnly,\n_GearCurrencyFormatter(_priceCents)]` \u2014 non-digit keystrokes are\nsilently rejected, and every digit shifts cents left. Backspace shifts\nright (divides by 10, drops the rightmost cent digit) per Tony's spec.\n\n`_GearCurrencyFormatter` is copied inline into `gear_form_sheet.dart`\nrather than reusing the shared `_CurrencyInputFormatter` because the\nshared class is `_`-private inside\n`lib/shared/widgets/currency_input_field.dart` and emits `$X.XX`\n(no double space) \u2014 financials' Amount column widths are calibrated\nagainst that exact output, and changing the shared display shape\nwould visibly shift financials' `_measureText` results. The Cycle 9\nplan explicitly authorizes this copy pattern: _\"copy the formatter\nclass inline in gear if financials keeps it private.\"_ The copy\ndiffers from the shared class in exactly one respect \u2014 it calls the\nnew file-private helper\n\n`dart\nString _formatPriceCentsDisplay(int cents) {\n  final dollars = cents ~/ 100;\n  final centsPart = cents % 100;\n  final dollarStr = NumberFormat('#,##0').format(dollars);\n  return '\\$  $dollarStr.${centsPart.toString().padLeft(2, '0')}';\n}\n`\n\ninstead of `controller.formattedValue`. Digit-to-display trace matches\nTony's spec exactly:\n\n| Input digits | `_priceCents.cents` | Displayed |\n|--------------|---------------------|-----------|\n| (empty) | 0 | (placeholder `$  0.00`) |\n| `1` | 1 | `$  0.01` |\n| `12` | 12 | `$  0.12` |\n| `123` | 123 | `$  1.23` |\n| `1234` | 1234 | `$  12.34` |\n| `12345` | 12345 | `$  123.45` |\n| `123456` | 123456 | `$  1,234.56` |\n| `1234567` | 1234567 | `$  12,345.67` |\n\n**Item 5 \u2014 Validation compatibility.** The cycle-3 form validation\ncontract keeps working unchanged. Empty state (0 cents) is treated as\nno-price and maps to `null` in the payload:\n\n`dart\nint? _parsePriceCents() {\n  final cents = _priceCents.cents;\n  return cents == 0 ? null : cents;\n}\n`\n\nThe old \"Price must be a valid non-negative amount\" snackbar branch is\nremoved \u2014 the new formatter guarantees a valid non-negative int at all\ntimes (no free-text price path can produce an invalid value), so that\ncheck is now unreachable. Required/optional status of the field is\nunchanged (still optional). Save writes the int (or `null`) directly to\nthe payload's `price_cents` key. Load in edit mode with existing\n`priceCents` correctly renders `$  X.YZ`; load with `null` renders the\nplaceholder.\n\n### Files touched (Cycle 9)\n\n- `lib/features/gear/gear_screen.dart` \u2014 column widths + header label\n (Items 1, 2, 3).\n- `lib/features/gear/widgets/gear_form_sheet.dart` \u2014 cents-first\n price input (Item 4), `From` label rename (Item 3), validation\n helper simplification (Item 5).\n\n### Files not touched (would have been in scope if the change had\nrequired them)\n\n- `lib/features/gear/models/gear_item.dart` \u2014 no pure-Dart display\n helper needed. `priceCents` field already existed on the model since\n cycle 3; no JSON serialization change.\n- `lib/features/gear/gear_controller.dart` \u2014 no filter-code helper\n needed for the wider Name column; column widths live entirely in the\n screen file.\n- `test/features/gear/gear_item_test.dart` \u2014 no new testable helper on\n the model (per Manager cycle-9 instruction \"extend only if you add a\n testable helper (e.g., a cents-formatter). Otherwise leave it alone\").\n `_formatPriceCentsDisplay` and `_GearCurrencyFormatter` are\n file-private to `gear_form_sheet.dart`; unit-testing them would\n require widening their visibility, which the plan does not authorize.\n Existing model tests re-run under T1.2: 5/5 pass.\n\n## Cycle 7 revision \u2014 Gear screen table + filters (Financials parity)
 
 **Trigger.** Tony's cycle-7 Step 6b test finding on the current PR head:
 "the gear screen should match the financials screen, including the
@@ -1634,8 +1649,8 @@ Cycle 8 additions kept minimal:
 - No new provider added — the state swap (`GearOwnerFilter` enum →
   `Set<String> ownerSelection`) reuses the existing `gearProvider`,
   drops one enum + one field + one notifier method, and adds one field
-  + two notifier methods. Net structural change is a shape swap, not
-  an expansion.
+  - two notifier methods. Net structural change is a shape swap, not
+    an expansion.
 - `_OwnerFilterModal` is a `ConsumerStatefulWidget` (not a
   `_buildX()` method) because it owns local staged-selection state
   (`_pending`) that must survive a `setState` — method-inlining would
