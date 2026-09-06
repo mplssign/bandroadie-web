@@ -10,9 +10,21 @@ Band Gear Management
 
 ## Cycle Number
 
-6
+7
 
 ## Goal
+
+Cycle 7 — In-branch UX-scope adjustment driven by Tony's cycle-7 Step 6b test
+finding on the current PR head: "the gear screen should match the financials
+screen, including the filters. Gear should be listed in a table to match
+financials instead of cards." Rewrite `gear_screen.dart` as a table-based
+mirror of `lib/features/financials/financials_screen.dart`, extend
+`gear_controller.dart` with matching filter state (`GearOwnerFilter`,
+`GearDateFilter`, `customStartDate`, `customEndDate`, `filteredItems`) and
+notifier methods (`setOwnerFilter`, `setDateFilter`, `setCustomDateRange`),
+delete `widgets/gear_row.dart` and `widgets/gear_empty_state.dart` and
+inline both into the screen file (financials' precedent shape). Cycle 1
+through 6 work rolls forward unchanged.
 
 Cycle 6 — In-branch revert-only cycle driven by Tony's cycle-5 QA-APPROVED
 state review (Manager cycle-6 note): "remove 'Gear' from the menu. It should
@@ -37,7 +49,12 @@ implementation work is unchanged and rolls forward as-is.
 
 ## Architect Tasks Completed
 
-Cycle 6 (this cycle) — revert-only, no new architect tasks:
+Cycle 7 (this cycle) — in-branch UX-scope adjustment, no new architect tasks:
+
+- Cycle 7 Financials-parity rewrite (Gear screen table + filters): Executed.
+  See dedicated section below.
+
+Cycle 6 — revert-only, no new architect tasks:
 
 - Cycle 6 revert (side-drawer surfacing removed per Tony's cycle-5
   QA-APPROVED review directive): Executed. See dedicated section below.
@@ -118,6 +135,8 @@ Inherited from cycle-3 uncommitted work (unchanged this cycle):
 
 ## Files Created
 
+Cycle 7: none.
+
 Cycle 5: none.
 
 Cycle 4 (new this cycle):
@@ -141,7 +160,78 @@ Inherited from cycle-3 uncommitted work (byte-identical to cycle 3):
 
 ## Files Modified
 
-Cycle 6 (new this cycle) — revert-only:
+Cycle 7 (new this cycle) — Financials-parity rewrite:
+
+- lib/features/gear/gear_screen.dart — rewritten as a table-based mirror of
+  `lib/features/financials/financials_screen.dart`. New structural pieces:
+  `BackOnlyAppBar` at top; title row with `'Gear'` on the left and
+  `TextButton.icon` (`AppIcons.add`, `'Add'`) on the right when
+  `canManageGear == true`; owner-filter toggle `_OwnerFilterToggle` (3
+  segments: All / Band-owned / Member-owned) mirroring financials'
+  `_ViewModeToggle`; date-filter row `_DateFilterRow` + `_FilterChip`
+  (All Time / This Year / This Month / Custom Range…) mirroring financials'
+  `_DateFilterRow`; entries table `_GearEntriesList` +
+  `_TableHeader` + `_HeaderCell` + `_GearTableRow` mirroring financials'
+  `_EntriesList` + `_TableHeader` + `_HeaderCell` + `_EntryTableRow` (with
+  the same horizontal `SingleChildScrollView` outer wrapper and the same
+  `_measureText` pattern for the dynamic-width Price column); empty state
+  `_EmptyState` mirroring financials' `_EmptyState`; error state
+  `_ErrorState` mirroring financials' `_ErrorState` verbatim. Gear column
+  set (left-to-right): **Name** (`Expanded`), **Purchased On** (110px,
+  `MMM d, y`), **Purchased From** (110px, single-line ellipsis),
+  **Owner** (110px, single-line ellipsis — "Band" for band-owned, first
+  name + last initial for member-owned), **Price** (dynamic width via
+  `_measureText`, right-aligned, `NumberFormat.currency(locale: 'en_US',
+symbol: '\$')`). Tap on a row opens the existing `GearFormSheet` bottom
+  sheet in edit mode; no new details sheet introduced (cycle-3 form sheet
+  already supports read-only + edit modes). Removed: `RefreshIndicator`
+  pull-to-refresh, `AppButton` retry inside error state, `_buildContent`
+  helper method, `_ownerLabel`/`_memberOwnedLabel` on state (moved to
+  file-top helpers so the private `_GearTableRow` can call them), the
+  `bandId == null` "No band selected" guard card (unreachable — screen is
+  only pushed from Home Quick Actions when a band is active and
+  `canViewGear` is true). No cycle-3 API on `gear_form_sheet.dart` was
+  changed — the tap flow reuses `GearFormSheet.show(...)` verbatim.
+- lib/features/gear/gear_controller.dart — extended `GearState` with:
+  `ownerFilter` (`GearOwnerFilter` enum: `all`, `band`, `member`;
+  default `all`), `dateFilter` (`GearDateFilter` enum: `allTime`,
+  `thisYear`, `thisMonth`, `custom`; default `allTime`),
+  `customStartDate` / `customEndDate` (nullable, default `null`), and
+  derived getter `filteredItems` that applies owner + date filters and
+  sorts newest-purchased first (nulls last). Added `copyWith` support
+  for the four new fields plus `clearCustomDates: bool`. Added notifier
+  methods `setOwnerFilter`, `setDateFilter`, `setCustomDateRange` —
+  each mirrors the equivalent method on `FinancialsNotifier` exactly.
+  `load`/`refresh`/`create`/`update`/`delete`/`reset` bodies unchanged
+  from cycle 3.
+
+  **null-date handling (documented per Manager cycle-7 note).** Items
+  with `purchasedOn == null` are included ONLY when
+  `dateFilter == GearDateFilter.allTime`; every date-bounded filter
+  (This Year / This Month / Custom Range) drops them. This is the
+  simplest behavior consistent with the intuitive expectation that a
+  date-bounded filter shouldn't surface rows with no date, and it also
+  mirrors financials' shape (financials' `FinancialEntry.entryDate` is
+  non-nullable, so financials never has this problem to solve; the
+  simplest mirror is "no date → no date-bounded surface"). Sort order:
+  newest-purchased first; null-date items sort last within any bucket.
+
+  **Filter-state resurrection note.** Manager cycle-7 message references
+  "resurrection of cycle-3-then-removed-in-cycle-4 filter state". For
+  full transparency: `git log` on `gear_controller.dart` on this branch
+  shows exactly one commit (`26b5fed`, cycle-3 base), and its
+  `GearState` had only `items` / `isLoading` / `error` — no filter
+  state ever lived here before cycle 7. Cycle 4 did not remove any
+  filter state (it never existed). Cycle 7 is the first time this file
+  carries filter state, and — per Manager's intent — the state is
+  consumed by the screen from the moment it lands (via
+  `state.ownerFilter`, `state.dateFilter`, `state.filteredItems` inside
+  `_GearEntriesList`).
+
+- lib/features/home/widgets/quick_actions_row.dart — unchanged from cycle 5.
+- lib/features/home/home_tab_content.dart — unchanged from cycle 5.
+
+Cycle 6 (unchanged this cycle) — revert-only:
 
 - lib/features/home/widgets/side_drawer.dart — **reverted to main tip**
   (`git checkout main -- lib/features/home/widgets/side_drawer.dart`).
@@ -211,6 +301,130 @@ Inherited from cycle-3 uncommitted work (byte-identical to cycle 3):
 
 - lib/features/home/widgets/side_drawer.dart
 - lib/features/shell/app_shell.dart
+
+## Files Deleted
+
+Cycle 7 (new this cycle):
+
+- lib/features/gear/widgets/gear_row.dart — deleted. Cycle 7 inlines the
+  row inside `gear_screen.dart` as a private `_GearTableRow` mirroring
+  financials' inline `_EntryTableRow`. `GearRow` was used exactly once
+  (from `gear_screen.dart`); no other file references it. Choice
+  rationale (per Manager cycle-7 note "either rewrite … or delete it if
+  you inline the row … Whichever keeps the diff clean"): deletion +
+  inline matches financials' precedent 1:1 and is the smallest surface.
+- lib/features/gear/widgets/gear_empty_state.dart — deleted. Cycle 7
+  inlines the empty state inside `gear_screen.dart` as a private
+  `_EmptyState` mirroring financials' inline `_EmptyState`.
+  `GearEmptyState` was used exactly once (from `gear_screen.dart`); no
+  other file references it. Choice rationale: same as `gear_row.dart` —
+  matches financials' precedent 1:1 and is the smallest surface.
+
+Pre-delete usage audit: `grep_search "GearRow|GearEmptyState"` on
+`**/*.dart` returned only the definitions themselves plus their
+consumers inside `gear_screen.dart`. No other file imports either
+widget; deletion is safe.
+
+## Cycle 7 revision — Gear screen table + filters (Financials parity)
+
+**Trigger.** Tony's cycle-7 Step 6b test finding on the current PR head:
+"the gear screen should match the financials screen, including the
+filters. Gear should be listed in a table to match financials instead
+of cards." Manager cycle-7 note authorized this as an in-branch UX-scope
+adjustment with all product decisions pre-made ("Product decisions are
+already made by Tony — implement the mirror; don't second-guess it").
+
+**Scope classification.** In-branch UX-scope adjustment vs the base
+`ARCHITECT_PLAN.md`. The plan's Proposed Solution section 1 explicitly
+called for a **list of cards** ("List UI, not a literal HTML table.
+… Every peer feature (contacts, venues, songs, members) uses a
+scrolling list of cards/rows; using the same idiom keeps the UI
+consistent across screen widths and matches the design tokens already
+in the codebase. Row content: name (primary), owner (secondary), price
++ purchase date (tertiary). Purchased-from surfaces on the detail/edit
+sheet."). Cycle 7 supersedes that decision with a table-based screen
+mirroring `lib/features/financials/financials_screen.dart`, per Tony's
+review-time direction relayed by Manager cycle-7. All other plan
+sections (schema, RLS, RBAC, contributor visibility gate) roll forward
+unchanged.
+
+**Precedent mirrored.** `lib/features/financials/financials_screen.dart`
+(1210 lines). Section-for-section:
+
+- Screen shell → same `Scaffold(backgroundColor: context.colors.background)
+→ SafeArea → Stack → Column`, `BackOnlyAppBar` at top, title row
+  `'Gear'` in `AppTextStyles.pageTitle` on the left and
+  `TextButton.icon(icon: Icon(AppIcons.add), label: 'Add', style:
+TextButton.styleFrom(foregroundColor: AppColors.primary))` on the
+  right when `canManageGear == true`. Add button `onPressed` guards on
+  `state.isLoading` matching financials.
+- Filter 1 (owner type) → `_OwnerFilterToggle` — 3 segments (**All**,
+  **Band-owned**, **Member-owned**) using the same sliding-indicator
+  visual as financials' `_ViewModeToggle`, extended from 2 to 3 modes
+  via the same `Alignment(-1.0 + (2.0 * currentIndex / (_modes.length -
+1)), 0.0)` formula financials already uses (which handles N segments
+  generically — 3 segments produce indices 0→-1.0, 1→0.0, 2→1.0). Same
+  `context.colors.surface` outer background, same `AppColors.primary`
+  sliding indicator, same `AppTextStyles`/`AppFontSizes.subhead`
+  weights, same `HapticFeedback.selectionClick()` on tap.
+- Filter 2 (date filter) → `_DateFilterRow` + `_FilterChip` copied from
+  financials verbatim except `FinancialDateFilter → GearDateFilter`.
+  Options set (**All Time**, **This Year**, **This Month**, **Custom
+  Range…**) matches financials. Field being filtered = `purchased_on`.
+- Table → `_GearEntriesList` mirroring financials' `_EntriesList`:
+  `LayoutBuilder → SingleChildScrollView(horizontal) → SizedBox(width:
+tableWidth) → Column(header + rows)`. Header via `_TableHeader` +
+  `_HeaderCell`; rows via `_GearTableRow` reusing the same
+  `IntrinsicHeight → Row(crossAxisAlignment: stretch)` +
+  `BorderSide(color: context.colors.border)` right-borders financials
+  uses. Column widths: **Name** = `Expanded` (variable), **Purchased
+  On** = 110px, **Purchased From** = 110px, **Owner** = 110px, **Price**
+  = dynamically-sized via the same `_measureText` pattern financials
+  uses for its Amount column, right-aligned. `_kFixedColumnsWidth`
+  calculation mirrors financials'.
+- Empty state → inline `_EmptyState` mirroring financials'
+  `_EmptyState` (icon + heading + subhead + primary CTA). CTA
+  (`TextButton.icon` with `AppIcons.add`, label `Add Gear`) rendered
+  only when `canManageGear && onAdd != null`. Icon: `AppIcons.library`
+  in `context.colors.textMuted` matching financials' `AppIcons.music`
+  weight/color slot.
+- Loading state → `Center(child: CircularProgressIndicator(color:
+AppColors.primary))` verbatim.
+- Error state → inline `_ErrorState({required this.message})` mirroring
+  financials' verbatim.
+
+**Add / edit flow.** Tapping a table row calls
+`_openForm(item: item, canManageGear: canManageGear)` which reuses the
+existing cycle-3 `GearFormSheet.show(...)` bottom sheet. Verified the
+form sheet already supports both edit mode (`item != null`) and
+read-only mode (`canManageGear == false`) — cycle 3 shipped that. Per
+Manager cycle-7 note "keep gear's single form sheet if it already
+supports read-only + edit modes; do NOT introduce a new details sheet
+as separate scope", no new details sheet was introduced.
+
+**Bottom actions row.** Skipped per Manager cycle-7 note ("For gear v1
+there is nothing analogous to add … Do NOT add a bottom actions row").
+
+**Column set decision — Owner label copy.** Manager cycle-7 note:
+"Label is 'Band' for band-owned, or the member's first name + last
+initial for member-owned." The pre-cycle-7 `_ownerLabel` in
+`gear_screen.dart` returned `'Band-owned'`; cycle 7 rewrites it to
+return `'Band'` matching the terser Manager-specified copy. The
+member branch is unchanged: `firstName + ' ' + lastName[0] + '.'`
+with graceful fallback to first-only / last-only / full display name.
+
+**Form-sheet not touched.** `lib/features/gear/widgets/gear_form_sheet.dart`
+was not modified this cycle. Cycle 3 already shipped edit mode
+(`_isEditMode = widget.item != null`) and read-only mode (`_isReadOnly
+= !widget.canManageGear`) so the table-row tap flow works with zero
+form-sheet changes.
+
+**Off-limits list respected.** Cycle 7 touched only files inside
+`lib/features/gear/` plus the doc-report update. No touch to
+`lib/features/home/`, `lib/features/shell/`, `supabase/migrations/`,
+`contributor_permissions.dart`, `band_permissions.dart`,
+`role_management_sheet.dart`, `.github/agents/*.md`, or `PR_BODY.md` —
+matches the Manager cycle-7 note's off-limits list byte-for-byte.
 
 ## Cycle 5 addition — Quick Actions surfacing
 
@@ -388,6 +602,45 @@ scope is the cleaner and correct end state.
 
 ## Analyzer Results
 
+### Cycle 7 T1.1 — clean (7-item scope per Manager Option D, preserved)
+
+Command run:
+
+```
+flutter analyze lib/features/gear lib/features/home/home_tab_content.dart lib/features/home/widgets/quick_actions_row.dart lib/features/members/permissions/band_permissions.dart lib/features/members/permissions/contributor_permissions.dart lib/features/members/widgets/role_management_sheet.dart test/features/gear/gear_item_test.dart
+```
+
+Output:
+
+```
+Analyzing 7 items...
+No issues found! (ran in 2.8s)
+```
+
+0 errors, 0 warnings, 0 infos — clean at every severity per
+`analysis_options.yaml`. `dart fix --dry-run` on both cycle-7-touched
+files (`gear_controller.dart`, `gear_screen.dart`) reports
+`Nothing to fix!`.
+
+**Intermediate lint sweep.** The first analyzer pass after the rewrite
+surfaced 5 info-severity lints in the newly-rewritten
+`gear_screen.dart` (3 × `avoid_redundant_argument_values` on
+`BorderSide(width: 1.0)` copied verbatim from financials, 1 ×
+`avoid_redundant_argument_values` on `DateTime(now.year, now.month, 1)`
+default `day = 1` copied from financials, 1 × `avoid_redundant_argument_values`
+on `onSurface: Colors.white` inside `const ColorScheme.dark(...)`
+copied from financials, 1 × `prefer_const_constructors` on
+`_HeaderCell('Price', textAlign: TextAlign.right)` — that call site
+has no non-const args). All 5 are provably-safe no-op equivalents.
+Note: financials carries the identical lints in its own file, but
+financials is not on the T1.1 file list this cycle (per Manager
+Option D), so its violations aren't surfaced against gear's gate. My
+gear rewrite is legally fresh to the analyzer, so I fixed every one
+in-scope: dropped the redundant `width: 1.0`, dropped the redundant
+`day: 1`, dropped the redundant `onSurface: Colors.white`, added
+`const` to the Price header cell. Second analyzer pass:
+`No issues found!`.
+
 ### Cycle 6 T1.1 — clean (7-item scope per Manager Option D)
 
 Command run:
@@ -462,6 +715,28 @@ No issues found! (ran in 3.0s)
 `analysis_options.yaml`.
 
 ## Test Results
+
+### Cycle 7 T1.2
+
+Command run: `flutter test test/features/gear/gear_item_test.dart`
+
+Output: `00:00 +5: All tests passed!` — 5/5 pass. Cycle 7's controller
++ screen rewrite did not change `models/gear_item.dart` or the model
+tests, so the pre-existing model-level tests exercise the unchanged
+`GearItem` shape. No new pure-Dart helper was added on the model, so
+no new test was added to `test/features/gear/gear_item_test.dart` this
+cycle (per Manager cycle-7 note: "extend with tests for any new
+pure-Dart helper you add on the model … Don't test the screen widget"
+— nothing new on the model to test). Filter logic lives on
+`GearState.filteredItems`, parallel to `FinancialsState.filteredEntries`;
+both are currently untested. Recorded here for QA traceability.
+
+### Cycle 7 T1.3 (not re-run)
+
+Per Manager cycle-7 note: "Do NOT re-run T1.3 (accepted Deviation A
+still applies)." Cycle 4's T1.3 result rolls forward. No cycle-7 change
+touches the auth login screen or its test file. No cycle-7 change adds
+any new widget test.
 
 ### Cycle 6 T1.2
 
@@ -575,8 +850,67 @@ Strategy. This deferral is pre-approved and does not block APPROVED.
 
 ## Code Efficiency/Bloat Check
 
-Cycle 5 additions kept minimal by direct mirror of the shipped Financials
-Quick Actions precedent:
+Cycle 7 additions kept minimal by direct 1:1 structural mirror of the
+shipped Financials screen:
+
+- `gear_screen.dart` gains a set of private classes that mirror
+  `financials_screen.dart` section-for-section: `_OwnerFilterToggle`
+  (mirrors `_ViewModeToggle`, extended from 2 → 3 segments),
+  `_DateFilterRow`, `_FilterChip`, `_GearEntriesList` (mirrors
+  `_EntriesList`), `_TableHeader`, `_HeaderCell`, `_GearTableRow`
+  (mirrors `_EntryTableRow`), `_EmptyState`, `_ErrorState`. Every
+  single-use private widget class is retained (not inlined into a
+  `_buildX()` method) because Manager cycle-7 note explicitly directs
+  a 1:1 mirror of financials — inlining any of these would break the
+  section boundaries and diverge from the precedent. `_HeaderCell` and
+  `_FilterChip` are used more than once (5 and 4 sites respectively) so
+  they're multi-use even under the standard bloat rule.
+- Pre-add-helper search: `grep_search "firstWhereOrNull"` on
+  `lib/features/**` returned zero matches. The `_ownerLabel` helper
+  keeps the same for-loop shape the cycle-3 gear code used and every
+  other iterable-lookup site in the codebase uses; introducing a
+  `package:collection` import for one 4-line loop would be net bloat.
+- Pre-add-helper search: `grep_search "GearRow|GearEmptyState"` on
+  `**/*.dart` returned only the definitions themselves plus their
+  consumers in `gear_screen.dart`. Both widget files are single-use;
+  deleting + inlining is the smallest-surface path and matches
+  financials' precedent.
+- No new provider added — extended the existing `gearProvider` with
+  four new state fields, one derived getter, three notifier methods.
+  Every added field is consumed by the screen; no dead code.
+- No new named route, no new dependency, no new barrel file. No
+  `_buildX()` single-use method. No new model field on `GearItem`.
+- No `TODO` / `FIXME` / `debugPrint(` introduced.
+- No `try/catch` re-thrown unchanged or catching what the call can't
+  throw. Every existing `try/catch` on the notifier is unchanged from
+  cycle 3.
+- `dart fix --dry-run` on both changed files: `Nothing to fix!` (run
+  per file — the CLI only accepts one path at a time).
+
+**File-size targets — one soft-exceed with justification.**
+`gear_screen.dart` = 816 lines after `dart format`. This exceeds the
+500-line file-size target from mode guardrails. Justification: 1:1
+structural mirror of `lib/features/financials/financials_screen.dart`
+(1210 lines) directed by Manager cycle-7 note ("mirror precisely"). A
+smaller gear file would require breaking the section-for-section
+mirror shape or extracting the private classes to sibling files, which
+would (a) diverge from the financials precedent Manager explicitly
+directs and (b) create 6+ new one-off widget files under
+`lib/features/gear/widgets/` for classes that have exactly one
+consumer, which is the class of bloat the mode guardrails are
+protecting against. `gear_controller.dart` = 215 lines, comfortably
+under every size target.
+
+**Deletions offset the additions.** Two widget files removed
+(`gear_row.dart` = 94 lines, `gear_empty_state.dart` = 72 lines = 166
+deleted lines), net cycle-7 code diff on `lib/features/gear/**` is
+`+860 -168` (screen) + `+88 -0` (controller) − `-166` (widgets) ≈ `+614`
+insertions total. The bulk of the insertion is the mirrored table
+implementation (header + rows) that financials also carries as ~400
+lines of similar structure.
+
+Cycle 5 additions (unchanged this cycle) kept minimal by direct mirror
+of the shipped Financials Quick Actions precedent:
 
 - `quick_actions_row.dart` gains exactly one new field (`onGear`), one
   new bool field (`showGear` with default `true`), the corresponding
@@ -649,6 +983,81 @@ REPLACE` is used because the RPC already exists; not a fresh function
 
 ## Verification (manual steps performed)
 
+Cycle 7:
+
+- Read Manager cycle-7 note in full; confirmed cycle 7 is an in-branch
+  UX-scope adjustment driven by Tony's cycle-7 6b test finding, that
+  Manager preserved the Cycle Number at 7 (not reset), and that
+  Manager holds `pipeline.lock` for this cycle
+  (`manager|feature/band-gear-management|2026-09-06T13:56:17Z`).
+- Ran `GIT_OPTIONAL_LOCKS=0 git branch --show-current` →
+  `feature/band-gear-management`, and `GIT_OPTIONAL_LOCKS=0 git status`
+  → only the two expected doc drifts (`ENGINEER_REPORT.md`,
+  `QA_REPORT.md`) with no other tracked-file drift and no orphaned
+  untracked work.
+- Read `lib/features/financials/financials_screen.dart` in full (1210
+  lines) before touching anything on gear — that's the mirror
+  precedent, and getting section boundaries right depends on
+  understanding the shipped shape.
+- Read cycle-3 `lib/features/gear/gear_screen.dart`,
+  `gear_controller.dart`, `gear_form_sheet.dart`, `gear_row.dart`,
+  `gear_empty_state.dart`, and `models/gear_item.dart` before edits.
+  Confirmed `GearFormSheet` cycle-3 already supports both edit
+  (`_isEditMode = widget.item != null`) and read-only
+  (`_isReadOnly = !widget.canManageGear`) modes; per Manager cycle-7
+  note, form sheet not touched this cycle.
+- Pre-delete usage audit for `GearRow` and `GearEmptyState`
+  (`grep_search "GearRow|GearEmptyState|gear_row\.dart|gear_empty_state\.dart"`
+  on `**/*.dart`): returned 8 matches across 3 files — the two widget
+  definition files themselves plus the two import + call sites inside
+  `gear_screen.dart`. No other file imports either widget; deletion
+  is safe.
+- Rewrote `gear_screen.dart` as a section-for-section mirror of
+  `financials_screen.dart`. Deleted `widgets/gear_row.dart` and
+  `widgets/gear_empty_state.dart`. Extended `gear_controller.dart`
+  with filter state + methods.
+- Ran T1.1 first pass; surfaced 5 info-severity lints on
+  `gear_screen.dart` (mirror-inherited from financials, which is out
+  of scope for T1.1 per Manager Option D so financials isn't flagged
+  in the run). Fixed all 5 as trivial no-op equivalents (dropped
+  `width: 1.0` on 2 `BorderSide` local vars, dropped `day = 1` default
+  arg on `DateTime(now.year, now.month)`, dropped `onSurface:
+Colors.white` default in `const ColorScheme.dark`, added `const` to
+  the Price header cell). Re-ran T1.1: `No issues found!`.
+- Ran `flutter test test/features/gear/gear_item_test.dart` → 5/5
+  pass, no regression from the rewrite (the model file was not
+  touched).
+- Ran `dart fix --dry-run lib/features/gear/gear_controller.dart` →
+  `Nothing to fix!`; `dart fix --dry-run lib/features/gear/gear_screen.dart`
+  → `Nothing to fix!`.
+- Ran `dart format` on both changed files — 1 file (`gear_screen.dart`)
+  reformatted, `gear_controller.dart` already canonical. Re-ran T1.1
+  post-format → `No issues found!` still.
+- Self-audit sweep for AI-shaped code on the diff, per Engineer mode
+  guardrails: no `_buildX()` method used once (retained multi-use
+  private classes matching the mirror), no unused import (the removed
+  `AppButton`/`GearRow`/`GearEmptyState`/`RefreshIndicator` imports
+  were dropped when the code paths were removed), no dead field (every
+  new `GearState` field is consumed by `filteredItems` or the screen),
+  no `try/catch` retrofit (existing `try/catch` unchanged), no
+  `TODO`/`FIXME`/`debugPrint(`, no barrel file, no new provider, no
+  new model field, no new named route, no new dependency.
+- Confirmed cycle-4 RBAC files
+  (`contributor_permissions.dart`, `band_permissions.dart`,
+  `role_management_sheet.dart`) and all cycle-5 Quick Actions files
+  (`home_tab_content.dart`, `quick_actions_row.dart`) are untouched
+  by cycle 7 via `GIT_OPTIONAL_LOCKS=0 git status --short` — they
+  don't appear in the modified-file list.
+- Confirmed no `supabase/migrations/**` file touched by cycle 7 via
+  `git status --short`; all four gear migrations byte-identical to
+  cycle 4.
+- Confirmed no `.github/agents/*.md` or `PR_BODY.md` touched by
+  cycle 7 via `git status --short`.
+- Confirmed `pipeline.lock` shows Manager holds the lock; cycle 7 did
+  not acquire or release the lock (Manager cycle-7 note: "do NOT
+  acquire your own lock"). Cycle 7 will not run any `git` write
+  command — Manager owns every git write in this pipeline.
+
 Cycle 6:
 
 - Read Manager cycle-6 note in full; confirmed cycle 6 is a revert-only
@@ -660,7 +1069,7 @@ Cycle 6:
   "do NOT acquire your own lock").
 - Ran `GIT_OPTIONAL_LOCKS=0 git branch --show-current` →
   `feature/band-gear-management`, and `GIT_OPTIONAL_LOCKS=0 git status
-  --short` → four cycle-5 uncommitted files as expected (`docs/features/feature-band-gear-management/ENGINEER_REPORT.md`,
+--short` → four cycle-5 uncommitted files as expected (`docs/features/feature-band-gear-management/ENGINEER_REPORT.md`,
   `.../QA_REPORT.md`, `lib/features/home/home_tab_content.dart`,
   `lib/features/home/widgets/quick_actions_row.dart`) with no other
   tracked-file drift and no orphaned untracked work outside
@@ -689,7 +1098,7 @@ Cycle 6:
   (ii) `git checkout main -- side_drawer.dart app_shell.dart` (idempotent
   — they were already at main state); (iii)
   `flutter analyze lib/features/home/widgets/side_drawer.dart
-  lib/features/shell/app_shell.dart` → identical 8-lint output at same
+lib/features/shell/app_shell.dart` → identical 8-lint output at same
   locations. Then restored worktree via `git checkout HEAD -- ...` +
   `git stash pop`, verified `git diff --stat main` still shows the two
   files at zero net diff (post-revert state preserved).
@@ -780,6 +1189,62 @@ Cycle 4:
 
 ## Deviations From Plan
 
+- **Cycle 7 in-branch UX-scope adjustment (authorized by Manager
+  cycle-7 note).** The base `ARCHITECT_PLAN.md` Proposed Solution
+  section 1 explicitly directed a list-of-cards UI ("List UI, not a
+  literal HTML table … a scrolling list of cards/rows … Row content:
+  name (primary), owner (secondary), price + purchase date
+  (tertiary). Purchased-from surfaces on the detail/edit sheet.").
+  Tony's cycle-7 6b test finding on the current PR head reverses that
+  decision: "the gear screen should match the financials screen,
+  including the filters. Gear should be listed in a table to match
+  financials instead of cards." Cycle 7 rewrites `gear_screen.dart`
+  as a section-for-section mirror of
+  `lib/features/financials/financials_screen.dart` (1210 lines) with
+  a table of five columns (Name, Purchased On, Purchased From, Owner,
+  Price) plus an owner-type filter toggle (All / Band-owned /
+  Member-owned) and a date filter row (All Time / This Year / This
+  Month / Custom Range). Manager cycle-7 note explicitly authorizes
+  this as an in-branch UX-scope adjustment ("Product decisions are
+  already made by Tony — implement the mirror; don't second-guess
+  it") and specifies precise mirror boundaries (title row, filter
+  rows, table columns, empty state, error state, no bottom actions
+  row). This is a subtractive change to the ARCHITECT_PLAN's cards UI
+  and an additive change to the ARCHITECT_PLAN's controller state
+  (adds filter state that the plan did not require).
+- **Cycle 7 subtractive file-set change: two widget files deleted
+  (authorized by Manager cycle-7 note).** `lib/features/gear/widgets/
+gear_row.dart` and `lib/features/gear/widgets/gear_empty_state.dart`
+  were cycle-3-created files in the base plan (Task 12). Cycle 7
+  deletes both and inlines their behavior into `gear_screen.dart` as
+  private `_GearTableRow` and `_EmptyState` classes, mirroring
+  financials' precedent (which inlines `_EntryTableRow` and
+  `_EmptyState` in `financials_screen.dart` directly). Manager
+  cycle-7 note authorizes this: "either rewrite to be the table row
+  (`_GearTableRow` shape) or delete it if you inline the row inside
+  `gear_screen.dart` like financials does. Whichever keeps the diff
+  clean; document your choice." Choice documented under
+  [Files Deleted](#files-deleted) above.
+- **Cycle 7 `gear_screen.dart` exceeds the 500-line file-size target
+  (justified in Code Efficiency/Bloat Check).** Post-`dart format`
+  the file is 816 lines, over the 500-line target. Justified: 1:1
+  structural mirror of `financials_screen.dart` (1210 lines) that
+  Manager cycle-7 note directs ("mirror precisely"). Splitting into
+  helper files would (a) diverge from the precedent and (b) create
+  6+ one-off widget files under `widgets/` for classes each used
+  exactly once. Recorded per mode instruction ("exceeding one
+  requires a one-line justification in ENGINEER_REPORT.md").
+- **Cycle 7 null-date handling for `purchased_on` documented, not
+  deviated.** Manager cycle-7 note explicitly delegated the choice:
+  "pick the simplest behavior that mirrors how financials handles
+  missing dates and document your choice in the report." Chosen:
+  items with `purchasedOn == null` are included ONLY when
+  `dateFilter == GearDateFilter.allTime`; every date-bounded filter
+  drops them. Rationale: financials' `FinancialEntry.entryDate` is
+  non-nullable so financials never has to answer this — the simplest
+  mirror is "no date → no date-bounded surface", which also matches
+  user intuition. Documented in the [Files Modified](#files-modified)
+  cycle-7 subsection under `gear_controller.dart`.
 - **Cycle 6 revert-only in-branch scope contraction (authorized by
   Manager cycle-6 note).** The base `ARCHITECT_PLAN.md` Task 15 wired
   Gear surfacing via the side drawer (`side_drawer.dart` +
@@ -850,6 +1315,12 @@ demo band'` (lowercase `out`) but the test asserts title-case
 
 ## Blockers Encountered
 
+**Cycle 7 — none.** T1.1 clean at first-fix pass (5 mirror-inherited
+info lints in the newly-rewritten `gear_screen.dart`, all trivially
+fixed as no-op equivalents). T1.2 gear tests 5/5 pass. `dart fix
+--dry-run` clean on both changed files. `dart format` applied. No
+blockers.
+
 **Cycle 6 — none at finalization.** The cycle-6 T1.1 scope question
 (originally raised as Options A / B / C / D against the earlier 9-item
 gate list) was resolved by Manager's cycle-6 finalization decision:
@@ -870,13 +1341,16 @@ Cycle 4: none.
 
 ## Ready For QA
 
-Yes. Cycle 6 T1.1 (7-item scope per Manager Option D) returned
-`No issues found!` at every severity (0 errors, 0 warnings, 0 infos).
-Cycle 6 T1.2 gear tests 5/5 pass. T1.3 not re-run per Manager cycle-6
-step 6 (accepted Deviation A still applies). Cycle 4 T1.4 static SQL
-evidence unchanged. Cycle 4 T1.5 remains deferred to Tier 2 per
-accepted Deviation B. Cycle 6 net-new worktree change scoped to the
-two byte-identical-to-main reverts of `side_drawer.dart` and
-`app_shell.dart` (0 diff each vs main; both fall out of the feature's
-touched-files set); cycle 5 modifications to `home_tab_content.dart`
-and `quick_actions_row.dart` preserved unchanged.
+Yes. Cycle 7 T1.1 (7-item scope per Manager Option D, preserved from
+cycle 6) returned `No issues found!` at every severity (0 errors, 0
+warnings, 0 infos). Cycle 7 T1.2 gear tests 5/5 pass. T1.3 not re-run
+per Manager cycle-7 step "Do NOT re-run T1.3 (accepted Deviation A
+still applies)". Cycle 4 T1.4 static SQL evidence unchanged. Cycle 4
+T1.5 remains deferred to Tier 2 per accepted Deviation B. Cycle 7
+net worktree diff scoped to the four expected files inside
+`lib/features/gear/` (two rewritten, two deleted); no touch to
+off-limits files (`home/`, `shell/`, `supabase/migrations/`,
+`contributor_permissions.dart`, `band_permissions.dart`,
+`role_management_sheet.dart`, `.github/agents/*.md`, `PR_BODY.md`).
+Cycle 5 modifications (`home_tab_content.dart`, `quick_actions_row.dart`)
+and cycle 4 RBAC files preserved unchanged.
