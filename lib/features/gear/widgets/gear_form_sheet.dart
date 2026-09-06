@@ -8,10 +8,12 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_dialog.dart';
+import 'package:bandroadie/components/ui/app_switch.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/features/members/member_vm.dart';
 import 'package:bandroadie/features/members/members_controller.dart';
 import 'package:bandroadie/shared/utils/snackbar_helper.dart';
+import 'package:bandroadie/shared/widgets/currency_input_field.dart';
 
 import '../gear_controller.dart';
 import '../models/gear_item.dart';
@@ -53,7 +55,8 @@ class GearFormSheet extends ConsumerStatefulWidget {
 class _GearFormSheetState extends ConsumerState<GearFormSheet> {
   late TextEditingController _nameController;
   late TextEditingController _purchasedFromController;
-  late TextEditingController _priceController;
+  late CurrencyInputController _priceCents;
+  late TextEditingController _priceTextController;
 
   late FocusNode _nameFocus;
   late FocusNode _purchasedFromFocus;
@@ -62,6 +65,7 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
   late GearOwnerType _ownerType;
   String? _ownerUserId;
   DateTime? _purchasedOn;
+  bool _isUsed = false;
   bool _isSaving = false;
 
   bool get _isEditMode => widget.item != null;
@@ -75,10 +79,10 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
     _nameController = TextEditingController(text: item?.name ?? '');
     _purchasedFromController =
         TextEditingController(text: item?.purchasedFrom ?? '');
-    _priceController = TextEditingController(
-      text: item?.priceCents != null
-          ? (item!.priceCents! / 100).toStringAsFixed(2)
-          : '',
+    final initialCents = item?.priceCents ?? 0;
+    _priceCents = CurrencyInputController(initialCents);
+    _priceTextController = TextEditingController(
+      text: initialCents > 0 ? _formatPriceCentsDisplay(initialCents) : '',
     );
 
     _nameFocus = FocusNode();
@@ -88,6 +92,7 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
     _ownerType = item?.ownerType ?? GearOwnerType.band;
     _ownerUserId = item?.ownerUserId;
     _purchasedOn = item?.purchasedOn;
+    _isUsed = item?.isUsed ?? false;
 
     if (_ownerType == GearOwnerType.band) {
       _ownerUserId = null;
@@ -102,7 +107,8 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
 
     _nameController.dispose();
     _purchasedFromController.dispose();
-    _priceController.dispose();
+    _priceTextController.dispose();
+    _priceCents.dispose();
 
     _nameFocus.dispose();
     _purchasedFromFocus.dispose();
@@ -145,14 +151,8 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
   }
 
   int? _parsePriceCents() {
-    final raw = _priceController.text.trim();
-    if (raw.isEmpty) return null;
-
-    final normalized = raw.replaceAll(',', '');
-    final dollars = double.tryParse(normalized);
-    if (dollars == null || dollars < 0) return null;
-
-    return (dollars * 100).round();
+    final cents = _priceCents.cents;
+    return cents == 0 ? null : cents;
   }
 
   Map<String, dynamic>? _buildPayload() {
@@ -163,13 +163,6 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
     }
 
     final cents = _parsePriceCents();
-    if (_priceController.text.trim().isNotEmpty && cents == null) {
-      showErrorSnackBar(
-        context,
-        message: 'Price must be a valid non-negative amount.',
-      );
-      return null;
-    }
 
     if (_ownerType == GearOwnerType.member &&
         (_ownerUserId == null || _ownerUserId!.isEmpty)) {
@@ -188,6 +181,7 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
       'price_cents': cents,
       'owner_type': _ownerType.dbValue,
       'owner_user_id': _ownerType == GearOwnerType.member ? _ownerUserId : null,
+      'is_used': _isUsed,
     };
   }
 
@@ -342,6 +336,30 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
                   enabled: !_isReadOnly && !_isSaving,
                 ),
                 const SizedBox(height: Spacing.space16),
+                AppTextField(
+                  controller: _purchasedFromController,
+                  focusNode: _purchasedFromFocus,
+                  labelText: 'From',
+                  enabled: !_isReadOnly && !_isSaving,
+                ),
+                const SizedBox(height: Spacing.space16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Used',
+                      style: AppTextStyles.callout
+                          .copyWith(color: context.colors.textPrimary),
+                    ),
+                    AppSwitch(
+                      value: _isUsed,
+                      onChanged: _isReadOnly || _isSaving
+                          ? null
+                          : (v) => setState(() => _isUsed = v),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Spacing.space16),
                 Text(
                   'Owner',
                   style: TextStyle(
@@ -355,11 +373,11 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
                   segments: const [
                     ButtonSegment<GearOwnerType>(
                       value: GearOwnerType.band,
-                      label: Text('Band-owned'),
+                      label: Text('Band'),
                     ),
                     ButtonSegment<GearOwnerType>(
                       value: GearOwnerType.member,
-                      label: Text('Member-owned'),
+                      label: Text('Member'),
                     ),
                   ],
                   selected: <GearOwnerType>{_ownerType},
@@ -408,22 +426,15 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
                 ],
                 const SizedBox(height: Spacing.space16),
                 AppTextField(
-                  controller: _purchasedFromController,
-                  focusNode: _purchasedFromFocus,
-                  labelText: 'Purchased From',
-                  enabled: !_isReadOnly && !_isSaving,
-                ),
-                const SizedBox(height: Spacing.space16),
-                AppTextField(
-                  controller: _priceController,
+                  controller: _priceTextController,
                   focusNode: _priceFocus,
                   labelText: 'Price (USD)',
+                  hintText: '\$  0.00',
                   enabled: !_isReadOnly && !_isSaving,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: TextInputType.number,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                    FilteringTextInputFormatter.digitsOnly,
+                    _GearCurrencyFormatter(_priceCents),
                   ],
                 ),
                 const SizedBox(height: Spacing.space16),
@@ -482,6 +493,51 @@ class _GearFormSheetState extends ConsumerState<GearFormSheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// CENTS-FIRST PRICE INPUT
+// Mirrors the shared `_CurrencyInputFormatter` behavior in
+// `lib/shared/widgets/currency_input_field.dart`, but renders the display
+// shape Tony's cycle-9 spec calls for — two literal spaces between `$` and
+// the digits (e.g. `$  0.00`, `$  1.23`, `$  1,234.56`). The shared
+// formatter emits `$X.XX` without the double space, and financials' column
+// widths depend on that output, so we copy the class inline here per the
+// Cycle 9 plan's "copy the formatter class inline in gear" directive.
+// ============================================================================
+
+String _formatPriceCentsDisplay(int cents) {
+  final dollars = cents ~/ 100;
+  final centsPart = cents % 100;
+  final dollarStr = NumberFormat('#,##0').format(dollars);
+  return '\$  $dollarStr.${centsPart.toString().padLeft(2, '0')}';
+}
+
+class _GearCurrencyFormatter extends TextInputFormatter {
+  _GearCurrencyFormatter(this.controller);
+
+  final CurrencyInputController controller;
+
+  static const int _maxCents = 99999999; // $999,999.99
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) {
+      controller.cents = 0;
+      return TextEditingValue.empty;
+    }
+    final parsed = int.tryParse(digitsOnly) ?? 0;
+    controller.cents = parsed.clamp(0, _maxCents);
+    final formatted = _formatPriceCentsDisplay(controller.cents);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

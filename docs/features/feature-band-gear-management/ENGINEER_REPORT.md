@@ -10,9 +10,62 @@ Band Gear Management
 
 ## Cycle Number
 
-7
+10
 
 ## Goal
+
+Cycle 10 — In-branch UX-polish + minor-schema adjustment driven by
+Tony's cycle-9 Step 6b test finding on the current PR head: "The
+price column should be wide enough to display this number '$9,999.99'.
+Include another column in the table for 'New/Used' and in the New
+gear item, include a checkbox to denote if the item is Used. In New
+Gear Item, under Owner, use a button toggle with the labels 'Band'
+and 'Member'." Four items in scope: (1) Gear table Price column
+min-width floor at `$9,999.99` even when no visible row is that
+large; (2) new `New/Used` column between Owner and Price, backed by a
+new `is_used BOOLEAN NOT NULL DEFAULT FALSE` column on `band_gear`
+(follows the same additive-column pattern as cycle 4's
+`contributor_permissions.can_view_gear` scaffolding); (3) `Used`
+toggle in the Gear form sheet using the same `AppSwitch` shape
+`add_financial_entry_bottom_sheet.dart` uses for its
+`is_1099_expected` boolean; (4) Owner segmented control relabeled to
+`Band` / `Member` (two-segment `SegmentedButton` — the existing
+peer button-toggle widget already in this file). Cycles 8 and 9
+uncommitted work rolls forward unchanged; QA validates cycles
+8+9+10 together as one pass.
+
+Cycle 9 — In-branch UX-polish adjustment driven by Tony's cycle-8 Step 6b
+test finding on the current PR head: "In Gear, make the table column width
+for Name 50 px wider, Purchased on column should be wide enough to display
+the date without truncating, change 'Purchased From' to 'From' and make that
+50px wider. Also all currency fields should have the decimal point built in.
+The placeholder should be '$  0.00' and when typing, the first digit typed
+is displayed like this '$  0.01', and the second number entered '$  0.12'
+and the third '$  1.23' and so on." Bump Gear table Name min-width by
+50 px (140 → 190), swap `_kPurchasedOnWidth` (was 110, fixed) for a
+dynamic width computed with the same `_measureText` pattern the Price
+column already uses so the widest formatted `MMM d, y` date never
+truncates, rename `_kPurchasedFromWidth` → `_kFromWidth` (110 → 160,
++50 px), change the table header label `'Purchased From'` → `'From'`,
+and replace the Gear form-sheet Price `AppTextField` with a POS-style
+cents-first input that reuses the shared `CurrencyInputController` (int
+cents storage) and an inline `_GearCurrencyFormatter` emitting Tony's
+literal `$  0.00` / `$  0.01` / `$  0.12` / `$  1.23` / `$  1,234.56`
+shape. Form-sheet `Purchased From` label also renamed to `From` to match
+the table. Cycle 8's modal owner-filter landed on disk but was never
+QA'd — QA validates cycles 8 and 9 together as one pass. Cycles 1
+through 7 work rolls forward unchanged.
+
+Cycle 8 — In-branch UX-scope adjustment driven by Tony's cycle-7 Step 6b test
+finding on the current PR head: "I want a filter to select ownership — either
+Band or one or many band members. This filter would open a modal for the user
+to make their selections." Replace cycle 7's 3-segment owner toggle
+(`All / Band-owned / Member-owned`) with a single chip that opens a modal
+bottom-sheet multi-select. Controller state swaps `GearOwnerFilter` +
+`ownerFilter` for `Set<String> ownerSelection` — sentinel `'band'` matches
+band-owned; every other entry is a `users.id` UUID matching a specific member
+owner. Empty set = no owner filter. Cycles 1 through 7 work rolls forward
+unchanged.
 
 Cycle 7 — In-branch UX-scope adjustment driven by Tony's cycle-7 Step 6b test
 finding on the current PR head: "the gear screen should match the financials
@@ -23,7 +76,9 @@ mirror of `lib/features/financials/financials_screen.dart`, extend
 `GearDateFilter`, `customStartDate`, `customEndDate`, `filteredItems`) and
 notifier methods (`setOwnerFilter`, `setDateFilter`, `setCustomDateRange`),
 delete `widgets/gear_row.dart` and `widgets/gear_empty_state.dart` and
-inline both into the screen file (financials' precedent shape). Cycle 1
+inline both into the screen file (financials' precedent shape). Cycle 8
+supersedes the owner-filter portion (`GearOwnerFilter` enum + toggle +
+`setOwnerFilter` are removed; see the Cycle 8 section below). Cycle 1
 through 6 work rolls forward unchanged.
 
 Cycle 6 — In-branch revert-only cycle driven by Tony's cycle-5 QA-APPROVED
@@ -49,10 +104,42 @@ implementation work is unchanged and rolls forward as-is.
 
 ## Architect Tasks Completed
 
-Cycle 7 (this cycle) — in-branch UX-scope adjustment, no new architect tasks:
+Cycle 10 (this cycle) — in-branch UX-polish + additive-column schema
+change, no new architect tasks:
+
+- Cycle 10 price min-width + New/Used column + Owner Band/Member
+  toggle + Used form-sheet checkbox: Executed. See the "Cycle 10
+  revision" dedicated section below for the four items. The `is_used`
+  column added to `band_gear` is documented explicitly as a new
+  in-branch scope addition beyond the original `ARCHITECT_PLAN.md`;
+  it follows the same additive-column pattern as cycle-4's
+  `contributor_permissions.can_view_gear` scaffolding
+  ([supabase/migrations/20260906120000_add_can_view_gear_to_contributor_permissions.sql](../../../supabase/migrations/20260906120000_add_can_view_gear_to_contributor_permissions.sql)).
+
+Cycle 9 (previous cycle) — in-branch UX-polish adjustment, no new architect tasks:
+
+- Cycle 9 column-width polish + cents-first price input: Executed. See
+  the "Cycle 9 revision" dedicated section below for the five items
+  (Name +50 px min, Purchased On dynamic, From label + 50 px, cents-first
+  price input, validation compatibility). Reuses the shared
+  `CurrencyInputController` for int-cents state and copies the POS-style
+  formatter inline in `gear_form_sheet.dart` under a distinct display
+  format so financials' column widths are not disturbed.
+
+Cycle 8 — in-branch UX-scope adjustment, no new architect tasks (landed on
+disk in the cycle-8 pass, rolled into cycle 9's QA gate since cycle 8 was
+never QA'd on its own):
+
+- Cycle 8 owner-filter modal multi-select: Executed. Replaces (not extends)
+  cycle 7's `GearOwnerFilter` enum + `_OwnerFilterToggle`. See the
+  "Cycle 8+9 combined" Files Modified block below.
+
+Cycle 7 — in-branch UX-scope adjustment, no new architect tasks:
 
 - Cycle 7 Financials-parity rewrite (Gear screen table + filters): Executed.
-  See dedicated section below.
+  See dedicated section below. The 3-segment `_OwnerFilterToggle` shipped
+  in cycle 7 is removed in cycle 8; the table + date filters + entries
+  list + empty/error states from cycle 7 roll forward unchanged.
 
 Cycle 6 — revert-only, no new architect tasks:
 
@@ -135,6 +222,10 @@ Inherited from cycle-3 uncommitted work (unchanged this cycle):
 
 ## Files Created
 
+Cycle 10 (new this cycle):
+
+- supabase/migrations/20260906160214_add_is_used_to_band_gear.sql
+
 Cycle 7: none.
 
 Cycle 5: none.
@@ -159,6 +250,194 @@ Inherited from cycle-3 uncommitted work (byte-identical to cycle 3):
 - docs/features/feature-band-gear-management/ENGINEER_REPORT.md
 
 ## Files Modified
+
+Cycle 10 (new this cycle) — price min-width floor, New/Used column
+(client + schema), Used form-sheet checkbox, and Owner Band/Member
+relabel:
+
+- lib/features/gear/gear_screen.dart — **Item 1**: after the existing
+  max-scan loop over the visible rows' formatted prices in
+  `_GearEntriesList.build`, added a fixed minimum so the Price column
+  always fits `$9,999.99` even when no visible row is that large —
+  `final minPriceWidth = _measureText('\$9,999.99', priceDataStyle);
+  if (minPriceWidth > maxPricePx) maxPricePx = minPriceWidth;`
+  — same style variable name (`priceDataStyle`) and same +16 padding
+  buffer already applied downstream (`final priceColumnWidth =
+  maxPricePx + 16;`). **Item 2 (table column)**: added
+  `const _kNewUsedWidth = 72.0;` (compile-time const upper end of the
+  Manager-specified 64–72 px range; fits `'Used'` at
+  `AppTextStyles.callout` with buffer), included it in
+  `_kFixedColumnsWidth` so the min-width calc reserves the new column
+  space (`const _kFixedColumnsWidth = _kFromWidth + _kOwnerWidth +
+_kNewUsedWidth;`), added a `_HeaderCell('New/Used', borderSide:
+borderSide)` header cell between the Owner and Price header cells,
+  and added a matching row cell rendering `item.isUsed ? 'Used' :
+'New'` at the same `AppTextStyles.callout` shape as the peer Owner
+  cell (left-aligned, single-line ellipsis). No cycle-8 modal owner
+  filter, cycle-9 dynamic Purchased On width, or cycle-9 From label
+  change is touched.
+
+- lib/features/gear/models/gear_item.dart — **Item 2 (model)**: added
+  `final bool isUsed` field to `GearItem` with `this.isUsed = false`
+  default in the constructor, `isUsed: (json['is_used'] as bool?) ??
+false` null-safe read in `fromJson`, and `'is_used': isUsed` write in
+  `toJson`. Owner-shape invariant assert and `owner_type` /
+  `owner_user_id` handling unchanged. `GearItem` has no `copyWith`
+  method today, so there is nothing to wire `isUsed` into on that
+  vector — see Deviations From Plan below for the intentional
+  omission.
+
+- lib/features/gear/widgets/gear_form_sheet.dart — **Item 3**: added
+  `import 'package:bandroadie/components/ui/app_switch.dart';`, added
+  `bool _isUsed = false;` state field to `_GearFormSheetState`,
+  seeded `_isUsed = item?.isUsed ?? false;` in `initState` (edit mode
+  pre-populates the switch from the existing item), added a
+  `MainAxisAlignment.spaceBetween` `Row` with a `Text('Used', style:
+AppTextStyles.callout.copyWith(color: context.colors.textPrimary))`
+  on the left and an `AppSwitch(value: _isUsed, onChanged: _isReadOnly
+|| _isSaving ? null : (v) => setState(() => _isUsed = v))` on the
+  right — identical shape to the `is_1099_expected` toggle in
+  `add_financial_entry_bottom_sheet.dart:717–725`. The Used row is
+  placed "right after the `From` field, before the Owner control"
+  per Manager Item 3 spec; the pre-cycle-10 form order was
+  Name → Owner → From → Price → Purchased On, so satisfying that
+  placement rule requires moving the `From` field up to sit
+  immediately after `Name`. New form-sheet visual + source order:
+  Name → From → Used → Owner (+ optional Member picker) → Price →
+  Purchased On. **Item 4**: relabeled the existing
+  `SegmentedButton<GearOwnerType>` segments — `'Band-owned'` →
+  `'Band'` and `'Member-owned'` → `'Member'`. Widget unchanged
+  (`SegmentedButton` is a Material two-segment button toggle and is
+  already the peer button-toggle widget used in this file);
+  `_ownerType` state, `_ownerUserId` state, the member-picker
+  conditional (`if (_ownerType == GearOwnerType.member) ...`), the
+  `_activeMembers()` source, and the form-side "member requires a
+  selected member" validation in `_buildPayload` are all unchanged.
+  `_buildPayload` extended with `'is_used': _isUsed` — so `is_used`
+  flows into the same `Map<String, dynamic>` the repository already
+  pass-throughs, and no repository-file edit is needed.
+
+- test/features/gear/gear_item_test.dart — **Item 2 (model tests)**:
+  extended the two existing `fromJson/toJson` round-trip tests to
+  cover `is_used = true` (band-owned test) and `is_used = false`
+  (member-owned test), and added a third new test
+  `'fromJson defaults isUsed to false when is_used key is missing'`
+  that constructs a source `Map` with no `is_used` key, verifies
+  `item.isUsed == false`, and verifies `toJson()['is_used'] ==
+false`. Total tests grow from 5 to 6.
+
+- lib/features/gear/gear_repository.dart — **no edit needed**. The
+  repo's `createGear({required String bandId, required Map<String,
+dynamic> data})` and `updateGear({required String id, required
+Map<String, dynamic> data})` methods take the payload as a
+  `Map<String, dynamic>` pass-through and unpack every key in the
+  map into the Supabase insert / update. `is_used` is added to the
+  payload map by `_buildPayload` in the form sheet (see above) and
+  flows through the repo unchanged. The cache-layer round-trip is
+  unchanged shape-wise, matching Manager Item 2's directive: "The
+  cache-layer round-trip is unchanged shape-wise."
+
+Cycle 8+9 combined (previous cycle) — modal owner filter (cycle 8, landed on
+disk without a QA pass) + Gear table column-width polish and cents-first
+price input (cycle 9). Rolled together per Manager cycle-9 instruction so
+QA validates both as a single evidence set:
+
+- lib/features/gear/gear_controller.dart — **cycle 8**. Replaced the
+  cycle-7 `GearOwnerFilter` enum + `ownerFilter` field with
+  `Set<String> ownerSelection` (default `const <String>{}`) whose
+  sentinel `'band'` matches band-owned items and every other entry is a
+  `users.id` UUID matching a specific member-owned item's `ownerUserId`.
+  `filteredItems` was rewritten to consult `ownerSelection` (empty set =
+  no owner filter). `copyWith` extended with `Set<String>? ownerSelection`.
+  Notifier methods: added `setOwnerSelection(Set<String>)` (wraps in
+  `Set<String>.unmodifiable`) and `clearOwnerSelection()`; removed the
+  cycle-7 `setOwnerFilter(GearOwnerFilter)`. No change to load / refresh /
+  create / update / delete / reset / date-filter methods. No cycle 9 edit
+  needed in this file.
+- lib/features/gear/gear_screen.dart — **cycle 8** replaced
+  `_OwnerFilterToggle` (3-segment segmented control) with a single
+  `_FilterChip` inline at the front of `_FilterRow`, whose label is
+  `_ownerChipLabel(state.ownerSelection, members)` (returns `'Owner'`
+  when empty, `'Band'` or a member short label when one entry, `'N
+  owners selected'` for 2+), and whose `onTap` opens
+  `_openOwnerFilterModal()`. `_openOwnerFilterModal()` presents a full
+  `showModalBottomSheet<Set<String>>` sheet (`_OwnerFilterModal` — a
+  `ConsumerStatefulWidget`) with a drag handle, header, a Band
+  `CheckboxListTile`, an active-members list of `CheckboxListTile`s, and
+  a bottom row of Clear + Done `AppButton`s; selection is staged locally
+  in `_pending` and committed to the controller only on Done (swipe-
+  dismiss discards changes). **cycle 9** column widths + labels: bumped
+  `_kMinNameWidth` `140.0` → `190.0` (adds 50 px to the Name column's
+  min-width contribution so horizontal scroll kicks in 50 px earlier on
+  the narrowest supported screens); dropped the fixed
+  `const _kPurchasedOnWidth = 110.0` constant and replaced it with a
+  dynamically-computed `purchasedOnColumnWidth` inside
+  `_GearEntriesList.build` that measures the widest `MMM d, y` label
+  across all rows at the row's `AppTextStyles.callout` style (plus the
+  header `'Purchased On'` at `AppTextStyles.footnote` w600 letterSpacing
+  0.5) and adds a 16 px padding buffer — the identical `_measureText`
+  pattern the Price column already uses in this file, matched to the
+  shape financials uses for its Amount column; renamed
+  `_kPurchasedFromWidth` (`110.0`) → `_kFromWidth` (`160.0`, +50 px) so
+  the From column is 50 px wider; changed the `_TableHeader` cell label
+  `'Purchased From'` → `'From'`. `_TableHeader` and `_GearTableRow` both
+  gained a `purchasedOnColumnWidth` required parameter alongside the
+  existing `priceColumnWidth`; the Purchased On row cell also switched
+  from `overflow: TextOverflow.ellipsis` to
+  `softWrap: false, overflow: TextOverflow.visible` (dynamic width
+  guarantees fit, so ellipsis is unreachable and would round-clip a
+  measured-fit cell if hit). `_kFixedColumnsWidth` recomputed as
+  `_kFromWidth + _kOwnerWidth`. Owner column width (`_kOwnerWidth =
+  110.0`) unchanged. No API change to `GearFormSheet.show(...)`; no new
+  provider; no new named route.
+- lib/features/gear/widgets/gear_form_sheet.dart — **cycle 9** cents-first
+  price input + "From" label. Added import
+  `package:bandroadie/shared/widgets/currency_input_field.dart` so this
+  file can reuse the same `CurrencyInputController` (int-cents
+  `ValueNotifier<int>`) that financials' `add_financial_entry_bottom_sheet.dart`
+  uses for its `amountCents` field — keeping Gear's `price_cents` field
+  and financials' `amount_cents` field on the same in-memory storage
+  convention. Field declarations: replaced
+  `late TextEditingController _priceController` with two fields —
+  `late CurrencyInputController _priceCents` (int cents state) and
+  `late TextEditingController _priceTextController` (AppTextField display
+  text). `initState` now seeds `_priceCents` from `item?.priceCents ?? 0`
+  and seeds `_priceTextController.text` to
+  `_formatPriceCentsDisplay(initialCents)` when `initialCents > 0`
+  (existing item with a saved price renders `$  X.YZ` immediately on
+  open) or `''` when zero/null (placeholder `$  0.00` shows via
+  `hintText`). `dispose` disposes `_priceTextController` and
+  `_priceCents` (dispose order preserved: unfocus all, dispose text
+  controllers + cents notifier, dispose focus nodes, super.dispose).
+  Price `AppTextField` swapped to `controller: _priceTextController`,
+  `keyboardType: TextInputType.number`, `hintText: '\$  0.00'`,
+  `inputFormatters: [FilteringTextInputFormatter.digitsOnly,
+_GearCurrencyFormatter(_priceCents)]` — all non-digit keystrokes are
+  silently rejected, digits POS-shift into cents from the right, and
+  backspace divides by 10 (drops the rightmost cent digit) per Tony's
+  spec. Purchased From `AppTextField` `labelText` renamed
+  `'Purchased From'` → `'From'` to match the gear table header. Legacy
+  `_parsePriceCents()` body (`double.tryParse` → `* 100`.round()) removed;
+  new `_parsePriceCents()` returns `_priceCents.cents == 0 ? null :
+_priceCents.cents` — preserves the cycle-3 optional-price contract
+  (empty → `null` in payload, valid non-zero → int cents), which keeps
+  the existing form-sheet validation state working unchanged. The
+  "Price must be a valid non-negative amount" snackbar path is removed
+  because the new formatter guarantees a valid non-negative int at all
+  times (no free-text price paths remain). File-local additions:
+  `_formatPriceCentsDisplay(int cents)` (renders `$  X.YZ` with
+  `NumberFormat('#,##0')` thousands-grouping on dollars, reusing the
+  existing `intl` import already in the file) and
+  `_GearCurrencyFormatter extends TextInputFormatter` (mirrors the
+  private `_CurrencyInputFormatter` in
+  `lib/shared/widgets/currency_input_field.dart` line-for-line except
+  it calls `_formatPriceCentsDisplay` instead of
+  `controller.formattedValue` so the double-space display shape doesn't
+  bleed into financials — `TextEditingValue.empty` used for the empty
+  state to keep the redundant-argument-values lint clean).
+  No change to `_buildPayload`'s `owner_type` / `owner_user_id` /
+  `purchased_on` / `purchased_from` / `name` handling; `price_cents`
+  is now sourced from `_priceCents.cents` (mapped 0 → null).
 
 Cycle 7 (new this cycle) — Financials-parity rewrite:
 
@@ -325,7 +604,255 @@ Pre-delete usage audit: `grep_search "GearRow|GearEmptyState"` on
 consumers inside `gear_screen.dart`. No other file imports either
 widget; deletion is safe.
 
-## Cycle 7 revision — Gear screen table + filters (Financials parity)
+## Cycle 10 revision — New/Used column + Band/Member owner toggle + price min width
+
+**Trigger.** Tony's cycle-9 Step 6b test finding on the current PR
+head: "The price column should be wide enough to display this number
+'$9,999.99'. Include another column in the table for 'New/Used' and
+in the New gear item, include a checkbox to denote if the item is
+Used. In New Gear Item, under Owner, use a button toggle with the
+labels 'Band' and 'Member'." Manager cycle-10 note authorized this as
+an in-branch UX-polish + minor-additive-schema adjustment with all
+product decisions pre-made and enumerated four required items in
+scope.
+
+**Scope classification.** Mostly in-branch UX-polish adjustment vs
+the cycle-9 uncommitted PR head, with one minor additive schema
+change: a new `is_used BOOLEAN NOT NULL DEFAULT FALSE` column on
+`public.band_gear`. This column is a new in-branch scope addition
+beyond the original `ARCHITECT_PLAN.md` (the base plan's table shape
+in `20260905201000_create_band_gear.sql` does not include it), and
+follows the same additive-column pattern cycle 4 used to add
+`can_view_gear` to `contributor_permissions`
+([supabase/migrations/20260906120000_add_can_view_gear_to_contributor_permissions.sql](../../../supabase/migrations/20260906120000_add_can_view_gear_to_contributor_permissions.sql))
+— same one-statement `ALTER TABLE public.‹tbl› ADD COLUMN IF NOT
+EXISTS ‹col› BOOLEAN NOT NULL DEFAULT FALSE;` shape, same fail-closed
+default. The migration touches zero policies, zero triggers, zero
+helper functions. No new architectural churn (no new provider, no new
+named route, no new dependency, no new `SECURITY DEFINER` function,
+no new RLS policy).
+
+**Cycles 8 and 9 work rolled forward.** Cycles 8 (modal owner filter)
+and 9 (column-width polish + cents-first price input) landed on disk
+but have not been QA'd on their own passes. Cycle 10 keeps their disk
+state intact and rolls both forward under the cycle-10 QA gate — QA
+validates cycles 8+9+10 evidence together as one pass (see **Files
+Modified → Cycle 10** for the pure cycle-10 diff on top of that
+rolled state).
+
+### Task breakdown (4 items)
+
+**Item 1 — Price column min-width floor at `$9,999.99`.** In
+`lib/features/gear/gear_screen.dart` inside `_GearEntriesList.build`
+the Price column width is computed dynamically by scanning every
+visible row's formatted price via `_measureText` and taking the max
+against the `'Price'` header text. The bug Tony hit: when the current
+filter yields no row ≥ `$9,999.99`, the column shrinks below what's
+needed to render that placeholder-magnitude number. Fix: after the
+existing max-scan loop, added a fixed minimum —
+
+```dart
+final minPriceWidth = _measureText('\$9,999.99', priceDataStyle);
+if (minPriceWidth > maxPricePx) maxPricePx = minPriceWidth;
+```
+
+— same `priceDataStyle` local (`AppTextStyles.callout.copyWith(fontWeight:
+FontWeight.w600)`) already used by the max-scan loop, and the
+existing `+16` padding buffer at `final priceColumnWidth = maxPricePx
++ 16;` is preserved. Every other block in this file is untouched by
+Item 1.
+
+**Item 2 — New/Used column (client + schema).**
+
+- **Migration.** New file
+  `supabase/migrations/20260906160214_add_is_used_to_band_gear.sql`
+  with a single `ALTER TABLE public.band_gear ADD COLUMN IF NOT
+EXISTS is_used BOOLEAN NOT NULL DEFAULT FALSE;` statement plus a
+  three-line comment header (`Migration: Add is_used to band_gear` /
+  date / branch). Direct byte-for-shape mirror of
+  `supabase/migrations/20260906120000_add_can_view_gear_to_contributor_permissions.sql`
+  (verified via structural `diff -u`; the only differences are the
+  table name `contributor_permissions` → `band_gear` and the column
+  name `can_view_gear` → `is_used`). Fail-closed default (`FALSE`
+  = New) mirrors the `can_view_gear` precedent — no client can accidentally
+  mark a gear item Used simply by omitting the field. Zero touches to
+  RLS policies, triggers, or helper functions (T1.4 grep counts
+  captured below in the T1.4 evidence section).
+
+- **Model.** Added `final bool isUsed` field (default `false`) to
+  `GearItem` in `lib/features/gear/models/gear_item.dart`, wired
+  through the constructor (`this.isUsed = false,`), `fromJson`
+  (`isUsed: (json['is_used'] as bool?) ?? false,`) with null-safe
+  read that defaults to `false` when the `is_used` key is absent from
+  the incoming payload, and `toJson` (`'is_used': isUsed,`). Owner
+  shape invariant assert unchanged; `owner_type` / `owner_user_id` /
+  `band_gear_owner_shape` handling unchanged. `GearItem` currently
+  has no `copyWith` method and no consumer calls a `.copyWith(...)`
+  on a `GearItem` instance anywhere in the codebase; adding one
+  solely to wire `isUsed` when nothing reads it would violate the
+  Engineer-mode anti-bloat guardrail ("A new model field, parameter,
+  or `copyWith` entry nothing reads"). See Deviations From Plan for
+  the intentional omission of the `copyWith` vector.
+
+- **Repository.** No edit. `lib/features/gear/gear_repository.dart`'s
+  `createGear` and `updateGear` methods take a `Map<String, dynamic>
+data` payload and unpack every key into the Supabase insert /
+  update; `is_used` flows through unchanged now that the form-sheet
+  payload includes it. This matches Manager Item 2's own directive
+  "The cache-layer round-trip is unchanged shape-wise."
+
+- **Table column.** In `_GearEntriesList.build` / `_TableHeader` /
+  `_GearTableRow` (`gear_screen.dart`):
+  - Added `const _kNewUsedWidth = 72.0;` — compile-time const at the
+    upper end of Manager's 64–72 px range. Fits the widest of `'New'`
+    / `'Used'` at `AppTextStyles.callout` weight with the same +16
+    px buffer other fixed columns use in this file. Chose 72 (over
+    64–68) for a small safety margin on device-font-size overrides
+    without pushing horizontal scroll boundary noticeably.
+  - Included the new column in `_kFixedColumnsWidth` so the min-width
+    calc reserves space for it:
+    `const _kFixedColumnsWidth = _kFromWidth + _kOwnerWidth + _kNewUsedWidth;`.
+  - Added a `SizedBox(width: _kNewUsedWidth, child: _HeaderCell(
+    'New/Used', borderSide: borderSide))` header cell between the
+    Owner and Price header cells in `_TableHeader.build`.
+  - Added a matching row cell in `_GearTableRow.build` between the
+    Owner cell and the Price cell, rendering `item.isUsed ? 'Used' :
+    'New'` at `AppTextStyles.callout` with
+    `context.colors.textSecondary` (identical style to the peer
+    Owner cell), left-aligned, `maxLines: 1`, `overflow:
+    TextOverflow.ellipsis`. Border side matches the other columns.
+
+- **Model tests.** Extended
+  `test/features/gear/gear_item_test.dart` with the three round-trip
+  cases Manager specified: (a) `is_used = true` in the band-owned
+  test source map, verifying `item.isUsed == true` and `json['is_used']
+== true`; (b) `is_used = false` in the member-owned test source
+  map, verifying `item.isUsed == false` and `json['is_used'] ==
+  false`; (c) a new test
+  `'fromJson defaults isUsed to false when is_used key is missing'`
+  that constructs a source `Map` without any `is_used` key,
+  constructs a `GearItem` via `GearItem.fromJson(source)`, and
+  verifies both `item.isUsed == false` and
+  `item.toJson()['is_used'] == false` — exercises the null-safe read
+  path in `fromJson`. Total tests grow from 5 to 6.
+
+**Item 3 — Used checkbox in the New / Edit Gear Item form.** In
+`lib/features/gear/widgets/gear_form_sheet.dart`:
+
+- Added `import 'package:bandroadie/components/ui/app_switch.dart';`.
+- Added `bool _isUsed = false;` state field to `_GearFormSheetState`.
+- Seeded `_isUsed = item?.isUsed ?? false;` in `initState`; in edit
+  mode the switch pre-populates from the existing item's persisted
+  value (Manager Item 3 spec: "Load-with-existing-value: when the
+  sheet opens in edit mode with an existing `GearItem`, the checkbox
+  pre-populates from `item.isUsed`").
+- Rendered as a `Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+children: [Text('Used', style: AppTextStyles.callout.copyWith(color:
+context.colors.textPrimary)), AppSwitch(value: _isUsed, onChanged:
+_isReadOnly || _isSaving ? null : (v) => setState(() => _isUsed =
+v))])` block. Widget shape is a byte-for-shape match to the
+  `is_1099_expected` toggle in
+  `add_financial_entry_bottom_sheet.dart:717–725` — same `Row +
+  MainAxisAlignment.spaceBetween`, same `Text(callout)` on the left,
+  same `AppSwitch(value, onChanged)` on the right, same disable-on-
+  saving / disable-on-read-only guard shape.
+- **Placement note.** Manager Item 3 spec: "Placement: right after
+  the `From` field, before the Owner control." The pre-cycle-10
+  form-sheet order was Name → Owner → (optional Member picker) →
+  From → Price → Purchased On — satisfying the specified placement
+  requires moving the `From` field up so it sits immediately after
+  `Name`, then inserting `Used` after `From` and before `Owner`.
+  The new visual + source order is Name → From → Used → Owner (+
+  optional Member picker) → Price → Purchased On. The reorder is
+  a source-block move only — controllers, focus nodes, state, and
+  payload logic for each field are unchanged; only the SizedBox
+  spacers and the field blocks themselves shift.
+- `_buildPayload()` extended with `'is_used': _isUsed`. All other
+  payload keys (`name`, `purchased_on`, `purchased_from`,
+  `price_cents`, `owner_type`, `owner_user_id`) unchanged.
+
+**Item 4 — Owner control as Band/Member button toggle.** In
+`lib/features/gear/widgets/gear_form_sheet.dart`, relabeled the two
+existing `ButtonSegment<GearOwnerType>` labels in the existing
+`SegmentedButton<GearOwnerType>`:
+
+- `'Band-owned'` → `'Band'`
+- `'Member-owned'` → `'Member'`
+
+Did **not** replace the `SegmentedButton` widget itself, per
+Manager Item 4's directive "use whichever button-toggle widget the
+codebase already uses in similar form contexts — grep for
+`SegmentedButton`, `ToggleButtons`, `CupertinoSegmentedControl`, or
+any project-local `_ButtonToggle`/`_SegmentedToggle` widget first,
+and reuse the same shape." and "Do NOT introduce a new custom toggle
+widget if a peer already exists." `SegmentedButton` is Flutter's
+built-in Material two-segment button toggle and is already the peer
+widget used in this exact file (from cycle 3). `_SegmentedToggle` in
+`lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`
+is a private (`_`-prefixed) file-local widget in that file and
+cannot be reused directly from `gear_form_sheet.dart` without
+extracting it into a shared component (which Manager did not
+authorize as scope for a cycle-10 UX-polish pass).
+`lib/components/ui/segmented_button_group.dart`'s
+`SegmentedButtonGroup` is a display-only "label above value"
+component without any selection-state concept and is not
+appropriate for a discrete choice like Band/Member. Keeping
+`SegmentedButton` gives the minimum-diff satisfaction of Tony's
+"button toggle with the labels 'Band' and 'Member'" — the widget
+content is unchanged; only the two segment labels change.
+
+Owner-picker semantics unchanged: selecting `Band` clears
+`_ownerUserId` (`if (_ownerType == GearOwnerType.band) { _ownerUserId
+= null; }` fires inside the `onSelectionChanged` handler as before),
+and the `_buildPayload` write path emits `'owner_user_id':
+_ownerType == GearOwnerType.member ? _ownerUserId : null`. Selecting
+`Member` reveals the existing member `DropdownButtonFormField<String>`
+under the `if (_ownerType == GearOwnerType.member) ...` conditional
+— verified reads from `_activeMembers()` → `membersProvider` with
+the existing `status == 'active'` filter. The form-side "member
+requires a selected member" validation in `_buildPayload`
+(`showErrorSnackBar(context, message: 'Select a member when
+ownership is set to member.')`) is unchanged. The DB
+`band_gear_owner_shape` CHECK constraint from
+`20260905201000_create_band_gear.sql` is unchanged.
+
+**Off-limits list respected.** Cycle 10 touched only files inside
+`lib/features/gear/`, `test/features/gear/`, and
+`supabase/migrations/` — plus this doc report. No touch to
+`lib/features/home/`, `lib/features/shell/`,
+`contributor_permissions.dart`, `band_permissions.dart`,
+`role_management_sheet.dart`, `.github/agents/*.md`, `PR_BODY.md`,
+or `lib/shared/widgets/currency_input_field.dart` — matches the
+Manager cycle-10 note's off-limits list byte-for-byte.
+
+## Cycle 9 revision — column-width polish + cents-first price input
+
+**Trigger.** Tony's cycle-8 Step 6b test finding on the current PR head:
+"In Gear, make the table column width for Name 50 px wider, Purchased
+on column should be wide enough to display the date without truncating,
+change 'Purchased From' to 'From' and make that 50px wider. Also all
+currency fields should have the decimal point built in. The placeholder
+should be '$  0.00' and when typing, the first digit typed is displayed
+like this '$  0.01', and the second number entered '$  0.12' and the
+third '$  1.23' and so on." Manager cycle-9 note authorized this as an
+in-branch UX-polish adjustment with all product decisions pre-made and
+enumerated five required items in scope.
+
+**Scope classification.** In-branch UX-polish adjustment vs the cycle-8
+uncommitted PR head. No new architect decisions surfaced. No product /
+UX choice the plan didn't anticipate. No architectural churn (no new
+provider, no new named route, no new dependency, no new DB column, no
+new migration, no JSON serialization change, no `GearItem` core-field
+change, no rename of any DB column or Dart field \u2014 only the UI-visible
+label `'Purchased From'` \u2192 `'From'` changed).
+
+**Cycle 8 work rolled forward.** Cycle 8 landed the modal owner filter
+on disk (`Set<String> ownerSelection` on `GearNotifier`,
+`showModalBottomSheet<Set<String>>` in `gear_screen.dart`,
+`_OwnerFilterModal` widget, `_ownerChipLabel` helper) but the pipeline
+never called QA on cycle 8 as its own pass. Cycle 9 keeps cycle 8's
+disk state intact and rolls it forward under the cycle-9 QA gate \u2014
+QA validates both cycles' evidence together (see **Files Modified \u2192\nCycle 8+9 combined** and **Analyzer Results \u2192 Cycle 9 T1.1**).\n\n### Task breakdown (5 items)\n\n**Item 1 \u2014 Name column +50 px min width.** In\n`lib/features/gear/gear_screen.dart` bumped `_kMinNameWidth = 140.0`\n\u2192 `_kMinNameWidth = 190.0`. The Name column stays `Expanded` on wide\nscreens (unchanged `Expanded` semantics per Manager instruction); on\nthe narrowest supported screens where `constraints.maxWidth < minWidth`,\nthe extra 50 px pushes horizontal scroll to kick in 50 px earlier and\nlets Name occupy the extra reserved space. Matches the shape\nfinancials uses to shape its Category column (fixed contribution to\nthe min-width calc for a column that's `Expanded` on wide screens).\n\n**Item 2 \u2014 Purchased On column, dynamic width matching Price.** Dropped\nthe fixed `const _kPurchasedOnWidth = 110.0` constant. Replaced with a\ndynamically-computed `purchasedOnColumnWidth` inside\n`_GearEntriesList.build` using the identical `_measureText` block the\nPrice column already uses:\n\n```dart\ndouble maxPurchasedOnPx = _measureText('Purchased On', headerStyle);\nfor (final item in items) {\n  if (item.purchasedOn == null) continue;\n  final label = DateFormat('MMM d, y').format(item.purchasedOn!);\n  final w = _measureText(label, AppTextStyles.callout);\n  if (w > maxPurchasedOnPx) maxPurchasedOnPx = w;\n}\nfinal purchasedOnColumnWidth = maxPurchasedOnPx + 16;\n```\n\nMirrors\n[`lib/features/financials/financials_screen.dart` \u00a7\\_EntriesList](../../../lib/features/financials/financials_screen.dart)\nlines 668\u2013679 shape-for-shape. The 16 px buffer (`+16`) matches\nfinancials' exact buffer: `4 px cell padding \u00d7 2 sides + 8 px extra\nsafety margin`. Header style shared with the Price column\ncomputation via a new local `headerStyle` variable (previously\n`priceHeaderStyle`, renamed since both columns now consume it \u2014\nlocal variable, no API change). `_TableHeader` and `_GearTableRow`\nboth gained a required `purchasedOnColumnWidth` parameter alongside\nthe existing `priceColumnWidth`; the Purchased On row cell also\nswitched from `overflow: TextOverflow.ellipsis` to\n`softWrap: false, overflow: TextOverflow.visible` (dynamic width\nguarantees fit at all times, so ellipsis is unreachable and would only\nfire as a false-positive round-clip on a measured-fit cell).\n\n**Item 3 \u2014 \"Purchased From\" \u2192 \"From\" (+50 px wider).** Renamed the\nconstant `_kPurchasedFromWidth = 110.0` \u2192 `_kFromWidth = 160.0`\n(+50 px). Changed the `_TableHeader` cell label\n`_HeaderCell('Purchased From', ...)` \u2192 `_HeaderCell('From', ...)`.\nUpdated all references in `_GearTableRow` (`_kPurchasedFromWidth`\n\u2192 `_kFromWidth`). Updated the `_kFixedColumnsWidth` computation to\n`_kFromWidth + _kOwnerWidth` (no longer includes `_kPurchasedOnWidth`,\nwhich is now dynamic). Also renamed the form-sheet `AppTextField`\n`labelText: 'Purchased From'` \u2192 `labelText: 'From'` to keep the\nform label in sync with the table header. The underlying database\ncolumn `band_gear.purchased_from` and the Dart field\n`GearItem.purchasedFrom` are **not** renamed \u2014 UI label change only,\nas Manager instructed.\n\n**Item 4 \u2014 Cents-first price input.** Replaced the free-text\n`AppTextField` for Price in\n`lib/features/gear/widgets/gear_form_sheet.dart` with a POS-style\nformatter that reuses the shared `CurrencyInputController` (int-cents\nstorage) from `lib/shared/widgets/currency_input_field.dart`. New\nfield declarations:\n\n```dart\nlate CurrencyInputController _priceCents;\nlate TextEditingController _priceTextController;\n```\n\nSeeded in `initState` from `item?.priceCents ?? 0`:\n\n```dart\nfinal initialCents = item?.priceCents ?? 0;\n_priceCents = CurrencyInputController(initialCents);\n_priceTextController = TextEditingController(\n  text: initialCents > 0 ? _formatPriceCentsDisplay(initialCents) : '',\n);\n```\n\nEdit mode with an existing `priceCents` (> 0) renders `$  X.YZ`\nimmediately on open; empty state (0 or null) renders the placeholder\n`$  0.00` via `hintText`. The Price `AppTextField` now uses\n`keyboardType: TextInputType.number`,\n`hintText: '\\$  0.00'`, and\n`inputFormatters: [FilteringTextInputFormatter.digitsOnly,\n_GearCurrencyFormatter(_priceCents)]` \u2014 non-digit keystrokes are\nsilently rejected, and every digit shifts cents left. Backspace shifts\nright (divides by 10, drops the rightmost cent digit) per Tony's spec.\n\n`_GearCurrencyFormatter` is copied inline into `gear_form_sheet.dart`\nrather than reusing the shared `_CurrencyInputFormatter` because the\nshared class is `_`-private inside\n`lib/shared/widgets/currency_input_field.dart` and emits `$X.XX`\n(no double space) \u2014 financials' Amount column widths are calibrated\nagainst that exact output, and changing the shared display shape\nwould visibly shift financials' `_measureText` results. The Cycle 9\nplan explicitly authorizes this copy pattern: *\"copy the formatter\nclass inline in gear if financials keeps it private.\"* The copy\ndiffers from the shared class in exactly one respect \u2014 it calls the\nnew file-private helper\n\n```dart\nString _formatPriceCentsDisplay(int cents) {\n  final dollars = cents ~/ 100;\n  final centsPart = cents % 100;\n  final dollarStr = NumberFormat('#,##0').format(dollars);\n  return '\\$  $dollarStr.${centsPart.toString().padLeft(2, '0')}';\n}\n```\n\ninstead of `controller.formattedValue`. Digit-to-display trace matches\nTony's spec exactly:\n\n| Input digits | `_priceCents.cents` | Displayed |\n|--------------|---------------------|-----------|\n| (empty)      | 0                   | (placeholder `$  0.00`) |\n| `1`          | 1                   | `$  0.01` |\n| `12`         | 12                  | `$  0.12` |\n| `123`        | 123                 | `$  1.23` |\n| `1234`       | 1234                | `$  12.34` |\n| `12345`      | 12345               | `$  123.45` |\n| `123456`     | 123456              | `$  1,234.56` |\n| `1234567`    | 1234567             | `$  12,345.67` |\n\n**Item 5 \u2014 Validation compatibility.** The cycle-3 form validation\ncontract keeps working unchanged. Empty state (0 cents) is treated as\nno-price and maps to `null` in the payload:\n\n```dart\nint? _parsePriceCents() {\n  final cents = _priceCents.cents;\n  return cents == 0 ? null : cents;\n}\n```\n\nThe old \"Price must be a valid non-negative amount\" snackbar branch is\nremoved \u2014 the new formatter guarantees a valid non-negative int at all\ntimes (no free-text price path can produce an invalid value), so that\ncheck is now unreachable. Required/optional status of the field is\nunchanged (still optional). Save writes the int (or `null`) directly to\nthe payload's `price_cents` key. Load in edit mode with existing\n`priceCents` correctly renders `$  X.YZ`; load with `null` renders the\nplaceholder.\n\n### Files touched (Cycle 9)\n\n- `lib/features/gear/gear_screen.dart` \u2014 column widths + header label\n  (Items 1, 2, 3).\n- `lib/features/gear/widgets/gear_form_sheet.dart` \u2014 cents-first\n  price input (Item 4), `From` label rename (Item 3), validation\n  helper simplification (Item 5).\n\n### Files not touched (would have been in scope if the change had\nrequired them)\n\n- `lib/features/gear/models/gear_item.dart` \u2014 no pure-Dart display\n  helper needed. `priceCents` field already existed on the model since\n  cycle 3; no JSON serialization change.\n- `lib/features/gear/gear_controller.dart` \u2014 no filter-code helper\n  needed for the wider Name column; column widths live entirely in the\n  screen file.\n- `test/features/gear/gear_item_test.dart` \u2014 no new testable helper on\n  the model (per Manager cycle-9 instruction \"extend only if you add a\n  testable helper (e.g., a cents-formatter). Otherwise leave it alone\").\n  `_formatPriceCentsDisplay` and `_GearCurrencyFormatter` are\n  file-private to `gear_form_sheet.dart`; unit-testing them would\n  require widening their visibility, which the plan does not authorize.\n  Existing model tests re-run under T1.2: 5/5 pass.\n\n## Cycle 7 revision \u2014 Gear screen table + filters (Financials parity)
 
 **Trigger.** Tony's cycle-7 Step 6b test finding on the current PR head:
 "the gear screen should match the financials screen, including the
@@ -341,12 +868,13 @@ called for a **list of cards** ("List UI, not a literal HTML table.
 scrolling list of cards/rows; using the same idiom keeps the UI
 consistent across screen widths and matches the design tokens already
 in the codebase. Row content: name (primary), owner (secondary), price
-+ purchase date (tertiary). Purchased-from surfaces on the detail/edit
-sheet."). Cycle 7 supersedes that decision with a table-based screen
-mirroring `lib/features/financials/financials_screen.dart`, per Tony's
-review-time direction relayed by Manager cycle-7. All other plan
-sections (schema, RLS, RBAC, contributor visibility gate) roll forward
-unchanged.
+
+- purchase date (tertiary). Purchased-from surfaces on the detail/edit
+  sheet."). Cycle 7 supersedes that decision with a table-based screen
+  mirroring `lib/features/financials/financials_screen.dart`, per Tony's
+  review-time direction relayed by Manager cycle-7. All other plan
+  sections (schema, RLS, RBAC, contributor visibility gate) roll forward
+  unchanged.
 
 **Precedent mirrored.** `lib/features/financials/financials_screen.dart`
 (1210 lines). Section-for-section:
@@ -602,6 +1130,66 @@ scope is the cleaner and correct end state.
 
 ## Analyzer Results
 
+### Cycle 10 T1.1 — clean (7-item scope per Manager Option D, preserved)
+
+Command run:
+
+```
+flutter analyze lib/features/gear lib/features/home/home_tab_content.dart lib/features/home/widgets/quick_actions_row.dart lib/features/members/permissions/band_permissions.dart lib/features/members/permissions/contributor_permissions.dart lib/features/members/widgets/role_management_sheet.dart test/features/gear/gear_item_test.dart
+```
+
+Output:
+
+```
+Analyzing 7 items...
+No issues found! (ran in 2.9s)
+```
+
+0 errors, 0 warnings, 0 infos — clean at every severity per
+`analysis_options.yaml`. Re-run post-`dart format` on the 4 cycle-10
+touched Dart files (`gear_screen.dart`, `widgets/gear_form_sheet.dart`,
+`models/gear_item.dart`, `test/features/gear/gear_item_test.dart` — all
+0 files reformatted): `No issues found! (ran in 1.8s)`. `dart fix
+--dry-run` on the full package: zero suggestions matching any
+cycle-10 file (`lib/features/gear/**` and
+`test/features/gear/gear_item_test.dart` do not appear in the
+read-only preview's suggestions list). Migration SQL is not part of
+`dart fix`.
+
+### Cycle 9 T1.1 — clean (7-item scope per Manager Option D, preserved)
+
+Command run:
+
+```
+flutter analyze lib/features/gear lib/features/home/home_tab_content.dart lib/features/home/widgets/quick_actions_row.dart lib/features/members/permissions/band_permissions.dart lib/features/members/permissions/contributor_permissions.dart lib/features/members/widgets/role_management_sheet.dart test/features/gear/gear_item_test.dart
+```
+
+Output:
+
+```
+Analyzing 7 items...
+No issues found! (ran in 2.3s)
+```
+
+0 errors, 0 warnings, 0 infos — clean at every severity per
+`analysis_options.yaml`. Also re-run post-`dart format`: still
+`No issues found!` (ran in 2.3s). `dart fix --dry-run` on the two
+cycle-9-touched files (`gear_screen.dart`, `gear_form_sheet.dart`)
+reports no matching entries.
+
+**Intermediate lint sweep.** The first cycle-9 analyzer pass surfaced one
+info-severity lint on the newly-added `_GearCurrencyFormatter`—
+`avoid_redundant_argument_values` at `gear_form_sheet.dart:513:15` on
+`return const TextEditingValue(text: '', selection:
+TextSelection.collapsed(offset: 0));` (the default `text` value on
+`TextEditingValue` is `''`). Fixed in place by swapping to the constant
+`TextEditingValue.empty` static — semantically identical, one line
+shorter, and passes the analyzer at every severity. Note: the shared
+`_CurrencyInputFormatter` in `currency_input_field.dart` carries the
+same no-op idiom, but that file is not on the cycle-9 T1.1 scope so its
+violation isn't surfaced against Gear's gate; Gear's fresh-copy of the
+formatter has to pass the analyzer independently.
+
 ### Cycle 7 T1.1 — clean (7-item scope per Manager Option D, preserved)
 
 Command run:
@@ -716,20 +1304,87 @@ No issues found! (ran in 3.0s)
 
 ## Test Results
 
+### Cycle 10 T1.2
+
+Command run: `flutter test test/features/gear/gear_item_test.dart`
+
+Output:
+
+```
+00:00 +0: loading /Users/tonyholmes/apps/bandroadie/test/features/gear/gear_item_test.dart
+00:00 +0: GearOwnerType fromDbValue maps known values
+00:00 +1: GearOwnerType fromDbValue falls back to band for unknown values
+00:00 +2: GearItem fromJson/toJson round-trip for band-owned item
+00:00 +3: GearItem fromJson/toJson round-trip for member-owned item
+00:00 +4: GearItem fromJson defaults isUsed to false when is_used key is missing
+00:00 +5: GearItem constructor enforces owner shape invariant
+00:00 +6: All tests passed!
+```
+
+6/6 pass. Cycle 10 extended the two existing `fromJson/toJson`
+round-trip tests to cover `is_used = true` (band-owned) and
+`is_used = false` (member-owned), and added one new test
+`'fromJson defaults isUsed to false when is_used key is missing'`
+that verifies the null-safe read path in `fromJson` when the
+`is_used` key is absent from the incoming JSON payload — tests grow
+from 5 to 6 per Manager Item 2 spec.
+
+### Cycle 10 T1.3 (not re-run)
+
+Per Manager cycle-10 instruction: "Do NOT re-run T1.3 (accepted
+Deviation A still applies)." Cycle 4's T1.3 result rolls forward.
+No cycle-10 change touches the auth login screen or its test file.
+No cycle-10 change adds any new widget test.
+
+### Cycle 9 T1.2
+
+Command run: `flutter test test/features/gear/gear_item_test.dart`
+
+Output:
+
+```
+00:00 +0: loading /Users/tonyholmes/apps/bandroadie/test/features/gear/gear_item_test.dart
+00:00 +0: GearOwnerType fromDbValue maps known values
+00:00 +1: GearOwnerType fromDbValue falls back to band for unknown values
+00:00 +2: GearItem fromJson/toJson round-trip for band-owned item
+00:00 +3: GearItem fromJson/toJson round-trip for member-owned item
+00:00 +4: GearItem constructor enforces owner shape invariant
+00:00 +5: All tests passed!
+```
+
+5/5 pass. Cycle 9 did not change `models/gear_item.dart` (the only
+model-level source under test), so the pre-existing model tests
+exercise the unchanged `GearItem` shape. Per the Manager cycle-9
+spec ("extend only if you add a testable helper (e.g., a cents-
+formatter). Otherwise leave it alone"), no new tests added —
+`_formatPriceCentsDisplay` and `_GearCurrencyFormatter` are file-
+private to `gear_form_sheet.dart` and not exportable for a unit test
+without widening their visibility, which the plan does not authorize.
+(`CurrencyInputController` is already exported and used by financials;
+its behavior is transitively exercised there.)
+
+### Cycle 9 T1.3 (not re-run)
+
+Per Manager cycle-9 instruction: "Do NOT re-run T1.3 (accepted
+Deviation A still applies)." Cycle 4's T1.3 result rolls forward. No
+cycle-9 change touches the auth login screen or its test file. No
+cycle-9 change adds any new widget test.
+
 ### Cycle 7 T1.2
 
 Command run: `flutter test test/features/gear/gear_item_test.dart`
 
 Output: `00:00 +5: All tests passed!` — 5/5 pass. Cycle 7's controller
-+ screen rewrite did not change `models/gear_item.dart` or the model
-tests, so the pre-existing model-level tests exercise the unchanged
-`GearItem` shape. No new pure-Dart helper was added on the model, so
-no new test was added to `test/features/gear/gear_item_test.dart` this
-cycle (per Manager cycle-7 note: "extend with tests for any new
-pure-Dart helper you add on the model … Don't test the screen widget"
-— nothing new on the model to test). Filter logic lives on
-`GearState.filteredItems`, parallel to `FinancialsState.filteredEntries`;
-both are currently untested. Recorded here for QA traceability.
+
+- screen rewrite did not change `models/gear_item.dart` or the model
+  tests, so the pre-existing model-level tests exercise the unchanged
+  `GearItem` shape. No new pure-Dart helper was added on the model, so
+  no new test was added to `test/features/gear/gear_item_test.dart` this
+  cycle (per Manager cycle-7 note: "extend with tests for any new
+  pure-Dart helper you add on the model … Don't test the screen widget"
+  — nothing new on the model to test). Filter logic lives on
+  `GearState.filteredItems`, parallel to `FinancialsState.filteredEntries`;
+  both are currently untested. Recorded here for QA traceability.
 
 ### Cycle 7 T1.3 (not re-run)
 
@@ -790,6 +1445,47 @@ Results:
 
 Commands run in `supabase/migrations/`.
 
+### 20260906160214_add_is_used_to_band_gear.sql (cycle 10, new this cycle)
+
+File contents (verified via `cat`):
+
+```sql
+-- Migration: Add is_used to band_gear
+-- Date: 2026-09-06
+-- Branch: feature/band-gear-management
+
+ALTER TABLE public.band_gear
+  ADD COLUMN IF NOT EXISTS is_used BOOLEAN NOT NULL DEFAULT FALSE;
+```
+
+Static grep counts (verified via BSD `grep`):
+
+- `^ALTER TABLE public\.band_gear$` header line present: **1**
+- `^  ADD COLUMN IF NOT EXISTS is_used BOOLEAN NOT NULL DEFAULT FALSE;$`
+  clause line present: **1**
+- Semicolons (SQL-statement terminators): **1**
+- `CREATE POLICY` / `DROP POLICY` / `ALTER POLICY` occurrences: **0**
+- `CREATE TRIGGER` / `DROP TRIGGER` occurrences: **0**
+- `CREATE OR REPLACE FUNCTION` / `DROP FUNCTION` occurrences: **0**
+- Non-blank, non-comment SQL lines: **2** (the `ALTER TABLE` header
+  line + the `ADD COLUMN IF NOT EXISTS ...` clause line — together
+  one SQL statement)
+
+Structural equivalence check vs the cycle-4 precedent
+`supabase/migrations/20260906120000_add_can_view_gear_to_contributor_permissions.sql`
+via `diff -u <(grep -Ev '^\s*(--|$)' precedent) <(grep -Ev '^\s*(--|$)' new)`:
+the two files differ **only** in the table name
+(`contributor_permissions` → `band_gear`) and the column name
+(`can_view_gear` → `is_used`). Same one-statement `ALTER TABLE
+public.‹tbl› ADD COLUMN IF NOT EXISTS ‹col› BOOLEAN NOT NULL DEFAULT
+FALSE;` shape, same fail-closed default, same three-line comment
+header (`-- Migration: Add ‹col› to ‹tbl›` / date / branch).
+
+Satisfies Manager cycle-10 T1.4 spec verbatim: "grep-verify exactly
+one `ALTER TABLE public.band_gear ADD COLUMN IF NOT EXISTS is_used
+BOOLEAN NOT NULL DEFAULT FALSE;` and zero touches to policies /
+triggers / helper functions."
+
 ### 20260905201000_create_band_gear.sql (base, unchanged from cycle 3)
 
 - `^CREATE POLICY`: **4** (SELECT / INSERT / UPDATE / DELETE)
@@ -849,6 +1545,110 @@ runs the migration apply at production apply time as part of the Rollout
 Strategy. This deferral is pre-approved and does not block APPROVED.
 
 ## Code Efficiency/Bloat Check
+
+Cycle 9 additions kept minimal by direct reuse of the shipped shared
+currency helper plus a scoped inline copy of one formatter class:
+
+- Pre-add-helper search: `grep_search "CurrencyInputController|CurrencyTextField"`
+  under `lib/` returned matches only inside
+  `lib/shared/widgets/currency_input_field.dart` and
+  `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`.
+  Confirmed the shared `CurrencyInputController` already ships as the
+  canonical POS-cents storage helper (int-cents `ValueNotifier<int>` with
+  clamping, `formattedValue`, `clear()`, `isEmpty`/`isNotEmpty`, thousands
+  grouping) — reused as-is for `_priceCents` in the Gear form sheet so
+  storage stays on the same convention `financial_entries.amount_cents`
+  and `band_gear.price_cents` use. No modification to the shared file
+  (financials must not see a display-shape drift).
+- Pre-add-helper search: `grep_search "_CurrencyInputFormatter|_GearCurrencyFormatter"`
+  under `lib/` — the shared `_CurrencyInputFormatter` is `_`-private inside
+  `currency_input_field.dart` and emits `$X.XX` (no double space); financials'
+  Amount column widths are calibrated against that exact output. Tony's Gear
+  spec calls for `$  X.XX` (two literal spaces) — a different display shape.
+  Per the Cycle 9 plan's "copy the formatter class inline in gear if
+  financials keeps it private" directive, added `_GearCurrencyFormatter`
+  inline in `gear_form_sheet.dart`. The copy differs from the shared class
+  in exactly one respect (calls `_formatPriceCentsDisplay(cents)` instead of
+  `controller.formattedValue`); the state-update contract (int cents +
+  clamp to `_maxCents`) is identical. Empty-state return uses
+  `TextEditingValue.empty` (the const static) instead of the shared file's
+  hand-rolled `const TextEditingValue(text: '', selection: ...)` — both are
+  semantically identical; `TextEditingValue.empty` is one line and passes
+  `avoid_redundant_argument_values` cleanly.
+- Pre-add-helper search for a thousands-separator helper:
+  `_formatWithCommas` on `CurrencyInputController` is private-static;
+  `NumberFormat('#,##0')` from `package:intl` was already imported by
+  `gear_form_sheet.dart` for the date label. Reused `NumberFormat` in
+  `_formatPriceCentsDisplay` — no new dependency, no new file-private
+  helper duplicating what `intl` already provides.
+- No new provider added — `_priceCents` is a form-sheet-local state
+  field, not lifted to a Riverpod provider. No new named route, no new
+  dependency, no new barrel file. No new `_buildX()` single-use method.
+  No new model field on `GearItem` (the `priceCents` field it already
+  had is reused). No new column on any DB table. No touch to
+  `gear_repository.dart` or any migration.
+- Bug-fix-with-zero-deletions self-check: the cycle-9 diff on
+  `gear_form_sheet.dart` and `gear_screen.dart` includes substantive
+  deletions (`_priceController` field, legacy `_parsePriceCents` body
+  with `double.tryParse` + `.round()`, the "Price must be a valid
+  non-negative amount" snackbar branch, the free-text `[0-9.,]` input
+  formatter, `_priceController.text` init string, the fixed
+  `_kPurchasedOnWidth` constant, the fixed `_kPurchasedFromWidth`
+  constant, the `'Purchased From'` header label, the
+  `overflow: TextOverflow.ellipsis` on the Purchased On row cell). Not
+  a layered-on-top fix.
+- No `TODO` / `FIXME` / `debugPrint(` introduced. Grep of
+  `lib/features/gear/**/*.dart` for those tokens returns zero matches.
+- No `try/catch` re-thrown unchanged or catching what the call can't
+  throw. The existing form-sheet `try { … } catch (_) { … }` on the
+  save path is unchanged from cycle 3.
+- `dart format` only the two changed files (`gear_screen.dart`,
+  `gear_form_sheet.dart`); no other file touched by the formatter.
+
+**File-size targets — pre-existing soft-exceeds, unchanged status.**
+`gear_screen.dart` = 977 lines after `dart format` (was 966 pre-
+cycle-9; the +11 lines net add is the second `_measureText` block +
+the new `purchasedOnColumnWidth` parameter threading). Still exceeds
+the 500-line target from cycle 7's 1:1 mirror of
+`lib/features/financials/financials_screen.dart` — the same
+justification already noted in cycle 7's Code Efficiency section
+applies (breaking the mirror shape would create 6+ new one-off widget
+files). Cycle 9 does not add any new widget class to this file; only
+renames one constant, deletes another, and threads one required
+parameter through two existing widgets. `gear_form_sheet.dart` = 546
+lines after `dart format` (was 487 pre-cycle-9; the +59 lines are the
+`_formatPriceCentsDisplay` helper + the `_GearCurrencyFormatter`
+class, both scoped to the file and required by the cents-first spec).
+Soft-exceeds the 400-line feature-widget target by 146 lines; the
+increment over cycle 3 is entirely the price input change Tony's
+spec calls for, and inlining the formatter into the `AppTextField`
+call site is not possible (it must be a `TextInputFormatter`
+subclass). Splitting the formatter to a sibling file would create a
+new one-off `.dart` file for a class with exactly one call site,
+which is the class of bloat the mode guardrails are protecting
+against. `gear_controller.dart` = 215 lines, comfortably under every
+size target (unchanged this cycle from cycle 8).
+
+Cycle 8 additions kept minimal:
+
+- No new provider added — the state swap (`GearOwnerFilter` enum →
+  `Set<String> ownerSelection`) reuses the existing `gearProvider`,
+  drops one enum + one field + one notifier method, and adds one field
+  + two notifier methods. Net structural change is a shape swap, not
+  an expansion.
+- `_OwnerFilterModal` is a `ConsumerStatefulWidget` (not a
+  `_buildX()` method) because it owns local staged-selection state
+  (`_pending`) that must survive a `setState` — method-inlining would
+  lose that boundary. It's used exactly once (via
+  `showModalBottomSheet<Set<String>>`), which the mode guardrails allow
+  when the widget owns state.
+- `_ownerChipLabel` is a file-top helper mirroring the shape of the
+  neighboring `_ownerLabel` / `_memberShortLabel` / `_priceLabel`
+  helpers already in the file. Reuse of `_memberShortLabel` — no new
+  member-formatting helper introduced.
+- `dart format` on both cycle-8 files produced no changes at commit
+  time (files already conforming).
+- No `TODO` / `FIXME` / `debugPrint(` introduced in cycle-8 edits.
 
 Cycle 7 additions kept minimal by direct 1:1 structural mirror of the
 shipped Financials screen:
@@ -982,6 +1782,75 @@ REPLACE` is used because the RPC already exists; not a fresh function
   use methods, no dead SQL grants.
 
 ## Verification (manual steps performed)
+
+Cycle 9:
+
+- Read the current cycle-8 uncommitted `gear_screen.dart` end-to-end,
+  confirmed the constant block (`_kMinNameWidth`, `_kPurchasedOnWidth`,
+  `_kPurchasedFromWidth`, `_kOwnerWidth`, `_kFixedColumnsWidth`), the
+  `_measureText` pattern and Price column dynamic-width block inside
+  `_GearEntriesList.build`, and the two consumer widgets
+  (`_TableHeader`, `_GearTableRow`) all match the cycle-7 shape. Mapped
+  the exact `_measureText` financials uses for its Amount column
+  (`lib/features/financials/financials_screen.dart` lines 668–679) so
+  the cycle-9 Purchased On block mirrors the same shape byte-for-shape.
+- Read `lib/shared/widgets/currency_input_field.dart` end-to-end —
+  confirmed `CurrencyInputController` API (int cents, `clamp(0,
+99999999)`, `formattedValue` uses `$X.XX` no-space format,
+  `_formatWithCommas` is private) and confirmed `_CurrencyInputFormatter`
+  is a `_`-private `TextInputFormatter` inside the same file. Verified
+  financials'
+  `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`
+  consumes both classes at 4 sites (main amount field, disbursement
+  splits, deposit-to-savings field) so any change to the shared display
+  shape would cascade into financials.
+- Confirmed cycle-9 in-scope files match Manager's allow-list:
+  `lib/features/gear/gear_screen.dart` (edited) +
+  `lib/features/gear/widgets/gear_form_sheet.dart` (edited). Did not
+  touch `models/gear_item.dart`, `gear_controller.dart`,
+  `gear_repository.dart`, or `test/features/gear/gear_item_test.dart`
+  (no new testable helper introduced).
+- Ran T1.1 (7-item scope) → first pass surfaced 1 info-severity lint
+  (`avoid_redundant_argument_values` on the empty-state
+  `TextEditingValue` inside `_GearCurrencyFormatter`); fixed to
+  `TextEditingValue.empty`; second pass `No issues found!` at every
+  severity.
+- Ran T1.2 → 5/5 pass.
+- Ran `dart format lib/features/gear/gear_screen.dart
+lib/features/gear/widgets/gear_form_sheet.dart` — one file reformatted
+  (`gear_screen.dart`); re-ran T1.1 to confirm `No issues found!` still
+  holds post-format.
+- Ran `dart fix --dry-run 2>&1 | grep -E "gear_screen|gear_form_sheet|gear_controller|gear_item_test" | head -20`
+  — zero matching lines, i.e. no dart-fix-applicable suggestions on any
+  cycle-8- or cycle-9-touched Gear file.
+- Self-audit of the cycle-9 diff against the AI-shaped-code checklist:
+  no single-use `_buildX()` method introduced, no new provider,
+  `_GearCurrencyFormatter` and `_formatPriceCentsDisplay` are single-
+  use by necessity (a `TextInputFormatter` cannot be inlined into the
+  `AppTextField` call site), no `first-match-or-null` loop
+  hand-rolled (used `NumberFormat` from the existing `intl` import
+  for commas), no `try/catch` that logs+rethrows, no dead model
+  field/param, no barrel file, no config/flags/enum "for future use",
+  no TODO/FIXME/debugPrint, and the diff on both files includes
+  substantive deletions (not just additions) so this is not a
+  layered-on-top bug fix.
+
+Cycle 8:
+
+- Read `lib/features/members/members_controller.dart` and
+  `lib/features/members/member_vm.dart` — confirmed
+  `membersProvider` exposes `MemberVM` with `userId`, `name`, `firstName`,
+  `lastName`, `status`, `isActive`, matching the shape needed by
+  `_OwnerFilterModal` (active-members filter + name display + userId
+  key) and by `_ownerChipLabel` (single-vs-multi formatting).
+- Confirmed `_openOwnerFilterModal()` uses
+  `showModalBottomSheet<Set<String>>` and reads the current
+  `state.ownerSelection` for the `initialSelection`, so re-opening the
+  modal restores the last-committed state (not the last-staged state,
+  which is intentional — swipe-dismiss discards).
+- Confirmed Clear button on the modal uses `_pending = <String>{}` (not
+  `_pending.clear()`) so the setState boundary is triggered explicitly
+  and the Done handler returns a fresh set on the next tap.
 
 Cycle 7:
 
@@ -1341,16 +2210,22 @@ Cycle 4: none.
 
 ## Ready For QA
 
-Yes. Cycle 7 T1.1 (7-item scope per Manager Option D, preserved from
+Yes. Cycle 9 T1.1 (7-item scope per Manager Option D, preserved from
 cycle 6) returned `No issues found!` at every severity (0 errors, 0
-warnings, 0 infos). Cycle 7 T1.2 gear tests 5/5 pass. T1.3 not re-run
-per Manager cycle-7 step "Do NOT re-run T1.3 (accepted Deviation A
+warnings, 0 infos) — command and output captured under **Analyzer
+Results → Cycle 9 T1.1**. Cycle 9 T1.2 gear tests 5/5 pass — output
+captured under **Test Results → Cycle 9 T1.2**. T1.3 not re-run per
+Manager cycle-9 instruction "Do NOT re-run T1.3 (accepted Deviation A
 still applies)". Cycle 4 T1.4 static SQL evidence unchanged. Cycle 4
-T1.5 remains deferred to Tier 2 per accepted Deviation B. Cycle 7
-net worktree diff scoped to the four expected files inside
-`lib/features/gear/` (two rewritten, two deleted); no touch to
+T1.5 remains deferred to Tier 2 per accepted Deviation B. Cycle 9
+net worktree diff scoped to two Dart files inside `lib/features/gear/`
+(`gear_screen.dart` column-width polish + header rename;
+`widgets/gear_form_sheet.dart` cents-first price input + `From` label
+rename); cycle 8's uncommitted `gear_screen.dart` + `gear_controller.dart`
+rolled into the same evidence set per Manager instruction. No touch to
 off-limits files (`home/`, `shell/`, `supabase/migrations/`,
 `contributor_permissions.dart`, `band_permissions.dart`,
-`role_management_sheet.dart`, `.github/agents/*.md`, `PR_BODY.md`).
-Cycle 5 modifications (`home_tab_content.dart`, `quick_actions_row.dart`)
-and cycle 4 RBAC files preserved unchanged.
+`role_management_sheet.dart`, `.github/agents/*.md`, `PR_BODY.md`,
+`gear_repository.dart`, `models/gear_item.dart`). Cycle 5
+modifications (`home_tab_content.dart`, `quick_actions_row.dart`) and
+cycle 4 RBAC files preserved unchanged.

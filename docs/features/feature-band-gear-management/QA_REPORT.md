@@ -10,13 +10,86 @@ Band Gear Management
 
 ## Cycle Number
 
-7
+10
 
 ## Final Verdict
 
 APPROVED
 
-**Cycle-7 note (PR trail legibility).** Cycle 7 is an in-branch UX-scope
+**Cycle-10 note (PR trail legibility).** Cycle 10 is Manager's combined
+QA pass for uncommitted cycles 8, 9, and 10. Cycles 8 and 9 both landed
+implementation work on disk but returned truncated subagent responses
+and were never QA'd on their own passes; Manager rolled all three
+cycles' evidence into a single cycle-10 gate. HEAD `38f0628` = cycle-7
+committed state; the working tree carries cycles 8+9+10 uncommitted
+work — five modified Dart files + one modified doc + one new
+`supabase/migrations/*.sql`. Cycle-8 change (only): the cycle-7
+3-segment `GearOwnerFilter` enum + `_OwnerFilterToggle` widget +
+`setOwnerFilter` method are **removed** and replaced end-to-end with a
+`Set<String> ownerSelection` model on `GearNotifier` (empty = no
+filter, sentinel `'band'` matches band-owned, every other entry is a
+`users.id` UUID that matches `item.ownerUserId`) plus a single
+`_FilterChip` at the head of the filter row that opens
+`_OwnerFilterModal` — a `ConsumerStatefulWidget` bottom sheet with the
+`Band` row on top, an active-members list sorted the same way
+`MembersScreen` sorts (via `membersProvider`), and a `Clear` / `Done`
+action row. Selection stages in modal-local `_pending` and commits to
+the controller only on `Done`; swipe-dismiss / close discards.
+Cycle-9 changes: `_kMinNameWidth` bumped 140 → 190 (Name column +50
+px on min-width contribution), the fixed `_kPurchasedOnWidth = 110`
+constant is dropped in favor of a dynamically-computed
+`purchasedOnColumnWidth` (measured against the widest `MMM d, y`
+label at row style + the `'Purchased On'` header at header style + 16
+px buffer — same `_measureText` pattern financials uses for its
+Amount column), `_kPurchasedFromWidth = 110` renamed
+`_kFromWidth = 160` (+50 px), header + form-sheet labels renamed
+`'Purchased From'` → `'From'` (the DB column `purchased_from` and
+Dart field `purchasedFrom` are **not** renamed — verified in
+`fromJson`/`toJson`/`_buildPayload`/`_purchasedFromController`), and
+the form-sheet Price `AppTextField` swapped from a free-text dollar
+input to a POS-style cents-first input that reuses the shared
+`CurrencyInputController` (int-cents `ValueNotifier<int>`) with an
+inline `_GearCurrencyFormatter` emitting Tony's `$  0.00` /
+`$  0.01` / `$  0.12` / `$  1.23` / `$  1,234.56` display shape.
+Digits-only filter rejects `.`, `,`, `-`, letters; backspace divides
+by 10; keyboard type `TextInputType.number`; edit-mode with existing
+`priceCents > 0` renders the formatted string on open. Additionally
+in cycle 9 the Price column gained a **min-width floor** at
+`$9,999.99` — `_measureText('\$9,999.99', priceDataStyle)` is
+applied after the row max-scan so the column always fits that
+magnitude even when no visible row reaches it. Cycle-10 changes:
+new fifth gear migration
+`supabase/migrations/20260906160214_add_is_used_to_band_gear.sql`
+containing exactly one `ALTER TABLE public.band_gear ADD COLUMN IF
+NOT EXISTS is_used BOOLEAN NOT NULL DEFAULT FALSE;` statement (0
+policies, 0 grants, 0 triggers, 0 helpers — byte-shape mirror of
+cycle-4's `add_can_view_gear_to_contributor_permissions.sql`
+precedent, same fail-closed default); `GearItem.isUsed` field
+(default `false`, null-safe `is_used` read in `fromJson`, `is_used`
+write in `toJson`); new `New/Used` table column between Owner and
+Price with `_kNewUsedWidth = 72` (added to `_kFixedColumnsWidth`),
+rendering `'Used'` when `isUsed == true` else `'New'`; form-sheet
+`Used` control implemented as `AppSwitch` labeled `'Used'` (see the
+Item-15 call under [Issues Found → Suggestions](#suggestions) — Tony
+literally asked for a "checkbox" but AppSwitch is the codebase's
+dominant boolean-toggle idiom and matches the peer
+`add_financial_entry_bottom_sheet.dart:717-725` shape 1:1);
+`SegmentedButton<GearOwnerType>` owner-control segments relabeled
+`'Band-owned'` → `'Band'` and `'Member-owned'` → `'Member'`
+(segmented widget itself unchanged — it's the peer button-toggle
+widget already in this file, and `_ownerType` / `_ownerUserId` /
+member-picker guard / DB `band_gear_owner_shape` CHECK invariant
+all preserved); `_buildPayload` extended with `'is_used': _isUsed`
+so the value flows through the repository's payload-passthrough
+`createGear`/`updateGear` methods without any repo edit; and the
+form field order rearranged Name → From → Used → Owner (+ Member
+picker) → Price → Purchased On to satisfy Manager Item-3's
+placement spec ("right after From, before Owner"). Deviations A
+and B are still in effect from cycle 4; no new deviation is added
+in cycles 8/9/10. The AppSwitch call in Item 15 is recorded as a
+Suggestion (not a Warning), not a deviation.
+
+**Cycle-7 note (PR trail legibility, retained).** Cycle 7 is an in-branch UX-scope
 adjustment driven by Tony's cycle-6-updated-PR review directive relayed
 by Manager cycle-7 note: "the gear screen should match the financials
 screen, including the filters. Gear should be listed in a table to
@@ -64,6 +137,284 @@ cycle-5 Quick Actions surfacing also roll forward byte-identical to
 their APPROVED states.
 
 ## Validation Summary
+
+Cycle 10 QA independently re-validated the uncommitted implementation on
+branch `feature/band-gear-management` (HEAD `38f0628` = cycle-7 committed
+state; working tree carries cycles 8+9+10 uncommitted work). Manager
+combined this into one QA pass because cycles 8 and 9 both produced
+uncommitted implementation work but returned truncated subagent
+responses and were never QA'd on their own. All cycle-8, cycle-9, and
+cycle-10 verification items pass:
+
+- **Cycle 8 — modal owner filter: state swap complete.**
+  `GearOwnerFilter` enum, the `ownerFilter` state field, and the
+  `setOwnerFilter` notifier method are all fully removed from
+  `lib/features/gear/gear_controller.dart` — verified via
+  `grep_search 'GearOwnerFilter|setOwnerFilter\('` on
+  `lib/features/gear/**/*.dart` returning **zero** matches. The new
+  state is `Set<String> ownerSelection` (default
+  `const <String>{}`) with sentinel `'band'` matching band-owned rows
+  and every other entry being a `users.id` UUID matching
+  `item.ownerUserId`. `setOwnerSelection(Set<String>)` wraps its
+  argument in `Set<String>.unmodifiable`; `clearOwnerSelection()`
+  resets to `const <String>{}`. `GearState.filteredItems` short-
+  circuits to include all items when `ownerSelection.isEmpty`;
+  otherwise a row survives when
+  `(item.ownerType == GearOwnerType.band && ownerSelection.contains('band'))`
+  OR
+  `(item.ownerType == GearOwnerType.member && item.ownerUserId != null && ownerSelection.contains(item.ownerUserId))`.
+
+- **Cycle 8 — modal UI + chip label rules.** `_OwnerFilterToggle` (the
+  cycle-7 3-segment segmented control) is removed from
+  `gear_screen.dart` — verified via `grep_search '_OwnerFilterToggle'`
+  returning zero matches. The chip at the head of `_FilterRow` calls
+  `_ownerChipLabel(state.ownerSelection, members)` whose branches
+  match the spec: empty selection → `'Owner'`; single-element
+  selection → `'Band'` when the only entry is the `'band'` sentinel
+  else `_memberShortLabel(only, members)` (first name + last initial);
+  multi-element → `'$n owners selected'` (pluralized). `_openOwnerFilterModal()`
+  calls `showModalBottomSheet<Set<String>>` with
+  `_OwnerFilterModal(initialSelection: state.ownerSelection)`. The
+  modal is a `ConsumerStatefulWidget` that stages selection in
+  `_pending` (initialized from `initialSelection` in `initState`) and
+  commits it only via `Navigator.of(context).pop(_pending)` on Done.
+  Clear resets `_pending = <String>{}` (via `setState`, so the button
+  disables until Done or a re-toggle). Swipe-dismiss and the header
+  `IconButton` close pop without a result → the parent's
+  `if (!mounted || result == null) return;` guard preserves prior
+  selection.
+
+- **Cycle 8 — modal contents.** `Band` row is a `CheckboxListTile` at
+  the top; the `Members` section header renders below a `Divider`,
+  followed by an active-members list — `membersState.members.where((m) => m.isActive)`.
+  The members list inherits the sort order set by
+  `MembersRepository.fetchMembersWithInvites` (position-first if any
+  member has a manual position, else alphabetical last-name / first-
+  name), which is the same list `MembersScreen` renders via
+  `membersProvider`. Action row at the bottom holds `Clear` (disabled
+  when `_pending.isEmpty`) and `Done`.
+
+- **Cycle 9 — column widths.** `_kMinNameWidth = 190.0` (up from 140;
+  Name is `Expanded` on wide screens, contributes 190 px to the
+  min-width floor that triggers horizontal scroll on narrow screens).
+  `_kPurchasedOnWidth` is dropped as a fixed constant; the width is
+  now `purchasedOnColumnWidth` computed inside `_GearEntriesList.build`
+  via `_measureText('Purchased On', headerStyle)` seeded, then a
+  loop over non-null-date rows measuring
+  `DateFormat('MMM d, y').format(item.purchasedOn!)` at
+  `AppTextStyles.callout`, plus a 16 px buffer (identical shape to
+  the Price column's dynamic-width pattern financials also uses for
+  its Amount column). `_kFromWidth = 160.0` (renamed from
+  `_kPurchasedFromWidth`, +50 px). Table header cell text is `'From'`
+  (not `'Purchased From'`). `_kFixedColumnsWidth = _kFromWidth +
+_kOwnerWidth + _kNewUsedWidth`.
+
+- **Cycle 9 — DB / Dart field names preserved.** `purchased_from`
+  (DB column) and `purchasedFrom` (Dart field on `GearItem`) are
+  **not** renamed. Verified in `gear_item.dart`
+  (`purchasedFrom: json['purchased_from'] as String?`,
+  `'purchased_from': purchasedFrom`), in `gear_form_sheet.dart`
+  (`_purchasedFromController`, `_purchasedFromFocus`,
+  `_buildPayload` emits `'purchased_from': ...`), and in the base
+  gear migration (`purchased_from TEXT` column definition
+  unchanged from cycle-4-APPROVED state). Only the UI-visible header
+  cell and form-sheet `labelText` copy changed.
+
+- **Cycle 9 — cents-first Price input.**
+  `_priceCents = CurrencyInputController(initialCents)` (int-cents
+  `ValueNotifier<int>`, reused from
+  `lib/shared/widgets/currency_input_field.dart`); `_priceTextController`
+  seeded to `_formatPriceCentsDisplay(initialCents)` when
+  `initialCents > 0` else `''`. Price `AppTextField` uses
+  `keyboardType: TextInputType.number`, `hintText: '\$  0.00'`
+  (two literal spaces after `$`),
+  `inputFormatters: [FilteringTextInputFormatter.digitsOnly,
+_GearCurrencyFormatter(_priceCents)]`. The digits-only filter
+  rejects `.`, `,`, `-`, and letters at the framework level.
+  `_GearCurrencyFormatter.formatEditUpdate` strips non-digits (so
+  backspace removes the rightmost cent digit and re-parses,
+  effectively dividing cents by 10), `int.tryParse`'s the remaining
+  string, clamps to `[0, 99999999]`, and returns
+  `_formatPriceCentsDisplay(controller.cents)` — which renders
+  `$  <NumberFormat('#,##0') dollars>.<zero-padded 2-digit cents>`
+  matching Tony's literal progression `$  0.01` → `$  0.12` →
+  `$  1.23` → `$  12.34` → `$  1,234.56`. `_parsePriceCents()`
+  returns `_priceCents.cents == 0 ? null : _priceCents.cents`,
+  preserving the cycle-3 optional-price contract (empty → `null` in
+  payload).
+
+- **Cycle 9 — Price column min-width floor at `$9,999.99`.**
+  Verified at `lib/features/gear/gear_screen.dart:592-596`:
+  after the max-scan loop over every visible row's formatted price,
+  `_measureText('\$9,999.99', priceDataStyle)` is computed and, if
+  greater than `maxPricePx`, promoted to `maxPricePx`. The existing
+  `+16` padding buffer is applied downstream unchanged. The floor
+  guarantees the column always fits `$9,999.99` even when the current
+  filter yields no row that large.
+
+- **Cycle 10 — new migration.**
+  `supabase/migrations/20260906160214_add_is_used_to_band_gear.sql`
+  contains exactly one non-comment SQL statement:
+
+  ```sql
+  ALTER TABLE public.band_gear
+    ADD COLUMN IF NOT EXISTS is_used BOOLEAN NOT NULL DEFAULT FALSE;
+  ```
+
+  Static grep counts: 1 `ALTER TABLE public.band_gear`, 1
+  `ADD COLUMN IF NOT EXISTS is_used BOOLEAN NOT NULL DEFAULT FALSE`,
+  0 `CREATE POLICY`, 0 `DROP POLICY`, 0 `ALTER POLICY`, 0
+  `CREATE TRIGGER`, 0 `DROP TRIGGER`, 0 `CREATE OR REPLACE FUNCTION`,
+  0 `DROP FUNCTION`, 0 `GRANT`/`REVOKE`, 1 semicolon. Byte-shape
+  mirror of cycle-4's
+  `20260906120000_add_can_view_gear_to_contributor_permissions.sql`
+  precedent, differing only in the table name and column name. Fail-
+  closed default (`FALSE` = New).
+
+- **Cycle 10 — `GearItem.isUsed` field.** Added as
+  `final bool isUsed` with `this.isUsed = false` default in the
+  constructor, `isUsed: (json['is_used'] as bool?) ?? false` null-
+  safe read in `fromJson`, and `'is_used': isUsed` write in `toJson`
+  ([lib/features/gear/models/gear_item.dart:31,44,68,84](lib/features/gear/models/gear_item.dart)).
+  Owner-shape invariant assert and all other field handling
+  unchanged.
+  **On the plan's `copyWith` line-item.** Manager's Item 13 asked for
+  `copyWith` to be "extended" for `isUsed`. `GearItem` has never had
+  a `copyWith` method (verified: `grep_search 'GearItem.copyWith|\.copyWith\('`
+  under `lib/features/gear/` returns zero calls against a `GearItem`
+  instance — every match is on `GearState`, `TextStyle`, `Theme`, or
+  `AppTextStyles`). Engineer explicitly flagged this and documented
+  the omission as intentional under the "adding a copyWith solely to
+  wire isUsed when nothing reads it would be bloat" guardrail. QA
+  accepts this call: creating a `copyWith` here with no consumer
+  reads would materially violate the anti-bloat rule; the field's
+  round-trip is already exercised by the extended `fromJson`/`toJson`
+  tests. Not a defect.
+
+- **Cycle 10 — `New/Used` table column.** `_kNewUsedWidth = 72.0`
+  declared as a compile-time const between `_kOwnerWidth` and the
+  `_measureText` helper; included in
+  `_kFixedColumnsWidth = _kFromWidth + _kOwnerWidth + _kNewUsedWidth`.
+  `_TableHeader` places
+  `SizedBox(width: _kNewUsedWidth, child: _HeaderCell('New/Used', borderSide: borderSide))`
+  between the Owner and Price header cells. `_GearTableRow` renders
+  a matching row cell reading
+  `Text(item.isUsed ? 'Used' : 'New', ...)` at
+  `AppTextStyles.callout` with the same
+  `context.colors.textSecondary` shape used by the peer Owner cell,
+  left-aligned, single-line ellipsis.
+
+- **Cycle 10 — form-sheet `Used` control.** Implemented as `AppSwitch`
+  (not `Checkbox`) inside a `Row(mainAxisAlignment: MainAxisAlignment.spaceBetween)`
+  with a `Text('Used', style: AppTextStyles.callout.copyWith(color: context.colors.textPrimary))`
+  on the left and
+  `AppSwitch(value: _isUsed, onChanged: _isReadOnly || _isSaving ? null : (v) => setState(() => _isUsed = v))`
+  on the right, mirroring the
+  `add_financial_entry_bottom_sheet.dart:717-725` `is_1099_expected`
+  shape 1:1. Tony's literal ask was "include a checkbox" — the widget
+  choice is discussed under
+  [Issues Found → Suggestions](#suggestions) as `code-quality`
+  Suggestion S-1. Codebase idiom check:
+  `grep_search 'AppSwitch\(|Checkbox\(|CupertinoSwitch\(|Switch\('`
+  under `lib/**/*.dart` returns 15 `AppSwitch(` call-sites across 11
+  files vs 2 `AppCheckbox(` call-sites across 2 files; the peer form
+  file uses `AppSwitch` — QA judges the Engineer widget choice
+  codebase-consistent, not a Warning.
+
+- **Cycle 10 — owner control relabel.**
+  `SegmentedButton<GearOwnerType>` widget preserved (same
+  `SegmentedButton` used since cycle 3; it is the peer button-toggle
+  widget already in this file). Only the two segment `Text` labels
+  changed: `'Band-owned'` → `'Band'` and `'Member-owned'` →
+  `'Member'`. `onSelectionChanged` behavior preserved: selecting
+  `Band` still clears `_ownerUserId` (`if (_ownerType == GearOwnerType.band) { _ownerUserId = null; }`);
+  selecting `Member` still shows the member `DropdownButtonFormField`
+  and requires a picked user (existing "Select a member when
+  ownership is set to member." snackbar guard in `_buildPayload`
+  preserved). `_buildPayload` emits
+  `'owner_type': _ownerType.dbValue` and
+  `'owner_user_id': _ownerType == GearOwnerType.member ? _ownerUserId : null`,
+  keeping the DB `band_gear_owner_shape` CHECK invariant satisfied.
+
+- **Cycle 10 — repository payload includes `is_used`.**
+  `_buildPayload` in `gear_form_sheet.dart` now emits
+  `'is_used': _isUsed` alongside the other keys. Repository
+  `createGear` and `updateGear` methods pass the entire payload
+  `Map<String, dynamic>` through as-is (`insertData = { 'band_id': bandId, ...data }`
+  and `.update(data)`), so `is_used` flows into the Supabase
+  insert/update without a repository-file edit.
+
+- **Cycle-10 T1.1 (7-item scope per Manager Option D, preserved
+  from cycle 6):**
+  `Analyzing 7 items... No issues found! (ran in 2.9s)` — clean at
+  every severity per `analysis_options.yaml`. Independently
+  reproduced by QA. Command:
+  `flutter analyze lib/features/gear lib/features/home/home_tab_content.dart lib/features/home/widgets/quick_actions_row.dart lib/features/members/permissions/band_permissions.dart lib/features/members/permissions/contributor_permissions.dart lib/features/members/widgets/role_management_sheet.dart test/features/gear/gear_item_test.dart`.
+
+- **Cycle-10 T1.2 gear model tests:**
+  `00:00 +6: All tests passed!` — 6/6 pass, up from 5/5. New tests
+  cover `is_used = true` (band-owned), `is_used = false` (member-
+  owned), and the null-safe defaulting case (`is_used` key missing
+  from the incoming JSON map, expected `item.isUsed == false` and
+  `toJson()['is_used'] == false`).
+
+- **T1.3 not re-run** per Manager cycle-10 instruction (accepted
+  Deviation A still applies; cycle 10 does not touch
+  `lib/features/auth/**` or its test file).
+
+- **T1.4 static SQL:** counts captured above. All prior four gear
+  migrations (`20260905201000_create_band_gear.sql`,
+  `20260906120000_add_can_view_gear_to_contributor_permissions.sql`,
+  `20260906120001_fix_update_member_role_can_view_gear.sql`,
+  `20260906120002_fix_band_gear_select_rbac.sql`) verified byte-
+  identical to cycle-4-APPROVED state via
+  `git diff HEAD -- supabase/migrations/` returning empty output.
+  Only untracked file is the new cycle-10 migration.
+
+- **T1.5 remains Deviation B (Deferred to Tier 2).** The isolated
+  migration-apply check remains deferred to Tony's production apply-
+  time run under the repo-wide broken-migration-chain infra blocker
+  precedent used for
+  `docs/features/interactive-demo-band-experience/QA_REPORT.md#L15`,
+  as it was for cycle 4's three new migrations. The cycle-10
+  migration is the simplest possible additive shape (single
+  idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS`, fail-closed
+  default, no policy / trigger / helper / grant touches) and is
+  byte-shape identical to the cycle-4
+  `add_can_view_gear_to_contributor_permissions.sql` precedent that
+  was APPROVED under this same deferral. Tony runs the apply as part
+  of the [Rollout Strategy](docs/features/feature-band-gear-management/ARCHITECT_PLAN.md#L1570)
+  — see also step 15 in the [Manual Verification Punch List](#manual-verification-punch-list)
+  below.
+
+- **Deviations A and B still in effect from cycle 4.** No new
+  deviation added in cycles 8/9/10. Manager Option D T1.1 scope
+  contraction still applies from cycle 6.
+
+- **Diff safety clean.** Zero secrets, zero `TODO` / `FIXME` /
+  `debugPrint(` introduced in the cycles-8+9+10 diff. Independently
+  verified via
+  `git diff HEAD -- lib/ test/ supabase/ | grep -nE '^\+' | grep -nE 'TODO|FIXME|debugPrint\(|print\(|console\.log'` → no matches.
+
+- **No off-limits touch.** `git diff HEAD` shows the exact expected
+  file set (5 Dart files under `lib/features/gear/` +
+  `test/features/gear/gear_item_test.dart` + 2 docs) plus 1
+  untracked `supabase/migrations/*.sql`. No touch to
+  `lib/features/home/`, `lib/features/shell/`,
+  `lib/features/members/`, `lib/features/gear/gear_repository.dart`,
+  `lib/shared/widgets/currency_input_field.dart`,
+  `.github/agents/*.md`, `PR_BODY.md`, `pubspec.yaml`,
+  `analysis_options.yaml`, or any native platform config.
+
+Verdict type: code-path analysis + command execution (analyzer, tests,
+static SQL grep, byte-identity check against HEAD, structural mirror
+verification against the cycle-4 precedent migration and against
+`add_financial_entry_bottom_sheet.dart`'s `is_1099_expected` toggle,
+`grep_search` for widget idiom counts). No runtime app / device /
+simulator verification performed by QA in this cycle — Tony's next PR
+bench test remains the runtime gate before Release.
+
+## Cycle-7 Validation Summary (retained for PR trail legibility)
 
 Cycle 7 QA independently re-validated the uncommitted implementation on
 branch `feature/band-gear-management` (HEAD `61d80ce` plus cycle-7
@@ -218,26 +569,26 @@ cycle-6-APPROVED state.
   cycle-3 shape too, retained), page title + `TextButton.icon('Add')`
   row (gated on `canManageGear`), inlined `_OwnerFilterToggle` (3
   segments: All / Band-owned / Member-owned), inlined `_DateFilterRow`
-  + `_FilterChip` (4 options: All Time / This Year / This Month /
-  Custom Range), inlined `_GearEntriesList` + `_TableHeader` +
-  `_HeaderCell` + `_GearTableRow` (5-column table: Name (Expanded) /
-  Purchased On (110px) / Purchased From (110px) / Owner (110px) /
-  Price (dynamic-width right-aligned)), inlined `_EmptyState` (with
-  `AppIcons.library` + "No gear yet" heading + "Add Gear" CTA gated
-  on `canManageGear && onAdd != null`), inlined `_ErrorState`.
-  Removed: `RefreshIndicator` pull-to-refresh, `AppButton` retry
-  inside error state, `_buildContent` helper method, the `bandId ==
+  - `_FilterChip` (4 options: All Time / This Year / This Month /
+    Custom Range), inlined `_GearEntriesList` + `_TableHeader` +
+    `_HeaderCell` + `_GearTableRow` (5-column table: Name (Expanded) /
+    Purchased On (110px) / Purchased From (110px) / Owner (110px) /
+    Price (dynamic-width right-aligned)), inlined `_EmptyState` (with
+    `AppIcons.library` + "No gear yet" heading + "Add Gear" CTA gated
+    on `canManageGear && onAdd != null`), inlined `_ErrorState`.
+    Removed: `RefreshIndicator` pull-to-refresh, `AppButton` retry
+    inside error state, `_buildContent` helper method, the `bandId ==
 null` "No band selected" guard card (unreachable — screen is only
-  pushed from Home Quick Actions when a band is active and
-  `canViewGear` is true). `_ownerLabel` moved from state class to
-  file-top helper so the private `_GearTableRow` can call it, and its
-  band-branch return value changed from `'Band-owned'` (cycle-3) to
-  `'Band'` (Manager cycle-7 spec). Row-tap flow reuses cycle-3
-  `GearFormSheet.show(...)` verbatim in edit mode — no new details
-  sheet introduced (per Manager cycle-7 note: "keep gear's single
-  form sheet if it already supports read-only + edit modes; do NOT
-  introduce a new details sheet as separate scope"). Cycle-3
-  `GearFormSheet` already supports `_isEditMode = widget.item !=
+    pushed from Home Quick Actions when a band is active and
+    `canViewGear` is true). `_ownerLabel` moved from state class to
+    file-top helper so the private `_GearTableRow` can call it, and its
+    band-branch return value changed from `'Band-owned'` (cycle-3) to
+    `'Band'` (Manager cycle-7 spec). Row-tap flow reuses cycle-3
+    `GearFormSheet.show(...)` verbatim in edit mode — no new details
+    sheet introduced (per Manager cycle-7 note: "keep gear's single
+    form sheet if it already supports read-only + edit modes; do NOT
+    introduce a new details sheet as separate scope"). Cycle-3
+    `GearFormSheet` already supports `_isEditMode = widget.item !=
 null` and `_isReadOnly = !widget.canManageGear`, verified unchanged.
 - `lib/features/gear/gear_controller.dart` — extended additively.
   Net cycle-7 diff: +88 / -0. Added:
@@ -505,20 +856,20 @@ off-limits files touched, no unauthorized architectural changes.
 - Cycle-7-appropriate Files Modified list (Financials precedent 1:1
   structural parity):
 
-  | Precedent (Financials, shipped, `financials_screen.dart` 1210 lines) | Cycle-7 mirror (Gear, `gear_screen.dart` 816 lines) |
-  | -------------------------------------------------------------------- | --------------------------------------------------- |
-  | `Scaffold(background) → SafeArea → Stack → Column` shell             | Same structure                                      |
-  | `BackOnlyAppBar`                                                     | `BackOnlyAppBar`                                    |
-  | Page title `'Financials'` + `TextButton.icon('Add')`                 | Page title `'Gear'` + `TextButton.icon('Add')`      |
-  | `_ViewModeToggle` (2 segments)                                       | `_OwnerFilterToggle` (3 segments)                   |
-  | `_DateFilterRow` + `_FilterChip` (4 options)                         | `_DateFilterRow` + `_FilterChip` (4 options)        |
-  | `_EntriesList` + `_TableHeader` + `_HeaderCell` + `_EntryTableRow`   | `_GearEntriesList` + `_TableHeader` + `_HeaderCell` + `_GearTableRow` |
+  | Precedent (Financials, shipped, `financials_screen.dart` 1210 lines) | Cycle-7 mirror (Gear, `gear_screen.dart` 816 lines)                         |
+  | -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+  | `Scaffold(background) → SafeArea → Stack → Column` shell             | Same structure                                                              |
+  | `BackOnlyAppBar`                                                     | `BackOnlyAppBar`                                                            |
+  | Page title `'Financials'` + `TextButton.icon('Add')`                 | Page title `'Gear'` + `TextButton.icon('Add')`                              |
+  | `_ViewModeToggle` (2 segments)                                       | `_OwnerFilterToggle` (3 segments)                                           |
+  | `_DateFilterRow` + `_FilterChip` (4 options)                         | `_DateFilterRow` + `_FilterChip` (4 options)                                |
+  | `_EntriesList` + `_TableHeader` + `_HeaderCell` + `_EntryTableRow`   | `_GearEntriesList` + `_TableHeader` + `_HeaderCell` + `_GearTableRow`       |
   | Inline `_EmptyState` (icon + heading + subhead)                      | Inline `_EmptyState` (icon + heading + subhead + `canManageGear`-gated CTA) |
-  | Inline `_ErrorState`                                                 | Inline `_ErrorState` (verbatim shape)               |
-  | Amount column: dynamic width via `_measureText`, right-aligned       | Price column: dynamic width via `_measureText`, right-aligned |
-  | `showDateRangePicker` themed with `ColorScheme.dark`                 | Same                                                |
-  | `HapticFeedback.selectionClick()` on segment tap                     | Same                                                |
-  | `_BottomActionsRow`                                                  | **N/A** — no bottom actions row for gear v1         |
+  | Inline `_ErrorState`                                                 | Inline `_ErrorState` (verbatim shape)                                       |
+  | Amount column: dynamic width via `_measureText`, right-aligned       | Price column: dynamic width via `_measureText`, right-aligned               |
+  | `showDateRangePicker` themed with `ColorScheme.dark`                 | Same                                                                        |
+  | `HapticFeedback.selectionClick()` on segment tap                     | Same                                                                        |
+  | `_BottomActionsRow`                                                  | **N/A** — no bottom actions row for gear v1                                 |
 
   Every row in this table maps 1:1 to a code-block cluster in the
   cycle-7 diff, verifying line-for-line structural mirror.
@@ -527,20 +878,20 @@ off-limits files touched, no unauthorized architectural changes.
 
 All 12 items in Manager's cycle-7 request checklist are satisfied:
 
-| #   | Cycle-7 request                                                                       | Status                          | Evidence                                                                                                                                          |
-| --- | ------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Gear screen mirrors Financials 1:1 (BackOnlyAppBar, title + Add, owner toggle, date row, table, empty/error, no bottom actions row) | Pass (code-path)                | See Architect Scope Review table above. All 8 mirror landmarks grep-verified at lines 91/133/140/160/555/623/749/799 of `gear_screen.dart`.       |
-| 2   | Owner filter 3 segments (All / Band-owned / Member-owned); date filter 4 options (This Month / This Year / Custom / All Time); null-date rows dropped by all bounded filters | Pass (code-path)                | `_OwnerFilterToggle` L332-342 (`_labels = ['All', 'Band-owned', 'Member-owned']`); `_DateFilterRow` L191-286; `filteredItems` L58-96 (`if (d == null) return false;` on every bounded filter). Reasonably mirrors financials (whose `entryDate` is non-nullable). |
-| 3   | Table columns: Name (Expanded) / Purchased On (110) / Purchased From (110) / Owner (110) / Price (dynamic + right-aligned + currency); Owner = "Band" for band, `First L.` for member | Pass (code-path)                | `_TableHeader` L555-580; `_kPurchasedOnWidth = 110`, `_kPurchasedFromWidth = 110`, `_kOwnerWidth = 110`, `_priceLabel` L631-635 uses `NumberFormat.currency`; `_ownerLabel` L637-655. |
-| 4   | Row tap opens `GearFormSheet.show(...)` in edit mode; no new details sheet            | Pass (code-path)                | `gear_screen.dart` L51 (`GearFormSheet.show`) called from `_openForm(item: item, canManageGear: canManageGear)`; `gear_form_sheet.dart` L67 (`_isEditMode = widget.item != null`). Form sheet unchanged (`git diff HEAD -- gear_form_sheet.dart` = 0 bytes). |
-| 5   | Loading = `CircularProgressIndicator(color: AppColors.primary)`; error = `_ErrorState` mirroring financials | Pass (code-path)                | `gear_screen.dart` L152 (loading) and L799-816 (`_ErrorState` verbatim shape).                                                                    |
-| 6   | Add-button and empty-state CTA only when `canManageGear`                              | Pass (code-path)                | Page-title `if (canManageGear)` block L119; `_EmptyState` `if (canManageGear && onAdd != null)` block L774.                                       |
-| 7   | Filter state on `gear_controller.dart` is consumed by the screen                      | Pass (code-path)                | `state.ownerFilter` L136, `state.dateFilter` L142, `state.customStartDate` L143, `state.customEndDate` L144, `state.filteredItems` L165 all read in `_GearScreenState.build`. Filter state is consumed the moment it lands. |
-| 8   | Deleted `gear_row.dart` + `gear_empty_state.dart` have zero remaining consumers       | Pass                            | `grep_search 'GearRow\|GearEmptyState\|gear_row\|gear_empty_state'` on `**/*.dart` returns 0 matches after the deletes.                            |
-| 9   | Off-limits files unchanged (form_sheet, repository, model, test, home, shell, members, migrations, agents, PR_BODY) | Pass                            | `git diff HEAD --numstat` for all off-limits paths returns 0 lines (empty output = 0 changes).                                                    |
-| 10  | T1.1 analyzer clean on 7-item Option D scope                                          | Pass                            | `Analyzing 7 items... No issues found! (ran in 2.9s)` — independently reproduced by QA.                                                            |
-| 11  | T1.2 gear model tests green                                                           | Pass                            | `00:00 +5: All tests passed!` — independently reproduced by QA.                                                                                    |
-| 12  | Deviations A + B still in effect; no new deviation                                    | Confirmed                       | Cycle 7 does not touch `login_screen*` or its test; adds no new migration; introduces no new deviation.                                            |
+| #   | Cycle-7 request                                                                                                                                                                       | Status           | Evidence                                                                                                                                                                                                                                                          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Gear screen mirrors Financials 1:1 (BackOnlyAppBar, title + Add, owner toggle, date row, table, empty/error, no bottom actions row)                                                   | Pass (code-path) | See Architect Scope Review table above. All 8 mirror landmarks grep-verified at lines 91/133/140/160/555/623/749/799 of `gear_screen.dart`.                                                                                                                       |
+| 2   | Owner filter 3 segments (All / Band-owned / Member-owned); date filter 4 options (This Month / This Year / Custom / All Time); null-date rows dropped by all bounded filters          | Pass (code-path) | `_OwnerFilterToggle` L332-342 (`_labels = ['All', 'Band-owned', 'Member-owned']`); `_DateFilterRow` L191-286; `filteredItems` L58-96 (`if (d == null) return false;` on every bounded filter). Reasonably mirrors financials (whose `entryDate` is non-nullable). |
+| 3   | Table columns: Name (Expanded) / Purchased On (110) / Purchased From (110) / Owner (110) / Price (dynamic + right-aligned + currency); Owner = "Band" for band, `First L.` for member | Pass (code-path) | `_TableHeader` L555-580; `_kPurchasedOnWidth = 110`, `_kPurchasedFromWidth = 110`, `_kOwnerWidth = 110`, `_priceLabel` L631-635 uses `NumberFormat.currency`; `_ownerLabel` L637-655.                                                                             |
+| 4   | Row tap opens `GearFormSheet.show(...)` in edit mode; no new details sheet                                                                                                            | Pass (code-path) | `gear_screen.dart` L51 (`GearFormSheet.show`) called from `_openForm(item: item, canManageGear: canManageGear)`; `gear_form_sheet.dart` L67 (`_isEditMode = widget.item != null`). Form sheet unchanged (`git diff HEAD -- gear_form_sheet.dart` = 0 bytes).      |
+| 5   | Loading = `CircularProgressIndicator(color: AppColors.primary)`; error = `_ErrorState` mirroring financials                                                                           | Pass (code-path) | `gear_screen.dart` L152 (loading) and L799-816 (`_ErrorState` verbatim shape).                                                                                                                                                                                    |
+| 6   | Add-button and empty-state CTA only when `canManageGear`                                                                                                                              | Pass (code-path) | Page-title `if (canManageGear)` block L119; `_EmptyState` `if (canManageGear && onAdd != null)` block L774.                                                                                                                                                       |
+| 7   | Filter state on `gear_controller.dart` is consumed by the screen                                                                                                                      | Pass (code-path) | `state.ownerFilter` L136, `state.dateFilter` L142, `state.customStartDate` L143, `state.customEndDate` L144, `state.filteredItems` L165 all read in `_GearScreenState.build`. Filter state is consumed the moment it lands.                                       |
+| 8   | Deleted `gear_row.dart` + `gear_empty_state.dart` have zero remaining consumers                                                                                                       | Pass             | `grep_search 'GearRow\|GearEmptyState\|gear_row\|gear_empty_state'` on `**/*.dart` returns 0 matches after the deletes.                                                                                                                                           |
+| 9   | Off-limits files unchanged (form_sheet, repository, model, test, home, shell, members, migrations, agents, PR_BODY)                                                                   | Pass             | `git diff HEAD --numstat` for all off-limits paths returns 0 lines (empty output = 0 changes).                                                                                                                                                                    |
+| 10  | T1.1 analyzer clean on 7-item Option D scope                                                                                                                                          | Pass             | `Analyzing 7 items... No issues found! (ran in 2.9s)` — independently reproduced by QA.                                                                                                                                                                           |
+| 11  | T1.2 gear model tests green                                                                                                                                                           | Pass             | `00:00 +5: All tests passed!` — independently reproduced by QA.                                                                                                                                                                                                   |
+| 12  | Deviations A + B still in effect; no new deviation                                                                                                                                    | Confirmed        | Cycle 7 does not touch `login_screen*` or its test; adds no new migration; introduces no new deviation.                                                                                                                                                           |
 
 The scope requested was a mirror-financials table rewrite + filter
 extension + two widget-file inline deletions, and this is what
@@ -643,27 +994,27 @@ of `widgets/gear_row.dart` and `widgets/gear_empty_state.dart`; all cycle-4
 RBAC, cycle-5 Quick Actions surfacing, and cycle-6 revert state roll
 forward byte-identical):
 
-| System                                  | Rating | Verification                                                                                                                                                                                           |
-| --------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Auth / Session                          |  LOW   | No touch to `lib/features/auth/**`. `GearScreen` navigation continues via the cycle-5 Quick Actions handler (unchanged).                                                                              |
-| Routing                                 |  LOW   | No `onGenerateRoute` change; `GearScreen` push-only via `MaterialPageRoute` from `home_tab_content.dart` (unchanged).                                                                                 |
-| Bottom nav / AppShell tab structure     |  LOW   | Untouched.                                                                                                                                                                                             |
-| Side drawer                             |  LOW   | Byte-identical to main tip `80bad0a` (0 diff). Cycle-6 revert rolls forward unchanged.                                                                                                                 |
-| AppShell / `_MenuDrawerLayer` wiring    |  LOW   | Byte-identical to main tip `80bad0a` (0 diff). Cycle-6 revert rolls forward unchanged.                                                                                                                 |
-| RBAC / `BandPermissions`                |  LOW   | Byte-identical to cycle-4-APPROVED state. Cycle 7 only reads `perms.canManageGear`; getter body unchanged.                                                                                             |
-| RBAC / `ContributorPermissions`         |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                              |
-| Members / Role Management sheet         |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                              |
-| Members RPC (`update_member_role`)      |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                              |
-| `contributor_permissions` table         |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                              |
-| Bands / `activeBandProvider`            |  LOW   | Read-only dependency; `ref.listen<ActiveBandState>` block in `_GearScreenState` preserved verbatim from cycle 3.                                                                                       |
-| Gigs / Rehearsals / Setlists / etc.     |  LOW   | Peer features untouched.                                                                                                                                                                               |
-| Notifications                           |  LOW   | v1 gear does not fan out; `notifications.type` enum unchanged.                                                                                                                                         |
-| Init order                              |  LOW   | `main.dart` not modified.                                                                                                                                                                              |
-| Platforms (iOS / Android / macOS / Web) |  LOW   | Pure Flutter code path; affects all platforms uniformly. No platform-conditional branch was touched.                                                                                                   |
-| Home Quick Actions row                  |  LOW   | Byte-identical to cycle-5-APPROVED state (cycle 7 does not touch `lib/features/home/`).                                                                                                                |
-| `GearRepository` / `GearItem` model     |  LOW   | Byte-identical to cycle-3-APPROVED state. `gear_controller.dart` extends `GearState` additively only; existing `load`/`refresh`/`create`/`update`/`delete`/`reset` bodies unchanged from cycle 3.       |
-| `GearFormSheet`                         |  LOW   | Byte-identical to cycle-3-APPROVED state. Row-tap flow reuses `show(...)` with existing `_isEditMode` / `_isReadOnly` gates. No API change.                                                            |
-| Model unit tests                        |  LOW   | Byte-identical to cycle-3-APPROVED state (5/5 pass unchanged).                                                                                                                                         |
+| System                                  | Rating | Verification                                                                                                                                                                                      |
+| --------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth / Session                          |  LOW   | No touch to `lib/features/auth/**`. `GearScreen` navigation continues via the cycle-5 Quick Actions handler (unchanged).                                                                          |
+| Routing                                 |  LOW   | No `onGenerateRoute` change; `GearScreen` push-only via `MaterialPageRoute` from `home_tab_content.dart` (unchanged).                                                                             |
+| Bottom nav / AppShell tab structure     |  LOW   | Untouched.                                                                                                                                                                                        |
+| Side drawer                             |  LOW   | Byte-identical to main tip `80bad0a` (0 diff). Cycle-6 revert rolls forward unchanged.                                                                                                            |
+| AppShell / `_MenuDrawerLayer` wiring    |  LOW   | Byte-identical to main tip `80bad0a` (0 diff). Cycle-6 revert rolls forward unchanged.                                                                                                            |
+| RBAC / `BandPermissions`                |  LOW   | Byte-identical to cycle-4-APPROVED state. Cycle 7 only reads `perms.canManageGear`; getter body unchanged.                                                                                        |
+| RBAC / `ContributorPermissions`         |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                         |
+| Members / Role Management sheet         |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                         |
+| Members RPC (`update_member_role`)      |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                         |
+| `contributor_permissions` table         |  LOW   | Byte-identical to cycle-4-APPROVED state.                                                                                                                                                         |
+| Bands / `activeBandProvider`            |  LOW   | Read-only dependency; `ref.listen<ActiveBandState>` block in `_GearScreenState` preserved verbatim from cycle 3.                                                                                  |
+| Gigs / Rehearsals / Setlists / etc.     |  LOW   | Peer features untouched.                                                                                                                                                                          |
+| Notifications                           |  LOW   | v1 gear does not fan out; `notifications.type` enum unchanged.                                                                                                                                    |
+| Init order                              |  LOW   | `main.dart` not modified.                                                                                                                                                                         |
+| Platforms (iOS / Android / macOS / Web) |  LOW   | Pure Flutter code path; affects all platforms uniformly. No platform-conditional branch was touched.                                                                                              |
+| Home Quick Actions row                  |  LOW   | Byte-identical to cycle-5-APPROVED state (cycle 7 does not touch `lib/features/home/`).                                                                                                           |
+| `GearRepository` / `GearItem` model     |  LOW   | Byte-identical to cycle-3-APPROVED state. `gear_controller.dart` extends `GearState` additively only; existing `load`/`refresh`/`create`/`update`/`delete`/`reset` bodies unchanged from cycle 3. |
+| `GearFormSheet`                         |  LOW   | Byte-identical to cycle-3-APPROVED state. Row-tap flow reuses `show(...)` with existing `_isEditMode` / `_isReadOnly` gates. No API change.                                                       |
+| Model unit tests                        |  LOW   | Byte-identical to cycle-3-APPROVED state (5/5 pass unchanged).                                                                                                                                    |
 
 Specific regression risks Manager's mode file calls out:
 
@@ -874,7 +1225,7 @@ factors reset the reference frame:
    mirror precedent, and Manager explicitly instructed QA to "treat
    this the same way you treated cycle-5's collateral lint sweep:
    judgment call, not automatic block."
-2. The 816 lines *include* the inlined `_GearTableRow` (was
+2. The 816 lines _include_ the inlined `_GearTableRow` (was
    `gear_row.dart`, 94 lines) and inlined `_EmptyState` (was
    `gear_empty_state.dart`, 72 lines), plus the new `_OwnerFilterToggle`
    / `_DateFilterRow` / `_FilterChip` / `_TableHeader` / `_HeaderCell`
@@ -963,12 +1314,12 @@ Cycle-7 intermediate lint sweep — 5 pre-existing info-level violations
 in the freshly-rewritten `gear_screen.dart`, all Engineer-fixed as
 provably-safe no-op equivalents:
 
-| #   | Change                                                  | Semantic equivalence proof                                                                                                            |
-| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | 3× `BorderSide(width: 1.0)` → `BorderSide()`            | `BorderSide.width` defaults to `1.0` per the Flutter framework — omitting the arg is the canonical form.                              |
-| 2   | `DateTime(now.year, now.month, 1)` → `DateTime(now.year, now.month)` | `DateTime`'s `day` param defaults to `1` per `dart:core` — omitting the arg is the canonical form.                                    |
-| 3   | `onSurface: Colors.white` removed from `const ColorScheme.dark(...)` | `ColorScheme.dark` defaults `onSurface` to `Colors.white` — omitting the arg is the canonical form.                                   |
-| 4   | `const` added to `_HeaderCell('Price', textAlign: TextAlign.right)` | Both call-site args are literal constants; `_HeaderCell` has a `const` constructor. `const` at the call site is the canonical form.   |
+| #   | Change                                                               | Semantic equivalence proof                                                                                                          |
+| --- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 3× `BorderSide(width: 1.0)` → `BorderSide()`                         | `BorderSide.width` defaults to `1.0` per the Flutter framework — omitting the arg is the canonical form.                            |
+| 2   | `DateTime(now.year, now.month, 1)` → `DateTime(now.year, now.month)` | `DateTime`'s `day` param defaults to `1` per `dart:core` — omitting the arg is the canonical form.                                  |
+| 3   | `onSurface: Colors.white` removed from `const ColorScheme.dark(...)` | `ColorScheme.dark` defaults `onSurface` to `Colors.white` — omitting the arg is the canonical form.                                 |
+| 4   | `const` added to `_HeaderCell('Price', textAlign: TextAlign.right)`  | Both call-site args are literal constants; `_HeaderCell` has a `const` constructor. `const` at the call site is the canonical form. |
 
 **Classification: Suggestion S1 (accepted-with-note).** These are
 pre-existing lints that surfaced because gear's rewritten file is
@@ -1189,14 +1540,13 @@ Gear Item`; existing values pre-populated).
     before running this step, or via
     `UPDATE public.contributor_permissions SET can_view_gear = FALSE
 WHERE band_member_id = '<contributor's band_member_id>';`).
-    Confirm:
-    - Expected: the Gear button is **not visible** in Home > Quick
-      Actions (`showGear: false` because `canViewGear = false`);
-      there is no drawer entry either (the drawer path was removed
-      in cycle 6). A direct SELECT via a Supabase client using the
-      contributor's JWT returns 0 rows for that band. A direct
-      `insert`/`update`/`delete` bypassing the UI is refused
-      (INSERT: `new row violates row-level security policy for
+    Confirm: - Expected: the Gear button is **not visible** in Home > Quick
+    Actions (`showGear: false` because `canViewGear = false`);
+    there is no drawer entry either (the drawer path was removed
+    in cycle 6). A direct SELECT via a Supabase client using the
+    contributor's JWT returns 0 rows for that band. A direct
+    `insert`/`update`/`delete` bypassing the UI is refused
+    (INSERT: `new row violates row-level security policy for
 table "band_gear"`; UPDATE/DELETE: silently affects 0 rows).
 11. Flip that contributor's `can_view_gear` to `TRUE` via the Role
     Management sheet, save, re-open the sheet as the admin, confirm
@@ -1226,43 +1576,35 @@ table "band_gear"`; UPDATE/DELETE: silently affects 0 rows).
 owner + date filters).**
 
 13a. As the admin from step 8 with at least four gear rows in the
-    database (a mix of band-owned + member-owned; a mix of purchase
-    dates spanning at least two years, plus at least one row with
-    `purchased_on = NULL`), open Gear from Home > Quick Actions and
-    exercise every filter permutation:
-    - **Owner filter — All.** Owner segmented toggle set to `All`.
-      Expected: every row is visible; the sliding indicator sits
-      under the `All` segment.
-    - **Owner filter — Band-owned.** Tap `Band-owned`. Expected:
-      only rows with `owner_type = 'band'` are visible; Owner
-      column reads `Band` for every visible row; sliding indicator
-      animates to under the middle segment.
-    - **Owner filter — Member-owned.** Tap `Member-owned`. Expected:
-      only rows with `owner_type = 'member'` are visible; Owner
-      column reads `First L.` for every visible row (first name +
-      last-initial); sliding indicator animates to under the right
-      segment.
-    - **Date filter — All Time.** Reset owner filter to `All`. Date
-      chip row: tap `All Time`. Expected: every row is visible,
-      **including** the null-`purchased_on` row(s); newest-purchased
-      first, null-date rows sort last.
-    - **Date filter — This Year.** Tap `This Year`. Expected: only
-      rows with `purchased_on` in the current calendar year are
-      visible; null-date rows are **dropped**.
-    - **Date filter — This Month.** Tap `This Month`. Expected: only
-      rows with `purchased_on` in the current calendar month are
-      visible; null-date rows are **dropped**.
-    - **Date filter — Custom Range.** Tap `Custom` chip. A date-range
-      picker opens with the dark-mode `AppColors.primary` theme.
-      Pick a range spanning last month → today. Expected: only rows
-      with `purchased_on` inside the range are visible; null-date
-      rows are **dropped**; the `Custom` chip's label updates to
-      `MMM d – MMM d` (or `MMM d, yy – MMM d, yy` if the range
-      crosses a year boundary).
-    - Confirmation: filter combinations should compose (e.g.,
-      `Band-owned` × `This Year` shows only band-owned rows in the
-      current year). No console errors, no jank, no missing empty
-      state when combinations yield zero rows (should render `No
+database (a mix of band-owned + member-owned; a mix of purchase
+dates spanning at least two years, plus at least one row with
+`purchased_on = NULL`), open Gear from Home > Quick Actions and
+exercise every filter permutation: - **Owner filter — All.** Owner segmented toggle set to `All`.
+Expected: every row is visible; the sliding indicator sits
+under the `All` segment. - **Owner filter — Band-owned.** Tap `Band-owned`. Expected:
+only rows with `owner_type = 'band'` are visible; Owner
+column reads `Band` for every visible row; sliding indicator
+animates to under the middle segment. - **Owner filter — Member-owned.** Tap `Member-owned`. Expected:
+only rows with `owner_type = 'member'` are visible; Owner
+column reads `First L.` for every visible row (first name +
+last-initial); sliding indicator animates to under the right
+segment. - **Date filter — All Time.** Reset owner filter to `All`. Date
+chip row: tap `All Time`. Expected: every row is visible,
+**including** the null-`purchased_on` row(s); newest-purchased
+first, null-date rows sort last. - **Date filter — This Year.** Tap `This Year`. Expected: only
+rows with `purchased_on` in the current calendar year are
+visible; null-date rows are **dropped**. - **Date filter — This Month.** Tap `This Month`. Expected: only
+rows with `purchased_on` in the current calendar month are
+visible; null-date rows are **dropped**. - **Date filter — Custom Range.** Tap `Custom` chip. A date-range
+picker opens with the dark-mode `AppColors.primary` theme.
+Pick a range spanning last month → today. Expected: only rows
+with `purchased_on` inside the range are visible; null-date
+rows are **dropped**; the `Custom` chip's label updates to
+`MMM d – MMM d` (or `MMM d, yy – MMM d, yy` if the range
+crosses a year boundary). - Confirmation: filter combinations should compose (e.g.,
+`Band-owned` × `This Year` shows only band-owned rows in the
+current year). No console errors, no jank, no missing empty
+state when combinations yield zero rows (should render `No
 gear yet` empty state without the `+ Add Gear` CTA if `canManageGear
 == false`, with it if `canManageGear == true`).
 
@@ -1373,4 +1715,3 @@ lib/features/shell/ lib/features/members/ supabase/` returns 0 bytes
   `wc -l` were run in this cycle). No `git commit`, `git push`,
   `git checkout`, `git merge`, `git rebase`, `git reset`, `git clean`,
   or `gh` command of any kind.
-

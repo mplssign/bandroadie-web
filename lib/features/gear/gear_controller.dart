@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'gear_repository.dart';
 import 'models/gear_item.dart';
 
-enum GearOwnerFilter { all, band, member }
-
 enum GearDateFilter { allTime, thisYear, thisMonth, custom }
 
 class GearState {
   final List<GearItem> items;
   final bool isLoading;
   final String? error;
-  final GearOwnerFilter ownerFilter;
+
+  /// Empty = no owner filter. `'band'` sentinel matches band-owned; any
+  /// other entry is a `users.id` UUID matching `item.ownerUserId`.
+  final Set<String> ownerSelection;
   final GearDateFilter dateFilter;
   final DateTime? customStartDate;
   final DateTime? customEndDate;
@@ -20,7 +21,7 @@ class GearState {
     this.items = const [],
     this.isLoading = false,
     this.error,
-    this.ownerFilter = GearOwnerFilter.all,
+    this.ownerSelection = const <String>{},
     this.dateFilter = GearDateFilter.allTime,
     this.customStartDate,
     this.customEndDate,
@@ -32,7 +33,7 @@ class GearState {
     List<GearItem>? items,
     bool? isLoading,
     String? error,
-    GearOwnerFilter? ownerFilter,
+    Set<String>? ownerSelection,
     GearDateFilter? dateFilter,
     DateTime? customStartDate,
     DateTime? customEndDate,
@@ -43,7 +44,7 @@ class GearState {
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
-      ownerFilter: ownerFilter ?? this.ownerFilter,
+      ownerSelection: ownerSelection ?? this.ownerSelection,
       dateFilter: dateFilter ?? this.dateFilter,
       customStartDate:
           clearCustomDates ? null : (customStartDate ?? this.customStartDate),
@@ -58,15 +59,13 @@ class GearState {
   List<GearItem> get filteredItems {
     final now = DateTime.now();
     final filtered = items.where((item) {
-      switch (ownerFilter) {
-        case GearOwnerFilter.all:
-          break;
-        case GearOwnerFilter.band:
-          if (item.ownerType != GearOwnerType.band) return false;
-          break;
-        case GearOwnerFilter.member:
-          if (item.ownerType != GearOwnerType.member) return false;
-          break;
+      if (ownerSelection.isNotEmpty) {
+        final matches = (item.ownerType == GearOwnerType.band &&
+                ownerSelection.contains('band')) ||
+            (item.ownerType == GearOwnerType.member &&
+                item.ownerUserId != null &&
+                ownerSelection.contains(item.ownerUserId));
+        if (!matches) return false;
       }
       switch (dateFilter) {
         case GearDateFilter.allTime:
@@ -188,8 +187,12 @@ class GearNotifier extends Notifier<GearState> {
     }
   }
 
-  void setOwnerFilter(GearOwnerFilter filter) {
-    state = state.copyWith(ownerFilter: filter);
+  void setOwnerSelection(Set<String> selection) {
+    state = state.copyWith(ownerSelection: Set<String>.unmodifiable(selection));
+  }
+
+  void clearOwnerSelection() {
+    state = state.copyWith(ownerSelection: const <String>{});
   }
 
   void setDateFilter(GearDateFilter filter) {

@@ -28,6 +28,7 @@ class GearItem {
   final int? priceCents;
   final GearOwnerType ownerType;
   final String? ownerUserId;
+  final bool isUsed;
   final String? createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -41,6 +42,7 @@ class GearItem {
     this.priceCents,
     required this.ownerType,
     this.ownerUserId,
+    this.isUsed = false,
     this.createdBy,
     required this.createdAt,
     required this.updatedAt,
@@ -62,6 +64,7 @@ class GearItem {
       priceCents: json['price_cents'] as int?,
       ownerType: GearOwnerType.fromDbValue(json['owner_type'] as String),
       ownerUserId: json['owner_user_id'] as String?,
+      isUsed: (json['is_used'] as bool?) ?? false,
       createdBy: json['created_by'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -78,6 +81,7 @@ class GearItem {
       'price_cents': priceCents,
       'owner_type': ownerType.dbValue,
       'owner_user_id': ownerUserId,
+      'is_used': isUsed,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),

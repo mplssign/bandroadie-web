@@ -1,13 +1,13 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 
 import '../bands/active_band_controller.dart';
 import '../members/member_vm.dart';
@@ -58,6 +58,19 @@ class _GearScreenState extends ConsumerState<GearScreen> {
     if (result == true && mounted) {
       await ref.read(gearProvider.notifier).refresh(bandId);
     }
+  }
+
+  Future<void> _openOwnerFilterModal() async {
+    final result = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _OwnerFilterModal(
+        initialSelection: ref.read(gearProvider).ownerSelection,
+      ),
+    );
+    if (!mounted || result == null) return;
+    ref.read(gearProvider.notifier).setOwnerSelection(result);
   }
 
   @override
@@ -129,15 +142,8 @@ class _GearScreenState extends ConsumerState<GearScreen> {
                         ),
                       ),
                       const SizedBox(height: Spacing.space16),
-                      // Owner filter toggle (All / Band-owned / Member-owned)
-                      _OwnerFilterToggle(
-                        current: state.ownerFilter,
-                        onChanged: (f) =>
-                            ref.read(gearProvider.notifier).setOwnerFilter(f),
-                      ),
-                      const SizedBox(height: Spacing.space12),
-                      // Date filter row
-                      _DateFilterRow(
+                      // Owner + date filter chips (single horizontal scroll row)
+                      _FilterRow(
                         current: state.dateFilter,
                         customStartDate: state.customStartDate,
                         customEndDate: state.customEndDate,
@@ -146,6 +152,9 @@ class _GearScreenState extends ConsumerState<GearScreen> {
                         onCustomRange: (start, end) => ref
                             .read(gearProvider.notifier)
                             .setCustomDateRange(start, end),
+                        ownerSelection: state.ownerSelection,
+                        members: members,
+                        onOwnerTap: _openOwnerFilterModal,
                       ),
                       const SizedBox(height: Spacing.space16),
                       // Items list
@@ -185,14 +194,17 @@ class _GearScreenState extends ConsumerState<GearScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// DATE FILTER ROW
+// FILTER ROW (owner chip + date chips, single horizontal scroll line)
 // ---------------------------------------------------------------------------
 
-class _DateFilterRow extends StatelessWidget {
-  const _DateFilterRow({
+class _FilterRow extends StatelessWidget {
+  const _FilterRow({
     required this.current,
     required this.onChanged,
     required this.onCustomRange,
+    required this.ownerSelection,
+    required this.members,
+    required this.onOwnerTap,
     this.customStartDate,
     this.customEndDate,
   });
@@ -202,6 +214,9 @@ class _DateFilterRow extends StatelessWidget {
   final void Function(DateTime start, DateTime end) onCustomRange;
   final DateTime? customStartDate;
   final DateTime? customEndDate;
+  final Set<String> ownerSelection;
+  final List<MemberVM> members;
+  final VoidCallback onOwnerTap;
 
   Future<void> _pickCustomRange(BuildContext context) async {
     final now = DateTime.now();
@@ -253,6 +268,12 @@ class _DateFilterRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
       child: Row(
         children: [
+          _FilterChip(
+            label: _ownerChipLabel(ownerSelection, members),
+            active: ownerSelection.isNotEmpty,
+            onTap: onOwnerTap,
+          ),
+          const SizedBox(width: Spacing.space8),
           _FilterChip(
             label: 'All Time',
             active: current == GearDateFilter.allTime,
@@ -325,90 +346,204 @@ class _FilterChip extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// OWNER FILTER TOGGLE (All / Band-owned / Member-owned)
-// Structural mirror of financials' _ViewModeToggle, extended to 3 segments.
+// OWNER FILTER MODAL
+// Multi-select bottom sheet: Band + one or more active members. Selection is
+// staged locally and committed only on Done — swipe-dismiss discards changes.
 // ---------------------------------------------------------------------------
 
-class _OwnerFilterToggle extends StatelessWidget {
-  const _OwnerFilterToggle({required this.current, required this.onChanged});
+class _OwnerFilterModal extends ConsumerStatefulWidget {
+  const _OwnerFilterModal({required this.initialSelection});
 
-  final GearOwnerFilter current;
-  final ValueChanged<GearOwnerFilter> onChanged;
+  final Set<String> initialSelection;
 
-  static const _modes = [
-    GearOwnerFilter.all,
-    GearOwnerFilter.band,
-    GearOwnerFilter.member,
-  ];
-  static const _labels = ['All', 'Band-owned', 'Member-owned'];
+  @override
+  ConsumerState<_OwnerFilterModal> createState() => _OwnerFilterModalState();
+}
+
+class _OwnerFilterModalState extends ConsumerState<_OwnerFilterModal> {
+  late Set<String> _pending;
+
+  @override
+  void initState() {
+    super.initState();
+    _pending = {...widget.initialSelection};
+  }
+
+  void _toggle(String key) {
+    setState(() {
+      if (_pending.contains(key)) {
+        _pending.remove(key);
+      } else {
+        _pending.add(key);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final currentIndex = _modes.indexOf(current).clamp(0, _modes.length - 1);
+    final membersState = ref.watch(membersProvider);
+    final activeMembers =
+        membersState.members.where((m) => m.isActive).toList(growable: false);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          borderRadius: BorderRadius.circular(12),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(Spacing.cardRadius),
         ),
-        padding: const EdgeInsets.all(3),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final segmentWidth = constraints.maxWidth / _modes.length;
-            return Stack(
-              children: [
-                // Sliding indicator
-                AnimatedAlign(
-                  alignment: Alignment(
-                    -1.0 + (2.0 * currentIndex / (_modes.length - 1)),
-                    0.0,
-                  ),
-                  duration: AppDurations.fast,
-                  curve: AppCurves.ease,
-                  child: Container(
-                    width: segmentWidth,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(9),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Padding(
+              padding: const EdgeInsets.only(top: Spacing.space12),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: context.colors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            // Header row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.pagePadding,
+                Spacing.space16,
+                Spacing.space8,
+                Spacing.space12,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Filter by owner',
+                      style: AppTextStyles.headline
+                          .copyWith(color: context.colors.textPrimary),
                     ),
                   ),
+                  IconButton(
+                    icon:
+                        Icon(AppIcons.close, color: context.colors.textPrimary),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(height: 1),
+
+            // Band row
+            CheckboxListTile(
+              title: Text(
+                'Band',
+                style: AppTextStyles.callout
+                    .copyWith(color: context.colors.textPrimary),
+              ),
+              value: _pending.contains('band'),
+              onChanged: (_) => _toggle('band'),
+              activeColor: AppColors.primary,
+              checkColor: Colors.white,
+              controlAffinity: ListTileControlAffinity.trailing,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: Spacing.pagePadding,
+              ),
+            ),
+
+            const Divider(height: 1),
+
+            // Members section header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.pagePadding,
+                Spacing.space16,
+                Spacing.pagePadding,
+                Spacing.space8,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Members',
+                  style: AppTextStyles.callout
+                      .copyWith(color: context.colors.textMuted),
                 ),
-                // Labels
-                Row(
-                  children: List.generate(_modes.length, (i) {
-                    final isSelected = current == _modes[i];
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          onChanged(_modes[i]);
-                          HapticFeedback.selectionClick();
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Center(
-                          child: AnimatedDefaultTextStyle(
-                            duration: AppDurations.fast,
-                            curve: AppCurves.ease,
-                            style: TextStyle(
-                              fontSize: AppFontSizes.subhead,
-                              fontWeight: FontWeight.w600,
-                              color: isSelected
-                                  ? Colors.white
-                                  : context.colors.textPrimary,
-                            ),
-                            child: Text(_labels[i]),
-                          ),
-                        ),
+              ),
+            ),
+
+            // Members list — scrolls if long
+            Flexible(
+              child: membersState.isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: Spacing.space24),
+                      child: Center(
+                        child:
+                            CircularProgressIndicator(color: AppColors.primary),
                       ),
-                    );
-                  }),
-                ),
-              ],
-            );
-          },
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: activeMembers.length,
+                      itemBuilder: (context, index) {
+                        final m = activeMembers[index];
+                        return CheckboxListTile(
+                          title: Text(
+                            m.name,
+                            style: AppTextStyles.callout
+                                .copyWith(color: context.colors.textPrimary),
+                          ),
+                          value: _pending.contains(m.userId),
+                          onChanged: (_) => _toggle(m.userId),
+                          activeColor: AppColors.primary,
+                          checkColor: Colors.white,
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: Spacing.pagePadding,
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+            const Divider(height: 1),
+
+            // Action row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.pagePadding,
+                Spacing.space12,
+                Spacing.pagePadding,
+                Spacing.space12,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'Clear',
+                      onPressed: _pending.isEmpty
+                          ? null
+                          : () => setState(() => _pending = <String>{}),
+                      variant: AppButtonVariant.outlined,
+                      fullWidth: true,
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.space12),
+                  Expanded(
+                    child: AppButton(
+                      label: 'Done',
+                      onPressed: () => Navigator.of(context).pop(_pending),
+                      fullWidth: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -442,22 +577,38 @@ class _GearEntriesList extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final headerStyle = AppTextStyles.footnote
+            .copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.5);
+
         // Compute price column width to fit the widest price string
         final priceDataStyle =
             AppTextStyles.callout.copyWith(fontWeight: FontWeight.w600);
-        final priceHeaderStyle = AppTextStyles.footnote
-            .copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.5);
-        double maxPricePx = _measureText('Price', priceHeaderStyle);
+        double maxPricePx = _measureText('Price', headerStyle);
         for (final item in items) {
           final label = _priceLabel(item);
           final w = _measureText(label, priceDataStyle);
           if (w > maxPricePx) maxPricePx = w;
         }
+        // Guarantee the column always fits '$9,999.99' even when no visible
+        // row in the current filter reaches that magnitude.
+        final minPriceWidth = _measureText('\$9,999.99', priceDataStyle);
+        if (minPriceWidth > maxPricePx) maxPricePx = minPriceWidth;
         // 4px cell padding each side + 8px buffer
         final priceColumnWidth = maxPricePx + 16;
 
+        // Compute Purchased On column width to fit the widest date string
+        double maxPurchasedOnPx = _measureText('Purchased On', headerStyle);
+        for (final item in items) {
+          if (item.purchasedOn == null) continue;
+          final label = DateFormat('MMM d, y').format(item.purchasedOn!);
+          final w = _measureText(label, AppTextStyles.callout);
+          if (w > maxPurchasedOnPx) maxPurchasedOnPx = w;
+        }
+        final purchasedOnColumnWidth = maxPurchasedOnPx + 16;
+
         final minWidth = _kMinNameWidth +
             _kFixedColumnsWidth +
+            purchasedOnColumnWidth +
             priceColumnWidth +
             Spacing.pagePadding * 2;
         final tableWidth =
@@ -472,7 +623,10 @@ class _GearEntriesList extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: Spacing.pagePadding),
-                  child: _TableHeader(priceColumnWidth: priceColumnWidth),
+                  child: _TableHeader(
+                    purchasedOnColumnWidth: purchasedOnColumnWidth,
+                    priceColumnWidth: priceColumnWidth,
+                  ),
                 ),
                 const Divider(height: 1),
                 // Rows
@@ -492,6 +646,7 @@ class _GearEntriesList extends StatelessWidget {
                       return _GearTableRow(
                         item: item,
                         members: members,
+                        purchasedOnColumnWidth: purchasedOnColumnWidth,
                         priceColumnWidth: priceColumnWidth,
                         onTap: () => onTapItem(item),
                       );
@@ -507,13 +662,15 @@ class _GearEntriesList extends StatelessWidget {
   }
 }
 
-// Column widths: Name is Expanded; Price is computed dynamically; others fixed.
-const _kMinNameWidth = 140.0;
-const _kPurchasedOnWidth = 110.0;
-const _kPurchasedFromWidth = 110.0;
+// Column widths: Name is Expanded (min-width floor drives horizontal scroll
+// on narrow screens); Purchased On and Price are computed dynamically to fit
+// their widest content; From, Owner, and New/Used are fixed.
+const _kMinNameWidth = 190.0;
+const _kFromWidth = 160.0;
 const _kOwnerWidth = 110.0;
-const _kFixedColumnsWidth =
-    _kPurchasedOnWidth + _kPurchasedFromWidth + _kOwnerWidth;
+// Fits 'Used' (widest of 'New'/'Used') at callout style with buffer.
+const _kNewUsedWidth = 72.0;
+const _kFixedColumnsWidth = _kFromWidth + _kOwnerWidth + _kNewUsedWidth;
 
 double _measureText(String text, TextStyle style) {
   final painter = TextPainter(
@@ -530,13 +687,10 @@ String _priceLabel(GearItem item) {
   return fmt.format(item.priceCents! / 100);
 }
 
-String _ownerLabel(GearItem item, List<MemberVM> members) {
-  if (item.ownerType == GearOwnerType.band) return 'Band';
-  final ownerId = item.ownerUserId;
-  if (ownerId == null) return 'Member';
+String _memberShortLabel(String userId, List<MemberVM> members) {
   MemberVM? member;
   for (final m in members) {
-    if (m.userId == ownerId) {
+    if (m.userId == userId) {
       member = m;
       break;
     }
@@ -552,9 +706,31 @@ String _ownerLabel(GearItem item, List<MemberVM> members) {
   return member.name;
 }
 
-class _TableHeader extends StatelessWidget {
-  const _TableHeader({required this.priceColumnWidth});
+String _ownerLabel(GearItem item, List<MemberVM> members) {
+  if (item.ownerType == GearOwnerType.band) return 'Band';
+  final ownerId = item.ownerUserId;
+  if (ownerId == null) return 'Member';
+  return _memberShortLabel(ownerId, members);
+}
 
+String _ownerChipLabel(Set<String> selection, List<MemberVM> members) {
+  if (selection.isEmpty) return 'Owner';
+  if (selection.length == 1) {
+    final only = selection.first;
+    if (only == 'band') return 'Band';
+    return _memberShortLabel(only, members);
+  }
+  final n = selection.length;
+  return '$n owner${n > 1 ? "s" : ""} selected';
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader({
+    required this.purchasedOnColumnWidth,
+    required this.priceColumnWidth,
+  });
+
+  final double purchasedOnColumnWidth;
   final double priceColumnWidth;
 
   @override
@@ -566,16 +742,20 @@ class _TableHeader extends StatelessWidget {
         children: [
           Expanded(child: _HeaderCell('Name', borderSide: borderSide)),
           SizedBox(
-            width: _kPurchasedOnWidth,
+            width: purchasedOnColumnWidth,
             child: _HeaderCell('Purchased On', borderSide: borderSide),
           ),
           SizedBox(
-            width: _kPurchasedFromWidth,
-            child: _HeaderCell('Purchased From', borderSide: borderSide),
+            width: _kFromWidth,
+            child: _HeaderCell('From', borderSide: borderSide),
           ),
           SizedBox(
             width: _kOwnerWidth,
             child: _HeaderCell('Owner', borderSide: borderSide),
+          ),
+          SizedBox(
+            width: _kNewUsedWidth,
+            child: _HeaderCell('New/Used', borderSide: borderSide),
           ),
           SizedBox(
             width: priceColumnWidth,
@@ -624,12 +804,14 @@ class _GearTableRow extends StatelessWidget {
   const _GearTableRow({
     required this.item,
     required this.members,
+    required this.purchasedOnColumnWidth,
     required this.priceColumnWidth,
     required this.onTap,
   });
 
   final GearItem item;
   final List<MemberVM> members;
+  final double purchasedOnColumnWidth;
   final double priceColumnWidth;
   final VoidCallback onTap;
 
@@ -667,9 +849,9 @@ class _GearTableRow extends StatelessWidget {
                   ),
                 ),
               ),
-              // Purchased On
+              // Purchased On — dynamic width, no truncation
               SizedBox(
-                width: _kPurchasedOnWidth,
+                width: purchasedOnColumnWidth,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       vertical: Spacing.space16, horizontal: 4),
@@ -679,13 +861,14 @@ class _GearTableRow extends StatelessWidget {
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textPrimary),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
                   ),
                 ),
               ),
-              // Purchased From
+              // From
               SizedBox(
-                width: _kPurchasedFromWidth,
+                width: _kFromWidth,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                       vertical: Spacing.space16, horizontal: 4),
@@ -708,6 +891,22 @@ class _GearTableRow extends StatelessWidget {
                   decoration: BoxDecoration(border: Border(right: borderSide)),
                   child: Text(
                     ownerValue,
+                    style: AppTextStyles.callout
+                        .copyWith(color: context.colors.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+              // New/Used
+              SizedBox(
+                width: _kNewUsedWidth,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: Spacing.space16, horizontal: 4),
+                  decoration: BoxDecoration(border: Border(right: borderSide)),
+                  child: Text(
+                    item.isUsed ? 'Used' : 'New',
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textSecondary),
                     maxLines: 1,

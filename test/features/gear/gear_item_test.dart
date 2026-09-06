@@ -25,6 +25,7 @@ void main() {
         'price_cents': 129999,
         'owner_type': 'band',
         'owner_user_id': null,
+        'is_used': true,
         'created_by': 'user-1',
         'created_at': '2026-01-15T12:00:00.000Z',
         'updated_at': '2026-01-16T12:00:00.000Z',
@@ -33,6 +34,7 @@ void main() {
       final item = GearItem.fromJson(source);
       final json = item.toJson();
 
+      expect(item.isUsed, isTrue);
       expect(json['id'], source['id']);
       expect(json['band_id'], source['band_id']);
       expect(json['name'], source['name']);
@@ -41,6 +43,7 @@ void main() {
       expect(json['price_cents'], source['price_cents']);
       expect(json['owner_type'], source['owner_type']);
       expect(json['owner_user_id'], source['owner_user_id']);
+      expect(json['is_used'], true);
       expect(json['created_by'], source['created_by']);
     });
 
@@ -54,6 +57,7 @@ void main() {
         'price_cents': null,
         'owner_type': 'member',
         'owner_user_id': 'user-2',
+        'is_used': false,
         'created_by': null,
         'created_at': '2026-02-01T08:30:00.000Z',
         'updated_at': '2026-02-01T08:30:00.000Z',
@@ -62,10 +66,33 @@ void main() {
       final item = GearItem.fromJson(source);
       final json = item.toJson();
 
+      expect(item.isUsed, isFalse);
       expect(json['owner_type'], 'member');
       expect(json['owner_user_id'], 'user-2');
       expect(json['purchased_on'], isNull);
       expect(json['price_cents'], isNull);
+      expect(json['is_used'], false);
+    });
+
+    test('fromJson defaults isUsed to false when is_used key is missing', () {
+      final source = {
+        'id': 'gear-3',
+        'band_id': 'band-1',
+        'name': 'Vintage Amp',
+        'purchased_on': null,
+        'purchased_from': null,
+        'price_cents': null,
+        'owner_type': 'band',
+        'owner_user_id': null,
+        'created_by': null,
+        'created_at': '2026-03-01T00:00:00.000Z',
+        'updated_at': '2026-03-01T00:00:00.000Z',
+      };
+
+      final item = GearItem.fromJson(source);
+
+      expect(item.isUsed, isFalse);
+      expect(item.toJson()['is_used'], false);
     });
 
     test('constructor enforces owner shape invariant', () {
