@@ -126,7 +126,6 @@ class SideDrawer extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onProfileTap;
   final VoidCallback onSettingsTap;
-  final VoidCallback? onGearTap;
   final VoidCallback onTipsAndTricksTap;
   final VoidCallback onReportBugsTap;
   final VoidCallback onLogOutTap;
@@ -141,7 +140,6 @@ class SideDrawer extends StatefulWidget {
     required this.onClose,
     required this.onProfileTap,
     required this.onSettingsTap,
-    this.onGearTap,
     required this.onTipsAndTricksTap,
     required this.onReportBugsTap,
     required this.onLogOutTap,
@@ -279,15 +277,6 @@ class _SideDrawerState extends State<SideDrawer>
             onTap: widget.onSettingsTap,
           ),
           const DrawerSectionDivider(),
-          if (widget.onGearTap != null) ...[
-            DrawerNavItem(
-              icon: AppIcons.library,
-              iconColor: context.colors.textSecondary,
-              label: 'Gear',
-              onTap: widget.onGearTap!,
-            ),
-            const DrawerSectionDivider(),
-          ],
           DrawerNavItem(
             icon: Icons.lightbulb_outline_rounded,
             iconColor: context.colors.textSecondary,
@@ -729,7 +718,6 @@ class DrawerOverlay extends StatefulWidget {
   final String? appVersion;
   final VoidCallback onProfileTap;
   final VoidCallback onSettingsTap;
-  final VoidCallback? onGearTap;
   final VoidCallback onTipsAndTricksTap;
   final VoidCallback onReportBugsTap;
   final VoidCallback onLogOutTap;
@@ -745,7 +733,6 @@ class DrawerOverlay extends StatefulWidget {
     this.appVersion,
     required this.onProfileTap,
     required this.onSettingsTap,
-    this.onGearTap,
     required this.onTipsAndTricksTap,
     required this.onReportBugsTap,
     required this.onLogOutTap,
@@ -864,7 +851,7 @@ class _DrawerOverlayState extends State<DrawerOverlay>
 
             return GestureDetector(
               onTap: widget.onClose,
-              child: ColoredBox(
+              child: Container(
                 color: Colors.black.withValues(
                   alpha: 0.6 * _scrimAnimation.value,
                 ),
@@ -874,7 +861,7 @@ class _DrawerOverlayState extends State<DrawerOverlay>
                       sigmaX: 2 * _scrimAnimation.value,
                       sigmaY: 2 * _scrimAnimation.value,
                     ),
-                    child: const ColoredBox(color: Colors.transparent),
+                    child: Container(color: Colors.transparent),
                   ),
                 ),
               ),
@@ -903,12 +890,6 @@ class _DrawerOverlayState extends State<DrawerOverlay>
                 widget.onClose();
                 widget.onSettingsTap();
               },
-              onGearTap: widget.onGearTap != null
-                  ? () {
-                      widget.onClose();
-                      widget.onGearTap!();
-                    }
-                  : null,
               onTipsAndTricksTap: () {
                 widget.onClose();
                 widget.onTipsAndTricksTap();
@@ -949,7 +930,6 @@ class DrawerOverlayContent extends StatefulWidget {
   final String? appVersion;
   final VoidCallback onProfileTap;
   final VoidCallback onSettingsTap;
-  final VoidCallback? onGearTap;
   final VoidCallback onTipsAndTricksTap;
   final VoidCallback onReportBugsTap;
   final VoidCallback onLogOutTap;
@@ -964,7 +944,6 @@ class DrawerOverlayContent extends StatefulWidget {
     this.appVersion,
     required this.onProfileTap,
     required this.onSettingsTap,
-    this.onGearTap,
     required this.onTipsAndTricksTap,
     required this.onReportBugsTap,
     required this.onLogOutTap,
@@ -1083,7 +1062,7 @@ class _DrawerOverlayContentState extends State<DrawerOverlayContent>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.onClose,
-                child: ColoredBox(
+                child: Container(
                   color: Colors.black.withValues(
                     alpha: 0.5 * _scrimAnimation.value,
                   ),
@@ -1093,7 +1072,7 @@ class _DrawerOverlayContentState extends State<DrawerOverlayContent>
                         sigmaX: 8 * _scrimAnimation.value,
                         sigmaY: 8 * _scrimAnimation.value,
                       ),
-                      child: const ColoredBox(color: Colors.transparent),
+                      child: Container(color: Colors.transparent),
                     ),
                   ),
                 ),
@@ -1115,7 +1094,6 @@ class _DrawerOverlayContentState extends State<DrawerOverlayContent>
                   onClose: widget.onClose,
                   onProfileTap: widget.onProfileTap,
                   onSettingsTap: widget.onSettingsTap,
-                  onGearTap: widget.onGearTap,
                   onTipsAndTricksTap: widget.onTipsAndTricksTap,
                   onReportBugsTap: widget.onReportBugsTap,
                   onLogOutTap: widget.onLogOutTap,

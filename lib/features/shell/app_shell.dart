@@ -15,7 +15,6 @@ import '../bands/edit_band_screen.dart';
 import '../calendar/calendar_tab_content.dart';
 import '../auth/demo_session_service.dart';
 import '../feedback/bug_report_screen.dart';
-import '../gear/gear_screen.dart';
 import '../gigs/gig_controller.dart';
 import '../home/home_tab_content.dart';
 import '../home/widgets/animated_bottom_nav_bar.dart';
@@ -209,17 +208,13 @@ class _AppShellState extends ConsumerState<AppShell> {
 
           // Native app download banner (Web only, mobile browsers only)
           if (kIsWeb)
-            // ignore: prefer_const_constructors
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: const NativeAppBanner(
-                // ignore: avoid_redundant_argument_values
                 delay: Duration(seconds: 4),
-                // ignore: avoid_redundant_argument_values
                 position: BannerPosition.top,
-                // ignore: avoid_redundant_argument_values
                 hideOnAuthPages: true,
               ),
             ),
@@ -249,9 +244,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           // Exit demo loading overlay
           if (ref.watch(_exitingDemoProvider)) ...[
             const ModalBarrier(dismissible: false, color: Colors.black54),
-            // ignore: prefer_const_constructors
             Center(
-              // ignore: prefer_const_constructors
               child: CircularProgressIndicator(
                 color: AppColors.primary,
                 strokeWidth: 3,
@@ -298,12 +291,6 @@ class _MenuDrawerLayer extends ConsumerWidget {
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
-      },
-      onGearTap: () {
-        onClose();
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const GearScreen()));
       },
       onTipsAndTricksTap: () {
         onClose();

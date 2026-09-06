@@ -986,10 +986,16 @@ Supabase preview branch.
 
 #### T1.1 — Client analyzer clean
 
-`flutter analyze lib/features/gear lib/features/home/widgets/side_drawer.dart lib/features/members/permissions/band_permissions.dart lib/features/members/permissions/contributor_permissions.dart lib/features/members/widgets/role_management_sheet.dart lib/features/shell/app_shell.dart test/features/gear/gear_item_test.dart`
+`flutter analyze lib/features/gear lib/features/home/home_tab_content.dart lib/features/home/widgets/quick_actions_row.dart lib/features/members/permissions/band_permissions.dart lib/features/members/permissions/contributor_permissions.dart lib/features/members/widgets/role_management_sheet.dart test/features/gear/gear_item_test.dart`
 returns `No issues found` at every severity (0 errors, 0 warnings, 0
 infos), per the `analysis_options.yaml` policy that promotes AI-slop lints
 to error.
+
+Cycle-6 scope note: `side_drawer.dart` and `app_shell.dart` were fully
+reverted to `main` (byte-identical, 0 diff) and are no longer feature-
+touched — dropped from this command per the standard "pre-existing lints
+in files a feature doesn't touch are not that feature's gate" rule that
+applies to every other unmodified file in the repo.
 
 #### T1.2 — Feature unit tests green
 
