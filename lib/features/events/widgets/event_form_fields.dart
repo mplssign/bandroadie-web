@@ -13,9 +13,24 @@ import '../models/event_form_data.dart';
 import 'event_editor_helpers.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
+class TimezonePickerEntry {
+  const TimezonePickerEntry.header(this.label)
+      : value = null,
+        isHeader = true;
+
+  const TimezonePickerEntry.option({required this.value, required this.label})
+      : isHeader = false;
+
+  final String? value;
+  final String label;
+  final bool isHeader;
+}
+
 /// Shared form fields used by all event types: error banner, date picker,
 /// time selector, duration selector, setlist selector, and notes field.
 class EventFormFields extends ConsumerWidget {
+  static const double _kFieldGap = Spacing.space24;
+
   const EventFormFields({
     super.key,
     required this.eventType,
@@ -45,6 +60,12 @@ class EventFormFields extends ConsumerWidget {
     required this.durationMinutes,
     required this.onDurationDecremented,
     required this.onDurationIncremented,
+    // Timezone selection
+    required this.selectedTimezone,
+    required this.selectedTimezoneValue,
+    required this.timezoneEntries,
+    required this.onClearTimezone,
+    required this.onTimezoneChanged,
     // Setlist state
     required this.selectedSetlistId,
     required this.onSetlistSelected,
@@ -87,6 +108,13 @@ class EventFormFields extends ConsumerWidget {
   final VoidCallback onDurationDecremented;
   final VoidCallback onDurationIncremented;
 
+  // --- Timezone selection ---
+  final String? selectedTimezone;
+  final String? selectedTimezoneValue;
+  final List<TimezonePickerEntry> timezoneEntries;
+  final VoidCallback onClearTimezone;
+  final ValueChanged<String> onTimezoneChanged;
+
   // --- Setlist ---
   final String? selectedSetlistId;
   final void Function(String? id, String? name) onSetlistSelected;
@@ -104,18 +132,18 @@ class EventFormFields extends ConsumerWidget {
         // Error banner
         if (errorMessage != null) ...[
           _buildErrorBanner(),
-          const SizedBox(height: Spacing.space16),
+          const SizedBox(height: _kFieldGap),
         ],
 
         // Primary date picker (label + single date row)
         _buildPrimaryDatePicker(context),
 
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFieldGap),
 
         // Start Time Selectors
         _buildTimeSelector(context),
 
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFieldGap),
 
         // Additional date+time rows (each preceded by a divider)
         if (additionalDates.isNotEmpty) ...[
@@ -125,22 +153,22 @@ class EventFormFields extends ConsumerWidget {
               thickness: 1,
               color: context.colors.border,
             ),
-            const SizedBox(height: Spacing.space16),
+            const SizedBox(height: _kFieldGap),
             _buildAdditionalDateTimeRow(context, i, additionalDates[i]),
-            const SizedBox(height: Spacing.space16),
+            const SizedBox(height: _kFieldGap),
           ],
         ],
 
         // "+ Add another date/time" button (only for potential gigs/rehearsals)
         if (isPotentialGig) ...[
           _buildAddAnotherButton(context),
-          const SizedBox(height: Spacing.space16),
+          const SizedBox(height: _kFieldGap),
         ],
 
         // Duration Selector
         _buildDurationSelector(context),
 
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFieldGap),
       ],
     );
   }
@@ -449,8 +477,121 @@ class EventFormFields extends ConsumerWidget {
             ),
           ],
         ),
+        const SizedBox(height: Spacing.space12),
+        EventAddValueButton(
+          label: 'Set timezone',
+          onPressed: isSaving
+              ? null
+              : () {
+                  _showTimezonePicker(context);
+                },
+          isSaving: isSaving,
+        ),
+        if (selectedTimezone != null) ...[
+          const SizedBox(height: Spacing.space12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Selected: $selectedTimezone',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: isSaving ? null : onClearTimezone,
+                child: Text(
+                  'Clear',
+                  style: AppTextStyles.footnote.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _showTimezonePicker(BuildContext context) async {
+    if (timezoneEntries.isEmpty) return;
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: context.colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(sheetContext).size.height * 0.6,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Select timezone',
+                    style: AppTextStyles.calloutEmphasized.copyWith(
+                      color: sheetContext.colors.textPrimary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: timezoneEntries.length,
+                    itemBuilder: (_, index) {
+                      final entry = timezoneEntries[index];
+                      if (entry.isHeader) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                          child: Text(
+                            entry.label,
+                            style: AppTextStyles.title3.copyWith(
+                              color: sheetContext.colors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final value = entry.value!;
+                      final isSelected = value == selectedTimezoneValue;
+                      return ListTile(
+                        title: Text(
+                          entry.label,
+                          style: AppTextStyles.callout.copyWith(
+                            color: sheetContext.colors.textPrimary,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(
+                                AppIcons.check,
+                                color: AppColors.primary,
+                                size: 18,
+                              )
+                            : null,
+                        onTap: () => Navigator.of(sheetContext).pop(value),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      onTimezoneChanged(selected);
+      HapticFeedback.selectionClick();
+    }
   }
 
   // ---------------------------------------------------------------------------

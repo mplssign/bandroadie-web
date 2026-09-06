@@ -11,6 +11,27 @@ class TimezoneHelper {
   static bool _initialized = false;
 
   static const _defaultTimezone = 'America/Chicago';
+  static const List<String> _usPriorityTimezones = [
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Phoenix',
+    'America/Los_Angeles',
+    'America/Anchorage',
+    'Pacific/Honolulu',
+  ];
+
+  static const List<String> _canadaPriorityTimezones = [
+    'America/Vancouver',
+    'America/Edmonton',
+    'America/Dawson_Creek',
+    'America/Creston',
+    'America/Regina',
+    'America/Toronto',
+    'America/Halifax',
+    'America/St_Johns',
+    'America/Whitehorse',
+  ];
 
   /// Initialize timezone database. Safe to call multiple times (idempotent).
   static void initialize() {
@@ -122,5 +143,66 @@ class TimezoneHelper {
       tzDateTime.millisecondsSinceEpoch,
       isUtc: true,
     );
+  }
+
+  /// Return all available IANA timezone identifiers in sorted order.
+  static List<String> allTimezones() {
+    initialize();
+    final allZones = tz.timeZoneDatabase.locations.keys.toList()..sort();
+    final used = <String>{};
+    final ordered = <String>[];
+
+    for (final zone in _usPriorityTimezones) {
+      if (allZones.contains(zone) && used.add(zone)) {
+        ordered.add(zone);
+      }
+    }
+
+    for (final zone in _canadaPriorityTimezones) {
+      if (allZones.contains(zone) && used.add(zone)) {
+        ordered.add(zone);
+      }
+    }
+
+    final europeZones = allZones
+        .where((zone) => zone.startsWith('Europe/') && !used.contains(zone))
+        .toList();
+    ordered.addAll(europeZones);
+    used.addAll(europeZones);
+
+    final remainingZones = allZones.where((zone) => !used.contains(zone));
+    ordered.addAll(remainingZones);
+
+    return ordered;
+  }
+
+  /// User-facing timezone label from an IANA ID.
+  /// Example: "America/Los_Angeles" -> "America/Los Angeles".
+  static String displayLabel(String timezone) {
+    return timezone.replaceAll('_', ' ');
+  }
+
+  /// Format offset as UTC+HH:MM or UTC-HH:MM.
+  static String formatUtcOffset(Duration offset) {
+    final totalMinutes = offset.inMinutes;
+    final sign = totalMinutes >= 0 ? '+' : '-';
+    final absMinutes = totalMinutes.abs();
+    final hours = (absMinutes ~/ 60).toString().padLeft(2, '0');
+    final minutes = (absMinutes % 60).toString().padLeft(2, '0');
+    return 'UTC$sign$hours:$minutes';
+  }
+
+  /// Build labels like "Hawaii (UTC-10:00)" for timezone selection UI.
+  static String displayLabelWithUtcOffset({
+    required String timezone,
+    required String label,
+    DateTime? at,
+  }) {
+    initialize();
+    final location = _resolveLocation(timezone);
+    final instantUtc = (at ?? DateTime.now()).toUtc();
+    final localTime = tz.TZDateTime.from(instantUtc, location);
+    final offsetLabel = formatUtcOffset(localTime.timeZoneOffset);
+    return '$label ($offsetLabel)';
   }
 }

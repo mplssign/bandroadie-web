@@ -3,7 +3,7 @@
 -- Adds band-scoped gig contact links plus an idempotent sync RPC.
 -- ============================================================================
 
-CREATE TABLE public.gig_contacts (
+CREATE TABLE IF NOT EXISTS public.gig_contacts (
   gig_id UUID NOT NULL REFERENCES public.gigs(id) ON DELETE CASCADE,
   contact_id UUID NOT NULL REFERENCES public.contacts(id) ON DELETE CASCADE,
   band_id UUID NOT NULL REFERENCES public.bands(id) ON DELETE CASCADE,
@@ -11,11 +11,12 @@ CREATE TABLE public.gig_contacts (
   PRIMARY KEY (gig_id, contact_id)
 );
 
-CREATE INDEX idx_gig_contacts_band_id ON public.gig_contacts(band_id);
-CREATE INDEX idx_gig_contacts_contact_id ON public.gig_contacts(contact_id);
+CREATE INDEX IF NOT EXISTS idx_gig_contacts_band_id ON public.gig_contacts(band_id);
+CREATE INDEX IF NOT EXISTS idx_gig_contacts_contact_id ON public.gig_contacts(contact_id);
 
 ALTER TABLE public.gig_contacts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "gig_contacts_select_members" ON public.gig_contacts;
 CREATE POLICY "gig_contacts_select_members" ON public.gig_contacts
 FOR SELECT TO authenticated
 USING (
@@ -28,6 +29,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "gig_contacts_insert_members" ON public.gig_contacts;
 CREATE POLICY "gig_contacts_insert_members" ON public.gig_contacts
 FOR INSERT TO authenticated
 WITH CHECK (
@@ -41,6 +43,7 @@ WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "gig_contacts_delete_members" ON public.gig_contacts;
 CREATE POLICY "gig_contacts_delete_members" ON public.gig_contacts
 FOR DELETE TO authenticated
 USING (

@@ -43,6 +43,28 @@ WHERE id IN (
   'fc379e2d-5ab9-474b-ad0f-34b0e17f23e6'    -- stray Test band
 );
 
+-- Re-home any remaining created_by references from the retired shared demo user
+-- to the seeded demo system user so FK constraints stay valid.
+UPDATE public.bands
+SET created_by = '00000000-0000-4000-8000-000000000001'
+WHERE created_by = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925';
+
+UPDATE public.gigs
+SET created_by = '00000000-0000-4000-8000-000000000001'
+WHERE created_by = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925';
+
+UPDATE public.setlists
+SET created_by = '00000000-0000-4000-8000-000000000001'
+WHERE created_by = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925';
+
+UPDATE public.financial_entries
+SET created_by = '00000000-0000-4000-8000-000000000001'
+WHERE created_by = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925';
+
+-- Remove matching profile row first, then auth row.
+DELETE FROM public.users
+WHERE id = '4b8b4b6c-1e2a-4c0e-ad77-01e9749b2925';
+
 -- Delete the old shared demo auth.users row.
 -- ON DELETE CASCADE on band_members.user_id cleans up any surviving memberships.
 DELETE FROM auth.users

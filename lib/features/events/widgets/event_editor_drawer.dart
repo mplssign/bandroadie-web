@@ -10,6 +10,7 @@ import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/app_animations.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/event_editor_theme.dart';
+import '../../../app/utils/timezone_helper.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../components/ui/app_date_picker.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
@@ -67,6 +68,8 @@ import 'package:bandroadie/app/theme/app_icons.dart';
 
 /// Mode for the event editor
 enum EventEditorMode { create, edit }
+
+const double _kFormSectionGap = Spacing.space24;
 
 class EventEditorDrawer extends ConsumerStatefulWidget {
   /// Create mode or edit mode
@@ -126,6 +129,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   int _selectedHour = 7;
   int _selectedMinutes = 0;
   bool _isPM = true;
+  String? _selectedTimezone;
   int _durationMinutes = 60; // Default 1h, stored in minutes
   // Load-in time state (gigs only, optional)
   int? _loadInHour;
@@ -271,6 +275,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       _selectedMinutes = data.minutes;
       _isPM = data.isPM;
       _durationMinutes = data.duration.minutes;
+      if (data.timezone != null && data.timezone!.isNotEmpty) {
+        _selectedTimezone = data.timezone!;
+      }
       // Populate load-in time if present
       if (data.loadInHour != null &&
           data.loadInMinutes != null &&
@@ -1207,6 +1214,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       minutes: _selectedMinutes,
       isPM: _isPM,
       duration: _durationMinutesToEnum(_durationMinutes),
+      timezone: _selectedTimezone,
       location: (_eventType == EventType.rehearsal
           ? (_rehearsalLocationText?.trim() ?? '')
           : (_gigCityText?.trim() ?? '')),
@@ -2678,6 +2686,19 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         HapticFeedback.selectionClick();
       },
       durationMinutes: _durationMinutes,
+      selectedTimezone: _selectedTimezone == null
+          ? null
+          : (_timezoneValueToLabel[_selectedTimezone!] ?? _selectedTimezone!),
+      selectedTimezoneValue: _selectedTimezone,
+      timezoneEntries: _timezoneEntries,
+      onClearTimezone: () {
+        setState(() => _selectedTimezone = null);
+        _markDirty();
+      },
+      onTimezoneChanged: (value) {
+        setState(() => _selectedTimezone = value);
+        _markDirty();
+      },
       onDurationDecremented: () {
         setState(() {
           _durationMinutes = (_durationMinutes - 15).clamp(15, 9999);
@@ -2708,8 +2729,59 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     );
   }
 
+  late final List<TimezonePickerEntry> _timezoneEntries = [
+    const TimezonePickerEntry.header('United States'),
+    _tzOption('Pacific/Honolulu', 'Hawaii'),
+    _tzOption('America/Anchorage', 'Alaska'),
+    _tzOption('America/Los_Angeles', 'California'),
+    _tzOption('America/Phoenix', 'Arizona'),
+    _tzOption('America/Denver', 'Colorado'),
+    _tzOption('America/Chicago', 'Illinois'),
+    _tzOption('America/New_York', 'New York'),
+    const TimezonePickerEntry.header('Canada'),
+    _tzOption('America/Vancouver', 'Vancouver'),
+    _tzOption('America/Whitehorse', 'Whitehorse'),
+    _tzOption('America/Edmonton', 'Edmonton'),
+    _tzOption('America/Dawson_Creek', 'Dawson Creek'),
+    _tzOption('America/Creston', 'Creston'),
+    _tzOption('America/Regina', 'Regina'),
+    _tzOption('America/Toronto', 'Toronto'),
+    _tzOption('America/Halifax', 'Halifax'),
+    _tzOption('America/St_Johns', "St. John's"),
+    const TimezonePickerEntry.header('Europe'),
+    _tzOption('Europe/Lisbon', 'Lisbon'),
+    _tzOption('Europe/London', 'London'),
+    _tzOption('Europe/Dublin', 'Dublin'),
+    _tzOption('Europe/Madrid', 'Madrid'),
+    _tzOption('Europe/Paris', 'Paris'),
+    _tzOption('Europe/Amsterdam', 'Amsterdam'),
+    _tzOption('Europe/Berlin', 'Berlin'),
+    _tzOption('Europe/Zurich', 'Zurich'),
+    _tzOption('Europe/Rome', 'Rome'),
+    _tzOption('Europe/Stockholm', 'Stockholm'),
+  ];
+
+  late final Map<String, String> _timezoneValueToLabel = {
+    for (final entry in _timezoneEntries)
+      if (!entry.isHeader && entry.value != null) entry.value!: entry.label,
+  };
+
+  TimezonePickerEntry _tzOption(String value, String label) {
+    return TimezonePickerEntry.option(
+      value: value,
+      label: TimezoneHelper.displayLabelWithUtcOffset(
+        timezone: value,
+        label: label,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final footerClearance =
+        (_isEditingExpense || widget.viewOnly) ? 24.0 : 96.0;
+
     return FTheme(
       data: buildEventEditorTheme(),
       child: Container(
@@ -2730,7 +2802,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + keyboardInset + footerClearance,
+                ),
                 child: _buildScrollableBody(context),
               ),
             ),
@@ -2911,29 +2988,42 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         children: [
           if (_errorMessage != null) ...[
             _buildErrorBanner(),
-            const SizedBox(height: 16),
+            const SizedBox(height: _kFormSectionGap),
           ],
-          _SectionCard(title: 'The Gig', child: gigFormFields!),
-          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'The Gig',
+            headerTrailing: gigFormFields!.buildPotentialToggleControl(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                gigFormFields,
+                if (_isPotentialGig) ...[
+                  const SizedBox(height: _kFormSectionGap),
+                  gigFormFields.buildPotentialAvailabilitySection(context, ref),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Schedule',
-              child: _buildScheduleSection(
-                  context, gigFormFields, eventFormFields!)),
-          const SizedBox(height: 16),
+              child: _buildScheduleSection(context, gigFormFields,
+                  rehearsalFormFields, eventFormFields!)),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Location',
               child: _buildLocationSection(
                   context, gigFormFields, rehearsalFormFields)),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Show Details',
               child: _buildShowPrepSection(
                   context, gigFormFields, eventFormFields)),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Money',
               child: _buildMoneySection(context, gigFormFields)),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Notes',
               child: _buildNotesSection(context, eventFormFields)),
@@ -2953,18 +3043,20 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         children: [
           if (_errorMessage != null) ...[
             _buildErrorBanner(),
-            const SizedBox(height: 16),
+            const SizedBox(height: _kFormSectionGap),
           ],
           _SectionCard(
               title: 'Schedule',
-              child: _buildScheduleSection(
-                  context, gigFormFields, eventFormFields!)),
-          const SizedBox(height: 16),
+              headerTrailing:
+                  rehearsalFormFields!.buildPotentialToggleControl(context),
+              child: _buildScheduleSection(context, gigFormFields,
+                  rehearsalFormFields, eventFormFields!)),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Location',
               child: _buildLocationSection(
                   context, gigFormFields, rehearsalFormFields)),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kFormSectionGap),
           _SectionCard(
               title: 'Notes',
               child: _buildNotesSection(context, eventFormFields)),
@@ -3019,6 +3111,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   Widget _buildScheduleSection(
     BuildContext context,
     GigFormFields? gigFormFields,
+    RehearsalFormFields? rehearsalFormFields,
     EventFormFields eventFormFields,
   ) {
     final isGig = _eventType == EventType.gig;
@@ -3026,13 +3119,17 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!isGig) ...[
-          _createRehearsalFormFields().buildPotentialSection(context, ref),
-          const SizedBox(height: Spacing.space16),
+          rehearsalFormFields!.buildPotentialAvailabilitySection(context, ref),
+          if (_isPotentialGig) const SizedBox(height: _kFormSectionGap),
         ],
         eventFormFields,
+        if (!isGig && !_isPotentialGig) ...[
+          rehearsalFormFields!.buildRecurringControls(context),
+          const SizedBox(height: _kFormSectionGap),
+        ],
         if (isGig) ...[
           gigFormFields!.buildLoadInTimeSelector(context),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kFormSectionGap),
           const Text(
             'Soundcheck',
             style: TextStyle(
@@ -3084,12 +3181,12 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           gigFormFields!.buildAddressField(context),
-          const SizedBox(height: Spacing.space16),
+          const SizedBox(height: _kFormSectionGap),
           gigFormFields.buildCityStateRow(context),
         ],
       );
     }
-    return rehearsalFormFields!;
+    return rehearsalFormFields!.buildLocationSection(context);
   }
 
   Widget _buildShowPrepSection(
@@ -3101,7 +3198,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         eventFormFields.buildSetlistSelector(context, ref),
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFormSectionGap),
         gigFormFields!.buildContactsSection(context),
       ],
     );
@@ -3113,7 +3210,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         gigFormFields!.buildGigPayButton(context),
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFormSectionGap),
         gigFormFields.buildExpensesSection(context),
       ],
     );
@@ -3233,7 +3330,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
           date: _selectedDate,
           onTap: _isSaving ? null : _selectBlockOutStartDate,
         ),
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFormSectionGap),
 
         // End Date (optional)
         _buildBlockOutDateField(
@@ -3247,7 +3344,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
             _markDirty();
           },
         ),
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: _kFormSectionGap),
 
         // Reason (optional)
         EventTextField(
@@ -3544,10 +3641,15 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, required this.child});
+  const _SectionCard({
+    required this.title,
+    required this.child,
+    this.headerTrailing,
+  });
 
   final String title;
   final Widget child;
+  final Widget? headerTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -3562,14 +3664,25 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.7,
-              color: Color(0xFFFAFAFA),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.7,
+                    color: Color(0xFFFAFAFA),
+                  ),
+                ),
+              ),
+              if (headerTrailing != null) ...[
+                const SizedBox(width: Spacing.space12),
+                headerTrailing!,
+              ],
+            ],
           ),
           const SizedBox(height: 20),
           child,

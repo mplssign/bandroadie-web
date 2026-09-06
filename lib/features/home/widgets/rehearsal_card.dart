@@ -760,7 +760,11 @@ class _RehearsalCardState extends State<RehearsalCard>
   }
 
   String _formatTimeLine(Rehearsal rehearsal) {
-    return TimeFormatter.formatRange(_currentStartTime, rehearsal.endTime);
+    return TimeFormatter.formatRange(
+      _currentStartTime,
+      rehearsal.endTime,
+      timezone: rehearsal.eventTimezone,
+    );
   }
 
   String _formatDateWithRecurrence() {

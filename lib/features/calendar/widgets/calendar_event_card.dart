@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
-import '../../../app/utils/time_formatter.dart';
 import '../models/calendar_event.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import '../../../components/ui/app_card.dart';
@@ -168,10 +167,7 @@ class _CalendarEventCardState extends State<CalendarEventCard>
                           ] else ...[
                             // Time - 12-hour format in the band's timezone.
                             Text(
-                              TimeFormatter.formatRange(
-                                widget.event.startTime,
-                                widget.event.endTime,
-                              ),
+                              widget.event.timeRange,
                               style: AppTextStyles.callout.copyWith(
                                 color: context.colors.textSecondary,
                                 fontSize: AppFontSizes.subhead,

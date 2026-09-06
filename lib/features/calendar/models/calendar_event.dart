@@ -130,7 +130,11 @@ class CalendarEvent {
 
   /// Formatted time range (e.g., "6:00 PM - 9:00 PM")
   /// Uses TimeFormatter to ensure consistent 12-hour format display.
-  String get timeRange => TimeFormatter.formatRange(startTime, endTime);
+  String get timeRange => TimeFormatter.formatRange(
+        startTime,
+        endTime,
+        timezone: gig?.eventTimezone ?? rehearsal?.eventTimezone,
+      );
 
   /// Display title - gig name, "Rehearsal", or "FirstName Out"
   String get displayTitle => title ?? 'Event';

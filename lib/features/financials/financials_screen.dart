@@ -672,8 +672,8 @@ class _EntriesList extends ConsumerWidget {
               _measureText('$prefix${e.formattedAmount}', amountDataStyle);
           if (w > maxAmountPx) maxAmountPx = w;
         }
-        // 4px cell padding each side + 8px buffer
-        final amountColumnWidth = maxAmountPx + 16;
+        // 4px cell padding each side + 8px buffer, plus extra room for readability.
+        final amountColumnWidth = maxAmountPx + 16 + 50;
 
         final minWidth =
             amountColumnWidth + _kFixedColumnsWidth + Spacing.pagePadding * 2;
@@ -736,11 +736,11 @@ class _EntriesList extends ConsumerWidget {
 }
 
 // Column widths: Amount is computed dynamically to fit content; all others are fixed.
-const _kDateWidth = 110.0;
-const _kTypeWidth = 110.0;
-const _kFromWidth = 110.0;
-const _kPaidToWidth = 110.0;
-const _kDisbursedWidth = 96.0;
+const _kDateWidth = 160.0;
+const _kTypeWidth = 160.0;
+const _kFromWidth = 160.0;
+const _kPaidToWidth = 160.0;
+const _kDisbursedWidth = 146.0;
 const _kSavingsWidth = 80.0;
 const _k1099Width = 50.0;
 const _kFixedColumnsWidth = _kDateWidth +
@@ -774,11 +774,19 @@ class _TableHeader extends StatelessWidget {
         children: [
           SizedBox(
             width: amountColumnWidth,
-            child: _HeaderCell('Amount', borderSide: borderSide),
+            child: _HeaderCell(
+              'Amount',
+              textAlign: TextAlign.right,
+              borderSide: borderSide,
+            ),
           ),
           SizedBox(
             width: _kDateWidth,
-            child: _HeaderCell('Date', borderSide: borderSide),
+            child: _HeaderCell(
+              'Date',
+              textAlign: TextAlign.right,
+              borderSide: borderSide,
+            ),
           ),
           SizedBox(
             width: _kTypeWidth,
@@ -889,6 +897,7 @@ class _EntryTableRow extends StatelessWidget {
                       color: amountColor,
                       fontWeight: FontWeight.w600,
                     ),
+                    textAlign: TextAlign.right,
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.visible,
@@ -909,7 +918,10 @@ class _EntryTableRow extends StatelessWidget {
                     dateStr,
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textPrimary),
-                    maxLines: 2,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -927,7 +939,9 @@ class _EntryTableRow extends StatelessWidget {
                     entry.category,
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textPrimary),
-                    maxLines: 2,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -945,7 +959,9 @@ class _EntryTableRow extends StatelessWidget {
                     fromValue,
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textSecondary),
-                    maxLines: 2,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -963,7 +979,9 @@ class _EntryTableRow extends StatelessWidget {
                     paidToValue,
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textSecondary),
-                    maxLines: 2,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -1066,8 +1084,7 @@ class _BottomActionsRow extends ConsumerWidget {
               children: [
                 _OutlinedActionButton(
                   label: 'View savings balance',
-                  onPressed: () =>
-                      _showSavingsSheet(context, state.allEntries),
+                  onPressed: () => _showSavingsSheet(context, state.allEntries),
                 ),
                 const SizedBox(width: Spacing.space12),
                 _OutlinedActionButton(

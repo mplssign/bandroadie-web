@@ -119,6 +119,10 @@ class AppTextFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMultiline = maxLines > 1;
+    final effectiveTextInputAction = textInputAction ??
+        (isMultiline ? TextInputAction.newline : TextInputAction.next);
+
     // Wrap controller in FTextFieldManagedControl if provided
     final control = controller != null
         ? FTextFieldManagedControl(
@@ -146,10 +150,13 @@ class AppTextFormField extends StatelessWidget {
       validator: validator,
       onSaved: onSaved,
       textCapitalization: textCapitalization,
-      textInputAction: textInputAction,
+      textInputAction: effectiveTextInputAction,
       inputFormatters: inputFormatters,
       autofillHints: autofillHints,
-      onSubmit: onSubmitted,
+      onSubmit: onSubmitted ??
+          (effectiveTextInputAction == TextInputAction.next
+              ? (_) => FocusScope.of(context).nextFocus()
+              : null),
       autofocus: autofocus,
       contextMenuBuilder:
           contextMenuBuilder ?? buildLocalizedAdaptiveTextSelectionToolbar,

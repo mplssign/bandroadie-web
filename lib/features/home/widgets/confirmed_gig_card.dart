@@ -113,6 +113,7 @@ class _ConfirmedGigCardState extends State<ConfirmedGigCard> {
                   TimeFormatter.formatRange(
                     widget.gig.startTime,
                     widget.gig.endTime,
+                    timezone: widget.gig.eventTimezone,
                   ),
                   style: TextStyle(
                     fontSize: AppFontSizes.body,

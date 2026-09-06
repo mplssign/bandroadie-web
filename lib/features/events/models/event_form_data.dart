@@ -266,6 +266,7 @@ class EventFormData {
   final String? name; // For gigs (optional for rehearsals)
   final bool isRecurring;
   final RecurrenceConfig? recurrence;
+  final String? timezone;
 
   // Load-in time fields (gigs only, optional)
   final int? loadInHour; // 1-12
@@ -330,6 +331,7 @@ class EventFormData {
     this.name,
     this.isRecurring = false,
     this.recurrence,
+    this.timezone,
     this.loadInHour,
     this.loadInMinutes,
     this.loadInIsPM,
@@ -476,6 +478,7 @@ class EventFormData {
     String? name,
     bool? isRecurring,
     RecurrenceConfig? recurrence,
+    String? timezone,
     bool? isPotentialGig,
     Set<String>? selectedMemberIds,
     List<AdditionalDateEntry>? additionalDates,
@@ -505,6 +508,7 @@ class EventFormData {
       name: name ?? this.name,
       isRecurring: isRecurring ?? this.isRecurring,
       recurrence: recurrence ?? this.recurrence,
+      timezone: timezone ?? this.timezone,
       isPotentialGig: isPotentialGig ?? this.isPotentialGig,
       selectedMemberIds: selectedMemberIds ?? this.selectedMemberIds,
       additionalDates: additionalDates ?? this.additionalDates,
@@ -605,6 +609,7 @@ class EventFormData {
       setlistId: gig.setlistId,
       setlistName: gig.setlistName,
       gigPayCents: gig.gigPayCents,
+      timezone: gig.eventTimezone,
       venueId: gig.venueId,
       address: gig.address,
       state: gig.state,
@@ -643,6 +648,7 @@ class EventFormData {
       notes: rehearsal.notes,
       isRecurring: rehearsal.isRecurring,
       recurrence: recurrence,
+      timezone: rehearsal.eventTimezone,
       isPotentialGig: rehearsal.isPotential,
       additionalDates: rehearsal.additionalDates.map((d) {
         final timeStr = d.startTime ?? rehearsal.startTime;

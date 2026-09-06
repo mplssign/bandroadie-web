@@ -242,6 +242,7 @@ class _AvailabilityPromptModalState extends State<AvailabilityPromptModal>
                           text: TimeFormatter.formatRange(
                             widget.gig.startTime,
                             widget.gig.endTime,
+                            timezone: widget.gig.eventTimezone,
                           ),
                         ),
                         if (widget.gig.location.isNotEmpty) ...[

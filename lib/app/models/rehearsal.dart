@@ -17,6 +17,7 @@ class Rehearsal {
   final DateTime date;
   final String startTime;
   final String endTime;
+  final String? eventTimezone;
   final String location;
   final String? notes;
   final String? setlistId;
@@ -41,6 +42,7 @@ class Rehearsal {
     required this.date,
     required this.startTime,
     required this.endTime,
+    this.eventTimezone,
     required this.location,
     this.notes,
     this.setlistId,
@@ -63,6 +65,7 @@ class Rehearsal {
       date: DateTime.parse(json['date'] as String),
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
+      eventTimezone: json['event_timezone'] as String?,
       location: json['location'] as String,
       notes: json['notes'] as String?,
       setlistId: json['setlist_id'] as String?,
@@ -100,6 +103,7 @@ class Rehearsal {
       'date': date.toIso8601String().split('T')[0], // date only
       'start_time': startTime,
       'end_time': endTime,
+      'event_timezone': eventTimezone,
       'location': location,
       'notes': notes,
       'setlist_id': setlistId,
@@ -129,7 +133,8 @@ class Rehearsal {
 
   /// Formatted time range (e.g., "6:00 PM - 9:00 PM")
   /// Uses TimeFormatter to ensure consistent 12-hour format display.
-  String get timeRange => TimeFormatter.formatRange(startTime, endTime);
+  String get timeRange =>
+      TimeFormatter.formatRange(startTime, endTime, timezone: eventTimezone);
 
   @override
   String toString() => 'Rehearsal(id: $id, date: $date, location: $location)';

@@ -25,6 +25,7 @@ class Gig {
   final DateTime date;
   final String startTime;
   final String endTime;
+  final String? eventTimezone;
   final String? loadInTime; // Optional load-in time (e.g., "6:00 PM")
   final String location;
   final String? setlistId;
@@ -70,6 +71,7 @@ class Gig {
     required this.date,
     required this.startTime,
     required this.endTime,
+    this.eventTimezone,
     this.loadInTime,
     required this.location,
     this.address,
@@ -96,6 +98,7 @@ class Gig {
       date: DateTime.parse(json['date'] as String),
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
+      eventTimezone: json['event_timezone'] as String?,
       loadInTime: json['load_in_time'] as String?,
       location: json['location'] as String,
       address: json['address'] as String?,
@@ -122,6 +125,7 @@ class Gig {
       'date': date.toIso8601String().split('T')[0], // date only
       'start_time': startTime,
       'end_time': endTime,
+      'event_timezone': eventTimezone,
       'load_in_time': loadInTime,
       'location': location,
       'address': address,
@@ -234,7 +238,8 @@ class Gig {
 
   /// Formatted time range (e.g., "7:30 PM - 10:30 PM")
   /// Uses TimeFormatter to ensure consistent 12-hour format display.
-  String get timeRange => TimeFormatter.formatRange(startTime, endTime);
+  String get timeRange =>
+      TimeFormatter.formatRange(startTime, endTime, timezone: eventTimezone);
 
   /// Returns true if this gig has a pay amount specified
   bool get hasPay => gigPayCents != null && gigPayCents! > 0;

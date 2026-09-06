@@ -21,6 +21,8 @@ class EventTextField extends StatelessWidget {
     this.maxLines = 1,
     required this.isSaving,
     this.onChanged,
+    this.textInputAction,
+    this.unfocusOnSubmitted = false,
   });
 
   final String label;
@@ -30,10 +32,14 @@ class EventTextField extends StatelessWidget {
   final int maxLines;
   final bool isSaving;
   final VoidCallback? onChanged;
+  final TextInputAction? textInputAction;
+  final bool unfocusOnSubmitted;
 
   @override
   Widget build(BuildContext context) {
     final isMultiline = maxLines > 1;
+    final effectiveTextInputAction = textInputAction ??
+        (isMultiline ? TextInputAction.newline : TextInputAction.next);
     final colors = FTheme.of(context).colors;
 
     return Column(
@@ -53,12 +59,21 @@ class EventTextField extends StatelessWidget {
           minLines: isMultiline ? (maxLines > 1 ? maxLines : null) : null,
           keyboardType:
               isMultiline ? TextInputType.multiline : TextInputType.text,
-          textInputAction:
-              isMultiline ? TextInputAction.newline : TextInputAction.done,
+          textInputAction: effectiveTextInputAction,
           textCapitalization: isMultiline
               ? TextCapitalization.sentences
               : TextCapitalization.none,
           onChanged: onChanged != null ? (_) => onChanged!() : null,
+          onSubmitted: (_) {
+            if (unfocusOnSubmitted) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              return;
+            }
+            if (!isMultiline &&
+                effectiveTextInputAction == TextInputAction.next) {
+              FocusScope.of(context).nextFocus();
+            }
+          },
           style: TextStyle(color: colors.foreground),
           decoration: InputDecoration(
             filled: true,

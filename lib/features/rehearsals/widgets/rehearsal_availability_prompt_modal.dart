@@ -238,6 +238,7 @@ class _RehearsalAvailabilityPromptModalState
                           text: TimeFormatter.formatRange(
                             widget.rehearsal.startTime,
                             widget.rehearsal.endTime,
+                            timezone: widget.rehearsal.eventTimezone,
                           ),
                         ),
                         if (widget.rehearsal.location.isNotEmpty) ...[

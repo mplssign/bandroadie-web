@@ -95,6 +95,7 @@ class PendingPotentialRehearsal {
   final DateTime date;
   final String startTime;
   final String endTime;
+  final String? eventTimezone;
   final String location;
 
   const PendingPotentialRehearsal({
@@ -103,6 +104,7 @@ class PendingPotentialRehearsal {
     required this.date,
     required this.startTime,
     required this.endTime,
+    this.eventTimezone,
     required this.location,
   });
 
@@ -113,6 +115,7 @@ class PendingPotentialRehearsal {
       date: DateTime.parse(json['date'] as String),
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
+      eventTimezone: json['event_timezone'] as String?,
       location: json['location'] as String? ?? '',
     );
   }
@@ -138,7 +141,8 @@ class RehearsalResponseRepository {
     // so user only gets one prompt per recurring series
     final rehearsalsResponse = await supabase
         .from('rehearsals')
-        .select('id, band_id, date, start_time, end_time, location')
+        .select(
+            'id, band_id, date, start_time, end_time, event_timezone, location')
         .eq('band_id', bandId)
         .eq('is_potential', true)
         .gte('date', today)

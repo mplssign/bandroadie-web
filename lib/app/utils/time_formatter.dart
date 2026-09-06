@@ -111,10 +111,17 @@ class TimeFormatter {
   /// Format a time range from two time strings.
   ///
   /// Example: formatRange("7:30 PM", "10:00 PM") -> "7:30 PM - 10:00 PM"
-  static String formatRange(String? startTime, String? endTime) {
+  static String formatRange(
+    String? startTime,
+    String? endTime, {
+    String? timezone,
+  }) {
     final start = parse(startTime);
     final end = parse(endTime);
-    return '${start.format()} - ${end.format()}';
+    final base = '${start.format()} - ${end.format()}';
+    final tz = timezone?.trim();
+    if (tz == null || tz.isEmpty) return base;
+    return '$base ($tz)';
   }
 
   /// Deprecated: event-time UI must display the band's wall-clock time.

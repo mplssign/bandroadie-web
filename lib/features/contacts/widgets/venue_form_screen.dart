@@ -292,6 +292,10 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
     return '';
   }
 
+  String? _getStateHint() {
+    return _getStateLabel() == 'State' ? 'IL' : null;
+  }
+
   bool _showStateField() {
     final tz = ref.read(activeBandProvider).activeBand?.timezone;
     return isUSTimezone(tz) || isCanadianTimezone(tz) || isUKTimezone(tz);
@@ -358,6 +362,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
                     controller: _stateController,
                     focusNode: _stateFocus,
                     labelText: _getStateLabel(),
+                    hintText: _getStateHint(),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: _getStateFormatters(),
                   ),

@@ -403,6 +403,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                     text: TimeFormatter.formatRange(
                       _currentStartTime,
                       widget.gig.endTime,
+                      timezone: widget.gig.eventTimezone,
                     ),
                     direction: _navigationDirection,
                     style: TextStyle(

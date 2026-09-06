@@ -10,27 +10,16 @@ import 'package:bandroadie/app/theme/design_tokens.dart';
 //    the currently focused field is scrolled into the visible viewport so it
 //    is never hidden behind the keyboard.
 //
-// 2. NUMERIC DONE BAR — a thin "Done" toolbar is overlaid just above the
-//    keyboard whenever a numeric or phone keyboard is active.  Numeric pads
-//    have no built-in return/done key, so this gives users a reliable way to
-//    dismiss the keyboard and confirm their input.
+// 2. KEYBOARD DONE BAR — a thin "Done" toolbar is overlaid just above the
+//    keyboard whenever an editable text field is focused. Keyboard layouts can
+//    vary by platform and input action, so this guarantees a reliable way to
+//    dismiss the keyboard from any field.
 //
 // Both behaviours are driven by a single WidgetsBindingObserver.
 // ============================================================================
 
-/// Set of keyboard type indices that lack a built-in "Done" / return key on
-/// iOS (numeric pad, phone pad) and therefore need the overlay toolbar.
-/// We compare by index because TextInputType overrides == but is not a
-/// primitive, so it can't be used in a `const Set`.
-final _kNumericTypeIndices = {
-  TextInputType.number.index,
-  TextInputType.phone.index,
-  TextInputType.datetime.index,
-  TextInputType.visiblePassword.index,
-};
-
 /// Globally ensures focused text fields scroll above the keyboard and that
-/// numeric keypads always show a "Done" button.
+/// focused text fields always show a "Done" button.
 ///
 /// Place this in [MaterialApp.builder] — it wraps the entire navigator so
 /// every route, bottom sheet, and dialog benefits automatically.
@@ -82,32 +71,9 @@ class _KeyboardAwareWrapperState extends State<KeyboardAwareWrapper>
     final pixelRatio = view.devicePixelRatio;
     final kbHeight = insets.bottom / pixelRatio;
 
-    // Determine if a numeric/phone keyboard is showing by inspecting the
-    // currently focused EditableText's keyboard type.
-    bool showDone = false;
-    if (kbHeight > 0) {
-      final focus = FocusManager.instance.primaryFocus;
-      if (focus != null) {
-        // Walk up to find an EditableText to read its keyboard configuration.
-        focus.context?.visitAncestorElements((element) {
-          if (element.widget is EditableText) {
-            final et = element.widget as EditableText;
-            if (_kNumericTypeIndices.contains(et.keyboardType.index)) {
-              showDone = true;
-            }
-            return false; // stop walking
-          }
-          return true;
-        });
-        // Also check the focused widget itself (EditableText is the focus scope)
-        if (!showDone && focus.context?.widget is EditableText) {
-          final et = focus.context!.widget as EditableText;
-          if (_kNumericTypeIndices.contains(et.keyboardType.index)) {
-            showDone = true;
-          }
-        }
-      }
-    }
+    final editableText = _focusedEditableText();
+    final showDone =
+        kbHeight > 0 && editableText != null && !editableText.readOnly;
 
     if (_keyboardHeight != kbHeight || _showDoneBar != showDone) {
       setState(() {
@@ -115,6 +81,25 @@ class _KeyboardAwareWrapperState extends State<KeyboardAwareWrapper>
         _showDoneBar = showDone;
       });
     }
+  }
+
+  EditableText? _focusedEditableText() {
+    final focus = FocusManager.instance.primaryFocus;
+    if (focus == null) return null;
+
+    if (focus.context?.widget is EditableText) {
+      return focus.context!.widget as EditableText;
+    }
+
+    EditableText? editableText;
+    focus.context?.visitAncestorElements((element) {
+      if (element.widget is EditableText) {
+        editableText = element.widget as EditableText;
+        return false;
+      }
+      return true;
+    });
+    return editableText;
   }
 
   void _scrollFocusedFieldIntoView() {
@@ -141,13 +126,15 @@ class _KeyboardAwareWrapperState extends State<KeyboardAwareWrapper>
     return Stack(
       children: [
         widget.child,
-        // Numeric keyboard Done bar — floats just above the keyboard.
+        // Keyboard Done bar — floats just above the keyboard.
         if (_showDoneBar && _keyboardHeight > 0)
           Positioned(
             left: 0,
             right: 0,
             bottom: _keyboardHeight,
-            child: _NumericDoneBar(onDone: _dismissKeyboard),
+            child: _NumericDoneBar(
+              onDone: _dismissKeyboard,
+            ),
           ),
       ],
     );
@@ -157,7 +144,9 @@ class _KeyboardAwareWrapperState extends State<KeyboardAwareWrapper>
 // ── Done bar widget ────────────────────────────────────────────────────────
 
 class _NumericDoneBar extends StatelessWidget {
-  const _NumericDoneBar({required this.onDone});
+  const _NumericDoneBar({
+    required this.onDone,
+  });
 
   final VoidCallback onDone;
 
@@ -166,7 +155,7 @@ class _NumericDoneBar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final barColor = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFD1D3D9);
-    final textColor = isDark ? Colors.white : Colors.black87;
+    const doneBlue = Color(0xFF0A84FF);
     final buttonColor = isDark
         ? Colors.white.withValues(alpha: 0.12)
         : Colors.black.withValues(alpha: 0.08);
@@ -187,7 +176,7 @@ class _NumericDoneBar extends StatelessWidget {
                   onPressed: onDone,
                   style: TextButton.styleFrom(
                     backgroundColor: buttonColor,
-                    foregroundColor: textColor,
+                    foregroundColor: doneBlue,
                     minimumSize: const Size(64, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     shape: RoundedRectangleBorder(
@@ -199,7 +188,7 @@ class _NumericDoneBar extends StatelessWidget {
                     style: TextStyle(
                       fontSize: AppFontSizes.subhead,
                       fontWeight: FontWeight.w600,
-                      color: textColor,
+                      color: doneBlue,
                     ),
                   ),
                 ),

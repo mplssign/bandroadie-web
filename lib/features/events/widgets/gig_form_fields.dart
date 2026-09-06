@@ -175,6 +175,8 @@ class GigContactRowsController {
           return StatefulBuilder(
             builder: (dialogContext, setDialogState) {
               final trimmedName = nameController.text.trim();
+              final keyboardInset =
+                  MediaQuery.viewInsetsOf(dialogContext).bottom;
 
               return FDialog(
                 builder: (dialogContext, style) => Container(
@@ -184,7 +186,12 @@ class GigContactRowsController {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(Spacing.pagePadding),
+                    padding: EdgeInsets.fromLTRB(
+                      Spacing.pagePadding,
+                      Spacing.pagePadding,
+                      Spacing.pagePadding,
+                      Spacing.pagePadding + keyboardInset,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,11 +539,47 @@ class GigFormFields extends ConsumerWidget {
       children: [
         // Gig Name autocomplete
         _buildGigNameAutocomplete(context),
-        const SizedBox(height: Spacing.space16),
+      ],
+    );
+  }
 
-        // Potential Gig container with member availability
-        _buildPotentialGigContainer(context, ref),
+  /// Builds the compact "Potential" toggle shown in the section title row.
+  Widget buildPotentialToggleControl(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Potential',
+          style: AppTextStyles.callout.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: Spacing.space8),
+        AppSwitch(
+          value: isPotentialGig,
+          onChanged:
+              (isSaving || forcePotentialOnly) ? null : onPotentialGigToggled,
+        ),
+      ],
+    );
+  }
+
+  /// Builds the rose-bordered member availability section when potential is ON.
+  Widget buildPotentialAvailabilitySection(
+      BuildContext context, WidgetRef ref) {
+    if (!isPotentialGig) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Toggle off once confirmed to make it official.',
+          style: AppTextStyles.footnote.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
         const SizedBox(height: Spacing.space12),
+        _buildPotentialGigAvailabilityContainer(context, ref),
       ],
     );
   }
@@ -743,8 +786,16 @@ class GigFormFields extends ConsumerWidget {
       );
     }
 
+    final payerName = gigPayDetails!.payerName?.trim();
+    String? payerLabel;
+    if (payerName != null && payerName.isNotEmpty) {
+      const maxPayerNameChars = 18;
+      payerLabel = payerName.length > maxPayerNameChars
+          ? '${payerName.substring(0, maxPayerNameChars - 1)}…'
+          : payerName;
+    }
     final label =
-        '${gigPayDetails!.formattedAmount}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}';
+        '${gigPayDetails!.formattedAmount}${payerLabel != null ? ' · $payerLabel' : ''}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -946,7 +997,7 @@ class GigFormFields extends ConsumerWidget {
           textCapitalization: TextCapitalization.characters,
           textInputAction: TextInputAction.next,
           maxLength: 2,
-          hintText: 'ST',
+          hintText: 'IL',
           onChanged: (value) {
             // Enforce uppercase formatting
             final upperValue = value.toUpperCase();
@@ -1070,7 +1121,8 @@ class GigFormFields extends ConsumerWidget {
   // Potential Gig Container
   // ---------------------------------------------------------------------------
 
-  Widget _buildPotentialGigContainer(BuildContext context, WidgetRef ref) {
+  Widget _buildPotentialGigAvailabilityContainer(
+      BuildContext context, WidgetRef ref) {
     final membersState = ref.watch(membersProvider);
     final members = membersState.members;
 
@@ -1083,68 +1135,23 @@ class GigFormFields extends ConsumerWidget {
       padding: const EdgeInsets.all(Spacing.space12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: isPotentialGig
-            ? Border.all(color: AppColors.primary, width: 2)
-            : null,
+        border: Border.all(color: AppColors.primary, width: 2),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row: Title + Toggle
-          Row(
-            children: [
-              AppSwitch(
-                value: isPotentialGig,
-                onChanged: (isSaving || forcePotentialOnly)
-                    ? null
-                    : onPotentialGigToggled,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        alignment: Alignment.topCenter,
+        child: isMultiDateEditMode
+            ? _buildMultiDateAvailabilitySection(
+                context, members, membersState.isLoading)
+            : Column(
+                children: [
+                  _buildMemberSelectionGrid(
+                      context, members, membersState.isLoading),
+                  if (isEditMode && existingEventId != null)
+                    _buildUserAvailabilitySection(context),
+                ],
               ),
-              const SizedBox(width: Spacing.space12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Potential Gig',
-                      style: AppTextStyles.callout.copyWith(
-                        color: context.colors.textPrimary,
-                      ),
-                    ),
-                    if (isPotentialGig) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Toggle off once confirmed to make it official.',
-                        style: AppTextStyles.footnote.copyWith(
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Member grid (only visible when toggle is ON)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: isPotentialGig
-                ? isMultiDateEditMode
-                    ? _buildMultiDateAvailabilitySection(
-                        context, members, membersState.isLoading)
-                    : Column(
-                        children: [
-                          _buildMemberSelectionGrid(
-                              context, members, membersState.isLoading),
-                          if (isEditMode && existingEventId != null)
-                            _buildUserAvailabilitySection(context),
-                        ],
-                      )
-                : const SizedBox.shrink(),
-          ),
-        ],
       ),
     );
   }

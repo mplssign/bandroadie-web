@@ -96,6 +96,7 @@ class PendingPotentialGig {
   final DateTime date;
   final String startTime;
   final String endTime;
+  final String? eventTimezone;
   final String location;
   final List<String> additionalDateIds;
 
@@ -106,6 +107,7 @@ class PendingPotentialGig {
     required this.date,
     required this.startTime,
     required this.endTime,
+    this.eventTimezone,
     required this.location,
     this.additionalDateIds = const [],
   });
@@ -129,6 +131,7 @@ class PendingPotentialGig {
       date: DateTime.parse(json['date'] as String),
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
+      eventTimezone: json['event_timezone'] as String?,
       location: json['location'] as String? ?? '',
       additionalDateIds: additionalDateIds,
     );
@@ -154,7 +157,7 @@ class GigResponseRepository {
     final gigsResponse = await supabase
         .from('gigs')
         .select(
-            'id, band_id, name, date, start_time, end_time, location, gig_dates(id)')
+            'id, band_id, name, date, start_time, end_time, event_timezone, location, gig_dates(id)')
         .eq('band_id', bandId)
         .eq('is_potential', true)
         .gte('date', today)
@@ -754,7 +757,8 @@ class GigResponseRepository {
   /// Fetch the current user's own responses for ALL dates of multiple potential gigs.
   /// Returns gigId → (gigDateId? → response).
   /// gigDateId? is null for the primary date, a string ID for additional dates.
-  Future<Map<String, Map<String?, String?>>> fetchCurrentUserGigAllDateResponses({
+  Future<Map<String, Map<String?, String?>>>
+      fetchCurrentUserGigAllDateResponses({
     required List<String> gigIds,
     required String userId,
   }) async {

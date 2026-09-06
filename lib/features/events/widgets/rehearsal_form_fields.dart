@@ -18,7 +18,7 @@ import 'button_group_grid.dart';
 import 'event_editor_helpers.dart';
 
 /// Rehearsal-specific form fields: location autocomplete, potential toggle,
-/// recurring toggle, and the animated recurring section.
+/// recurring controls, and potential availability.
 class RehearsalFormFields extends ConsumerWidget {
   const RehearsalFormFields({
     super.key,
@@ -120,45 +120,73 @@ class RehearsalFormFields extends ConsumerWidget {
       onPerDateResponseChanged;
   final String? currentUserId;
 
-  /// Builds the Potential Rehearsal toggle + member availability grid.
-  /// Called from the parent drawer so it renders BEFORE the date/time fields.
-  Widget buildPotentialSection(BuildContext context, WidgetRef ref) {
-    return _buildPotentialToggle(context, ref);
+  /// Builds the compact "Potential" toggle shown in the section title row.
+  Widget buildPotentialToggleControl(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Potential',
+          style: AppTextStyles.callout.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(width: Spacing.space8),
+        AppSwitch(
+          value: isPotential,
+          onChanged: isSaving ? null : onPotentialToggled,
+        ),
+      ],
+    );
+  }
+
+  /// Builds the rose-bordered member availability section when potential is ON.
+  Widget buildPotentialAvailabilitySection(
+      BuildContext context, WidgetRef ref) {
+    if (!isPotential) return const SizedBox.shrink();
+
+    return _buildPotentialAvailabilityContainer(context, ref);
+  }
+
+  /// Builds the location input section for rehearsals.
+  Widget buildLocationSection(BuildContext context) {
+    return _buildLocationAutocomplete(context);
+  }
+
+  /// Builds recurring controls that now live in the Schedule section.
+  Widget buildRecurringControls(BuildContext context) {
+    if (isPotential) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: Spacing.space16),
+        Align(
+          alignment: Alignment.centerRight,
+          child: _buildRecurringToggle(context),
+        ),
+        const SizedBox(height: Spacing.space16),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: isRecurring
+              ? SlideTransition(
+                  position: recurringSlideAnimation,
+                  child: FadeTransition(
+                    opacity: recurringFadeAnimation,
+                    child: _buildRecurringSection(context),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Location autocomplete
-        _buildLocationAutocomplete(context),
-
-        // Recurring Toggle + Section — hidden when Potential Rehearsal is ON
-        if (!isPotential) ...[
-          const SizedBox(height: Spacing.space16),
-
-          // Recurring Toggle
-          _buildRecurringToggle(context),
-
-          // Recurring Section (animated with slide + fade)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: isRecurring
-                ? SlideTransition(
-                    position: recurringSlideAnimation,
-                    child: FadeTransition(
-                      opacity: recurringFadeAnimation,
-                      child: _buildRecurringSection(context),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ],
-    );
+    return buildLocationSection(context);
   }
 
   // ---------------------------------------------------------------------------
@@ -216,7 +244,8 @@ class RehearsalFormFields extends ConsumerWidget {
   // Potential Toggle
   // ---------------------------------------------------------------------------
 
-  Widget _buildPotentialToggle(BuildContext context, WidgetRef ref) {
+  Widget _buildPotentialAvailabilityContainer(
+      BuildContext context, WidgetRef ref) {
     final membersState = ref.watch(membersProvider);
     final members = membersState.members;
 
@@ -226,95 +255,65 @@ class RehearsalFormFields extends ConsumerWidget {
       padding: const EdgeInsets.all(Spacing.space12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border:
-            isPotential ? Border.all(color: AppColors.primary, width: 2) : null,
+        border: Border.all(color: AppColors.primary, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              AppSwitch(
-                value: isPotential,
-                onChanged: isSaving ? null : onPotentialToggled,
-              ),
-              const SizedBox(width: Spacing.space12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Potential Rehearsal',
-                      style: AppTextStyles.callout.copyWith(
-                        color: context.colors.textPrimary,
-                      ),
-                    ),
-                    if (isPotential) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Toggle off once confirmed to make it official.',
-                        style: AppTextStyles.footnote.copyWith(
-                          color: context.colors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            'Toggle off once confirmed to make it official.',
+            style: AppTextStyles.footnote.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
-          // Member grid — shown when potential is ON
-          if (isPotential) ...[
-            const SizedBox(height: Spacing.space12),
-            Builder(builder: (context) {
-              final isMultiDateEditMode = isEditMode &&
-                  existingEventId != null &&
-                  additionalDates.isNotEmpty;
-              if (isMultiDateEditMode) {
-                return _buildMultiDateAvailabilitySection(
-                    context, members, membersState.isLoading);
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (additionalDates.isNotEmpty) ...[
-                    _buildProposedDatesSection(context),
-                    const SizedBox(height: Spacing.space12),
-                  ],
-                  if (membersState.isLoading || isLoadingMemberAvailability)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: AppProgressIndicator(),
-                      ),
-                    )
-                  else ...[
-                    ButtonGroupGrid<MemberVM>(
-                      items: members,
-                      labelBuilder: (member) =>
-                          _getMemberLabel(member, members),
-                      labelWidgetBuilder: (member) => _buildMemberLabelWidget(
-                          context, member, members, memberAvailability),
-                      isSelected: (_) => false,
-                      availabilityMode: true,
-                      availabilityState: (member) {
-                        final response = memberAvailability[member.userId];
-                        if (response == 'yes') {
-                          return AvailabilityState.available;
-                        }
-                        if (response == 'no') {
-                          return AvailabilityState.notAvailable;
-                        }
-                        return AvailabilityState.notResponded;
-                      },
-                    ),
-                    if (isEditMode && existingEventId != null)
-                      _buildUserAvailabilitySection(context),
-                  ],
+          const SizedBox(height: Spacing.space12),
+          Builder(builder: (context) {
+            final isMultiDateEditMode = isEditMode &&
+                existingEventId != null &&
+                additionalDates.isNotEmpty;
+            if (isMultiDateEditMode) {
+              return _buildMultiDateAvailabilitySection(
+                  context, members, membersState.isLoading);
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (additionalDates.isNotEmpty) ...[
+                  _buildProposedDatesSection(context),
+                  const SizedBox(height: Spacing.space12),
                 ],
-              );
-            }),
-          ],
+                if (membersState.isLoading || isLoadingMemberAvailability)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: AppProgressIndicator(),
+                    ),
+                  )
+                else ...[
+                  ButtonGroupGrid<MemberVM>(
+                    items: members,
+                    labelBuilder: (member) => _getMemberLabel(member, members),
+                    labelWidgetBuilder: (member) => _buildMemberLabelWidget(
+                        context, member, members, memberAvailability),
+                    isSelected: (_) => false,
+                    availabilityMode: true,
+                    availabilityState: (member) {
+                      final response = memberAvailability[member.userId];
+                      if (response == 'yes') {
+                        return AvailabilityState.available;
+                      }
+                      if (response == 'no') {
+                        return AvailabilityState.notAvailable;
+                      }
+                      return AvailabilityState.notResponded;
+                    },
+                  ),
+                  if (isEditMode && existingEventId != null)
+                    _buildUserAvailabilitySection(context),
+                ],
+              ],
+            );
+          }),
         ],
       ),
     );
@@ -581,23 +580,21 @@ class RehearsalFormFields extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildRecurringToggle(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.space12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Make this recurring',
-              style: AppTextStyles.callout
-                  .copyWith(color: context.colors.textPrimary),
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Make this recurring',
+          style: AppTextStyles.callout.copyWith(
+            color: context.colors.textSecondary,
           ),
-          AppSwitch(
-            value: isRecurring,
-            onChanged: isSaving ? null : onRecurringToggled,
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: Spacing.space8),
+        AppSwitch(
+          value: isRecurring,
+          onChanged: isSaving ? null : onRecurringToggled,
+        ),
+      ],
     );
   }
 
@@ -609,7 +606,7 @@ class RehearsalFormFields extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: Spacing.space24),
 
         // A) Days of the Week
         Text(
@@ -618,7 +615,7 @@ class RehearsalFormFields extends ConsumerWidget {
             color: context.colors.textSecondary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: Spacing.space16),
         Row(
           children: Weekday.values.map((day) {
             final isSelected = selectedDays.contains(day);
@@ -662,7 +659,7 @@ class RehearsalFormFields extends ConsumerWidget {
           }).toList(),
         ),
 
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: Spacing.space24),
 
         // B) Frequency toggles
         Text(
@@ -671,7 +668,7 @@ class RehearsalFormFields extends ConsumerWidget {
             color: context.colors.textSecondary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: Spacing.space16),
         Row(
           children: RecurrenceFrequency.values.map((freq) {
             final isSelected = frequency == freq;
@@ -715,7 +712,7 @@ class RehearsalFormFields extends ConsumerWidget {
           }).toList(),
         ),
 
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: Spacing.space24),
 
         // C) Until date
         Text(
@@ -724,7 +721,7 @@ class RehearsalFormFields extends ConsumerWidget {
             color: context.colors.textSecondary,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: Spacing.space12),
         GestureDetector(
           onTap: isSaving ? null : onUntilDateTap,
           child: Container(
@@ -770,7 +767,7 @@ class RehearsalFormFields extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: Spacing.space16),
+        const SizedBox(height: Spacing.space24),
 
         // D) Recurrence Summary
         if (selectedDays.isNotEmpty) ...[
@@ -780,15 +777,14 @@ class RehearsalFormFields extends ConsumerWidget {
               color: context.colors.textSecondary,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: Spacing.space12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
+                color: AppColors.primary,
               ),
             ),
             child: Text(
@@ -814,6 +810,7 @@ class RehearsalFormFields extends ConsumerWidget {
       ..sort((a, b) => a.dayIndex.compareTo(b.dayIndex));
 
     final dayNames = sortedDays.map((d) => d.pluralName).toList();
+    final singularDayNames = sortedDays.map(_weekdaySingularName).toList();
 
     String daysText;
     if (dayNames.length == 1) {
@@ -825,14 +822,47 @@ class RehearsalFormFields extends ConsumerWidget {
       daysText = '$allButLast, and ${dayNames.last}';
     }
 
-    final frequencyText = frequency.displayName;
-
     String? untilText;
     if (untilDate != null) {
       untilText = ' until ${_formatFullDate(untilDate!)}';
     }
 
+    if (frequency == RecurrenceFrequency.biweekly) {
+      String biweeklyDaysText;
+      if (singularDayNames.length == 1) {
+        biweeklyDaysText = singularDayNames.first;
+      } else if (singularDayNames.length == 2) {
+        biweeklyDaysText = '${singularDayNames[0]} and ${singularDayNames[1]}';
+      } else {
+        final allButLast =
+            singularDayNames.sublist(0, singularDayNames.length - 1).join(', ');
+        biweeklyDaysText = '$allButLast, and ${singularDayNames.last}';
+      }
+      return 'Every other $biweeklyDaysText${untilText ?? ''}';
+    }
+
+    final frequencyText = frequency.displayName;
+
     return '$frequencyText on $daysText${untilText ?? ''}';
+  }
+
+  String _weekdaySingularName(Weekday day) {
+    switch (day) {
+      case Weekday.sunday:
+        return 'Sunday';
+      case Weekday.monday:
+        return 'Monday';
+      case Weekday.tuesday:
+        return 'Tuesday';
+      case Weekday.wednesday:
+        return 'Wednesday';
+      case Weekday.thursday:
+        return 'Thursday';
+      case Weekday.friday:
+        return 'Friday';
+      case Weekday.saturday:
+        return 'Saturday';
+    }
   }
 
   static String _formatDateDisplay(DateTime date) {
