@@ -11,6 +11,7 @@ class ContributorPermissions {
   final bool canViewCalendar;
   final bool canViewMembers;
   final bool canViewFinancials;
+  final bool canViewGear;
 
   const ContributorPermissions({
     this.canCreateGigs = true,
@@ -19,11 +20,13 @@ class ContributorPermissions {
     this.canViewCalendar = true,
     this.canViewMembers = true,
     this.canViewFinancials = false,
+    this.canViewGear = false,
   });
 
   /// All permissions enabled (default state for new contributor rows in DB)
   static const ContributorPermissions allEnabled = ContributorPermissions(
     canViewFinancials: true,
+    canViewGear: true,
   );
 
   /// All permissions disabled — fail-closed fallback when row can't be read
@@ -33,7 +36,6 @@ class ContributorPermissions {
     canViewSetlists: false,
     canViewCalendar: false,
     canViewMembers: false,
-    canViewFinancials: false,
   );
 
   factory ContributorPermissions.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,7 @@ class ContributorPermissions {
       canViewCalendar: json['can_view_calendar'] as bool? ?? true,
       canViewMembers: json['can_view_members'] as bool? ?? true,
       canViewFinancials: json['can_view_financials'] as bool? ?? false,
+      canViewGear: json['can_view_gear'] as bool? ?? false,
     );
   }
 
@@ -56,6 +59,7 @@ class ContributorPermissions {
       'can_view_calendar': canViewCalendar,
       'can_view_members': canViewMembers,
       'can_view_financials': canViewFinancials,
+      'can_view_gear': canViewGear,
     };
   }
 
@@ -66,6 +70,7 @@ class ContributorPermissions {
     bool? canViewCalendar,
     bool? canViewMembers,
     bool? canViewFinancials,
+    bool? canViewGear,
   }) {
     return ContributorPermissions(
       canCreateGigs: canCreateGigs ?? this.canCreateGigs,
@@ -75,10 +80,11 @@ class ContributorPermissions {
       canViewCalendar: canViewCalendar ?? this.canViewCalendar,
       canViewMembers: canViewMembers ?? this.canViewMembers,
       canViewFinancials: canViewFinancials ?? this.canViewFinancials,
+      canViewGear: canViewGear ?? this.canViewGear,
     );
   }
 
   @override
   String toString() =>
-      'ContributorPermissions(gigs=$canCreateGigs, potentialOnly=$canCreatePotentialGigsOnly, setlists=$canViewSetlists, calendar=$canViewCalendar, members=$canViewMembers, financials=$canViewFinancials)';
+      'ContributorPermissions(gigs=$canCreateGigs, potentialOnly=$canCreatePotentialGigsOnly, setlists=$canViewSetlists, calendar=$canViewCalendar, members=$canViewMembers, financials=$canViewFinancials, gear=$canViewGear)';
 }
