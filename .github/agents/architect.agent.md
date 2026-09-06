@@ -42,6 +42,19 @@ solve it.
   `has_function_privilege(role, oid, 'EXECUTE')` — never a string-match on the raw
   ACL array, since a `PUBLIC` grant satisfies that check for every role even with no
   explicit named grant.
+- Verification Plan classification: QA cannot launch, build, or drive a running
+  instance of the app — no `flutter run`, `./run.sh`, simulator/emulator,
+  browser automation, or Dart Tool Daemon/`flutter_driver`. That is a
+  structural limitation of this pipeline's execution environment, not a
+  case-by-case judgment call. Never list a check that requires the app to
+  actually be running (a manual UI walkthrough, an on-device smoke test) as
+  a QA gate requirement for APPROVED — classify it as an owner-run check Tony
+  performs at PR-test or apply/release time, and write it as an exact,
+  numbered punch list (precise steps + expected result per step) so QA can
+  hand it to Tony verbatim instead of attempting it. QA's actual gate is
+  limited to what's mechanically executable without a running app: static
+  analysis (`flutter analyze`), the headless `flutter test` harness, static
+  SQL/migration review, and an ephemeral-DB apply-check.
 - Ordering/data-integrity logic belongs in Supabase RPC, never client-side.
   Submission flows must be idempotent — serialize cleanly, re-parse cleanly, and
   produce identical output for identical input; the plan's verification section
