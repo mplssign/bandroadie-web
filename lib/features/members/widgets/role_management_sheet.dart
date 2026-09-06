@@ -125,7 +125,8 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
         a.canViewSetlists == b.canViewSetlists &&
         a.canViewCalendar == b.canViewCalendar &&
         a.canViewMembers == b.canViewMembers &&
-        a.canViewFinancials == b.canViewFinancials;
+        a.canViewFinancials == b.canViewFinancials &&
+        a.canViewGear == b.canViewGear;
   }
 
   Future<void> _saveRole() async {
@@ -370,6 +371,14 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                               _subPermissions.copyWith(canViewFinancials: v);
                         }),
                       ),
+                      _buildPermissionToggle(
+                        label: 'Can view gear',
+                        value: _subPermissions.canViewGear,
+                        onChanged: (v) => setState(() {
+                          _subPermissions =
+                              _subPermissions.copyWith(canViewGear: v);
+                        }),
+                      ),
                     ],
 
                     // ─── Last admin warning ───
@@ -415,7 +424,6 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                           variant: AppButtonVariant.destructive,
                           onPressed: _isRemoving ? null : _removeMember,
                           isLoading: _isRemoving,
-                          fullWidth: false,
                         ),
                       ),
                     ],

@@ -774,11 +774,13 @@ class _TableHeader extends StatelessWidget {
         children: [
           SizedBox(
             width: amountColumnWidth,
-            child: _HeaderCell('Amount', borderSide: borderSide),
+            child: _HeaderCell('Amount',
+                textAlign: TextAlign.right, borderSide: borderSide),
           ),
           SizedBox(
             width: _kDateWidth,
-            child: _HeaderCell('Date', borderSide: borderSide),
+            child: _HeaderCell('Date',
+                textAlign: TextAlign.right, borderSide: borderSide),
           ),
           SizedBox(
             width: _kTypeWidth,
@@ -885,6 +887,7 @@ class _EntryTableRow extends StatelessWidget {
                               color: context.colors.border, width: 1.0))),
                   child: Text(
                     '$amountPrefix${entry.formattedAmount}',
+                    textAlign: TextAlign.right,
                     style: AppTextStyles.callout.copyWith(
                       color: amountColor,
                       fontWeight: FontWeight.w600,
@@ -907,6 +910,7 @@ class _EntryTableRow extends StatelessWidget {
                               color: context.colors.border, width: 1.0))),
                   child: Text(
                     dateStr,
+                    textAlign: TextAlign.right,
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.textPrimary),
                     maxLines: 2,

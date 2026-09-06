@@ -30,6 +30,7 @@ import '../rehearsals/rehearsal_pagination_controller.dart';
 import '../rehearsals/rehearsal_display_helper.dart';
 import '../rehearsals/widgets/view_rehearsal_drawer.dart';
 import '../financials/financials_screen.dart';
+import '../gear/gear_screen.dart';
 import '../setlists/new_setlist_screen.dart';
 import '../setlists/setlists_screen.dart' show SetlistsState, setlistsProvider;
 import '../shell/overlay_state.dart';
@@ -387,7 +388,14 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const FinancialsScreen(),
-        fullscreenDialog: false,
+      ),
+    );
+  }
+
+  void _handleOpenGear() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const GearScreen(),
       ),
     );
   }
@@ -546,6 +554,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
       loading: () => false,
       error: (_, __) => false,
     );
+    final canViewGear = permissionsAsync.when(
+      data: (perms) => perms.canViewGear,
+      loading: () => false,
+      error: (_, __) => false,
+    );
 
     // Watch response summaries for potential gigs - this is the source of truth
     // for availability counts displayed on the PotentialGigCard.
@@ -687,6 +700,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
         canCreateSetlist: canCreateSetlist,
         isContributor: isContributor,
         canViewFinancials: canViewFinancials,
+        canViewGear: canViewGear,
       );
     }
 
@@ -711,7 +725,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   }
 
   Widget _buildLoadingState(String message) {
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: Center(
         child: Column(
@@ -756,7 +770,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   }
 
   Widget _buildErrorState(String title, String details) {
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: Center(
         child: Padding(
@@ -801,7 +815,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 label: 'Try Again',
                 icon: AppIcons.refresh,
                 onPressed: _retry,
-                variant: AppButtonVariant.primary,
               ),
             ],
           ),
@@ -827,12 +840,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     required bool canCreateSetlist,
     required bool isContributor,
     required bool canViewFinancials,
+    required bool canViewGear,
   }) {
     final activeBand = bandState.activeBand;
     final upcomingGig = gigState.nextConfirmedGig;
 
     // Content WITHOUT Scaffold - just the body content
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: Stack(
         children: [
@@ -891,7 +905,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                     rehearsalState
                                         .potentialRehearsals.isNotEmpty) ...[
                                   _AnimatedCardEntrance(
-                                    delay: const Duration(milliseconds: 0),
+                                    delay: Duration.zero,
                                     child: _buildHorizontalPotentialEvents(
                                       gigState.potentialGigs,
                                       rehearsalState.potentialRehearsals,
@@ -967,7 +981,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                       !isContributor || canCreateGig;
                                   final hasAnyButton = showAddEvent ||
                                       canCreateSetlist ||
-                                      !isContributor;
+                                      !isContributor ||
+                                      canViewGear;
                                   if (!hasAnyButton) {
                                     return const SizedBox.shrink();
                                   }
@@ -1000,9 +1015,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                           onFinancials: canViewFinancials
                                               ? _handleOpenFinancials
                                               : null,
+                                          onGear: canViewGear
+                                              ? _handleOpenGear
+                                              : null,
                                           showAddEvent: showAddEvent,
                                           showCreateSetlist: canCreateSetlist,
                                           showFinancials: canViewFinancials,
+                                          showGear: canViewGear,
                                         ),
                                       ),
                                     ],

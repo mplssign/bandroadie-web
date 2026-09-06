@@ -16,6 +16,7 @@ class QuickActionsRow extends StatelessWidget {
   final VoidCallback? onAddEvent;
   final VoidCallback? onCreateSetlist;
   final VoidCallback? onFinancials;
+  final VoidCallback? onGear;
 
   /// Whether the "+ Add Event" button should be shown (permission-gated)
   final bool showAddEvent;
@@ -26,20 +27,25 @@ class QuickActionsRow extends StatelessWidget {
   /// Whether the "Financials" button should be shown (role-gated)
   final bool showFinancials;
 
+  /// Whether the "Gear" button should be shown (permission-gated)
+  final bool showGear;
+
   const QuickActionsRow({
     super.key,
     this.onAddEvent,
     this.onCreateSetlist,
     this.onFinancials,
+    this.onGear,
     this.showAddEvent = true,
     this.showCreateSetlist = true,
     this.showFinancials = true,
+    this.showGear = true,
   });
 
   /// Whether at least one button is visible.
   /// Use this to conditionally show the section header.
   bool get hasVisibleButtons =>
-      showAddEvent || showCreateSetlist || showFinancials;
+      showAddEvent || showCreateSetlist || showFinancials || showGear;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +80,16 @@ class QuickActionsRow extends StatelessWidget {
       );
     }
 
+    if (showGear) {
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
+      buttons.add(
+        _buildQuickActionButton(
+          label: 'Gear',
+          onPressed: onGear,
+        ),
+      );
+    }
+
     return SizedBox(
       height: 48,
       child: ListView(
@@ -95,7 +111,6 @@ class QuickActionsRow extends StatelessWidget {
         foregroundColor: AppColors.primary,
         side: const BorderSide(
           color: AppColors.primary,
-          width: 1,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),

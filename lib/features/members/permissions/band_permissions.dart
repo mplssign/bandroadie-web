@@ -152,6 +152,19 @@ class BandPermissions {
     return false;
   }
 
+  /// Whether this user can view the gear list
+  /// Admin & member: always. Contributor: only if canViewGear sub-permission is set.
+  bool get canViewGear {
+    if (isAdmin || isMember) return true;
+    if (isContributor) {
+      return subPermissions?.canViewGear ?? false;
+    }
+    return false;
+  }
+
+  /// Whether this user can create/edit/delete gear
+  bool get canManageGear => isAdmin || isMember;
+
   /// Whether this user can view the financials screen.
   /// Admin & member: always. Contributor: only if canViewFinancials sub-permission is set.
   bool get canViewFinancials {
