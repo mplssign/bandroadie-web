@@ -233,9 +233,13 @@ that entirely.
 plainly: the PR number and branch, a one-line summary of what changed, and that
 you'd like him to test it himself before it merges — so it stays easy to revert
 if something's off. If the APPROVED `QA_REPORT.md` documents a residual/accepted
-limitation, mention that here too so it isn't lost. This is a routine, expected
-pause built into every release, not a BLOCKED escalation — don't use that format
-for it, just say it plainly and end your turn waiting for his reply.
+limitation, mention that here too so it isn't lost. If `QA_REPORT.md` includes a
+Manual Verification Punch List, reproduce it here verbatim as the exact numbered
+steps for him to run through — never just point at the report file and say "test
+it," that defeats the reason QA wrote it as a punch list instead of trying to run
+the app itself. This is a routine, expected pause built into every release, not a
+BLOCKED escalation — don't use that format for it, just say it plainly and end
+your turn waiting for his reply.
 
 **6c. Test Gate — merge only on Tony's explicit go-ahead.** Never run `gh pr
 merge` until Tony has explicitly told you to merge (e.g. "merge it", "approved",
