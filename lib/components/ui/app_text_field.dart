@@ -41,6 +41,7 @@ class AppTextField extends StatelessWidget {
     this.onTap,
     this.autofocus = false,
     this.readOnly = false,
+    this.contextMenuBuilder,
   });
 
   /// Optional text editing controller
@@ -121,6 +122,9 @@ class AppTextField extends StatelessWidget {
   /// Whether the field is read-only (not supported in Forui preview)
   final bool readOnly;
 
+  /// Builder for the text selection context menu.
+  final EditableTextContextMenuBuilder? contextMenuBuilder;
+
   @override
   Widget build(BuildContext context) {
     // Wrap controller in FTextFieldManagedControl if provided
@@ -157,7 +161,8 @@ class AppTextField extends StatelessWidget {
       onTap: onTap,
       autofocus: autofocus,
       readOnly: readOnly,
-      contextMenuBuilder: buildLocalizedAdaptiveTextSelectionToolbar,
+      contextMenuBuilder:
+          contextMenuBuilder ?? buildLocalizedAdaptiveTextSelectionToolbar,
       prefixBuilder:
           prefixIcon != null ? (context, style, variants) => prefixIcon! : null,
       suffixBuilder:

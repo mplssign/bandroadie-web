@@ -39,6 +39,7 @@ class AppTextFormField extends StatelessWidget {
     this.autofillHints,
     this.onSubmitted,
     this.autofocus = false,
+    this.contextMenuBuilder,
   });
 
   /// Optional text editing controller
@@ -113,6 +114,9 @@ class AppTextFormField extends StatelessWidget {
   /// Whether to autofocus (not supported in Forui preview)
   final bool autofocus;
 
+  /// Builder for the text selection context menu.
+  final EditableTextContextMenuBuilder? contextMenuBuilder;
+
   @override
   Widget build(BuildContext context) {
     // Wrap controller in FTextFieldManagedControl if provided
@@ -147,7 +151,8 @@ class AppTextFormField extends StatelessWidget {
       autofillHints: autofillHints,
       onSubmit: onSubmitted,
       autofocus: autofocus,
-      contextMenuBuilder: buildLocalizedAdaptiveTextSelectionToolbar,
+      contextMenuBuilder:
+          contextMenuBuilder ?? buildLocalizedAdaptiveTextSelectionToolbar,
       prefixBuilder:
           prefixIcon != null ? (context, style, variants) => prefixIcon! : null,
       suffixBuilder:
