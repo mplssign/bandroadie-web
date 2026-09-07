@@ -208,14 +208,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 
           // Native app download banner (Web only, mobile browsers only)
           if (kIsWeb)
-            Positioned(
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: const NativeAppBanner(
-                delay: Duration(seconds: 4),
-                position: BannerPosition.top,
-                hideOnAuthPages: true,
+              child: NativeAppBanner(
+                
               ),
             ),
 
@@ -244,7 +242,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           // Exit demo loading overlay
           if (ref.watch(_exitingDemoProvider)) ...[
             const ModalBarrier(dismissible: false, color: Colors.black54),
-            Center(
+            const Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
                 strokeWidth: 3,

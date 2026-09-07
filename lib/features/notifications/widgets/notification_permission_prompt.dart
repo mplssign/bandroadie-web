@@ -52,7 +52,7 @@ class NotificationPermissionPrompt extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 AppIcons.bellRing,
                 color: AppColors.primary,
                 size: 24,
@@ -200,7 +200,7 @@ class _EnableNotificationsButtonState
 
     if (_hasPermission) {
       return ListTile(
-        leading: Icon(AppIcons.success, color: AppColors.primary),
+        leading: const Icon(AppIcons.success, color: AppColors.primary),
         title: const Text('Push Notifications'),
         subtitle: const Text('Enabled'),
         trailing: Icon(

@@ -148,7 +148,7 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
   }
 
   void _cancel() {
-    Navigator.of(context).pop(null);
+    Navigator.of(context).pop();
   }
 
   Widget _buildFixedBottomActions() {
@@ -172,7 +172,7 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM d, yyyy').format(_paymentDate);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: context.colors.surface,
         borderRadius: const BorderRadius.vertical(
@@ -225,7 +225,6 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                   CurrencyTextField(
                     controller: _amountController,
                     label: '',
-                    hint: '\$0.00',
                     enabled: !widget.viewOnly,
                   ),
                   const SizedBox(height: Spacing.space16),
@@ -264,7 +263,6 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                   AppTextField(
                     controller: _payerController,
                     enabled: !widget.viewOnly,
-                    textCapitalization: TextCapitalization.none,
                     textInputAction: TextInputAction.done,
                     hintText: 'e.g., Venue Name or Organizer',
                   ),
@@ -295,7 +293,6 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                       enabled: !widget.viewOnly,
                       items: [
                         DropdownMenuItem<String?>(
-                          value: null,
                           child: Text(
                             'No member selected',
                             style: AppTextStyles.callout
@@ -324,7 +321,6 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                       AppTextField(
                         controller: _paidToOtherController,
                         enabled: !widget.viewOnly,
-                        textCapitalization: TextCapitalization.none,
                         textInputAction: TextInputAction.done,
                         hintText: 'Enter name',
                       ),

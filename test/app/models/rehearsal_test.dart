@@ -87,12 +87,12 @@ void main() {
         final rehearsal = Rehearsal(
           id: 'test-id',
           bandId: 'band-id',
-          date: DateTime(2026, 6, 1),
+          date: DateTime(2026, 6),
           startTime: '7:00 PM',
           endTime: '9:00 PM',
           location: 'Studio A',
-          createdAt: DateTime(2026, 5, 1),
-          updatedAt: DateTime(2026, 5, 1),
+          createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
           isPotential: true,
         );
 
@@ -106,13 +106,12 @@ void main() {
         final rehearsal = Rehearsal(
           id: 'test-id',
           bandId: 'band-id',
-          date: DateTime(2026, 6, 1),
+          date: DateTime(2026, 6),
           startTime: '7:00 PM',
           endTime: '9:00 PM',
           location: 'Studio A',
-          createdAt: DateTime(2026, 5, 1),
-          updatedAt: DateTime(2026, 5, 1),
-          isPotential: false,
+          createdAt: DateTime(2026, 5),
+          updatedAt: DateTime(2026, 5),
         );
 
         final json = rehearsal.toJson();

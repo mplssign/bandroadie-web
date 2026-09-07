@@ -72,7 +72,6 @@ class SongMetricsRow extends StatelessWidget {
     return SizedBox(
       height: SongCardLayout.metricsRowHeight,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // BPM column (fixed width, left-aligned)
           SizedBox(

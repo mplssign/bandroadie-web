@@ -173,7 +173,6 @@ class BandMemberDetailDrawer extends StatelessWidget {
                       horizontal: Spacing.pagePadding,
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         if (member.isAdmin)
                           const Padding(

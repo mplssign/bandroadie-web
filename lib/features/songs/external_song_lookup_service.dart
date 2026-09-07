@@ -286,7 +286,6 @@ class ExternalSongLookupService {
         artist: track['artist'] as String? ?? 'Unknown Artist',
         durationSeconds: track['duration_seconds'] as int?,
         albumArtwork: track['album_artwork'] as String?,
-        bpm: null,
         popularity: syntheticPopularity,
         source: SongSource.itunes,
       );
@@ -328,8 +327,6 @@ class ExternalSongLookupService {
         artist: recording['artist'] as String? ?? 'Unknown Artist',
         musicbrainzId: recording['musicbrainz_id'] as String?,
         durationSeconds: recording['duration_seconds'] as int?,
-        albumArtwork: null, // MusicBrainz doesn't provide artwork
-        bpm: null, // MusicBrainz doesn't provide BPM
         popularity: popularity,
         source: SongSource.musicbrainz,
       );

@@ -86,11 +86,11 @@ class _KeyPickerBottomSheetState extends State<_KeyPickerBottomSheet> {
   }
 
   void _handleCancel() {
-    Navigator.of(context).pop(null);
+    Navigator.of(context).pop();
   }
 
   GlobalKey _tileKeyFor(String key) {
-    return _tileKeys.putIfAbsent(key, () => GlobalKey());
+    return _tileKeys.putIfAbsent(key, GlobalKey.new);
   }
 
   void _maybeCenterSelectedKeyOnOpen() {
@@ -127,7 +127,7 @@ class _KeyPickerBottomSheetState extends State<_KeyPickerBottomSheet> {
       snapSizes: const [0.6, 0.95],
       builder: (context, scrollController) {
         _maybeCenterSelectedKeyOnOpen();
-        return Container(
+        return DecoratedBox(
           decoration: BoxDecoration(
             color: context.colors.surface,
             borderRadius: const BorderRadius.vertical(

@@ -122,3 +122,4 @@ build.nosync/
 !docs/features/**/EVIDENCE.log
 bandroadie_fresh/**/.gradle/
 bandroadie.code-workspace
+analyze_output.txt

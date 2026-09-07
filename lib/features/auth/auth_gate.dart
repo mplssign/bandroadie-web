@@ -464,7 +464,7 @@ class _AuthGateState extends ConsumerState<AuthGate>
         });
         return Scaffold(
           backgroundColor: context.colors.background,
-          body: Center(
+          body: const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
         );
@@ -481,9 +481,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
     if (!_initialized) {
       return AppScaffold(
         backgroundColor: context.colors.background,
-        body: Center(
+        body: const Center(
           child: AppProgressIndicator(
-            type: ProgressIndicatorType.circular,
             color: AppColors.primary,
           ),
         ),
@@ -510,9 +509,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
         });
         return AppScaffold(
           backgroundColor: context.colors.background,
-          body: Center(
+          body: const Center(
             child: AppProgressIndicator(
-              type: ProgressIndicatorType.circular,
               color: AppColors.primary,
             ),
           ),
@@ -544,7 +542,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const AppProgressIndicator(
-                type: ProgressIndicatorType.circular,
                 color: AppColors.primary,
               ),
               if (_processingPendingInvite) ...[
@@ -577,9 +574,8 @@ class _AuthGateState extends ConsumerState<AuthGate>
     if (bandState.isLoading) {
       return AppScaffold(
         backgroundColor: context.colors.background,
-        body: Center(
+        body: const Center(
           child: AppProgressIndicator(
-            type: ProgressIndicatorType.circular,
             color: AppColors.primary,
           ),
         ),
@@ -646,7 +642,6 @@ class _AuthGateState extends ConsumerState<AuthGate>
           backgroundColor: context.colors.background,
           body: const Center(
             child: AppProgressIndicator(
-              type: ProgressIndicatorType.circular,
               color: AppColors.primary,
             ),
           ),

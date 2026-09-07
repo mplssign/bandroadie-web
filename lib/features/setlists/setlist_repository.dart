@@ -374,7 +374,7 @@ class SetlistRepository {
                         (item is Map) ? item['setlist_special_items'] : null;
                     if (special is Map) {
                       totalDurationSeconds +=
-                          (special['duration_seconds'] as int? ?? 0);
+                          special['duration_seconds'] as int? ?? 0;
                     }
                     break;
                   case 'set_break':
@@ -383,7 +383,7 @@ class SetlistRepository {
                         (item is Map) ? item['setlist_special_items'] : null;
                     if (special is Map) {
                       totalDurationSeconds +=
-                          ((special['duration_minutes'] as int? ?? 0) * 60);
+                          (special['duration_minutes'] as int? ?? 0) * 60;
                     }
                     break;
                   default:
@@ -391,7 +391,7 @@ class SetlistRepository {
                     final songData = (item is Map) ? item['song'] : null;
                     if (songData is Map) {
                       totalDurationSeconds +=
-                          (songData['duration_seconds'] as int? ?? 0);
+                          songData['duration_seconds'] as int? ?? 0;
                     }
                     break;
                 }
@@ -642,7 +642,7 @@ class SetlistRepository {
           debugPrint('  Requested setlistId: $setlistId');
           debugPrint('  Expected bandId: $bandId');
         }
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'BAND_MISMATCH',
           message: 'Setlist does not belong to active band',
           reason: 'band_mismatch',
@@ -2519,7 +2519,7 @@ class SetlistRepository {
       final message = e.message.toLowerCase();
 
       if (message.contains('catalog')) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'CATALOG_PROTECTED',
           message: 'Cannot delete the Catalog setlist',
           reason: 'catalog_protected',
@@ -2528,7 +2528,7 @@ class SetlistRepository {
 
       if (message.contains('not found') ||
           message.contains('does not belong')) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'NOT_FOUND',
           message: 'Setlist not found or does not belong to this band',
           reason: 'not_found',
@@ -2536,7 +2536,7 @@ class SetlistRepository {
       }
 
       if (message.contains('permission') || message.contains('access denied')) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'PERMISSION_DENIED',
           message: 'You do not have permission to delete this setlist',
           reason: 'permission_denied',
@@ -2611,7 +2611,7 @@ class SetlistRepository {
         debugPrint(
           '[SetlistRepository] delete failed: setlist not found or wrong band',
         );
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'NOT_FOUND',
           message: 'Setlist not found or does not belong to this band',
           reason: 'not_found',
@@ -2622,7 +2622,7 @@ class SetlistRepository {
       final name = setlistCheck['name'] as String? ?? '';
       if (isCatalogName(name)) {
         debugPrint('[SetlistRepository] delete failed: cannot delete Catalog');
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'CATALOG_PROTECTED',
           message: 'Cannot delete the Catalog setlist',
           reason: 'catalog_protected',
@@ -2686,7 +2686,7 @@ class SetlistRepository {
         debugPrint(
           '[SetlistRepository] WARNING: setlist $setlistId still exists after delete! RLS may be blocking.',
         );
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'DELETE_FAILED',
           message: 'Failed to delete setlist — it still exists in the database',
           reason: 'delete_blocked',
@@ -2753,7 +2753,7 @@ class SetlistRepository {
           .maybeSingle();
 
       if (sourceSetlist == null) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'NOT_FOUND',
           message: 'Setlist not found or does not belong to this band',
           reason: 'not_found',
@@ -2772,7 +2772,7 @@ class SetlistRepository {
       // Step 4: Create the new setlist (must include created_by for RLS)
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'AUTH_REQUIRED',
           message: 'You must be logged in to duplicate a setlist',
           reason: 'no_auth',
@@ -2877,7 +2877,7 @@ class SetlistRepository {
       debugPrint(
         '[SetlistRepository] createSetlist failed: no authenticated user',
       );
-      throw SetlistQueryError(
+      throw const SetlistQueryError(
         code: 'AUTH_REQUIRED',
         message: 'You must be logged in to create a setlist',
         reason: 'no_auth',
@@ -2917,7 +2917,6 @@ class SetlistRepository {
         bandId: response['band_id'] as String,
         songCount: 0,
         totalDuration: Duration(seconds: totalSeconds),
-        isCatalog: false,
       );
     } on PostgrestException catch (e) {
       debugPrint(
@@ -2976,7 +2975,7 @@ class SetlistRepository {
           .maybeSingle();
 
       if (existingSetlist == null) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'NOT_FOUND',
           message: 'Setlist not found or does not belong to this band',
           reason: 'not_found',
@@ -2986,7 +2985,7 @@ class SetlistRepository {
       // Check if this is the Catalog by name
       final existingName = existingSetlist['name'] as String? ?? '';
       if (existingName.toLowerCase() == 'catalog') {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'CATALOG_PROTECTED',
           message: 'Cannot rename the Catalog setlist',
           reason: 'catalog_protected',
@@ -3015,7 +3014,6 @@ class SetlistRepository {
         songCount:
             0, // We don't have song count here, but it's not critical for rename
         totalDuration: Duration(seconds: totalSeconds),
-        isCatalog: false,
       );
     } on SetlistQueryError {
       rethrow;
@@ -3102,7 +3100,7 @@ class SetlistRepository {
 
       final catalogId = result as String?;
       if (catalogId == null || catalogId.isEmpty) {
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'NO_CATALOG',
           message: 'Failed to create or find Catalog setlist',
           reason: 'no_catalog_returned',
@@ -3128,7 +3126,7 @@ class SetlistRepository {
           );
         }
         // Fall back to client-side deduplication
-        return await _ensureCatalogClientSide(bandId);
+        return _ensureCatalogClientSide(bandId);
       }
       debugPrint('[SetlistRepository] PostgrestException ensuring Catalog: $e');
       throw SetlistQueryError(
@@ -3293,7 +3291,7 @@ class SetlistRepository {
         debugPrint(
           '[SetlistRepository] Error creating Catalog client-side: $finalError',
         );
-        throw SetlistQueryError(
+        throw const SetlistQueryError(
           code: 'CREATE_FAILED',
           message: 'Failed to create Catalog setlist',
           reason: 'client_side_create_failed',
@@ -3814,7 +3812,6 @@ class SetlistRepository {
       return AddSongResult(
         setlistSongId: setlistSongId,
         wasAlreadyInCatalog: wasAlreadyInCatalog,
-        wasAlreadyInSetlist: false,
         songTitle: songTitle,
         songArtist: songArtist,
       );
@@ -3823,7 +3820,6 @@ class SetlistRepository {
         '[SetlistRepository] Error in addSongToSetlistEnsureCatalog: $e',
       );
       return AddSongResult(
-        setlistSongId: null,
         songTitle: songTitle,
         songArtist: songArtist,
       );

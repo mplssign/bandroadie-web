@@ -636,7 +636,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           label: _cooldownSeconds > 0
               ? 'Resend in ${_cooldownSeconds}s'
               : 'Email Login Link',
-          variant: AppButtonVariant.primary,
           onPressed: isDisabled ? null : _sendMagicLink,
           isLoading: _isLoading,
           fullWidth: true,

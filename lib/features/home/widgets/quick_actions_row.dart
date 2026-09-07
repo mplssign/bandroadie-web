@@ -95,7 +95,6 @@ class QuickActionsRow extends StatelessWidget {
         foregroundColor: AppColors.primary,
         side: const BorderSide(
           color: AppColors.primary,
-          width: 1,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),

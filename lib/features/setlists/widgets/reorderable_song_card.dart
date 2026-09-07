@@ -200,7 +200,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                       index: widget.index,
                       child: Center(
                         child: Padding(
-                          padding: EdgeInsets.only(
+                          padding: const EdgeInsets.only(
                             left: SongCardLayout.dragHandleLeft,
                           ),
                           child: Icon(
@@ -216,7 +216,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
 
                 // Saving indicator
                 if (_isSaving)
-                  Positioned(
+                  const Positioned(
                     right: 48,
                     top: 14,
                     child: SizedBox(
@@ -238,7 +238,7 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                         (_) {}, // Absorb pointer events to prevent drag
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
-                      padding: EdgeInsets.only(
+                      padding: const EdgeInsets.only(
                         right: SongCardLayout.cardHorizontalPadding,
                         top: SongCardLayout.cardVerticalPadding,
                         bottom: SongCardLayout.cardVerticalPadding,
@@ -361,8 +361,6 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                   .clamp(0.0, shared.tuningWidth);
 
           return Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(
                 width: shared.bpmWidth,
@@ -375,7 +373,6 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
               SizedBox(
                 width: shared.durationWidth,
                 child: Align(
-                  alignment: Alignment.center,
                   child: _buildDurationValue(),
                 ),
               ),

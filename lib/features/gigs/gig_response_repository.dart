@@ -36,7 +36,6 @@ class GigResponseError implements Exception {
         message: e.toString(),
         userMessage:
             'You don\'t have permission to update this response. Try refreshing the app.',
-        isRetryable: false,
       );
     }
 

@@ -575,7 +575,7 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                           ),
                           if (_isRemoveMode) ...[
                             const SizedBox(width: 6),
-                            Icon(
+                            const Icon(
                               Icons.close_rounded,
                               size: 14,
                               color: AppColors.error,
@@ -752,7 +752,6 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
                 ),
                 child: Slider(
                   value: _current.lineSpacing.clamp(0.0, 3.0),
-                  min: 0.0,
                   max: 3.0,
                   divisions: 30,
                   onChanged: (v) => setState(

@@ -54,7 +54,7 @@ class VenuesRepository {
         .order('name', ascending: true);
 
     final rows = List<Map<String, dynamic>>.from(response);
-    final venues = rows.map((row) => Venue.fromJson(row)).toList();
+    final venues = rows.map(Venue.fromJson).toList();
 
     _cache[bandId] = _CacheEntry(data: venues);
 

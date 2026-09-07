@@ -17,7 +17,7 @@ class EnrichmentSettingsController extends AsyncNotifier<EnrichmentSettings> {
     }
 
     final repository = ref.read(enrichmentSettingsRepositoryProvider);
-    return await repository.getOrCreateSettings(bandId);
+    return repository.getOrCreateSettings(bandId);
   }
 
   /// Update enrichment settings for the active band
@@ -34,7 +34,7 @@ class EnrichmentSettingsController extends AsyncNotifier<EnrichmentSettings> {
 
     state = await AsyncValue.guard(() async {
       final repository = ref.read(enrichmentSettingsRepositoryProvider);
-      return await repository.updateSettings(
+      return repository.updateSettings(
         bandId: bandId,
         newSongBehavior: newSongBehavior,
         existingSongBehavior: existingSongBehavior,

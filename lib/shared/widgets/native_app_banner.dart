@@ -245,7 +245,7 @@ class _BannerContent extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                           vertical: Spacing.space12,
                         ),
-                        side: const BorderSide(color: Colors.black, width: 2),
+                        side: const BorderSide(width: 2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
                             Spacing.buttonRadius,

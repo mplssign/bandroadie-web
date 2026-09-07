@@ -63,7 +63,6 @@ class ContactsEmptyState extends StatelessWidget {
                 label: 'Add Contact',
                 onPressed: onAddTap,
                 icon: AppIcons.userAdd,
-                variant: AppButtonVariant.primary,
               ),
           ],
         ),

@@ -374,7 +374,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
       isLoading: true,
     );
 
-    Future.microtask(() => loadSongs());
+    Future.microtask(loadSongs);
   }
 
   /// Apply a song update from the broadcaster to our local state
@@ -398,7 +398,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         artist: event.artist ?? song.artist,
         bpm: event.clearBpm ? null : (event.bpm ?? song.bpm),
         durationSeconds: event.durationSeconds ?? song.durationSeconds,
-        tuning: null,
         albumArtwork: song.albumArtwork,
         notes: event.clearNotes ? null : (event.notes ?? song.notes),
         youtubeLinks: event.clearYoutubeLinks
@@ -1137,7 +1136,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
           error: 'Failed to save order. Reloading...',
         );
         // Refetch from server to get the actual persisted order
-        Future.microtask(() => loadSongs());
+        Future.microtask(loadSongs);
       }
       return false;
     }
@@ -1404,7 +1403,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         artist: song.artist,
         bpm: song.bpm,
         durationSeconds: song.durationSeconds,
-        tuning: null,
         albumArtwork: song.albumArtwork,
         notes: song.notes,
         youtubeLinks: song.youtubeLinks,
@@ -1833,7 +1831,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     if (bandId == null) {
       debugPrint('[SetlistDetail] Cannot add song: no band selected');
       return AddSongResult(
-        setlistSongId: null,
         songTitle: songTitle,
         songArtist: artist,
       );
@@ -1857,7 +1854,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
         );
       }
       return AddSongResult(
-        setlistSongId: null,
         songTitle: songTitle,
         songArtist: artist,
       );
@@ -2247,7 +2243,7 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
           isReordering: false,
           error: 'Failed to save order. Reloading...',
         );
-        Future.microtask(() => loadSongs());
+        Future.microtask(loadSongs);
       }
       return false;
     }

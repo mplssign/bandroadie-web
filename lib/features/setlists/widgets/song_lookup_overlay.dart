@@ -391,7 +391,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           decoration: BoxDecoration(
             color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: context.colors.border, width: 1),
+            border: Border.all(color: context.colors.border),
           ),
           child: Padding(
             padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -429,7 +429,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.back,
                     color: AppColors.primary,
                     size: 22,
@@ -482,11 +482,11 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
         horizontal: Spacing.space16,
         vertical: Spacing.space12,
       ),
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: context.colors.surfaceElevated,
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(color: context.colors.border, width: 1),
+          border: Border.all(color: context.colors.border),
         ),
         child: AppTextField(
           controller: _searchController,
@@ -761,9 +761,9 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(AppIcons.error, color: AppColors.error, size: 16),
+                const Icon(AppIcons.error, color: AppColors.error, size: 16),
                 const SizedBox(width: 8),
-                Text(
+                const Text(
                   'External search failed',
                   style: TextStyle(
                       fontSize: AppFontSizes.caption, color: AppColors.error),
@@ -771,7 +771,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => _searchExternal(_searchController.text),
-                  child: Text(
+                  child: const Text(
                     'Retry',
                     style: TextStyle(
                       fontSize: AppFontSizes.caption,
@@ -796,7 +796,7 @@ class _SongLookupOverlayState extends ConsumerState<SongLookupOverlay> {
           const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: AppFontSizes.caption,
               fontWeight: FontWeight.w600,
               color: AppColors.primary,
@@ -876,7 +876,6 @@ class _SongResultRowState extends State<_SongResultRow>
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
             border: Border.all(
               color: context.colors.border.withValues(alpha: 0.5),
-              width: 1,
             ),
           ),
           child: Opacity(
@@ -1060,7 +1059,7 @@ class _ExternalSongRowState extends State<_ExternalSongRow>
           decoration: BoxDecoration(
             color: context.colors.surfaceElevated,
             borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: context.colors.border, width: 1),
+            border: Border.all(color: context.colors.border),
           ),
           child: Opacity(
             opacity: widget.isAdding ? 0.5 : 1.0,

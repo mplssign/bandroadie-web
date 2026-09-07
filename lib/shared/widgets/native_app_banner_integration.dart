@@ -137,8 +137,6 @@ class ConfigurationExamples {
   // Full customization
   static const Widget customBanner = NativeAppBanner(
     delay: Duration(seconds: 5),
-    position: BannerPosition.top,
-    hideOnAuthPages: true,
   );
 }
 

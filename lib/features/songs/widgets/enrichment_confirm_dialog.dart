@@ -130,7 +130,7 @@ class _EnrichmentConfirmDialogState extends State<_EnrichmentConfirmDialog> {
             if (_isLoading)
               const Center(
                 child: AppProgressIndicator(
-                  type: ProgressIndicatorType.circular,
+                  
                 ),
               )
             else
@@ -155,7 +155,6 @@ class _EnrichmentConfirmDialogState extends State<_EnrichmentConfirmDialog> {
                 Expanded(
                   child: AppButton(
                     label: 'Add',
-                    variant: AppButtonVariant.primary,
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       Navigator.of(context).pop(true);

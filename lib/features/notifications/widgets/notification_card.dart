@@ -44,7 +44,6 @@ class NotificationCard extends ConsumerWidget {
               ? null
               : Border.all(
                   color: AppColors.primary.withValues(alpha: 0.3),
-                  width: 1,
                 ),
         ),
         child: Row(

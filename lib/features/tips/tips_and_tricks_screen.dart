@@ -78,7 +78,7 @@ class TipsAndTricksScreen extends StatelessWidget {
       backgroundColor: context.colors.background,
       appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
-        title: Text(
+        title: const Text(
           'Tips & Tricks',
           style: TextStyle(
             color: Colors.white,

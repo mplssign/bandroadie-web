@@ -154,7 +154,6 @@ class _DurationInputDialogState extends State<_DurationInputDialog> {
             const SizedBox(height: Spacing.space12),
             AppButton(
               label: 'Save',
-              variant: AppButtonVariant.primary,
               fullWidth: true,
               backgroundColor: AppColors.primary,
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),

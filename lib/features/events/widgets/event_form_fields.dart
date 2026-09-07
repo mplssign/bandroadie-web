@@ -362,13 +362,12 @@ class EventFormFields extends ConsumerWidget {
           borderRadius: BorderRadius.circular(Spacing.buttonRadius),
           border: Border.all(
             color: context.colors.border,
-            style: BorderStyle.solid,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(AppIcons.add, size: 18, color: AppColors.primary),
+            const Icon(AppIcons.add, size: 18, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
               '+ Add another date/time',
@@ -580,7 +579,7 @@ class EventFormFields extends ConsumerWidget {
                   width: 16,
                   height: 16,
                   child: AppProgressIndicator(
-                    type: ProgressIndicatorType.circular,
+                    
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -711,7 +710,6 @@ class EventFormFields extends ConsumerWidget {
           hint: 'Any additional details...',
           maxLines: 3,
           isSaving: isSaving,
-          onChanged: null,
         ),
         FieldHint(
           text: "Optional — visible only to band members.",

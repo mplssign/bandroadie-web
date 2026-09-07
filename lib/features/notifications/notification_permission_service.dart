@@ -336,10 +336,7 @@ class NotificationPermissionService
   Future<bool> _requestIOSPermission() async {
     try {
       final settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false, // Require explicit user approval
+        
       );
 
       final granted =

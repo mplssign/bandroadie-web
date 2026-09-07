@@ -258,7 +258,7 @@ class _AddFinancialEntryBottomSheetState
     for (var i = 0; i < members.length; i++) {
       final m = members[i];
       final isNew = !_splitControllers.containsKey(m.userId);
-      _splitControllers.putIfAbsent(m.userId, () => CurrencyInputController());
+      _splitControllers.putIfAbsent(m.userId, CurrencyInputController.new);
       if (isNew) {
         _splitControllers[m.userId]!.addListener(_onDisbursementChanged);
       }
@@ -494,7 +494,7 @@ class _AddFinancialEntryBottomSheetState
           // Scrollable form content
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(
+              padding: const EdgeInsets.only(
                 left: Spacing.pagePadding,
                 right: Spacing.pagePadding,
                 top: Spacing.space24,
@@ -578,8 +578,6 @@ class _AddFinancialEntryBottomSheetState
                   CurrencyTextField(
                     controller: _amountController,
                     label: 'Amount',
-                    hint: r'$0.00',
-                    enabled: true,
                   ),
                   const SizedBox(height: Spacing.space16),
 
@@ -645,10 +643,8 @@ class _AddFinancialEntryBottomSheetState
                               ?.name ??
                           'Unknown';
                     },
-                    enabled: true,
                     items: [
                       DropdownMenuItem<String?>(
-                        value: null,
                         child: Text(
                           'No member selected',
                           style: AppTextStyles.callout
@@ -675,7 +671,6 @@ class _AddFinancialEntryBottomSheetState
                   if (_isOtherPaidToSelected) ...[
                     AppTextField(
                       controller: _paidToOtherController,
-                      textCapitalization: TextCapitalization.none,
                       textInputAction: TextInputAction.next,
                       hintText: 'Enter name',
                     ),
@@ -756,8 +751,6 @@ class _AddFinancialEntryBottomSheetState
                                     padding: const EdgeInsets.only(
                                         bottom: Spacing.space12),
                                     child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
                                       children: [
                                         Expanded(
                                           child: Text(
@@ -774,7 +767,6 @@ class _AddFinancialEntryBottomSheetState
                                               ? CurrencyTextField(
                                                   controller: ctrl,
                                                   label: '',
-                                                  hint: r'$0.00',
                                                   clearOnFocus: true,
                                                 )
                                               : const SizedBox.shrink(),
@@ -841,7 +833,6 @@ class _AddFinancialEntryBottomSheetState
                               child: CurrencyTextField(
                                 controller: _depositToSavingsController,
                                 label: 'Savings Amount',
-                                hint: r'$0.00',
                                 clearOnFocus: true,
                               ),
                             )

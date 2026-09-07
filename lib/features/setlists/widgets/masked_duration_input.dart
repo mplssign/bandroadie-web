@@ -264,10 +264,10 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
         widget.backgroundColor ?? context.colors.surfaceElevated;
     final effectiveBorderColor = widget.borderColor ?? Colors.white;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: effectiveBgColor,
-        border: Border.all(color: effectiveBorderColor, width: 1),
+        border: Border.all(color: effectiveBorderColor),
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       ),
       child: KeyboardListener(
@@ -300,7 +300,7 @@ class _MaskedDurationInputState extends State<MaskedDurationInput> {
               // Intercept all input via inputFormatters
               inputFormatters: [
                 _DurationInputFormatter(
-                  onDigit: (digit) => _handleKeyPress(digit),
+                  onDigit: _handleKeyPress,
                   onBackspace: () => _handleKeyPress('backspace'),
                   getCurrentText: () => _controller.text,
                 ),

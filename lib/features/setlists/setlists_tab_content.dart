@@ -279,7 +279,7 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
         }
         return false; // Allow notification to continue bubbling
       },
-      child: Container(
+      child: ColoredBox(
         color: context.colors.background,
         child: showLoading
             ? _buildLoadingState(
@@ -407,7 +407,6 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                   icon: AppIcons.refresh,
                   onPressed: () =>
                       ref.read(setlistsProvider.notifier).refresh(),
-                  variant: AppButtonVariant.primary,
                 ),
               ],
             ),
@@ -496,9 +495,9 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                           setlist: setlist,
                           onTap: () => _onSetlistTap(setlist),
                           onDeleteConfirmed:
-                              canEdit ? (s) => _confirmDelete(s) : null,
+                              canEdit ? _confirmDelete : null,
                           onDuplicateConfirmed:
-                              canEdit ? (s) => _confirmDuplicate(s) : null,
+                              canEdit ? _confirmDuplicate : null,
                         ),
                       ),
                     ),
@@ -528,8 +527,8 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                               index: index,
                               isDraggable: true,
                               onTap: () => _onSetlistTap(setlist),
-                              onDeleteConfirmed: (s) => _confirmDelete(s),
-                              onDuplicateConfirmed: (s) => _confirmDuplicate(s),
+                              onDeleteConfirmed: _confirmDelete,
+                              onDuplicateConfirmed: _confirmDuplicate,
                             ),
                           );
                         },
@@ -577,8 +576,6 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
                               child: SwipeableSetlistCard(
                                 setlist: setlist,
                                 onTap: () => _onSetlistTap(setlist),
-                                onDeleteConfirmed: null,
-                                onDuplicateConfirmed: null,
                               ),
                             );
                           },
@@ -619,8 +616,6 @@ class _SetlistsTabContentState extends ConsumerState<SetlistsTabContent>
         localImageFile: localImage,
         onMenuTap: _openDrawer,
         onAvatarTap: _openBandSwitcher,
-        // Tab content shows full app bar with menu + title + avatar
-        backOnly: false,
       ),
     );
   }

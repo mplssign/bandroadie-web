@@ -51,7 +51,7 @@ class OneCalendarSettingsScreen extends ConsumerWidget {
       body: prefsAsync.when(
         data: (prefs) => _buildContent(context, ref, prefs, userBands),
         loading: () => const Center(
-          child: AppProgressIndicator(type: ProgressIndicatorType.circular),
+          child: AppProgressIndicator(),
         ),
         error: (error, stackTrace) => Center(
           child: Padding(

@@ -48,12 +48,12 @@ class ContactsRepository {
 
     final response = await supabase
         .from('contacts')
-        .select('*')
+        .select()
         .eq('band_id', bandId)
         .order('name', ascending: true);
 
     final rows = List<Map<String, dynamic>>.from(response);
-    final contacts = rows.map((row) => Contact.fromJson(row)).toList();
+    final contacts = rows.map(Contact.fromJson).toList();
 
     _cache[bandId] = _CacheEntry(data: contacts);
 

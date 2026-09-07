@@ -314,7 +314,6 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
           width: 80,
           child: AppButton(
             label: 'Invite',
-            variant: AppButtonVariant.primary,
             onPressed: _isSendingInvite ? null : _sendInvite,
             isLoading: _isSendingInvite,
           ),
@@ -534,7 +533,6 @@ class _InvitePill extends StatelessWidget {
           borderRadius: BorderRadius.circular(50),
           border: Border.all(
             color: context.colors.warning.withValues(alpha: 0.3),
-            width: 1,
           ),
         ),
         child: Row(

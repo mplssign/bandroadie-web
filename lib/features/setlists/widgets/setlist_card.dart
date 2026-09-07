@@ -78,7 +78,6 @@ class _SetlistCardState extends State<SetlistCard>
   Widget build(BuildContext context) {
     final catalogBorder = Border.all(
       color: context.colors.border.withValues(alpha: 0.55),
-      width: 1,
     );
 
     final innerContent = Column(
@@ -158,7 +157,7 @@ class _SetlistCardState extends State<SetlistCard>
                       width: SongCardLayout.contentLeftPadding,
                       child: Center(
                         child: Padding(
-                          padding: EdgeInsets.only(
+                          padding: const EdgeInsets.only(
                             left: SongCardLayout.dragHandleLeft,
                           ),
                           child: Icon(

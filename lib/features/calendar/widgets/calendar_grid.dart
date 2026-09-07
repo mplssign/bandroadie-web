@@ -83,7 +83,6 @@ class CalendarGrid extends StatelessWidget {
             calendarState.selectedMonth,
           ),
           onDayPress: (date) => onDayTap?.call(date),
-          fixedWeeks: false,
         );
       },
     );
@@ -230,7 +229,6 @@ class CalendarGrid extends StatelessWidget {
     return SizedBox(
       height: 14,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           for (int i = 0; i < activeMarkers.length; i++) ...[
             if (i > 0) const SizedBox(height: 2),

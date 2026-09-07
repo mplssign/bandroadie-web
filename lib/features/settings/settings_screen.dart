@@ -118,7 +118,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(
+            const Icon(
               AppIcons.warning,
               color: AppColors.error,
               size: 28,
@@ -164,7 +164,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             _buildBulletPoint('Delete all your gig responses and notes'),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'This cannot be reversed. Are you sure?',
               style: TextStyle(
                 color: AppColors.error,
@@ -288,7 +288,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: context.colors.background,
       appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
-        title: Text(
+        title: const Text(
           'Settings',
           style: TextStyle(
             color: Colors.white,
@@ -307,11 +307,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AppProgressIndicator(
-                    type: ProgressIndicatorType.circular,
+                  const AppProgressIndicator(
                     color: AppColors.error,
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   Text(
                     'Deleting your account...',
                     style: TextStyle(
@@ -319,7 +318,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       fontSize: AppFontSizes.body,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'This may take a moment',
                     style: TextStyle(

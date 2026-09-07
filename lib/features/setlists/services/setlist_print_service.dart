@@ -733,7 +733,7 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
         padding: const pw.EdgeInsets.only(bottom: 4),
         decoration: const pw.BoxDecoration(
           border: pw.Border(
-            bottom: pw.BorderSide(color: PdfColors.black, width: 2),
+            bottom: pw.BorderSide(width: 2),
           ),
         ),
         child: pw.Text(
@@ -892,7 +892,6 @@ ${columnCount == 2 ? '  column-count: 2;\n  column-gap: 24px;' : ''}
       margin:
           pw.EdgeInsets.only(bottom: titleFont * 0.55 * template.lineSpacing),
       child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
           // Song number
           if (template.showSongNumbers)

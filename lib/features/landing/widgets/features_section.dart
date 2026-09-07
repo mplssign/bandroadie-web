@@ -77,7 +77,7 @@ class FeaturesSection extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: cardWidth,
-                    child: _FeatureCard(
+                    child: const _FeatureCard(
                       icon: AppIcons.headphones,
                       title: 'Rehearsals',
                       description:
@@ -86,7 +86,7 @@ class FeaturesSection extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _FeatureCard(
+                    child: const _FeatureCard(
                       icon: AppIcons.mic,
                       title: 'Gigs & Potential Gigs',
                       description:
@@ -95,7 +95,7 @@ class FeaturesSection extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _FeatureCard(
+                    child: const _FeatureCard(
                       icon: AppIcons.calendar,
                       title: 'Band Calendar',
                       description:
@@ -104,7 +104,7 @@ class FeaturesSection extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _FeatureCard(
+                    child: const _FeatureCard(
                       icon: AppIcons.setlists,
                       title: 'Setlists',
                       description:
@@ -156,7 +156,6 @@ class _FeatureCardState extends State<_FeatureCard> {
             color: _isHovered
                 ? AppColors.primary.withValues(alpha: 0.4)
                 : context.colors.border,
-            width: 1,
           ),
           boxShadow: _isHovered
               ? [

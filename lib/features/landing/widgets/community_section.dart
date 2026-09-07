@@ -18,17 +18,17 @@ class CommunitySection extends StatelessWidget {
         horizontal: isMobile ? 24 : 80,
         vertical: isMobile ? 60 : 100,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1a0f2e), // Deep purple
-            const Color(0xFF0f1a2e), // Deep blue
-            const Color(0xFF0a1428), // Darker blue
-            const Color(0xFF1a0f2e), // Back to deep purple
+            Color(0xFF1a0f2e), // Deep purple
+            Color(0xFF0f1a2e), // Deep blue
+            Color(0xFF0a1428), // Darker blue
+            Color(0xFF1a0f2e), // Back to deep purple
           ],
-          stops: const [0.0, 0.35, 0.65, 1.0],
+          stops: [0.0, 0.35, 0.65, 1.0],
         ),
       ),
       child: Column(
@@ -165,7 +165,6 @@ class _CommunityPoint extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: const Color(0xFF3d5af1).withValues(alpha: 0.3),
-              width: 1,
             ),
           ),
           child: Icon(
@@ -231,10 +230,10 @@ class _RedditCTAButtonState extends State<_RedditCTAButton> {
                 vertical: widget.isMobile ? 16 : 20,
               ),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [
-                    const Color(0xFF3d5af1), // Blue
-                    const Color(0xFF5a3df1), // Purple-blue
+                    Color(0xFF3d5af1), // Blue
+                    Color(0xFF5a3df1), // Purple-blue
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),

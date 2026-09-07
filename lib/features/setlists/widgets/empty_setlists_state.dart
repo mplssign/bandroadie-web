@@ -127,7 +127,6 @@ class _EmptySetlistsStateState extends State<EmptySetlistsState>
                   label: '+ Create Setlist',
                   onPressed: widget.onCreateSetlist,
                   icon: AppIcons.add,
-                  variant: AppButtonVariant.primary,
                 ),
               ],
             ),

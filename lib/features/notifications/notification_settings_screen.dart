@@ -50,7 +50,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
       body: prefsAsync.when(
         data: (prefs) => _buildContent(context, ref, prefs, permissionState),
         loading: () => const Center(
-          child: AppProgressIndicator(type: ProgressIndicatorType.circular),
+          child: AppProgressIndicator(),
         ),
         error: (error, _) => Center(
           child: Text(

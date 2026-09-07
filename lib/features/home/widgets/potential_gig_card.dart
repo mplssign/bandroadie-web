@@ -326,7 +326,6 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   )!
                       .withValues(alpha: 0.18 + (pulseValue * 0.27)),
                   blurRadius: 10,
-                  spreadRadius: 0,
                 ),
               ],
               child: child!,
@@ -335,11 +334,10 @@ class _PotentialGigCardState extends State<PotentialGigCard>
           child: Container(
             width: widget.width,
             constraints:
-                BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
+                const BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Chip label — cream background, full width
@@ -355,24 +353,24 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       textAlign: TextAlign.center,
                       text: TextSpan(
                         children: [
-                          TextSpan(
+                          const TextSpan(
                             text: 'POTENTIAL GIG',
                             style: TextStyle(
                               fontFamily: 'Geist',
                               fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF4A1F0F),
+                              color: Color(0xFF4A1F0F),
                               letterSpacing: 0.5,
                             ),
                           ),
                           if (_isMultiDate)
-                            TextSpan(
+                            const TextSpan(
                               text: ': Multiple Dates',
                               style: TextStyle(
                                 fontFamily: 'Geist',
                                 fontSize: AppFontSizes.caption,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF4A1F0F),
+                                color: Color(0xFF4A1F0F),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -387,7 +385,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                   AnimatedDateLabel(
                     text: _formatFullDate(_currentDate),
                     direction: _navigationDirection,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Geist',
                       fontSize: AppFontSizes.pageTitle,
                       fontWeight: FontWeight.w700,
@@ -405,7 +403,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                       widget.gig.endTime,
                     ),
                     direction: _navigationDirection,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Geist',
                       fontSize: AppFontSizes.title,
                       fontWeight: FontWeight.w600,
@@ -428,7 +426,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'Geist',
                               fontSize: AppFontSizes.title,
                               fontWeight: FontWeight.w600,
@@ -440,7 +438,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                         if (widget.gig.location.isNotEmpty)
                           Text(
                             ' - ${widget.gig.locationDisplay}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'Geist',
                               fontSize: AppFontSizes.title,
                               fontWeight: FontWeight.w600,
@@ -457,7 +455,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontFamily: 'Geist',
                               fontSize: AppFontSizes.title,
                               fontWeight: FontWeight.w600,
@@ -660,7 +658,7 @@ class PotentialChip extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border:
-            Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1),
+            Border.all(color: Colors.white.withValues(alpha: 0.8)),
       ),
       child: Text(
         label,
@@ -850,7 +848,6 @@ class AvailabilityButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? baseColor : Colors.white.withValues(alpha: 0.5),
-            width: 1,
           ),
         ),
         child: Text(

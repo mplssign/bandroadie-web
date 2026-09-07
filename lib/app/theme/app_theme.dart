@@ -62,7 +62,7 @@ class AppTheme {
           fontSize: AppFontSizes.title2,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: IconThemeData(color: AppColors.primary),
+        iconTheme: const IconThemeData(color: AppColors.primary),
       ),
 
       // ----------------------------------------
@@ -140,19 +140,19 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: bc.border, width: 1),
+          borderSide: BorderSide(color: bc.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.error, width: 1),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.error, width: 2),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         hintStyle: TextStyle(color: bc.textMuted, fontSize: AppFontSizes.body),
         labelStyle: TextStyle(color: bc.textSecondary),
@@ -185,13 +185,13 @@ class AppTheme {
         indicatorColor: bc.primarySubtle,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: AppColors.primary);
+            return const IconThemeData(color: AppColors.primary);
           }
           return IconThemeData(color: bc.textSecondary);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return TextStyle(
+            return const TextStyle(
               color: AppColors.primary,
               fontSize: AppFontSizes.caption,
               fontWeight: FontWeight.w600,
@@ -313,7 +313,6 @@ class AppTheme {
 
   static final ColorScheme _lightColorScheme = ColorScheme.fromSeed(
     seedColor: AppColors.primary,
-    brightness: Brightness.light,
     surface: const Color(0xFFFAFAFA),
   ).copyWith(
     surface: const Color(0xFFFAFAFA),
@@ -434,7 +433,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: bc.border, width: 1),
+          borderSide: BorderSide(color: bc.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -442,11 +441,11 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.error, width: 1),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.error, width: 2),
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         hintStyle: TextStyle(color: bc.textMuted, fontSize: AppFontSizes.body),
         labelStyle: TextStyle(color: bc.textSecondary),
@@ -465,7 +464,7 @@ class AppTheme {
           fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: TextStyle(
+        unselectedLabelStyle: const TextStyle(
           fontSize: AppFontSizes.caption,
           fontWeight: FontWeight.w400,
         ),

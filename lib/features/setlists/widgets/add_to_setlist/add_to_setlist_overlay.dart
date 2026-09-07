@@ -205,7 +205,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
           decoration: BoxDecoration(
             color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: context.colors.border, width: 1),
+            border: Border.all(color: context.colors.border),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -264,7 +264,7 @@ class _AddToSetlistOverlayState extends State<_AddToSetlistOverlay> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.back,
                     color: AppColors.primary,
                     size: 22,
@@ -447,7 +447,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: context.colors.border, width: 1),
+            border: Border.all(color: context.colors.border),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -470,7 +470,7 @@ class _EditSpecialItemOverlay extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 AppIcons.back,
                                 color: AppColors.primary,
                                 size: 22,

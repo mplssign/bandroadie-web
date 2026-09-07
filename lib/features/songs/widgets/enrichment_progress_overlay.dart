@@ -20,7 +20,6 @@ Future<void Function(int, int, String)> showEnrichmentProgressOverlay({
   unawaited(
     showGeneralDialog(
       context: context,
-      barrierDismissible: false,
       barrierLabel: '',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),

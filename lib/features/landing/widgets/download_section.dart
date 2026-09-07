@@ -98,7 +98,7 @@ class _WebAppButton extends StatelessWidget {
       width: 220,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white, width: 1),
+        border: Border.all(color: Colors.white),
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -115,7 +115,7 @@ class _WebAppButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.web, size: 36, color: Colors.white),
+                const Icon(Icons.web, size: 36, color: Colors.white),
                 const SizedBox(width: 12),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -131,7 +131,7 @@ class _WebAppButton extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    const Text(
                       'Web App',
                       style: TextStyle(
                         fontSize: AppFontSizes.title2,
@@ -174,7 +174,6 @@ class _OfficialBadge extends StatelessWidget {
         color: Colors.black,
         border: Border.all(
           color: Colors.white,
-          width: 1,
         ),
       ),
       child: Material(

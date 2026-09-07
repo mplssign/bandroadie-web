@@ -163,7 +163,6 @@ class RehearsalNotifier extends Notifier<RehearsalState> {
       potentialRehearsals: potentialRehearsals,
       confirmedRehearsals: confirmedRehearsals,
       nextRehearsal: nextRehearsal,
-      isLoading: false,
       loadedBandId: bandId,
     );
   }

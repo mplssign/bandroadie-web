@@ -246,7 +246,7 @@ class _BandSwitcherState extends State<BandSwitcher>
                 widget.onClose();
                 widget.onCreateBand();
               },
-              child: Text(
+              child: const Text(
                 '+ Create New Band',
                 style: TextStyle(
                   fontSize: AppFontSizes.body,
@@ -456,11 +456,9 @@ class _BandListItemState extends State<_BandListItem>
                     ? Border(
                         top: BorderSide(
                           color: context.colors.surfaceOverlay,
-                          width: 1,
                         ),
                         bottom: BorderSide(
                           color: context.colors.surfaceOverlay,
-                          width: 1,
                         ),
                       )
                     : null,
@@ -645,7 +643,7 @@ class _BandSwitcherOverlayState extends State<BandSwitcherOverlay>
 
             return GestureDetector(
               onTap: widget.onClose,
-              child: Container(
+              child: ColoredBox(
                 color: Colors.black.withValues(
                   alpha: 0.6 * _scrimAnimation.value,
                 ),
@@ -838,7 +836,7 @@ class _BandSwitcherOverlayContentState extends State<BandSwitcherOverlayContent>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.onClose,
-                child: Container(
+                child: ColoredBox(
                   color: Colors.black.withValues(
                     alpha: 0.5 * _scrimAnimation.value,
                   ),

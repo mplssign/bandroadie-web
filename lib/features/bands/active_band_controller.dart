@@ -90,7 +90,6 @@ class DraftBandNotifier extends Notifier<DraftBandState> {
     final updated = Band(
       id: state.band!.id,
       name: state.band!.name,
-      imageUrl: null,
       createdBy: state.band!.createdBy,
       avatarColor: avatarColor,
       timezone: state.band!.timezone,
@@ -280,7 +279,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
             '[ActiveBand] ⚠️ Band fetch returned null, defaulting to empty list');
         state = state.copyWith(
           userBands: const [],
-          activeBand: null,
           clearActiveBand: true,
           isLoading: false,
         );
@@ -293,7 +291,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         debugPrint('[ActiveBand] No bands found for user');
         state = state.copyWith(
           userBands: const [],
-          activeBand: null,
           clearActiveBand: true,
           isLoading: false,
         );
@@ -364,7 +361,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         debugPrint('[ActiveBand] ⚠️ loadAndSelectBand: No bands found');
         state = state.copyWith(
           userBands: const [],
-          activeBand: null,
           clearActiveBand: true,
           isLoading: false,
         );
@@ -410,7 +406,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
         debugPrint('[ActiveBand] ⚠️ refreshBands: No bands found');
         state = state.copyWith(
           userBands: const [],
-          activeBand: null,
           clearActiveBand: true,
         );
         return;

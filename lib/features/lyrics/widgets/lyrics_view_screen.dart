@@ -32,7 +32,6 @@ void showLyricsViewScreen(
 }) {
   Navigator.of(context).push(
     PageRouteBuilder(
-      opaque: true,
       pageBuilder: (context, anim1, anim2) => _LyricsViewScreen(
         lyrics: lyrics,
         songId: songId,
@@ -321,7 +320,6 @@ class _LyricsViewScreenState extends State<_LyricsViewScreen> {
       bottom: 24,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ── Speed controls ──
           Column(

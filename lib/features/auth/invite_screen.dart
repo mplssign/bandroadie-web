@@ -321,7 +321,6 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           AppProgressIndicator(
-            type: ProgressIndicatorType.circular,
             color: AppColors.primary,
           ),
           SizedBox(height: 16),
@@ -492,7 +491,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         EmailDomainShortcutBar(
           controller: _emailController,
           selectedDomain: _selectedDomain,
-          onDomainSelected: (domain) => _applyDomainShortcut(domain),
+          onDomainSelected: _applyDomainShortcut,
           enabled: !_signingIn,
         ),
         const SizedBox(height: 16),

@@ -16,7 +16,6 @@ Future<DateTime?> showAppDatePicker({
 }) async {
   return showFDialog<DateTime?>(
     context: context,
-    barrierDismissible: true,
     builder: (context, style, animation) => FDialog(
       style: const FDialogStyleDelta.delta(
         insetPadding: EdgeInsetsGeometryDelta.value(
@@ -35,7 +34,6 @@ Future<DateTime?> showAppDatePicker({
           toggleable: false,
           onChange: (date) => Navigator.of(context).pop(date),
         ),
-        fixedWeeks: false,
         headerBuilder: (context, controller, selectionController, header) =>
             LayoutBuilder(
           builder: (context, viewport) => SingleChildScrollView(

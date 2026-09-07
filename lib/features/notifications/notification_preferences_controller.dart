@@ -28,7 +28,7 @@ class NotificationPreferencesController
   @override
   Future<NotificationPreferences> build() async {
     _repository = ref.read(notificationRepositoryProvider);
-    return await _repository.getOrCreatePreferences();
+    return _repository.getOrCreatePreferences();
   }
 
   Future<void> updateNotificationsEnabled(bool enabled) async {

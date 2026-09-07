@@ -322,7 +322,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
         actions: [
           DialogAction(
             label: 'Cancel',
-            onPressed: () => Navigator.pop(context, null),
+            onPressed: () => Navigator.pop(context),
           ),
           DialogAction(
             label: 'This band only',
@@ -447,7 +447,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
     }
 
     // Use centralized helper for all other errors
-    return mapBlockOutErrorToMessage(error, context: 'save');
+    return mapBlockOutErrorToMessage(error);
   }
 
   Future<void> _selectStartDate() async {
@@ -520,7 +520,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
           ),
           decoration: BoxDecoration(
             color: context.colors.surface,
-            borderRadius: BorderRadius.only(
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
             ),
@@ -544,7 +544,7 @@ class _BlockOutDrawerState extends ConsumerState<BlockOutDrawer> {
               // Scrollable content
               Flexible(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
+                  padding: const EdgeInsets.only(
                     left: Spacing.pagePadding,
                     right: Spacing.pagePadding,
                     bottom: Spacing.space16,

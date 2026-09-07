@@ -170,7 +170,7 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
         ),
         decoration: BoxDecoration(
           color: context.colors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           top: false,
@@ -295,7 +295,6 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                                       Spacing.buttonRadius),
                                   border: Border.all(
                                     color: context.colors.border,
-                                    width: 1,
                                   ),
                                 ),
                                 child: AppTextField(
@@ -319,7 +318,6 @@ class _PauseCreatorSheetState extends State<_PauseCreatorSheet>
                                       Spacing.buttonRadius),
                                   border: Border.all(
                                     color: _accent.withValues(alpha: 0.3),
-                                    width: 1,
                                   ),
                                 ),
                                 child: Icon(
@@ -480,11 +478,11 @@ class _DurationField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: context.colors.surface,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: context.colors.border, width: 1),
+        border: Border.all(color: context.colors.border),
       ),
       child: AppTextField(
         controller: controller,

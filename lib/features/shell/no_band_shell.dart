@@ -64,9 +64,9 @@ class NoBandShell extends ConsumerWidget {
         children: [
           Positioned.fill(
             child: _NoBandContent(
-              onOpenMenu: () => overlayNotifier.openMenuDrawer(),
+              onOpenMenu: overlayNotifier.openMenuDrawer,
               onOpenBandSwitcher: userBands.isNotEmpty
-                  ? () => overlayNotifier.openBandSwitcher()
+                  ? overlayNotifier.openBandSwitcher
                   : null,
               isNewUser: isNewUser,
               onRestoreSuccess: () {
@@ -253,12 +253,12 @@ class _NoBandContentState extends State<_NoBandContent>
     return AlertDialog(
       backgroundColor: context.colors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
+      title: const Row(
         children: [
-          const Icon(Icons.warning_amber_rounded,
+          Icon(Icons.warning_amber_rounded,
               color: AppColors.primary, size: 24),
-          const SizedBox(width: 8),
-          const Expanded(
+          SizedBox(width: 8),
+          Expanded(
             child: Text(
               'Restore from Backup?',
               style: TextStyle(
@@ -302,7 +302,7 @@ class _NoBandContentState extends State<_NoBandContent>
                 color: AppColors.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
+              child: const Text(
                 'This will create a new band and populate it with your '
                 'backup data. This cannot be undone.',
                 style: TextStyle(
@@ -610,11 +610,9 @@ class _NoBandContentState extends State<_NoBandContent>
             confettiController: _confettiController!,
             blastDirectionality: BlastDirectionality.explosive,
             numberOfParticles: 30,
-            maxBlastForce: 20,
             minBlastForce: 8,
             gravity: 0.3,
             emissionFrequency: 0.05,
-            shouldLoop: false,
             colors: const [
               Color(0xFFF43F5E), // rose (brand accent)
               Color(0xFFFFFFFF), // white
@@ -720,11 +718,7 @@ class _BandSwitcherLayer extends ConsumerWidget {
       },
       // Only show Edit Band button if there are bands
       onEditBand: bands.isNotEmpty
-          ? () {
-              onClose();
-              // Navigate to edit band screen if there's an active band
-              // (this shouldn't happen in NoBandShell, but handle gracefully)
-            }
+          ? onClose
           : null,
     );
   }

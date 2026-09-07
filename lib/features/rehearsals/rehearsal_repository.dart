@@ -50,7 +50,7 @@ class RehearsalRepository {
         .eq('band_id', bandId)
         .order('date', ascending: true);
 
-    return response.map<Rehearsal>((json) => Rehearsal.fromJson(json)).toList();
+    return response.map<Rehearsal>(Rehearsal.fromJson).toList();
   }
 
   /// Fetches upcoming rehearsals (end time in the future) for the specified band.
@@ -76,7 +76,7 @@ class RehearsalRepository {
     final now = DateTime.now().toUtc();
     final tz = bandTimezone ?? 'America/Chicago';
     final rehearsals = response
-        .map<Rehearsal>((json) => Rehearsal.fromJson(json))
+        .map<Rehearsal>(Rehearsal.fromJson)
         .where((rehearsal) {
       try {
         final endDateTime = TimezoneHelper.toUtc(
@@ -117,7 +117,7 @@ class RehearsalRepository {
     // Filter to find the first rehearsal with end time in the future
     final tz = bandTimezone ?? 'America/Chicago';
     final rehearsals =
-        response.map<Rehearsal>((json) => Rehearsal.fromJson(json)).toList();
+        response.map<Rehearsal>(Rehearsal.fromJson).toList();
 
     for (final rehearsal in rehearsals) {
       try {

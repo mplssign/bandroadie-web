@@ -22,7 +22,6 @@ class AnimatedBandRoadieLogo extends StatelessWidget {
     return SvgPicture.asset(
       'assets/images/bandroadie_logo_optimized.svg',
       height: height,
-      fit: BoxFit.contain,
       semanticsLabel: 'Band Roadie Logo',
     );
   }
@@ -52,7 +51,6 @@ class BandRoadieLogo extends StatelessWidget {
       asset,
       height: height ?? (width == null ? 80 : null),
       width: width,
-      fit: BoxFit.contain,
       semanticsLabel: 'Band Roadie Logo',
     );
   }

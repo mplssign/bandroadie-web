@@ -275,7 +275,6 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
         CurrencyTextField(
           controller: _amountController,
           label: 'Amount',
-          hint: '\$0.00',
           enabled: widget.canEdit && !widget.isSaving,
         ),
         const SizedBox(height: Spacing.space16),
@@ -393,7 +392,6 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
           enabled: widget.canEdit && !widget.isSaving,
           items: [
             DropdownMenuItem<String?>(
-              value: null,
               child: Text(
                 'None',
                 style: AppTextStyles.callout.copyWith(
@@ -463,7 +461,6 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
             Expanded(
               child: AppButton(
                 label: 'Save Expense',
-                variant: AppButtonVariant.primary,
                 onPressed: canSave ? _handleSave : null,
                 isLoading: widget.isSaving,
               ),

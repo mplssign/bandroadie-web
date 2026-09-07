@@ -16,7 +16,6 @@ void main() {
             body: AppButton(
               label: 'Test Button',
               onPressed: () {},
-              variant: AppButtonVariant.primary,
             ),
           ),
         ),
@@ -318,7 +317,6 @@ void main() {
             body: AppButton(
               label: 'Test Button',
               onPressed: () {},
-              variant: AppButtonVariant.primary,
               height: 52,
             ),
           ),
