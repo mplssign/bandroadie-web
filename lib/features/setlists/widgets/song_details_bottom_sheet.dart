@@ -391,16 +391,12 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
 
   void _startEditingTitle() {
     setState(() => _isEditingTitle = true);
-    Future.delayed(const Duration(milliseconds: 50), () {
-      _titleFocus.requestFocus();
-    });
+    Future.delayed(const Duration(milliseconds: 50), _titleFocus.requestFocus);
   }
 
   void _startEditingArtist() {
     setState(() => _isEditingArtist = true);
-    Future.delayed(const Duration(milliseconds: 50), () {
-      _artistFocus.requestFocus();
-    });
+    Future.delayed(const Duration(milliseconds: 50), _artistFocus.requestFocus);
   }
 
   Future<void> _selectTuning() async {
@@ -581,7 +577,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               AppButton(
                 label: 'Keep Editing',
                 onPressed: () => Navigator.of(context).pop(false),
-                variant: AppButtonVariant.primary,
                 backgroundColor: AppColors.primary,
               ),
               const SizedBox(height: 8),
@@ -745,7 +740,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
                       SongLink(title: title, url: url, type: detectedType));
                 }
               },
-              variant: AppButtonVariant.primary,
               backgroundColor: AppColors.primary,
               fullWidth: true,
             ),
@@ -991,7 +985,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
         ),
         const SizedBox(height: 8),
         _isEditingTitle && !widget.isReadOnly
-            ? Container(
+            ? DecoratedBox(
                 decoration: BoxDecoration(
                   color: context.colors.background,
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -1056,7 +1050,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
         ),
         const SizedBox(height: 8),
         _isEditingArtist && !widget.isReadOnly
-            ? Container(
+            ? DecoratedBox(
                 decoration: BoxDecoration(
                   color: context.colors.background,
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
@@ -1183,7 +1177,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.music,
                     color: AppColors.primary,
                     size: 16,
@@ -1219,7 +1213,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.link,
                     color: AppColors.primary,
                     size: 16,
@@ -1257,7 +1251,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     AppIcons.noteFile,
                     color: AppColors.primary,
                     size: 16,
@@ -1324,7 +1318,7 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 AppIcons.back,
                 size: 20,
                 color: AppColors.primary,
@@ -1359,7 +1353,6 @@ class _SongDetailsSheetState extends ConsumerState<_SongDetailsSheet>
           child: AppTextField(
             controller: _notesController,
             readOnly: widget.isReadOnly,
-            maxLines: null,
             minLines: 8,
             hintText: 'Add notes for this song...',
             textCapitalization: TextCapitalization.sentences,

@@ -42,7 +42,7 @@ class EnrichmentSettingsScreen extends ConsumerWidget {
       body: settingsAsync.when(
         data: (settings) => _buildContent(context, ref, settings),
         loading: () => const Center(
-          child: AppProgressIndicator(type: ProgressIndicatorType.circular),
+          child: AppProgressIndicator(),
         ),
         error: (error, stackTrace) => Center(
           child: Padding(

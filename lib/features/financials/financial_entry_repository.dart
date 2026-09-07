@@ -29,7 +29,7 @@ class FinancialEntryRepository {
         .order('entry_date', ascending: false);
 
     return response
-        .map<FinancialEntry>((json) => FinancialEntry.fromJson(json))
+        .map<FinancialEntry>(FinancialEntry.fromJson)
         .toList();
   }
 
@@ -57,7 +57,7 @@ class FinancialEntryRepository {
         .order('created_at', ascending: false);
 
     return response
-        .map<FinancialEntry>((json) => FinancialEntry.fromJson(json))
+        .map<FinancialEntry>(FinancialEntry.fromJson)
         .toList();
   }
 

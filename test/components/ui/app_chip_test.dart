@@ -14,7 +14,6 @@ void main() {
             child: const Scaffold(
               body: AppChip(
                 label: 'Test Chip',
-                variant: AppChipVariant.defaultChip,
               ),
             ),
           ),

@@ -70,7 +70,7 @@ class _RestrictedTabContentState extends State<RestrictedTabContent>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: SafeArea(
         child: Center(
@@ -118,7 +118,6 @@ class _RestrictedTabContentState extends State<RestrictedTabContent>
                     child: SvgPicture.asset(
                       'assets/images/vip_only.svg',
                       height: 210,
-                      fit: BoxFit.contain,
                     ),
                   ),
                 ],

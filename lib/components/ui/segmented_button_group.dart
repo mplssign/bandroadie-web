@@ -29,11 +29,10 @@ class SegmentedButtonGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         border: Border.all(
           color: context.colors.textSecondary,
-          width: 1.0,
         ),
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
       ),

@@ -224,7 +224,7 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
         padding: EdgeInsets.only(bottom: keyboardHeight),
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.vertical(
+          borderRadius: const BorderRadius.vertical(
             top: Radius.circular(Spacing.cardRadius),
           ),
         ),
@@ -334,13 +334,12 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.3),
-          width: 1,
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(AppIcons.info, color: AppColors.primary, size: 20),
+          const Icon(AppIcons.info, color: AppColors.primary, size: 20),
           const SizedBox(width: Spacing.space12),
           Expanded(
             child: Text(
@@ -410,7 +409,6 @@ class _CustomTuningModalState extends State<_CustomTuningModal>
           controller: _nameController,
           focusNode: _nameFocusNode,
           enabled: !_isSaving,
-          autocorrect: true,
           textCapitalization: TextCapitalization.words,
           hintText: 'My Custom Tuning',
         ),

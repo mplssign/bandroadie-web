@@ -128,10 +128,7 @@ class PushNotificationService {
   /// Request notification permission (with soft pre-prompt handled by caller)
   Future<bool> requestPermission() async {
     final settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
+      
     );
 
     final granted =

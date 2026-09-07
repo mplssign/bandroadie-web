@@ -49,7 +49,7 @@ class CalendarState {
 
       final endDate = event.endDate;
       if (endDate != null) {
-        final monthStart = DateTime(year, month, 1);
+        final monthStart = DateTime(year, month);
         final monthEnd = DateTime(year, month + 1, 0);
         return !event.date.isAfter(monthEnd) && !endDate.isBefore(monthStart);
       }
@@ -246,7 +246,6 @@ class CalendarNotifier extends Notifier<CalendarState> {
           .map(
             (bo) => BlockOutRange(
               startDate: bo.date,
-              untilDate: null,
             ),
           )
           .toList();
@@ -453,7 +452,7 @@ class CalendarNotifier extends Notifier<CalendarState> {
 
   void setSelectedMonth(DateTime month) {
     state = state.copyWith(
-      selectedMonth: DateTime(month.year, month.month, 1),
+      selectedMonth: DateTime(month.year, month.month),
     );
   }
 

@@ -119,7 +119,7 @@ $_fallbackReportText
       backgroundColor: context.colors.background,
       appBar: AppAppBar(
         backgroundColor: context.colors.appBarBg,
-        title: Text(
+        title: const Text(
           'Report Bugs',
           style: TextStyle(
             color: Colors.white,
@@ -306,7 +306,7 @@ class _FallbackCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.colors.warning.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: context.colors.warning, width: 1),
+        border: Border.all(color: context.colors.warning),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

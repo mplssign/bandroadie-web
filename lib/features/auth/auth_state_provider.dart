@@ -79,7 +79,7 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
             break;
 
           case supabase.AuthChangeEvent.signedOut:
-            state = const AppAuthState(session: null);
+            state = const AppAuthState();
             break;
 
           case supabase.AuthChangeEvent.initialSession:
@@ -132,7 +132,7 @@ class AuthStateNotifier extends Notifier<AppAuthState> {
     try {
       state = state.copyWith(isLoading: true);
       await supabase.Supabase.instance.client.auth.signOut();
-      state = const AppAuthState(session: null);
+      state = const AppAuthState();
     } catch (e) {
       debugPrint('[AuthStateNotifier] Sign out error: $e');
       state = state.copyWith(isLoading: false, error: e.toString());

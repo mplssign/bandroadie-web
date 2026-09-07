@@ -46,7 +46,6 @@ void main() {
                   showAppSnackbar(
                     context: context,
                     message: 'Info Message',
-                    type: SnackbarType.info,
                   );
                 },
                 child: const Text('Show Snackbar'),

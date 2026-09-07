@@ -276,7 +276,7 @@ class _VenueFormScreenState extends ConsumerState<VenueFormScreen> {
 
   List<TextInputFormatter> _getPhoneFormatters() {
     final tz = ref.read(activeBandProvider).activeBand?.timezone;
-    return isUSTimezone(tz) ? [USPhoneInputFormatter(isUSTimezone: true)] : [];
+    return isUSTimezone(tz) ? [const USPhoneInputFormatter(isUSTimezone: true)] : [];
   }
 
   List<TextInputFormatter> _getStateFormatters() {

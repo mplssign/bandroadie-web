@@ -325,7 +325,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       if (_selectedImage != null && imageUrl == null) {
         imageUrl = await _uploadImageToStorage(_selectedImage!);
         if (imageUrl == null && _selectedImage != null) {
-          throw StorageException('Image upload failed. Please try again.');
+          throw const StorageException('Image upload failed. Please try again.');
         }
       }
 
@@ -663,7 +663,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            Icon(AppIcons.download, color: AppColors.primary, size: 24),
+            const Icon(AppIcons.download, color: AppColors.primary, size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -1642,7 +1642,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
               }
               Navigator.of(context).pop();
             },
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
@@ -1787,7 +1787,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                               border: Border.all(
                                 color: context.colors.textPrimary
                                     .withValues(alpha: 0.5),
-                                width: 1,
                               ),
                             ),
                             child: Center(
@@ -2040,7 +2039,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         ),
         if (!canEdit)
           Padding(
-            padding: EdgeInsets.only(top: Spacing.space8),
+            padding: const EdgeInsets.only(top: Spacing.space8),
             child: Text(
               'Only admins can change the timezone',
               style: TextStyle(
@@ -2098,7 +2097,6 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
           height: 52,
           isLoading: _isSubmitting,
           onPressed: isEnabled ? _submitForm : null,
-          variant: AppButtonVariant.primary,
         ),
         const SizedBox(height: Spacing.space16),
         // Cancel button
@@ -2148,8 +2146,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.6),
-                        width: 1),
+                        color: AppColors.primary.withValues(alpha: 0.6)),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(
@@ -2290,7 +2287,7 @@ class _BackupSheetPanel extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
             side: BorderSide(
-                color: AppColors.primary.withValues(alpha: 0.6), width: 1),
+                color: AppColors.primary.withValues(alpha: 0.6)),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),

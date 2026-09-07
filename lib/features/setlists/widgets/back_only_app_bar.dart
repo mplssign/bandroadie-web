@@ -58,7 +58,7 @@ class BackOnlyAppBar extends ConsumerWidget {
           // Back button
           GestureDetector(
             onTap: onBack ?? () => Navigator.of(context).pop(),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(

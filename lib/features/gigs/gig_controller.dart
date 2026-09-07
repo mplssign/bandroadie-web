@@ -169,7 +169,6 @@ class GigNotifier extends Notifier<GigState> {
       upcomingGigs: upcomingGigs,
       potentialGigs: potentialGigs,
       confirmedGigs: confirmedGigs,
-      isLoading: false,
       loadedBandId: bandId,
     );
   }

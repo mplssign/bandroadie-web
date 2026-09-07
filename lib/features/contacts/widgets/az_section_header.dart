@@ -28,7 +28,7 @@ class AzSectionHeader extends StatelessWidget {
       ),
       child: Text(
         letter,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: AppFontSizes.pageTitle,
           fontWeight: FontWeight.w700,
           color: AppColors.primary,

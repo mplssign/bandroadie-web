@@ -84,30 +84,30 @@ class _LandingPageState extends State<LandingPage> {
                 // Main content
                 SingleChildScrollView(
                   controller: _scrollController,
-                  child: Column(
+                  child: const Column(
                     children: [
-                      const HeroSection(),
+                      HeroSection(),
                       ScrollAnimatedWidget(
-                        offset: const Offset(0, 80),
-                        child: const FeaturesSection(),
+                        offset: Offset(0, 80),
+                        child: FeaturesSection(),
                       ),
                       ScrollAnimatedWidget(
-                        offset: const Offset(0, 80),
-                        child: const SupportSection(),
+                        offset: Offset(0, 80),
+                        child: SupportSection(),
                       ),
                       ScrollAnimatedWidget(
-                        offset: const Offset(0, 80),
-                        child: const ValueSection(),
+                        offset: Offset(0, 80),
+                        child: ValueSection(),
                       ),
                       ScrollAnimatedWidget(
-                        offset: const Offset(0, 80),
-                        child: const ScreenshotsSection(),
+                        offset: Offset(0, 80),
+                        child: ScreenshotsSection(),
                       ),
                       ScrollAnimatedWidget(
-                        offset: const Offset(0, 80),
-                        child: const SocialSection(),
+                        offset: Offset(0, 80),
+                        child: SocialSection(),
                       ),
-                      const FooterSection(),
+                      FooterSection(),
                     ],
                   ),
                 ),

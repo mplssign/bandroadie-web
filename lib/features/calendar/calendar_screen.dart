@@ -80,7 +80,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     // Initialize Forui calendar controller
     _calendarController = FWheelCalendarController(
       initial: DateTime.now(),
-      start: DateTime.utc(2015, 1, 1),
+      start: DateTime.utc(2015),
       end: DateTime.utc(2050, 12, 31),
     );
     _calendarController.day.addListener(_syncMonthToRiverpod);
@@ -448,7 +448,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     if (calendarState.isLoading) {
       return const Center(
         child: AppProgressIndicator(
-          type: ProgressIndicatorType.circular,
           color: AppColors.primary,
         ),
       );
@@ -459,7 +458,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(AppIcons.error, color: AppColors.error, size: 48),
+            const Icon(AppIcons.error, color: AppColors.error, size: 48),
             const SizedBox(height: Spacing.space16),
             Text(
               calendarState.error!,
@@ -522,8 +521,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                   );
                 }
               },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
+              child: const Padding(
+                padding: EdgeInsets.symmetric(
                   horizontal: Spacing.space16,
                   vertical: Spacing.space8,
                 ),

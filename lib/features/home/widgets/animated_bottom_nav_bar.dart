@@ -140,7 +140,6 @@ class _AnimatedBottomNavBarState extends ConsumerState<AnimatedBottomNavBar>
     _highlightController.animateTo(
       1.0,
       duration: const Duration(milliseconds: 600),
-      curve: Curves.linear, // Spring handles the easing
     );
   }
 

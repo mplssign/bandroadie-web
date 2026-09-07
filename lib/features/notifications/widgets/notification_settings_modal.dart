@@ -24,7 +24,6 @@ class NotificationSettingsModal extends StatelessWidget {
   static Future<void> show(BuildContext context) async {
     await showAppDialog<void>(
       context: context,
-      barrierDismissible: true,
       builder: (context) => const NotificationSettingsModal(),
     );
   }

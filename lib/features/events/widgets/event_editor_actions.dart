@@ -36,7 +36,7 @@ class EventEditorBottomActions extends StatelessWidget {
         if (summary != null && summary!.isNotEmpty) ...[
           Text(
             summary!,
-            style: TextStyle(fontSize: 14, color: kEdMutedForegroundFaint),
+            style: const TextStyle(fontSize: 14, color: kEdMutedForegroundFaint),
           ),
           const SizedBox(height: 8),
         ],

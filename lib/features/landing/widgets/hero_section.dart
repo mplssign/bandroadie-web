@@ -12,9 +12,9 @@ class HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveWidget(
-      mobile: const _HeroMobile(),
-      desktop: const _HeroDesktop(),
+    return const ResponsiveWidget(
+      mobile: _HeroMobile(),
+      desktop: _HeroDesktop(),
     );
   }
 }
@@ -203,7 +203,6 @@ class _HeroDesktop extends StatelessWidget {
           // Right: Phone mockup with animation
           const SizedBox(width: 80),
           Flexible(
-            flex: 1,
             child: Align(
               alignment: Alignment.bottomCenter,
               child: TweenAnimationBuilder<double>(
@@ -218,7 +217,7 @@ class _HeroDesktop extends StatelessWidget {
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(right: 40),
-                  child: Container(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
@@ -310,7 +309,6 @@ class _StoreBadge extends StatelessWidget {
         color: Colors.black,
         border: Border.all(
           color: Colors.white,
-          width: 1,
         ),
       ),
       child: Material(

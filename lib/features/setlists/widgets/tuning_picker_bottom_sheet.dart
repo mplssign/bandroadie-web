@@ -527,7 +527,7 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
         snap: true,
         snapSizes: const [0.6, 0.95],
         builder: (context, scrollController) {
-          return Container(
+          return DecoratedBox(
             decoration: BoxDecoration(
               color: context.colors.surface,
               borderRadius: const BorderRadius.vertical(
@@ -697,11 +697,11 @@ class _TuningPickerSheetState extends State<_TuningPickerSheet>
               width: 1.5,
             ),
           ),
-          child: Row(
+          child: const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(AppIcons.add, color: AppColors.primary, size: 22),
-              const SizedBox(width: Spacing.space8),
+              SizedBox(width: Spacing.space8),
               Text(
                 'Add Custom Tuning',
                 style: TextStyle(

@@ -278,7 +278,6 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     showAddToSetlistOverlay(
       context: context,
-      isCatalog: false,
       defaultArtist: bandName,
       bandId: bandId,
       enrichmentService: enrichmentService,
@@ -510,7 +509,6 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     showGeneralDialog(
       context: context,
-      barrierDismissible: false,
       barrierLabel: 'Original Song Entry',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),
@@ -523,7 +521,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               decoration: BoxDecoration(
                 color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(color: context.colors.border, width: 1),
+                border: Border.all(color: context.colors.border),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -581,7 +579,6 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     showGeneralDialog(
       context: context,
-      barrierDismissible: false,
       barrierLabel: 'Bulk Entry',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),
@@ -594,7 +591,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
               decoration: BoxDecoration(
                 color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(color: context.colors.border, width: 1),
+                border: Border.all(color: context.colors.border),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -842,9 +839,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     notifier.reorderLocal(oldIndex, newIndex);
 
-    Future.delayed(const Duration(milliseconds: 500), () {
-      notifier.persistReorder();
-    });
+    Future.delayed(const Duration(milliseconds: 500), notifier.persistReorder);
   }
 
   @override
@@ -868,7 +863,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
       });
       return AppScaffold(
         backgroundColor: context.colors.background,
-        body: SizedBox.shrink(),
+        body: const SizedBox.shrink(),
       );
     }
 
@@ -880,10 +875,10 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppProgressIndicator(
+              const AppProgressIndicator(
                 color: AppColors.primary,
               ),
-              SizedBox(height: Spacing.space16),
+              const SizedBox(height: Spacing.space16),
               Text(
                 'Creating setlist...',
                 style: TextStyle(
@@ -937,7 +932,6 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
                     });
                     _createSetlist();
                   },
-                  variant: AppButtonVariant.primary,
                 ),
               ],
             ),
@@ -1305,7 +1299,7 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
             ),
             child: _isSavingName
                 ? Padding(
-                    padding: EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(6),
                     child: AppProgressIndicator(
                       color: context.colors.textPrimary,
                     ),

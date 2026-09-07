@@ -129,7 +129,7 @@ class _SongCardState extends State<SongCard>
 
                 // Content area with shared padding
                 Padding(
-                  padding: EdgeInsets.only(
+                  padding: const EdgeInsets.only(
                     left: SongCardLayout.contentLeftPadding,
                     right: SongCardLayout.cardHorizontalPadding,
                     top: SongCardLayout.cardVerticalPadding,
@@ -209,7 +209,6 @@ class _SongCardState extends State<SongCard>
       child: LayoutBuilder(
         builder: (context, constraints) {
           return Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // BPM column (fixed width, left-aligned)
               SizedBox(
@@ -227,7 +226,6 @@ class _SongCardState extends State<SongCard>
               SizedBox(
                 width: SongCardLayout.durationColWidth,
                 child: Align(
-                  alignment: Alignment.center,
                   child: _buildDurationValue(),
                 ),
               ),
@@ -268,7 +266,6 @@ class _SongCardState extends State<SongCard>
     return AnimatedValueText(
       displayText: widget.song.formattedBpm,
       isPlaceholder: widget.song.isBpmPlaceholder,
-      onTap: null, // Read-only card
       backgroundColor: context.colors.surfaceElevated,
     );
   }
@@ -277,8 +274,6 @@ class _SongCardState extends State<SongCard>
   Widget _buildDurationValue() {
     return AnimatedValueText(
       displayText: widget.song.formattedDuration,
-      isPlaceholder: false,
-      onTap: null, // Read-only card
       backgroundColor: context.colors.surfaceElevated,
     );
   }

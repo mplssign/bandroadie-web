@@ -73,7 +73,7 @@ class CalendarAppBar extends ConsumerWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onMenuTap,
-              child: SizedBox(
+              child: const SizedBox(
                 width: 44,
                 height: 44,
                 child: Center(

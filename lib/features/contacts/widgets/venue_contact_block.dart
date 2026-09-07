@@ -99,7 +99,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
 
   List<TextInputFormatter> _getPhoneFormatters() {
     return isUSTimezone(widget.timezone)
-        ? [USPhoneInputFormatter(isUSTimezone: true)]
+        ? [const USPhoneInputFormatter(isUSTimezone: true)]
         : [];
   }
 
@@ -200,8 +200,7 @@ class _VenueContactBlockState extends State<VenueContactBlock> {
           EmailDomainShortcutBar(
             controller: _emailController,
             selectedDomain: _selectedDomain,
-            onDomainSelected: (domain) => _applyDomainShortcut(domain),
-            enabled: true,
+            onDomainSelected: _applyDomainShortcut,
           ),
           const SizedBox(height: 16),
 

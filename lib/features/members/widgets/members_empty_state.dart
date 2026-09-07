@@ -74,7 +74,6 @@ class MembersEmptyState extends StatelessWidget {
                 label: '+ Invite Member',
                 onPressed: onInviteTap,
                 icon: AppIcons.userAdd,
-                variant: AppButtonVariant.primary,
               ),
           ],
         ),

@@ -415,7 +415,6 @@ class _RoleManagementSheetState extends ConsumerState<RoleManagementSheet> {
                           variant: AppButtonVariant.destructive,
                           onPressed: _isRemoving ? null : _removeMember,
                           isLoading: _isRemoving,
-                          fullWidth: false,
                         ),
                       ),
                     ],

@@ -604,10 +604,10 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
   // -------------------------------------------------------
 
   Widget _buildColumnHeaders() {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: context.colors.border, width: 1),
+          bottom: BorderSide(color: context.colors.border),
         ),
       ),
       child: Row(
@@ -649,12 +649,12 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
     final row = _rows[index];
     final isEven = index.isEven;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color:
             isEven ? Colors.transparent : Colors.white.withValues(alpha: 0.02),
         border: Border(
-          bottom: BorderSide(color: context.colors.surfaceElevated, width: 1),
+          bottom: BorderSide(color: context.colors.surfaceElevated),
         ),
       ),
       child: Row(
@@ -762,7 +762,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: context.colors.border, width: 1),
+            bottom: BorderSide(color: context.colors.border),
           ),
         ),
         child: Row(
@@ -802,7 +802,7 @@ class _BulkEntryScreenState extends State<BulkEntryScreen> {
       decoration: BoxDecoration(
         color: context.colors.surfaceElevated,
         border: Border(
-          top: BorderSide(color: context.colors.border, width: 1),
+          top: BorderSide(color: context.colors.border),
         ),
       ),
       child: Row(

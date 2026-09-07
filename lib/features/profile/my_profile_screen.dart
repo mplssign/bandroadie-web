@@ -853,7 +853,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     if (_isLoading) {
       return Center(
         child: AppProgressIndicator(
-          type: ProgressIndicatorType.circular,
           color: context.colors.primaryDim,
         ),
       );
@@ -890,7 +889,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               AppButton(
                 label: 'Retry',
                 onPressed: _loadProfile,
-                variant: AppButtonVariant.primary,
               ),
             ],
           ),
@@ -1330,7 +1328,6 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                     fullWidth: true,
                     isLoading: _isSaving,
                     onPressed: _isDirty && !_isSaving ? _saveProfile : null,
-                    variant: AppButtonVariant.primary,
                   ),
                 ),
               ],
@@ -1423,7 +1420,6 @@ class _MonthPillState extends State<_MonthPill>
             ),
           ),
           child: Align(
-            alignment: Alignment.center,
             widthFactor: 1.0,
             child: Text(
               widget.label,
@@ -1647,7 +1643,7 @@ class _RolePillState extends State<_RolePill>
               children: [
                 // Show X icon for roles in delete mode
                 if (widget.showDeleteIcon) ...[
-                  Icon(AppIcons.close, size: 14, color: AppColors.error),
+                  const Icon(AppIcons.close, size: 14, color: AppColors.error),
                   const SizedBox(width: 4),
                 ],
                 Text(
@@ -1731,7 +1727,7 @@ class _BandPillState extends State<_BandPill>
           decoration: BoxDecoration(
             color: widget.isSelected ? rose600 : Colors.transparent,
             borderRadius: BorderRadius.circular(18.0),
-            border: Border.all(color: rose600, width: 1),
+            border: Border.all(color: rose600),
           ),
           child: Center(
             child: Text(

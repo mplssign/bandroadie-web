@@ -67,7 +67,7 @@ class NotificationListNotifier extends Notifier<NotificationListState> {
   Future<void> loadInitial() async {
     if (state.isLoading) return;
 
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true);
 
     try {
       final repository = ref.read(notificationRepositoryProvider);

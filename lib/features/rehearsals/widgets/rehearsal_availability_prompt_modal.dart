@@ -159,13 +159,11 @@ class _RehearsalAvailabilityPromptModalState
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: borderColor,
-                  width: 1,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: glowColor,
                     blurRadius: 10,
-                    spreadRadius: 0,
                   ),
                 ],
               ),
@@ -175,8 +173,8 @@ class _RehearsalAvailabilityPromptModalState
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0x14F97316),
+                    decoration: const BoxDecoration(
+                      color: Color(0x14F97316),
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
@@ -334,7 +332,6 @@ class _DetailCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       border: Border.all(
         color: AppColors.primary.withValues(alpha: 0.18),
-        width: 1,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,

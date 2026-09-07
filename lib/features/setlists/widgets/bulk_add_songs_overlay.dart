@@ -254,7 +254,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
           decoration: BoxDecoration(
             color: context.colors.background,
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
-            border: Border.all(color: context.colors.border, width: 1),
+            border: Border.all(color: context.colors.border),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -278,7 +278,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: context.colors.border, width: 1),
+          bottom: BorderSide(color: context.colors.border),
         ),
       ),
       child: Row(
@@ -333,7 +333,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
       ),
       decoration: BoxDecoration(
         color: context.colors.surfaceElevated,
-        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
+        border: Border(top: BorderSide(color: context.colors.border)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -435,7 +435,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
                 decoration: BoxDecoration(
                   color: AppColors.error.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-                  border: Border.all(color: AppColors.error, width: 1),
+                  border: Border.all(color: AppColors.error),
                 ),
                 child: Row(
                   children: [
@@ -481,7 +481,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
       decoration: BoxDecoration(
         color: context.colors.surfaceElevated,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: context.colors.border, width: 1),
+        border: Border.all(color: context.colors.border),
       ),
       child: AppTextField(
         controller: _inputController,
@@ -490,7 +490,6 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
         textCapitalization: TextCapitalization.words,
         keyboardType: TextInputType.multiline,
         textInputAction: TextInputAction.newline,
-        maxLines: null,
         minLines: 8,
         hintText: 'Example: The Beatles, Come Together, 82, Standard',
       ),
@@ -618,7 +617,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        border: Border.all(color: borderColor, width: 1),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,7 +748,7 @@ class _BulkAddSongsOverlayState extends ConsumerState<BulkAddSongsOverlay>
     return Container(
       padding: const EdgeInsets.all(Spacing.space16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
+        border: Border(top: BorderSide(color: context.colors.border)),
       ),
       child: Row(
         children: [

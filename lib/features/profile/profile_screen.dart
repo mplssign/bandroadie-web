@@ -139,7 +139,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: profileAsync.when(
         loading: () => const Center(
           child: AppProgressIndicator(
-            type: ProgressIndicatorType.circular,
             color: AppColors.primary,
           ),
         ),

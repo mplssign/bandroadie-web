@@ -26,14 +26,14 @@ class _SupportSectionState extends State<SupportSection> {
         horizontal: isMobile ? 24 : 80,
         vertical: isMobile ? 40 : 60,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF2a1020), // Richer rose
-            const Color(0xFF201028), // Richer purple
-            const Color(0xFF1a0a1a), // Dark blend
+            Color(0xFF2a1020), // Richer rose
+            Color(0xFF201028), // Richer purple
+            Color(0xFF1a0a1a), // Dark blend
           ],
         ),
       ),
@@ -95,7 +95,6 @@ class _SupportSectionState extends State<SupportSection> {
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.2),
                             blurRadius: 8,
-                            spreadRadius: 0,
                           ),
                         ],
                 ),

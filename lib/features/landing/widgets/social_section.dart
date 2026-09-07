@@ -82,7 +82,7 @@ class SocialSection extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: cardWidth,
-                    child: _CatalogCard(
+                    child: const _CatalogCard(
                       icon: AppIcons.library,
                       title: 'One Song Library',
                       description:
@@ -91,7 +91,7 @@ class SocialSection extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _CatalogCard(
+                    child: const _CatalogCard(
                       icon: AppIcons.setlists,
                       title: 'Build Setlists Faster',
                       description:
@@ -100,7 +100,7 @@ class SocialSection extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _CatalogCard(
+                    child: const _CatalogCard(
                       icon: AppIcons.success,
                       title: 'No Lost Songs',
                       description:
@@ -109,7 +109,7 @@ class SocialSection extends StatelessWidget {
                   ),
                   SizedBox(
                     width: cardWidth,
-                    child: _CatalogCard(
+                    child: const _CatalogCard(
                       icon: AppIcons.refresh,
                       title: 'Reuse Every Night',
                       description:
@@ -161,7 +161,6 @@ class _CatalogCardState extends State<_CatalogCard> {
             color: _isHovered
                 ? AppColors.primary.withValues(alpha: 0.4)
                 : context.colors.border,
-            width: 1,
           ),
           boxShadow: _isHovered
               ? [

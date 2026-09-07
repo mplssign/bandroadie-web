@@ -133,7 +133,7 @@ class _CalendarSubscriptionDialogState
               ),
               child: Row(
                 children: [
-                  Icon(AppIcons.calendar, color: AppColors.primary, size: 22),
+                  const Icon(AppIcons.calendar, color: AppColors.primary, size: 22),
                   const SizedBox(width: Spacing.space12),
                   Expanded(
                     child: Text(
@@ -174,7 +174,7 @@ class _CalendarSubscriptionDialogState
                 ),
                 child: subscriptionUrlAsync.when(
                   data: (url) => _buildBody(context, url),
-                  loading: () => _buildLoading(),
+                  loading: _buildLoading,
                   error: (e, _) => _buildError(e.toString()),
                 ),
               ),
@@ -198,8 +198,7 @@ class _CalendarSubscriptionDialogState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppProgressIndicator(
-            type: ProgressIndicatorType.circular,
+          const AppProgressIndicator(
             color: AppColors.primary,
           ),
           const SizedBox(height: Spacing.space16),
@@ -364,7 +363,7 @@ class _CalendarSubscriptionDialogState
                 width: 18,
                 height: 18,
                 child: AppProgressIndicator(
-                  type: ProgressIndicatorType.circular,
+                  
                 ),
               ),
             ),

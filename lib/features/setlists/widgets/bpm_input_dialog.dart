@@ -195,7 +195,6 @@ class _BpmInputDialogState extends State<_BpmInputDialog> {
             const SizedBox(height: Spacing.space12),
             AppButton(
               label: 'Save',
-              variant: AppButtonVariant.primary,
               fullWidth: true,
               backgroundColor: AppColors.primary,
               borderRadius: BorderRadius.circular(Spacing.buttonRadius),

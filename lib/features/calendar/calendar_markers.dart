@@ -135,7 +135,7 @@ Map<DayKey, CalendarDayMarkers> buildCalendarMarkers({
 
   // Helper to get or create markers for a day
   CalendarDayMarkers markersFor(DayKey key) {
-    return markers.putIfAbsent(key, () => CalendarDayMarkers());
+    return markers.putIfAbsent(key, CalendarDayMarkers.new);
   }
 
   // Add gig markers — confirmed = green, potential = orange

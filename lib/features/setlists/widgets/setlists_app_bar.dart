@@ -83,7 +83,7 @@ class SetlistsAppBar extends ConsumerWidget {
           children: [
             GestureDetector(
               onTap: onBack ?? () => Navigator.of(context).pop(),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
@@ -132,7 +132,7 @@ class SetlistsAppBar extends ConsumerWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onMenuTap,
-              child: SizedBox(
+              child: const SizedBox(
                 width: 44,
                 height: 44,
                 child: Center(

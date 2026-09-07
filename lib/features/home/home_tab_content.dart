@@ -387,7 +387,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const FinancialsScreen(),
-        fullscreenDialog: false,
       ),
     );
   }
@@ -711,7 +710,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   }
 
   Widget _buildLoadingState(String message) {
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: Center(
         child: Column(
@@ -756,7 +755,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
   }
 
   Widget _buildErrorState(String title, String details) {
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: Center(
         child: Padding(
@@ -801,7 +800,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                 label: 'Try Again',
                 icon: AppIcons.refresh,
                 onPressed: _retry,
-                variant: AppButtonVariant.primary,
               ),
             ],
           ),
@@ -832,7 +830,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     final upcomingGig = gigState.nextConfirmedGig;
 
     // Content WITHOUT Scaffold - just the body content
-    return Container(
+    return ColoredBox(
       color: context.colors.background,
       child: Stack(
         children: [
@@ -891,7 +889,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                                     rehearsalState
                                         .potentialRehearsals.isNotEmpty) ...[
                                   _AnimatedCardEntrance(
-                                    delay: const Duration(milliseconds: 0),
+                                    delay: const Duration(),
                                     child: _buildHorizontalPotentialEvents(
                                       gigState.potentialGigs,
                                       rehearsalState.potentialRehearsals,

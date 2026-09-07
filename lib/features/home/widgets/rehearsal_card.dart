@@ -362,7 +362,6 @@ class _RehearsalCardState extends State<RehearsalCard>
                   )!
                       .withValues(alpha: 0.18 + (pulseValue * 0.27)),
                   blurRadius: 10,
-                  spreadRadius: 0,
                 ),
               ],
               child: child!,
@@ -370,11 +369,10 @@ class _RehearsalCardState extends State<RehearsalCard>
           },
           child: Container(
             constraints:
-                BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
+                const BoxConstraints(minHeight: Spacing.potentialGigCardHeight),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Chip label with cream background - full width
@@ -390,24 +388,24 @@ class _RehearsalCardState extends State<RehearsalCard>
                       textAlign: TextAlign.center,
                       text: TextSpan(
                         children: [
-                          TextSpan(
+                          const TextSpan(
                             text: 'POTENTIAL REHEARSAL',
                             style: TextStyle(
                               fontFamily: 'Geist',
                               fontSize: AppFontSizes.subhead,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF4A1F0F),
+                              color: Color(0xFF4A1F0F),
                               letterSpacing: 0.5,
                             ),
                           ),
                           if (_isMultiDate)
-                            TextSpan(
+                            const TextSpan(
                               text: ': Multiple Dates',
                               style: TextStyle(
                                 fontFamily: 'Geist',
                                 fontSize: AppFontSizes.caption,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF4A1F0F),
+                                color: Color(0xFF4A1F0F),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -442,7 +440,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                   AnimatedDateLabel(
                     text: _formatTimeLine(widget.rehearsal),
                     direction: _navigationDirection,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Geist',
                       fontSize: AppFontSizes.title,
                       fontWeight: FontWeight.w600,
@@ -461,7 +459,7 @@ class _RehearsalCardState extends State<RehearsalCard>
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Geist',
                       fontSize: AppFontSizes.title,
                       fontWeight: FontWeight.w600,
@@ -601,7 +599,7 @@ class _RehearsalCardState extends State<RehearsalCard>
           ),
           color: const Color(0x140EA5E9), // sky-500 @ ~8% alpha background tint
           child: Container(
-            constraints: BoxConstraints(
+            constraints: const BoxConstraints(
               minHeight: Spacing.rehearsalCardHeight,
             ),
             padding: const EdgeInsets.fromLTRB(

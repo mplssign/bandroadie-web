@@ -48,7 +48,7 @@ class AppCard extends StatelessWidget {
     // Default to a stronger brand border so card outlines are easier to see.
     // Call sites can still override via explicit border: for special cases.
     final effectiveBorder =
-        border ?? Border.all(color: context.colors.borderStrong, width: 1);
+        border ?? Border.all(color: context.colors.borderStrong);
 
     // Keep cards opaque by default so overlapping drag states do not show
     // content through neighboring cards.

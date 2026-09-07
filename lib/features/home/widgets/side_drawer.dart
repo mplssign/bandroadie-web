@@ -851,7 +851,7 @@ class _DrawerOverlayState extends State<DrawerOverlay>
 
             return GestureDetector(
               onTap: widget.onClose,
-              child: Container(
+              child: ColoredBox(
                 color: Colors.black.withValues(
                   alpha: 0.6 * _scrimAnimation.value,
                 ),
@@ -1062,7 +1062,7 @@ class _DrawerOverlayContentState extends State<DrawerOverlayContent>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: widget.onClose,
-                child: Container(
+                child: ColoredBox(
                   color: Colors.black.withValues(
                     alpha: 0.5 * _scrimAnimation.value,
                   ),

@@ -268,7 +268,7 @@ class _SavingsSheetState extends State<_SavingsSheet>
         return Stack(
           alignment: Alignment.topCenter,
           children: [
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
                 color: context.colors.surface,
                 borderRadius: const BorderRadius.vertical(
@@ -444,7 +444,7 @@ class _DateFilterRow extends StatelessWidget {
       initialDateRange: (customStartDate != null && customEndDate != null)
           ? DateTimeRange(start: customStartDate!, end: customEndDate!)
           : DateTimeRange(
-              start: DateTime(now.year, now.month, 1),
+              start: DateTime(now.year, now.month),
               end: now,
             ),
       builder: (context, child) => Theme(
@@ -453,7 +453,6 @@ class _DateFilterRow extends StatelessWidget {
             primary: AppColors.primary,
             onPrimary: Colors.white,
             surface: Color(0xFF18181B),
-            onSurface: Colors.white,
           ),
         ),
         child: child!,
@@ -767,7 +766,7 @@ class _TableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderSide = BorderSide(color: context.colors.border, width: 1.0);
+    final borderSide = BorderSide(color: context.colors.border);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -802,7 +801,7 @@ class _TableHeader extends StatelessWidget {
             child: _HeaderCell('Savings',
                 textAlign: TextAlign.center, borderSide: borderSide),
           ),
-          SizedBox(
+          const SizedBox(
             width: _k1099Width,
             child: _HeaderCell('1099', textAlign: TextAlign.center),
           ),
@@ -882,7 +881,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Text(
                     '$amountPrefix${entry.formattedAmount}',
                     style: AppTextStyles.callout.copyWith(
@@ -904,7 +903,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Text(
                     dateStr,
                     style: AppTextStyles.callout
@@ -922,7 +921,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Text(
                     entry.category,
                     style: AppTextStyles.callout
@@ -940,7 +939,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Text(
                     fromValue,
                     style: AppTextStyles.callout
@@ -958,7 +957,7 @@ class _EntryTableRow extends StatelessWidget {
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Text(
                     paidToValue,
                     style: AppTextStyles.callout
@@ -970,11 +969,11 @@ class _EntryTableRow extends StatelessWidget {
               // Disbursed
               SizedBox(
                 width: _kDisbursedWidth,
-                child: Container(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Center(
                     child: (entry.disbursements != null &&
                             entry.disbursements!.isNotEmpty)
@@ -990,11 +989,11 @@ class _EntryTableRow extends StatelessWidget {
               // Savings
               SizedBox(
                 width: _kSavingsWidth,
-                child: Container(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                       border: Border(
                           right: BorderSide(
-                              color: context.colors.border, width: 1.0))),
+                              color: context.colors.border))),
                   child: Center(
                     child: entry.depositToSavings == true
                         ? entry.depositToSavingsCents != null

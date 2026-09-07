@@ -412,7 +412,6 @@ class _CurrencyInputFormatter extends TextInputFormatter {
     if (digitsOnly.isEmpty) {
       controller.cents = 0;
       return const TextEditingValue(
-        text: '',
         selection: TextSelection.collapsed(offset: 0),
       );
     }

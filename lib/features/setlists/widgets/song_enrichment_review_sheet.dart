@@ -213,7 +213,6 @@ class _SongEnrichmentReviewSheetState
               AppButton(
                 label: 'Keep Editing',
                 onPressed: () => Navigator.of(context).pop(false),
-                variant: AppButtonVariant.primary,
                 backgroundColor: AppColors.primary,
               ),
               const SizedBox(height: 8),
@@ -324,7 +323,6 @@ class _SongEnrichmentReviewSheetState
 
   Widget _buildSongInfo() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _buildArtwork(),
         const SizedBox(width: 12),

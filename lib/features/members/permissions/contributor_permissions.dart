@@ -33,7 +33,6 @@ class ContributorPermissions {
     canViewSetlists: false,
     canViewCalendar: false,
     canViewMembers: false,
-    canViewFinancials: false,
   );
 
   factory ContributorPermissions.fromJson(Map<String, dynamic> json) {

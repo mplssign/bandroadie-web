@@ -406,7 +406,6 @@ class _PauseScreenState extends State<PauseScreen> {
                                   BorderRadius.circular(Spacing.buttonRadius),
                               border: Border.all(
                                 color: context.colors.border,
-                                width: 1,
                               ),
                             ),
                             child: AppTextField(
@@ -442,7 +441,6 @@ class _PauseScreenState extends State<PauseScreen> {
                                 ),
                                 border: Border.all(
                                   color: context.colors.border,
-                                  width: 1,
                                 ),
                               ),
                               child: Icon(
@@ -472,7 +470,6 @@ class _PauseScreenState extends State<PauseScreen> {
                               BorderRadius.circular(Spacing.buttonRadius),
                           border: Border.all(
                             color: _accent.withValues(alpha: 0.4),
-                            width: 1,
                           ),
                         ),
                         child: Icon(AppIcons.add, color: _accent, size: 18),
@@ -542,7 +539,6 @@ class _PauseScreenState extends State<PauseScreen> {
                           color: _showDuration
                               ? _accent.withValues(alpha: 0.6)
                               : context.colors.border,
-                          width: 1,
                         ),
                       ),
                       alignment: Alignment.center,
@@ -824,7 +820,6 @@ class _SavedPauseCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(Spacing.buttonRadius),
         border: Border.all(
           color: accent.withValues(alpha: 0.3),
-          width: 1,
         ),
       ),
       child: Row(
@@ -871,7 +866,6 @@ class _SavedPauseCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: accent.withValues(alpha: 0.4),
-                  width: 1,
                 ),
               ),
               child: Icon(AppIcons.add, color: accent, size: 18),

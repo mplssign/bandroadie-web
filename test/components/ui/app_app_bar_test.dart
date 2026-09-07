@@ -7,10 +7,10 @@ void main() {
   group('AppAppBar', () {
     testWidgets('renders with String title', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: AppScaffold(
-            appBar: const AppAppBar(title: 'Test Title'),
-            body: const SizedBox(),
+            appBar: AppAppBar(title: 'Test Title'),
+            body: SizedBox(),
           ),
         ),
       );
@@ -20,10 +20,10 @@ void main() {
 
     testWidgets('renders with Widget title', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: AppScaffold(
-            appBar: const AppAppBar(title: Text('Widget Title')),
-            body: const SizedBox(),
+            appBar: AppAppBar(title: Text('Widget Title')),
+            body: SizedBox(),
           ),
         ),
       );
@@ -71,11 +71,11 @@ void main() {
     testWidgets('backgroundColor prop is ignored in Forui preview',
         (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: AppScaffold(
             appBar:
-                const AppAppBar(title: 'Test', backgroundColor: Colors.blue),
-            body: const SizedBox(),
+                AppAppBar(title: 'Test', backgroundColor: Colors.blue),
+            body: SizedBox(),
           ),
         ),
       );

@@ -143,7 +143,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       ref.read(setlistDetailProvider.notifier).loadSetlist(
             widget.setlistId,
             widget.setlistName,
-            forceReload: false,
           );
     });
 
@@ -271,7 +270,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
                 Navigator.of(context).pop(controller.text.trim());
               }
             },
-            variant: AppButtonVariant.primary,
             backgroundColor: AppColors.primary,
           ),
         ],
@@ -1147,7 +1145,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     showGeneralDialog(
       context: context,
-      barrierDismissible: false,
       barrierLabel: 'Original Song Entry',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),
@@ -1160,7 +1157,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               decoration: BoxDecoration(
                 color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(color: context.colors.border, width: 1),
+                border: Border.all(color: context.colors.border),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -1217,7 +1214,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     showGeneralDialog(
       context: context,
-      barrierDismissible: false,
       barrierLabel: 'Bulk Entry',
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 300),
@@ -1230,7 +1226,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
               decoration: BoxDecoration(
                 color: context.colors.background,
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
-                border: Border.all(color: context.colors.border, width: 1),
+                border: Border.all(color: context.colors.border),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(Spacing.cardRadius),
@@ -1286,8 +1282,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      isDismissible: true,
-      enableDrag: true,
       builder: (context) => _CatalogSortSheet(currentMode: currentMode),
     );
   }
@@ -1370,9 +1364,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
   /// Unselect all songs
   void _unselectAllSongs() {
-    setState(() {
-      _selectedSongIds.clear();
-    });
+    setState(_selectedSongIds.clear);
   }
 
   /// Check if all songs are currently selected
@@ -1946,7 +1938,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      isDismissible: true,
       enableDrag: !kIsWeb, // Disable drag on web (no touch gestures)
       isScrollControlled: true, // Allow custom height
       builder: (context) => const _ShareFormatSheet(),
@@ -2936,7 +2927,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
             child: AppButton(
               label: buttonLabel,
               onPressed: hasSelection ? _handleAddToSetlist : null,
-              variant: AppButtonVariant.primary,
               backgroundColor: hasSelection
                   ? AppColors.primary
                   : AppColors.primary.withValues(alpha: 0.4),
@@ -3062,7 +3052,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
                 width: SongCardLayout.contentLeftPadding,
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.only(
+                    padding: const EdgeInsets.only(
                       left: SongCardLayout.dragHandleLeft,
                     ),
                     child: SelectionCircle(
@@ -3078,7 +3068,7 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
               // ================================================
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(
+                  padding: const EdgeInsets.only(
                     right: SongCardLayout.cardHorizontalPadding,
                     top: SongCardLayout.cardVerticalPadding,
                     bottom: SongCardLayout.cardVerticalPadding,
@@ -3092,7 +3082,6 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             Text(
                               widget.song.title,
@@ -3151,7 +3140,6 @@ class _SelectableSongCardState extends State<_SelectableSongCard>
         // elements evenly from left edge to right edge
         // ================================================
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ================================================
           // 1. BPM - anchors to left (aligns with title)
@@ -3310,7 +3298,7 @@ class _SortOption extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              Icon(AppIcons.check, color: AppColors.primary, size: 20),
+              const Icon(AppIcons.check, color: AppColors.primary, size: 20),
           ],
         ),
       ),

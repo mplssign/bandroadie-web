@@ -26,7 +26,6 @@ Future<bool> showConfirmActionDialog({
 }) async {
   final result = await showDialog<bool>(
     context: context,
-    barrierDismissible: true,
     builder: (ctx) => ConfirmActionDialog(
       title: title,
       message: message,

@@ -653,9 +653,6 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen>
                     ),
       bottomNavigationBar: SetlistsBottomNavBar(
         onDashboardTap: _navigateToDashboard,
-        // Use default navigation for Calendar and Members
-        onCalendarTap: null,
-        onMembersTap: null,
       ),
     );
 

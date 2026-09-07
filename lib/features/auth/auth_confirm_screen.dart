@@ -262,7 +262,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
         user = response.user;
       } else {
         final response = await Supabase.instance.client.auth.verifyOTP(
-          tokenHash: tokenHash!,
+          tokenHash: tokenHash,
           type: OtpType.email,
         );
         session = response.session;
@@ -617,15 +617,14 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       backgroundColor: context.colors.background,
       body: Center(
         child: _loading
-            ? Column(
+            ? const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const AppProgressIndicator(
-                    type: ProgressIndicatorType.circular,
+                  AppProgressIndicator(
                     color: AppColors.primary,
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
+                  SizedBox(height: 24),
+                  Text(
                     'Verifying your login...',
                     style: TextStyle(
                         color: Colors.white70, fontSize: AppFontSizes.body),

@@ -21,12 +21,12 @@ class FooterSection extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: context.colors.surface,
-        border: Border(top: BorderSide(color: context.colors.border, width: 1)),
+        border: Border(top: BorderSide(color: context.colors.border)),
       ),
       child: Column(
         children: [
           // Social media links
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _SocialIconButton(
@@ -34,13 +34,13 @@ class FooterSection extends StatelessWidget {
                 label: 'Instagram',
                 url: 'https://www.instagram.com/bandroadie26/',
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               _SocialIconButton(
                 icon: Icons.facebook,
                 label: 'Facebook',
                 url: 'https://www.facebook.com/BandRoadieApp',
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               _SocialIconButton(
                 icon: AppIcons.email,
                 label: 'Email',
@@ -74,7 +74,7 @@ class FooterSection extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Third-party data attribution (required by GetSongBPM's API terms)
-          _AttributionLink(
+          const _AttributionLink(
             label: 'Song tempo & key data via GetSongBPM.com',
             url: 'https://getsongbpm.com',
           ),
@@ -164,7 +164,7 @@ class _SocialIconButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: context.colors.surface,
             shape: BoxShape.circle,
-            border: Border.all(color: context.colors.border, width: 1),
+            border: Border.all(color: context.colors.border),
           ),
           child: Icon(icon, color: context.colors.textPrimary, size: 24),
         ),

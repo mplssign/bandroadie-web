@@ -134,7 +134,6 @@ class _EmptySectionCardState extends State<EmptySectionCard>
                 label: widget.buttonLabel,
                 onPressed: widget.onButtonPressed,
                 icon: AppIcons.add,
-                variant: AppButtonVariant.primary,
               ),
             ),
           ],

@@ -39,7 +39,7 @@ List<pw.Widget> buildFinancialsReportContent({
           padding: const pw.EdgeInsets.symmetric(vertical: 60),
           child: pw.Text(
             'No financial activity during this reporting period.',
-            style: pw.TextStyle(fontSize: 13, color: _textBlack),
+            style: const pw.TextStyle(fontSize: 13, color: _textBlack),
           ),
         ),
       ),
@@ -92,7 +92,7 @@ List<pw.Widget> _buildHeader(String bandName, String dateRangeLabel) {
     pw.Center(
       child: pw.Text(
         'Income and Expense Report',
-        style: pw.TextStyle(
+        style: const pw.TextStyle(
           fontSize: 16,
           fontWeight: pw.FontWeight.bold,
           color: _textBlack,
@@ -106,7 +106,7 @@ List<pw.Widget> _buildHeader(String bandName, String dateRangeLabel) {
       children: [
         pw.Text(
           bandName,
-          style: pw.TextStyle(
+          style: const pw.TextStyle(
             fontSize: 24,
             fontWeight: pw.FontWeight.bold,
             color: _textBlack,
@@ -114,7 +114,7 @@ List<pw.Widget> _buildHeader(String bandName, String dateRangeLabel) {
         ),
         pw.Text(
           dateRangeLabel,
-          style: pw.TextStyle(fontSize: 11, color: _textBlack),
+          style: const pw.TextStyle(fontSize: 11, color: _textBlack),
         ),
       ],
     ),
@@ -146,7 +146,7 @@ List<pw.Widget> _buildItemizedSection({
         padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: pw.Text(
           emptyText,
-          style: pw.TextStyle(fontSize: 11, color: _textBlack),
+          style: const pw.TextStyle(fontSize: 11, color: _textBlack),
         ),
       ),
       pw.SizedBox(height: 8),
@@ -182,7 +182,7 @@ const double _colWidthPaidTo = 80;
 const double _colWidthAmount = 60;
 
 pw.Widget _buildItemizedColumnHeaders() {
-  final labelStyle = pw.TextStyle(
+  final labelStyle = const pw.TextStyle(
     fontSize: 9,
     fontWeight: pw.FontWeight.bold,
     color: _textBlack,
@@ -241,10 +241,10 @@ pw.Widget _buildItemRow(
   NumberFormat moneyFmt,
   DateFormat dateFmt,
 ) {
-  final singleLineStyle = pw.TextStyle(fontSize: 10, color: _textBlack);
+  final singleLineStyle = const pw.TextStyle(fontSize: 10, color: _textBlack);
 
   return pw.Container(
-    decoration: pw.BoxDecoration(
+    decoration: const pw.BoxDecoration(
       border:
           pw.Border(bottom: pw.BorderSide(color: _dividerColor, width: 0.5)),
     ),
@@ -292,7 +292,7 @@ pw.Widget _buildItemRow(
         pw.Expanded(
           child: pw.Text(
             entry.description ?? '',
-            style: pw.TextStyle(fontSize: 9, color: _textBlack),
+            style: const pw.TextStyle(fontSize: 9, color: _textBlack),
           ),
         ),
         pw.SizedBox(
@@ -360,7 +360,7 @@ pw.Widget _buildDateLineItem(
   NumberFormat moneyFmt,
 ) {
   return pw.Container(
-    decoration: pw.BoxDecoration(
+    decoration: const pw.BoxDecoration(
       border:
           pw.Border(bottom: pw.BorderSide(color: _dividerColor, width: 0.5)),
     ),
@@ -372,18 +372,18 @@ pw.Widget _buildDateLineItem(
           width: 80,
           child: pw.Text(
             dateLabel,
-            style: pw.TextStyle(fontSize: 10, color: _textBlack),
+            style: const pw.TextStyle(fontSize: 10, color: _textBlack),
           ),
         ),
         pw.Expanded(
           child: pw.Text(
             description,
-            style: pw.TextStyle(fontSize: 11, color: _textBlack),
+            style: const pw.TextStyle(fontSize: 11, color: _textBlack),
           ),
         ),
         pw.Text(
           moneyFmt.format(amountCents / 100),
-          style: pw.TextStyle(fontSize: 11, color: _textBlack),
+          style: const pw.TextStyle(fontSize: 11, color: _textBlack),
         ),
       ],
     ),
@@ -455,7 +455,7 @@ List<pw.Widget> _buildBandDisbursementsSection(
           const pw.EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 2),
       child: pw.Text(
         nameFor(userId),
-        style: pw.TextStyle(
+        style: const pw.TextStyle(
           fontSize: 11,
           fontWeight: pw.FontWeight.bold,
           color: _textBlack,
@@ -485,7 +485,7 @@ pw.Widget _buildDisbursementLineItem(
   NumberFormat moneyFmt,
 ) {
   return pw.Container(
-    decoration: pw.BoxDecoration(
+    decoration: const pw.BoxDecoration(
       border:
           pw.Border(bottom: pw.BorderSide(color: _dividerColor, width: 0.5)),
     ),
@@ -497,12 +497,12 @@ pw.Widget _buildDisbursementLineItem(
           padding: const pw.EdgeInsets.only(left: 8),
           child: pw.Text(
             item.description,
-            style: pw.TextStyle(fontSize: 10, color: _textBlack),
+            style: const pw.TextStyle(fontSize: 10, color: _textBlack),
           ),
         ),
         pw.Text(
           moneyFmt.format(item.amountCents / 100),
-          style: pw.TextStyle(fontSize: 11, color: _textBlack),
+          style: const pw.TextStyle(fontSize: 11, color: _textBlack),
         ),
       ],
     ),

@@ -371,7 +371,7 @@ class _LyricsEditorSheetState extends State<_LyricsEditorSheet>
         height: MediaQuery.of(context).size.height * 0.92,
         decoration: BoxDecoration(
           color: context.colors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [

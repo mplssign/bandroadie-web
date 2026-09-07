@@ -63,7 +63,6 @@ class VenuesEmptyState extends StatelessWidget {
                 label: 'Add Venue',
                 onPressed: onAddTap,
                 icon: AppIcons.add,
-                variant: AppButtonVariant.primary,
               ),
           ],
         ),

@@ -45,9 +45,7 @@ class SetlistPrintWeb {
       printWindow.document.close();
 
       // Trigger print after a short delay to ensure content loads
-      Future.delayed(const Duration(milliseconds: 500), () {
-        printWindow.print();
-      });
+      Future.delayed(const Duration(milliseconds: 500), printWindow.print);
     }
   }
 }

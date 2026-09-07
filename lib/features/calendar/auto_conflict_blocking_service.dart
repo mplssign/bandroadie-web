@@ -95,7 +95,6 @@ class AutoConflictBlockingService {
             bandId: bandId,
             userId: userId,
             startDate: blockOutDate,
-            untilDate: null, // Single day
             reason: reason,
           );
           debugPrint(
@@ -211,7 +210,6 @@ class AutoConflictBlockingService {
               bandId: bandId,
               userId: userId,
               startDate: blockOutDate,
-              untilDate: null, // Single day
               reason: reason,
               sourceGigId: sourceGigId,
               sourceRehearsalId: sourceRehearsalId,

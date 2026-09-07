@@ -13,7 +13,7 @@ void main() {
             child: child!,
           ),
           home: const Scaffold(
-            body: AppProgressIndicator(type: ProgressIndicatorType.circular),
+            body: AppProgressIndicator(),
           ),
         ),
       );
@@ -45,7 +45,7 @@ void main() {
             child: child!,
           ),
           home: const Scaffold(
-            body: AppProgressIndicator(type: ProgressIndicatorType.circular),
+            body: AppProgressIndicator(),
           ),
         ),
       );
@@ -63,7 +63,6 @@ void main() {
           ),
           home: const Scaffold(
             body: AppProgressIndicator(
-              type: ProgressIndicatorType.circular,
               value: 0.5,
             ),
           ),
@@ -83,7 +82,6 @@ void main() {
           ),
           home: const Scaffold(
             body: AppProgressIndicator(
-              type: ProgressIndicatorType.circular,
               color: Colors.green,
             ),
           ),
