@@ -147,18 +147,39 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
       debugPrint('[Invite] Failed to check active membership: $e');
     }
 
-    // Check for existing pending invite in the database (not just local state)
+    // Check for an existing invite in the database (not just local state).
+    // A previously *failed* ('error') invite is retried via its existing
+    // row below instead of silently inserting a duplicate row and firing a
+    // second email -- see bug/failed-invite-retry-creates-duplicate-sends.
+    //
+    // Any 'pending'/'sent' row unconditionally blocks a new send, checked
+    // across the WHOLE result set (not just the first row) -- the query is
+    // unordered, and the pre-fix bug already left some emails with a mix of
+    // an active row plus stale 'error' duplicates from earlier retries.
+    // Only when no active invite exists do we look for an 'error' row to
+    // reuse, most-recent first.
+    String? retryInviteId;
     try {
       final existingInvites = await supabase
           .from('band_invitations')
-          .select('id')
+          .select('id, status')
           .eq('band_id', bandId)
           .eq('email', email)
-          .inFilter('status', ['pending', 'sent']);
+          .inFilter('status', ['pending', 'sent', 'error'])
+          .order('created_at', ascending: false);
 
-      if (existingInvites.isNotEmpty) {
+      final hasActiveInvite = existingInvites.any(
+        (invite) => invite['status'] == 'pending' || invite['status'] == 'sent',
+      );
+      if (hasActiveInvite) {
         _showErrorSnackBar('User already invited');
         return;
+      }
+
+      final erroredInvites =
+          existingInvites.where((invite) => invite['status'] == 'error');
+      if (erroredInvites.isNotEmpty) {
+        retryInviteId = erroredInvites.first['id'] as String;
       }
     } catch (e) {
       debugPrint('[Invite] Failed to check existing invites: $e');
@@ -169,21 +190,41 @@ class _InviteMembersScreenState extends ConsumerState<InviteMembersScreen> {
     try {
       final userId = supabase.auth.currentUser?.id;
 
-      // Insert invitation and get the returned row
-      final insertResponse = await supabase
-          .from('band_invitations')
-          .insert({
-            'band_id': bandId,
-            'email': email,
-            'invited_by': userId,
-            'status': 'pending',
-            'intended_role': _selectedRole,
-          })
-          .select('id, token')
-          .single();
+      final String inviteId;
+      if (retryInviteId != null) {
+        // Retry a previously failed invite using its existing row rather
+        // than creating a duplicate invitation. Also refresh expires_at
+        // (DB default is now() + 30 days on insert) so a retry of an
+        // old failed invite doesn't immediately show as "Expired" in the
+        // pending invites list.
+        await supabase
+            .from('band_invitations')
+            .update({
+              'status': 'pending',
+              'intended_role': _selectedRole,
+              'expires_at':
+                  DateTime.now().toUtc().add(const Duration(days: 30)).toIso8601String(),
+            })
+            .eq('id', retryInviteId);
+        inviteId = retryInviteId;
+        debugPrint('[Invite] retrying invitation id=$inviteId email=$email');
+      } else {
+        // Insert invitation and get the returned row
+        final insertResponse = await supabase
+            .from('band_invitations')
+            .insert({
+              'band_id': bandId,
+              'email': email,
+              'invited_by': userId,
+              'status': 'pending',
+              'intended_role': _selectedRole,
+            })
+            .select('id, token')
+            .single();
 
-      final inviteId = insertResponse['id'] as String;
-      debugPrint('[Invite] inserted invitation id=$inviteId email=$email');
+        inviteId = insertResponse['id'] as String;
+        debugPrint('[Invite] inserted invitation id=$inviteId email=$email');
+      }
 
       _inviteEmailController.clear();
       if (mounted) setState(() => _selectedRole = 'member');

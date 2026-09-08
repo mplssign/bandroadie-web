@@ -18,6 +18,24 @@ interface InvitePayload {
     bandInvitationId: string;
 }
 
+// Reject anonymous (demo) sessions. verify_jwt=true only checks that the
+// JWT is validly signed -- it does not distinguish a real user from an
+// anonymous demo session, since Supabase issues a signed JWT for anon
+// sign-ins too. This function must never be reachable from demo mode.
+function isAnonymousSession(req: Request): boolean {
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    try {
+        const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(base64));
+        return payload?.is_anonymous === true;
+    } catch {
+        return false;
+    }
+}
+
 Deno.serve(async (req) => {
     const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
@@ -35,6 +53,13 @@ Deno.serve(async (req) => {
             status: 405,
             headers: { "Content-Type": "application/json", ...corsHeaders },
         });
+    }
+
+    if (isAnonymousSession(req)) {
+        return new Response(
+            JSON.stringify({ error: "Not available in demo mode" }),
+            { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
     }
 
     try {
