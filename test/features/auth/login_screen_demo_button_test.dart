@@ -1,4 +1,4 @@
-// Tests for the "Check Out the Demo Band" button introduced in the
+// Tests for the "Check out the demo band" button introduced in the
 // interactive-demo-band-experience feature, and retirement of the 7-tap easter egg.
 //
 // Assertion scope: LoginScreen._checkExistingSession() calls
@@ -33,7 +33,7 @@ void main() {
   });
 
   testWidgets(
-    'Test A: "Check Out the Demo Band" button is visible on LoginScreen',
+    'Test A: "Check out the demo band" button is visible on LoginScreen',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -50,7 +50,7 @@ void main() {
       // widget tree and is found by text search.
       await tester.pump();
 
-      expect(find.text('Check Out the Demo Band'), findsOneWidget);
+      expect(find.text('Check out the demo band'), findsOneWidget);
     },
   );
 
