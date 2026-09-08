@@ -33,7 +33,8 @@ void main() {
   });
 
   testWidgets(
-    'Test A: "Check out the demo band" button is visible on LoginScreen',
+    'Test A: "Check out the demo band" button is hidden on LoginScreen '
+    '(temporarily disabled — see _kDemoBandVisible in login_screen.dart)',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -50,7 +51,7 @@ void main() {
       // widget tree and is found by text search.
       await tester.pump();
 
-      expect(find.text('Check out the demo band'), findsOneWidget);
+      expect(find.text('Check out the demo band'), findsNothing);
     },
   );
 

@@ -38,12 +38,19 @@ import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
 import '../../shared/utils/email_domain_helper.dart';
 import 'auth_gate.dart';
+
 import 'demo_session_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bandroadie/components/ui/app_scaffold.dart';
 import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
+
+// Temporarily disabled: anonymous demo sessions leave orphaned auth.users/
+// public.users rows with no cleanup job, and anonymous sign-in has no
+// visible bot/rate-limit protection (see incident review, 2026-09-08).
+// Flip back to true once the account-cleanup job ships.
+const bool _kDemoBandVisible = false;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -492,8 +499,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildLogo(logoWidth: logoWidth),
-              const SizedBox(height: 12),
-              _buildDemoButton(),
+              if (_kDemoBandVisible) ...[
+                const SizedBox(height: 12),
+                _buildDemoButton(),
+              ],
               const SizedBox(height: 12),
             ],
           ),
