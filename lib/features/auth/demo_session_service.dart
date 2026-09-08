@@ -51,7 +51,12 @@ class DemoSessionService {
   static Future<void> exit(WidgetRef ref) async {
     final client = Supabase.instance.client;
     try {
-      await client.rpc('exit_demo_session');
+      final response = await client.functions.invoke('exit-demo-session');
+      if (response.status < 200 || response.status >= 300) {
+        throw DemoSessionException(
+          'Demo exit failed: HTTP ${response.status}',
+        );
+      }
       await client.auth.signOut();
     } catch (e) {
       throw DemoSessionException('Demo exit failed: $e');
