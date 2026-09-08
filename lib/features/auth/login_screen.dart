@@ -50,7 +50,7 @@ import 'package:bandroadie/components/ui/app_text_field.dart';
 // public.users rows with no cleanup job, and anonymous sign-in has no
 // visible bot/rate-limit protection (see incident review, 2026-09-08).
 // Flip back to true once the account-cleanup job ships.
-const bool _kDemoBandVisible = false;
+const bool _kDemoBandVisible = !kIsWeb;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
