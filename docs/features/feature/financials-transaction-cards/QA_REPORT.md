@@ -7,12 +7,134 @@
 Financials screen — replace transaction table with cards, add summary header
 
 ## Cycle Number
-10
+11
 
 ## Final Verdict
 **APPROVED**
 
-## Validation Summary
+## Validation Summary (Cycle 11)
+No Architect plan section this cycle — direct Tony request, single-file,
+no state/schema change, per Manager's framing. Confirmed branch
+(`feature/financials-transaction-cards`), confirmed `ENGINEER_REPORT.md`
+(Cycle 11, Ready For QA: Yes) matches the slug, and independently reviewed
+`git diff HEAD` myself rather than relying on the report's claims alone.
+
+Only one source file has a diff:
+`lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart`
+(4 insertions, 4 deletions). `git status --porcelain` shows no other
+tracked file modified besides `ENGINEER_REPORT.md` itself (documentation).
+Two untracked `PR_BODY.md` files exist (one for this slug, one for an
+unrelated slug) — pre-existing artifacts, not part of this diff, no
+concern.
+
+The diff is exactly as described:
+1. `_DetailRow`'s label `SizedBox` width changed `68` → `148`.
+2. Label `Text` gained `maxLines: 1`, `softWrap: false`,
+   `overflow: TextOverflow.visible`.
+3. Value `Text`'s Cycle-10 `maxLines: 1`, `overflow: TextOverflow.ellipsis`,
+   `softWrap: false` were removed (values may wrap again).
+
+No other part of `_DetailRow`, and no other class in the file
+(`_TypeBadge`, `_Badge1099`, `_ReimbursedBadge`, footer, etc.), was
+touched — confirmed by reading the full widget body post-change, not just
+the diff hunks.
+
+## Architect Scope Review
+N/A — no Architect plan this cycle (single-file, direct Tony request, no
+state/schema change). Scope is defined by Tony's request as summarized in
+`ENGINEER_REPORT.md`'s Goal section; the diff matches that summary exactly.
+
+## Completeness Check
+Both requested property changes present and correctly applied. No partial
+implementation.
+
+## Behavior Verification
+Code-path analysis only (no runtime/device exercise, per QA constraints).
+The label column width (148px) and `maxLines: 1`/`softWrap: false`/
+`overflow: TextOverflow.visible` combination on the label `Text` will
+prevent label wrapping for the "Deposit to Savings" case as intended. The
+value `Text`'s reverted properties restore default (unconstrained) wrap
+behavior, matching Tony's clarification that value wrapping was never the
+problem. Whether 148px is visually sufficient for "Deposit to Savings" at
+runtime on-device is not something this review can confirm — that is a
+Tony-run visual check (see Manual Verification Punch List).
+
+## Regression Check
+**LOW.** Change is scoped to two `Text`-widget property sets inside a
+single private widget (`_DetailRow`) with no state, no schema, no
+Supabase/RPC surface, and no cross-platform-specific code involved. No
+other file in the diff. No auth/session, init-order, controller/disposal,
+or rebuild-frequency concerns apply here.
+
+## Database Safety
+N/A — no migration or schema change in this cycle.
+
+## Analyzer Results
+Independently re-ran:
+```
+flutter analyze lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart
+Analyzing financial_entry_details_bottom_sheet.dart...
+No issues found! (ran in 1.9s)
+```
+Matches Engineer's claim. 0 issues at any severity.
+
+## Test Results
+Independently re-ran `flutter test test/features/financials/widgets/`
+(full directory, all 5 files): **49 passed, 0 failed.**
+
+Engineer's report claims 59 passed for this same directory; my
+independent run (and Manager's independent run) both show 49 passed, 0
+failed. Noting this as a non-blocking Suggestion below — a reporting-count
+discrepancy, not a correctness issue, since the actual pass/fail outcome
+was clean both times.
+
+## Diff Safety Review
+Grepped the diff for secrets/API keys/`TODO`/`FIXME`/`debugPrint(` —
+no matches. No leftover test scaffolding, no accidental deletions, no
+unrelated formatting churn.
+
+## Change Budget Review
+No formal Change Budget (no Architect plan this cycle). Diff is 4
+insertions / 4 deletions in one existing widget, zero new
+symbols/files/classes/dependencies. Well within a reasonable size for the
+stated two-property-set change.
+
+## Code Efficiency Review
+No new helpers, extensions, providers, widgets, or abstractions
+introduced. Pure property-value edits on two pre-existing `Text` widgets.
+No concerns.
+
+## Manual Verification Punch List
+1. Open the Financials tab, tap into any transaction with a "Deposit to
+   Savings" toggle enabled (or any entry whose detail label is "Deposit to
+   Savings") to open the entry details bottom sheet. **Expected:** the
+   "Deposit to Savings" label renders on a single line, not wrapped onto
+   two lines.
+2. In the same bottom sheet, find a detail row whose value is long enough
+   to have previously been truncated with an ellipsis (e.g. a long
+   description or venue name value). **Expected:** the value now wraps
+   onto multiple lines instead of being cut off with "…".
+3. Confirm no detail row's label or value visually overlaps or crowds the
+   other column at a standard mobile width.
+
+## Issues Found
+
+### Critical
+None.
+
+### Warnings
+None.
+
+### Suggestions
+1. **[code-quality]** `ENGINEER_REPORT.md` claims "59 passed" for the full
+   `test/features/financials/widgets/` directory; both Manager's and my
+   own independent runs show 49 passed, 0 failed. Same discrepancy
+   reproduced. Non-blocking — actual test outcome (all passing) is
+   consistent across both runs; likely a stale/miscounted number in the
+   report rather than a real correctness gap.
+
+## Cycle 10 History (preserved for reference; superseded by Cycle 11 above)
+
 Cycle 10 closes my own Cycle 9 **REQUIRES CHANGES** verdict, which found
 `_onDisbursementChanged` in `add_financial_entry_bottom_sheet.dart` had been
 modified out-of-scope (early-return guard moved inside `setState`,
