@@ -13,9 +13,11 @@ Financials screen — replace transaction table with cards, add summary header
 - **Cycle 3** (merged pending — commit `8dac09a`): `_SummaryHeader` content center-aligned.
 - **Cycle 4** (uncommitted on working tree, QA-APPROVED): Replaced the four date-filter chips with a single year-select `PopupMenuButton<int>` chip (`_YearSelector` / `_YearSelectorChip`), merged the `_dateRangeLabel` and transaction-count into one line separated by `" • "`, and defaulted the displayed year to the actual current calendar year. **The `selectedYear: int` state shape and dynamic year-list derivation introduced here are superseded by Cycle 6.** See **Cycle 4 Scope Expansion** in the middle of this document, and the pointer notes at the top of that section.
 - **Cycle 5** (planned, never implemented — superseded before Engineer started): Move the year picker inline into `_SummaryHeader`'s summary line via `AppDropdown<int>` (Forui `FSelect.rich` wrapper), delete the standalone `_YearSelector` / `_YearSelectorChip` row, and restructure `_FinancialsScreenState.build` so the summary header + list header render above the content area in every non-error state (loading, empty, and non-empty) — fixing the usability gap where the year picker vanished whenever `filteredEntries` was empty. **The inline-placement decision, empty-state build restructuring, and `AppDropdown`-via-`IntrinsicWidth` mechanic are preserved and re-adopted by Cycle 6 verbatim; the `AppDropdown<int>` typing and dynamic year-list items are superseded.** See **Cycle 5 Scope Expansion**, and the pointer notes at the top of that section.
-- **Cycle 6** (this revision, planned but not yet implemented): Replace Cycle 4's `selectedYear: int` scalar with a `FinancialDateFilter { allTime, thisYear, thisMonth }` enum (default `thisYear`, no `custom` case). The inline dropdown in `_SummaryHeader` becomes `AppDropdown<FinancialDateFilter>` with `format` mapping `allTime → 'All time'`, `thisYear → 'This year'`, `thisMonth → 'This month'` — reversing Cycle 4's "display the numeric year" decision for the `thisYear` case. `_availableYears` helper is deleted. `FinancialsPdfPreviewScreen` swaps its constructor from `selectedYear: int` back to `dateFilter: FinancialDateFilter`. Cycle 5's inline placement and empty-state build restructuring are preserved verbatim. See **Cycle 6 Scope Expansion** at the bottom of this document.
+- **Cycle 6** (this revision, planned but not yet implemented): Replace Cycle 4's `selectedYear: int` scalar with a `FinancialDateFilter { allTime, thisYear, thisMonth }` enum (default `thisYear`, no `custom` case). The inline dropdown in `_SummaryHeader` becomes `AppDropdown<FinancialDateFilter>` with `format` mapping `allTime → 'All time'`, `thisYear → 'This year'`, `thisMonth → 'This month'` — reversing Cycle 4's "display the numeric year" decision for the `thisYear` case. `_availableYears` helper is deleted. `FinancialsPdfPreviewScreen` swaps its constructor from `selectedYear: int` back to `dateFilter: FinancialDateFilter`. Cycle 5's inline placement and empty-state build restructuring are preserved verbatim. See **Cycle 6 Scope Expansion** in the middle of this document.
+- **Cycle 7** (committed on branch — commit `22b38be`, QA-APPROVED, no formal plan section): Small three-item revision on top of Cycle 6 — (1) `AppDropdown<T>` gains an optional nullable `size: FTextFieldSizeVariant?` passthrough (defaults to `.md` when unset, zero call-site impact), (2) the financials date-filter dropdown passes `size: FTextFieldSizeVariant.sm`, and (3) the details sheet's `_DetailRow` changes from stacked label-above-value to side-by-side `Row(SizedBox(width: 68, label), SizedBox(width: Spacing.space8), Expanded(Column(value)))` — an exact structural match to `view_gig_drawer.dart`'s `_DetailRow`. Documented in `docs/features/feature/financials-transaction-cards/QA_REPORT.md` only; no `ARCHITECT_PLAN.md` section exists. **The `_DetailRow` shape and `size: FTextFieldSizeVariant.sm` decisions are the authoritative baseline for Cycle 8's edits to the details sheet and remain untouched.**
+- **Cycle 8** (this revision, planned but not yet implemented): (A) Details drawer row-order swap to `Date / Description / Paid to / Purchased by / Needed for gig / Notes` (primary rows) with existing conditional rows (Reimbursed, Reimbursement detail, Deposit to Savings) appended below; footer restructured from a lone `Edit` primary to `Done` primary + `Edit` secondary matching `view_gig_drawer.dart`'s `SheetFooter(primaryLabel: 'Done', cancelLabel: 'Edit')` pattern. (B) Add/Edit form field-order swap to `Type / Amount / Date / Description / Paid to / Purchased by / Needed for gig / Notes`; **the current mode-conditional label swap on the two "payer"-adjacent fields is deleted — both fields render with fixed labels regardless of income/expense**: `Paid to` = the `paid_to_user_id` / `paid_to_name` member dropdown (existing `_paidToUserId` state), `Purchased by` = the `payer_name` / `payor_name` free-text field (existing `_payerController` state). New `Needed for gig` picker is a `Consumer`-wrapped `AppDropdown<String?>` over `gigProvider.allGigs` (matches the existing member-dropdown pattern in the same file). `_TypePillRow` becomes `StatefulWidget` and auto-scrolls the currently-selected type chip into view on first frame via `Scrollable.ensureVisible` on a `GlobalKey`. (C) `financial_entries` gains a new nullable `notes` text column via a new migration file authored under `supabase/migrations/` — **the migration is authored, not applied; Tony applies it manually on his own schedule**. `FinancialEntry` model, `FinancialEntryRepository.insertEntry` / `updateEntry`, `FinancialsNotifier.addEntry` / `updateEntry`, and the `_SaveCallback` typedef all take new `notes: String?` and `gigId: String?` parameters that flow through to the DB payload. `_TransactionCard`'s title-resolution logic in `financials_screen.dart` is untouched (it references field bindings, not display labels — the labeling change in the drawer/form is independent). See **Cycle 8 Scope Expansion** at the bottom of this document.
 
-Sections below labeled without a cycle prefix are the original Cycle 1 plan, still authoritative for the shipped-in-Cycles-1–3 work — do not revisit any of it. Cycle 4 additions are scoped to the sections under **Cycle 4 Scope Expansion** (with Cycle-6 superseded parts flagged at the top of that section). Cycle 5 additions are scoped to the sections under **Cycle 5 Scope Expansion** (with Cycle-6 superseded parts flagged at the top of that section). Cycle 6 is the current authoritative design for the date-filter control, its state shape, the PDF preview screen's constructor, and everything the Cycle 4/5 sections marked as superseded — read Cycle 6 last, and treat it as governing wherever it conflicts with Cycle 4/5.
+Sections below labeled without a cycle prefix are the original Cycle 1 plan, still authoritative for the shipped-in-Cycles-1–3 work — do not revisit any of it. Cycle 4 additions are scoped to the sections under **Cycle 4 Scope Expansion** (with Cycle-6 superseded parts flagged at the top of that section). Cycle 5 additions are scoped to the sections under **Cycle 5 Scope Expansion** (with Cycle-6 superseded parts flagged at the top of that section). Cycle 6 is the current authoritative design for the date-filter control, its state shape, the PDF preview screen's constructor, and everything the Cycle 4/5 sections marked as superseded — read Cycle 6, then Cycle 7 (in QA_REPORT.md), then Cycle 8 last, and treat later cycles as governing wherever they conflict with earlier ones. Cycle 7's `_DetailRow` shape and dropdown-`.sm` sizing are baseline for Cycle 8 and remain unchanged.
 
 ## Problem Summary
 The Financials screen renders transactions as an 8-column horizontally-scrollable table (`_EntriesList` / `_TableHeader` / `_EntryTableRow` in [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart)) with dynamic amount-column width measurement, no visible totals or transaction count, and pins "View savings balance" / "Generate Report" as outlined buttons in `_BottomActionsRow`. The bottom sheet ([lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart](lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart)) uses icon-prefixed rows, silently omits "Reimbursed" when false, has no representation of the `gigId` relationship, and mislabels a few fields ("Payer" / "Description" / "Edit Entry"). Redesign the screen and sheet into a vertically-scrolling card list with a summary header, and normalise the sheet's field labels — no schema, RPC, or repository shape changes.
@@ -1969,4 +1971,843 @@ Same PR as Cycles 1–4 (#273). Commits added on top of the Cycle 4 tree. No fea
 - Any change to the sort toggle, transaction card, details sheet, savings sheet, `_ViewModeToggle`, `_ErrorState`, `_addEntry`.
 - Any change to `FinancialEntry`, `FinancialEntryRepository`, `financials_report_builder.dart`, gig data flow, RLS, migrations, or pubspec dependencies.
 - Updating `lib/components/ui/README.md` call-site counts. Doc file remains off-limits.
+
+---
+
+# Cycle 8 Scope Expansion
+
+> **This cycle authors a SQL migration file. It does NOT apply it.** The migration is a `supabase/migrations/*.sql` file that Tony applies manually on his own schedule. Manager, Engineer, and QA must never run `supabase db push`, `supabase migration up`, `psql`, or any equivalent apply command against production or a preview environment as part of this cycle. Authoring the file is an in-scope Engineer task; applying it is out of scope for every role in this pipeline. QA's static-review of the migration file (syntax, idempotency, RLS-impact reasoning) is the only migration-related check in the Verification Plan.
+
+Cycle 8 is a scope-expansion revision landing on top of Cycles 1–7 (Cycles 1–6 uncommitted on the working tree per Cycle 6's Existing System Analysis, Cycle 7 committed to the branch at `22b38be` and pushed to PR #273). Cycle 6 remains the authoritative design for the date-filter control and its state shape; Cycle 7 remains authoritative for the details sheet's `_DetailRow` shape and the dropdown-`.sm` sizing. Cycle 8 does not touch either.
+
+Branch state at plan-write time: local `feature/financials-transaction-cards` at commit `22b38be`; `GIT_OPTIONAL_LOCKS=0 git merge-base main HEAD` == `06bd222` == current `main` HEAD == current `origin/main` HEAD — **base is clean, no rebase needed** (confirmed by `git rev-parse` and `git merge-base`). Two untracked docs files present (`docs/features/bug/demo-session-cleanup-orphaned-anonymous-users/PR_BODY.md`, `docs/features/feature/financials-transaction-cards/PR_BODY.md`) — neither is in Cycle 8's diff scope; both are safe to ignore.
+
+## Cycle 8 Problem Summary
+
+Three coupled asks from Tony after testing the Cycle 7 tree:
+
+**A. Details drawer** ([lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart](lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart)) — the primary rows should read, top to bottom, exactly:
+1. Date
+2. Description
+3. Paid to
+4. Purchased by
+5. Needed for gig
+6. Notes
+
+Two implied consequences:
+- Row 2 "Description" and row 6 "Notes" must be **two distinct fields**. Today only one free-text column exists on `financial_entries` (`description`, currently labeled "Notes" in the sheet per Cycle 1's rename). Cycle 8 introduces a new nullable `notes` text column via migration, keeps `description` for row 2 (label reverts to "Description"), and uses the new column for row 6 (label "Notes").
+- The label previously rendered as "Paid by" (mapping `payerName`/`payor_name`) becomes "Purchased by"; the label previously rendered as "Paid To" (mapping `paidToName`/`paidToUserId`) becomes "Paid to" (sentence-case). The label previously rendered as "Related to gig" (mapping `gigId`) becomes "Needed for gig".
+
+Footer restructure: today the sheet's `SheetFooter` has only `primaryLabel: 'Edit'` (rendered as a full-width filled rose button). Cycle 8 restructures it to `SheetFooter(primaryLabel: 'Done', onPrimary: () => Navigator.of(context).pop(), cancelLabel: 'Edit', onCancel: <existing edit flow>)` — an exact structural match to [lib/features/gigs/widgets/view_gig_drawer.dart line 491–496](lib/features/gigs/widgets/view_gig_drawer.dart#L491). Primary "Done" dismisses the sheet, secondary "Edit" opens the edit form via the existing callback body (which pops the details sheet then calls `showAddFinancialEntrySheet` — unchanged).
+
+**B. Add/Edit form** ([lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart)) — the field order should read, top to bottom, exactly:
+1. Type (existing `_TypePillRow`)
+2. Amount (existing `CurrencyTextField` on `_amountController`)
+3. Date (existing `_pickDate` outlined button)
+4. Description (existing `_descriptionController`; **currently rendered below Paid To**, moves up to position 4)
+5. Paid to (existing `_paidToUserId` `AppDropdown<String?>` + conditional `_paidToOtherController`)
+6. Purchased by (existing `_payerController` `AppTextField`)
+7. Needed for gig (NEW picker — tap to select from `gigProvider.allGigs`)
+8. Notes (NEW `_notesController` `AppTextField` bound to the new `notes` column)
+
+Three implied consequences:
+- The current mode-conditional label swap on the two "payer"-adjacent fields — [line 618](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart#L618) (`_isIncome ? 'Payer (optional)' : 'Paid To (optional)'` on `_payerController`) and [line 627](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart#L627) (`_isIncome ? 'Paid To (optional)' : 'Paid By (optional)'` on `_paidToUserId`) — is **deleted**. Both fields render with fixed labels regardless of income/expense: `Paid to (optional)` for the member-dropdown field, `Purchased by (optional)` for the free-text field. The two fields also **swap render order** relative to today (currently `_payerController` renders first, `_paidToUserId` second; Cycle 8 renders `_paidToUserId` first at position 5, `_payerController` second at position 6).
+- New "Needed for gig" picker at position 7 is a `Consumer(builder: ...)`-wrapped `AppDropdown<String?>` reading `ref.watch(gigProvider).allGigs`. Item list: a leading "No gig selected" (`value: null`) row plus one `DropdownMenuItem<String?>(value: gig.id, child: Text(gig.name))` per gig, sorted by `gig.date` descending (most recent first) to bias for the common case of linking an entry to a recent gig. Selection is persisted in a new `String? _selectedGigId` state field and threaded to `onSave` as `gigId`. Reuses the local-`Consumer` pattern already in the file (`_buildFixedBottomActions` uses the same pattern at [line 754–777](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart#L754) for the permissions read) — no `ConsumerStatefulWidget` conversion required.
+- `_TypePillRow` becomes `StatefulWidget`, owns a `ScrollController` on its `SingleChildScrollView`, holds a `GlobalKey` on the currently-selected `_TypePill`, and calls `Scrollable.ensureVisible(_selectedKey.currentContext!, alignment: 0.5, duration: Duration.zero)` in a post-frame callback whenever the widget mounts or `widget.selected` changes. This scrolls the current selection into view when the sheet opens on an existing entry whose type sits off-screen to the right. **No stateful behavior beyond scroll positioning is added** — the widget continues to receive `selected: String` and callbacks via constructor params; parent state is unchanged.
+
+**C. New `notes` column on `financial_entries`** — a nullable `TEXT` column added by a new migration file `supabase/migrations/20260909120000_add_notes_to_financial_entries.sql` (or Engineer's preferred `YYYYMMDDHHMMSS` timestamp for today). RLS impact: **none** — the existing `financial_entries` policies are column-agnostic (all four `financial_entries_select` / `financial_entries_insert` / `financial_entries_update` / `financial_entries_delete` policies from [20260601000000_create_financial_entries.sql](supabase/migrations/20260601000000_create_financial_entries.sql), the tightened Cycle 3 policies from [20260711081810](supabase/migrations/20260711081810_tighten_financial_entries_rbac.sql), the RBAC-hardened policies from [20260814120001](supabase/migrations/20260814120001_fix_financial_entries_select_rbac.sql), and the wrapped-`auth.uid()` variants from [20260823120000](supabase/migrations/20260823120000_wrap_rls_auth_functions.sql) — all gate on `band_id` membership via `check_band_member(band_id)` and never reference a specific data column). Adding a new column touches none of them; verified by grep across `supabase/migrations/**` for `notes|description` in policy bodies (zero column-level references). Backfill: not needed (nullable, defaults to NULL). Trigger impact: `trg_sync_gig_pay` reads only `entry_type`, `gig_id`, `amount_cents` (see [20260601000000 lines 92–120](supabase/migrations/20260601000000_create_financial_entries.sql#L92)) — unaffected. Constraint impact: `financial_entries_reimbursement_consistency` (from [20260803120000](supabase/migrations/20260803120000_add_reimbursement_fields_to_financial_entries.sql)) touches only reimbursement columns — unaffected.
+
+Along with the column, the write path needs a `gigId` parameter that today doesn't exist on the general add/edit path: `FinancialEntryRepository.insertEntry` and `updateEntry` accept no `gigId` param and never write `'gig_id'` in their payload maps (verified by reading [financial_entry_repository.dart lines 236–286](lib/features/financials/financial_entry_repository.dart#L236) and [lines 288–336](lib/features/financials/financial_entry_repository.dart#L288)). Only the gig-tab-specific `insertGigExpenseEntry` and `upsertGigPayEntry` set `gig_id` today. The Feature Input flagged this all the way back in Cycle 1 as a known gap; Cycle 8 closes it. Both new params are optional (`String?` on the Dart side, nullable on the SQL side) and default to `null` when the user doesn't pick a gig — preserving the current "no gig" behavior for any caller who doesn't wire the new picker.
+
+## Cycle 8 Interpretation Confirmation
+
+Manager asked me to validate (or correct) three specific readings of Tony's asks. All three are **confirmed** as written, with one explicitly-noted UX trade-off on reading (2).
+
+**(1) Description vs. Notes as two distinct fields.** Confirmed — Tony's exact words ("This means we need both a description and a notes field for both Income and expense records") plus his list showing rows 2 and 6 as separate entries force this. The `description` column stays (row 2 label: "Description" — reverts Cycle 1's "Description → Notes" rename); the new `notes` column is used for row 6 (label: "Notes"). Both are nullable and both render always-shown with an em-dash fallback in the details drawer (matches the existing "Paid to" / "Purchased by" always-shown pattern in Cycle 7).
+
+**(2) "Paid to" and "Purchased by" as fixed, always-visible labels — Manager's reading confirmed.** Fixed labels regardless of income/expense type: **"Paid to" = the `paid_to_user_id` / `paid_to_name` member-selector field (existing `_paidToUserId` state, existing binding)**, **"Purchased by" = the `payor_name` free-text field (existing `_payerController` state, existing binding)**. No data-model change; no column renames. The mode-conditional label swap in the edit form (lines 618, 627) is deleted; both labels render as-is regardless of `_isIncome`. Rationale for confirming vs. flipping the reading:
+
+- Cycle 1 renamed the details sheet's "Payer" (mapping `payerName`/`payor_name`) to "Paid by" — Cycle 8's rename "Paid by → Purchased by" is a direct textual chain applied to the same underlying field. Tony's ask ("Change 'Paid by' to 'Purchased by'") reads most naturally as continuing that chain.
+- The alternative reading — swapping the two fields' bindings so "Paid to" maps `payor_name` and "Purchased by" maps `paid_to_user_id` — would produce cleaner semantics for expense entries ("Purchased by = the band member who made the purchase; Paid to = the vendor") but weaker semantics for income entries and would require the `_TransactionCard` title-resolution logic in `financials_screen.dart` to be re-checked and possibly flipped (since it references `payerName` for income titles today).
+- Manager's reading preserves the existing data binding on both fields, which means (a) legacy entries render correctly with no code-driven data reassignment, (b) `_TransactionCard`'s title logic stays byte-identical (it references field bindings, not display labels), and (c) the PDF report's "Payer" / "Paid to" column headers (in [financials_report_builder.dart line 204–212](lib/features/financials/financials_report_builder.dart#L204)) stay untouched — the PDF is a separate UX context and Tony did not ask for report labels to change.
+- **Accepted UX trade-off:** for income entries, calling `payor_name` "Purchased by" reads slightly oddly (an income entry's payer is the venue that paid the band, not a purchaser). The trade-off is Tony's directive; the plan does not silently override it. If Tony later dislikes the income-side reading, that's a separate follow-up cycle with a different design decision to make (add mode-conditional labels back, or rename columns, or split the fields).
+
+**(3) Reuse an existing gig-picker paradigm.** No standalone "pick a gig from a list" widget exists in the codebase — confirmed by grep across `lib/**/*.dart` for `gig[ _]?[Pp]icker|selectGig|GigSelect|choose[ _]?gig|GigChooser|AppDropdown<Gig|List<Gig>.*items|allGigs\.map` (zero widget hits; `_showNavigationAppPicker` in `view_gig_drawer.dart` is the closest analogue, but it picks a `_NavigationApp` enum, not a gig, and uses `showAppBottomSheet<T>` which is a different UI paradigm than the field-embedded dropdown the edit form already uses for member selection). **Reuse decision: `AppDropdown<String?>` inside a `Consumer(builder: ...)` wrapper, matching the existing member-dropdown pattern at [add_financial_entry_bottom_sheet.dart line 632–658](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart#L632) verbatim** — same widget type, same nullable `String?` shape, same leading "No X selected" default option, same manual `for` loop over `.allGigs` for id → name lookup (not `firstWhereOrNull`, matches Cycle 1's `package:collection`-avoidance stance). This is the minimal-diff, minimal-new-paradigm choice: Engineer adds ~40 lines of picker widget code to an existing file and reuses the wrapper the file already imports (line 11: `import '../../../components/ui/app_dropdown.dart';`). **No new picker widget is created; no `showModalBottomSheet` variant is introduced.**
+
+## Cycle 8 Root Cause
+
+n/a — feature request. Confidence `HIGH` on the mechanical scope: every referenced widget, field, controller method, and repository method has been verified by reading the files on the current working tree at plan-write time. Confidence `HIGH` on the "Paid to" / "Purchased by" labeling reading, given the direct textual chain from Cycle 1's "Payer → Paid by" through Cycle 8's "Paid by → Purchased by" on the same field, and Tony's silence on the semantic trade-off.
+
+## Cycle 8 Existing System Analysis (post-Cycle 7 baseline)
+
+Current state at commit `22b38be` (Cycle 7's last commit), verified by reading each file:
+
+- **`financial_entries` table** (from [20260601000000_create_financial_entries.sql lines 7–29](supabase/migrations/20260601000000_create_financial_entries.sql#L7)): columns `id`, `band_id`, `entry_type`, `category`, `amount_cents`, `is_income`, `description`, `entry_date`, `is_1099_expected`, `payor_name`, `paid_to_name`, `paid_to_user_id`, `disbursements`, `gig_id`, `created_by`, `created_at`, `updated_at`, plus later additions from subsequent migrations (`deposit_to_savings`, `deposit_to_savings_cents`, `is_reimbursed`, `reimbursed_date`). No `notes` column exists; verified by grep across `supabase/migrations/**` for `ADD COLUMN.*notes` (zero matches). RLS: four policies (SELECT / INSERT / UPDATE / DELETE) all gate on `check_band_member(band_id)` — column-agnostic, verified by reading each policy body.
+
+- **`FinancialEntry` model** ([lib/features/financials/models/financial_entry.dart lines 55–159](lib/features/financials/models/financial_entry.dart#L55)): dataclass with fields matching the table (`payerName` aliased from `payor_name`). No `notes` field. `fromJson` and `toJson` both explicitly enumerate every column; adding a new column requires touching both.
+
+- **`FinancialEntryRepository`** ([lib/features/financials/financial_entry_repository.dart](lib/features/financials/financial_entry_repository.dart)):
+  - `insertEntry` (lines 236–286) — accepts `bandId`, `entryType`, `category`, `amountCents`, `entryDate`, `description`, `is1099Expected`, `payerName`, `paidToName`, `paidToUserId`, `disbursements`, `depositToSavings`, `depositToSavingsCents`. Builds a `payload` map with those columns; **no `gig_id` key, no `notes` key**. Cycle 8 adds both.
+  - `updateEntry` (lines 288–336) — same param surface, same payload shape; **no `gig_id`, no `notes`**. Cycle 8 adds both.
+  - `insertGigExpenseEntry` / `updateGigExpenseEntry` / `upsertGigPayEntry` — these DO write `gig_id` (they're the gig-tab-specific paths). **Not changed by Cycle 8** — they operate on a known `gigId` per their caller context (event editor) and don't participate in the general add/edit form flow.
+  - `fetchEntriesForBand` — unchanged in Cycle 8 (SELECT `*` already returns any new columns automatically).
+
+- **`FinancialsNotifier`** ([lib/features/financials/financials_controller.dart lines 134–228](lib/features/financials/financials_controller.dart#L134)): `addEntry` (lines 134–176) and `updateEntry` (lines 178–228) both take the same params as the repo methods they delegate to; both need the new `notes` and `gigId` params, threaded through to the repo call.
+
+- **`add_financial_entry_bottom_sheet.dart`**:
+  - `_SaveCallback` typedef (lines 30–43) declares the current param surface. Adding `notes` and `gigId` requires editing this typedef and every implementation.
+  - Callers of `showAddFinancialEntrySheet`: three, verified by grep — `financials_screen.dart:50` (the `_addEntry` flow for creating a new entry), `financial_entry_details_bottom_sheet.dart:200` (the Edit callback from the details drawer). Both call sites thread `onSave` through to `notifier.addEntry` / `notifier.updateEntry` and forward every `_SaveCallback` param. Both need updating.
+  - The mode-conditional label swap lives at lines 618 (`_payerController`'s label) and 627 (`_paidToUserId`'s label). Deleting both `? :` expressions and replacing with fixed strings is a two-line diff.
+  - The current field order in `build()` is: Type pills → Amount → Date → **Payer/Paid To (`_payerController`)** → **Paid To/Paid By (`_paidToUserId`) [+ conditional `_paidToOtherController`]** → Description → 1099 toggle (conditional) → Disburse to Band (conditional) → Deposit to Savings (conditional). Cycle 8 reorders the middle block to: Type → Amount → Date → Description → **Paid to (`_paidToUserId` + conditional `_paidToOtherController`)** → **Purchased by (`_payerController`)** → **Needed for gig (NEW)** → **Notes (NEW `_notesController`)** → 1099 → Disburse → Deposit.
+  - `_TypePillRow` (lines 1000–1035): stateless, wraps `SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row([...pills]))`. No auto-scroll behavior. Its parent (`_AddFinancialEntryBottomSheetState`) sets `_selectedTypeName` from `entry.category` in `initState` when editing, but the visible scroll position of the row stays at offset 0 — a selected pill sitting past the visible-width boundary is off-screen at open.
+
+- **`financial_entry_details_bottom_sheet.dart`** (Cycle 7 state):
+  - Rows are rendered in the order: Date → Related to gig → Paid by → Paid To → (conditional) Reimbursed → (conditional) Reimbursement → (conditional) Notes (currently maps `description`) → (conditional) Deposit to Savings. Cycle 8 reorders the primary six and appends the three conditional rows after.
+  - `_DetailRow` (Cycle 7 shape, at [lines 262–304](lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart#L262)) — side-by-side `Row(SizedBox(width: 68, label), SizedBox(width: Spacing.space8), Expanded(Column(value)))`. **Cycle 8 does not touch `_DetailRow`'s shape.**
+  - Gig-lookup helper (lines 51–63) — manual `for` loop over `ref.read(gigProvider).allGigs`. Cycle 8 keeps this verbatim; only the label above changes (`'Related to gig'` → `'Needed for gig'`) and the row position changes (moves from #2 to #5).
+  - `SheetFooter` (lines 185–239) — `primaryLabel: 'Edit', primaryIcon: AppIcons.edit, onPrimary: <edit-flow-callback>`. **No `onCancel` today**, so the footer renders as a single full-width filled rose button (per `SheetFooter.build` logic at [sheet_footer.dart line 68–79](lib/components/ui/sheet_footer.dart#L68), `onCancel: null` collapses the row into the primary alone). Cycle 8 restructures this to `SheetFooter(primaryLabel: 'Done', onPrimary: () => Navigator.of(context).pop(), cancelLabel: 'Edit', onCancel: <existing-edit-flow-callback>, primaryIcon: null)`. Icon is dropped from the primary because "Done" doesn't semantically fit an edit icon; secondary "Edit" is a text button per `SheetFooter`'s cancel-slot styling (`AppButtonVariant.text`, verified at [sheet_footer.dart line 74](lib/components/ui/sheet_footer.dart#L74)) and does not accept an icon.
+
+- **`view_gig_drawer.dart`** (Cycle 8 baseline for the footer pattern): [line 491–496](lib/features/gigs/widgets/view_gig_drawer.dart#L491) renders `SheetFooter(primaryLabel: 'Done', onPrimary: () => Navigator.of(context).pop(), cancelLabel: 'Edit', onCancel: widget.canEdit ? () => _handleEdit(context) : null)`. Structural match target for Cycle 8's details-sheet footer. Cycle 8's `onCancel` guard is unconditional (no `canEdit`-equivalent gate at the details-sheet layer — the whole details sheet is already gated by the screen-level permission check), matching how Cycle 7 currently renders the primary Edit button unconditionally.
+
+- **`gigProvider`** ([lib/features/gigs/gig_controller.dart](lib/features/gigs/gig_controller.dart)): `ref.watch(gigProvider).allGigs` returns `List<Gig>` for the active band. `Gig.id` (String) and `Gig.name` (String) and `Gig.date` (DateTime) are the three fields Cycle 8's picker needs. The whole list is already loaded whenever the financials screen is on-screen (verified in Cycle 1's Existing System Analysis) — no fetch, no repository change, no controller change.
+
+- **Test files on the working tree at commit `22b38be`:**
+  - `test/features/financials/widgets/financial_entry_details_bottom_sheet_test.dart` — currently asserts the Cycle 7 labels ("Paid by", "Paid To", "Related to gig", "Notes" mapping `description`), the Cycle 7 footer (`primaryLabel: 'Edit'`, `primaryIcon: AppIcons.edit`), and the Cycle 7 row order. **Cycle 8 breaks every one of these assertions.** Must be updated in the same cycle to reflect the new labels ("Purchased by", "Paid to", "Needed for gig", "Description" + "Notes"), the new footer (`Done` primary + `Edit` cancel), and the new row order.
+  - `test/features/financials/widgets/summary_header_test.dart` — untouched by Cycle 8 (no dependency on the changed labels or fields).
+  - `test/features/financials/widgets/transaction_card_test.dart` — untouched by Cycle 8 (card title logic references field bindings, not labels — verified below).
+  - `test/features/financials/widgets/transactions_list_header_test.dart` — untouched by Cycle 8.
+
+- **`_TransactionCard._title` in `financials_screen.dart`** ([lines 816–830](lib/features/financials/financials_screen.dart#L816)): returns `entry.payerName` (fallback `entry.category`) for income, `entry.paidToName` (fallback `entry.category`) for expense. **Independent of the labeling change** — the underlying field bindings are unchanged in Cycle 8, so the card title logic stays byte-identical. Verified by tracing: Cycle 8's "Purchased by" label just re-labels the `payerName` field in the drawer/form, but `_TransactionCard` reads the field, not the label. **No `_TransactionCard` change needed.**
+
+**No other files in `lib/` reference `notes` in a way that would conflict with the new column** — confirmed by grep across `lib/**/*.dart` for `entry\.notes|'notes'|\.notes\s*=|\bnotes:` (five matches, all pre-existing: two in `gig_pay_bottom_sheet.dart` referring to a `notes` param on gig-expense entries, two in `event_editor_drawer.dart` referring to gig notes, one in `financials_screen.dart` `notes:` param in a snackbar helper — none touch the `financial_entries` table's future `notes` column). Adding the new column and threading it through the general add/edit path does not collide with any of these.
+
+## Cycle 8 Proposed Solution
+
+Numbered by ask, mirroring the Problem Summary structure.
+
+### (A) Details drawer
+
+**Primary row order (all six always shown):**
+
+1. `_DetailRow(label: 'Date', value: dateStr)` — unchanged binding.
+2. `_DetailRow(label: 'Description', value: (entry.description?.trim().isNotEmpty ?? false) ? entry.description! : '—')` — reverts Cycle 1's `description → 'Notes'` label rename; always shown with `'—'` fallback (matches Cycle 7's always-shown pattern for the other free-text rows).
+3. `_DetailRow(label: 'Paid to', value: (entry.paidToName != null && entry.paidToName!.isNotEmpty) ? entry.paidToName! : '—')` — sentence-case `t`; unchanged binding to `paidToName`.
+4. `_DetailRow(label: 'Purchased by', value: (entry.payerName != null && entry.payerName!.isNotEmpty) ? entry.payerName! : '—')` — renamed from "Paid by"; unchanged binding to `payerName`.
+5. `_DetailRow(label: 'Needed for gig', value: relatedToGigValue)` — renamed from "Related to gig"; the existing three-case resolution (`gigId == null → 'No'`; `gigId != null && match → 'Yes • $name'`; `gigId != null && no match → 'Yes'`) is preserved verbatim.
+6. `_DetailRow(label: 'Notes', value: (entry.notes?.trim().isNotEmpty ?? false) ? entry.notes! : '—')` — new row bound to the new `notes` column; always shown with `'—'` fallback.
+
+**Conditional / expense-only rows appended below (unchanged behavior — no re-ordering asked or done):**
+
+7. Reimbursed (Yes/No) — expense-only.
+8. Reimbursement detail — conditional on `isReimbursedExpense`.
+9. Deposit to Savings — conditional on `depositToSavings == true`.
+
+Rationale for keeping (7)/(8)/(9) in place: Tony's "row order should become" list specifies six primary rows; his silence on the conditional rows is not a delete directive. Cycles 1–7 established these three rows as expected UX for the applicable entry types; removing them would be silent scope creep in the deletion direction, and the semantic value they surface (was this expense reimbursed, when, to whom; how much of this income went to savings) is not captured anywhere else in the drawer. Preserve.
+
+**Between-row spacing:** each `_DetailRow` continues to be separated by `const SizedBox(height: Spacing.space12)` — the current Cycle 7 pattern. No change.
+
+**Footer restructure** (single `SheetFooter` call at the bottom of the sheet body):
+
+```dart
+SheetFooter(
+  primaryLabel: 'Done',
+  onPrimary: () => Navigator.of(context).pop(),
+  cancelLabel: 'Edit',
+  onCancel: () async {
+    Navigator.of(context).pop();
+    final notifier = ref.read(financialsProvider.notifier);
+    final members = ref.read(membersProvider).members;
+    final savingsTotalCents = ref
+        .read(financialsProvider)
+        .allEntries
+        .where((e) => e.depositToSavings == true)
+        .fold<int>(0, (sum, e) => sum + (e.depositToSavingsCents ?? 0));
+    await showAddFinancialEntrySheet(
+      context,
+      initialEntry: entry,
+      members: members,
+      savingsTotalCents: savingsTotalCents,
+      onSave: (/* all _SaveCallback params, including the new notes and gigId */) async {
+        await notifier.updateEntry(/* threaded through */);
+      },
+      onDelete: () async {
+        await notifier.deleteEntry(entry.id);
+      },
+    );
+  },
+)
+```
+
+- The primary "Done" callback is a bare `Navigator.of(context).pop()` — dismisses the sheet with no side effects.
+- The secondary "Edit" callback is the **existing** primary callback body from Cycle 7 (moved from `onPrimary` to `onCancel`, unchanged internally except for the `notes` / `gigId` threading required by (C) below).
+- `primaryIcon` is **not** set — "Done" doesn't take an icon; secondary cancel-slot buttons in `SheetFooter` don't accept an icon either. `AppIcons.edit` is fully removed from the sheet body (matches the `view_gig_drawer.dart` pattern which sets no icons on its footer).
+- `SheetFooter` internally styles the primary as a filled rose `AppButton` and the cancel slot as `AppButtonVariant.text` — the visual distinction between "Done" (filled) and "Edit" (text) matches the gig drawer's read-only-then-edit affordance.
+
+### (B) Add/Edit form
+
+**New state fields on `_AddFinancialEntryBottomSheetState`:**
+
+```dart
+late final TextEditingController _notesController;
+String? _selectedGigId;
+```
+
+Initialized in `initState`:
+- Editing mode (`entry != null`): `_notesController = TextEditingController(text: entry.notes ?? '');` and `_selectedGigId = entry.gigId;`.
+- Creating mode (`entry == null`): `_notesController = TextEditingController();` and `_selectedGigId = null;`.
+
+Disposed in `dispose`: `_notesController.dispose();` alongside the other controllers.
+
+**New field order in `build()` (middle block; other blocks unchanged):**
+
+```
+Type pills (_TypePillRow — see StatefulWidget change below)
+SizedBox(space16)
+CurrencyTextField (Amount)
+SizedBox(space16)
+Date label + OutlinedButton.icon(_pickDate)
+SizedBox(space16)
+Text('Description (optional)') + AppTextField(_descriptionController)  ← moved up from below
+SizedBox(space16)
+Text('Paid to (optional)') + AppDropdown<String?>(_paidToUserId) + conditional _paidToOtherController  ← fixed label, moved to position 5
+SizedBox(space16 or space12 — see below)
+Text('Purchased by (optional)') + AppTextField(_payerController)  ← fixed label, moved to position 6
+SizedBox(space16)
+Text('Needed for gig (optional)') + Consumer(builder: (context, ref, _) => AppDropdown<String?>(...))  ← NEW
+SizedBox(space16)
+Text('Notes (optional)') + AppTextField(_notesController)  ← NEW
+SizedBox(space16)
+Visibility(_isIncome, 1099 toggle)   [unchanged]
+Disburse to Band (conditional, unchanged)
+Deposit to Savings (conditional, unchanged)
+```
+
+**Label deletions (mode-conditional swap removed):**
+- Line 627 today: `_isIncome ? 'Paid To (optional)' : 'Paid By (optional)'` → **`'Paid to (optional)'`** (fixed, sentence-case).
+- Line 618 today: `_isIncome ? 'Payer (optional)' : 'Paid To (optional)'` → **`'Purchased by (optional)'`** (fixed).
+- Adjacent comments `// Payer (income) / Paid To (expense)` (line 617) and `// Paid To (income) / Paid By (expense)` (line 625) get deleted with the ternaries.
+
+**"Needed for gig" picker widget** (new; sits between the "Purchased by" text field and the "Notes" text field in the build tree):
+
+```dart
+Text(
+  'Needed for gig (optional)',
+  style: AppTextStyles.footnote.copyWith(color: context.colors.textSecondary),
+),
+const SizedBox(height: 6),
+Consumer(builder: (context, ref, _) {
+  final gigs = ref.watch(gigProvider).allGigs;
+  final sortedGigs = List<Gig>.from(gigs)
+    ..sort((a, b) => b.date.compareTo(a.date));
+
+  String labelFor(String? id) {
+    if (id == null) return 'No gig selected';
+    for (final g in gigs) {
+      if (g.id == id) return g.name;
+    }
+    return 'Unknown gig';
+  }
+
+  return AppDropdown<String?>(
+    value: _selectedGigId,
+    onChanged: (id) => setState(() => _selectedGigId = id),
+    labelBuilder: labelFor,
+    items: [
+      DropdownMenuItem<String?>(
+        value: null,
+        child: Text(
+          'No gig selected',
+          style: AppTextStyles.callout
+              .copyWith(color: context.colors.textMuted),
+        ),
+      ),
+      ...sortedGigs.map(
+        (g) => DropdownMenuItem<String?>(
+          value: g.id,
+          child: Text(g.name),
+        ),
+      ),
+    ],
+  );
+}),
+const SizedBox(height: Spacing.space16),
+```
+
+- Requires two new imports at the top of `add_financial_entry_bottom_sheet.dart`:
+  - `import '../../gigs/gig_controller.dart';` — for `gigProvider`.
+  - `import '../../../app/models/gig.dart';` — for the `Gig` type in `List<Gig>.from(gigs)` and the `.sort` comparator (`b.date.compareTo(a.date)`).
+- Manual `for` loop over `gigs` for id → name lookup — matches Cycle 1's `package:collection`-avoidance stance; no `firstWhereOrNull`, no new dependency.
+- Sort by `gig.date` descending places the most-recent gig at the top of the menu, biased for the common case (users linking a new expense to a recent gig).
+- Sizing / styling inherits from `AppDropdown`'s `.md` default (per Cycle 7, `size` defaults to `FTextFieldSizeVariant.md` when unset). **No `size:` override on this call site** — the date-filter dropdown's `.sm` override in `_SummaryHeader` is a separate, header-specific concern.
+
+**`_notesController` picker widget** (new; sits immediately after the gig picker):
+
+```dart
+Text(
+  'Notes (optional)',
+  style: AppTextStyles.footnote.copyWith(color: context.colors.textSecondary),
+),
+const SizedBox(height: 6),
+AppTextField(
+  controller: _notesController,
+  textCapitalization: TextCapitalization.sentences,
+  textInputAction: TextInputAction.done,
+  hintText: 'e.g. Reimbursed via Venmo, receipt in email',
+),
+const SizedBox(height: Spacing.space16),
+```
+
+Matches the existing `_descriptionController` `AppTextField` shape (line 706–712) except for the hint text (which nudges the user toward "operational metadata" phrasing versus "primary detail" phrasing for the description).
+
+**`_SaveCallback` typedef edit** (lines 30–43):
+
+```dart
+typedef _SaveCallback = Future<void> Function({
+  required FinancialEntryType entryType,
+  required String category,
+  required int amountCents,
+  required DateTime entryDate,
+  String? description,
+  String? notes,                       // NEW
+  String? gigId,                       // NEW
+  bool? is1099Expected,
+  String? payerName,
+  String? paidToName,
+  String? paidToUserId,
+  Map<String, int>? disbursements,
+  bool? depositToSavings,
+  int? depositToSavingsCents,
+});
+```
+
+`_save()` (lines 388–425) passes the two new fields:
+
+```dart
+notes: _notesController.text.trim().isEmpty
+    ? null
+    : _notesController.text.trim(),
+gigId: _selectedGigId,
+```
+
+**`_TypePillRow` StatefulWidget conversion (auto-scroll fix):**
+
+```dart
+class _TypePillRow extends StatefulWidget {
+  const _TypePillRow({
+    required this.labels,
+    required this.selected,
+    required this.isDeleteMode,
+    required this.onSelect,
+    required this.onAdd,
+    required this.onToggleDelete,
+    required this.onRemove,
+  });
+
+  final List<String> labels;
+  final String selected;
+  final bool isDeleteMode;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onAdd;
+  final VoidCallback onToggleDelete;
+  final ValueChanged<String> onRemove;
+
+  @override
+  State<_TypePillRow> createState() => _TypePillRowState();
+}
+
+class _TypePillRowState extends State<_TypePillRow> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _selectedPillKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+  }
+
+  @override
+  void didUpdateWidget(covariant _TypePillRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelected() {
+    final ctx = _selectedPillKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.5,
+      duration: Duration.zero,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _TypePill(label: '+ Add', isSelected: false, isAddButton: true, onTap: widget.onAdd),
+          const SizedBox(width: 8),
+          _TypePill(
+            label: widget.isDeleteMode ? 'Done' : 'Remove',
+            isSelected: widget.isDeleteMode,
+            isRemoveButton: true,
+            onTap: widget.onToggleDelete,
+          ),
+          const SizedBox(width: 16),
+          ...widget.labels.expand((label) {
+            final isSelectedLabel =
+                !widget.isDeleteMode && widget.selected == label;
+            return [
+              _TypePill(
+                key: isSelectedLabel ? _selectedPillKey : null,
+                label: label,
+                isSelected: isSelectedLabel,
+                showDeleteIcon: widget.isDeleteMode,
+                onTap: widget.isDeleteMode
+                    ? () => widget.onRemove(label)
+                    : () => widget.onSelect(label),
+              ),
+              const SizedBox(width: 8),
+            ];
+          }),
+        ],
+      ),
+    );
+  }
+}
+```
+
+- `_TypePill` stays unchanged (its existing `Key? key` param via `StatefulWidget`'s super handles the `GlobalKey` attachment).
+- `Duration.zero` on the initial scroll avoids a visible jump when the sheet opens on an existing entry.
+- The `didUpdateWidget` branch fires only when the parent state (`_selectedTypeName`) changes — user taps a chip in the currently-visible viewport; scroll re-centers on the tapped chip. Mild UX polish, not strictly required by Tony's ask (which spoke only to the on-open case), but the branch is cheap and prevents a stale scroll position after a mid-form add/remove.
+- No new dependency; no change to the parent widget's constructor or state shape beyond the `TypePillRow` becoming stateful.
+
+### (C) Data path (migration + model + repo + notifier + callback + call sites)
+
+**Migration file** (new): `supabase/migrations/20260909120000_add_notes_to_financial_entries.sql`
+
+```sql
+-- Migration: Add notes column to financial_entries
+-- Adds a nullable free-text `notes` column separate from the existing
+-- `description` column. Existing entries have notes = NULL; no backfill.
+-- RLS impact: none — the existing financial_entries policies gate on
+-- band_id membership via check_band_member() and are column-agnostic.
+-- Trigger impact: none — trg_sync_gig_pay reads only entry_type, gig_id,
+-- amount_cents.
+-- Constraint impact: none — the existing reimbursement-consistency
+-- constraint touches only reimbursement columns.
+
+ALTER TABLE public.financial_entries
+  ADD COLUMN IF NOT EXISTS notes TEXT;
+```
+
+Idempotent (`IF NOT EXISTS`), no default, no NOT NULL constraint. Timestamp `20260909120000` matches today's date; Engineer may adjust the timestamp to their preferred format matching the sequence of the most recent migration on disk (last is `20260908194500_reduce_demo_session_ttl_to_15min.sql` per `ls supabase/migrations/`).
+
+**`FinancialEntry` model edits** ([financial_entry.dart](lib/features/financials/models/financial_entry.dart)):
+
+- Field: add `final String? notes;` after `description`.
+- Constructor: add `this.notes,` after `this.description,` in the named-param list.
+- `fromJson`: add `notes: json['notes'] as String?,` alongside the other `String?` columns.
+- `toJson`: add `'notes': notes,` alongside `'description': description`.
+
+**`FinancialEntryRepository.insertEntry` and `updateEntry`** ([financial_entry_repository.dart](lib/features/financials/financial_entry_repository.dart)):
+
+- Both methods gain two new named params: `String? notes` and `String? gigId`, added after `description`.
+- `insertEntry`'s payload map (line 259–275) adds:
+  ```dart
+  'notes': notes?.isEmpty == true ? null : notes,
+  'gig_id': gigId,
+  ```
+- `updateEntry`'s payload map (line 305–319) adds the same two keys.
+- No change to `insertGigExpenseEntry`, `updateGigExpenseEntry`, `upsertGigPayEntry`, `fetchEntriesForBand`, `fetchGigPayEntry`, `fetchGigExpenseEntries`, `deleteEntry` — those either don't use `notes` or already handle `gig_id` in their gig-specific way.
+
+**`FinancialsNotifier.addEntry` and `updateEntry`** ([financials_controller.dart lines 134–228](lib/features/financials/financials_controller.dart#L134)):
+
+Both methods gain two new named params (`String? notes`, `String? gigId`), threaded verbatim to the corresponding repository call. No state-shape change on `FinancialsState`; the loaded `entry` after the repo returns already contains the new fields via `FinancialEntry.fromJson`.
+
+**Call sites of `showAddFinancialEntrySheet`** (both need updating in the same cycle):
+
+1. **`_addEntry` in `financials_screen.dart`** (line 45–86) — the `onSave` callback body threads new `notes` and `gigId` params through to `notifier.addEntry`. Params are added to the destructured named-args block at line 57–65 and forwarded to `notifier.addEntry` at line 69–80.
+2. **Edit callback in `financial_entry_details_bottom_sheet.dart`** (line 200–235) — the same threading pattern.
+
+**`_TransactionCard` in `financials_screen.dart`** — untouched. Title-resolution logic (lines 816–830) references `entry.payerName` and `entry.paidToName` (field bindings), not the drawer/form's display labels. Verified above; noted here to prevent Engineer confusion.
+
+**Empty-value display convention** in the drawer:
+- Description and Notes: `'—'` fallback when empty (matches Cycle 7's "Paid to" / "Purchased by" always-shown pattern).
+- Paid to and Purchased by: existing `'—'` fallback (unchanged from Cycle 7).
+- Needed for gig: three-case value (`'No'` / `'Yes • <name>'` / `'Yes'`) unchanged from Cycle 7's logic.
+
+## Cycle 8 Database Impact
+
+**Migration authored, not applied.** Filed as `supabase/migrations/20260909120000_add_notes_to_financial_entries.sql` (or Engineer's preferred timestamp — must be lexically later than `20260908194500` to preserve migration ordering). Content is the single `ALTER TABLE ... ADD COLUMN IF NOT EXISTS notes TEXT;` shown in Proposed Solution → (C). No other DDL, no data manipulation, no policy change, no function/trigger change.
+
+- **RLS**: unchanged. All four `financial_entries_*` policies gate on `check_band_member(band_id)` — verified in each migration touching those policies (`20260601000000`, `20260711081810`, `20260814120001`, `20260823120000`). None reference any specific column. Adding a new column requires no policy update.
+- **`SECURITY DEFINER` functions**: none added; none modified. `check_band_member()` (which the policies call) is unchanged.
+- **Triggers**: `trg_sync_gig_pay` reads only `entry_type`, `gig_id`, `amount_cents` — unchanged. Verified at [20260601000000 lines 92–120](supabase/migrations/20260601000000_create_financial_entries.sql#L92).
+- **Constraints**: `financial_entries_reimbursement_consistency` (from `20260803120000`) touches only reimbursement columns — unaffected.
+- **Indexes**: none added. The new `notes` column has no query pattern that would benefit from an index (never filtered on, never joined on, never aggregated over).
+- **Backfill**: none needed. Existing rows have `notes = NULL`; the drawer's `'—'` fallback renders correctly; the edit form pre-fills the `_notesController` with `''` when `entry.notes == null`.
+- **Application ordering vs. app deploy**: this cycle's DB change is **strictly additive** (new nullable column). The app deploy can precede or follow the migration apply, in either order, without breaking anything:
+  - App deploy before migration: `insertEntry` / `updateEntry` payloads will include `'notes': ...` and `'gig_id': ...`. Supabase's PostgREST accepts unknown keys? **No — PostgREST rejects payloads with unknown columns.** So the app must not send a payload key for a column that doesn't exist yet. **Conclusion: migration must be applied BEFORE the app is deployed.** This is a genuine deploy-ordering constraint that Tony must observe manually.
+  - App deploy after migration: safe. New column exists; app writes to it; existing entries still work because the column is nullable.
+
+**Deploy-ordering note for Tony** (repeat in the Rollout Strategy section): apply the migration first, then deploy the app; not the reverse.
+
+## Cycle 8 Flutter Architecture Changes
+
+- **`FinancialEntry` model**: gains `final String? notes;` field. `fromJson` and `toJson` updated.
+- **`FinancialEntryRepository.insertEntry` and `updateEntry`**: gain `String? notes` and `String? gigId` named params; payload maps gain `'notes'` and `'gig_id'` keys.
+- **`FinancialsNotifier.addEntry` and `updateEntry`**: gain `String? notes` and `String? gigId` named params; threaded through to the repo.
+- **`_SaveCallback` typedef** (`add_financial_entry_bottom_sheet.dart`): gains `String? notes` and `String? gigId` named params.
+- **`_AddFinancialEntryBottomSheetState`**: gains `late final TextEditingController _notesController;` and `String? _selectedGigId;` fields; both initialized in `initState` and disposed in `dispose` (only `_notesController` needs disposal; `_selectedGigId` is a primitive).
+- **`_TypePillRow`**: `StatelessWidget` → `StatefulWidget`; owns a `ScrollController` and a `GlobalKey`; `initState` and `didUpdateWidget` schedule a post-frame `Scrollable.ensureVisible` on the selected pill. No change to the widget's constructor surface.
+- **`_FinancialEntryDetailsSheet.build`**: row order reshuffled; row labels renamed ("Paid by" → "Purchased by", "Paid To" → "Paid to", "Related to gig" → "Needed for gig", "Notes" reassigned from `description` to new `notes` column, "Description" reintroduced for `description`). Footer restructured to `Done` primary + `Edit` cancel. No change to the sheet's public entry point `showFinancialEntryDetailsSheet`.
+- **`_AddFinancialEntryBottomSheetState.build`**: middle-block field order rewritten per Proposed Solution → (B). Two mode-conditional labels replaced with fixed labels. Two new fields (gig picker, notes text field) added.
+- **No new providers, controllers, repositories, or models.**
+- **No new imports beyond the two required in `add_financial_entry_bottom_sheet.dart`**: `../../gigs/gig_controller.dart` (for `gigProvider`) and `../../../app/models/gig.dart` (for the `Gig` type). No `package:collection` dep. No `package:forui/forui.dart` in feature code.
+
+## Cycle 8 Files to Create
+
+Two files:
+
+- **`supabase/migrations/20260909120000_add_notes_to_financial_entries.sql`** — the migration file authored by this cycle. Content per Proposed Solution → (C). **Not applied by any role in this pipeline.**
+- (No new production Dart source files.)
+
+If the Verification Plan requires a new test file (see below), Engineer creates it as file #2. Not counted as a "production" file for Change Budget purposes.
+
+## Cycle 8 Files to Modify
+
+### [supabase/migrations/](supabase/migrations/) — new file only
+See "Files to Create." Nothing else in `supabase/migrations/**` is touched.
+
+### [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart)
+- Add `final String? notes;` field (after `description`).
+- Add `this.notes,` to the constructor named-param list.
+- Add `notes: json['notes'] as String?,` to `fromJson`.
+- Add `'notes': notes,` to `toJson`.
+
+### [lib/features/financials/financial_entry_repository.dart](lib/features/financials/financial_entry_repository.dart)
+- `insertEntry`: add `String? notes` and `String? gigId` named params after `description`; add `'notes': notes?.isEmpty == true ? null : notes,` and `'gig_id': gigId,` to the payload map.
+- `updateEntry`: same param additions and same payload additions.
+- No other method touched.
+
+### [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart)
+- `addEntry`: add `String? notes` and `String? gigId` params after `description`; pass through to `repo.insertEntry`.
+- `updateEntry`: same.
+- No state-shape change on `FinancialsState`. No new notifier method. No change to `setViewMode`, `setDateFilter`, `deleteEntry`, `refresh`, `build`, `_load`.
+
+### [lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart)
+- Add imports: `import '../../gigs/gig_controller.dart';` and `import '../../../app/models/gig.dart';`.
+- Update `_SaveCallback` typedef: add `String? notes` and `String? gigId` named params.
+- Add `late final TextEditingController _notesController;` and `String? _selectedGigId;` fields on `_AddFinancialEntryBottomSheetState`.
+- `initState`: initialize `_notesController` from `entry?.notes ?? ''`, initialize `_selectedGigId` from `entry?.gigId`.
+- `dispose`: dispose `_notesController` alongside the other controllers.
+- `_save`: pass `notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim()` and `gigId: _selectedGigId` to `widget.onSave`.
+- `build`: reorder the middle-block widgets per Proposed Solution → (B). Delete the two mode-conditional label ternaries (lines 618, 627) and their preceding comment lines (617, 625); replace with fixed strings. Add the "Needed for gig" `Consumer`-wrapped `AppDropdown<String?>` block. Add the "Notes" `AppTextField` block.
+- Convert `_TypePillRow` from `StatelessWidget` to `StatefulWidget` per Proposed Solution → (B); add `ScrollController`, `GlobalKey`, `initState`/`didUpdateWidget`/`dispose`, and `_scrollToSelected`.
+- **Do not touch** `_TypePill` (individual pill widget), `_SegmentedToggle`, `_pickDate`, `_showAddTypeDialog`, `_populateSplits`, `_onDisburseToggle`, `_onDisbursementChanged`, `_shortName`, `_handleDelete`, `_buildFixedBottomActions`, or the Disburse/Deposit-to-Savings widget blocks in `build`.
+
+### [lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart](lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart)
+- Reshuffle row order in `_FinancialEntryDetailsSheet.build` per Proposed Solution → (A). Rename labels: `'Paid by'` → `'Purchased by'`, `'Paid To'` → `'Paid to'`, `'Related to gig'` → `'Needed for gig'`.
+- Change the row currently labeled `'Notes'` (mapping `entry.description`) to `'Description'` (still mapping `entry.description`); remove its `if (entry.description != null && entry.description!.isNotEmpty) ...[]` conditional wrapper — replace with an always-shown row using `(entry.description?.trim().isNotEmpty ?? false) ? entry.description! : '—'` for the value.
+- Add a new always-shown row labeled `'Notes'` mapping the new `entry.notes` column, using the same `'—'` fallback pattern.
+- Restructure the `SheetFooter` call from `SheetFooter(primaryLabel: 'Edit', primaryIcon: AppIcons.edit, onPrimary: <edit-flow>)` to `SheetFooter(primaryLabel: 'Done', onPrimary: () => Navigator.of(context).pop(), cancelLabel: 'Edit', onCancel: <existing edit-flow, unchanged internally except for notes/gigId threading>)`. Remove `primaryIcon: AppIcons.edit`; do not add a `cancelIcon` (SheetFooter's cancel slot does not accept one — verified at [sheet_footer.dart line 74–79](lib/components/ui/sheet_footer.dart#L74)).
+- Update the edit-flow callback body to thread `notes: ...` and `gigId: ...` into the `onSave` call and forward them to `notifier.updateEntry`.
+- **Do not touch** `_DetailRow` (Cycle 7 shape — off-limits), `_TypeBadge`, `_Badge1099`, `_ReimbursedBadge`, `_buildReimbursementDetailLine`, the drag handle, the amount+badge top block, the `_ReimbursedBadge` above the divider, or the gig-lookup manual `for` loop (only the label above it changes).
+
+### [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart)
+- Update `_addEntry`'s `onSave` callback: add `notes` and `gigId` to the destructured named-args block; forward them to `notifier.addEntry`.
+- **Do not touch** `_TransactionCard` (title-resolution logic references field bindings, not labels — verified), `_SummaryHeader`, `_TransactionsListHeader`, `_ViewModeToggle`, `_InlineLinkButton`, `_openCombinedReport`, `_showSavingsSheet`, `_SavingsSheet`, `_EmptyState`, `_ErrorState`, `_dateFilterLabel`, or the outer `_FinancialsScreenState.build` layout.
+
+### [test/features/financials/widgets/financial_entry_details_bottom_sheet_test.dart](test/features/financials/widgets/financial_entry_details_bottom_sheet_test.dart)
+Every existing assertion touching a renamed label or the changed footer must be updated:
+
+- Any `find.text('Paid by')` → `find.text('Purchased by')`.
+- Any `find.text('Paid To')` (exact-`Text` match) → `find.text('Paid to')` (sentence-case `t`).
+- Any `find.text('Related to gig')` → `find.text('Needed for gig')`.
+- Any `find.text('Notes')` (currently matching the row that showed `entry.description`) — either becomes `find.text('Description')` if the assertion is checking the row that maps `entry.description`, or stays as `find.text('Notes')` if a new case is added for the new `notes` column. Split into two assertions to cover both rows.
+- The `'footer button reads "Edit", not "Edit Entry"'` case (line 253–260 in the current test file per grep) must be updated: assert that `find.text('Done')` finds exactly one widget (the primary), `find.text('Edit')` finds exactly one widget (the cancel), `find.text('Edit Entry')` finds none.
+- The `'sheet renders exactly one Icon (the footer Edit icon)'` case (line 126–138) must be updated: the footer no longer has `primaryIcon: AppIcons.edit`; the primary "Done" button has no icon, the cancel "Edit" button has no icon. Assert that the icon count in the footer is **zero** (or update the count to whatever the drag-handle-plus-badge-plus-nothing-else total is — Engineer verifies by running the test). Rename the case to reflect the new expectation (e.g., `'sheet footer has no icons — Done primary and Edit cancel are both text-only'`).
+- Add new cases (at least three):
+  1. `'primary Done button dismisses the sheet via Navigator.pop'` — tap primary; verify sheet dismissed (`find.byType(_FinancialEntryDetailsSheet)` returns none, or the `Navigator` mock captures a `.pop` call).
+  2. `'secondary Edit button opens the add sheet with the entry pre-filled'` — tap cancel; verify the add sheet appears with the entry's fields.
+  3. `'Description and Notes render as separate rows for an entry with both fields populated'` — pump entry with `description: 'desc'` and `notes: 'notes'`; assert both `find.text('desc')` and `find.text('notes')` present; assert labels `'Description'` and `'Notes'` each find one widget.
+  4. `'Notes row falls back to em-dash when entry.notes is null'` — pump entry with `notes: null`; assert `find.text('—')` present (with a scope-tightening `descendant of: 'Notes' row`, per how the file's existing fallback assertions are structured).
+- If the test file already uses a fixture builder for `FinancialEntry`, add `notes: 'test notes'` (or similar) to the builder's optional params.
+
+### [test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart](test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart) — new file
+**Not present today** (no test file exists for the add/edit form; verified by `list_dir` on `test/features/financials/widgets/`). Cycle 8 introduces one to cover the new behaviors:
+
+- `'field order matches spec: Type, Amount, Date, Description, Paid to, Purchased by, Needed for gig, Notes'` — pump the sheet in create mode; use `tester.getTopLeft` on each field's label `Text` widget to assert vertical ordering (label at row 1 has smaller `dy` than row 2, and so on).
+- `'labels are fixed regardless of income/expense mode'` — pump in income mode; assert `find.text('Paid to (optional)')` and `find.text('Purchased by (optional)')` each find exactly one widget; tap the segmented toggle to switch to expense; assert both labels still present (not `'Paid To'` or `'Paid By'` or `'Payer'`).
+- `'selecting a gig from the picker sets _selectedGigId and passes gigId through to onSave'` — pump with an overridden `gigProvider` containing one gig; open the gig dropdown, select the gig; tap Save; assert the captured `onSave` args contain `gigId: '<gig id>'`.
+- `'notes field passes through to onSave.notes'` — pump; enter text into the Notes `AppTextField`; tap Save; assert captured `onSave` args contain the text.
+- `'editing an entry with a mid-list type auto-scrolls the pill row so the selected type is visible'` — pump with an initialEntry whose `.category` is a type at position 5+ in the row (past the visible-width boundary at typical test viewport size); assert the selected pill's `Rect.center.dx` is within the visible viewport after the first frame — use `tester.pumpAndSettle()` + `tester.getRect(find.byKey(<selected pill's key>))` to measure.
+- `'gig picker shows "No gig selected" as the default option when _selectedGigId is null'` — pump in create mode; assert the collapsed dropdown label reads `'No gig selected'`.
+
+This file follows the same `ProviderScope`-override pattern as the existing test files under `test/features/financials/widgets/`, using a `_pump` helper that wires up `financialsProvider`, `gigProvider`, `membersProvider`, `activeBandProvider`, and `currentUserPermissionsProvider`. Given the sheet's complexity (multiple controllers, `Consumer`-wrapped picker, permissions read for the delete button), some scenarios may be exercised via a screen-level pump with a driver form rather than direct sheet pump. Engineer's call.
+
+### [test/features/financials/widgets/summary_header_test.dart](test/features/financials/widgets/summary_header_test.dart), [transaction_card_test.dart](test/features/financials/widgets/transaction_card_test.dart), [transactions_list_header_test.dart](test/features/financials/widgets/transactions_list_header_test.dart)
+- **No change.** No dependency on the changed labels, the changed fields, or the migration. Verified by grep across each file for `Paid by|Paid To|Related to gig|Notes|Description|payerName|paidToName|gigId|notes` (only `payerName` and `paidToName` appear in `transaction_card_test.dart`, and those references are through the fixture builder — they read the same `FinancialEntry` fields Cycle 8 leaves untouched).
+
+## Cycle 8 Files Off-Limits
+
+- [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart) — every widget except `_addEntry`'s `onSave` callback body is off-limits. Especially: `_TransactionCard._title` (field bindings unchanged; do not "align" the card title with the drawer's new labels; that's a separate design choice not asked for).
+- [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart) — no change.
+- [lib/features/financials/financials_report_builder.dart](lib/features/financials/financials_report_builder.dart) — no change. The PDF column headers "Payer" and "Paid to" (from lines 204–212) stay as-is. They are semantically clearer than the new app labels and Tony did not ask for report labels to change.
+- [lib/features/financials/widgets/gig_pay_bottom_sheet.dart](lib/features/financials/widgets/gig_pay_bottom_sheet.dart) — the gig-tab pay flow is a separate UX path; do not add a `notes` field or "Needed for gig" picker to it.
+- [lib/features/events/widgets/gig_expense_subview.dart](lib/features/events/widgets/gig_expense_subview.dart) — the gig-tab expense flow is a separate UX path with a known-gig context; do not add the picker.
+- [lib/features/events/widgets/event_editor_drawer.dart](lib/features/events/widgets/event_editor_drawer.dart) — unaffected. The gig-tab expense flow flushes through `insertGigExpenseEntry` / `updateGigExpenseEntry` which are Cycle 8-untouched.
+- [lib/components/ui/app_dropdown.dart](lib/components/ui/app_dropdown.dart) — do not modify the wrapper. Cycle 8 uses it via existing API (no `size:` on the gig picker; picker follows the wrapper's `.md` default).
+- [lib/components/ui/sheet_footer.dart](lib/components/ui/sheet_footer.dart) — do not modify. Cycle 8 uses `cancelLabel`/`onCancel` which are already supported.
+- [lib/features/gigs/gig_controller.dart](lib/features/gigs/gig_controller.dart), [lib/app/models/gig.dart](lib/app/models/gig.dart) — read-only. No shape change.
+- [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart)'s `FinancialsState` shape — unchanged. No new state field.
+- Every existing `supabase/migrations/**` file — do not modify. The new migration is a NEW file, additive.
+- `pubspec.yaml` — no new dependency (no `package:collection`, no anything else).
+- Anything outside `lib/features/financials/`, `lib/features/financials/models/`, `lib/features/financials/widgets/`, `test/features/financials/widgets/`, and `supabase/migrations/` (new file only).
+
+## Cycle 8 Change Budget
+
+Numbers are net line delta *per file* after Engineer implements the Task Breakdown; QA diffs against these. Being off by >~40 lines in either direction on any single production file, or any non-zero delta on the off-limits files, is a plan-vs-implementation gap that should be flagged.
+
+| File | Expected net Δ lines | Rationale |
+| --- | --- | --- |
+| `supabase/migrations/20260909120000_add_notes_to_financial_entries.sql` | **+12 to +18** | New file — comment header (~8 lines) + 2-line `ALTER TABLE` statement. |
+| `lib/features/financials/models/financial_entry.dart` | **+4 to +8** | One field (~1 line), one constructor param (~1 line), one `fromJson` line, one `toJson` line, plus optional blank-line spacing. |
+| `lib/features/financials/financial_entry_repository.dart` | **+6 to +12** | Two new params on `insertEntry` (2 lines) plus two new payload keys (2 lines); same for `updateEntry`. Formatting may push to +12. |
+| `lib/features/financials/financials_controller.dart` | **+8 to +14** | Two new params on `addEntry` (2 lines) plus two forwarded to the repo (2 lines); same for `updateEntry`. |
+| `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart` | **+80 to +140** | Add 2 imports (+2). Update `_SaveCallback` typedef (+2). Add 2 state fields (+2), `initState` initialization (+3), `dispose` line (+1). Update `_save` to pass 2 new params (+3). Rewrite the middle-block widgets in `build`: move `Description` up (~0 net), rename 2 labels to fixed strings (−~4), swap the two rows' render order (~0 net), add the "Needed for gig" `Consumer` + `AppDropdown` block (~40 lines including sorting and label helper), add the "Notes" `AppTextField` block (~10 lines). Convert `_TypePillRow` from `StatelessWidget` to `StatefulWidget` with `ScrollController` + `GlobalKey` (~+45 lines: 5 lifecycle methods + `_scrollToSelected` helper + `build` rewrite that assigns `key` conditionally to the selected pill). Delete two mode-conditional label ternaries + 2 comments (~−6). |
+| `lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart` | **+35 to +65** | Reshuffle 6 rows (~0 net; just reordering existing widgets), rename 3 labels (~0 net; string edits), reintroduce "Description" row for `entry.description` with fallback (~+5 lines vs. today's conditional), add new "Notes" row for `entry.notes` (+~5 lines), restructure `SheetFooter` from primary-only Edit to Done-primary + Edit-cancel (~+8 lines: adds `cancelLabel` + `onCancel` params, moves the edit-flow callback body from `onPrimary` to `onCancel`), thread `notes: ...` and `gigId: ...` into the edit-flow `onSave` and `notifier.updateEntry` (~+6 lines). Remove `primaryIcon: AppIcons.edit` (−1). |
+| `lib/features/financials/financials_screen.dart` | **+4 to +8** | Update `_addEntry`'s `onSave` destructured args (+2) and forward them to `notifier.addEntry` (+2). |
+| `test/features/financials/widgets/financial_entry_details_bottom_sheet_test.dart` | **+40 to +100** | Update ~6 existing label/text assertions (~+6 lines net; string edits), rewrite the "footer button reads Edit" case for the new `Done` + `Edit` shape (~+10 lines), rewrite the "sheet renders exactly one Icon" case for the zero-icon footer (~+5 lines), add 3–4 new cases (`Done dismisses`, `Edit opens add sheet`, `Description and Notes render`, `Notes falls back to em-dash`) (~+50 lines). Update fixture to include `notes` (~+2 lines). |
+| `test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart` (new) | **+250 to +450** | New file — imports and `_pump` helper (~40 lines) plus 6 assertions (~40 lines each). Test file setup for `ProviderScope` overrides and `_FakeGigNotifier` / `_FakeFinancialsNotifier` scaffolding follows the same shape as the sibling test files under this folder. |
+| Any other file | **0** | Off-limits (Cycle 8). |
+
+- Expected new files: **2** (1 migration file, 1 test file).
+- Expected deleted files: **0**.
+- Expected new public classes / methods on production code: **0**. Every new widget/field/method inside modified files is private-to-file or private-to-class.
+- Expected new dependencies (pubspec.yaml): **0**.
+- Expected migration files: **1** (authored, not applied).
+
+## Cycle 8 System Impact Map
+
+| System | Status | Notes |
+| --- | --- | --- |
+| Financials → Screen | changed (in-scope, minimal) | Only `_addEntry`'s `onSave` params + forwarding are updated. `_TransactionCard` and all other screen widgets untouched. |
+| Financials → Controller | changed (in-scope, minimal) | Two new params on `addEntry` and `updateEntry` — threaded through, no state-shape change. |
+| Financials → Details Sheet | changed (in-scope) | Row order, labels, footer restructured. `_DetailRow` shape unchanged (Cycle 7 baseline). |
+| Financials → Add/Edit Sheet | changed (in-scope) | Field order, labels, gig picker, notes field, `_TypePillRow` auto-scroll. |
+| Financials → Repository | changed (in-scope, minimal) | Two new params on `insertEntry`/`updateEntry` + payload keys. |
+| Financials → Model | changed (in-scope, minimal) | New `notes` field. |
+| Financials → PDF Report | unaffected | Report reads `entry.description` and `entry.payerName` — unchanged column names. Report headers "Payer" / "Paid to" — unchanged. |
+| Financials → Savings Sheet | unaffected | Reads only `depositToSavings`. |
+| Gig-tab expense flow (event_editor_drawer + gig_expense_subview + insertGigExpenseEntry) | unaffected | Separate code path; no new params flow through it. Not asked to change. |
+| Gig-tab pay flow (gig_pay_bottom_sheet + upsertGigPayEntry) | unaffected | Separate code path; not asked to change. |
+| Gigs / Rehearsals / Setlists / Members / Auth / Routing / Notifications | unaffected | No cross-references, no init-order change, no session change. |
+| Platforms (iOS / Android / macOS / Web) | uniformly affected | Shared Flutter UI only. `Scrollable.ensureVisible`, `AppDropdown`, and `SheetFooter` all render identically cross-platform. No `Platform.isIOS`/`kIsWeb` branch touched. |
+| Supabase schema | changed (in-scope) | One new nullable column via new migration file. **Applied manually by Tony, not by this pipeline.** |
+| Supabase RLS | unaffected | Existing `financial_entries` policies are column-agnostic; new column requires no policy update. |
+| Supabase triggers / constraints | unaffected | `trg_sync_gig_pay` and `financial_entries_reimbursement_consistency` are unaffected. |
+| `pubspec.yaml` | unaffected | No new dep. |
+| `lib/components/ui/app_dropdown.dart` and `sheet_footer.dart` | unaffected (consumed) | Cycle 8 uses existing API. |
+
+## Cycle 8 Regression Risk
+
+**MEDIUM** (elevated from LOW compared to prior cycles). Justification:
+
+- **First cycle in this feature that touches the DB schema.** Even though the schema change is strictly additive (new nullable column), a payload-shape mismatch during the app-deploy-before-migration window would cause `insertEntry` / `updateEntry` to fail with a PostgREST `PGRST204` (or similar) error, breaking the add/edit flow for every user until the migration lands. Mitigated by the Rollout Strategy → deploy ordering directive (migration first, then app).
+- **Wire-format param addition on the repository.** Existing entries with `notes = NULL` are read correctly by `FinancialEntry.fromJson` (Dart's null-safety plus `as String?` handles the absent-key case gracefully — verified by tracing the current `deposit_to_savings_cents` handling at [line 129](lib/features/financials/models/financial_entry.dart#L129) which uses the same pattern). Regression here would come from JSON key typos (`notes` vs. `notes_text`, `gig_id` vs. `gigId`), which are trivially caught by the first `flutter analyze` + `flutter test` run.
+- **`_TypePillRow` becomes stateful.** The lifecycle change (`ScrollController` disposal in `dispose`) is a genuine new resource to track. Missed disposal would leak a `ScrollController` per open-and-close of the sheet. Verified in the plan text; verified by QA via static diff review.
+- **Labeling change breaks existing tests.** `financial_entry_details_bottom_sheet_test.dart` has multiple assertions on the old labels and footer shape; every failing assertion caught by `flutter test` before merge is the point.
+- **UX ambiguity on "Purchased by" for income entries** (accepted trade-off per Interpretation Confirmation) — surfaced in the owner-run punch list so Tony can revisit if the reading feels wrong once he sees it in the app.
+
+**Not-a-regression-class:**
+- `_TransactionCard`'s title logic: byte-identical to Cycle 7; deliberate, verified in Existing System Analysis.
+- Gig-tab flows: not touched; the parallel gig-expense and gig-pay paths continue to set `gig_id` via their own repo methods.
+- PDF report: not touched; label semantics preserved.
+
+## Cycle 8 Engineer Task Breakdown
+
+Ordered, atomic. Each task leaves the app compiling once its dependencies are met. **Do not merge tasks or invent extra sub-steps.**
+
+1. **Author the migration file.**
+   - Create `supabase/migrations/20260909120000_add_notes_to_financial_entries.sql` with the exact content from Proposed Solution → (C). If the timestamp collides with a newer file already on disk, choose a lexically-later timestamp (e.g., `20260909130000`).
+   - Do **not** apply the migration. Do not run `supabase db push`, `supabase migration up`, `psql`, or any equivalent. This is a static file authoring task only.
+
+2. **Add `notes` to the `FinancialEntry` model.**
+   - Edit `lib/features/financials/models/financial_entry.dart`: add `final String? notes;` after `description`, add the constructor param, add `notes: json['notes'] as String?,` in `fromJson`, add `'notes': notes,` in `toJson`.
+
+3. **Add `notes` and `gigId` params to the repository.**
+   - Edit `lib/features/financials/financial_entry_repository.dart`: `insertEntry` and `updateEntry` each gain `String? notes` and `String? gigId` named params (positioned after `description`), and each payload map gains `'notes': notes?.isEmpty == true ? null : notes,` and `'gig_id': gigId,`.
+   - Do not touch `insertGigExpenseEntry`, `updateGigExpenseEntry`, `upsertGigPayEntry`, or any other method.
+
+4. **Thread `notes` and `gigId` through the notifier.**
+   - Edit `lib/features/financials/financials_controller.dart`: `addEntry` and `updateEntry` each gain `String? notes` and `String? gigId` params, passed to the repo call.
+   - After Tasks 1–4, `flutter analyze` will flag broken call sites in `add_financial_entry_bottom_sheet.dart`, `financials_screen.dart`, and `financial_entry_details_bottom_sheet.dart` — expected, resolved in Tasks 5–7.
+
+5. **Update `_SaveCallback` and the two call sites.**
+   - Edit `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`: update `_SaveCallback` typedef to include `String? notes` and `String? gigId` named params. Add `late final TextEditingController _notesController;` and `String? _selectedGigId;` fields. Initialize in `initState` (`_notesController = TextEditingController(text: entry?.notes ?? '');`, `_selectedGigId = entry?.gigId;`) and dispose `_notesController` in `dispose`. Update `_save` to pass the two new params to `widget.onSave`.
+   - Edit `lib/features/financials/financials_screen.dart`: add `notes,` and `gigId,` to `_addEntry`'s `onSave` destructured named-args block; forward both to `notifier.addEntry`.
+   - Edit `lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart`: add `notes,` and `gigId,` to the edit-callback's `onSave` destructured args; forward to `notifier.updateEntry`. Leave the callback body's other lines untouched at this stage.
+
+6. **Restructure the add/edit form layout.**
+   - Edit `add_financial_entry_bottom_sheet.dart` `build`:
+     - Add imports: `import '../../gigs/gig_controller.dart';` and `import '../../../app/models/gig.dart';`.
+     - Move the "Description" `AppTextField` block up so it renders directly after the Date button.
+     - Rename the label at line 618 to the fixed string `'Purchased by (optional)'`; delete the ternary. Delete the comment line above it (`// Payer (income) / Paid To (expense)`).
+     - Rename the label at line 627 to the fixed string `'Paid to (optional)'`; delete the ternary. Delete the comment line above it (`// Paid To (income) / Paid By (expense)`).
+     - Swap the render order of the two blocks so the `_paidToUserId` `AppDropdown` (and its conditional `_paidToOtherController`) renders BEFORE the `_payerController` `AppTextField`.
+     - Add the "Needed for gig" `Consumer(builder: ...)` block per Proposed Solution → (B), positioned between the "Purchased by" field and the "Notes" field.
+     - Add the "Notes" `AppTextField` block per Proposed Solution → (B), positioned between the gig picker and the 1099 toggle.
+   - Do not touch the 1099 toggle, Disburse to Band, or Deposit to Savings blocks.
+
+7. **Convert `_TypePillRow` to `StatefulWidget` with auto-scroll.**
+   - Replace the `_TypePillRow` class in `add_financial_entry_bottom_sheet.dart` with the `StatefulWidget` + `_TypePillRowState` shape from Proposed Solution → (B). The parent widget's usage of `_TypePillRow(...)` is unchanged (same constructor surface, same callbacks).
+   - Do not touch `_TypePill`, `_TypePillState`, or any of the pill styling.
+
+8. **Restructure the details sheet.**
+   - Edit `financial_entry_details_bottom_sheet.dart` `_FinancialEntryDetailsSheet.build`:
+     - Reshuffle the primary rows to: Date → Description → Paid to → Purchased by → Needed for gig → Notes.
+     - Rename labels: `'Paid by'` → `'Purchased by'`, `'Paid To'` → `'Paid to'`, `'Related to gig'` → `'Needed for gig'`.
+     - Change the row that currently maps `entry.description` from the label `'Notes'` to `'Description'`. Remove its `if (entry.description != null ...) ...[]` conditional wrapper; render always-shown with `(entry.description?.trim().isNotEmpty ?? false) ? entry.description! : '—'` as the value.
+     - Add a new always-shown row labeled `'Notes'` bound to `entry.notes` with the same `'—'` fallback.
+     - Keep the conditional Reimbursed / Reimbursement / Deposit to Savings rows in place after the primary six.
+   - Restructure the `SheetFooter` call:
+     - Change `primaryLabel: 'Edit'` → `'Done'`.
+     - Remove `primaryIcon: AppIcons.edit`.
+     - Change `onPrimary: <edit-flow-callback>` → `() => Navigator.of(context).pop()`.
+     - Add `cancelLabel: 'Edit'` and `onCancel: <the-original-edit-flow-callback>`.
+     - Leave the internal body of the edit-flow callback unchanged from Task 5's edit (already threads `notes` and `gigId`).
+   - If `AppIcons` is now unused in the file, remove the import — verify with grep in this file only.
+
+9. **Update the existing details-sheet test file.**
+   - Edit `test/features/financials/widgets/financial_entry_details_bottom_sheet_test.dart` per Files to Modify → this file. Rewrite the footer / icon / label assertions; add the 3–4 new cases enumerated.
+
+10. **Add the new add/edit form test file.**
+    - Create `test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart` per Files to Modify → new file. Follow the sibling test files' `ProviderScope` override pattern; wire up `financialsProvider`, `gigProvider`, `membersProvider`, `activeBandProvider`, `currentUserPermissionsProvider` with fakes.
+
+## Cycle 8 Verification Plan
+
+### Cycle 8 Tier 1 — pre-deploy (QA gate, mechanically executable)
+
+QA cannot run the app or apply migrations. QA gate for APPROVED requires all of the following without either action:
+
+1. `flutter analyze` clean (no new lints; existing baseline preserved). Includes the modified widgets, controller, repository, model, and both test files.
+2. `flutter test` passes, including:
+   - Updated `financial_entry_details_bottom_sheet_test.dart` (with new footer / label / row-order assertions).
+   - New `add_financial_entry_bottom_sheet_test.dart` (6 new cases).
+   - Existing `summary_header_test.dart`, `transaction_card_test.dart`, `transactions_list_header_test.dart` — must remain passing byte-identically (no fixture edits required per Files to Modify).
+3. Static SQL review of the new migration file:
+   - File exists at `supabase/migrations/YYYYMMDDHHMMSS_add_notes_to_financial_entries.sql` with lexically-later timestamp than `20260908194500`.
+   - Contains exactly one `ALTER TABLE public.financial_entries ADD COLUMN IF NOT EXISTS notes TEXT;` statement (plus comment header).
+   - No DDL beyond that single `ALTER TABLE`. No `DROP`, no `UPDATE`, no `CREATE FUNCTION`, no `CREATE TRIGGER`, no `GRANT`, no `REVOKE`, no `INSERT`. QA greps the file for each of those keywords and expects zero matches for anything other than `ALTER TABLE`.
+   - Idempotent (`IF NOT EXISTS`).
+   - Column type is `TEXT`, nullable, no default, no `NOT NULL`.
+4. Ephemeral-DB apply-check on the migration (mechanical, headless — no production side effect):
+   - Spin up a fresh Supabase local instance (or `pg_dump` clone into a scratch DB), apply all migrations up to and including the new one, and confirm `\d public.financial_entries` shows a `notes` column of type `text` nullable. This is the only DB-touching QA gate; runs against a scratch DB, never production. If the ephemeral instance is not available in QA's environment, this check is deferred to Tony's manual apply step (noted in the punch list).
+5. Diff review confirms:
+   - Off-limits files are byte-identical to `main` (or to their state at commit `22b38be`, whichever is relevant for the file). Specifically: `financials_pdf_preview_screen.dart`, `financials_report_builder.dart`, `gig_pay_bottom_sheet.dart`, `gig_expense_subview.dart`, `event_editor_drawer.dart`, `app_dropdown.dart`, `sheet_footer.dart`, `gig_controller.dart`, `gig.dart`, every pre-existing `supabase/migrations/**` file, `pubspec.yaml`.
+   - Net line delta per modified file falls inside the Change Budget ranges.
+   - `_TransactionCard._title` in `financials_screen.dart` is untouched (grep the diff for `_TransactionCard`/`_title` and confirm zero hunks).
+   - `_DetailRow` in `financial_entry_details_bottom_sheet.dart` is untouched (grep for `class _DetailRow` and confirm zero hunks).
+   - Both new imports (`gig_controller.dart` and `gig.dart`) are present in `add_financial_entry_bottom_sheet.dart`; no `import 'package:collection/collection.dart';` was added; no `import 'package:forui/forui.dart';` was added to any Cycle 8-touched feature file.
+6. Sanity checks on the new migration file's expected RLS behavior (static reasoning, no DB apply required):
+   - QA reads the current `financial_entries_select`, `financial_entries_insert`, `financial_entries_update`, `financial_entries_delete` policy bodies (across the four historical migrations that touch them) and confirms none reference a specific column name — only `check_band_member(band_id)` and `created_by`. This confirms the plan's "RLS impact: none" claim.
+   - QA confirms `trg_sync_gig_pay`'s function body (in the create migration) reads only `entry_type`, `gig_id`, `amount_cents` — confirms "trigger impact: none."
+
+**No `has_function_privilege` check required** — Cycle 8 introduces no new `SECURITY DEFINER` function.
+
+### Cycle 8 Tier 2 — post-deploy
+
+QA cannot run the app or drive a live instance. Tier 2 is scoped to what a static apply-time check can verify (Tony runs this manually as part of the migration apply). Tony runs these after applying `20260909120000_add_notes_to_financial_entries.sql` against production:
+
+1. In the Supabase SQL editor, run `SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'financial_entries' AND column_name = 'notes';`. Expect one row with `text` / `YES`.
+2. Run `\dt+ public.financial_entries` (or the equivalent). Confirm no unexpected column drops (a spot-check that the migration didn't accidentally include a `DROP`).
+3. Read one existing `financial_entries` row via the Supabase client (either in the Table Editor or via `SELECT id, description, notes FROM public.financial_entries LIMIT 1;`). Confirm `notes` is `NULL` for the existing row (no backfill applied).
+4. Deploy the new app build. Confirm the add/edit form's Save action produces a row with the new `notes` and `gig_id` values populated correctly (single spot-check).
+
+### Cycle 8 Owner-run punch list (Tony runs at PR-test time — QA writes this into the PR body verbatim, does not attempt it)
+
+QA cannot run the app. Tony walks the following in a preview build after applying the migration (adds to the Cycles 1–7 punch lists; does not replace them):
+
+1. Apply the migration in production or the preview environment: `supabase db push --linked` (or Tony's equivalent apply command). Confirm the CLI reports success.
+2. Sign in with a demo band containing at least one gig and open Financials → Add.
+   Expected: field order top to bottom is Type / Amount / Date / Description / Paid to / Purchased by / Needed for gig / Notes (with 1099, Disburse, Deposit to Savings appearing below in the current-behavior positions when applicable to the mode).
+3. Confirm the "Paid to" label reads `'Paid to (optional)'` (sentence-case `t`) and the "Purchased by" label reads `'Purchased by (optional)'`, regardless of whether the Income or Expense segmented toggle is selected. Toggle back and forth; labels must not change.
+4. Tap the "Needed for gig" control.
+   Expected: a Forui `FSelect` popup opens with "No gig selected" at the top and each band gig listed below in descending date order (most recent gig first).
+5. Select a gig; tap Save; verify the new entry appears in the transaction list. Open its details drawer.
+   Expected: the "Needed for gig" row reads `'Yes • <gig name>'`.
+6. Enter a value in the "Notes" field of a new entry; tap Save. Open its details drawer.
+   Expected: the "Notes" row shows the entered text; the "Description" row shows whatever was entered in the description field (or `'—'` if left blank).
+7. Open an existing gig-linked entry (via the gig-tab pay flow) for editing.
+   Expected: the "Needed for gig" picker pre-selects the linked gig by name; the "Notes" field is empty (legacy entries have no notes). Editing and saving preserves both fields.
+8. Open an existing entry whose category type is at position 5+ in the type-pill row (or add several types via "+ Add" until the selection sits past the visible-width boundary at your device width). Open the entry for editing.
+   Expected: the type-pill row is scrolled so the selected pill is visible (centered or near-centered) in the viewport when the sheet opens.
+9. In the details drawer footer, tap "Done".
+   Expected: the drawer dismisses; no navigation to any other screen.
+10. Re-open the details drawer; tap "Edit" (the secondary text-button).
+    Expected: the drawer dismisses and the add/edit sheet opens pre-filled with the entry's fields — same behavior as Cycle 7's Edit button.
+11. Verify the "Paid to" and "Purchased by" labels in the details drawer read exactly those strings (case-sensitive). No `'Paid by'`, no `'Paid To'` (with capital T), no `'Payer'`.
+12. Verify the "Needed for gig" row in the drawer reads exactly that (not `'Related to gig'`).
+13. Verify the drawer's primary and cancel button strings: `'Done'` (primary, filled rose) and `'Edit'` (cancel, text-only).
+14. **Semantic check on income "Purchased by":** create an income entry (e.g., Gig Pay with a Payer). Open its details drawer. Verify the "Purchased by" row shows the venue's name.
+    Expected: the row displays correctly (the underlying data binding is unchanged), but Tony should confirm the label reads acceptably for the income case. If it feels wrong, note it in the PR — this is the accepted UX trade-off from Interpretation Confirmation (2), and a future cycle can reconsider.
+15. Cross-platform visual check on iOS, Android, macOS, and web:
+    - The gig picker's `FSelect` popup opens correctly on each platform (not clipped, not offset).
+    - The `_TypePillRow` auto-scroll behavior works on each platform's viewport width (iPhone SE, iPad, narrow web, macOS full-window).
+    - The details drawer's `Done` / `Edit` footer buttons are correctly sized and tappable on each platform.
+
+## Cycle 8 QA Regression Areas
+
+1. **Migration file is authored, not applied.** Any evidence in QA's environment or logs that a `supabase db push`, `supabase migration up`, or `psql` was run against ANY database (production, staging, local, preview) is a critical procedural violation.
+2. **New column deploy ordering.** If the migration is not applied before the app deploy, the add/edit flow breaks with a payload-shape mismatch (PostgREST rejects unknown-column keys). The Rollout Strategy step 1 exists for this reason; Tony must observe the ordering. QA cannot verify this from static review; owner-run punch list step 1 makes it explicit.
+3. **`_TransactionCard._title` untouched.** Any diff hunk touching `_title` in `financials_screen.dart` violates the plan's field-binding preservation stance and could re-align the card title with the new drawer label at the cost of legacy entry rendering.
+4. **`_DetailRow` untouched.** Any diff hunk touching the `_DetailRow` class in `financial_entry_details_bottom_sheet.dart` violates Cycle 7's baseline (side-by-side label/value, `SizedBox(width: 68)` label column, `SizedBox(width: Spacing.space8)` gutter).
+5. **Mode-conditional labels fully deleted.** Grep the edit form's diff for `? 'Paid To (optional)' :`, `? 'Paid By (optional)' :`, `? 'Payer (optional)' :` — all three ternary fragments must be absent from the post-diff file.
+6. **No new dependency, no raw Forui import in feature code.** Standard hygiene check.
+7. **Payload key exact-name check.** Grep the repo file for `'notes'` (must appear in both `insertEntry` and `updateEntry` payloads) and `'gig_id'` (same). Grep the model file's `fromJson` and `toJson` for the same. Any `'note'`, `'gigId'`, `'gig-id'` or other close-but-wrong variant is a wire-format defect.
+8. **`_TypePillRow` disposes its `ScrollController`.** Grep the stateful class for `_scrollController.dispose()` inside `dispose()`.
+9. **Gig picker sort order.** The picker must sort gigs by `gig.date` descending (most recent first). QA reads the picker code to confirm the comparator direction (`b.date.compareTo(a.date)`).
+10. **Cycle 7 details-sheet baseline preserved.** `_DetailRow` shape, `size: FTextFieldSizeVariant.sm` on the summary-header dropdown, and Cycle 7's `financials_screen.dart` layout are all off-limits and unchanged.
+11. **Existing three sibling test files pass byte-identically.** `summary_header_test.dart`, `transaction_card_test.dart`, `transactions_list_header_test.dart` — no fixture edits, no assertion edits. Any Cycle 8 diff touching them (other than through mechanical updates required by an analyzer-forced signature change on `FinancialsState`, which isn't happening — no state-shape change) is a scope violation.
+12. **Semantic UX ambiguity flagged.** The punch list explicitly asks Tony to inspect the income-side "Purchased by" reading — QA does not gate on visual acceptance; Tony does.
+
+## Cycle 8 Rollout Strategy
+
+**Deploy ordering matters this cycle.** Same PR as Cycles 1–7 (#273). Commits added on top of the Cycle 7 tree.
+
+1. **Tony applies the migration first** (`supabase db push --linked` against production, or the equivalent apply command). Confirm success in the Supabase logs.
+2. **Tony deploys the new app build** via the standard `tools/build_*.sh` + `tools/deploy_web.sh` pipeline.
+3. **Rollback plan** if the app deploy hits an unexpected issue:
+   - **App-only rollback (migration stays)**: revert the PR, redeploy the previous app build. The `notes` column remains on the DB but no app writes to it; existing rows retain their `NULL` values. No data loss, no data corruption.
+   - **Migration rollback (only if the migration itself corrupts the DB)**: not expected — the migration is `ALTER TABLE ... ADD COLUMN`, which is well-tested Postgres behavior. If needed, `ALTER TABLE public.financial_entries DROP COLUMN IF EXISTS notes;` reverts it; any `notes` values written between apply and rollback are lost, but the rest of the row survives.
+
+No feature flag, no phased rollout — the schema and app changes are strictly additive and the risk of a bad interaction is low. Deploy ordering (migration → app, not the reverse) is the one non-obvious constraint Tony must observe.
+
+## Cycle 8 Out of Scope
+
+- Changing the underlying data bindings on `payer_name` / `paid_to_name` / `paid_to_user_id` (e.g., swapping which column "Paid to" or "Purchased by" reads from). Cycle 8 preserves bindings; labeling is the only change.
+- Renaming the `payor_name` column to `payer_name` (or any other DB column). The Dart field is aliased to `payerName` in `fromJson`; leave the SQL column name alone.
+- Renaming the PDF report's column headers ("Payer", "Paid to") to match the app's new labels. PDF is a separate UX context; not asked to change.
+- Adding a `notes` column or "Needed for gig" picker to `gig_pay_bottom_sheet.dart` or `gig_expense_subview.dart`. Those flows have their own known-gig context and are out of scope.
+- Backfilling `notes` from `description` for existing entries. `notes` starts null; users add new content over time.
+- Adding a `gig_id` value to entries that don't have one yet, via a bulk "link to gig" flow. Users edit entries one at a time via the new picker.
+- Persisting the type-pill row's scroll position across sheet dismiss/re-open. Auto-scroll fires on each open; scroll position resets between sessions.
+- Adding a "Recent gigs only" filter to the gig picker, or grouping gigs by year in the popup. Simple flat list, sorted by date descending.
+- Refactoring `_TransactionCard._title` to align with the new drawer labels. Card title stays byte-identical.
+- Any change to `FinancialsState`, `FinancialsPdfPreviewScreen`, `financials_report_builder.dart`, `_TypePill` (individual pill widget), `_SegmentedToggle`, the Disburse-to-Band flow, the Deposit-to-Savings flow, or the 1099 toggle.
+- Any change to auth, session, routing, init order, gig data flow, `bandFullStateProvider`, `get_band_full_state` RPC, or any RLS policy.
+- Applying the migration. This pipeline authors migration files; Tony applies them.
 

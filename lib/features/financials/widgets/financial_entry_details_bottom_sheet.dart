@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../gigs/gig_controller.dart';
@@ -131,22 +130,36 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                 // Details rows
                 _DetailRow(label: 'Date', value: dateStr),
                 const SizedBox(height: Spacing.space12),
-                _DetailRow(label: 'Related to gig', value: relatedToGigValue),
+                _DetailRow(
+                  label: 'Description',
+                  value: (entry.description?.trim().isNotEmpty ?? false)
+                      ? entry.description!
+                      : '—',
+                ),
                 const SizedBox(height: Spacing.space12),
                 _DetailRow(
-                  label: 'Paid by',
+                  label: 'Paid to',
+                  value:
+                      (entry.paidToName != null && entry.paidToName!.isNotEmpty)
+                          ? entry.paidToName!
+                          : '—',
+                ),
+                const SizedBox(height: Spacing.space12),
+                _DetailRow(
+                  label: 'Purchased by',
                   value:
                       (entry.payerName != null && entry.payerName!.isNotEmpty)
                           ? entry.payerName!
                           : '—',
                 ),
                 const SizedBox(height: Spacing.space12),
+                _DetailRow(label: 'Needed for gig', value: relatedToGigValue),
+                const SizedBox(height: Spacing.space12),
                 _DetailRow(
-                  label: 'Paid To',
-                  value:
-                      (entry.paidToName != null && entry.paidToName!.isNotEmpty)
-                          ? entry.paidToName!
-                          : '—',
+                  label: 'Notes',
+                  value: (entry.notes?.trim().isNotEmpty ?? false)
+                      ? entry.notes!
+                      : '—',
                 ),
                 if (entry.entryType == FinancialEntryType.expense) ...[
                   const SizedBox(height: Spacing.space12),
@@ -160,14 +173,6 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                   _DetailRow(
                     label: 'Reimbursement',
                     value: _buildReimbursementDetailLine(entry),
-                  ),
-                ],
-                if (entry.description != null &&
-                    entry.description!.isNotEmpty) ...[
-                  const SizedBox(height: Spacing.space12),
-                  _DetailRow(
-                    label: 'Notes',
-                    value: entry.description!,
                   ),
                 ],
                 if (entry.depositToSavings == true) ...[
@@ -185,9 +190,10 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
             ),
           ),
           SheetFooter(
-            primaryLabel: 'Edit',
-            primaryIcon: AppIcons.edit,
-            onPrimary: () async {
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: () async {
               Navigator.of(context).pop();
               final notifier = ref.read(financialsProvider.notifier);
               final members = ref.read(membersProvider).members;
@@ -208,6 +214,8 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                   required amountCents,
                   required entryDate,
                   description,
+                  notes,
+                  gigId,
                   is1099Expected,
                   payerName,
                   paidToName,
@@ -223,6 +231,8 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                     amountCents: amountCents,
                     entryDate: entryDate,
                     description: description,
+                    notes: notes,
+                    gigId: gigId,
                     is1099Expected: is1099Expected,
                     payerName: payerName,
                     paidToName: paidToName,
@@ -291,6 +301,9 @@ class _DetailRow extends StatelessWidget {
                 value,
                 style: AppTextStyles.callout
                     .copyWith(color: context.colors.textPrimary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
               ),
             ],
           ),

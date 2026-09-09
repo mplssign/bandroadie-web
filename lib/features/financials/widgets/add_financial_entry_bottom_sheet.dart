@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../app/models/gig.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
@@ -14,6 +15,7 @@ import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
+import '../../gigs/gig_controller.dart';
 import '../../members/permissions/band_permissions_provider.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/widgets/currency_input_field.dart';
@@ -31,6 +33,8 @@ typedef _SaveCallback = Future<void> Function({
   required int amountCents,
   required DateTime entryDate,
   String? description,
+  String? notes,
+  String? gigId,
   bool? is1099Expected,
   String? payerName,
   String? paidToName,
@@ -151,6 +155,8 @@ class _AddFinancialEntryBottomSheetState
   late final TextEditingController _descriptionController;
   late final TextEditingController _payerController;
   late final TextEditingController _paidToOtherController;
+  late final TextEditingController _notesController;
+  String? _selectedGigId;
 
   String? _paidToUserId;
   static const String _kOther = '__other__';
@@ -184,6 +190,8 @@ class _AddFinancialEntryBottomSheetState
           TextEditingController(text: entry.description ?? '');
       _payerController = TextEditingController(text: entry.payerName ?? '');
       _paidToOtherController = TextEditingController();
+      _notesController = TextEditingController(text: entry.notes ?? '');
+      _selectedGigId = entry.gigId;
       // Pre-fill paid-to: member userId takes priority; free-text name => Other
       if (entry.paidToUserId != null) {
         _paidToUserId = entry.paidToUserId;
@@ -200,17 +208,22 @@ class _AddFinancialEntryBottomSheetState
       _descriptionController = TextEditingController();
       _payerController = TextEditingController();
       _paidToOtherController = TextEditingController();
+      _notesController = TextEditingController();
+      _selectedGigId = null;
     }
     _amountController.addListener(_onDisbursementChanged);
+    _amountController.addListener(_onAmountChanged);
   }
 
   @override
   void dispose() {
     _amountController.removeListener(_onDisbursementChanged);
+    _amountController.removeListener(_onAmountChanged);
     _amountController.dispose();
     _descriptionController.dispose();
     _payerController.dispose();
     _paidToOtherController.dispose();
+    _notesController.dispose();
     for (final c in _splitControllers.values) {
       c.removeListener(_onDisbursementChanged);
       c.dispose();
@@ -271,11 +284,17 @@ class _AddFinancialEntryBottomSheetState
   /// Keeps the savings field in sync with the undisbursed remainder.
   void _onDisbursementChanged() {
     if (!_depositToSavings || !_disburse) return;
-    final totalDisbursed =
-        _splitControllers.values.fold<int>(0, (sum, c) => sum + c.cents);
-    final remaining = _amountController.cents - totalDisbursed;
-    _depositToSavingsController.cents = remaining > 0 ? remaining : 0;
+    setState(() {
+      final totalDisbursed =
+          _splitControllers.values.fold<int>(0, (sum, c) => sum + c.cents);
+      final remaining = _amountController.cents - totalDisbursed;
+      _depositToSavingsController.cents = remaining > 0 ? remaining : 0;
+    });
   }
+
+  /// Rebuilds on every Amount change so the Save button's enabled state
+  /// stays in sync, independent of the disbursement-sync concern above.
+  void _onAmountChanged() => setState(() {});
 
   String _shortName(MemberVM member) {
     final first = member.firstName;
@@ -399,6 +418,10 @@ class _AddFinancialEntryBottomSheetState
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+        gigId: _selectedGigId,
         is1099Expected: _isIncome ? _is1099Expected : null,
         payerName: _payerController.text.trim().isEmpty
             ? null
@@ -454,10 +477,10 @@ class _AddFinancialEntryBottomSheetState
     return Consumer(
       builder: (context, ref, _) {
         final canDelete = ref.watch(currentUserPermissionsProvider).when(
-          data: (p) => p.canDeleteFinancials,
-          loading: () => false,
-          error: (_, __) => false,
-        );
+              data: (p) => p.canDeleteFinancials,
+              loading: () => false,
+              error: (_, __) => false,
+            );
         final showDestructive =
             widget.initialEntry != null && widget.onDelete != null && canDelete;
         return SheetFooter(
@@ -466,7 +489,9 @@ class _AddFinancialEntryBottomSheetState
           primaryIsLoading: _isSaving,
           onCancel: () => Navigator.of(context).pop(),
           destructiveLabel: showDestructive
-              ? (widget.initialEntry!.isIncome ? 'Delete income' : 'Delete expense')
+              ? (widget.initialEntry!.isIncome
+                  ? 'Delete income'
+                  : 'Delete expense')
               : null,
           onDestructive: showDestructive ? _handleDelete : null,
         );
@@ -605,26 +630,24 @@ class _AddFinancialEntryBottomSheetState
                   ),
                   const SizedBox(height: Spacing.space16),
 
-                  // Payer (income) / Paid To (expense)
+                  // Description
                   Text(
-                    _isIncome ? 'Payer (optional)' : 'Paid To (optional)',
+                    'Description (optional)',
                     style: AppTextStyles.footnote
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   AppTextField(
-                    controller: _payerController,
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.next,
-                    hintText: _isIncome
-                        ? 'e.g., Bowery Electric'
-                        : 'e.g., Drum World',
+                    controller: _descriptionController,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    hintText: 'e.g. Purchased P.A. System',
                   ),
                   const SizedBox(height: Spacing.space16),
 
-                  // Paid To (income) / Paid By (expense)
+                  // Paid to
                   Text(
-                    _isIncome ? 'Paid To (optional)' : 'Paid By (optional)',
+                    'Paid to (optional)',
                     style: AppTextStyles.footnote
                         .copyWith(color: context.colors.textSecondary),
                   ),
@@ -678,18 +701,78 @@ class _AddFinancialEntryBottomSheetState
                   ] else
                     const SizedBox(height: Spacing.space4),
 
-                  // Description
+                  // Purchased by
                   Text(
-                    'Description (optional)',
+                    'Purchased by (optional)',
                     style: AppTextStyles.footnote
                         .copyWith(color: context.colors.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   AppTextField(
-                    controller: _descriptionController,
+                    controller: _payerController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    hintText: _isIncome
+                        ? 'e.g., Bowery Electric'
+                        : 'e.g., Drum World',
+                  ),
+                  const SizedBox(height: Spacing.space16),
+
+                  // Needed for gig
+                  Text(
+                    'Needed for gig (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  Consumer(builder: (context, ref, _) {
+                    final gigs = ref.watch(gigProvider).allGigs;
+                    final sortedGigs = List<Gig>.from(gigs)
+                      ..sort((a, b) => b.date.compareTo(a.date));
+
+                    String labelFor(String? id) {
+                      if (id == null) return 'No gig selected';
+                      for (final g in gigs) {
+                        if (g.id == id) return g.name;
+                      }
+                      return 'Unknown gig';
+                    }
+
+                    return AppDropdown<String?>(
+                      value: _selectedGigId,
+                      onChanged: (id) => setState(() => _selectedGigId = id),
+                      labelBuilder: labelFor,
+                      items: [
+                        DropdownMenuItem<String?>(
+                          child: Text(
+                            'No gig selected',
+                            style: AppTextStyles.callout
+                                .copyWith(color: context.colors.textMuted),
+                          ),
+                        ),
+                        ...sortedGigs.map(
+                          (g) => DropdownMenuItem<String?>(
+                            value: g.id,
+                            child: Text(g.name),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                  const SizedBox(height: Spacing.space16),
+
+                  // Notes
+                  Text(
+                    'Notes (optional)',
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  AppTextField(
+                    controller: _notesController,
                     textCapitalization: TextCapitalization.sentences,
                     textInputAction: TextInputAction.done,
-                    hintText: 'e.g. Purchased P.A. System',
+                    hintText: 'e.g. Reimbursed via Venmo, receipt in email',
                   ),
                   const SizedBox(height: Spacing.space16),
 
@@ -953,7 +1036,7 @@ class _SegmentedToggle extends StatelessWidget {
 // TYPE PILL ROW  (+ Add | Remove  label1  label2  …)
 // ---------------------------------------------------------------------------
 
-class _TypePillRow extends StatelessWidget {
+class _TypePillRow extends StatefulWidget {
   const _TypePillRow({
     required this.labels,
     required this.selected,
@@ -973,8 +1056,46 @@ class _TypePillRow extends StatelessWidget {
   final ValueChanged<String> onRemove;
 
   @override
+  State<_TypePillRow> createState() => _TypePillRowState();
+}
+
+class _TypePillRowState extends State<_TypePillRow> {
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _selectedPillKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+  }
+
+  @override
+  void didUpdateWidget(covariant _TypePillRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelected() {
+    final ctx = _selectedPillKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.5,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      controller: _scrollController,
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
@@ -983,31 +1104,36 @@ class _TypePillRow extends StatelessWidget {
             label: '+ Add',
             isSelected: false,
             isAddButton: true,
-            onTap: onAdd,
+            onTap: widget.onAdd,
           ),
           const SizedBox(width: 8),
           // Remove / Done toggle button
           _TypePill(
-            label: isDeleteMode ? 'Done' : 'Remove',
-            isSelected: isDeleteMode,
+            label: widget.isDeleteMode ? 'Done' : 'Remove',
+            isSelected: widget.isDeleteMode,
             isRemoveButton: true,
-            onTap: onToggleDelete,
+            onTap: widget.onToggleDelete,
           ),
           const SizedBox(width: 16),
           // Type labels
-          ...labels.expand(
-            (label) => [
-              _TypePill(
-                label: label,
-                isSelected: !isDeleteMode && selected == label,
-                showDeleteIcon: isDeleteMode,
-                onTap: isDeleteMode
-                    ? () => onRemove(label)
-                    : () => onSelect(label),
-              ),
+          ...widget.labels.expand((label) {
+            final isSelectedLabel =
+                !widget.isDeleteMode && widget.selected == label;
+            final pill = _TypePill(
+              label: label,
+              isSelected: isSelectedLabel,
+              showDeleteIcon: widget.isDeleteMode,
+              onTap: widget.isDeleteMode
+                  ? () => widget.onRemove(label)
+                  : () => widget.onSelect(label),
+            );
+            return [
+              isSelectedLabel
+                  ? KeyedSubtree(key: _selectedPillKey, child: pill)
+                  : pill,
               const SizedBox(width: 8),
-            ],
-          ),
+            ];
+          }),
         ],
       ),
     );

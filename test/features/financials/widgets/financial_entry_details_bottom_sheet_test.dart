@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/models/gig.dart';
-import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/features/financials/models/financial_entry.dart';
 import 'package:bandroadie/features/financials/widgets/financial_entry_details_bottom_sheet.dart';
@@ -34,6 +33,7 @@ FinancialEntry _entry({
   String? payerName,
   String? paidToName,
   String? description,
+  String? notes,
   bool isReimbursed = false,
   String? gigId,
 }) {
@@ -47,6 +47,7 @@ FinancialEntry _entry({
     isIncome: isIncome,
     entryDate: date,
     description: description,
+    notes: notes,
     isReimbursed: isReimbursed,
     payerName: payerName,
     paidToName: paidToName,
@@ -79,6 +80,13 @@ Future<void> _pumpSheet(
   required FinancialEntry entry,
   required GigState gigState,
 }) async {
+  // Default test canvas (600 logical px tall) is shorter than any real
+  // device and clips the sheet's now-longer row list; simulate a real phone.
+  tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -123,8 +131,8 @@ void main() {
   });
 
   testWidgets(
-    'sheet renders exactly one Icon (the footer Edit icon) — regression '
-    'guard for the icon removal from _DetailRow',
+    'sheet footer has no icons — Done primary and Edit cancel are both '
+    'text-only',
     (tester) async {
       final entry = _entry(
         id: 'e1',
@@ -133,19 +141,18 @@ void main() {
       );
       await _pumpSheet(tester, entry: entry, gigState: const GigState());
 
-      final icon = tester.widget<Icon>(find.byType(Icon));
-      expect(icon.icon, AppIcons.edit);
+      expect(find.byType(Icon), findsNothing);
     },
   );
 
   testWidgets(
-    'renamed labels "Paid by", "Notes", "Related to gig" are present; '
-    'old labels "Payer", "Description" are absent',
+    'renamed labels "Purchased by", "Paid to", "Needed for gig" are present; '
+    'old labels "Paid by", "Paid To", "Related to gig" are absent',
     (tester) async {
       final entry = _entry(
         id: 'e1',
         payerName: 'Jane Doe',
-        description: 'Notes text',
+        description: 'A description',
         gigId: 'gig-1',
       );
       await _pumpSheet(
@@ -154,11 +161,12 @@ void main() {
         gigState: GigState(allGigs: [_gig(id: 'gig-1', name: 'Summer Bash')]),
       );
 
-      expect(find.text('Paid by'), findsOneWidget);
-      expect(find.text('Notes'), findsOneWidget);
-      expect(find.text('Related to gig'), findsOneWidget);
-      expect(find.text('Payer'), findsNothing);
-      expect(find.text('Description'), findsNothing);
+      expect(find.text('Purchased by'), findsOneWidget);
+      expect(find.text('Paid to'), findsOneWidget);
+      expect(find.text('Needed for gig'), findsOneWidget);
+      expect(find.text('Paid by'), findsNothing);
+      expect(find.text('Paid To'), findsNothing);
+      expect(find.text('Related to gig'), findsNothing);
     },
   );
 
@@ -207,7 +215,7 @@ void main() {
   );
 
   testWidgets(
-    'entry with gigId null shows "Related to gig" value No',
+    'entry with gigId null shows "Needed for gig" value No',
     (tester) async {
       final entry = _entry(
         id: 'e1',
@@ -250,13 +258,74 @@ void main() {
   );
 
   testWidgets(
-    'footer button reads "Edit", not "Edit Entry"',
+    'footer buttons read "Done" (primary) and "Edit" (cancel), not "Edit '
+    'Entry"',
     (tester) async {
       final entry = _entry(id: 'e1');
       await _pumpSheet(tester, entry: entry, gigState: const GigState());
 
+      expect(find.text('Done'), findsOneWidget);
       expect(find.text('Edit'), findsOneWidget);
       expect(find.text('Edit Entry'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'primary Done button dismisses the sheet via Navigator.pop',
+    (tester) async {
+      final entry = _entry(id: 'e1');
+      await _pumpSheet(tester, entry: entry, gigState: const GigState());
+
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Done'), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'secondary Edit button opens the add sheet with the entry pre-filled',
+    (tester) async {
+      final entry = _entry(id: 'e1');
+      await _pumpSheet(tester, entry: entry, gigState: const GigState());
+
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit Entry'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Description and Notes render as separate rows for an entry with both '
+    'fields populated',
+    (tester) async {
+      final entry = _entry(id: 'e1', description: 'desc', notes: 'notes');
+      await _pumpSheet(tester, entry: entry, gigState: const GigState());
+
+      expect(find.text('Description'), findsOneWidget);
+      expect(find.text('Notes'), findsOneWidget);
+      expect(find.text('desc'), findsOneWidget);
+      expect(find.text('notes'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Notes row falls back to em-dash when entry.notes is null',
+    (tester) async {
+      final entry = _entry(id: 'e1', description: 'desc');
+      await _pumpSheet(tester, entry: entry, gigState: const GigState());
+
+      final notesRow = find.ancestor(
+        of: find.text('Notes'),
+        matching: find.byType(Row),
+      );
+      expect(notesRow, findsOneWidget);
+      expect(
+        find.descendant(of: notesRow, matching: find.text('—')),
+        findsOneWidget,
+      );
     },
   );
 }

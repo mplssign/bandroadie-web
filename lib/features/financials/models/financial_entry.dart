@@ -62,6 +62,7 @@ class FinancialEntry {
   final int amountCents;
   final bool isIncome;
   final String? description;
+  final String? notes;
   final DateTime entryDate;
   final bool isReimbursed;
   final DateTime? reimbursedDate;
@@ -85,6 +86,7 @@ class FinancialEntry {
     required this.amountCents,
     required this.isIncome,
     this.description,
+    this.notes,
     required this.entryDate,
     this.isReimbursed = false,
     this.reimbursedDate,
@@ -110,6 +112,7 @@ class FinancialEntry {
       amountCents: json['amount_cents'] as int,
       isIncome: json['is_income'] as bool,
       description: json['description'] as String?,
+      notes: json['notes'] as String?,
       entryDate: DateTime.parse(json['entry_date'] as String),
       isReimbursed: json['is_reimbursed'] as bool? ?? false,
       reimbursedDate: json['reimbursed_date'] != null
@@ -139,6 +142,7 @@ class FinancialEntry {
       'amount_cents': amountCents,
       'is_income': isIncome,
       'description': description,
+      'notes': notes,
       'entry_date': entryDate.toIso8601String().split('T').first,
       'is_reimbursed': isReimbursed,
       'reimbursed_date': reimbursedDate?.toIso8601String().split('T').first,
