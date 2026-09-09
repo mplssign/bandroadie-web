@@ -30,6 +30,7 @@ class AppDropdown<T> extends StatelessWidget {
     this.validator,
     this.onSaved,
     this.autovalidateMode,
+    this.size,
   }) : assert(
           (items != null && children == null) ||
               (items == null && children != null),
@@ -73,6 +74,9 @@ class AppDropdown<T> extends StatelessWidget {
   /// Form autovalidation mode (for Form integration).
   final AutovalidateMode? autovalidateMode;
 
+  /// Optional Forui text field size variant. Defaults to [FTextFieldSizeVariant.md] when null.
+  final FTextFieldSizeVariant? size;
+
   @override
   Widget build(BuildContext context) {
     // Convert items to FSelectItem list if provided, otherwise use children
@@ -97,6 +101,7 @@ class AppDropdown<T> extends StatelessWidget {
             ),
             format: formatFunction,
             enabled: enabled,
+            size: size ?? FTextFieldSizeVariant.md,
             validator: validator!,
             onSaved: onSaved,
             autovalidateMode: autovalidateMode ?? AutovalidateMode.disabled,
@@ -109,6 +114,7 @@ class AppDropdown<T> extends StatelessWidget {
             ),
             format: formatFunction,
             enabled: enabled,
+            size: size ?? FTextFieldSizeVariant.md,
             onSaved: onSaved,
             autovalidateMode: autovalidateMode ?? AutovalidateMode.disabled,
             children: selectChildren,

@@ -2,6 +2,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:forui/forui.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme/app_icons.dart';
@@ -687,6 +688,7 @@ class _SummaryHeader extends ConsumerWidget {
                     ref.read(financialsProvider.notifier).setDateFilter(filter);
                   },
                   format: _dateFilterLabel,
+                  size: FTextFieldSizeVariant.sm,
                   items: FinancialDateFilter.values
                       .map((f) => DropdownMenuItem<FinancialDateFilter>(
                             value: f,

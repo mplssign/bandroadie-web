@@ -274,16 +274,19 @@ class _DetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SizedBox(
+          width: 68,
+          child: Text(
+            label,
+            style: AppTextStyles.footnote
+                .copyWith(color: context.colors.textMuted),
+          ),
+        ),
+        const SizedBox(width: Spacing.space8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textMuted),
-              ),
-              const SizedBox(height: 2),
               Text(
                 value,
                 style: AppTextStyles.callout
