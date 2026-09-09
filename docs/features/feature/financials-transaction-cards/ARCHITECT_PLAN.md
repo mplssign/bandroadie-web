@@ -6,6 +6,17 @@
 ## Feature Title
 Financials screen — replace transaction table with cards, add summary header
 
+## Cycle History
+
+- **Cycle 1** (merged pending — commit `c46d6bb`): Original plan (this document below). Table → cards + summary header + sort toggle + details-sheet field-label normalization. Approved end-to-end (Architect → Engineer → QA).
+- **Cycle 2** (merged pending — folded into `c46d6bb` per QA feedback): Minor summary-header refinements per Tony's PR read.
+- **Cycle 3** (merged pending — commit `8dac09a`): `_SummaryHeader` content center-aligned.
+- **Cycle 4** (uncommitted on working tree, QA-APPROVED): Replaced the four date-filter chips with a single year-select `PopupMenuButton<int>` chip (`_YearSelector` / `_YearSelectorChip`), merged the `_dateRangeLabel` and transaction-count into one line separated by `" • "`, and defaulted the displayed year to the actual current calendar year. **The `selectedYear: int` state shape and dynamic year-list derivation introduced here are superseded by Cycle 6.** See **Cycle 4 Scope Expansion** in the middle of this document, and the pointer notes at the top of that section.
+- **Cycle 5** (planned, never implemented — superseded before Engineer started): Move the year picker inline into `_SummaryHeader`'s summary line via `AppDropdown<int>` (Forui `FSelect.rich` wrapper), delete the standalone `_YearSelector` / `_YearSelectorChip` row, and restructure `_FinancialsScreenState.build` so the summary header + list header render above the content area in every non-error state (loading, empty, and non-empty) — fixing the usability gap where the year picker vanished whenever `filteredEntries` was empty. **The inline-placement decision, empty-state build restructuring, and `AppDropdown`-via-`IntrinsicWidth` mechanic are preserved and re-adopted by Cycle 6 verbatim; the `AppDropdown<int>` typing and dynamic year-list items are superseded.** See **Cycle 5 Scope Expansion**, and the pointer notes at the top of that section.
+- **Cycle 6** (this revision, planned but not yet implemented): Replace Cycle 4's `selectedYear: int` scalar with a `FinancialDateFilter { allTime, thisYear, thisMonth }` enum (default `thisYear`, no `custom` case). The inline dropdown in `_SummaryHeader` becomes `AppDropdown<FinancialDateFilter>` with `format` mapping `allTime → 'All time'`, `thisYear → 'This year'`, `thisMonth → 'This month'` — reversing Cycle 4's "display the numeric year" decision for the `thisYear` case. `_availableYears` helper is deleted. `FinancialsPdfPreviewScreen` swaps its constructor from `selectedYear: int` back to `dateFilter: FinancialDateFilter`. Cycle 5's inline placement and empty-state build restructuring are preserved verbatim. See **Cycle 6 Scope Expansion** at the bottom of this document.
+
+Sections below labeled without a cycle prefix are the original Cycle 1 plan, still authoritative for the shipped-in-Cycles-1–3 work — do not revisit any of it. Cycle 4 additions are scoped to the sections under **Cycle 4 Scope Expansion** (with Cycle-6 superseded parts flagged at the top of that section). Cycle 5 additions are scoped to the sections under **Cycle 5 Scope Expansion** (with Cycle-6 superseded parts flagged at the top of that section). Cycle 6 is the current authoritative design for the date-filter control, its state shape, the PDF preview screen's constructor, and everything the Cycle 4/5 sections marked as superseded — read Cycle 6 last, and treat it as governing wherever it conflicts with Cycle 4/5.
+
 ## Problem Summary
 The Financials screen renders transactions as an 8-column horizontally-scrollable table (`_EntriesList` / `_TableHeader` / `_EntryTableRow` in [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart)) with dynamic amount-column width measurement, no visible totals or transaction count, and pins "View savings balance" / "Generate Report" as outlined buttons in `_BottomActionsRow`. The bottom sheet ([lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart](lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart)) uses icon-prefixed rows, silently omits "Reimbursed" when false, has no representation of the `gigId` relationship, and mislabels a few fields ("Payer" / "Description" / "Edit Entry"). Redesign the screen and sheet into a vertically-scrolling card list with a summary header, and normalise the sheet's field labels — no schema, RPC, or repository shape changes.
 
@@ -151,10 +162,12 @@ All four widgets under test are private (`_`-prefixed). Per Task 6's preferred a
 
 ## Files Off-Limits
 
+**Cycle 4 note:** two files listed below (`financials_controller.dart` and `financials_pdf_preview_screen.dart`) are **now legitimately in scope for Cycle 4 only** — see **Cycle 4 Scope Expansion → Files to Modify (Cycle 4)** for the exact surface area. Their appearance in this list refers strictly to Cycles 1–3.
+
 - [lib/features/financials/financial_entry_repository.dart](lib/features/financials/financial_entry_repository.dart) — no query changes; the gig-name resolution uses `gigProvider`, not a repository join. Modifying `fetchEntriesForBand` to add `select('*, gigs(name)')` would work under RLS (both tables are readable to active members) but produces a shape change on the returned JSON, forcing a `FinancialEntry.fromJson` change and adding a `gigName` field to the model — all avoided.
 - [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart) — model stays byte-identical.
-- [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart) — no state-shape change (no sort, no year selection).
-- [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart) — report generation unchanged.
+- [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart) — no state-shape change (no sort, no year selection). **[Cycles 1–3 only — see Cycle 4 note above.]**
+- [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart) — report generation unchanged. **[Cycles 1–3 only — see Cycle 4 note above.]**
 - [lib/features/financials/financials_report_builder.dart](lib/features/financials/financials_report_builder.dart) — report format unchanged.
 - [lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart) — do **not** add an `isReimbursed` toggle. This is a known pre-existing gap called out in the Feature Input as explicitly out of scope. See "System Impact Map" for how QA should read the resulting UX.
 - [lib/features/financials/widgets/gig_pay_bottom_sheet.dart](lib/features/financials/widgets/gig_pay_bottom_sheet.dart) — no change.
@@ -369,15 +382,1591 @@ Static analysis + widget tests + diff review are the mechanical gate. Beyond tho
 Single PR. No feature flag. No phased rollout. No DB migration to sequence with the app deploy. Merge to `main` → deploy to iOS / Android / macOS / web via the standard `tools/build_*.sh` + `tools/deploy_web.sh` pipeline. Rollback = revert the PR; no data changes to unwind.
 
 ## Out of Scope
+
+**Cycle 4 note:** three of the bullets below (the year-picker bullet, the `FinancialsState`/`FinancialsNotifier` bullet, and the `FinancialsPdfPreviewScreen`/`_DateFilterRow`/`_FilterChip` bullet) are **flipped by Cycle 4** — see **Cycle 4 Scope Expansion** at the bottom of this document for the specific changes. The Cycle 1 bullets below are preserved verbatim as the historical record of what was out of scope for Cycles 1–3.
+
 - Additional sort axes beyond newest/oldest date (not amount, not category, not payer/payee) — the toggle is strictly two-state.
 - Persisting sort preference across screen dismiss, band switch, or app restart — not asked for, adds a preferences dependency not otherwise in scope.
 - Sort control in `_SavingsSheet` or the combined report — sort is scoped to the main transactions list only.
-- Year-picker date-range control — resolved final: keep existing 4 chips.
+- Year-picker date-range control — resolved final: keep existing 4 chips. **[Flipped by Cycle 4.]**
 - Tappable gig name in "Related to gig" row — resolved final: plain text, no navigation.
 - Colored circular category icons on cards — Tony explicitly excluded.
 - Adding `isReimbursed` toggle to `add_financial_entry_bottom_sheet.dart` — known pre-existing gap, tracked separately.
-- Any change to `FinancialEntry` model, `FinancialEntryRepository`, or `FinancialsState` / `FinancialsNotifier`.
-- Any change to `FinancialsPdfPreviewScreen`, `_SavingsSheet`, `_ViewModeToggle`, `_DateFilterRow`, `_FilterChip`, `_EmptyState`, `_ErrorState`.
+- Any change to `FinancialEntry` model, `FinancialEntryRepository`, or `FinancialsState` / `FinancialsNotifier`. **[Partially flipped by Cycle 4 — `FinancialsState`/`FinancialsNotifier` change; `FinancialEntry` model and `FinancialEntryRepository` remain byte-identical.]**
+- Any change to `FinancialsPdfPreviewScreen`, `_SavingsSheet`, `_ViewModeToggle`, `_DateFilterRow`, `_FilterChip`, `_EmptyState`, `_ErrorState`. **[Partially flipped by Cycle 4 — `FinancialsPdfPreviewScreen`, `_DateFilterRow`, `_FilterChip` change; `_SavingsSheet`, `_ViewModeToggle`, `_EmptyState`, `_ErrorState` remain byte-identical.]**
 - Any change to gig data flow, `bandFullStateProvider`, or the `get_band_full_state` RPC.
 - Any RLS or migration work.
 - Any pubspec change.
+
+---
+
+# Cycle 4 Scope Expansion
+
+> **Cycle 6 supersession notice.** Cycle 4 introduced `selectedYear: int` on `FinancialsState`, `setSelectedYear(int)` on the notifier, a fixed `int selectedYear` constructor param on `FinancialsPdfPreviewScreen`, an `_availableYears(...)` helper, and `_YearSelector` / `_YearSelectorChip` widgets. **All of that surface is superseded by Cycle 6** — the state field becomes `dateFilter: FinancialDateFilter`, the notifier method becomes `setDateFilter(FinancialDateFilter)`, the PDF screen takes `dateFilter: FinancialDateFilter` (no year int), `_availableYears` is deleted entirely, and the `_YearSelector` / `_YearSelectorChip` deletion planned by Cycle 5 stands. Cycle 4's "merge date-range and count onto a single centered line separated by ` • `" decision **survives** (still the target layout); Cycle 4's "the leading token in that line is the numeric year" decision is **reversed** for the `thisYear` case (now shows the text `'This year'`). Cycle 4's descending PDF filename form `"Year YYYY"` **survives** for the `thisYear` case only; `allTime` and `thisMonth` add their own label forms. Read Cycle 6 for the current authoritative design.
+
+Cycle 4 is a scope-expansion revision landing on top of Cycles 1–3, on the same branch (`feature/financials-transaction-cards`), before PR #273 merges. The mechanical branch state at plan-write time: local `feature/financials-transaction-cards` at commit `8dac09a` (two commits ahead of `origin/main` at `06bd222`), `git merge-base main feature/financials-transaction-cards` equals current `main` HEAD — base is clean, no rebase needed.
+
+## Cycle 4 Problem Summary
+
+Tony tested the merged-pending PR and asked for three coordinated changes to the header area of `_SummaryHeader` and the surrounding filter-control row in [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart):
+
+1. Merge the two-line `_dateRangeLabel` + transaction-count into a **single line** separated by `" • "` — example: `"2026 • 3 transactions"` (or `"2026 • 1 transaction"`).
+2. The displayed year must be the **actual current calendar year** by default (`DateTime.now().year`), so the label reads `"2027 • …"` if the user runs the app on Jan 1 2027 without touching any control.
+3. Replace the four existing date-filter chips (`_DateFilterRow` / `_FilterChip`: "All Time", "This Year", "This Month", "Custom") with a **single year-select dropdown control**, placed in the same slot in the header column.
+
+The change applies identically to both Income and Expenses view modes — the summary header is already shared between them and does not need to diverge per mode. Verified by reading `_SummaryHeader.build` (which reads `state.viewMode` only for the `TOTAL INCOME`/`TOTAL EXPENSES` label and the total color, and reads `state.filteredEntries` for total + count — both already viewMode-aware via `FinancialsState.filteredEntries`).
+
+## Cycle 4 Interpretation Confirmation
+
+The Manager's interpretation — that "This Year" is *subsumed by* the new year-select dropdown (picking any year in the dropdown does what "This Year" used to do for whichever year is selected, with the current calendar year as the default), while "All Time", "This Month", and "Custom" (arbitrary date-range picking) are dropped entirely as filter options — **sanity-checks correctly against the current code and is committed to for this plan**. Rationale:
+
+- `FinancialDateFilter.thisYear`'s existing behavior is exactly `e.entryDate.year == DateTime.now().year` ([financials_controller.dart line 82–84](lib/features/financials/financials_controller.dart#L82-L84)) — equivalent to the new dropdown's default of `selectedYear = DateTime.now().year` filtering by `e.entryDate.year == state.selectedYear`.
+- The new dropdown generalizes this: users can now pick any year the band has data for (or the current year), whereas "This Year" was hardcoded to `DateTime.now().year`.
+- "All Time" (cross-year totals) has no direct analogue in the new state — deliberately dropped. If Tony later wants to view all years, that's a separate feature (e.g., an "All years" option prepended to the dropdown), and is out of scope for Cycle 4.
+- "This Month" (month-level filter) has no direct analogue — deliberately dropped.
+- "Custom" (arbitrary date-range picking via `showDateRangePicker`) has no direct analogue — deliberately dropped, along with the entire `_pickCustomRange` code path and the `customStartDate` / `customEndDate` state fields.
+
+**No reason to believe otherwise.** If Tony later asks for month-level filtering or arbitrary date ranges, that's Cycle 5+ and will require re-adding state fields; the Cycle 4 shape does not preclude such an expansion but does not include it.
+
+## Cycle 4 Root Cause
+n/a — UI/UX change. Confidence `HIGH` on the mechanical scope (all state fields, widgets, and PDF-report call sites confirmed by reading the files).
+
+## Cycle 4 Existing System Analysis (post-Cycles 1–3 baseline)
+
+Current state at commit `8dac09a`:
+
+- **`FinancialsState`** ([financials_controller.dart line 19–100](lib/features/financials/financials_controller.dart#L19-L100)) holds `viewMode`, `dateFilter: FinancialDateFilter`, `customStartDate: DateTime?`, `customEndDate: DateTime?`. `_applyDateFilter` switches on `dateFilter` across four cases. `filteredEntries` (viewMode + date filter, newest-first sorted) and `dateFilteredEntries` (date filter only, newest-first sorted) both call `_applyDateFilter`. `setDateFilter(FinancialDateFilter)` and `setCustomDateRange(DateTime, DateTime)` are the two mutation methods; `setCustomDateRange` sets `dateFilter = FinancialDateFilter.custom` implicitly.
+- **`_DateFilterRow`** + **`_FilterChip`** ([financials_screen.dart line 470–590](lib/features/financials/financials_screen.dart#L470-L590)) render the four chips in a horizontal scroll view, dispatching to `setDateFilter`/`setCustomDateRange`. `_pickCustomRange` opens `showDateRangePicker` bounded to `now.year - 10` … `now.year + 2`. `_customLabel` formats the picked range using `MMM d` / `MMM d, yy`. All of this is deleted in Cycle 4.
+- **`_SummaryHeader._dateRangeLabel`** ([financials_screen.dart line 785–806](lib/features/financials/financials_screen.dart#L785-L806)) currently switches on `state.dateFilter` and returns one of four label forms. Cycle 4 simplifies to a single `'${state.selectedYear}'` branch, and the header body renders `"$year • $count $noun"` on one line instead of two separate `Text` widgets.
+- **`FinancialsPdfPreviewScreen`** ([financials_pdf_preview_screen.dart line 27–83](lib/features/financials/financials_pdf_preview_screen.dart#L27-L83)) takes `dateFilter`, `customStartDate`, `customEndDate` as constructor params; `_filterLabel` returns one of `"All Time"` / `"Year 2026"` / `"April 2026"` / `"Mar 1, 2026 – Mar 20, 2026"` depending on the four filter cases. `_fileName` interpolates `_filterLabel` into the PDF filename. In Cycle 4 the constructor takes only `int selectedYear` and `_filterLabel` becomes `'Year $selectedYear'` (preserves the existing `"Year 2026"` form used by the PDF).
+- **`_openCombinedReport`** ([financials_screen.dart line 696–716](lib/features/financials/financials_screen.dart#L696-L716)) is the sole call site of `FinancialsPdfPreviewScreen`, verified by workspace-wide grep. Passes `state.dateFilter`, `state.customStartDate`, `state.customEndDate` today — becomes `selectedYear: state.selectedYear` in Cycle 4.
+- **Existing Cycle 1 tests** — `summary_header_test.dart` directly references `FinancialDateFilter.thisYear`, `.thisMonth`, `.custom`, `customStartDate`, `customEndDate`, and asserts on `"All time"` / `"Mar 1 – Mar 20"` label strings. Cycle 4 rewrites these cases (see **Cycle 4 Engineer Task Breakdown → Task 6**). `transaction_card_test.dart` and `transactions_list_header_test.dart` use only `allEntries` and `viewMode` on `FinancialsState`, so they remain source-compatible with the Cycle 4 state-shape change — but their test fixtures use a hardcoded `entryDate: DateTime(2026, 1, 15)` default in `_entry`, which becomes fragile once `DateTime.now().year != 2026` (any entry outside the current year will be filtered out of `filteredEntries` under Cycle 4 semantics). Fix mandated in Task 7 to make fixtures year-relative.
+
+**No other files reference `FinancialDateFilter`, `customStartDate`, `customEndDate`, `setDateFilter`, or `setCustomDateRange` in the workspace** — confirmed by grep across `**/*.dart` (95 matches, all inside the four files above).
+
+## Cycle 4 Proposed Solution
+
+### State-shape decision — `FinancialsState`
+
+Replace the enum entirely. New shape:
+
+```dart
+class FinancialsState {
+  final List<FinancialEntry> allEntries;
+  final bool isLoading;
+  final String? error;
+  final FinancialViewMode viewMode;
+  final int selectedYear;               // NEW — default: DateTime.now().year
+
+  const FinancialsState({
+    this.allEntries = const [],
+    this.isLoading = false,
+    this.error,
+    this.viewMode = FinancialViewMode.income,
+    int? selectedYear,                  // Nullable in the constructor so the
+  }) : selectedYear = selectedYear ??   // default can be a runtime value.
+                     _defaultSelectedYear();
+
+  static int _defaultSelectedYear() => DateTime.now().year;
+  // ...
+}
+```
+
+Deleted from `FinancialsState`: `dateFilter`, `customStartDate`, `customEndDate`, and the corresponding `copyWith` params (`dateFilter`, `customStartDate`, `customEndDate`, `clearCustomDates`). Added to `copyWith`: `int? selectedYear`. The `filteredEntries` / `dateFilteredEntries` getters keep their signatures; `_applyDateFilter` collapses to:
+
+```dart
+List<FinancialEntry> _applyDateFilter(Iterable<FinancialEntry> source) {
+  final entries = source
+      .where((e) => e.entryDate.year == selectedYear)
+      .toList();
+  entries.sort((a, b) => b.entryDate.compareTo(a.entryDate));
+  return entries;
+}
+```
+
+**Rationale for full enum removal vs. shrinking the enum:** shrinking `FinancialDateFilter` to a one-case enum (`{thisYear}`) plus a `selectedYear: int` field would leave dead switch cases and a redundant discriminator. Semantically there is only one filter mode now ("year"); modeling it as a scalar `int selectedYear` is honest about what the state actually represents and drops ~20 lines of enum plumbing (default value, copyWith case, switch dispatch, `clearCustomDates` flag). This is a bigger textual delta but a cleaner conceptual result. The rest of the plan (widget code, PDF screen, tests) reads more naturally against the scalar shape.
+
+Deleted from `FinancialsNotifier`: `setDateFilter(FinancialDateFilter)`, `setCustomDateRange(DateTime, DateTime)`. Added: `setSelectedYear(int year)`:
+
+```dart
+void setSelectedYear(int year) {
+  state = state.copyWith(selectedYear: year);
+}
+```
+
+Note: `Notifier.copyWith` implementations in this repo do not support setting a field to a "changed" scalar directly if the constructor uses the nullable-default pattern above. The `copyWith` implementation for the new `selectedYear` field must be `selectedYear: selectedYear ?? this.selectedYear` — standard pattern, no special handling needed since `selectedYear` is a non-nullable `int` on the state (only nullable in the constructor for defaulting).
+
+### Year-list derivation decision — dropdown items
+
+The dropdown's menu items are computed on each rebuild of the new `_YearSelector` widget:
+
+```dart
+List<int> _availableYears(List<FinancialEntry> allEntries) {
+  final years = <int>{DateTime.now().year};
+  for (final e in allEntries) {
+    years.add(e.entryDate.year);
+  }
+  final sorted = years.toList()..sort((a, b) => b.compareTo(a));  // descending
+  return sorted;
+}
+```
+
+**Rationale for "distinct years in data + always current year" vs. fixed range (`now.year - 10` … `now.year + 2`):**
+
+- **Chose "distinct in data + current year"** because the dropdown is a *filter* control (shows the user which years they have data for), not a *creation* control (where a fixed range guarantees the user can pick any date). For a brand-new band with zero entries, the dropdown shows just the current year — which is fine and matches the default filter behavior; the user has nothing else to filter to. For a band with entries spread across 2023–2026 plus a future gig in 2027, the dropdown shows `[2027, 2026, 2025, 2024, 2023]` in descending order.
+- Descending order (newest year first) matches the existing "newest-first" ordering the summary and list both use.
+- Current year is always included even when there's no data for it, so a user landing on a fresh band on Jan 2 2027 still sees "2027" as the default and doesn't get a jarring "no year selected" dropdown state.
+- **Rejected the fixed range** because it would show 13 years of empty selections for a new band, most of which the user would never touch — visual noise, and misleading (implies data might exist for those years). The Cycle 1 custom-picker used the fixed range because it was picking arbitrary dates from a continuous calendar; the dropdown picks from a discrete set the user has actually recorded data in.
+- Edge case — if a user enters a typo'd date (e.g., 2999) into an entry, the dropdown will show `2999` as an option. Acceptable: dropdown reflects reality, and the user can immediately notice the misfiled entry and fix it via the edit sheet. Not worth guarding against.
+
+Derivation reads `state.allEntries` (not `state.filteredEntries`) — the year list is viewMode-agnostic. A year with only expense entries should still be pickable while viewing income (the user might switch modes after picking), and vice versa.
+
+### `_YearSelector` widget
+
+Replaces `_DateFilterRow` in the same slot. New private widget in `financials_screen.dart`:
+
+```dart
+class _YearSelector extends ConsumerWidget {
+  const _YearSelector();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(financialsProvider);
+    final years = _availableYears(state.allEntries);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: PopupMenuButton<int>(
+          initialValue: state.selectedYear,
+          onSelected: (year) =>
+              ref.read(financialsProvider.notifier).setSelectedYear(year),
+          itemBuilder: (_) => years
+              .map((y) => PopupMenuItem<int>(value: y, child: Text('$y')))
+              .toList(),
+          child: _YearSelectorChip(year: state.selectedYear),
+        ),
+      ),
+    );
+  }
+}
+
+class _YearSelectorChip extends StatelessWidget {
+  const _YearSelectorChip({required this.year});
+  final int year;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Spacing.space12,
+        vertical: Spacing.space8,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(Spacing.chipRadius),
+        border: Border.all(color: AppColors.primary),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$year',
+            style: AppTextStyles.footnote.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: Spacing.space4),
+          const Icon(Icons.arrow_drop_down,
+              size: 18, color: AppColors.primary),
+        ],
+      ),
+    );
+  }
+}
+```
+
+**Visual rationale:** the chip child is styled to match the "active" state of the departing `_FilterChip` — same padding, same rounded pill, same `AppColors.primary` accent — so users see a familiar control replace the row of chips, just narrower and with a chevron indicating the popup. `PopupMenuButton` is chosen over `AppDropdown` (which wraps Forui's `FSelect` with full field chrome) because the visual weight of a form-field dropdown would break the header's compact filter-row rhythm; `PopupMenuButton` has one existing precedent in the codebase ([pending_invite_card.dart line 153](lib/features/members/widgets/pending_invite_card.dart#L153)) and produces a compact popup menu that fits this use case. **No new dependency, no Forui integration required.**
+
+Left-aligned via `Align(alignment: Alignment.centerLeft)` inside the header padding — matches where the leftmost chip sat in `_DateFilterRow` today, minimizing visual regression on the header layout.
+
+### `_SummaryHeader` — merged `_dateRangeLabel • count` line
+
+The two consecutive `Text` widgets (`_dateRangeLabel(state)` and `count == 1 ? '1 transaction' : '$count transactions'`) in the current `_SummaryHeader.build` collapse into a single `Text` widget:
+
+```dart
+Text(
+  '${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}',
+  textAlign: TextAlign.center,
+  style: AppTextStyles.footnote
+      .copyWith(color: context.colors.textMuted),
+),
+```
+
+- `_dateRangeLabel` helper method is **deleted** — no callers remain outside the merged line, and the single-branch year label is trivial enough to inline.
+- The intermediate `SizedBox(height: Spacing.space4)` between the two lines is deleted along with one of the two `Text` widgets.
+- Center alignment (Cycle 3) is preserved: `textAlign: TextAlign.center` stays, and the `Column` inside `_SummaryHeader` continues to render its children centered.
+- The `TOTAL INCOME`/`TOTAL EXPENSES` label, the big total, and the two-link row (`View Savings Balance` / `Generate Report`) are all unchanged.
+
+### `FinancialsPdfPreviewScreen` — constructor + label
+
+Minimal surgical change:
+
+- Constructor: drop `dateFilter`, `customStartDate`, `customEndDate`. Add `required int selectedYear`.
+- `_filterLabel` getter: replace the four-case switch with `String get _filterLabel => 'Year ${widget.selectedYear}';`. This preserves the exact `"Year 2026"` string form used today for the `thisYear` case — the report header and PDF filename ("`{Band Name} – Financial Report (Year 2026).pdf`") both render identically for the current-year default, so the PDF/print/share output shape does not change.
+- `_viewModeLabel`, `_fileName`, `_buildPdf`, `_handlePrint`, `_handleShare`, `build` — all unchanged.
+- `buildFinancialsReportContent` in [financials_report_builder.dart](lib/features/financials/financials_report_builder.dart) takes `dateRangeLabel: String` — no signature change, still receives `_filterLabel`'s output.
+
+Sole caller ([_openCombinedReport](lib/features/financials/financials_screen.dart#L696-L716)) drops the three chip-state params and passes `selectedYear: state.selectedYear`.
+
+### Change applies identically to Income and Expenses modes
+
+Confirmed by reading `_SummaryHeader.build`: the merged `_dateRangeLabel • count` line reads only `state.filteredEntries.length` for the count, which is already viewMode-aware, and the year label reads `state.selectedYear` which is viewMode-independent. The dropdown widget reads `state.allEntries` (viewMode-independent). Nothing needs to diverge per mode. No conditional branches added.
+
+## Cycle 4 Database Impact
+not applicable — no schema change, no new RPC, no RLS change, no migration. Selected-year state is transient Riverpod UI state; not persisted to Supabase.
+
+## Cycle 4 Flutter Architecture Changes
+
+- **`FinancialsState` shape changes** — `dateFilter`, `customStartDate`, `customEndDate` deleted; `selectedYear: int` added, defaulting to `DateTime.now().year` via a static default helper (`selectedYear = selectedYear ?? _defaultSelectedYear()` in the constructor initialiser list, since `DateTime.now()` can't be a compile-time default). `copyWith` signature updated accordingly.
+- **`FinancialsNotifier` mutation methods** — `setDateFilter`, `setCustomDateRange` deleted; `setSelectedYear(int)` added. `build`, `_load`, `addEntry`, `updateEntry`, `deleteEntry`, `refresh` — all unchanged.
+- **`FinancialDateFilter` enum** — deleted.
+- **`_YearSelector` and `_YearSelectorChip`** — new private widgets in `financials_screen.dart`. `_YearSelector` is a `ConsumerWidget`; `_YearSelectorChip` is a `StatelessWidget`.
+- **`_DateFilterRow`, `_FilterChip`** — deleted from `financials_screen.dart`. The `_pickCustomRange` helper and `_customLabel` getter go with them.
+- **`_SummaryHeader._dateRangeLabel`** — deleted; label logic inlined into the merged single-line `Text` widget.
+- **`FinancialsPdfPreviewScreen` constructor** — three params dropped, one added (see Proposed Solution). `_filterLabel` collapses to a single-line getter.
+- No new provider, controller, repository, or model. No pubspec change.
+
+## Cycle 4 Files to Create
+
+None. All widget additions live inside existing files; existing test files are edited, not replaced.
+
+## Cycle 4 Files to Modify
+
+### [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart)
+- Delete `enum FinancialDateFilter { allTime, thisYear, thisMonth, custom }`.
+- Delete `dateFilter`, `customStartDate`, `customEndDate` fields on `FinancialsState`, their constructor params, their `copyWith` params, and the `clearCustomDates` flag.
+- Add `final int selectedYear;` field. Constructor accepts a nullable `int? selectedYear` and initialises via `selectedYear = selectedYear ?? DateTime.now().year`.
+- Update `copyWith` to accept `int? selectedYear` and merge with the existing pattern.
+- Replace `_applyDateFilter` body with the single-year filter shown in Proposed Solution → State-shape decision.
+- Delete `setDateFilter(FinancialDateFilter)` and `setCustomDateRange(DateTime, DateTime)` from `FinancialsNotifier`.
+- Add `void setSelectedYear(int year) { state = state.copyWith(selectedYear: year); }`.
+
+### [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart)
+- Delete `_DateFilterRow`, `_FilterChip`, `_pickCustomRange`, `_customLabel`.
+- Delete the `_DateFilterRow(...)` render call in `_FinancialsScreenState.build` (currently between the `_ViewModeToggle` render and the `SizedBox(height: Spacing.space16)`). Replace with a `const _YearSelector()` render call in the same slot.
+- Add `_YearSelector` and `_YearSelectorChip` private widgets at the appropriate section boundary (after `_ViewModeToggle`'s section, replacing `_DateFilterRow`'s section).
+- Merge the two `Text` widgets in `_SummaryHeader.build` (the `_dateRangeLabel(state)` line and the count line) into a single `Text` widget with the value `'${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}'`. Delete the `_dateRangeLabel` helper and one of the two intermediate `SizedBox(height: Spacing.space4)` spacings.
+- In `_openCombinedReport`, replace `dateFilter: state.dateFilter, customStartDate: state.customStartDate, customEndDate: state.customEndDate` with `selectedYear: state.selectedYear`.
+- Audit imports: `intl`'s `DateFormat` is still used by `_TransactionCard` and `_SavingsSheet`, so keep. No new imports required (`PopupMenuButton` and `Icons.arrow_drop_down` are already in `package:flutter/material.dart` which is already imported).
+
+### [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart)
+- Delete constructor params `FinancialDateFilter dateFilter`, `DateTime? customStartDate`, `DateTime? customEndDate`. Add `required int selectedYear`.
+- Delete the four-case `_filterLabel` switch. Replace with `String get _filterLabel => 'Year ${widget.selectedYear}';`.
+- `_viewModeLabel`, `_fileName`, `_buildPdf`, `_handlePrint`, `_handleShare`, `build` — untouched.
+- Audit imports: remove `import 'financials_controller.dart';` **only if** no other reference to `FinancialViewMode` (used by `_viewModeLabel`) remains — it does, so keep the import.
+
+### [test/features/financials/widgets/summary_header_test.dart](test/features/financials/widgets/summary_header_test.dart)
+- Delete the four "date-range sub-label matches the resolved value for X" test cases (`allTime`, `thisYear`, `thisMonth`, `custom`).
+- Add three new cases in their place:
+  - "displays the current calendar year by default" — pump a state with default `selectedYear`, assert `find.textContaining('${DateTime.now().year} • ')` finds one widget.
+  - "displays the selected year when `setSelectedYear` sets a non-current year" — pump a state with `selectedYear: DateTime.now().year - 1` and one entry in that year, assert the previous-year value is shown.
+  - "merges year and count into a single line separated by ' • '" — pump a state with three entries in the default year, assert `find.text('${DateTime.now().year} • 3 transactions')` finds one widget (and the two separate strings `'${DateTime.now().year}'` alone / `'3 transactions'` alone are NOT found as full-string `Text` matches on separate widgets).
+- Update the existing "count phrasing is singular for one entry, plural for multiple entries" case to assert the merged form: `'${DateTime.now().year} • 1 transaction'` and `'${DateTime.now().year} • 3 transactions'`.
+- Existing "total …", "label reads TOTAL INCOME/EXPENSES", and "View Savings Balance / Generate Report chevron" cases are unchanged — they don't depend on the deleted state fields.
+
+### [test/features/financials/widgets/transaction_card_test.dart](test/features/financials/widgets/transaction_card_test.dart) and [test/features/financials/widgets/transactions_list_header_test.dart](test/features/financials/widgets/transactions_list_header_test.dart)
+- **Necessary correction, not scope expansion:** the shared `_entry` / `_makeEntry` fixture in both files defaults `entryDate` to `DateTime(2026, 1, 15)`. Under Cycle 4 semantics, entries whose year != `state.selectedYear` (default = `DateTime.now().year`) are filtered out of `filteredEntries` — so once the wall clock rolls to 2027 these tests will render an empty list and fail. Update the defaults to `DateTime(DateTime.now().year, 1, 15)` (or the local equivalent) so the fixture stays valid across year rollovers.
+- No other test-body changes required — these tests only read `allEntries` and `viewMode` off `FinancialsState`, both of which are unchanged.
+
+### New Cycle 4 test file: [test/features/financials/widgets/year_selector_test.dart](test/features/financials/widgets/year_selector_test.dart)
+- Widget test file for `_YearSelector`. Since the widget is private, pump the enclosing screen with an overridden `financialsProvider` — same pattern as the Cycle 1 tests. Assertions:
+  - Renders the current `state.selectedYear` as the chip's visible text (e.g., `'2026'`).
+  - Tapping the chip opens a popup menu containing exactly the derived year list (current year + distinct years across `allEntries`, descending). Verify with entries spanning `[2023, 2025, current, future=current+1]`.
+  - Selecting a different year dispatches `setSelectedYear(int)` on the notifier — capture the notifier state via `container.read` before/after and confirm `selectedYear` updated to the tapped value.
+  - Zero entries → dropdown has exactly one item (`current year`) and is still tappable / renders without crash.
+  - Chip's `▾` chevron (`Icons.arrow_drop_down`) is present alongside the year text.
+
+## Cycle 4 Change Budget
+
+| File | Expected net Δ lines | Rationale |
+| --- | --- | --- |
+| `lib/features/financials/financials_controller.dart` | **−20 to −5** | Delete enum (2 lines), delete 3 state fields + constructor params + copyWith params + clearCustomDates flag (~30 lines), delete `setDateFilter` and `setCustomDateRange` (~10 lines), simplify `_applyDateFilter` (~15 lines removed). Add `selectedYear` field + constructor default + copyWith + `setSelectedYear` (~15 lines). Net: −20 to −5. |
+| `lib/features/financials/financials_screen.dart` | **−140 to −80** | Delete `_DateFilterRow` (~94 lines), `_FilterChip` (~40 lines), and the two helper methods folded into `_DateFilterRow` (already counted). Delete `_SummaryHeader._dateRangeLabel` (~22 lines), merge two `Text` widgets + one `SizedBox` in `_SummaryHeader.build` (~15 lines removed). Update `_DateFilterRow(...)` render call in `_FinancialsScreenState.build` (~12 lines → 1 line). Update `_openCombinedReport` call site (3 lines replaced with 1). Add `_YearSelector` (~25 lines) + `_YearSelectorChip` (~30 lines). Net range accounts for whether widgets grow to accommodate final styling. |
+| `lib/features/financials/financials_pdf_preview_screen.dart` | **−15 to −5** | Constructor: drop 3 params, add 1 (~6 lines removed). `_filterLabel`: replace 15-line switch with 3-line getter (~12 lines removed). Net: −15 to −5. |
+| `test/features/financials/widgets/summary_header_test.dart` | **−30 to +20** | Delete 4 test cases (~90 lines), add 3 new cases (~60 lines), edit 1 case (~5 lines). Net wide range. |
+| `test/features/financials/widgets/transaction_card_test.dart` | **0 to +2** | Fixture default `entryDate` swap only. |
+| `test/features/financials/widgets/transactions_list_header_test.dart` | **0 to +2** | Fixture default `entryDate` swap only. |
+| `test/features/financials/widgets/year_selector_test.dart` (new) | **+150 to +250** | New widget test file, ~5 test cases + `ProviderScope` setup + fake notifier. |
+| Any other file | **0** | Off-limits (Cycle 4). |
+
+- Expected new files: **1** (`year_selector_test.dart`).
+- Expected new public classes / methods on production code: **0** (widgets and the notifier method all private / private-to-file).
+- Expected new dependencies (pubspec.yaml): **0**.
+- Expected migration files: **0**.
+
+## Cycle 4 System Impact Map
+
+| System | Status | Notes |
+| --- | --- | --- |
+| Financials → Screen | changed (in-scope) | Chip row → year dropdown; merged summary line. |
+| Financials → Controller | changed (in-scope) | State shape simplifies (drop 3 fields, add 1). Method surface swaps. |
+| Financials → PDF Report Screen | changed (in-scope) | Constructor + label helper simplified. Output PDF filename/header string preserved as `"Year YYYY"`. |
+| Financials → PDF Report Builder | unaffected | Takes `dateRangeLabel: String`; still gets the same shape of string. |
+| Financials → Add / Edit Sheet | unaffected | Independent of filter state. |
+| Financials → Details Sheet | unaffected | Independent of filter state. |
+| Financials → Savings Sheet | unaffected | Reads `state.allEntries` (unfiltered). |
+| Gigs / Rehearsals / Setlists / Members | unaffected | No cross-references. |
+| Auth / Routing / Notifications | unaffected | No init-order change, no session change. |
+| Platforms (iOS / Android / macOS / Web) | uniformly affected | Shared Flutter UI only; `PopupMenuButton` renders natively on all four. No platform-conditional code. |
+| Supabase schema / RLS / RPCs | unaffected | Client-only change. |
+| pubspec.yaml | unaffected | No new dependency. |
+
+## Cycle 4 Regression Risk
+**LOW**. Justification:
+- Still no touch to auth, session, routing, init order, DB, RLS, RPCs, or platform-conditional code.
+- State-shape change is contained to one file, one notifier, three straightforward field edits.
+- No new provider added. One method renamed on an existing notifier.
+- No new dependency, no new migration.
+- The PDF report's on-disk output format (filename, header string, row order) is preserved via the `"Year YYYY"` label form — regression surface on the report path is nil.
+- Realistic regression classes: (a) forgetting to update the single `_openCombinedReport` call site — caught at compile time by the constructor signature change; (b) test fixtures rendering empty lists after wall-clock rollover — caught by Task 7's year-relative fixture update.
+
+## Cycle 4 Engineer Task Breakdown
+
+Ordered, atomic. Each task leaves the app compiling. **Do not merge tasks or invent extra sub-steps.**
+
+1. **Update `FinancialsState` shape in `financials_controller.dart`.**
+   - Delete the `FinancialDateFilter` enum.
+   - Delete `dateFilter`, `customStartDate`, `customEndDate` fields, their constructor named params, their `copyWith` named params, and the `clearCustomDates` flag from `copyWith`.
+   - Add `final int selectedYear;` field. Constructor param: `int? selectedYear`. Initialiser list: `selectedYear = selectedYear ?? DateTime.now().year`.
+   - Add `int? selectedYear` to `copyWith` params; merge with the existing pattern (`selectedYear: selectedYear ?? this.selectedYear`).
+   - Replace the `_applyDateFilter` body with the single-year filter from Proposed Solution → State-shape decision.
+   - Delete `setDateFilter(FinancialDateFilter)` and `setCustomDateRange(DateTime, DateTime)` from `FinancialsNotifier`.
+   - Add `void setSelectedYear(int year) { state = state.copyWith(selectedYear: year); }`.
+   - `flutter analyze` will now flag broken references in `financials_screen.dart` and `financials_pdf_preview_screen.dart` — that's expected, resolved in Tasks 2 and 3.
+
+2. **Update `financials_pdf_preview_screen.dart` for the new state shape.**
+   - Constructor: delete the three chip-related params. Add `required int selectedYear`.
+   - Replace `_filterLabel` with the single-line year form: `String get _filterLabel => 'Year ${widget.selectedYear}';`.
+   - Nothing else changes in this file.
+
+3. **Introduce `_YearSelector` and `_YearSelectorChip` in `financials_screen.dart`.**
+   - Add the two private widgets per Proposed Solution → `_YearSelector` widget, in the section between `_ViewModeToggle` and `_DateFilterRow` (which will be deleted in Task 4).
+   - Do not yet swap `_DateFilterRow` in the render tree — this task leaves both `_DateFilterRow` and `_YearSelector` defined in the file so it stays compiling if built in isolation, but only `_DateFilterRow` is currently referenced from the build tree.
+   - Update the `_openCombinedReport` call site in this same task: replace `dateFilter: state.dateFilter, customStartDate: state.customStartDate, customEndDate: state.customEndDate` with `selectedYear: state.selectedYear`. This is necessary for the file to compile once Task 1 lands.
+
+4. **Swap `_DateFilterRow` → `_YearSelector` in the `_FinancialsScreenState.build` tree and merge `_SummaryHeader`'s two lines.**
+   - Replace the `_DateFilterRow(current: state.dateFilter, ...)` call in `build` with `const _YearSelector()`.
+   - In `_SummaryHeader.build`, delete the `_dateRangeLabel` helper method.
+   - Delete the two `Text` widgets that render the date-range label and the count separately (currently two consecutive children in the `Column`), along with the `SizedBox(height: Spacing.space4)` between them. Replace with a single `Text` widget rendering `'${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}'` using the existing footnote/muted style and `TextAlign.center`.
+   - This task must leave the app running and the header visually updated.
+
+5. **Delete dead code in `financials_screen.dart`.**
+   - Delete `_DateFilterRow`, `_FilterChip`, `_pickCustomRange`, `_customLabel`.
+   - Audit for any imports only these classes used — none expected, but confirm.
+
+6. **Update `summary_header_test.dart` for the new label shape.**
+   - Delete the four "date-range sub-label matches the resolved value for X" cases (`allTime`, `thisYear`, `thisMonth`, `custom`).
+   - Add the three new cases per Files to Modify → `summary_header_test.dart`.
+   - Update the "count phrasing" case to assert the merged form.
+   - Existing "total …", "label reads TOTAL INCOME/EXPENSES", and "chevron" cases stay as-is.
+
+7. **Update fixture defaults in `transaction_card_test.dart` and `transactions_list_header_test.dart`.**
+   - Replace the hardcoded `DateTime(2026, 1, 15)` default in `_entry` / `_makeEntry` with `DateTime(DateTime.now().year, 1, 15)`.
+   - No test-body changes required — the assertions still hold since all entries in a given test share the same year and match the default `selectedYear`.
+
+8. **Add `year_selector_test.dart`.**
+   - Create the new file under `test/features/financials/widgets/` following the same pattern as the Cycle 1 test files (`_FakeFinancialsNotifier`, `_pump` helper, `ProviderScope` override).
+   - Implement the five assertions listed in Files to Modify → new `year_selector_test.dart`.
+
+## Cycle 4 Verification Plan
+
+### Cycle 4 Tier 1 — pre-deploy (QA gate, mechanically executable)
+
+QA gate for APPROVED requires all of the following without running the app:
+
+1. `flutter analyze` clean (no new lints).
+2. `flutter test` passes, including the updated `summary_header_test.dart`, the fixture-updated `transaction_card_test.dart` and `transactions_list_header_test.dart`, and the new `year_selector_test.dart`.
+3. Diff review confirms these files are byte-identical to `main`:
+   - `lib/features/financials/financial_entry_repository.dart`
+   - `lib/features/financials/models/financial_entry.dart`
+   - `lib/features/financials/financials_report_builder.dart`
+   - `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`
+   - `lib/features/financials/widgets/gig_pay_bottom_sheet.dart`
+   - `lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart` (changed in Cycles 1–3, no further change in Cycle 4)
+   - All `supabase/migrations/**` files
+   - `pubspec.yaml`
+4. Diff review confirms net line delta per modified file falls inside **Cycle 4 Change Budget** ranges.
+5. Diff review confirms `_DateFilterRow`, `_FilterChip`, `_pickCustomRange`, `_customLabel`, `FinancialDateFilter`, `setDateFilter`, `setCustomDateRange`, `customStartDate`, `customEndDate`, and `_dateRangeLabel` are absent from the tree (no dangling references).
+6. Diff review confirms `PopupMenuButton<int>` is present in `financials_screen.dart` with `onSelected` wired to `setSelectedYear`, and that the year list is derived from `state.allEntries` (not a hardcoded range).
+
+### Cycle 4 Tier 2 — post-deploy
+not applicable — no DB migration, no RPC change, no RLS change, no edge function change, no external API change.
+
+### Cycle 4 Owner-run punch list (Tony runs at PR-test time — QA writes this into the PR body verbatim, does not attempt it)
+
+QA cannot run the app. Tony walks the following in a preview build (adds to the existing Cycles 1–3 punch list, doesn't replace it):
+
+1. Sign in with a demo band containing entries in the current calendar year; open Financials.
+   Expected: single year chip labeled with the current year is visible where the four filter chips used to be. Summary header line reads `"YYYY • N transactions"` on one line, where `YYYY` is the current calendar year and `N` is the transaction count for the current year.
+2. Toggle Income ↔ Expenses.
+   Expected: year in the summary line does not change; count and total update per the mode.
+3. Tap the year chip.
+   Expected: a popup menu opens showing the current year plus every distinct year the band has entries in, in descending order. No "All Time", no "This Month", no "Custom" options.
+4. Select a previous year with data (e.g., last year).
+   Expected: chip label updates to the selected year; summary line reads `"YYYY_prev • N transactions"` with `N` reflecting last year's count for the current view mode; transaction list re-renders showing only entries from that year; total updates accordingly.
+5. Toggle Income ↔ Expenses while a non-current year is selected.
+   Expected: year selection persists across the toggle; only the total and count change.
+6. Sign in with a demo band containing zero entries in every year (fresh band).
+   Expected: year chip shows the current calendar year; popup menu shows exactly one option (the current year); tapping it changes nothing; empty state renders below.
+7. Tap "Generate Report" while a non-current year is selected.
+   Expected: PDF preview opens with header/filename reading `"Year YYYY"` for the selected year (not the current year).
+8. If the current calendar year has ticked over during testing (unlikely mid-session, but if reproducing on Jan 1): confirm the default `selectedYear` reflects the new year on a fresh screen entry.
+
+## Cycle 4 QA Regression Areas
+
+1. **PDF report filename/header** — still reads `"Year YYYY"` for whatever year is selected; no regression to the format.
+2. **Sort toggle (Cycle 1)** — unaffected. Verify by cycling sort with the year selector at various years — sort still reverses the list order for the currently-filtered year.
+3. **`_SavingsSheet`** — reads `state.allEntries` (viewMode-agnostic, year-agnostic). Confirm savings totals are unchanged regardless of the year selection.
+4. **Empty state** — a band with entries only in past years, viewed with the current year selected, should render the empty state, not the transaction list. Confirm the empty state copy is unchanged.
+5. **Fixture year-relativity** — confirm that `flutter test` remains passing without any date-mocking package needed (`DateTime.now()` in fixtures is intentional).
+
+## Cycle 4 Rollout Strategy
+
+Same PR as Cycles 1–3 (#273). Commits added on top of `8dac09a`. No feature flag, no phased rollout, no DB migration. Merge to `main` when Cycle 4 clears the QA gate + owner-run punch list.
+
+## Cycle 4 Out of Scope
+
+- Adding an "All years" option to the dropdown (cross-year totals). If Tony wants this, Cycle 5.
+- Adding a "This Month" or arbitrary date-range option back. Cycle 5+ if requested.
+- Persisting the selected year across screen dismiss, band switch, or app restart — not asked for; matches the Cycle 1 decision to keep filter state transient.
+- Adding icons/badges to the year chip beyond the plain `▾` chevron.
+- Changing the PDF report's row order or content shape.
+- Any change to the transaction card, sort toggle, details sheet, savings sheet, `_ViewModeToggle`, `_EmptyState`, `_ErrorState` — all Cycle 1–3 concerns.
+- Any change to `FinancialEntry`, `FinancialEntryRepository`, `financials_report_builder.dart`, gig data flow, RLS, migrations, or pubspec dependencies.
+
+---
+
+# Cycle 5 Scope Expansion
+
+> **Cycle 6 supersession notice.** Cycle 5 was never implemented — Engineer stopped before Task 1 landed, Manager resolved an empty-state design conflict, then before Engineer could re-start Tony changed the filter-control design (three fixed options, not a dynamic year list). Cycle 6 supersedes Cycle 5's `AppDropdown<int>` typing, the `format: (year) => '$year'` callback, the `items: _availableYears(...).map(...)` derivation, the `_availableYears` helper retention, and the `summary_header_test.dart` `AppDropdown<int>`-typed assertions. **Cycle 5's other decisions survive verbatim and are re-adopted by Cycle 6:** the inline placement of the dropdown inside `_SummaryHeader`'s summary line (as the leading token of the ` • N transactions` row), the `IntrinsicWidth`-wrapped `AppDropdown` sizing pattern (with `SizedBox(width: 96)` fallback), the `_FinancialsScreenState.build` restructuring that keeps `_SummaryHeader` + `_TransactionsListHeader` visible in every non-error state (loading, empty, non-empty) so the filter control never vanishes, the deletion of `_YearSelector` / `_YearSelectorChip` and their standalone render call, the deletion of `year_selector_test.dart`, and the "no touch to `AppDropdown` wrapper file, no `import 'package:forui/forui.dart';` in feature code" wrapper-immutability guardrail. Read Cycle 6 for the current authoritative design of the dropdown's type, format, and items list; read the sections below for the layout, sizing, and empty-state-fix mechanics.
+
+Cycle 5 is a follow-on revision landing on top of Cycles 1–4, on the same branch (`feature/financials-transaction-cards`), before PR #273 merges. Cycles 1–4 remain uncommitted on the working tree; Cycle 4 is already QA-APPROVED. **Do not touch the Cycle 1–4 diff.** Cycle 5 is additive — its edits land on top of the Cycle 4 tree, not by rewriting it.
+
+Branch state at plan-write time: local `feature/financials-transaction-cards` at commit `8dac09a`, `git merge-base main HEAD` == `main` HEAD (`06bd222`) — **base is clean, no rebase needed** (confirmed by `git rev-parse` and `git merge-base` at plan-write time; matches Cycle 4's finding).
+
+## Cycle 5 Problem Summary
+
+Two coupled asks from Tony, landing together:
+
+1. **Move the year picker inline into `_SummaryHeader`.** The current Cycle 4 shape renders `_YearSelector` (a `PopupMenuButton<int>`-backed chip styled with `AppColors.primary`) in its own row above the entries list, and separately renders the summary line `"YYYY • N transactions"` inside `_SummaryHeader` as static text. Tony wants the `YYYY` in that summary line to *be* the interactive year picker — one control, one place, inline in the summary line. The standalone `_YearSelector` row goes away entirely.
+
+2. **Adopt Forui's `FSelect` via the existing `AppDropdown<T>` wrapper.** Tony linked https://forui.dev/docs/widgets/form/select and asked the year selector use Forui's `FSelect`. The project already has [lib/components/ui/app_dropdown.dart](lib/components/ui/app_dropdown.dart) — `AppDropdown<T>`, a thin wrapper around `FSelect.rich` — used by 4 direct call sites elsewhere in `lib/` (`band_form_screen.dart`, `event_editor_helpers.dart`, `gig_expense_subview.dart` x2, `add_financial_entry_bottom_sheet.dart`, `gig_pay_bottom_sheet.dart`). Do **not** introduce a new raw `FSelect` usage or a new wrapper; use `AppDropdown<int>` per the `lib/components/ui/README.md` convention ("All feature code uses these wrappers instead of calling Material or Forui widgets directly").
+
+Engineer attempted (1) in isolation and correctly stopped when it exposed a **usability trap**: `_SummaryHeader` today is only rendered inside the `else` branch of `filtered.isEmpty ? _EmptyState : Column(children: [_SummaryHeader, ...])`. Moving the picker inside `_SummaryHeader` — while otherwise correct — means that when the user lands on a band whose data is all in a prior year (with zero entries for the currently-selected year), the summary header vanishes and the user has no reachable year control. They have to leave the screen and re-enter (which resets `selectedYear` to `DateTime.now().year`, which still shows the empty state) or switch bands and switch back — neither obvious, both frustrating. **The empty-state layout must be restructured so the year picker stays reachable.**
+
+## Cycle 5 Root Cause
+n/a for the widget swap (UI change per Tony's request).
+
+For the empty-state trap: **root cause is the conditional in `_FinancialsScreenState.build` that renders `_SummaryHeader` only in the non-empty branch.** Confidence `HIGH` (verified in [financials_screen.dart lines ~154–225](lib/features/financials/financials_screen.dart) — the `filtered.isEmpty ? _EmptyState : Column(...)` conditional wraps *both* the header and the list, coupling them. The fix is to invert that conditional so the header sits above and only the list-content area swaps).
+
+## Cycle 5 Existing System Analysis (post-Cycle 4 baseline)
+
+Current state at commit `8dac09a` **plus the uncommitted Cycle 1–4 edits on the working tree**:
+
+- **`_FinancialsScreenState.build`** ([financials_screen.dart line 154–225](lib/features/financials/financials_screen.dart#L154-L225)) — currently renders:
+  ```
+  Column(
+    BackOnlyAppBar,
+    Expanded(Column(
+      PageTitle + Add button,
+      SizedBox(space16),
+      _ViewModeToggle,
+      SizedBox(space12),
+      const _YearSelector(),         ← Cycle 4 addition, to be deleted in Cycle 5
+      SizedBox(space16),
+      Expanded(
+        state.isLoading   → CircularProgressIndicator
+        : state.error != null → _ErrorState
+        : filtered.isEmpty → _EmptyState                        ← header not rendered here
+        : Column(                                               ← header only rendered here
+            _SummaryHeader,
+            _TransactionsListHeader,
+            SizedBox(space8),
+            Expanded(ListView.separated),
+          ),
+      ),
+    )),
+  )
+  ```
+- **`_YearSelector`** ([financials_screen.dart line 457–479](lib/features/financials/financials_screen.dart#L457-L479)) — the Cycle 4 `PopupMenuButton<int>`-based chip in its own row. Reads `state.allEntries` via `ref.watch(financialsProvider)`; dispatches `setSelectedYear` on selection; renders `_YearSelectorChip` as the tap target.
+- **`_YearSelectorChip`** ([financials_screen.dart line 481–514](lib/features/financials/financials_screen.dart#L481-L514)) — the rose-accented pill-shaped chip displaying `state.selectedYear` + a `▾` chevron. Delete in Cycle 5 together with `_YearSelector`.
+- **`_availableYears`** ([financials_screen.dart line 447–455](lib/features/financials/financials_screen.dart#L447-L455)) — a pure top-level helper that returns `[DateTime.now().year, ...distinct years in allEntries]` deduped, sorted descending. **Kept in Cycle 5** — its single caller moves from `_YearSelector` to `_SummaryHeader`, but its signature and behavior are unchanged.
+- **`_SummaryHeader`** ([financials_screen.dart line 706–776](lib/features/financials/financials_screen.dart#L706-L776)) — currently a `ConsumerWidget` rendering `TOTAL <MODE>` + total + `"${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}"` (single `Text` widget) + `Row([_InlineLinkButton(View Savings Balance), _InlineLinkButton(Generate Report)])`. The single-line `Text` becomes a `Row(IntrinsicWidth(AppDropdown<int>), Text(' • N transactions'))` in Cycle 5.
+- **`AppDropdown<T>`** ([lib/components/ui/app_dropdown.dart](lib/components/ui/app_dropdown.dart)) — thin wrapper around `FSelect<T>.rich` with `FSelectControl.lifted`. Renders as an `FTextField`-styled field (border, background, rounded corners, standard ~48px height and field padding — via `FTextField.defaultBuilder`). Constructor accepts `value`, `items: List<DropdownMenuItem<T>>?`, `children: List<FSelectItemMixin>?`, `onChanged: ValueChanged<T?>`, `format: String Function(T)?`, `labelBuilder` (alias for `format`), `enabled: bool`, plus `Form`-integration params (unused here). Assert requires **exactly one** of `items` or `children`. Currently used at 4 direct sites in `lib/features/*` — **all as full-width, form-field-style inputs with a label above them**. **No existing inline/compact usage in the codebase.** Cycle 5 establishes a new call-site pattern for `AppDropdown` (constrained width via `IntrinsicWidth`) — this is not a wrapper change, just a new usage constraint at the call site.
+- **`_TransactionsListHeader`** ([financials_screen.dart line 803–843](lib/features/financials/financials_screen.dart#L803-L843)) — `Text("Transactions") + InkWell(sort toggle)`. Rendered today only when `filtered.isNotEmpty` (implicitly, via being inside the non-empty `Column`). In Cycle 5, per Manager's directive that "only the *list content area itself* swaps," this widget also renders unconditionally (whenever the header does). Showing a sort toggle over an empty list is minor visual noise but avoids conditional-render layout shifts as the year picker flips between years with data and years without.
+- **`_EmptyState`** ([financials_screen.dart line 654–687](lib/features/financials/financials_screen.dart#L654-L687)) — `Center(Column(Icon + Text + Text))`, mainAxisAlignment center. When wrapped in `Expanded` inside a smaller area (below the summary header + list-header rows), it centers within the remaining vertical space — visually smaller than today's full-screen empty state but the same widget code. **No change to `_EmptyState` itself.** Copy stays as-is (Cycle 4's out-of-scope decision).
+
+**No other files in `lib/` reference `_YearSelector`, `_YearSelectorChip`, or `_availableYears`** — confirmed by grep. All the Cycle 5 production edits land inside `financials_screen.dart`.
+
+**Post-Cycle 4 tests on the working tree:**
+- `test/features/financials/widgets/summary_header_test.dart` — asserts the merged single-string form `find.text('${DateTime.now().year} • 3 transactions')` in 3 cases. These break in Cycle 5 because the year moves into an `AppDropdown` widget, not the same `Text`. Must be rewritten to assert the split shape (dropdown + adjacent text).
+- `test/features/financials/widgets/year_selector_test.dart` — targets `PopupMenuButton<int>` and `Icons.arrow_drop_down` by finder type. The widget it names is deleted in Cycle 5. The equivalent behaviors (renders current year, opens menu, dispatches `setSelectedYear`, zero-entries handling) move into `summary_header_test.dart` as new test cases targeting `AppDropdown<int>` and `FSelect`-internal finders. **Delete the file** rather than rewriting it in place — the widget-under-test name is gone from `lib/`, and keeping a file named after a deleted widget produces confusion.
+
+## Cycle 5 Proposed Solution
+
+### (a) Empty-state layout restructuring
+
+Refactor `_FinancialsScreenState.build` so `_SummaryHeader` (containing the inline year picker after edit (b)) and `_TransactionsListHeader` always render whenever we're not in the error branch. Only the content area below them swaps between loading spinner / empty state / list. Concretely, the current:
+
+```dart
+Expanded(
+  child: state.isLoading
+      ? CircularProgressIndicator(...)
+      : state.error != null
+          ? _ErrorState(...)
+          : filtered.isEmpty
+              ? const _EmptyState()
+              : Column(children: [
+                  const _SummaryHeader(),
+                  _TransactionsListHeader(sortAscending: _sortAscending, onToggleSort: ...),
+                  SizedBox(height: Spacing.space8),
+                  Expanded(child: ListView.separated(...)),
+                ]),
+),
+```
+
+becomes:
+
+```dart
+Expanded(
+  child: state.error != null
+      ? _ErrorState(message: state.error!)
+      : Column(children: [
+          const _SummaryHeader(),
+          _TransactionsListHeader(
+            sortAscending: _sortAscending,
+            onToggleSort: () => setState(() => _sortAscending = !_sortAscending),
+          ),
+          const SizedBox(height: Spacing.space8),
+          Expanded(
+            child: state.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : filtered.isEmpty
+                    ? const _EmptyState()
+                    : ListView.separated(
+                        padding: EdgeInsets.only(
+                          left: Spacing.pagePadding,
+                          right: Spacing.pagePadding,
+                          bottom: MediaQuery.of(context).padding.bottom +
+                              Spacing.space16,
+                        ),
+                        itemCount: sortedEntries.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: Spacing.space12),
+                        itemBuilder: (context, index) {
+                          final entry = sortedEntries[index];
+                          return _TransactionCard(
+                            entry: entry,
+                            onTap: () => showFinancialEntryDetailsSheet(
+                                context, ref, entry),
+                          );
+                        },
+                      ),
+          ),
+        ]),
+),
+```
+
+**Behavior in each state:**
+- **Error** — full-screen `_ErrorState` as today. Header hidden. Rationale: an error means the initial fetch failed; `state.allEntries` is `[]`, `selectedYear` defaults to `DateTime.now().year`, and rendering the header would show `$0.00 / N • 0 transactions` — misleading. User's action is "retry" not "browse years"; keep the branch as-is.
+- **Loading** — header + list-header render on top; spinner centers in the content area below. During the (brief, sub-second on cached band data) initial load, the header shows `$0.00 / <currentYear> • 0 transactions`. This is a mild visual transient but not misleading — the user immediately sees the picker and can start interacting; the numbers update in one paint when `_load` completes. Matches Manager's directive "regardless of loading/empty state."
+- **Empty (filtered.isEmpty on completed load)** — header + list-header render on top; `_EmptyState` centers in the smaller content area below. Header shows `$0.00 / <selectedYear> • 0 transactions`, dropdown lists every year in `state.allEntries` plus the current year. **Year picker is reachable.** User taps it, picks a year with data, list re-renders. This is the fix.
+- **Non-empty** — same as Cycle 4 today.
+
+`_TransactionsListHeader` renders unconditionally (whenever the header renders). Manager was explicit: "only the *list content area itself* swaps between the `_EmptyState`'s message and the `ListView` of cards." A sort toggle over an empty list is inert but not confusing (label reads "Newest first ▾"; tap does nothing meaningful but doesn't crash). Alternative rejected: hiding `_TransactionsListHeader` when empty would introduce conditional-render layout shifts as the user flips year selections, and require an extra `if (filtered.isNotEmpty)` branch — worse than the mild noise of always rendering it.
+
+`_EmptyState` widget code stays byte-identical — just renders inside a smaller `Expanded` area (below the header). Its `Center` + `Column(mainAxisAlignment: center)` self-centers in whatever vertical space it's given.
+
+### (b) Inline `AppDropdown<int>` for the year picker
+
+Inside `_SummaryHeader.build`, replace the current single `Text` widget:
+
+```dart
+Text(
+  '${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}',
+  textAlign: TextAlign.center,
+  style: AppTextStyles.footnote.copyWith(color: context.colors.textMuted),
+),
+```
+
+with a `Row` containing an inline `AppDropdown<int>` followed by the `" • N transactions"` text:
+
+```dart
+Row(
+  mainAxisSize: MainAxisSize.min,
+  mainAxisAlignment: MainAxisAlignment.center,
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    IntrinsicWidth(
+      child: AppDropdown<int>(
+        value: state.selectedYear,
+        onChanged: (year) {
+          if (year == null) return;
+          ref.read(financialsProvider.notifier).setSelectedYear(year);
+        },
+        format: (year) => '$year',
+        items: _availableYears(state.allEntries)
+            .map((y) => DropdownMenuItem<int>(
+                  value: y,
+                  child: Text('$y'),
+                ))
+            .toList(),
+      ),
+    ),
+    Text(
+      ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
+      style: AppTextStyles.footnote.copyWith(color: context.colors.textMuted),
+    ),
+  ],
+),
+```
+
+**Sizing decision — why `IntrinsicWidth`:** `AppDropdown` renders `FSelect.rich` which uses `FTextField.defaultBuilder` for field chrome — full-width by default. Without a horizontal constraint the field stretches to the enclosing `Column`'s max width and the trailing `Text` renders far to the right on its own line — the "inline" design collapses. `IntrinsicWidth` sizes the field to its natural content width (the `format(int)` string `"2026"` plus FSelect's internal padding + chevron button), yielding roughly ~90–110 logical pixels. This lets the `Row` fit both the dropdown and the trailing text on one line centered under the total.
+
+**Fallback authorized (do not need to re-consult):** if `IntrinsicWidth` breaks at layout time (some `FTextField` internals assert on `computeIntrinsicWidth`, though the four existing call sites don't exercise this path so we can't verify a priori), replace with `SizedBox(width: 96)`. Hardcoded but predictable, matches the natural width for 4-digit years at the current font size. Engineer picks whichever compiles + renders cleanly; if both work, `IntrinsicWidth` is preferred (self-adjusting if font size changes).
+
+**Field chrome vs. surrounding footnote style — accepted asymmetry:** `AppDropdown` renders with FSelect's default field styling (border, background, ~48px height, primary text color) — visually heavier and taller than the muted footnote text on either side of it. This is an intentional trade-off:
+- `AppDropdown` is a *facade wrapper*, deliberately opinionated per `lib/components/ui/README.md` — the whole point of using it is to inherit the project's standard FSelect styling. Overriding that styling per-call-site defeats the wrapper.
+- The year picker being visually distinct is correct affordance: it's the only interactive control in the summary block, and users need to see it's tappable.
+- The `Row(crossAxisAlignment: CrossAxisAlignment.center)` vertically centers the shorter `" • N transactions"` text against the taller field — visually acceptable.
+- If Tony later wants a tighter/inline styling, that requires either a new Forui theme layer or a compact-mode variant on `AppDropdown` — both out of scope for Cycle 5 and both requiring Manager sign-off before touching the shared wrapper.
+
+**No new dependency, no new wrapper.** `AppDropdown` is already used at 4 direct call sites in `lib/features/*`. The `IntrinsicWidth` constraint is a call-site pattern change, not an API change.
+
+**`onChanged` wiring:** `AppDropdown<int>.onChanged(int?)` fires with the picked int (nullable because FSelect can theoretically clear). Guard the null case (`if (year == null) return;`) — since we don't render a null-value item, this branch is dead in practice, but the null-check keeps the signature contract honest and prevents accidental `setSelectedYear(null!)`-style crashes if Forui's behavior shifts in a future version.
+
+**`format`:** returns `'$year'` — mirrors the existing `_YearSelectorChip` text formatting exactly.
+
+**`_availableYears` helper:** kept at file top level, unchanged. Its single caller moves from `_YearSelector.build` to `_SummaryHeader.build` (reads `state.allEntries` via the existing `ref.watch(financialsProvider)` at the top of `_SummaryHeader.build` — no new provider read needed).
+
+### (c) Delete `_YearSelector`, `_YearSelectorChip`, and their render call
+
+- Delete widget classes `_YearSelector` and `_YearSelectorChip` in full.
+- Delete the render call `const _YearSelector()` and its immediately-preceding `SizedBox(height: Spacing.space12)` and following `SizedBox(height: Spacing.space16)` from `_FinancialsScreenState.build`.
+- The `_ViewModeToggle` render row directly precedes the `Expanded(...)` content area now — the section between them is empty. Add a single `SizedBox(height: Spacing.space16)` to preserve visual spacing between the toggle and the content column below (matches the current spacing budget between mode toggle and content — one gap, not two).
+- Audit imports: `Icons.arrow_drop_down` was only used in `_YearSelectorChip`. Once that widget is deleted, `Icons` (from `package:flutter/material.dart`) may still be referenced by other Material widgets in the file (`MaterialPageRoute`, `CircularProgressIndicator`, etc. — verified by reading the file). `package:flutter/material.dart` stays as an import. No import removal expected.
+
+## Cycle 5 Database Impact
+not applicable — no schema change, no new RPC, no RLS change, no migration. Pure widget-tree edit.
+
+## Cycle 5 Flutter Architecture Changes
+
+- **No state-shape change.** `FinancialsState` unchanged; `selectedYear` field and `setSelectedYear(int)` method (both Cycle 4 additions) are reused as-is.
+- **No new provider, controller, repository, or model.**
+- **No change to `FinancialEntry`, `FinancialEntryRepository`, `FinancialsNotifier`, or `FinancialsPdfPreviewScreen`.**
+- **New import in `financials_screen.dart`:** `import '../../components/ui/app_dropdown.dart';` — matches the existing wrapper convention. Confirmed not already present by grep (`app_dropdown` matches zero times in `lib/features/financials/financials_screen.dart` today; two matches in the two sibling `widgets/` files).
+- **Deleted widgets:** `_YearSelector`, `_YearSelectorChip`. Both private; no external references.
+- **New call-site pattern for `AppDropdown`:** `IntrinsicWidth`-wrapped inline usage. First occurrence in the codebase; not a wrapper API change.
+- **`_availableYears`** helper stays at file top level, unchanged.
+
+## Cycle 5 Files to Create
+
+None. Test edits land in existing files; test-file deletion is via `git rm`, not a new file.
+
+## Cycle 5 Files to Modify
+
+### [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart)
+- **Add** `import '../../components/ui/app_dropdown.dart';` at the top with the other feature imports (alphabetized among relative imports).
+- **Restructure** `_FinancialsScreenState.build` per **Proposed Solution → (a)**: hoist `_SummaryHeader` and `_TransactionsListHeader` above the loading/empty conditional. Only the `Expanded(child: ...)` list-content area swaps between spinner / `_EmptyState` / `ListView.separated`.
+- **Delete** the `const SizedBox(height: Spacing.space12)` + `const _YearSelector()` + `const SizedBox(height: Spacing.space16)` sequence in the outer `Column` (currently between `_ViewModeToggle` and the `Expanded(...)` content area). Replace with a single `const SizedBox(height: Spacing.space16)` to preserve toggle→content spacing.
+- **Delete** the `_YearSelector` class (currently ~19 lines).
+- **Delete** the `_YearSelectorChip` class (currently ~34 lines).
+- **Keep** the `_availableYears` top-level helper (7 lines). Its single caller becomes `_SummaryHeader.build`.
+- **Rewrite** the single-`Text` "YYYY • N transactions" line inside `_SummaryHeader.build` as `Row(mainAxisSize: min, mainAxisAlignment: center, crossAxisAlignment: center, [IntrinsicWidth(AppDropdown<int>), Text(' • N transactions')])` per **Proposed Solution → (b)**.
+- **Preserve verbatim** everything else in `_SummaryHeader`: the `TOTAL <MODE>` label, total dollar formatting, the two `_InlineLinkButton`s for View Savings Balance / Generate Report.
+- **Preserve verbatim** `_TransactionsListHeader`, `_TransactionCard`, `_InlineLinkButton`, `_ViewModeToggle`, `_SavingsSheet`, `_openCombinedReport`, `_EmptyState`, `_ErrorState`, `_addEntry`.
+
+### [test/features/financials/widgets/summary_header_test.dart](test/features/financials/widgets/summary_header_test.dart)
+- **Update** the three existing test cases that assert the merged single-string form (`'displays the current calendar year by default'`, `'displays the selected year when setSelectedYear sets a non-current year'`, `'merges year and count into a single line separated by " • "'`, `'count phrasing is singular for one entry, plural for multiple entries'`). The merged `find.text('${year} • 3 transactions')` finder will no longer match because the year is now inside an `AppDropdown`'s `FSelect` widget, not the surrounding `Text`. Replace with two-part assertions:
+  - `find.text(' • 3 transactions')` (or `' • 1 transaction'`) — the trailing text widget.
+  - `find.byWidgetPredicate((w) => w is AppDropdown<int> && w.value == year)` — the dropdown carrying the year value. Import `package:bandroadie/components/ui/app_dropdown.dart` in the test file.
+- **Add** new test cases (5 total, mirroring what `year_selector_test.dart` currently covers, plus the empty-state fix):
+  1. `'inline AppDropdown<int> is present with current selectedYear as its value'` — pump default state, assert `find.byWidgetPredicate((w) => w is AppDropdown<int> && w.value == DateTime.now().year)` finds one widget.
+  2. `'inline AppDropdown<int> items reflect the derived year list (allEntries years ∪ currentYear, descending)'` — pump state with entries spanning `[2023, 2025, currentYear, currentYear+1]`, assert the `AppDropdown<int>.items!.map((i) => i.value).toList()` equals `[currentYear+1, currentYear, 2025, 2023]`.
+  3. `'selecting a different year via AppDropdown.onChanged dispatches setSelectedYear on the notifier'` — pump state with a previous-year entry; capture `container.read(financialsProvider).selectedYear` (initially current year); locate the `AppDropdown<int>` widget, invoke its `onChanged(previousYear)` directly; `pumpAndSettle`; assert `container.read(financialsProvider).selectedYear == previousYear`. **Direct `onChanged` invocation is preferred over `tester.tap` + menu-item tap** because opening an `FSelect.rich` popup and tapping an internal `FSelectItem` requires reaching into Forui's internal widget tree, which is brittle and version-fragile; the widget-level assertion (the `onChanged` callback is wired to the notifier method) is the correct behavioral test.
+  4. `'zero entries → AppDropdown items contain exactly one entry (the current year) and the widget builds without crashing'` — pump `FinancialsState()` (zero entries), assert `AppDropdown<int>.items!.length == 1`, assert `items!.first.value == DateTime.now().year`, assert `tester.takeException() == null`.
+  5. **The core fix test: `'inline year picker remains visible and its onChanged callback is wired when filteredEntries is empty for the selectedYear'`** — pump `FinancialsState(allEntries: [entry in year X-1], selectedYear: X)` where X is the current year (so `filteredEntries` for X is empty). Assert:
+     - The `_EmptyState` widget is rendered (`find.text('No entries yet')` finds one widget).
+     - The `_SummaryHeader` is still rendered above it (`find.text('TOTAL INCOME')` finds one widget — or `TOTAL EXPENSES` under `viewMode.expenses`).
+     - The `AppDropdown<int>` is present (`find.byType(AppDropdown<int>)` finds one widget).
+     - The dropdown's `items!` still contains both `X` (current) and `X-1` (year with data), so the user can pick `X-1` to escape the empty state.
+     - Invoking `AppDropdown<int>.onChanged(X-1)` directly, then `pumpAndSettle`, changes `container.read(financialsProvider).selectedYear` to `X-1`.
+     - After the year switch, `_EmptyState` is gone and the `_TransactionCard` for the entry is rendered.
+
+- Existing `'total for two income entries…'`, `'label reads TOTAL INCOME / TOTAL EXPENSES'`, `'View Savings Balance and Generate Report links chevron'` cases are **untouched** — they don't assert on the merged year-count line.
+
+### [test/features/financials/widgets/year_selector_test.dart](test/features/financials/widgets/year_selector_test.dart)
+- **Delete this file.** The widget it targets (`_YearSelector`, `_YearSelectorChip`, and their `PopupMenuButton<int>` machinery) is removed in Cycle 5. The equivalent test coverage moves into `summary_header_test.dart` as the five new cases enumerated above. Removal is via `git rm` (Engineer) — do not leave an empty file or a stub.
+
+### [test/features/financials/widgets/transaction_card_test.dart](test/features/financials/widgets/transaction_card_test.dart) and [test/features/financials/widgets/transactions_list_header_test.dart](test/features/financials/widgets/transactions_list_header_test.dart)
+- **No change.** These files were updated in Cycle 4 Task 7 (year-relative fixtures) and continue to pass under Cycle 5's widget tree — they read `allEntries` and `viewMode` off `FinancialsState`, both unchanged.
+
+### [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart)
+- **No change.** `selectedYear` and `setSelectedYear` (Cycle 4 additions) are consumed by Cycle 5; nothing needs to be added or renamed. **Confirmed:** the Manager's implicit expectation — "no controller/state change is needed since `selectedYear`/`setSelectedYear` already exist" — holds. Verified by reading the current controller and matching against the Cycle 5 widget code.
+
+### [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart)
+- **No change.** Constructor and label logic are Cycle 4's; unchanged by Cycle 5.
+
+## Cycle 5 Files Off-Limits
+
+- [lib/features/financials/financial_entry_repository.dart](lib/features/financials/financial_entry_repository.dart) — no query changes.
+- [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart) — model unchanged.
+- [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart) — no state or notifier change beyond Cycle 4's additions.
+- [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart) — unchanged.
+- [lib/features/financials/financials_report_builder.dart](lib/features/financials/financials_report_builder.dart) — unchanged.
+- [lib/features/financials/widgets/**](lib/features/financials/widgets/) — every file in this folder (bottom sheets, details sheet, etc.) unchanged.
+- [lib/components/ui/app_dropdown.dart](lib/components/ui/app_dropdown.dart) — **do not modify the wrapper.** Cycle 5 uses it as-is; adding a "compact" mode or styling knob to the wrapper is a separate concern requiring Manager sign-off. If `IntrinsicWidth` doesn't produce acceptable sizing, use `SizedBox(width: 96)` at the call site — do not touch the wrapper.
+- [lib/components/ui/README.md](lib/components/ui/README.md) — no doc update required; the wrapper's API is unchanged.
+- All `supabase/migrations/**` — no DB change.
+- `pubspec.yaml` — no new dependency.
+- Anything outside `lib/features/financials/`, `lib/components/ui/` (read-only), and the test files listed above.
+
+## Cycle 5 Change Budget
+
+Numbers are net line delta *per file* after Engineer implements the Task Breakdown; QA diffs against these.
+
+| File | Expected net Δ lines | Rationale |
+| --- | --- | --- |
+| `lib/features/financials/financials_screen.dart` | **−40 to +5** | Delete `_YearSelector` (~19 lines), `_YearSelectorChip` (~34 lines), and the render-call block (`SizedBox` + `_YearSelector()` + `SizedBox` → single `SizedBox`, net ~−3 lines). Add `import app_dropdown.dart` (+1 line). Add `Row` + `IntrinsicWidth` + `AppDropdown<int>` in `_SummaryHeader` (~20 lines) replacing the single-line `Text` (~5 lines) — net ~+15 lines inside the header. Restructure build's `Expanded(child: ...)` (net ~+5 lines from nesting `Expanded` deeper + splitting the conditional). Net range accounts for whether the `AppDropdown` items list is expanded across multiple lines or inline. |
+| `test/features/financials/widgets/summary_header_test.dart` | **+90 to +180** | Adjust 3 existing cases from single-string to two-part assertions (~+10 lines). Add 5 new cases (~+90 to +170 lines depending on fixture verbosity). |
+| `test/features/financials/widgets/year_selector_test.dart` | **DELETED** | Full-file removal (~180 lines removed). Not counted against per-file delta budget since the file is gone. |
+| `test/features/financials/widgets/transaction_card_test.dart` | **0** | Untouched. |
+| `test/features/financials/widgets/transactions_list_header_test.dart` | **0** | Untouched. |
+| Any other file | **0** | Off-limits. |
+
+- Expected new files: **0**.
+- Expected deleted files: **1** (`year_selector_test.dart`).
+- Expected new public classes / methods on production code: **0**.
+- Expected new dependencies (pubspec.yaml): **0**.
+- Expected migration files: **0**.
+
+## Cycle 5 System Impact Map
+
+| System | Status | Notes |
+| --- | --- | --- |
+| Financials → Screen | changed (in-scope) | Year picker moves from standalone row into inline summary-line control; empty-state layout restructured so header stays reachable. |
+| Financials → Controller | unaffected | State shape and mutation methods unchanged from Cycle 4. |
+| Financials → PDF Report Screen | unaffected | Unchanged from Cycle 4. |
+| Financials → PDF Report Builder | unaffected | Unchanged. |
+| Financials → Add / Edit Sheet | unaffected | Unchanged. |
+| Financials → Details Sheet | unaffected | Unchanged. |
+| Financials → Savings Sheet | unaffected | Reads `state.allEntries` (unfiltered). |
+| Gigs / Rehearsals / Setlists / Members | unaffected | No cross-references. |
+| Auth / Routing / Notifications | unaffected | No init-order change, no session change. |
+| Platforms (iOS / Android / macOS / Web) | uniformly affected | Shared Flutter UI only; `FSelect.rich` popup renders natively on all four (verified via Forui docs and existing 4-call-site coverage). No platform-conditional code. |
+| Supabase schema / RLS / RPCs | unaffected | Client-only change. |
+| Forui integration / `AppDropdown` wrapper | consumed, not modified | Cycle 5 adds a new call-site pattern for `AppDropdown` (inline via `IntrinsicWidth`); the wrapper itself is not modified. |
+| `lib/components/ui/README.md` | unaffected (doc) | Doc's `AppDropdown` line says "10 call sites: 6 via EventDropdown, 4 direct" — Cycle 5 adds one direct call site (5 direct, 11 total). Doc string is not strictly wrong (still "10 call sites" was accurate at write time); optional to update. Left unchanged in Cycle 5 to keep the diff minimal. |
+| pubspec.yaml | unaffected | No new dependency. |
+
+## Cycle 5 Regression Risk
+**LOW**. Justification:
+
+- No touch to auth, session, routing, init order, DB, RLS, RPCs, or platform-conditional code.
+- No state-shape change (`FinancialsState`, `FinancialsNotifier`, `FinancialEntry`, `FinancialEntryRepository` byte-identical to Cycle 4).
+- No provider added or removed.
+- No new dependency, no new migration, no schema change.
+- Change is scoped to one production source file (`financials_screen.dart`) plus two test files (one edited, one deleted).
+- The `AppDropdown` wrapper is used at 4 direct sites elsewhere in `lib/features/*` — behavior is well-exercised in production. Cycle 5 introduces only a new *call-site constraint* (`IntrinsicWidth`), not a wrapper edit.
+
+**Realistic regression classes:**
+
+1. **`IntrinsicWidth` incompatible with `FSelect.rich` internals.** Some `FTextField`-derived widgets throw on `computeIntrinsicWidth` calls if they rely on unbounded parent constraints. **Mitigated:** authorized fallback to `SizedBox(width: 96)` at the same call site — Engineer trials `IntrinsicWidth` first, swaps to `SizedBox` if layout throws. Both approaches are pre-approved by this plan; QA doesn't need to re-consult which one landed.
+2. **`_EmptyState` visually cramped under the summary header.** With the header + list-header + spacing consuming the top ~200px of the content column, `_EmptyState` renders in the remaining vertical space. On short screens (iPhone SE, ~570px content height) the icon + two text lines may sit tight against the bottom safe area. **Mitigated:** owner-run punch list explicitly walks this on iPhone SE + narrow web widths. If cramped, Engineer can trim `_EmptyState`'s `Icon(size: 48)` to `size: 32` — but this is a fallback, not the default; try the current widget first.
+3. **Load-state flash of `$0.00 / 0 transactions`.** Between initial screen entry and `_load` completion, the header briefly shows zero values. **Accepted** per Manager's directive that the header renders "regardless of loading/empty state." Duration is sub-second on cached band data; not a defect.
+
+## Cycle 5 Engineer Task Breakdown
+
+Ordered, atomic. Each task leaves the app compiling. **Do not merge tasks or invent extra sub-steps.**
+
+1. **Rewrite the summary line in `_SummaryHeader.build`.**
+   - Inside `financials_screen.dart`, add `import '../../components/ui/app_dropdown.dart';` alongside the other relative imports.
+   - Replace the current `Text('${state.selectedYear} • ...')` widget with the `Row(...)` structure from **Proposed Solution → (b)**.
+   - Wire `AppDropdown<int>.onChanged` to `ref.read(financialsProvider.notifier).setSelectedYear(year)` with a null-guard.
+   - Wrap the `AppDropdown` in `IntrinsicWidth`. If layout throws at test/analyze time, swap to `SizedBox(width: 96)` — both authorized.
+   - This task leaves `_YearSelector` and `_YearSelectorChip` still defined and still rendered above the entries list; the app now shows *two* year controls (temporarily). This is expected and cleaned up in Task 3.
+
+2. **Restructure `_FinancialsScreenState.build` so the header always renders.**
+   - Rewrite the outer `Expanded(child: state.isLoading ? ... : state.error != null ? ... : filtered.isEmpty ? ... : Column([_SummaryHeader, ...]))` per **Proposed Solution → (a)**.
+   - Result: `state.error != null → _ErrorState`; else → `Column([_SummaryHeader, _TransactionsListHeader, SizedBox, Expanded(state.isLoading ? spinner : filtered.isEmpty ? _EmptyState : ListView.separated)])`.
+   - Preserve `ListView.separated`'s existing `padding`, `itemCount`, `separatorBuilder`, `itemBuilder` verbatim — including the `showFinancialEntryDetailsSheet(context, ref, entry)` `onTap` wiring on `_TransactionCard`.
+   - After this task, the empty-state trap is fixed: year picker (still inline in `_SummaryHeader`) remains reachable when `filtered.isEmpty`.
+
+3. **Delete `_YearSelector`, `_YearSelectorChip`, and the standalone render call.**
+   - Delete the `_YearSelector` class in full.
+   - Delete the `_YearSelectorChip` class in full.
+   - Delete the `SizedBox(height: Spacing.space12)` + `const _YearSelector()` + `SizedBox(height: Spacing.space16)` block in `_FinancialsScreenState.build`'s outer `Column`. Replace with a single `const SizedBox(height: Spacing.space16)` between `_ViewModeToggle` and the `Expanded(...)` content area.
+   - Keep the `_availableYears` top-level helper unchanged — it's now called from `_SummaryHeader.build` only.
+   - `flutter analyze` should now show no dangling references.
+
+4. **Update `summary_header_test.dart`.**
+   - Adjust the four existing test cases that assert `find.text('$year • N transactions')`. Rewrite as split assertions: `find.text(' • N transactions')` + `find.byWidgetPredicate((w) => w is AppDropdown<int> && w.value == year)`.
+   - Add the five new test cases enumerated in **Files to Modify → summary_header_test.dart**.
+   - Add `import 'package:bandroadie/components/ui/app_dropdown.dart';` at the test file's imports.
+   - The "core fix" case (case 5 in the list) is the primary QA gate for the empty-state fix — it must be present, must assert `_EmptyState` is rendered simultaneously with the `AppDropdown` being visible + interactive, and must verify the `onChanged` callback still dispatches `setSelectedYear` when the current filter is empty.
+
+5. **Delete `year_selector_test.dart`.**
+   - `git rm test/features/financials/widgets/year_selector_test.dart` (Engineer runs this in the terminal, not by leaving an empty file).
+   - After this task, the file is fully gone from the tree.
+
+## Cycle 5 Verification Plan
+
+### Cycle 5 Tier 1 — pre-deploy (QA gate, mechanically executable)
+
+QA gate for APPROVED requires all of the following without running the app:
+
+1. `flutter analyze` clean (no new lints; existing baseline preserved).
+2. `flutter test` passes, including the updated `summary_header_test.dart` (with the 5 new cases) and the untouched `transaction_card_test.dart` / `transactions_list_header_test.dart`. `year_selector_test.dart` must no longer exist (verify via `git ls-files | grep year_selector_test` returns empty).
+3. Diff review confirms these files are byte-identical to `main` (or, where applicable, byte-identical to their Cycle 4 shape on the working tree at plan-write time):
+   - `lib/features/financials/financial_entry_repository.dart` — vs. `main`
+   - `lib/features/financials/models/financial_entry.dart` — vs. `main`
+   - `lib/features/financials/financials_controller.dart` — vs. Cycle 4 tree (Cycle 4 changed this file; Cycle 5 does not)
+   - `lib/features/financials/financials_pdf_preview_screen.dart` — vs. Cycle 4 tree
+   - `lib/features/financials/financials_report_builder.dart` — vs. `main`
+   - `lib/features/financials/widgets/**` — every file, vs. its state on the Cycle 4 tree (Cycle 4 didn't touch these for the most part; details sheet was touched in Cycles 1–3)
+   - `lib/components/ui/app_dropdown.dart` — vs. `main` (Cycle 5 must not modify the wrapper)
+   - `lib/components/ui/README.md` — vs. `main`
+   - All `supabase/migrations/**` files — vs. `main`
+   - `pubspec.yaml` — vs. `main`
+4. Diff review confirms net line delta per modified file falls inside **Cycle 5 Change Budget** ranges.
+5. Diff review confirms `_YearSelector`, `_YearSelectorChip`, and the render-call block are absent from `financials_screen.dart`; `AppDropdown<int>` and the `IntrinsicWidth` wrapper (or `SizedBox(width: 96)` fallback) are present inside `_SummaryHeader`; and the `_availableYears` top-level helper is retained.
+6. Diff review confirms `_FinancialsScreenState.build` no longer wraps `_SummaryHeader` inside the `filtered.isEmpty` conditional — the header renders at the same level regardless of empty/non-empty content (except in the error branch).
+7. Diff review confirms `import '../../components/ui/app_dropdown.dart';` is added to `financials_screen.dart` and no other new import creeps in (no `import 'package:forui/forui.dart';` directly, no new `package:collection` etc.).
+8. Diff review confirms the "core fix" widget test (case 5 in the summary_header_test list) is present, is named to reflect the empty-state scenario, and mechanically exercises: (a) empty state rendering, (b) `AppDropdown` visibility, (c) `onChanged` dispatch under the empty state, (d) recovery from empty state after year switch.
+
+### Cycle 5 Tier 2 — post-deploy
+not applicable — no DB migration, no RPC change, no RLS change, no edge function change, no external API change.
+
+### Cycle 5 Owner-run punch list (Tony runs at PR-test time — QA writes this into the PR body verbatim, does not attempt it)
+
+QA cannot run the app. Tony walks the following (adds to the existing Cycles 1–4 punch lists, does not replace them):
+
+1. Sign in with a demo band containing entries in the current calendar year; open Financials.
+   Expected: single control layout above the entries list — the year is a dropdown embedded inline in the summary line, no standalone chip row above. Summary line reads `[YYYY ▾] • N transactions` centered under the total.
+2. Tap the year in the summary line.
+   Expected: Forui `FSelect.rich` popup opens (styled like a standard form-field dropdown, not a `PopupMenu` sheet). Lists the current year plus every distinct year the band has entries in, in descending order.
+3. Select a year with data.
+   Expected: dropdown closes; year label updates; count and total update; list re-renders. Two paints max.
+4. Sign in with (or switch to) a band whose data is entirely in a **prior** year (or manually set `selectedYear` to a year with no entries via the picker, then leave and re-enter — remember the picker resets to `DateTime.now().year` on re-entry).
+   **The core fix scenario.** Expected: summary header renders on top with the year dropdown (showing `<currentYear>`), total ($0.00), count (0), and both link buttons. Below the header, the `_EmptyState` renders (`No entries yet` + subtitle). Tap the year dropdown → popup shows the current year plus the prior year(s) with data. Select a prior year with data → list populates, empty state disappears. **This step must pass end-to-end without leaving/re-entering the screen — that's the whole fix.**
+5. Toggle Income ↔ Expenses while a non-current year is selected.
+   Expected: year selection persists; count and total update per mode; dropdown remains inline in the summary line.
+6. Tap "Generate Report" from the summary line while a non-current year is selected.
+   Expected: PDF preview opens with header/filename reading `"Year YYYY"` for the selected year (unchanged from Cycle 4).
+7. Tap "View Savings Balance."
+   Expected: savings sheet opens with the same animated total behavior as today; year selection does not affect savings totals (they read `state.allEntries`).
+8. Sort toggle: tap `"Newest first ▾"` in the transactions list header while entries are present.
+   Expected: label flips, list reverses. Unchanged from Cycle 1.
+9. With an empty filtered list (year has zero entries), verify the sort toggle in `_TransactionsListHeader` is visible but inert — tapping it doesn't crash, doesn't change label (there's nothing to sort). This is expected minor visual noise and not a defect.
+10. Cross-platform visual check on iOS, Android, macOS, and web:
+    - The inline year dropdown is sized appropriately (not stretched full-width, not clipped by field padding), and the `" • N transactions"` text sits next to it on the same line at all common widths (iPhone SE / narrow web / iPad / macOS full-window).
+    - The FSelect popup opens correctly on each platform (not clipped by the safe area, not offset from the field).
+    - `_EmptyState` centers correctly under the summary header on tall and short screens (no overflow, no clipping against the bottom safe area).
+11. Verify (visual, subjective): the inline dropdown's field chrome (border, background) is acceptable next to the muted footnote text of `" • N transactions"`. If the visual weight feels wrong, note it in the PR — a future cycle can tune Forui theme or add a compact-mode wrapper. This cycle intentionally accepts the standard `FSelect` chrome.
+
+## Cycle 5 QA Regression Areas
+
+1. **Empty-state reachability** — the specific fix. Regression check: any change to `_FinancialsScreenState.build` that reintroduces `_SummaryHeader` inside the `filtered.isEmpty` conditional is a critical regression, because it re-creates the year-picker trap. QA punches this via test case 5 in the new `summary_header_test.dart` set.
+2. **`AppDropdown` inline sizing** — regression check: `AppDropdown<int>` inside `_SummaryHeader` must be constrained by either `IntrinsicWidth` or `SizedBox`; if neither is present, the field stretches to column width and breaks the inline layout. QA verifies via diff review (Tier 1 gate #5) that one of the two wrappers surrounds the `AppDropdown`.
+3. **Wrapper immutability** — `lib/components/ui/app_dropdown.dart` must be byte-identical to `main`. Cycle 5 changes only the *call site*, never the wrapper. QA punches this via Tier 1 gate #3.
+4. **No raw `FSelect` usage** — regression check: `import 'package:forui/forui.dart';` must not appear in `financials_screen.dart` (or any feature file changed by Cycle 5). All Forui access goes through `AppDropdown`. QA verifies via grep in the diff.
+5. **PDF report** — unchanged from Cycle 4. Filename/header still reads `"Year YYYY"`; row order still comes from `dateFilteredEntries` (not affected by the on-screen sort toggle).
+6. **Sort toggle** — unchanged from Cycle 1. Tapping still reverses the list order for the current year filter.
+7. **`_SavingsSheet`** — unchanged from Cycles 1–4. Reads `state.allEntries` (year-agnostic); totals unaffected by year selection.
+8. **Details sheet** — unchanged from Cycles 1–3. Icons removed from `_DetailRow`, `"Paid by"` / `"Notes"` / `"Related to gig"` labels present, `"Reimbursed: Yes/No"` row on expenses, footer button reads `"Edit"`.
+9. **Loading-state flash** — accept `$0.00 / 0 transactions` briefly visible during initial load. Not a defect. If load duration exceeds 1s consistently, that's a separate concern (backend perf) and not addressed here.
+
+## Cycle 5 Rollout Strategy
+
+Same PR as Cycles 1–4 (#273). Commits added on top of the Cycle 4 tree. No feature flag, no phased rollout, no DB migration. Merge to `main` when Cycle 5 clears the QA gate + owner-run punch list. Rollback = revert the PR; no data changes to unwind.
+
+## Cycle 5 Out of Scope
+
+- Any change to `AppDropdown` itself (adding a compact mode, dense variant, styling override, or new constructor). If `IntrinsicWidth`/`SizedBox` are both unacceptable, that's a separate cycle touching `lib/components/ui/app_dropdown.dart` under Manager review.
+- Any change to the Forui theme layer (e.g., customizing `FTextField.defaultBuilder`, tightening field padding, reducing default height). Also a separate cycle.
+- Changing `_EmptyState` copy or icon — Cycle 4 out-of-scope decision holds. If the empty-state message should acknowledge the year filter ("No entries for {year}"), that's a follow-up cycle.
+- Adding an "All years" option to the dropdown. Same Cycle 4 out-of-scope decision.
+- Persisting `selectedYear` across screen dismiss / band switch / app restart. Not asked for; matches the Cycle 1 / Cycle 4 stance on transient filter state.
+- Any change to the sort toggle, transaction card, details sheet, savings sheet, `_ViewModeToggle`, `_ErrorState`, `_openCombinedReport`, or `_addEntry`.
+- Any change to `FinancialEntry`, `FinancialEntryRepository`, `FinancialsState`, `FinancialsNotifier`, `FinancialsPdfPreviewScreen`, `financials_report_builder.dart`, gig data flow, RLS, migrations, or pubspec dependencies.
+- Updating `lib/components/ui/README.md`'s "10 call sites" count to "11 direct + 6 via EventDropdown". The doc string is factual at write-time; Cycle 5 not obligated to touch documentation for a call-site addition, and the doc-file change is off-limits.
+
+---
+
+# Cycle 6 Scope Expansion
+
+Cycle 6 is a design-reversal revision landing on top of Cycles 1–4 (and superseding the never-implemented Cycle 5 in the parts noted at the top of Cycle 5), on the same branch (`feature/financials-transaction-cards`), before PR #273 merges. Cycles 1–4 remain uncommitted on the working tree; Cycle 4 is QA-APPROVED (uncommitted). Cycle 5 was never implemented — its Task 1 diff never landed. **Cycle 6 lands directly on the Cycle 4 tree**, executing (a) the parts of Cycle 5 that survive (inline dropdown placement + empty-state build restructuring + widget deletions) and (b) the Cycle 6 state-shape swap, in one coherent revision.
+
+Branch state at plan-write time: local `feature/financials-transaction-cards` at commit `8dac09a`; `GIT_OPTIONAL_LOCKS=0 git merge-base main HEAD` == `06bd222` == current `main` HEAD — **base is clean, no rebase needed**. Working tree has Cycles 1–4 modifications uncommitted across `lib/features/financials/**` and `test/features/financials/widgets/**`, plus the never-committed `test/features/financials/widgets/year_selector_test.dart` from Cycle 4. Cycle 6 is architected against that working tree (Cycle 4 tree), not against `main`.
+
+## Cycle 6 Problem Summary
+
+Tony reviewed Cycle 4 (year-select dropdown) after Manager staged the Cycle 5 redesign of it, and asked for a third revision to the date-filter control:
+
+> "The 2026 dropdown would always have a selection. The default selection is 2026 (current year). Tapping the select component will reveal the select menu with the options 'All time', 'This year', This month. Change 2026 to 'This year' and use this component."
+
+Concrete asks (this is the current authoritative interpretation, superseding Cycle 4/5 wherever they conflict):
+
+1. **Reintroduce a three-value filter enum** — `{ allTime, thisYear, thisMonth }`. No `custom` case (Tony did not ask for arbitrary date ranges to come back, so the pre-Cycle-4 `custom` enum value and the `showDateRangePicker` code path stay deleted).
+2. **Default filter is `thisYear`** — matches Cycle 4's "default to current year" intent, now expressed via the `thisYear` semantic rather than a scalar year.
+3. **Dropdown always has a non-null selection** — the underlying state field is non-nullable and defaults to `thisYear`; the dropdown widget therefore never renders in an "unselected" state.
+4. **`thisYear` renders textually, not as a numeral** — the collapsed dropdown label reads `'This year'`, not `'2026'`. This is a direct reversal of Cycle 4's "always show the numeral for `thisYear`" behavior. `'All time'` and `'This month'` were already textual, so no reversal is needed for the other two.
+5. **The dropdown lives inline in `_SummaryHeader`** — same placement Cycle 5 spec'd (leading token of the ` • N transactions` line, `IntrinsicWidth`-wrapped `AppDropdown` inside a `Row`). Cycle 6 does not change that placement; only the type parameter and item list change.
+6. **The Cycle 5 empty-state accessibility fix survives** — the header (with the dropdown) must remain visible and tappable when `filteredEntries` is empty for the current selection, so the user can escape a `thisYear`-with-no-current-year-data state by picking `allTime` or `thisMonth` without leaving the screen.
+
+Cycle 4's "dynamic year-list derived from `state.allEntries`" mechanic and Cycle 5's `_availableYears` helper retention are both dropped — the item list is now a fixed 3-value enum literal, not a data-derived list.
+
+## Cycle 6 Root Cause
+
+n/a — UI/UX design reversal in response to Tony's testing feedback on Cycle 4 (before Cycle 4 shipped). Confidence `HIGH` on the mechanical scope: every referenced field, method, widget, PDF call site, and test assertion has been verified by reading the files on the current working tree at plan-write time.
+
+## Cycle 6 Existing System Analysis (Cycle 4 tree — Cycle 5 unrealized)
+
+Current state of the working tree, verified by reading the files:
+
+- **`FinancialsState`** ([financials_controller.dart lines 17–67](lib/features/financials/financials_controller.dart#L17-L67)) — as introduced by Cycle 4. Holds `viewMode`, `selectedYear: int`. Constructor takes `int? selectedYear` and initialises via `selectedYear = selectedYear ?? DateTime.now().year` (nullable-in-constructor-for-runtime-default pattern). `copyWith` has `int? selectedYear`. `_applyDateFilter` is a single-line `.where((e) => e.entryDate.year == selectedYear)`. `filteredEntries` and `dateFilteredEntries` unchanged in signature.
+- **`FinancialsNotifier.setSelectedYear(int)`** ([financials_controller.dart lines 114–116](lib/features/financials/financials_controller.dart#L114-L116)) — the Cycle 4 mutation method. Only caller: `_YearSelector.build`. Cycle 6 replaces it with `setDateFilter(FinancialDateFilter)`.
+- **`_YearSelector`** ([financials_screen.dart lines 469–491](lib/features/financials/financials_screen.dart#L469-L491)) and **`_YearSelectorChip`** ([financials_screen.dart lines 493–526](lib/features/financials/financials_screen.dart#L493-L526)) — Cycle 4's `PopupMenuButton<int>`-based standalone chip row. Rendered from `_FinancialsScreenState.build` at [line 155](lib/features/financials/financials_screen.dart#L155). Cycle 6 deletes both (Cycle 5's spec, re-adopted).
+- **`_availableYears`** ([financials_screen.dart lines 459–466](lib/features/financials/financials_screen.dart#L459-L466)) — Cycle 4's data-derived year list. Single caller: `_YearSelector.build`. Cycle 6 deletes the helper entirely (its only consumer goes away, and the new `AppDropdown` uses a static enum list, not data-derived items).
+- **`_FinancialsScreenState.build`** ([financials_screen.dart lines 87–221](lib/features/financials/financials_screen.dart#L87-L221)) — Cycle 4 tree, structured as:
+  ```
+  Column(
+    BackOnlyAppBar,
+    Expanded(Column(
+      PageTitle + Add button,
+      SizedBox(space16),
+      _ViewModeToggle,
+      SizedBox(space12),
+      const _YearSelector(),         ← Cycle 4; deleted in Cycle 6
+      SizedBox(space16),
+      Expanded(
+        state.isLoading   → CircularProgressIndicator
+        : state.error != null → _ErrorState
+        : filtered.isEmpty → _EmptyState                        ← header hidden here
+        : Column(                                               ← header only here
+            _SummaryHeader,
+            _TransactionsListHeader,
+            SizedBox(space8),
+            Expanded(ListView.separated),
+          ),
+      ),
+    )),
+  )
+  ```
+  Cycle 6 restructures this per Cycle 5's spec: `state.error != null → _ErrorState`; else → `Column([_SummaryHeader, _TransactionsListHeader, SizedBox(space8), Expanded(state.isLoading ? spinner : filtered.isEmpty ? _EmptyState : ListView.separated)])`. Header + list-header always render (in the non-error branch); only the content area swaps.
+- **`_SummaryHeader.build`** ([financials_screen.dart lines 700–767](lib/features/financials/financials_screen.dart#L700-L767)) — Cycle 4 tree. Renders `TOTAL <MODE>` label, big total, single-line `Text('${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}')`, and the two-link row. Cycle 6 replaces the single `Text` with a `Row(IntrinsicWidth(AppDropdown<FinancialDateFilter>), Text(' • N transactions'))`; every other line inside `_SummaryHeader` is preserved verbatim.
+- **`_openCombinedReport`** ([financials_screen.dart lines 618–637](lib/features/financials/financials_screen.dart#L618-L637)) — Cycle 4 tree. Passes `selectedYear: state.selectedYear` to `FinancialsPdfPreviewScreen`. Cycle 6 changes this to `dateFilter: state.dateFilter`.
+- **`FinancialsPdfPreviewScreen`** ([financials_pdf_preview_screen.dart lines 23–71](lib/features/financials/financials_pdf_preview_screen.dart#L23-L71)) — Cycle 4 tree. Constructor: `entries`, `bandName`, `int selectedYear`, `viewMode`, `members`. `_filterLabel` returns `'Year ${widget.selectedYear}'`. Cycle 6 swaps `int selectedYear` → `FinancialDateFilter dateFilter` and rewrites `_filterLabel` as a 3-case switch: `allTime → 'All time'`, `thisYear → 'Year ${DateTime.now().year}'` (preserves the PDF filename form for the default case), `thisMonth → DateFormat('MMMM yyyy').format(DateTime.now())` (matches the pre-Cycle-4 `thisMonth` label form). Requires adding `import 'package:intl/intl.dart';` — `intl` is already in pubspec (used by `financials_screen.dart` and other feature files), no dep change.
+- **`AppDropdown<T>`** ([lib/components/ui/app_dropdown.dart](lib/components/ui/app_dropdown.dart)) — Cycle 5 analysis holds byte-for-byte on the working tree (Cycle 5 wasn't implemented, so the wrapper is unchanged from `main`). `FSelect.rich` with `FSelectControl.lifted`, requires exactly one of `items` or `children`, `onChanged: ValueChanged<T?>`, `format: String Function(T)?`. Non-null `value` is fine (assertion checks `items`/`children` XOR, not value-nullness).
+- **Test files on the working tree:**
+  - `test/features/financials/widgets/summary_header_test.dart` — asserts the Cycle 4 merged form `find.text('${DateTime.now().year} • 3 transactions')` in several cases, and `find.textContaining('${DateTime.now().year} • ')` in others. Cycle 6 replaces these with two-part assertions (`AppDropdown<FinancialDateFilter>` + adjacent ` • N transactions` text), plus new cases per Cycle 6 requirements.
+  - `test/features/financials/widgets/transaction_card_test.dart` — Cycle 4-updated fixtures default `entryDate` to `DateTime(DateTime.now().year, 1, 15)`. Under Cycle 6's default `dateFilter = thisYear`, these entries still match the filter → fixtures continue to work byte-identical. No test edits.
+  - `test/features/financials/widgets/transactions_list_header_test.dart` — same story. Entries dated `DateTime(now.year, 3, ...)` match `thisYear`. No test edits.
+  - `test/features/financials/widgets/year_selector_test.dart` — Cycle 4 additive test file, currently untracked (per `git status`). Cycle 5 planned to delete it; Cycle 6 executes that deletion (Engineer runs `git rm test/features/financials/widgets/year_selector_test.dart`, or `rm` since the file is untracked — either produces the same tree state).
+
+**No other files in `lib/` or `test/` reference `selectedYear`, `setSelectedYear`, `_availableYears`, `_YearSelector`, `_YearSelectorChip`, `FinancialDateFilter`, `dateFilter`, or the four pre-Cycle-4 `dateFilter` case names** — confirmed by `grep_search` across `lib/**/*.dart` (20 matches, all in the three files above) and `test/features/financials/**` (30 state-related matches, all in the four files above). No other production code needs to change to accommodate this state-shape swap.
+
+## Cycle 6 Proposed Solution
+
+### (a) State-shape reconciliation — `financials_controller.dart`
+
+Reintroduce the enum, delete `selectedYear`, add `dateFilter`.
+
+```dart
+enum FinancialDateFilter { allTime, thisYear, thisMonth }
+```
+
+Note two important differences from the pre-Cycle-4 enum shape (do not restore either behavior):
+
+- No `custom` value. Tony did not request arbitrary date ranges to come back; the `showDateRangePicker` code path, the `customStartDate` / `customEndDate` state fields, and the `_pickCustomRange` helper (all deleted in Cycle 4) stay deleted. Any Engineer / QA temptation to add them "for completeness" is a plan violation.
+- Default is `thisYear`, not `allTime` (pre-Cycle-4 didn't specify a default clearly; Cycle 6 pins it to `thisYear` per Tony's directive that current-year is the initial view).
+
+Rewritten `FinancialsState`:
+
+```dart
+class FinancialsState {
+  final List<FinancialEntry> allEntries;
+  final bool isLoading;
+  final String? error;
+  final FinancialViewMode viewMode;
+  final FinancialDateFilter dateFilter;
+
+  const FinancialsState({
+    this.allEntries = const [],
+    this.isLoading = false,
+    this.error,
+    this.viewMode = FinancialViewMode.income,
+    this.dateFilter = FinancialDateFilter.thisYear,
+  });
+
+  FinancialsState copyWith({
+    List<FinancialEntry>? allEntries,
+    bool? isLoading,
+    String? error,
+    FinancialViewMode? viewMode,
+    FinancialDateFilter? dateFilter,
+    bool clearError = false,
+  }) {
+    return FinancialsState(
+      allEntries: allEntries ?? this.allEntries,
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError ? null : (error ?? this.error),
+      viewMode: viewMode ?? this.viewMode,
+      dateFilter: dateFilter ?? this.dateFilter,
+    );
+  }
+
+  // filteredEntries and dateFilteredEntries getters unchanged in signature.
+
+  List<FinancialEntry> _applyDateFilter(Iterable<FinancialEntry> source) {
+    final now = DateTime.now();
+    Iterable<FinancialEntry> filtered;
+    switch (dateFilter) {
+      case FinancialDateFilter.allTime:
+        filtered = source;
+        break;
+      case FinancialDateFilter.thisYear:
+        filtered = source.where((e) => e.entryDate.year == now.year);
+        break;
+      case FinancialDateFilter.thisMonth:
+        filtered = source.where(
+          (e) => e.entryDate.year == now.year && e.entryDate.month == now.month,
+        );
+        break;
+    }
+    final entries = filtered.toList();
+    entries.sort((a, b) => b.entryDate.compareTo(a.entryDate));
+    return entries;
+  }
+}
+```
+
+**Note the constructor becomes `const` again** (Cycle 4's `_defaultSelectedYear()` static helper hack is unneeded — enum values are compile-time constants, so `this.dateFilter = FinancialDateFilter.thisYear` is a valid const default). This restores the pre-Cycle-4 `const FinancialsState({...})` shape; any test that constructed a state via `const FinancialsState()` continues to work.
+
+Rewritten `FinancialsNotifier` mutation surface:
+
+```dart
+void setDateFilter(FinancialDateFilter filter) {
+  state = state.copyWith(dateFilter: filter);
+}
+```
+
+Delete `setSelectedYear(int)`. `build`, `_load`, `addEntry`, `updateEntry`, `deleteEntry`, `refresh` — unchanged.
+
+### (b) `AppDropdown<FinancialDateFilter>` wiring in `_SummaryHeader`
+
+Inside `_SummaryHeader.build`, replace the Cycle 4 single-`Text` line:
+
+```dart
+Text(
+  '${state.selectedYear} • ${count == 1 ? '1 transaction' : '$count transactions'}',
+  textAlign: TextAlign.center,
+  style: AppTextStyles.footnote.copyWith(color: context.colors.textMuted),
+),
+```
+
+with:
+
+```dart
+Row(
+  mainAxisSize: MainAxisSize.min,
+  mainAxisAlignment: MainAxisAlignment.center,
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    IntrinsicWidth(
+      child: AppDropdown<FinancialDateFilter>(
+        value: state.dateFilter,
+        onChanged: (filter) {
+          if (filter == null) return;
+          ref.read(financialsProvider.notifier).setDateFilter(filter);
+        },
+        format: _dateFilterLabel,
+        items: FinancialDateFilter.values
+            .map((f) => DropdownMenuItem<FinancialDateFilter>(
+                  value: f,
+                  child: Text(_dateFilterLabel(f)),
+                ))
+            .toList(),
+      ),
+    ),
+    Text(
+      ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
+      style:
+          AppTextStyles.footnote.copyWith(color: context.colors.textMuted),
+    ),
+  ],
+),
+```
+
+and add a top-level helper at file scope (near where `_availableYears` was, after that helper is deleted):
+
+```dart
+String _dateFilterLabel(FinancialDateFilter filter) {
+  switch (filter) {
+    case FinancialDateFilter.allTime:
+      return 'All time';
+    case FinancialDateFilter.thisYear:
+      return 'This year';
+    case FinancialDateFilter.thisMonth:
+      return 'This month';
+  }
+}
+```
+
+**Label-mapping rationale.** Tony's exact strings: `'All time'`, `'This year'`, `'This month'`. Sentence-case, single space, no trailing punctuation. `_dateFilterLabel` is the single source of truth for both the collapsed dropdown label (via `format: _dateFilterLabel`) and each menu item's child text (`Text(_dateFilterLabel(f))`). Keeping them wired through the same function prevents label-drift bugs where the collapsed and expanded views could disagree.
+
+**Non-null selection guarantee.** `state.dateFilter` is a non-nullable field with a compile-time-const default of `FinancialDateFilter.thisYear`. The `AppDropdown<FinancialDateFilter>.value` therefore is always a real enum value, never `null`. `AppDropdown` does not assert `value != null` (its only assertion is `items` XOR `children`), so passing a non-null value is compatible; the collapsed field renders `format(value)` and never falls into any "no selection" branch. The `onChanged` null-guard (`if (filter == null) return;`) is defensive against future Forui behavior changes and against a hypothetical "clear" affordance in `FSelect` — dead code in practice, kept for the same rationale Cycle 5 documented.
+
+**`IntrinsicWidth` sizing pattern (Cycle 5 spec, re-adopted).** `AppDropdown` renders `FSelect.rich` which uses `FTextField.defaultBuilder` and stretches to the enclosing width by default. `IntrinsicWidth` sizes the field to its natural content — the widest of the three format strings (`'All time'` at ~8 chars, `'This year'` at ~9 chars, `'This month'` at ~10 chars, plus the built-in chevron button padding). **Authorized fallback (no re-consult needed):** if `IntrinsicWidth` throws at layout/analyze time because `FSelect.rich` internals reject `computeIntrinsicWidth`, replace with `SizedBox(width: 128)` at the same call site. `128` gives comfortable room for `'This month'` at the current footnote font size (versus Cycle 5's `96` which was sized for a 4-digit year); both approaches are pre-approved by this plan. Engineer picks whichever compiles and renders cleanly.
+
+**Field chrome asymmetry (Cycle 5 rationale, re-adopted).** `AppDropdown` renders full FSelect field chrome (border, background, ~48px height, primary text color) next to muted footnote text on either side. This is the intentional trade-off — the wrapper is a facade per `lib/components/ui/README.md`, and the visual distinction correctly signals interactivity. `Row(crossAxisAlignment: CrossAxisAlignment.center)` vertically centers the shorter trailing text against the taller field. If Tony later wants tighter/inline styling, that's a wrapper-level or Forui-theme-level cycle, not this one.
+
+### (c) `FinancialsPdfPreviewScreen` reconciliation
+
+Swap the Cycle 4 `int selectedYear` constructor param back to a filter-type concept, and rewrite `_filterLabel` as a 3-case switch. Do **not** resurrect `customStartDate` / `customEndDate` — `custom` is not part of Cycle 6.
+
+```dart
+class FinancialsPdfPreviewScreen extends StatefulWidget {
+  final List<FinancialEntry> entries;
+  final String bandName;
+  final FinancialDateFilter dateFilter;   // was: int selectedYear
+  final List<MemberVM> members;
+  final FinancialViewMode? viewMode;
+
+  const FinancialsPdfPreviewScreen({
+    super.key,
+    required this.entries,
+    required this.bandName,
+    required this.dateFilter,
+    this.viewMode,
+    this.members = const [],
+  });
+
+  // ...
+}
+
+class _FinancialsPdfPreviewScreenState
+    extends State<FinancialsPdfPreviewScreen> {
+  // ...
+
+  String get _filterLabel {
+    final now = DateTime.now();
+    switch (widget.dateFilter) {
+      case FinancialDateFilter.allTime:
+        return 'All time';
+      case FinancialDateFilter.thisYear:
+        return 'Year ${now.year}';
+      case FinancialDateFilter.thisMonth:
+        return DateFormat('MMMM yyyy').format(now);
+    }
+  }
+}
+```
+
+**PDF filename shape.** `_fileName` interpolates `_filterLabel`, producing:
+
+- `allTime` → `"{Band} – Financial Report (All time).pdf"`
+- `thisYear` → `"{Band} – Financial Report (Year YYYY).pdf"` — **preserved verbatim from Cycle 4's default-case output**; users who generated PDFs on Cycle 4 will see the same filename form for the default filter, so the "PDF output shape unchanged" property Cycle 4's plan claimed for the current-year case still holds.
+- `thisMonth` → `"{Band} – Financial Report (December 2026).pdf"` (or the applicable month/year).
+
+**Requires** `import 'package:intl/intl.dart';` in `financials_pdf_preview_screen.dart` — verified by grep that it's not currently imported there. `intl` is in `pubspec.yaml` already (used by `financials_screen.dart`, `financials_report_builder.dart`, and many others); this is only a per-file import addition, not a dependency addition.
+
+Sole caller (`_openCombinedReport`) changes:
+
+```dart
+// Before (Cycle 4):
+selectedYear: state.selectedYear,
+
+// After (Cycle 6):
+dateFilter: state.dateFilter,
+```
+
+### (d) Empty-state accessibility fix (Cycle 5 preserved verbatim)
+
+Rewrite `_FinancialsScreenState.build` per Cycle 5's Proposed Solution → (a). The `filtered.isEmpty` conditional no longer wraps `_SummaryHeader` + `_TransactionsListHeader`; only the content area (spinner / `_EmptyState` / `ListView.separated`) swaps. This is a mechanical restructuring copy-out from Cycle 5's plan, plus the deletion of the standalone `_YearSelector` render call (which Cycle 4 rendered above `Expanded(...)` and Cycle 5 spec'd deleting).
+
+Result tree (unchanged from Cycle 5's spec — only the widget referenced in the `Expanded` block changes to the Cycle 6 dropdown):
+
+```dart
+Expanded(
+  child: state.error != null
+      ? _ErrorState(message: state.error!)
+      : Column(children: [
+          const _SummaryHeader(),
+          _TransactionsListHeader(
+            sortAscending: _sortAscending,
+            onToggleSort: () => setState(() => _sortAscending = !_sortAscending),
+          ),
+          const SizedBox(height: Spacing.space8),
+          Expanded(
+            child: state.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : filtered.isEmpty
+                    ? const _EmptyState()
+                    : ListView.separated(
+                        padding: EdgeInsets.only(
+                          left: Spacing.pagePadding,
+                          right: Spacing.pagePadding,
+                          bottom: MediaQuery.of(context).padding.bottom +
+                              Spacing.space16,
+                        ),
+                        itemCount: sortedEntries.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: Spacing.space12),
+                        itemBuilder: (context, index) {
+                          final entry = sortedEntries[index];
+                          return _TransactionCard(
+                            entry: entry,
+                            onTap: () => showFinancialEntryDetailsSheet(
+                                context, ref, entry),
+                          );
+                        },
+                      ),
+          ),
+        ]),
+),
+```
+
+And the outer `Column` between the page title and the `Expanded(...)` content area collapses the `SizedBox(height: Spacing.space12) + const _YearSelector() + SizedBox(height: Spacing.space16)` triple into a single `const SizedBox(height: Spacing.space16)` (Cycle 5's spec, re-adopted).
+
+**Behavior in each state** (unchanged from Cycle 5's Proposed Solution → (a)):
+- **Error** — full-screen `_ErrorState`. Header hidden. Same rationale as Cycle 5 (initial fetch failed, `allEntries = []`, showing `$0.00` header would be misleading).
+- **Loading** — header + list-header render on top; spinner centers below. Header shows `$0.00 / [This year ▾] • 0 transactions` briefly during initial load. Same "sub-second transient, not misleading" rationale.
+- **Empty** — header + list-header render on top; `_EmptyState` centers below. **This is the fix.** User sees the dropdown, picks `'All time'` or `'This month'`, list re-renders (or, if truly no data anywhere, empty state persists but the control is reachable and no trap exists).
+- **Non-empty** — same layout, list renders normally.
+
+### Empty state under `dateFilter = allTime` — deliberately unchanged
+
+If a brand-new band with zero entries is opened, `_EmptyState` renders under all three filter selections (nothing to show under any filter). This is expected and acceptable; the dropdown is still reachable per (d). No copy change to `_EmptyState` (Cycle 4/5 out-of-scope decision holds).
+
+## Cycle 6 Database Impact
+
+not applicable — no schema change, no new RPC, no RLS change, no migration. Filter-selection state is transient Riverpod UI state; not persisted to Supabase.
+
+## Cycle 6 Flutter Architecture Changes
+
+- **`FinancialsState` shape changes** — `selectedYear: int` deleted; `dateFilter: FinancialDateFilter` added with compile-time-const default `FinancialDateFilter.thisYear`. `copyWith` signature updates; constructor becomes `const` again.
+- **`FinancialsNotifier` mutation methods** — `setSelectedYear(int)` deleted; `setDateFilter(FinancialDateFilter)` added. `build`, `_load`, `addEntry`, `updateEntry`, `deleteEntry`, `refresh` — unchanged.
+- **`FinancialDateFilter` enum** — **reintroduced** with exactly `{ allTime, thisYear, thisMonth }`. No `custom`.
+- **`FinancialsPdfPreviewScreen` constructor** — `int selectedYear` swapped to `FinancialDateFilter dateFilter`. `_filterLabel` becomes a 3-case switch. `_viewModeLabel`, `_fileName`, `_buildPdf`, `_handlePrint`, `_handleShare`, `build` — unchanged.
+- **`_YearSelector`, `_YearSelectorChip`** — deleted (Cycle 5 spec, re-adopted).
+- **`_availableYears`** helper — deleted (superseded from Cycle 5, which planned to retain it; Cycle 6 has no consumer since the item list is a fixed enum).
+- **`_dateFilterLabel(FinancialDateFilter) → String`** — new top-level helper in `financials_screen.dart`.
+- **Inline `AppDropdown<FinancialDateFilter>`** — new call site inside `_SummaryHeader`; `IntrinsicWidth`-wrapped (with `SizedBox(width: 128)` fallback authorized). First `AppDropdown<FinancialDateFilter>` usage in the codebase; other `AppDropdown` call sites use `String` / model types. Not a wrapper API change.
+- **`_FinancialsScreenState.build` restructuring** — Cycle 5's spec, re-adopted.
+- **New import** in `financials_screen.dart`: `import '../../components/ui/app_dropdown.dart';` (Cycle 5's spec, re-adopted).
+- **New import** in `financials_pdf_preview_screen.dart`: `import 'package:intl/intl.dart';` (`intl` already in pubspec).
+- No new provider, controller, repository, or model. No pubspec change.
+
+## Cycle 6 Files to Create
+
+None. All widget/enum additions live inside existing files. `year_selector_test.dart` is deleted, not replaced.
+
+## Cycle 6 Files to Modify
+
+### [lib/features/financials/financials_controller.dart](lib/features/financials/financials_controller.dart)
+- **Reintroduce** `enum FinancialDateFilter { allTime, thisYear, thisMonth }`. No `custom` value.
+- **Delete** the `selectedYear` field from `FinancialsState`, its constructor param, its `copyWith` param, and the `selectedYear = selectedYear ?? DateTime.now().year` initialiser.
+- **Add** `final FinancialDateFilter dateFilter;` field. Constructor named param: `this.dateFilter = FinancialDateFilter.thisYear` (compile-time-const default). Restore the `const` constructor.
+- **Update** `copyWith` to accept `FinancialDateFilter? dateFilter` and merge with the existing pattern.
+- **Replace** `_applyDateFilter` body with the 3-case switch shown in Proposed Solution → (a). Preserve the `.sort((a, b) => b.entryDate.compareTo(a.entryDate))` newest-first sort (unchanged behavior — Cycle 1 sort semantics).
+- **Delete** `setSelectedYear(int)` from `FinancialsNotifier`.
+- **Add** `void setDateFilter(FinancialDateFilter filter) { state = state.copyWith(dateFilter: filter); }`.
+
+### [lib/features/financials/financials_pdf_preview_screen.dart](lib/features/financials/financials_pdf_preview_screen.dart)
+- **Add** `import 'package:intl/intl.dart';` with the other package imports (alphabetized among package imports).
+- **Delete** constructor param `int selectedYear`. **Add** `required FinancialDateFilter dateFilter`.
+- **Replace** `_filterLabel` with the 3-case switch shown in Proposed Solution → (c).
+- `_viewModeLabel`, `_fileName`, `_buildPdf`, `_handlePrint`, `_handleShare`, `build` — untouched. `import 'financials_controller.dart';` stays (still used for `FinancialViewMode` and now for `FinancialDateFilter`).
+
+### [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart)
+- **Add** `import '../../components/ui/app_dropdown.dart';` alongside the other relative imports.
+- **Delete** the `_YearSelector` class in full (~19 lines).
+- **Delete** the `_YearSelectorChip` class in full (~34 lines).
+- **Delete** the `_availableYears` top-level helper in full (~8 lines).
+- **Delete** the `SizedBox(height: Spacing.space12)` + `const _YearSelector()` + `SizedBox(height: Spacing.space16)` sequence in `_FinancialsScreenState.build`'s outer `Column` (between `_ViewModeToggle` and the `Expanded(...)` content area). Replace with a single `const SizedBox(height: Spacing.space16)`.
+- **Restructure** the `Expanded(child: state.isLoading ? ... : ... : filtered.isEmpty ? _EmptyState : Column([_SummaryHeader, ...]))` block per Proposed Solution → (d): pull `_SummaryHeader` and `_TransactionsListHeader` above the loading/empty conditional; only the inner `Expanded` swaps between spinner / `_EmptyState` / `ListView.separated`.
+- **Add** the `_dateFilterLabel(FinancialDateFilter)` top-level helper (near the file's other top-level helpers).
+- **Rewrite** the single `Text('${state.selectedYear} • ...')` line inside `_SummaryHeader.build` as the `Row(IntrinsicWidth(AppDropdown<FinancialDateFilter>), Text(' • N transactions'))` structure from Proposed Solution → (b).
+- **Update** `_openCombinedReport` to pass `dateFilter: state.dateFilter` instead of `selectedYear: state.selectedYear`.
+- **Preserve verbatim** everything else in `_SummaryHeader`: `TOTAL <MODE>` label, big total, `_InlineLinkButton`s.
+- **Preserve verbatim** `_TransactionsListHeader`, `_TransactionCard`, `_InlineLinkButton`, `_ViewModeToggle`, `_SavingsSheet` + `_showSavingsSheet`, `_openCombinedReport`'s non-param body, `_EmptyState`, `_ErrorState`, `_addEntry`.
+- **Audit imports:** `Icons.arrow_drop_down` was only used in `_YearSelectorChip`. After deletion, `package:flutter/material.dart` may still supply other `Icons` references (`Icons.print_rounded` in the PDF screen; not this file — verify grep in this file). The `PopupMenuButton` import (`package:flutter/material.dart`) is still needed for other Material widgets in the screen. No import removals expected — do the audit to confirm.
+
+### [test/features/financials/widgets/summary_header_test.dart](test/features/financials/widgets/summary_header_test.dart)
+- **Add** imports:
+  - `import 'package:bandroadie/components/ui/app_dropdown.dart';`
+  - `import 'package:flutter/material.dart';` (already imported — for `DropdownMenuItem<T>` type reference in assertions).
+- **Update** the existing Cycle 4 test cases that assert `find.text('${year} • N transactions')` (`'displays the current calendar year by default'`, `'displays the selected year when setSelectedYear sets a non-current year'`, `'merges year and count into a single line separated by " • "'`, `'count phrasing is singular for one entry, plural for multiple entries'`):
+  - The `'displays the current calendar year by default'` case is **replaced** by a new case `'default state has dateFilter = FinancialDateFilter.thisYear and the AppDropdown shows "This year"'` — asserting the enum default AND that the collapsed label reads the literal string `'This year'` (not the current year's numeral).
+  - The `'displays the selected year when setSelectedYear sets a non-current year'` case is **replaced** by `'setting dateFilter to allTime causes the AppDropdown to render "All time" and the trailing text to read " • N transactions" for the unfiltered count'`.
+  - The `'merges year and count into a single line separated by " • "'` case is **updated** to assert the split shape: `find.byWidgetPredicate((w) => w is AppDropdown<FinancialDateFilter>)` finds the dropdown, and `find.text(' • 3 transactions')` finds the trailing text widget. The single merged `find.text('$year • 3 transactions')` no longer matches (year is inside the dropdown, not the surrounding text).
+  - The `'count phrasing is singular for one entry, plural for multiple entries'` case is **updated** to assert `find.text(' • 1 transaction')` and `find.text(' • 3 transactions')` (the leading token is inside the dropdown widget, not part of the same `Text`).
+- **Add** these new Cycle 6 test cases:
+  1. `'AppDropdown<FinancialDateFilter> value is non-null in every default state (thisYear)'` — pump `FinancialsState()` with defaults, locate the `AppDropdown<FinancialDateFilter>` widget, assert `w.value == FinancialDateFilter.thisYear` (and `w.value != null` for defensiveness).
+  2. `'AppDropdown format renders "This year" text, not a year numeral, for the thisYear case'` — pump default state, assert `find.text('This year')` finds one widget (the collapsed dropdown label). Additionally assert that `find.text('${DateTime.now().year}')` (the pure numeral) does **not** find any widget as an exact-`Text` match anywhere in the header (guard against a regression that would reintroduce the numeral). This is the direct reversal of Cycle 4's "always show the numeral" behavior for `thisYear` and is the primary test gate for Tony's Cycle 6 requirement.
+  3. `'AppDropdown items list contains exactly the three FinancialDateFilter values in enum-declaration order (allTime, thisYear, thisMonth)'` — locate the `AppDropdown<FinancialDateFilter>`, extract `w.items!.map((i) => i.value).toList()`, assert it equals `[FinancialDateFilter.allTime, FinancialDateFilter.thisYear, FinancialDateFilter.thisMonth]`.
+  4. `'AppDropdown items render Text children with the exact strings "All time", "This year", "This month"'` — for each item in `w.items!`, unwrap the `child` (a `Text` widget) and assert its `data` matches the expected string for its `value`. Guard against accidental capitalization drift (`'All Time'`, `'This Year'`, etc.).
+  5. `'invoking AppDropdown.onChanged(FinancialDateFilter.allTime) dispatches setDateFilter on the notifier'` — capture `container.read(financialsProvider).dateFilter` (initially `thisYear`), locate the `AppDropdown<FinancialDateFilter>`, invoke its `onChanged(FinancialDateFilter.allTime)` directly (per Cycle 5's rationale for preferring widget-level over `tester.tap` + menu-item-tap), `pumpAndSettle`, assert `container.read(financialsProvider).dateFilter == FinancialDateFilter.allTime`.
+  6. **The core empty-state fix test (Cycle 5's case 5, re-adopted for Cycle 6):** `'inline dropdown remains visible and its onChanged callback wired when filteredEntries is empty for the selected filter'` — pump `FinancialsState(allEntries: [entry in prior year], dateFilter: FinancialDateFilter.thisYear)` where the entry's year is `DateTime.now().year - 1`. Assert:
+     - `_EmptyState` is rendered (`find.text('No entries yet')` finds one widget).
+     - `_SummaryHeader` is still rendered above it (`find.text('TOTAL INCOME')` — or `TOTAL EXPENSES` under `viewMode.expenses` — finds one widget).
+     - `AppDropdown<FinancialDateFilter>` is present (`find.byType(AppDropdown<FinancialDateFilter>)` finds one widget).
+     - The dropdown's `items!` contains all three enum values (unchanged — item list is fixed).
+     - Invoking `AppDropdown.onChanged(FinancialDateFilter.allTime)` directly, then `pumpAndSettle`, changes `container.read(financialsProvider).dateFilter` to `allTime`.
+     - After the filter switch, `_EmptyState` is gone and the `_TransactionCard` for the prior-year entry is rendered.
+- Existing `'total for two income entries…'`, `'label reads TOTAL INCOME / TOTAL EXPENSES'`, `'View Savings Balance and Generate Report links chevron'` cases are **untouched** — they don't assert on the year-or-filter line.
+
+### [test/features/financials/widgets/year_selector_test.dart](test/features/financials/widgets/year_selector_test.dart)
+- **Delete this file.** Its target widgets (`_YearSelector`, `_YearSelectorChip`, `PopupMenuButton<int>`, `_availableYears`) all cease to exist in Cycle 6. Equivalent coverage lives in the updated `summary_header_test.dart` (cases 1–6 above). Deletion via `git rm` if tracked, or `rm` if still untracked (per `git status` on the working tree, it's currently `??`  untracked). Do not leave an empty file or a stub.
+
+### [test/features/financials/widgets/transaction_card_test.dart](test/features/financials/widgets/transaction_card_test.dart) and [test/features/financials/widgets/transactions_list_header_test.dart](test/features/financials/widgets/transactions_list_header_test.dart)
+- **No change.** Cycle 4's year-relative fixture defaults (`DateTime(DateTime.now().year, ...)`) keep entries inside the `thisYear` filter, so both test files continue to pass byte-identical under Cycle 6. `transactions_list_header_test.dart`'s `container.read(financialsProvider)` assertions read only the identity of the state object (for the "sort does not mutate provider" case), not the `selectedYear` field — no field-name dependency.
+
+## Cycle 6 Files Off-Limits
+
+- [lib/features/financials/financial_entry_repository.dart](lib/features/financials/financial_entry_repository.dart) — no query changes.
+- [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart) — model unchanged.
+- [lib/features/financials/financials_report_builder.dart](lib/features/financials/financials_report_builder.dart) — report format unchanged (still receives a `dateRangeLabel: String`, still gets a valid label string from `_filterLabel`).
+- [lib/features/financials/widgets/**](lib/features/financials/widgets/) — every file in this folder (details sheet, add/edit sheet, gig pay sheet) unchanged.
+- [lib/components/ui/app_dropdown.dart](lib/components/ui/app_dropdown.dart) — **do not modify the wrapper.** Cycle 6 uses it as-is; adding compact/dense modes, styling knobs, or a specialized enum-typed variant is a separate concern requiring Manager sign-off. If `IntrinsicWidth` doesn't produce acceptable sizing, use `SizedBox(width: 128)` at the call site — do not touch the wrapper.
+- [lib/components/ui/README.md](lib/components/ui/README.md) — no doc update required; the wrapper's API is unchanged.
+- All `supabase/migrations/**` files — no DB change.
+- `pubspec.yaml` — no new dependency (`intl` already present).
+- Anything outside `lib/features/financials/`, `lib/components/ui/` (read-only), and the test files listed above.
+
+## Cycle 6 Change Budget
+
+Numbers are net line delta *per file* after Engineer implements the Task Breakdown; QA diffs against these. Being off by >~40 lines in either direction on `financials_screen.dart` or `summary_header_test.dart`, or any non-zero delta on the off-limits files, is a plan-vs-implementation gap that should be flagged.
+
+| File | Expected net Δ lines | Rationale |
+| --- | --- | --- |
+| `lib/features/financials/financials_controller.dart` | **+5 to +20** | Add enum (3 lines), swap `selectedYear` field for `dateFilter` field (net ~0 lines), restore `const` constructor (net −1 line since the `_defaultSelectedYear` helper hack goes away — the initialiser list `: selectedYear = selectedYear ?? _defaultSelectedYear()` shrinks to a compile-time-const default parameter), expand `_applyDateFilter` from a 3-line where-clause to a ~15-line switch, swap `setSelectedYear` method for `setDateFilter` method (net ~0 lines). |
+| `lib/features/financials/financials_screen.dart` | **−35 to +5** | Delete `_YearSelector` (~19 lines), `_YearSelectorChip` (~34 lines), `_availableYears` (~8 lines), the standalone render-call block (net −3 lines: three widgets → one `SizedBox`). Add `_dateFilterLabel` helper (~10 lines), inline `Row(IntrinsicWidth(AppDropdown), Text)` structure (~20 lines replacing ~5 lines of the single `Text`). Restructure build's `Expanded(child: ...)` per Cycle 5 (net ~+5 lines). Add `import 'app_dropdown.dart';` (+1 line). |
+| `lib/features/financials/financials_pdf_preview_screen.dart` | **+5 to +15** | Add `intl` import (+1 line). Constructor: swap `int selectedYear` param → `FinancialDateFilter dateFilter` (net ~0 lines). Replace 1-line `_filterLabel` with ~15-line switch. |
+| `test/features/financials/widgets/summary_header_test.dart` | **+50 to +150** | Update 4 existing cases from single-string to split-shape assertions (~+10 lines). Add 6 new cases (~+120 to +180 lines depending on fixture verbosity). Add 1 import (+1 line). |
+| `test/features/financials/widgets/year_selector_test.dart` | **DELETED** | Full-file removal (~180 lines removed). Not counted against per-file delta budget since the file is gone. |
+| `test/features/financials/widgets/transaction_card_test.dart` | **0** | Untouched. |
+| `test/features/financials/widgets/transactions_list_header_test.dart` | **0** | Untouched. |
+| Any other file | **0** | Off-limits. |
+
+- Expected new files: **0**.
+- Expected deleted files: **1** (`year_selector_test.dart`).
+- Expected new public classes / methods on production code: **0** (widgets, helper, and notifier method are all private / private-to-file; the reintroduced `FinancialDateFilter` enum is technically public but is a controller-file concern, matching the pre-Cycle-4 visibility).
+- Expected new dependencies (pubspec.yaml): **0**.
+- Expected migration files: **0**.
+
+## Cycle 6 System Impact Map
+
+| System | Status | Notes |
+| --- | --- | --- |
+| Financials → Screen | changed (in-scope) | Year picker replaced by three-option filter dropdown (`AppDropdown<FinancialDateFilter>`) inline in `_SummaryHeader`; standalone `_YearSelector` row deleted; empty-state layout restructured per Cycle 5. |
+| Financials → Controller | changed (in-scope) | State field `selectedYear: int` swapped for `dateFilter: FinancialDateFilter`. Enum reintroduced (3 values, no `custom`). Notifier method swapped. |
+| Financials → PDF Report Screen | changed (in-scope) | Constructor param swapped from `int selectedYear` to `FinancialDateFilter dateFilter`. `_filterLabel` becomes a 3-case switch producing `'All time'` / `'Year YYYY'` / `'MMMM yyyy'`. |
+| Financials → PDF Report Builder | unaffected | Takes `dateRangeLabel: String`; still gets a valid label string. Output format unchanged. |
+| Financials → Add / Edit Sheet | unaffected | Independent of filter state. |
+| Financials → Details Sheet | unaffected | Independent of filter state. |
+| Financials → Savings Sheet | unaffected | Reads `state.allEntries` (unfiltered). |
+| Gigs / Rehearsals / Setlists / Members | unaffected | No cross-references. |
+| Auth / Routing / Notifications | unaffected | No init-order change, no session change. |
+| Platforms (iOS / Android / macOS / Web) | uniformly affected | Shared Flutter UI only; `FSelect.rich` popup renders natively on all four (Cycle 5's cross-platform analysis applies unchanged). No platform-conditional code. |
+| Supabase schema / RLS / RPCs | unaffected | Client-only change. |
+| Forui integration / `AppDropdown` wrapper | consumed, not modified | Cycle 6 adds a new call-site type parameter (`FinancialDateFilter`) but the wrapper's API is unchanged; `IntrinsicWidth` call-site pattern is from Cycle 5. |
+| `lib/components/ui/README.md` | unaffected (doc) | Optional call-site-count update deferred (same rationale as Cycle 5). |
+| pubspec.yaml | unaffected | No new dependency. |
+
+## Cycle 6 Regression Risk
+
+**LOW**. Justification:
+
+- No touch to auth, session, routing, init order, DB, RLS, RPCs, or platform-conditional code.
+- State-shape change is contained to one field on one state class and one notifier method; the field default is a compile-time-const enum value (simpler and safer than Cycle 4's runtime-default helper).
+- No new provider added or removed.
+- No new dependency, no new migration, no schema change.
+- Change scoped to three production source files (`financials_controller.dart`, `financials_screen.dart`, `financials_pdf_preview_screen.dart`), one test file edited, one test file deleted.
+- The `AppDropdown` wrapper is used at 4 direct sites elsewhere; the new call-site pattern (`IntrinsicWidth`-wrapped, enum-typed) is a moderate extension of the existing usage. Cycle 5's analysis of the wrapper's behavior applies unchanged.
+- PDF report row order and content shape are unchanged (still driven by `dateFilteredEntries`, still newest-first).
+
+**Realistic regression classes:**
+
+1. **`IntrinsicWidth` incompatible with `FSelect.rich` internals.** Same risk Cycle 5 flagged. **Mitigated:** authorized `SizedBox(width: 128)` fallback at the same call site.
+2. **Test fixtures whose year != `DateTime.now().year`.** Cycle 4's Task 7 fix (year-relative fixtures in `transaction_card_test.dart` and `transactions_list_header_test.dart`) makes both files robust to wall-clock rollover under the default `thisYear` filter. Cycle 6 doesn't reintroduce any year-hardcoded fixture. The one Cycle 6 test case that intentionally seeds a prior-year entry (`summary_header_test.dart` case 6, the empty-state fix test) does so explicitly with `DateTime.now().year - 1`, which is a computed value and safe across rollovers.
+3. **PDF filename shape change for non-default filters.** Users who select `'All time'` or `'This month'` will see new filename forms (`"... (All time).pdf"`, `"... (December 2026).pdf"`). This is expected and the target behavior (matches pre-Cycle-4 form). The default-case filename (`"... (Year 2026).pdf"`) is preserved verbatim from Cycle 4, so existing users on the default filter see no filename change.
+4. **Load-state flash of `$0.00 / [This year ▾] • 0 transactions`.** Sub-second, matches Cycle 5's accepted transient behavior. Not a defect.
+
+## Cycle 6 Engineer Task Breakdown
+
+Ordered, atomic. Each task leaves the app compiling once its immediate dependencies are met (Tasks 1 and 2 must complete before Tasks 3–5 compile; Tasks 3, 4, 5 are independent of each other). **Do not merge tasks or invent extra sub-steps.**
+
+1. **Reintroduce `FinancialDateFilter` enum and swap `FinancialsState`'s field.**
+   - In `lib/features/financials/financials_controller.dart`, add `enum FinancialDateFilter { allTime, thisYear, thisMonth }` near the top of the file (below `FinancialViewMode`).
+   - Delete the `selectedYear` field, its constructor param `int? selectedYear`, its `copyWith` param, and the `selectedYear = selectedYear ?? DateTime.now().year` initialiser.
+   - Add `final FinancialDateFilter dateFilter;` field. Named param: `this.dateFilter = FinancialDateFilter.thisYear`. Restore the `const` on the constructor.
+   - Add `FinancialDateFilter? dateFilter` to `copyWith`, merge via `dateFilter: dateFilter ?? this.dateFilter`.
+   - Replace `_applyDateFilter`'s body with the 3-case switch from Proposed Solution → (a). Keep the newest-first sort trailing the switch.
+   - After Task 1, the controller compiles; `financials_screen.dart` and `financials_pdf_preview_screen.dart` won't compile until Tasks 2 and 3 land. This is expected and OK.
+
+2. **Update the notifier's mutation method.**
+   - In the same file, delete `void setSelectedYear(int year)`.
+   - Add `void setDateFilter(FinancialDateFilter filter) { state = state.copyWith(dateFilter: filter); }` in the same slot in the method list.
+
+3. **Update `FinancialsPdfPreviewScreen` for the new state shape.**
+   - In `lib/features/financials/financials_pdf_preview_screen.dart`, add `import 'package:intl/intl.dart';` with the other package imports.
+   - Constructor: delete `required this.selectedYear`, delete `final int selectedYear;`. Add `final FinancialDateFilter dateFilter;` and `required this.dateFilter` in the constructor's named-param list.
+   - Replace `String get _filterLabel => 'Year ${widget.selectedYear}';` with the 3-case switch from Proposed Solution → (c).
+   - Nothing else changes in this file.
+
+4. **Introduce the inline `AppDropdown<FinancialDateFilter>` and its label helper in `financials_screen.dart`.**
+   - In `lib/features/financials/financials_screen.dart`, add `import '../../components/ui/app_dropdown.dart';` alongside the other relative imports.
+   - Add the top-level `String _dateFilterLabel(FinancialDateFilter filter) { switch (...) { ... } }` helper (Proposed Solution → (b)).
+   - Rewrite the single `Text('${state.selectedYear} • ...')` widget in `_SummaryHeader.build` as the `Row(mainAxisSize: min, mainAxisAlignment: center, crossAxisAlignment: center, [IntrinsicWidth(AppDropdown<FinancialDateFilter>(...)), Text(' • N transactions')])` structure from Proposed Solution → (b). Wire `AppDropdown.onChanged` to `setDateFilter` with the null-guard. Provide `format: _dateFilterLabel` and `items:` mapped from `FinancialDateFilter.values`.
+   - Wrap the `AppDropdown` in `IntrinsicWidth`. If layout throws at test/analyze time, swap to `SizedBox(width: 128)` — both authorized.
+   - Update the `_openCombinedReport` call to pass `dateFilter: state.dateFilter` in place of `selectedYear: state.selectedYear`.
+   - After this task, `_YearSelector` still renders above the entries list (temporarily two filter controls, one inline dropdown and one legacy chip). This is expected and cleaned up in Task 5.
+
+5. **Restructure `_FinancialsScreenState.build` and delete the standalone `_YearSelector` row.**
+   - Rewrite the outer `Expanded(child: ...)` per Proposed Solution → (d): `state.error != null → _ErrorState`; else → `Column([_SummaryHeader, _TransactionsListHeader, SizedBox(space8), Expanded(state.isLoading ? spinner : filtered.isEmpty ? _EmptyState : ListView.separated)])`.
+   - Delete the `SizedBox(height: Spacing.space12)` + `const _YearSelector()` + `SizedBox(height: Spacing.space16)` triple. Replace with a single `const SizedBox(height: Spacing.space16)`.
+   - Delete the `_YearSelector` class in full.
+   - Delete the `_YearSelectorChip` class in full.
+   - Delete the `_availableYears` top-level helper in full.
+   - `flutter analyze` should now show no dangling references. Any `Icons.arrow_drop_down` (from `_YearSelectorChip`) is gone; `package:flutter/material.dart` remains imported for `PopupMenuButton` — but wait: `PopupMenuButton` was only used in `_YearSelector`, so if no other `PopupMenuButton` usage remains in the file (verify with grep in this file only), that's fine — the import is still needed for many other Material widgets (`AppBar`, `MaterialPageRoute`, `CircularProgressIndicator`, `ListView`, etc.). Do the grep audit.
+
+6. **Update `summary_header_test.dart` for the Cycle 6 dropdown.**
+   - Add `import 'package:bandroadie/components/ui/app_dropdown.dart';` at the test-file imports.
+   - Replace/rewrite the 4 Cycle 4/5 test cases that assert the merged single-string form. Each replacement uses split-shape assertions (`AppDropdown<FinancialDateFilter>` + adjacent ` • N transactions` text) per Files to Modify → this file.
+   - Add the 6 new Cycle 6 test cases enumerated in Files to Modify → this file. Case 2 (the "renders 'This year' text, not a numeral" test) is the primary test gate for Tony's Cycle 6 requirement and must be present with those exact assertions. Case 6 (the empty-state fix, adapted from Cycle 5's case 5) is the primary test gate for the empty-state accessibility fix.
+
+7. **Delete `year_selector_test.dart`.**
+   - `git rm test/features/financials/widgets/year_selector_test.dart` if the file is tracked; `rm test/features/financials/widgets/year_selector_test.dart` if it's still untracked (per `git status` at Cycle 6 plan-write time, the file is `??` untracked — either command removes it identically from the working tree).
+   - After this task, the file is fully gone. QA verifies via `test -e` or `git ls-files | grep` returning empty.
+
+## Cycle 6 Verification Plan
+
+### Cycle 6 Tier 1 — pre-deploy (QA gate, mechanically executable)
+
+QA gate for APPROVED requires all of the following without running the app:
+
+1. `flutter analyze` clean (no new lints; existing baseline preserved).
+2. `flutter test` passes, including:
+   - The updated `summary_header_test.dart` with all 6 new Cycle 6 cases (plus the 4 rewritten Cycle 4/5 cases, plus the untouched Cycle 1 cases).
+   - The untouched `transaction_card_test.dart` and `transactions_list_header_test.dart` (verify byte-identical to Cycle 4's Task 7 output — no re-edit).
+   - `year_selector_test.dart` must no longer exist (verify via `test ! -e test/features/financials/widgets/year_selector_test.dart` or `git ls-files | grep year_selector_test` returning empty).
+3. Diff review confirms these files are byte-identical to `main` (or, where applicable, to their state after Cycles 1–3 for files touched then):
+   - `lib/features/financials/financial_entry_repository.dart` — vs. `main`
+   - `lib/features/financials/models/financial_entry.dart` — vs. `main`
+   - `lib/features/financials/financials_report_builder.dart` — vs. `main`
+   - `lib/features/financials/widgets/**` — every file, vs. its Cycles 1–3 shape (details sheet was touched in Cycles 1–3; other widget files untouched by any cycle)
+   - `lib/components/ui/app_dropdown.dart` — vs. `main` (Cycle 6 must not modify the wrapper)
+   - `lib/components/ui/README.md` — vs. `main`
+   - All `supabase/migrations/**` files — vs. `main`
+   - `pubspec.yaml` — vs. `main` (no new dep)
+4. Diff review confirms net line delta per modified file falls inside **Cycle 6 Change Budget** ranges.
+5. Diff review of `financials_controller.dart` confirms:
+   - `enum FinancialDateFilter { allTime, thisYear, thisMonth }` is present.
+   - No `custom` value inside the enum (guard against accidental re-introduction).
+   - No `customStartDate` / `customEndDate` field, no `setCustomDateRange` method (they stay deleted from Cycle 4's work).
+   - `dateFilter` field is `final FinancialDateFilter`, default `FinancialDateFilter.thisYear`, non-nullable.
+   - Constructor is declared `const` (verify).
+   - `setDateFilter(FinancialDateFilter)` present; `setSelectedYear(int)` absent.
+   - `selectedYear` field and its constructor/copyWith references are absent.
+6. Diff review of `financials_screen.dart` confirms:
+   - `import '../../components/ui/app_dropdown.dart';` present.
+   - No `import 'package:forui/forui.dart';` (all Forui access is via `AppDropdown`).
+   - `_YearSelector`, `_YearSelectorChip`, `_availableYears` are absent (grep returns zero matches).
+   - `AppDropdown<FinancialDateFilter>` is present inside `_SummaryHeader` (grep finds one occurrence).
+   - Either `IntrinsicWidth(child: AppDropdown<FinancialDateFilter>(...))` or `SizedBox(width: 128, child: AppDropdown<FinancialDateFilter>(...))` surrounds the dropdown at its call site — one of the two, not neither.
+   - `_dateFilterLabel(FinancialDateFilter)` helper present at file top level.
+   - The helper's switch body returns exactly `'All time'`, `'This year'`, `'This month'` for the three enum values (string-exact match; guard against `'All Time'` / `'This Year'` capitalization drift).
+   - `_openCombinedReport` passes `dateFilter: state.dateFilter` (not `selectedYear:`).
+   - `_FinancialsScreenState.build` does **not** wrap `_SummaryHeader` inside the `filtered.isEmpty` conditional — the header renders at the same level in every non-error branch.
+7. Diff review of `financials_pdf_preview_screen.dart` confirms:
+   - `import 'package:intl/intl.dart';` present.
+   - Constructor param is `required FinancialDateFilter dateFilter`; no `selectedYear: int` param.
+   - `_filterLabel` is a switch with cases `allTime → 'All time'`, `thisYear → 'Year ${now.year}'`, `thisMonth → DateFormat('MMMM yyyy').format(now)`.
+8. Diff review of `summary_header_test.dart` confirms case 2 (`'AppDropdown format renders "This year" text, not a year numeral, for the thisYear case'`) is present and mechanically asserts both `find.text('This year')` finds a widget AND `find.text('${DateTime.now().year}')` as an exact-`Text` match finds none in the header. This is Tony's Cycle 6 directive gate; missing this case is a Critical plan violation.
+9. Diff review of `summary_header_test.dart` confirms case 6 (the empty-state fix test) is present and mechanically exercises: (a) `_EmptyState` renders under `dateFilter = thisYear` when data is only in prior years, (b) the `AppDropdown` is visible in that same pumped tree, (c) `onChanged(FinancialDateFilter.allTime)` dispatches `setDateFilter` and updates the state, (d) after the dispatch the empty state disappears and the prior-year entry renders. This is the Cycle 5 empty-state-fix gate; missing this case is a Critical plan violation.
+
+### Cycle 6 Tier 2 — post-deploy
+not applicable — no DB migration, no RPC change, no RLS change, no edge function change, no external API change.
+
+### Cycle 6 Owner-run punch list (Tony runs at PR-test time — QA writes this into the PR body verbatim, does not attempt it)
+
+QA cannot run the app. Tony walks the following in a preview build (adds to the existing Cycles 1–4 punch lists, does not replace them; Cycle 5's punch list is superseded by this one since Cycle 5 was never implemented):
+
+1. Sign in with a demo band containing entries in the current calendar year; open Financials.
+   Expected: single filter control inline in the summary line — the collapsed dropdown label reads exactly `"This year"` (three characters `T`, `h`, `i` + `s` + space + `y`, `e`, `a`, `r`; **not the numeric year like "2026"**). Summary line reads `[This year ▾] • N transactions` centered under the total.
+2. Tap the "This year" dropdown.
+   Expected: FSelect popup opens showing exactly three options in enum order: `"All time"`, `"This year"`, `"This month"`. No numeric year options, no "Custom" option, no "All years" option. Popup styles as a standard Forui form-field dropdown (not a `PopupMenu` sheet).
+3. Select `"All time"`.
+   Expected: dropdown closes; collapsed label updates to `"All time"`; count and total update to reflect the full unfiltered set (all years' data); list re-renders. Two paints max.
+4. Select `"This month"`.
+   Expected: only current-month entries visible; total and count update accordingly. If the band has no current-month entries, `_EmptyState` renders with the dropdown still visible above it.
+5. **The core Cycle 6 fix scenario:** switch to (or sign in with) a band whose data is entirely in prior years. On screen entry, the default filter is `thisYear` and the list is empty.
+   Expected: summary header renders on top with the dropdown showing `"This year"`, total ($0.00), count (0), and both link buttons. Below the header, `_EmptyState` renders (`No entries yet`). Tap the dropdown → popup shows the three options. Select `"All time"` → list populates with prior-year entries, empty state disappears. **This step must work end-to-end without leaving/re-entering the screen — that's the whole empty-state fix.**
+6. Toggle Income ↔ Expenses while any non-default filter is selected.
+   Expected: filter selection persists across the toggle; only the total and count change.
+7. Tap "Generate Report" while `dateFilter = allTime`.
+   Expected: PDF preview opens with header/filename reading `"All time"` — filename becomes `"{Band} – Financial Report (All time).pdf"`.
+8. Tap "Generate Report" while `dateFilter = thisMonth`.
+   Expected: PDF preview opens with header/filename reading e.g. `"December 2026"` — filename becomes `"{Band} – Financial Report (December 2026).pdf"`.
+9. Tap "Generate Report" while `dateFilter = thisYear` (default).
+   Expected: PDF preview opens with header/filename reading e.g. `"Year 2026"` — filename becomes `"{Band} – Financial Report (Year 2026).pdf"`. **Verify this filename form is byte-identical to what Cycle 4 produced on the default filter** — this is the "backward-compat for default users" property.
+10. Tap "View Savings Balance."
+    Expected: savings sheet opens with the same animated total behavior as today; filter selection does not affect savings totals (they read `state.allEntries`, filter-agnostic).
+11. Sort toggle: tap `"Newest first ▾"` in the transactions list header while entries are present.
+    Expected: label flips, list reverses. Unchanged from Cycle 1.
+12. With an empty filtered list (`dateFilter = thisYear` and no current-year entries), verify the sort toggle in `_TransactionsListHeader` is visible but inert — tapping it doesn't crash, doesn't change label (nothing to sort). Same expected mild noise as Cycle 5 documented.
+13. Cross-platform visual check on iOS, Android, macOS, and web:
+    - The inline dropdown is sized appropriately (not stretched full-width, not clipped by field padding), and the `" • N transactions"` text sits next to it on the same line at all common widths (iPhone SE / narrow web / iPad / macOS full-window). The dropdown's natural width should comfortably fit the longest label `"This month"` without clipping.
+    - The FSelect popup opens correctly on each platform (not clipped by the safe area, not offset from the field).
+    - `_EmptyState` centers correctly under the summary header on tall and short screens.
+14. Verify (visual, subjective): the inline dropdown's field chrome is acceptable next to the muted footnote text. Same "if the visual weight feels wrong, note it in the PR — future cycle can tune" acceptance as Cycle 5.
+
+## Cycle 6 QA Regression Areas
+
+1. **Cycle 6's `'This year'` textual label (not numeral)** — **Tony's primary Cycle 6 directive.** Regression check: any accidental reintroduction of a numeric year (`'${year}'`, `'$currentYear'`, etc.) in the collapsed dropdown label or its format function is a Critical regression. Punched via test case 2 in `summary_header_test.dart` (mechanical gate) and punch-list step 1 (owner-run visual gate).
+2. **Empty-state reachability** — the Cycle 5 fix, re-adopted for Cycle 6. Regression check: any change to `_FinancialsScreenState.build` that reintroduces `_SummaryHeader` inside a `filtered.isEmpty` conditional is a Critical regression. Punched via test case 6 in `summary_header_test.dart` (mechanical gate) and punch-list step 5 (owner-run functional gate).
+3. **Non-null dropdown selection** — regression check: `state.dateFilter` must be non-nullable with a compile-time-const default. Punched via test case 1 in `summary_header_test.dart` (mechanically asserts the `AppDropdown.value` is a real enum value in the default state).
+4. **No `custom` re-introduction** — regression check: any Engineer temptation to add a `FinancialDateFilter.custom` value "for completeness" or to restore Cycle 1's `_pickCustomRange` / `_customLabel` code is a plan violation. Punched via Tier 1 gate #5 (enum body has exactly the 3 named values).
+5. **`AppDropdown` inline sizing** — regression check: `AppDropdown<FinancialDateFilter>` inside `_SummaryHeader` must be constrained by either `IntrinsicWidth` or `SizedBox(width: 128)`; unconstrained, it stretches to column width and breaks the inline layout. Punched via Tier 1 gate #6.
+6. **Wrapper immutability** — `lib/components/ui/app_dropdown.dart` must be byte-identical to `main`. Punched via Tier 1 gate #3.
+7. **No raw `FSelect` usage in feature code** — regression check: `import 'package:forui/forui.dart';` must not appear in `financials_screen.dart` or `financials_pdf_preview_screen.dart`. All Forui access goes through `AppDropdown`. Punched via Tier 1 gate #6 (grep gate).
+8. **PDF report filename shape** — `thisYear` (default) case's filename must be byte-identical to Cycle 4's output for backward compat. `allTime` and `thisMonth` cases add new filename forms (`"All time"`, `"MMMM yyyy"`) — these are the target, not a regression.
+9. **Sort toggle** — unchanged from Cycle 1. Punch-list step 11.
+10. **`_SavingsSheet`** — unchanged from Cycles 1–4. Filter selection does not affect savings totals.
+11. **Details sheet** — unchanged from Cycles 1–3. All Cycle 1 assertions still hold.
+12. **Loading-state flash** — accept `$0.00 / [This year ▾] • 0 transactions` briefly visible during initial load. Same acceptance rationale as Cycle 5.
+
+## Cycle 6 Rollout Strategy
+
+Same PR as Cycles 1–4 (#273). Commits added on top of the Cycle 4 tree. No feature flag, no phased rollout, no DB migration. Merge to `main` when Cycle 6 clears the QA gate + owner-run punch list. Rollback = revert the PR; no data changes to unwind.
+
+## Cycle 6 Out of Scope
+
+- Adding a `FinancialDateFilter.custom` value or arbitrary date-range picker. Tony did not request this; the `showDateRangePicker` code path stays deleted from Cycle 4.
+- Adding an "All years" or "Last N years" option to the dropdown. Not requested; enum stays at exactly 3 values.
+- Persisting `dateFilter` across screen dismiss, band switch, or app restart — matches the Cycle 1 / Cycle 4 / Cycle 5 stance on transient filter state.
+- Any change to the empty-state copy or icon to reflect the current filter (e.g., "No entries for This year"). Deferred; would require a `_EmptyState` copy variant per filter.
+- Any change to `AppDropdown` itself (compact mode, dense variant, styling override, enum-specialized subclass). If `IntrinsicWidth`/`SizedBox` are both unacceptable, that's a separate cycle under Manager review.
+- Any change to the Forui theme layer.
+- Any change to the sort toggle, transaction card, details sheet, savings sheet, `_ViewModeToggle`, `_ErrorState`, `_addEntry`.
+- Any change to `FinancialEntry`, `FinancialEntryRepository`, `financials_report_builder.dart`, gig data flow, RLS, migrations, or pubspec dependencies.
+- Updating `lib/components/ui/README.md` call-site counts. Doc file remains off-limits.
+

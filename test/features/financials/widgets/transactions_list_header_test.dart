@@ -92,10 +92,11 @@ void main() {
     }
   });
 
+  final year = DateTime.now().year;
   final entries = [
-    _entry(id: 'e1', entryDate: DateTime(2026, 3, 20), paidToName: 'Newest'),
-    _entry(id: 'e2', entryDate: DateTime(2026, 3, 10), paidToName: 'Middle'),
-    _entry(id: 'e3', entryDate: DateTime(2026, 3), paidToName: 'Oldest'),
+    _entry(id: 'e1', entryDate: DateTime(year, 3, 20), paidToName: 'Newest'),
+    _entry(id: 'e2', entryDate: DateTime(year, 3, 10), paidToName: 'Middle'),
+    _entry(id: 'e3', entryDate: DateTime(year, 3), paidToName: 'Oldest'),
   ];
 
   FinancialsState buildState() => FinancialsState(
@@ -217,8 +218,7 @@ void main() {
       await _pump(tester, buildState());
 
       expect(find.text('\$300.00'), findsOneWidget);
-      expect(find.text('3 transactions'), findsOneWidget);
-      expect(find.text('All time'), findsOneWidget);
+      expect(find.text(' • 3 transactions'), findsOneWidget);
 
       await tester.tap(find
           .ancestor(
@@ -229,8 +229,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('\$300.00'), findsOneWidget);
-      expect(find.text('3 transactions'), findsOneWidget);
-      expect(find.text('All time'), findsOneWidget);
+      expect(find.text(' • 3 transactions'), findsOneWidget);
     },
   );
 

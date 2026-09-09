@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
+import '../../components/ui/app_dropdown.dart';
 import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -150,73 +151,59 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                             .read(financialsProvider.notifier)
                             .setViewMode(m),
                       ),
-                      const SizedBox(height: Spacing.space12),
-                      // Date filter row
-                      _DateFilterRow(
-                        current: state.dateFilter,
-                        customStartDate: state.customStartDate,
-                        customEndDate: state.customEndDate,
-                        onChanged: (f) => ref
-                            .read(financialsProvider.notifier)
-                            .setDateFilter(f),
-                        onCustomRange: (start, end) => ref
-                            .read(financialsProvider.notifier)
-                            .setCustomDateRange(start, end),
-                      ),
                       const SizedBox(height: Spacing.space16),
                       // Entries list
                       Expanded(
-                        child: state.isLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                    color: AppColors.primary),
-                              )
-                            : state.error != null
-                                ? _ErrorState(message: state.error!)
-                                : filtered.isEmpty
-                                    ? const _EmptyState()
-                                    : Column(
-                                        children: [
-                                          const _SummaryHeader(),
-                                          _TransactionsListHeader(
-                                            sortAscending: _sortAscending,
-                                            onToggleSort: () => setState(() =>
-                                                _sortAscending =
-                                                    !_sortAscending),
-                                          ),
-                                          const SizedBox(
-                                              height: Spacing.space8),
-                                          Expanded(
-                                            child: ListView.separated(
-                                              padding: EdgeInsets.only(
-                                                left: Spacing.pagePadding,
-                                                right: Spacing.pagePadding,
-                                                bottom: MediaQuery.of(context)
-                                                        .padding
-                                                        .bottom +
-                                                    Spacing.space16,
+                        child: state.error != null
+                            ? _ErrorState(message: state.error!)
+                            : Column(
+                                children: [
+                                  const _SummaryHeader(),
+                                  _TransactionsListHeader(
+                                    sortAscending: _sortAscending,
+                                    onToggleSort: () => setState(
+                                        () => _sortAscending = !_sortAscending),
+                                  ),
+                                  const SizedBox(height: Spacing.space8),
+                                  Expanded(
+                                    child: state.isLoading
+                                        ? const Center(
+                                            child: CircularProgressIndicator(
+                                                color: AppColors.primary),
+                                          )
+                                        : filtered.isEmpty
+                                            ? const _EmptyState()
+                                            : ListView.separated(
+                                                padding: EdgeInsets.only(
+                                                  left: Spacing.pagePadding,
+                                                  right: Spacing.pagePadding,
+                                                  bottom: MediaQuery.of(context)
+                                                          .padding
+                                                          .bottom +
+                                                      Spacing.space16,
+                                                ),
+                                                itemCount: sortedEntries.length,
+                                                separatorBuilder: (_, __) =>
+                                                    const SizedBox(
+                                                        height:
+                                                            Spacing.space12),
+                                                itemBuilder: (context, index) {
+                                                  final entry =
+                                                      sortedEntries[index];
+                                                  return _TransactionCard(
+                                                    entry: entry,
+                                                    onTap: () =>
+                                                        showFinancialEntryDetailsSheet(
+                                                      context,
+                                                      ref,
+                                                      entry,
+                                                    ),
+                                                  );
+                                                },
                                               ),
-                                              itemCount: sortedEntries.length,
-                                              separatorBuilder: (_, __) =>
-                                                  const SizedBox(
-                                                      height: Spacing.space12),
-                                              itemBuilder: (context, index) {
-                                                final entry =
-                                                    sortedEntries[index];
-                                                return _TransactionCard(
-                                                  entry: entry,
-                                                  onTap: () =>
-                                                      showFinancialEntryDetailsSheet(
-                                                    context,
-                                                    ref,
-                                                    entry,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ],
                   ),
@@ -464,142 +451,17 @@ class _SavingsSheetState extends State<_SavingsSheet>
 }
 
 // ---------------------------------------------------------------------------
-// DATE FILTER ROW
+// DATE FILTER LABEL
 // ---------------------------------------------------------------------------
 
-class _DateFilterRow extends StatelessWidget {
-  const _DateFilterRow({
-    required this.current,
-    required this.onChanged,
-    required this.onCustomRange,
-    this.customStartDate,
-    this.customEndDate,
-  });
-
-  final FinancialDateFilter current;
-  final ValueChanged<FinancialDateFilter> onChanged;
-  final void Function(DateTime start, DateTime end) onCustomRange;
-  final DateTime? customStartDate;
-  final DateTime? customEndDate;
-
-  Future<void> _pickCustomRange(BuildContext context) async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 2),
-      initialDateRange: (customStartDate != null && customEndDate != null)
-          ? DateTimeRange(start: customStartDate!, end: customEndDate!)
-          : DateTimeRange(
-              start: DateTime(now.year, now.month),
-              end: now,
-            ),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            surface: Color(0xFF18181B),
-          ),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) {
-      onCustomRange(picked.start, picked.end);
-    }
-  }
-
-  String get _customLabel {
-    if (current == FinancialDateFilter.custom &&
-        customStartDate != null &&
-        customEndDate != null) {
-      final fmt = DateFormat('MMM d');
-      final fmtYear = DateFormat('MMM d, yy');
-      final sameYear = customStartDate!.year == customEndDate!.year;
-      if (sameYear) {
-        return '${fmt.format(customStartDate!)} – ${fmt.format(customEndDate!)}';
-      }
-      return '${fmtYear.format(customStartDate!)} – ${fmtYear.format(customEndDate!)}';
-    }
-    return 'Custom';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
-      child: Row(
-        children: [
-          _FilterChip(
-            label: 'All Time',
-            active: current == FinancialDateFilter.allTime,
-            onTap: () => onChanged(FinancialDateFilter.allTime),
-          ),
-          const SizedBox(width: Spacing.space8),
-          _FilterChip(
-            label: 'This Year',
-            active: current == FinancialDateFilter.thisYear,
-            onTap: () => onChanged(FinancialDateFilter.thisYear),
-          ),
-          const SizedBox(width: Spacing.space8),
-          _FilterChip(
-            label: 'This Month',
-            active: current == FinancialDateFilter.thisMonth,
-            onTap: () => onChanged(FinancialDateFilter.thisMonth),
-          ),
-          const SizedBox(width: Spacing.space8),
-          _FilterChip(
-            label: _customLabel,
-            active: current == FinancialDateFilter.custom,
-            onTap: () => _pickCustomRange(context),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space12,
-          vertical: Spacing.space8,
-        ),
-        decoration: BoxDecoration(
-          color: active
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : context.colors.surface,
-          borderRadius: BorderRadius.circular(Spacing.chipRadius),
-          border: Border.all(
-            color: active ? AppColors.primary : context.colors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.footnote.copyWith(
-            color: active ? AppColors.primary : context.colors.textSecondary,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ),
-    );
+String _dateFilterLabel(FinancialDateFilter filter) {
+  switch (filter) {
+    case FinancialDateFilter.allTime:
+      return 'All time';
+    case FinancialDateFilter.thisYear:
+      return 'This year';
+    case FinancialDateFilter.thisMonth:
+      return 'This month';
   }
 }
 
@@ -708,8 +570,6 @@ void _openCombinedReport(
         entries: state.dateFilteredEntries,
         bandName: bandName,
         dateFilter: state.dateFilter,
-        customStartDate: state.customStartDate,
-        customEndDate: state.customEndDate,
         members: members,
       ),
     ),
@@ -782,29 +642,6 @@ class _ErrorState extends StatelessWidget {
 class _SummaryHeader extends ConsumerWidget {
   const _SummaryHeader();
 
-  String _dateRangeLabel(FinancialsState state) {
-    switch (state.dateFilter) {
-      case FinancialDateFilter.allTime:
-        return 'All time';
-      case FinancialDateFilter.thisYear:
-        return '${DateTime.now().year}';
-      case FinancialDateFilter.thisMonth:
-        return DateFormat('MMMM yyyy').format(DateTime.now());
-      case FinancialDateFilter.custom:
-        if (state.customStartDate != null && state.customEndDate != null) {
-          final fmt = DateFormat('MMM d');
-          final fmtYear = DateFormat('MMM d, yy');
-          final sameYear =
-              state.customStartDate!.year == state.customEndDate!.year;
-          if (sameYear) {
-            return '${fmt.format(state.customStartDate!)} – ${fmt.format(state.customEndDate!)}';
-          }
-          return '${fmtYear.format(state.customStartDate!)} – ${fmtYear.format(state.customEndDate!)}';
-        }
-        return 'Custom';
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(financialsProvider);
@@ -838,17 +675,32 @@ class _SummaryHeader extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: Spacing.space4),
-          Text(
-            _dateRangeLabel(state),
-            textAlign: TextAlign.center,
-            style: AppTextStyles.footnote
-                .copyWith(color: context.colors.textMuted),
-          ),
-          Text(
-            count == 1 ? '1 transaction' : '$count transactions',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.footnote
-                .copyWith(color: context.colors.textMuted),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IntrinsicWidth(
+                child: AppDropdown<FinancialDateFilter>(
+                  value: state.dateFilter,
+                  onChanged: (filter) {
+                    if (filter == null) return;
+                    ref.read(financialsProvider.notifier).setDateFilter(filter);
+                  },
+                  format: _dateFilterLabel,
+                  items: FinancialDateFilter.values
+                      .map((f) => DropdownMenuItem<FinancialDateFilter>(
+                            value: f,
+                            child: Text(_dateFilterLabel(f)),
+                          ))
+                      .toList(),
+                ),
+              ),
+              Text(
+                ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
+                style: AppTextStyles.footnote
+                    .copyWith(color: context.colors.textMuted),
+              ),
+            ],
           ),
           const SizedBox(height: Spacing.space12),
           Row(

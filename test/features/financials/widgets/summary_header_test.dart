@@ -8,12 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
-import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
+import 'package:bandroadie/components/ui/app_dropdown.dart';
 import 'package:bandroadie/features/financials/financials_controller.dart';
 import 'package:bandroadie/features/financials/financials_screen.dart';
 import 'package:bandroadie/features/financials/models/financial_entry.dart';
@@ -71,6 +71,32 @@ Future<void> _pump(WidgetTester tester, FinancialsState state) async {
   await tester.pumpAndSettle();
 }
 
+Future<ProviderContainer> _pumpWithContainer(
+  WidgetTester tester,
+  FinancialsState state,
+) async {
+  final container = ProviderContainer(overrides: [
+    financialsProvider.overrideWith(() => _FakeFinancialsNotifier(state)),
+    currentUserPermissionsProvider
+        .overrideWith((ref) async => BandPermissions.admin),
+  ]);
+  addTearDown(container.dispose);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: FTheme(
+          data: AppTheme.foruiTheme(Brightness.dark),
+          child: const FinancialsScreen(),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return container;
+}
+
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -126,78 +152,62 @@ void main() {
   );
 
   testWidgets(
-    'date-range sub-label matches the resolved value for allTime',
+    'default state has dateFilter = FinancialDateFilter.thisYear and the '
+    'AppDropdown shows "This year"',
     (tester) async {
       final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
       await _pump(
         tester,
+        FinancialsState(allEntries: [entry]),
+      );
+      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
+        find.byType(AppDropdown<FinancialDateFilter>),
+      );
+      expect(dropdown.value, FinancialDateFilter.thisYear);
+      expect(find.text('This year'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'setting dateFilter to allTime causes the AppDropdown to render '
+    '"All time" and the trailing text to read the unfiltered count',
+    (tester) async {
+      final previousYear = DateTime.now().year - 1;
+      final entries = [
+        _entry(
+          id: 'e1',
+          amountCents: 5000,
+          isIncome: true,
+          entryDate: DateTime(previousYear, 3, 15),
+        ),
+        _entry(id: 'e2', amountCents: 3000, isIncome: true),
+      ];
+      await _pump(
+        tester,
         FinancialsState(
-          allEntries: [entry],
+          allEntries: entries,
+          dateFilter: FinancialDateFilter.allTime,
         ),
       );
       expect(find.text('All time'), findsOneWidget);
+      expect(find.text(' • 2 transactions'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'date-range sub-label matches the resolved value for thisYear',
+    'renders the dropdown and count as adjacent widgets separated by " • "',
     (tester) async {
-      final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
+      final threeEntries = [
+        _entry(id: 'e1', amountCents: 1000, isIncome: true),
+        _entry(id: 'e2', amountCents: 2000, isIncome: true),
+        _entry(id: 'e3', amountCents: 3000, isIncome: true),
+      ];
       await _pump(
         tester,
-        FinancialsState(
-          allEntries: [entry],
-          dateFilter: FinancialDateFilter.thisYear,
-        ),
+        FinancialsState(allEntries: threeEntries),
       );
-      expect(find.text('${DateTime.now().year}'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'date-range sub-label matches the resolved value for thisMonth',
-    (tester) async {
-      final entry = _entry(
-        id: 'e1',
-        amountCents: 5000,
-        isIncome: true,
-        entryDate: DateTime.now(),
-      );
-      await _pump(
-        tester,
-        FinancialsState(
-          allEntries: [entry],
-          dateFilter: FinancialDateFilter.thisMonth,
-        ),
-      );
-      expect(
-        find.text(DateFormat('MMMM yyyy').format(DateTime.now())),
-        findsOneWidget,
-      );
-    },
-  );
-
-  testWidgets(
-    'date-range sub-label matches the resolved value for custom (same year)',
-    (tester) async {
-      final start = DateTime(2026, 3);
-      final end = DateTime(2026, 3, 20);
-      final entry = _entry(
-        id: 'e1',
-        amountCents: 5000,
-        isIncome: true,
-        entryDate: DateTime(2026, 3, 15),
-      );
-      await _pump(
-        tester,
-        FinancialsState(
-          allEntries: [entry],
-          dateFilter: FinancialDateFilter.custom,
-          customStartDate: start,
-          customEndDate: end,
-        ),
-      );
-      expect(find.text('Mar 1 – Mar 20'), findsNWidgets(2));
+      expect(find.byType(AppDropdown<FinancialDateFilter>), findsOneWidget);
+      expect(find.text(' • 3 transactions'), findsOneWidget);
     },
   );
 
@@ -209,7 +219,7 @@ void main() {
         tester,
         FinancialsState(allEntries: [oneEntry]),
       );
-      expect(find.text('1 transaction'), findsOneWidget);
+      expect(find.text(' • 1 transaction'), findsOneWidget);
 
       final threeEntries = [
         _entry(id: 'e1', amountCents: 1000, isIncome: true),
@@ -220,7 +230,146 @@ void main() {
         tester,
         FinancialsState(allEntries: threeEntries),
       );
-      expect(find.text('3 transactions'), findsOneWidget);
+      expect(find.text(' • 3 transactions'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'AppDropdown<FinancialDateFilter> value is non-null in every default '
+    'state (thisYear)',
+    (tester) async {
+      await _pump(tester, const FinancialsState());
+      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
+        find.byType(AppDropdown<FinancialDateFilter>),
+      );
+      expect(dropdown.value, isNotNull);
+      expect(dropdown.value, FinancialDateFilter.thisYear);
+    },
+  );
+
+  testWidgets(
+    'AppDropdown format renders "This year" text, not a year numeral, for '
+    'the thisYear case',
+    (tester) async {
+      final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
+      await _pump(
+        tester,
+        FinancialsState(allEntries: [entry]),
+      );
+      expect(find.text('This year'), findsOneWidget);
+      expect(find.text('${DateTime.now().year}'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'AppDropdown items list contains exactly the three FinancialDateFilter '
+    'values in enum-declaration order (allTime, thisYear, thisMonth)',
+    (tester) async {
+      final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
+      await _pump(
+        tester,
+        FinancialsState(allEntries: [entry]),
+      );
+      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
+        find.byType(AppDropdown<FinancialDateFilter>),
+      );
+      final values = dropdown.items!.map((i) => i.value).toList();
+      expect(values, [
+        FinancialDateFilter.allTime,
+        FinancialDateFilter.thisYear,
+        FinancialDateFilter.thisMonth,
+      ]);
+    },
+  );
+
+  testWidgets(
+    'AppDropdown items render Text children with the exact strings '
+    '"All time", "This year", "This month"',
+    (tester) async {
+      final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
+      await _pump(
+        tester,
+        FinancialsState(allEntries: [entry]),
+      );
+      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
+        find.byType(AppDropdown<FinancialDateFilter>),
+      );
+      const expectedLabels = {
+        FinancialDateFilter.allTime: 'All time',
+        FinancialDateFilter.thisYear: 'This year',
+        FinancialDateFilter.thisMonth: 'This month',
+      };
+      for (final item in dropdown.items!) {
+        final child = item.child as Text;
+        expect(child.data, expectedLabels[item.value]);
+      }
+    },
+  );
+
+  testWidgets(
+    'invoking AppDropdown.onChanged(FinancialDateFilter.allTime) dispatches '
+    'setDateFilter on the notifier',
+    (tester) async {
+      final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
+      final container = await _pumpWithContainer(
+        tester,
+        FinancialsState(allEntries: [entry]),
+      );
+      expect(
+        container.read(financialsProvider).dateFilter,
+        FinancialDateFilter.thisYear,
+      );
+      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
+        find.byType(AppDropdown<FinancialDateFilter>),
+      );
+      dropdown.onChanged(FinancialDateFilter.allTime);
+      await tester.pumpAndSettle();
+      expect(
+        container.read(financialsProvider).dateFilter,
+        FinancialDateFilter.allTime,
+      );
+    },
+  );
+
+  testWidgets(
+    'inline dropdown remains visible and its onChanged callback wired when '
+    'filteredEntries is empty for the selected filter',
+    (tester) async {
+      final priorYear = DateTime.now().year - 1;
+      final entry = _entry(
+        id: 'e1',
+        amountCents: 5000,
+        isIncome: true,
+        entryDate: DateTime(priorYear, 3, 15),
+      );
+      final container = await _pumpWithContainer(
+        tester,
+        FinancialsState(allEntries: [entry]),
+      );
+
+      expect(find.text('No entries yet'), findsOneWidget);
+      expect(find.text('TOTAL INCOME'), findsOneWidget);
+      final dropdownFinder = find.byType(AppDropdown<FinancialDateFilter>);
+      expect(dropdownFinder, findsOneWidget);
+
+      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
+        dropdownFinder,
+      );
+      expect(dropdown.items!.map((i) => i.value).toList(), [
+        FinancialDateFilter.allTime,
+        FinancialDateFilter.thisYear,
+        FinancialDateFilter.thisMonth,
+      ]);
+
+      dropdown.onChanged(FinancialDateFilter.allTime);
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(financialsProvider).dateFilter,
+        FinancialDateFilter.allTime,
+      );
+      expect(find.text('No entries yet'), findsNothing);
+      expect(find.text('\$50.00'), findsWidgets);
     },
   );
 

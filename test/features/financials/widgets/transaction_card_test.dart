@@ -38,7 +38,7 @@ FinancialEntry _entry({
   bool isReimbursed = false,
   Map<String, int>? disbursements,
 }) {
-  final date = DateTime(2026, 1, 15);
+  final date = DateTime(DateTime.now().year, 1, 15);
   return FinancialEntry(
     id: id,
     bandId: 'band-1',
