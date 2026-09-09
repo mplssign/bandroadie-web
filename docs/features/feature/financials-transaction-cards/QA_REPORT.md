@@ -7,62 +7,55 @@
 Financials screen — replace transaction table with cards, add summary header
 
 ## Cycle Number
-1
+3
 
 ## Final Verdict
 **APPROVED**
 
 ## Validation Summary
-Branch `feature/financials-transaction-cards` matches the slug in both `ARCHITECT_PLAN.md` and `ENGINEER_REPORT.md` (Cycle 2, Ready For QA: Yes). Working tree is uncommitted, as expected at this stage. The implementation matches the plan's redesign of `financials_screen.dart` (table → summary header + sort-toggle header + card list) and `financial_entry_details_bottom_sheet.dart` (icon removal, label renames, new `Reimbursed` and `Related to gig` rows, footer label change). All four Task 6 widget test files exist, and analyzer/test results were independently reproduced (not taken on the Engineer's word).
+Cycle 3 is a narrow, Tony-requested follow-up on top of the already-merged-pending PR #273 (Cycles 1–2, previously APPROVED — see history below): center-align the `_SummaryHeader` content block in [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart). Branch `feature/financials-transaction-cards` matches the slug in `ARCHITECT_PLAN.md` and `ENGINEER_REPORT.md` (Cycle 3, Ready For QA: Yes). `ARCHITECT_PLAN.md` was not changed for this cycle, as expected — this is a direct owner request, not a new plan task. The current uncommitted working-tree diff (`git diff HEAD`) touches exactly two files: `financials_screen.dart` (7 lines added, 1 removed) and `ENGINEER_REPORT.md` (doc update). No other production file, test file, migration, or `pubspec.yaml` shows any diff. Analyzer and the four financials widget test files were independently re-run and pass clean.
 
 ## Architect Scope Review
-- Only the two files the plan named as "Files to Modify" were changed: [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart) and [lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart](lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart).
-- All "Files Off-Limits" entries (`financial_entry_repository.dart`, `financial_entry.dart`, `financials_controller.dart`, `financials_pdf_preview_screen.dart`, `financials_report_builder.dart`, `add_financial_entry_bottom_sheet.dart`, `gig_pay_bottom_sheet.dart`, all `supabase/migrations/**`, `pubspec.yaml`) show zero diff — confirmed via `git status --porcelain`, none appear as modified.
-- Four new test files under `test/features/financials/widgets/` match "Files to Create" exactly, no new production source files.
-- No pubspec change, no migration file, no new provider/controller/model.
-- One untracked, unrelated file was observed in the working tree: `docs/features/bug/demo-session-cleanup-orphaned-anonymous-users/PR_BODY.md`. This belongs to a different (already-completed-looking) feature slug, not this one, and does not touch any file in this plan's scope — noted for Manager's awareness, not treated as part of this feature's diff and not counted against this verdict.
+- The plan's original "Files to Modify" / "Files Off-Limits" constraints still hold: only `financials_screen.dart` shows a code diff; `financial_entry_details_bottom_sheet.dart`, `financial_entry_repository.dart`, `financial_entry.dart`, `financials_controller.dart`, `financials_pdf_preview_screen.dart`, `financials_report_builder.dart`, `add_financial_entry_bottom_sheet.dart`, `gig_pay_bottom_sheet.dart`, all `supabase/migrations/**`, and `pubspec.yaml` show zero diff — confirmed via `git diff HEAD --stat`.
+- No new dependency, no new file, no new public/private class, no logic change — confirmed by reading the full diff hunk.
+- Two untracked, unrelated files remain in the working tree (`docs/features/bug/demo-session-cleanup-orphaned-anonymous-users/PR_BODY.md`, `docs/features/feature/financials-transaction-cards/PR_BODY.md`). Neither is part of this feature's diff (untracked, not modified) and neither touches any file in this plan's scope — noted for Manager's awareness, not counted against this verdict.
 
 ## Completeness Check
-All 6 Engineer Task Breakdown items confirmed present in the diff:
-1. Details sheet redesign — icon removal from `_DetailRow`, `Paid by`/`Notes` renames, `Reimbursed` row (expense-only, before the conditional `Reimbursement` row), `Related to gig` row (all entries, placed between Date and `Paid by`), footer `Edit` label. ✅
-2. `_TransactionCard` — title-resolution rules, category subtitle, date, amount color/prefix copied from `_EntryTableRow`, trailing chevron, badge rules. ✅
-3. `_SummaryHeader` (total/date-range/count/two links) and `_TransactionsListHeader` (sort toggle, `▾` glyph unchanged, `>=48px` tap target) introduced. ✅
-4. Screen body swapped: loading/error/empty preserved, `_sortAscending` local field added, `sortedEntries` derivation matches plan pseudocode exactly, `_BottomActionsRow` no longer rendered. ✅
-5. Dead code removed: `_EntriesList`, `_TableHeader`, `_HeaderCell`, `_EntryTableRow`, `_BottomActionsRow`, `_OutlinedActionButton`, `_measureText`, all `_k*Width` constants, `import 'dart:ui' as ui;`. ✅
-6. Four widget test files present and passing. ✅
-
-No partial implementations or missing edge cases found against the plan's stated rules (title fallback logic, badge mutual-exclusivity, three-case gig resolution, sort non-mutation of provider state).
+The requested tweak is fully and exactly present in the diff:
+1. `crossAxisAlignment: CrossAxisAlignment.start` removed from the `_SummaryHeader` `Column` — relies on `Column`'s default `CrossAxisAlignment.center`. ✅
+2. All four `Text` widgets in `_SummaryHeader` (label, total, date-range, count) gained `textAlign: TextAlign.center`. ✅
+3. The `Row` holding the two `_InlineLinkButton`s gained `mainAxisSize: MainAxisSize.min` + `mainAxisAlignment: MainAxisAlignment.center`, so the pair centers as a block instead of stretching full-width and left-aligning its children. ✅
+4. No other widget, provider, model, or file touched. ✅
 
 ## Behavior Verification
-Code-path analysis only (no runtime/device testing performed — categorically QA-excluded and Tony's job per the punch list below).
-- Root cause n/a — this is a UI/UX redesign, not a defect fix, matching the plan's own framing.
-- Scope match confirmed: no extra behavior added. `_SummaryHeader` total formatting (`dollars ~/ 100`, `cents % 100`, `NumberFormat('#,##0')`, zero-padded cents) is byte-equivalent to `FinancialEntry.formattedAmount`'s pattern, per plan intent.
-- Sort toggle is local widget state only (`_sortAscending`), does not touch `FinancialsState`; the details sheet reads `gigProvider` via `ref.read` (not `watch`), matching the plan's snapshot rationale.
-- Gig lookup implemented as a manual `for` loop (no `package:collection` import), matching the plan's stated preference and keeping the "no pubspec change" constraint intact.
+Code-path analysis only (no runtime/device testing performed — categorically excluded from QA scope; see Manual Verification Punch List below).
+- This is a pure visual/layout change; no data, state, or logic path is affected. Confirmed by reading the full diff: the only additions are `textAlign`/`mainAxisSize`/`mainAxisAlignment` properties on existing `Text`/`Row` widgets, and one removed default-matching `crossAxisAlignment` argument.
+- Verified the `Row`'s two children (`_InlineLinkButton` instances) contain no `Expanded`/`Spacer` — both already use `mainAxisSize: MainAxisSize.min` internally — so adding `mainAxisSize: MainAxisSize.min` to the parent `Row` cannot cause a layout exception (no unbounded-width children to conflict with the shrink-wrap).
+- `Column`'s default `crossAxisAlignment` is confirmed `CrossAxisAlignment.center` (Flutter SDK default), so removing the explicit `.start` value is a behavior-changing edit as intended (was left-aligned, now centered), not a no-op.
 
 ## Regression Check
-**LOW**, consistent with the plan's own assessment.
-- Auth/session/routing/init order: untouched — confirmed no diff outside the two named files.
+**LOW**.
+- Auth/session/routing/init order: untouched.
 - Supabase RPC signatures/params: n/a — no RPC touched.
-- Platform parity: change is pure shared-Flutter-widget UI; no `Platform.isIOS`/`kIsWeb` branches introduced.
-- Controller/FocusNode disposal: no new controllers, no new disposables introduced.
-- `setState` after async gaps: `_sortAscending` toggle is a synchronous `setState` inside a `VoidCallback`, no async gap.
-- Rebuild triggers/frequency: `_SummaryHeader` and the list both key off `ref.watch(financialsProvider)`/local `setState` exactly as before; no new watches added elsewhere.
-- Data flow into `_SavingsSheet` and `FinancialsPdfPreviewScreen` preserved verbatim (`_showSavingsSheet(context, state.allEntries)`, `_openCombinedReport(context, ref, state)`), confirmed by diff — both call sites moved into `_SummaryHeader` unchanged.
+- Platform parity: pure shared-Flutter-widget alignment change; no `Platform.isIOS`/`kIsWeb` branch touched.
+- Controller/FocusNode disposal: n/a — no controllers/streams involved.
+- `setState` after async gaps: n/a — no state or async code touched.
+- Rebuild triggers/frequency: unchanged — `_SummaryHeader` still keys off the same `ref.watch(financialsProvider)` call; no new watch added.
+- Existing widget tests (`transaction_card_test.dart`, `summary_header_test.dart`, `transactions_list_header_test.dart`, `financial_entry_details_bottom_sheet_test.dart`) were independently re-run post-change and all still pass — none of their `find.text`/geometry assertions broke from the alignment change.
 
 ## Database Safety
-Not applicable — no migration files in the diff, no RLS/RPC/schema change. Confirmed via `git status --porcelain` (no `supabase/migrations/**` entries) and Files Off-Limits review above.
+Not applicable — no migration, RLS, RPC, or schema file in the diff. Confirmed via `git diff HEAD --stat` (no `supabase/migrations/**` entries).
 
 ## Analyzer Results
 Independently re-run (not taken from `ENGINEER_REPORT.md` alone):
 
 ```
-flutter analyze lib/features/financials/financials_screen.dart lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart test/features/financials/widgets/transaction_card_test.dart test/features/financials/widgets/summary_header_test.dart test/features/financials/widgets/transactions_list_header_test.dart test/features/financials/widgets/financial_entry_details_bottom_sheet_test.dart
+flutter analyze lib/features/financials/financials_screen.dart lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart
 
-Analyzing 6 items...
-No issues found! (ran in 1.3s)
+Analyzing 2 items...
+No issues found! (ran in 2.2s)
 ```
-Clean at every severity for all six changed/created files.
+Clean at every severity for both files in scope for this cycle.
 
 ## Test Results
 Independently re-run (not taken from `ENGINEER_REPORT.md` alone):
@@ -72,63 +65,38 @@ flutter test test/features/financials/widgets/transaction_card_test.dart test/fe
 
 00:02 +34: All tests passed!
 ```
-34 passed, 0 failed — matches the Engineer's reported count.
+34 passed, 0 failed. This does **not** match `ENGINEER_REPORT.md`'s Cycle 3 claim of "42 passed, 0 failed" — see Issues Found (Warning) below. It matches the Cycle 2 count (34), consistent with the fact that no test file shows any diff in this cycle (`git diff HEAD --stat -- test/` is empty) — the alignment change is confined entirely to `financials_screen.dart`.
 
 ## Diff Safety Review
-- No secrets/API keys found in the diff.
-- Grepped the full diff and all touched files for `TODO`, `FIXME`, `debugPrint(` — zero matches.
-- No leftover test scaffolding, no accidental deletions of unrelated code, no unrelated formatting churn beyond re-indentation caused by structural wrapping (e.g. `_DetailRow`'s `Icon` removal reflowing its parent `Column`'s indentation) and `dart format` normalization already accounted for in the Engineer's `Verification` steps.
+- No secrets/API keys in the diff.
+- Grepped the full diff for `TODO`, `FIXME`, `debugPrint(`, `api[_-]?key`, `secret`, `password` — the only matches are prose *inside* `ENGINEER_REPORT.md` describing the absence of such artifacts, not actual code.
+- No leftover test scaffolding, no accidental deletions, no unrelated formatting churn — the diff is exactly 8 changed lines (7 additions, 1 deletion), all inside `_SummaryHeader.build`.
 
 ## Change Budget Review
-| File | Budget | Actual (add/del via `--numstat`) | Net Δ | Verdict |
+| File | Budget | Actual this cycle | Net Δ | Verdict |
 | --- | --- | --- | --- | --- |
-| `lib/features/financials/financials_screen.dart` | −200 to −70 | 342 / 482 | **−140** | Within budget |
-| `lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart` | +10 to +30 | 124 / 105 | **+19** | Within budget |
+| `lib/features/financials/financials_screen.dart` | n/a for this cycle (the plan's Cycle-1 budget of −200 to −70 doesn't apply to a post-merge follow-up) | 7 insertions / 1 deletion | **+6** | Trivial, in line with the described visual-only scope |
 | Any other file | 0 | 0 | 0 | Confirmed — no other file modified |
 
-- New files: 4 test files, exactly as budgeted (0 new production files).
-- New public classes/methods: 0 — all new widgets (`_SummaryHeader`, `_TransactionsListHeader`, `_TransactionCard`, `_InlineLinkButton`) are private, as required.
+- New files: 0.
+- New public/private classes or methods: 0.
 - New dependencies: 0 (confirmed no `pubspec.yaml` diff).
 - Migration files: 0.
-- `financials_screen.dart` is 1069 lines, above the repo's 500-line target. `ENGINEER_REPORT.md` states the one-line justification required by QA rules ("this feature reduced the file during Cycle 1 and the architect plan kept the work in this file. Splitting it would exceed the plan.") — justification present, no Warning raised on this point.
+- Well under any reasonable interpretation of a "narrow follow-up" budget; no Warning or Critical bloat applies.
 
 ## Code Efficiency Review
-- Independently grepped `lib/` for a pre-existing card-styling helper before accepting `_TransactionCard`'s hand-rolled `InkWell` + `Container(decoration: BoxDecoration(...))`. Found [lib/components/ui/app_card.dart](lib/components/ui/app_card.dart) — an existing `AppCard` wrapper (`onTap`, `border`, `borderRadius`, `color` params) that appears to cover the same styling need `_TransactionCard` reimplements manually.
-  - **Classification: Warning (`code-quality`).** This duplication traces directly to the Architect plan's Task 2, which explicitly specified the `Container(decoration: BoxDecoration(...))` + `InkWell` construction verbatim — the Engineer implemented exactly what was specified, so this is not an Engineer deviation. Flagging for Manager/Architect awareness on a future pass; does not block this cycle's verdict since it is plan-directed, not Engineer-introduced scope creep, and is not Critical-level (single private widget, budgeted, no new dependency).
-- `_InlineLinkButton` (two-use, file-private) was explicitly pre-authorized by the plan ("may be inlined instead if only used twice") — grepped `lib/` for `AppIcons.forward` usage elsewhere; all other call sites are inline, no pre-existing shared chevron-link widget exists, so no duplication here.
-- No `TODO`/config-for-future-use/barrel-file/dead `try/catch` patterns found in the diff.
-- Bug-fix-with-zero-deletions rule: not applicable — this is a redesign, not a bug fix, and both files show substantial deletions (482 and 105 lines respectively).
+- No new symbol introduced (no helper, extension, util, or widget class) — the change only adds existing Flutter layout properties (`textAlign`, `mainAxisSize`, `mainAxisAlignment`) to widgets that already existed. Nothing to grep for a pre-existing equivalent.
+- No `try/catch`, no new field/parameter/`copyWith`, no config/flag/enum addition, no barrel file, no comment restating adjacent code.
+- Bug-fix-with-zero-deletions rule: not applicable — this is a visual tweak, not a bug fix; it has both an addition (7 lines) and a deletion (1 line).
+- File-size-target rule: `financials_screen.dart` remains above the repo's 500-line target (unchanged from Cycle 1/2, where `ENGINEER_REPORT.md` already provided the one-line justification "this feature reduced the file during Cycle 1 and the architect plan kept the work in this file. Splitting it would exceed the plan."). No new Warning needed for this cycle since the file wasn't newly pushed over the target by this change.
 
 ## Manual Verification Punch List
-QA did not and cannot run the app — the following is copied from the Architect plan's owner-run Verification Plan for Tony to execute directly against a preview build:
+QA did not and cannot run the app. This item is new for Cycle 3 (not part of the original Architect punch list) and should be folded into the existing owner-run verification pass:
 
-1. Sign in with a demo band that has both income and expense entries; open Financials.
-   Expected: card list renders; no horizontal scroll; summary header shows `TOTAL <mode>` + total + date-range + `N transactions` + two chevron links.
-2. Toggle Income ↔ Expenses.
-   Expected: label + color of total switch (green → red), count updates, list updates.
-3. Cycle All Time / This Year / This Month / Custom.
-   Expected: total, count, and date-range label all update per selection. Custom picker still opens.
-4. Tap the sort control (`"Newest first ▾"`) in the Transactions section header.
-   Expected: label flips to `"Oldest first ▾"` in one paint; the list re-sorts so the oldest transaction is now at the top and the newest is at the bottom; summary header total, count, and date-range label do **not** change. Tap again → label returns to `"Newest first ▾"` and list returns to original order.
-5. Pop back to the Home tab and re-open Financials.
-   Expected: sort control resets to `"Newest first ▾"` (not persisted across screen dismiss — expected behavior, not a bug).
-6. Tap "View Savings Balance".
-   Expected: existing `_SavingsSheet` opens with the same animated total behavior as today.
-7. Tap "Generate Report".
-   Expected: existing `FinancialsPdfPreviewScreen` opens with the same combined report. Sort order in the report is unchanged (newest-first) regardless of the on-screen sort toggle — report reads from `dateFilteredEntries`, not the sorted UI list.
-8. Tap a transaction card in the current sort order.
-   Expected: details sheet opens for the exact tapped entry (verify by amount + date). Icons are gone from detail rows. Labels read "Paid by", "Notes". Explicit "Reimbursed: Yes/No" row visible on expense entries. "Related to gig" row present on every entry (No / Yes • name / Yes).
-9. From details, tap Edit.
-   Expected: Add sheet opens pre-filled — no regression on the edit flow. Save + return.
-10. Add a new expense with `paidToName = "Test Vendor"`, verify a new card appears in the correct position for the current sort (top when "Newest first", bottom when "Oldest first") with title `"Test Vendor"`, subtitle = category. Total updates by the entered amount. Count increments.
-11. Delete the entry via details sheet Delete button.
-    Expected: card disappears, total decrements, count decrements.
-12. Open Financials on a fresh band with zero entries → `_EmptyState` shows (same copy as today). Sort control still renders on the section header row (visible with no list under it is acceptable) or is hidden — either is fine as long as no overflow / no crash occurs. Confirm which and note in the PR.
-13. Verify on iOS build, Android build, macOS build, and web build that:
-    - No horizontal scroll appears on the transaction list at narrow widths (iPhone SE, ~320 px web).
-    - Chevron links wrap gracefully at narrow widths (no overflow, no truncation).
-    - Empty state still centers correctly.
-    - Sort control tap target is comfortably reachable (not clipped by the section header padding) on all four platforms.
+1. Open Financials for any band with at least one income or expense entry.
+   Expected: the label (`TOTAL INCOME`/`TOTAL EXPENSES`), the large total figure, the date-range line, the transaction-count line, and the "View Savings Balance" / "Generate Report" link pair are all horizontally centered within the screen width — none of them left-aligned as they were before this cycle.
+2. Check at a narrow width (e.g. iPhone SE / narrow web viewport).
+   Expected: the two inline links stay centered as a pair (not stretched edge-to-edge, not left-aligned) and do not overflow or wrap awkwardly.
 
 ## Issues Found
 
@@ -136,7 +104,23 @@ QA did not and cannot run the app — the following is copied from the Architect
 None.
 
 ### Warnings
-1. **[code-quality]** `_TransactionCard` reimplements card container styling (`InkWell` + `Container` + `BoxDecoration`) rather than reusing the existing [lib/components/ui/app_card.dart](lib/components/ui/app_card.dart) `AppCard` widget. Plan-directed (Architect Task 2 specified this construction verbatim), not an Engineer deviation. Does not block this verdict; recommend Architect consider `AppCard` reuse in a future pass over this file.
+1. **[code-quality]** `ENGINEER_REPORT.md`'s Cycle 3 "Test Results" section states `flutter test ... Result: 42 passed, 0 failed`, but an independent re-run of the exact same command produces `34 passed, 0 failed` — matching the Cycle 2 count, which is expected since no test file shows any diff in this cycle. The reported "42" figure appears to be inaccurate/miscopied. This does not indicate an actual test failure or regression (the real suite does pass, and no test-affecting code changed), so it does not block this verdict, but the report should be corrected so future cycles' test-count deltas remain a trustworthy signal.
 
 ### Suggestions
-1. **[code-quality]** `_SummaryHeader`'s total-formatting logic (dollars/cents split + `NumberFormat('#,##0')` + zero-padded cents) duplicates the pattern in `FinancialEntry.formattedAmount` inline rather than extracting a shared formatter, since the summed `totalCents` isn't tied to a single `FinancialEntry` instance. Cosmetic; matches the plan's explicit formatting instructions.
+None beyond the above.
+
+---
+
+## Cycle 1 History (preserved for reference; superseded by Cycle 3 above)
+
+Cycle 1 covered the full feature redesign (table → cards + summary header, details sheet relabeling). Verdict: **APPROVED**.
+
+- Architect Scope Review: only `financials_screen.dart` and `financial_entry_details_bottom_sheet.dart` changed; all Files Off-Limits entries were byte-identical; four new test files matched Files to Create exactly.
+- Completeness: all 6 Engineer Task Breakdown items confirmed present (details sheet redesign, `_TransactionCard`, `_SummaryHeader`/`_TransactionsListHeader`, screen body swap, dead-code removal, four widget test files).
+- Regression Check: LOW — no auth/session/routing/init-order/RPC/platform-conditional changes; no state-shape change.
+- Database Safety: not applicable.
+- Analyzer: `No issues found!` across all six changed/created files.
+- Tests: 34 passed, 0 failed.
+- Change Budget: `financials_screen.dart` net −140 (within −200 to −70 budget); `financial_entry_details_bottom_sheet.dart` net +19 (within +10 to +30 budget).
+- Code Efficiency: one Warning — `_TransactionCard` reimplements card container styling instead of reusing the existing `AppCard` widget ([lib/components/ui/app_card.dart](lib/components/ui/app_card.dart)); classified as plan-directed (Architect Task 2 specified the construction verbatim), not an Engineer deviation, not blocking.
+- Full owner-run Manual Verification Punch List (13 steps) was written for Tony to execute against a preview build — see Architect Plan's Verification Plan for the authoritative copy.

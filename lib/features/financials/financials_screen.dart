@@ -820,10 +820,10 @@ class _SummaryHeader extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             isIncome ? 'TOTAL INCOME' : 'TOTAL EXPENSES',
+            textAlign: TextAlign.center,
             style: AppTextStyles.footnote.copyWith(
               color: context.colors.textMuted,
               letterSpacing: 0.5,
@@ -832,6 +832,7 @@ class _SummaryHeader extends ConsumerWidget {
           const SizedBox(height: Spacing.space4),
           Text(
             totalFormatted,
+            textAlign: TextAlign.center,
             style: AppTextStyles.displayLarge.copyWith(
               color: isIncome ? context.colors.success : AppColors.error,
             ),
@@ -839,16 +840,20 @@ class _SummaryHeader extends ConsumerWidget {
           const SizedBox(height: Spacing.space4),
           Text(
             _dateRangeLabel(state),
+            textAlign: TextAlign.center,
             style: AppTextStyles.footnote
                 .copyWith(color: context.colors.textMuted),
           ),
           Text(
             count == 1 ? '1 transaction' : '$count transactions',
+            textAlign: TextAlign.center,
             style: AppTextStyles.footnote
                 .copyWith(color: context.colors.textMuted),
           ),
           const SizedBox(height: Spacing.space12),
           Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _InlineLinkButton(
                 label: 'View Savings Balance',
