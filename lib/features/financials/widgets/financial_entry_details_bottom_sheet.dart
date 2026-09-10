@@ -68,100 +68,104 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: context.colors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: Spacing.space20),
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.colors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Spacing.space20),
 
-          // Amount + type row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
+                // Amount + type row
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '$amountPrefix${entry.formattedAmount}',
-                      style: AppTextStyles.displayLarge
-                          .copyWith(color: amountColor),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$amountPrefix${entry.formattedAmount}',
+                            style: AppTextStyles.displayLarge
+                                .copyWith(color: amountColor),
+                          ),
+                          const SizedBox(height: Spacing.space4),
+                          Wrap(
+                            spacing: Spacing.space8,
+                            runSpacing: Spacing.space8,
+                            children: [
+                              _TypeBadge(label: entry.category),
+                              if (isReimbursedExpense) const _ReimbursedBadge(),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: Spacing.space4),
-                    Wrap(
-                      spacing: Spacing.space8,
-                      runSpacing: Spacing.space8,
-                      children: [
-                        _TypeBadge(label: entry.category),
-                        if (isReimbursedExpense) const _ReimbursedBadge(),
-                      ],
-                    ),
+                    if (entry.is1099Expected == true) const _Badge1099(),
                   ],
                 ),
-              ),
-              if (entry.is1099Expected == true) const _Badge1099(),
-            ],
-          ),
 
-          const SizedBox(height: Spacing.space24),
-          const Divider(height: 1),
-          const SizedBox(height: Spacing.space16),
+                const SizedBox(height: Spacing.space24),
+                const Divider(height: 1),
+                const SizedBox(height: Spacing.space16),
 
-          // Details rows
-          _DetailRow(icon: AppIcons.calendar, label: 'Date', value: dateStr),
-          const SizedBox(height: Spacing.space12),
-          _DetailRow(
-            icon: AppIcons.user,
-            label: 'Payer',
-            value: (entry.payerName != null && entry.payerName!.isNotEmpty)
-                ? entry.payerName!
-                : '—',
-          ),
-          const SizedBox(height: Spacing.space12),
-          _DetailRow(
-            icon: AppIcons.user,
-            label: 'Paid To',
-            value: (entry.paidToName != null && entry.paidToName!.isNotEmpty)
-                ? entry.paidToName!
-                : '—',
-          ),
-          if (isReimbursedExpense) ...[
-            const SizedBox(height: Spacing.space12),
-            _DetailRow(
-              icon: AppIcons.check,
-              label: 'Reimbursement',
-              value: _buildReimbursementDetailLine(entry),
-            ),
-          ],
-          if (entry.description != null && entry.description!.isNotEmpty) ...[
-            const SizedBox(height: Spacing.space12),
-            _DetailRow(
-              icon: AppIcons.edit,
-              label: 'Description',
-              value: entry.description!,
-            ),
-          ],
-          if (entry.depositToSavings == true) ...[
-            const SizedBox(height: Spacing.space12),
-            _DetailRow(
-              icon: AppIcons.dollar,
-              label: 'Deposit to Savings',
-              value: entry.depositToSavingsCents != null
-                  ? entry.formattedDepositToSavings!
-                  : 'Yes',
-            ),
-          ],
+                // Details rows
+                _DetailRow(
+                    icon: AppIcons.calendar, label: 'Date', value: dateStr),
+                const SizedBox(height: Spacing.space12),
+                _DetailRow(
+                  icon: AppIcons.user,
+                  label: 'Payer',
+                  value:
+                      (entry.payerName != null && entry.payerName!.isNotEmpty)
+                          ? entry.payerName!
+                          : '—',
+                ),
+                const SizedBox(height: Spacing.space12),
+                _DetailRow(
+                  icon: AppIcons.user,
+                  label: 'Paid To',
+                  value:
+                      (entry.paidToName != null && entry.paidToName!.isNotEmpty)
+                          ? entry.paidToName!
+                          : '—',
+                ),
+                if (isReimbursedExpense) ...[
+                  const SizedBox(height: Spacing.space12),
+                  _DetailRow(
+                    icon: AppIcons.check,
+                    label: 'Reimbursement',
+                    value: _buildReimbursementDetailLine(entry),
+                  ),
+                ],
+                if (entry.description != null &&
+                    entry.description!.isNotEmpty) ...[
+                  const SizedBox(height: Spacing.space12),
+                  _DetailRow(
+                    icon: AppIcons.edit,
+                    label: 'Description',
+                    value: entry.description!,
+                  ),
+                ],
+                if (entry.depositToSavings == true) ...[
+                  const SizedBox(height: Spacing.space12),
+                  _DetailRow(
+                    icon: AppIcons.dollar,
+                    label: 'Deposit to Savings',
+                    value: entry.depositToSavingsCents != null
+                        ? entry.formattedDepositToSavings!
+                        : 'Yes',
+                  ),
+                ],
 
-              const SizedBox(height: Spacing.space24),
-            ],
-          ),
+                const SizedBox(height: Spacing.space24),
+              ],
+            ),
           ),
           SheetFooter(
             primaryLabel: 'Edit Entry',
@@ -194,6 +198,11 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                   disbursements,
                   depositToSavings,
                   depositToSavingsCents,
+                  gigId,
+                  isReimbursed,
+                  reimbursedDate,
+                  reimbursementMethod,
+                  notes,
                 }) async {
                   await notifier.updateEntry(
                     entryId: entry.id,
@@ -209,6 +218,11 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                     disbursements: disbursements,
                     depositToSavings: depositToSavings,
                     depositToSavingsCents: depositToSavingsCents,
+                    gigId: gigId,
+                    isReimbursed: isReimbursed,
+                    reimbursedDate: reimbursedDate,
+                    reimbursementMethod: reimbursementMethod,
+                    notes: notes,
                   );
                 },
                 onDelete: () async {

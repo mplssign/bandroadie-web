@@ -62,6 +62,11 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
         disbursements,
         depositToSavings,
         depositToSavingsCents,
+        gigId,
+        isReimbursed,
+        reimbursedDate,
+        reimbursementMethod,
+        notes,
       }) async {
         await notifier.addEntry(
           entryType: entryType,
@@ -76,6 +81,11 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
           disbursements: disbursements,
           depositToSavings: depositToSavings,
           depositToSavingsCents: depositToSavingsCents,
+          gigId: gigId,
+          isReimbursed: isReimbursed,
+          reimbursedDate: reimbursedDate,
+          reimbursementMethod: reimbursementMethod,
+          notes: notes,
         );
       },
     );
@@ -880,8 +890,7 @@ class _EntryTableRow extends StatelessWidget {
                       vertical: Spacing.space16, horizontal: 4),
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Text(
                     '$amountPrefix${entry.formattedAmount}',
                     style: AppTextStyles.callout.copyWith(
@@ -902,8 +911,7 @@ class _EntryTableRow extends StatelessWidget {
                       vertical: Spacing.space16, horizontal: 4),
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Text(
                     dateStr,
                     style: AppTextStyles.callout
@@ -920,8 +928,7 @@ class _EntryTableRow extends StatelessWidget {
                       vertical: Spacing.space16, horizontal: 4),
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Text(
                     entry.category,
                     style: AppTextStyles.callout
@@ -938,8 +945,7 @@ class _EntryTableRow extends StatelessWidget {
                       vertical: Spacing.space16, horizontal: 4),
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Text(
                     fromValue,
                     style: AppTextStyles.callout
@@ -956,8 +962,7 @@ class _EntryTableRow extends StatelessWidget {
                       vertical: Spacing.space16, horizontal: 4),
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Text(
                     paidToValue,
                     style: AppTextStyles.callout
@@ -972,8 +977,7 @@ class _EntryTableRow extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Center(
                     child: (entry.disbursements != null &&
                             entry.disbursements!.isNotEmpty)
@@ -992,8 +996,7 @@ class _EntryTableRow extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                       border: Border(
-                          right: BorderSide(
-                              color: context.colors.border))),
+                          right: BorderSide(color: context.colors.border))),
                   child: Center(
                     child: entry.depositToSavings == true
                         ? entry.depositToSavingsCents != null
@@ -1065,8 +1068,7 @@ class _BottomActionsRow extends ConsumerWidget {
               children: [
                 _OutlinedActionButton(
                   label: 'View savings balance',
-                  onPressed: () =>
-                      _showSavingsSheet(context, state.allEntries),
+                  onPressed: () => _showSavingsSheet(context, state.allEntries),
                 ),
                 const SizedBox(width: Spacing.space12),
                 _OutlinedActionButton(

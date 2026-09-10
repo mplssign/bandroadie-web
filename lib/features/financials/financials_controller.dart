@@ -70,8 +70,7 @@ class FinancialsState {
 
   /// All entries (income and expenses) matching only the date filter —
   /// ignores the income/expenses toggle. Used for combined reports.
-  List<FinancialEntry> get dateFilteredEntries =>
-      _applyDateFilter(allEntries);
+  List<FinancialEntry> get dateFilteredEntries => _applyDateFilter(allEntries);
 
   List<FinancialEntry> _applyDateFilter(Iterable<FinancialEntry> source) {
     final now = DateTime.now();
@@ -166,6 +165,11 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
     Map<String, int>? disbursements,
     bool? depositToSavings,
     int? depositToSavingsCents,
+    String? gigId,
+    bool? isReimbursed,
+    DateTime? reimbursedDate,
+    String? reimbursementMethod,
+    String? notes,
   }) async {
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) throw StateError('No band selected');
@@ -186,6 +190,11 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
         disbursements: disbursements,
         depositToSavings: depositToSavings,
         depositToSavingsCents: depositToSavingsCents,
+        gigId: gigId,
+        isReimbursed: isReimbursed,
+        reimbursedDate: reimbursedDate,
+        reimbursementMethod: reimbursementMethod,
+        notes: notes,
       );
       state = state.copyWith(
         allEntries: [entry, ...state.allEntries],
@@ -212,6 +221,11 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
     Map<String, int>? disbursements,
     bool? depositToSavings,
     int? depositToSavingsCents,
+    String? gigId,
+    bool? isReimbursed,
+    DateTime? reimbursedDate,
+    String? reimbursementMethod,
+    String? notes,
   }) async {
     final bandId = ref.read(activeBandIdProvider);
     if (bandId == null) throw StateError('No band selected');
@@ -233,6 +247,11 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
         disbursements: disbursements,
         depositToSavings: depositToSavings,
         depositToSavingsCents: depositToSavingsCents,
+        gigId: gigId,
+        isReimbursed: isReimbursed,
+        reimbursedDate: reimbursedDate,
+        reimbursementMethod: reimbursementMethod,
+        notes: notes,
       );
       state = state.copyWith(
         allEntries:
