@@ -79,4 +79,40 @@ void main() {
       expect(find.textContaining('demo mode'), findsNothing);
     },
   );
+
+  testWidgets(
+    'Test C: content cluster fits within 800×600 without RenderFlex overflow '
+    '(button visible)',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: FTheme(
+              data: AppTheme.foruiTheme(Brightness.dark),
+              child: const LoginScreen(),
+            ),
+          ),
+        ),
+      );
+
+      // Pre-cache the logo codec so this test measures the deterministic
+      // worst case rather than racing the async image load.
+      await tester.runAsync(() async {
+        await precacheImage(
+          const AssetImage('assets/images/bandroadie_logo_stacked.png'),
+          tester.element(find.byType(LoginScreen)),
+        );
+      });
+
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
