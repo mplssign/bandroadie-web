@@ -477,9 +477,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   /// Builds the content cluster.
   ///
   /// Layout contract:
-  ///   - Logo occupies the upper half of [availableHeight], centered within it.
-  ///     This places the logo's vertical center at exactly half the distance
-  ///     between the top of the screen and the top of the email field.
+  ///   - Logo + demo button (when [_kDemoBandVisible]) share the upper half of
+  ///     [availableHeight], centered within it; the logo shrinks via
+  ///     `BoxFit.contain` when the demo button consumes part of that budget.
   ///   - Logo width is 90% of the email field width.
   ///   - Form elements start at the midpoint of the available screen height.
   Widget _buildContentCluster({
@@ -498,7 +498,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildLogo(logoWidth: logoWidth),
+              Flexible(child: _buildLogo(logoWidth: logoWidth)),
               if (_kDemoBandVisible) ...[
                 const SizedBox(height: 12),
                 _buildDemoButton(),
