@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../gigs/gig_controller.dart';
 import '../../members/members_controller.dart';
 import '../financials_controller.dart';
 import '../models/financial_entry.dart';
@@ -46,6 +46,19 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
     final dateStr = DateFormat('MMMM d, yyyy').format(entry.entryDate);
     final isReimbursedExpense =
         entry.entryType == FinancialEntryType.expense && entry.isReimbursed;
+
+    String? matchedGigName;
+    if (entry.gigId != null) {
+      for (final gig in ref.read(gigProvider).allGigs) {
+        if (gig.id == entry.gigId) {
+          matchedGigName = gig.name;
+          break;
+        }
+      }
+    }
+    final relatedToGigValue = entry.gigId == null
+        ? 'No'
+        : (matchedGigName != null ? 'Yes • $matchedGigName' : 'Yes');
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -115,47 +128,56 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                 const SizedBox(height: Spacing.space16),
 
                 // Details rows
-                _DetailRow(
-                    icon: AppIcons.calendar, label: 'Date', value: dateStr),
+                _DetailRow(label: 'Date', value: dateStr),
                 const SizedBox(height: Spacing.space12),
                 _DetailRow(
-                  icon: AppIcons.user,
-                  label: 'Payer',
+                  label: 'Description',
+                  value: (entry.description?.trim().isNotEmpty ?? false)
+                      ? entry.description!
+                      : '—',
+                ),
+                const SizedBox(height: Spacing.space12),
+                _DetailRow(
+                  label: 'Paid to',
+                  value:
+                      (entry.paidToName != null && entry.paidToName!.isNotEmpty)
+                          ? entry.paidToName!
+                          : '—',
+                ),
+                const SizedBox(height: Spacing.space12),
+                _DetailRow(
+                  label: 'Purchased by',
                   value:
                       (entry.payerName != null && entry.payerName!.isNotEmpty)
                           ? entry.payerName!
                           : '—',
                 ),
                 const SizedBox(height: Spacing.space12),
+                _DetailRow(label: 'Needed for gig', value: relatedToGigValue),
+                const SizedBox(height: Spacing.space12),
                 _DetailRow(
-                  icon: AppIcons.user,
-                  label: 'Paid To',
-                  value:
-                      (entry.paidToName != null && entry.paidToName!.isNotEmpty)
-                          ? entry.paidToName!
-                          : '—',
+                  label: 'Notes',
+                  value: (entry.notes?.trim().isNotEmpty ?? false)
+                      ? entry.notes!
+                      : '—',
                 ),
+                if (entry.entryType == FinancialEntryType.expense) ...[
+                  const SizedBox(height: Spacing.space12),
+                  _DetailRow(
+                    label: 'Reimbursed',
+                    value: entry.isReimbursed ? 'Yes' : 'No',
+                  ),
+                ],
                 if (isReimbursedExpense) ...[
                   const SizedBox(height: Spacing.space12),
                   _DetailRow(
-                    icon: AppIcons.check,
                     label: 'Reimbursement',
                     value: _buildReimbursementDetailLine(entry),
-                  ),
-                ],
-                if (entry.description != null &&
-                    entry.description!.isNotEmpty) ...[
-                  const SizedBox(height: Spacing.space12),
-                  _DetailRow(
-                    icon: AppIcons.edit,
-                    label: 'Description',
-                    value: entry.description!,
                   ),
                 ],
                 if (entry.depositToSavings == true) ...[
                   const SizedBox(height: Spacing.space12),
                   _DetailRow(
-                    icon: AppIcons.dollar,
                     label: 'Deposit to Savings',
                     value: entry.depositToSavingsCents != null
                         ? entry.formattedDepositToSavings!
@@ -168,9 +190,10 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
             ),
           ),
           SheetFooter(
-            primaryLabel: 'Edit Entry',
-            primaryIcon: AppIcons.edit,
-            onPrimary: () async {
+            primaryLabel: 'Done',
+            onPrimary: () => Navigator.of(context).pop(),
+            cancelLabel: 'Edit',
+            onCancel: () async {
               Navigator.of(context).pop();
               final notifier = ref.read(financialsProvider.notifier);
               final members = ref.read(membersProvider).members;
@@ -244,8 +267,11 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
         (entry.payerName != null && entry.payerName!.trim().isNotEmpty)
             ? entry.payerName!.trim()
             : 'Unknown payer';
+    final method = entry.reimbursementMethod;
+    final methodSuffix =
+        (method != null && method.trim().isNotEmpty) ? ' via $method' : '';
 
-    return 'Purchased ${DateFormat('MMMM d, yyyy').format(entry.entryDate)} · Reimbursed $reimbursedDate to $reimbursedTo';
+    return 'Purchased ${DateFormat('MMMM d, yyyy').format(entry.entryDate)} · Reimbursed $reimbursedDate to $reimbursedTo$methodSuffix';
   }
 }
 
@@ -255,12 +281,10 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
 
 class _DetailRow extends StatelessWidget {
   const _DetailRow({
-    required this.icon,
     required this.label,
     required this.value,
   });
 
-  final IconData icon;
   final String label;
   final String value;
 
@@ -269,23 +293,29 @@ class _DetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: context.colors.textMuted),
+        SizedBox(
+          width: 148,
+          child: Text(
+            label,
+            style: AppTextStyles.footnote
+                .copyWith(color: context.colors.textMuted),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.visible,
+          ),
+        ),
         const SizedBox(width: Spacing.space8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: AppTextStyles.footnote
-                  .copyWith(color: context.colors.textMuted),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: AppTextStyles.callout
-                  .copyWith(color: context.colors.textPrimary),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: AppTextStyles.callout
+                    .copyWith(color: context.colors.textPrimary),
+              ),
+            ],
+          ),
         ),
       ],
     );
