@@ -35,7 +35,6 @@ class FinancialsScreen extends ConsumerStatefulWidget {
 }
 
 class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
-  bool _sortAscending = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -102,8 +101,6 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(financialsProvider);
     final filtered = state.filteredEntries;
-    final sortedEntries =
-        _sortAscending ? filtered.reversed.toList() : filtered;
     final permissionsAsync = ref.watch(currentUserPermissionsProvider);
     final canCreate = permissionsAsync.when(
       data: (p) => p.canCreateFinancials,
@@ -128,6 +125,14 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
           color: AppColors.primary,
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          if (canCreate)
+            AppIconButton(
+              icon: AppIcons.add,
+              color: Colors.white,
+              onPressed: state.isLoading ? null : () => _addEntry(state),
+            ),
+        ],
       ),
       body: Material(
         type: MaterialType.transparency,
@@ -140,32 +145,6 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Add action (title now shown in AppAppBar)
-                      if (canCreate)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            Spacing.pagePadding,
-                            Spacing.space20,
-                            Spacing.pagePadding,
-                            0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              TextButton.icon(
-                                onPressed: state.isLoading
-                                    ? null
-                                    : () => _addEntry(state),
-                                icon: const Icon(AppIcons.add, size: 18),
-                                label: const Text('Add'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: Spacing.space16),
                       // Income / Expenses toggle
                       _ViewModeToggle(
                         current: state.viewMode,
@@ -182,11 +161,6 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                 children: [
                                   _SummaryHeader(
                                       scrollController: _scrollController),
-                                  _TransactionsListHeader(
-                                    sortAscending: _sortAscending,
-                                    onToggleSort: () => setState(
-                                        () => _sortAscending = !_sortAscending),
-                                  ),
                                   const SizedBox(height: Spacing.space8),
                                   Expanded(
                                     child: state.isLoading
@@ -208,14 +182,13 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                                           .bottom +
                                                       Spacing.space16,
                                                 ),
-                                                itemCount: sortedEntries.length,
+                                                itemCount: filtered.length,
                                                 separatorBuilder: (_, __) =>
                                                     const SizedBox(
                                                         height:
                                                             Spacing.space12),
                                                 itemBuilder: (context, index) {
-                                                  final entry =
-                                                      sortedEntries[index];
+                                                  final entry = filtered[index];
                                                   return _TransactionCard(
                                                     entry: entry,
                                                     onTap: () =>
@@ -772,55 +745,6 @@ class _InlineLinkButton extends StatelessWidget {
           ),
           const SizedBox(width: Spacing.space4),
           Icon(AppIcons.forward, size: 16, color: color),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// TRANSACTIONS LIST HEADER
-// ---------------------------------------------------------------------------
-
-class _TransactionsListHeader extends StatelessWidget {
-  const _TransactionsListHeader({
-    required this.sortAscending,
-    required this.onToggleSort,
-  });
-
-  final bool sortAscending;
-  final VoidCallback onToggleSort;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Transactions',
-              style: AppTextStyles.footnote.copyWith(
-                color: context.colors.textMuted,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          InkWell(
-            onTap: onToggleSort,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  sortAscending ? 'Oldest first ▾' : 'Newest first ▾',
-                  style: AppTextStyles.footnote
-                      .copyWith(color: context.colors.textMuted),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );

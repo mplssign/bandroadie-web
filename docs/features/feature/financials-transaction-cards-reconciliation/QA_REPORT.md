@@ -6,31 +6,225 @@
 
 ## Feature Title
 
-Financials reconciliation — add a precise `physics`-instance regression
-guard for the scroll fix (closing Cycle 6's finding that the drag-based
-test alone did not distinguish pre-fix from post-fix code) and reduce the
-collapsed-header gap between the label and total per Tony's direct visual
-tweak (Engineer Cycle 7, against already-open PR #275)
+Financials top-of-screen layout restructuring — remove the sort-toggle
+feature entirely, move the Income/Expenses toggle directly under the app
+bar, and relocate "+ Add" into the app bar as a trailing action (Engineer
+Cycle 8, direct Tony layout-restructuring request, against already-open
+PR #275)
 
 ## Cycle Number
 
-7 (this QA slug's sixth pass. Cycles 6 (REQUIRES CHANGES), 5, 4, 2, and 1,
-below the divider, are historical. This cycle validates Engineer Cycle 7,
-which directly targets this QA slug's own Cycle 6 REQUIRES CHANGES
-finding — that `financials_screen_scroll_test.dart`'s drag-based test does
-not distinguish pre-fix from post-fix code for the
-`AlwaysScrollableScrollPhysics` bugfix — plus a new, separate Tony visual
-tweak to the collapsed-header alignment. No `ARCHITECT_PLAN.md` update
-accompanies this engineer cycle — consistent with the precedent set in
-Cycles 2, 4, 5, and 6 — so this review validates directly against
-`ENGINEER_REPORT.md`'s Cycle 7 stated scope and Manager's explicit
-two-part invocation checklist, in place of a plan.)
+8 (this QA slug's seventh pass. Cycles 7 (APPROVED), 6 (REQUIRES CHANGES),
+5, 4, 2, and 1, below the divider, are historical. This cycle validates
+Engineer Cycle 8, a direct Tony layout-restructuring request confined to
+`financials_screen.dart` and its obsolete test file. No `ARCHITECT_PLAN.md`
+update accompanies this engineer cycle — consistent with the precedent set
+in Cycles 2, 4, 5, 6, and 7 — so this review validates directly against
+`ENGINEER_REPORT.md`'s Cycle 8 stated scope and Manager's explicit
+five-part invocation checklist, in place of a plan.)
 
 ## Final Verdict
 
 **APPROVED**
 
 ## Validation Summary
+
+Confirmed branch `feature/financials-transaction-cards-reconciliation` is
+checked out with a clean-except-expected working tree (only
+`ENGINEER_REPORT.md`, `financials_screen.dart` modified, and
+`transactions_list_header_test.dart` deleted — plus unrelated pre-existing
+untracked files outside this slug's scope, none touched). Confirmed the
+highest prior recorded cycle in this file was Cycle 7/APPROVED, ruling out
+a duplicate/stale QA session silently redoing this work. Resolved
+`ENGINEER_REPORT.md`'s latest section (Cycle 8, "Ready For QA: Yes") and
+reviewed the full uncommitted diff directly via `git diff HEAD`. All five
+items in Manager's invocation checklist were independently verified
+against the actual diff, not taken on Engineer's word. Independently
+re-ran `flutter analyze` on `financials_screen.dart` (0 issues) and
+`flutter test test/features/financials/widgets/` (61/61 passing), matching
+Engineer's reported numbers exactly.
+
+## Architect Scope Review
+
+No `ARCHITECT_PLAN.md` update accompanies this cycle. Validated against
+Manager's explicit invocation checklist (a direct Tony layout-restructuring
+request) as the substitute scope authority, per established precedent for
+this slug's direct-request cycles.
+
+1. **`_TransactionsListHeader` fully removed — confirmed.** Class
+   definition, its call site, `_sortAscending` field, and `sortedEntries`
+   derivation are all deleted from `financials_screen.dart`; the
+   `ListView.separated` now indexes `filtered` directly for both
+   `itemCount` and `itemBuilder`. Grepped the full file and the entire
+   `test/features/financials/` tree for `_sortAscending`, `sortedEntries`,
+   `_TransactionsListHeader`, `onToggleSort`, `Newest first`, and `Oldest
+   first` — zero matches anywhere. No dead sort-related code remains.
+2. **`_ViewModeToggle` confirmed as the first widget** in the body's
+   content `Column`, directly under the app bar, with no "+ Add" row above
+   it — verified by directly reading the rebuilt `build()` method.
+3. **"+ Add" relocated to `AppAppBar.actions` — confirmed identical
+   behavior.** The new icon-only `AppIconButton` (`AppIcons.add`, `color:
+   Colors.white`) preserves the exact same `if (canCreate)` conditional and
+   `onPressed: state.isLoading ? null : () => _addEntry(state)` logic as
+   the removed body `Row`'s `TextButton.icon` — confirmed by direct diff
+   comparison of the old and new blocks, byte-for-byte equivalent apart
+   from the widget type. Matches the pre-existing icon-only `AppIconButton`
+   action convention in `lib/features/profile/profile_screen.dart`.
+4. **Obsolete test file confirmed deleted**, and no other test file
+   references the removed sort feature or the old "+ Add" row position —
+   grepped every remaining file under `test/features/financials/widgets/`
+   for the relevant patterns; the only `transactions` hit is an unrelated
+   `' • N transactions'` count-label string in `summary_header_test.dart`.
+5. **No other file besides `financials_screen.dart` and the deleted test
+   file shows a diff — confirmed.** `git diff --stat HEAD` shows exactly
+   those two files plus `ENGINEER_REPORT.md` (the Engineer's own
+   documentation update, expected). All other working-tree changes are
+   pre-existing untracked files outside this slug, none touched.
+
+## Completeness Check
+
+All five checklist items are fully implemented and independently verified
+by direct diff/grep inspection (detailed above under Architect Scope
+Review). No partial implementation, no missing edge case, no gap between
+what `ENGINEER_REPORT.md` claims and what the diff/tests actually show.
+
+## Behavior Verification
+
+Code-path analysis only (no runtime/device testing performed, per QA
+scope). Confirmed via direct reading of the rebuilt `build()` method that
+the structural order is: `AppAppBar` (leading back arrow, "Financials"
+title, "+ Add" icon action) → `_ViewModeToggle` → `_SummaryHeader` → 8px
+gap → transaction `ListView.separated`/`_EmptyState`, with no header/sort
+row remaining between the toggle and the summary header. This is a pure
+removal + relocation — no new business logic was introduced, and the
+preserved `_addEntry`/`canCreate`/`state.isLoading` logic is unchanged from
+its prior body-`Row` incarnation.
+
+## Regression Check
+
+**Risk: LOW.** This is a UI-only removal and relocation confined to a
+single screen file: the `_addEntry` method body itself is untouched (only
+its call site moved); `_ViewModeToggle`, `_SummaryHeader`, `_TransactionCard`,
+`_EmptyState`, `_ErrorState`, `_SavingsSheet` class bodies are untouched; no
+controller, repository, model, or RPC signature changes (this cycle
+touches only `financials_screen.dart` and a test file); no init-order
+changes (`_scrollController` lifecycle untouched); no platform-specific
+code paths involved; `AppIconButton`/`AppAppBar` reuse matches an
+established convention already exercised elsewhere in the app
+(`profile_screen.dart`), so no new component risk introduced.
+Independently re-ran the full `test/features/financials/widgets/` suite
+and got 61/61 passing, confirming no cross-widget regression.
+
+## Database Safety
+
+Not applicable — no migrations, RPCs, or schema touched in this cycle.
+
+## Analyzer Results
+
+Independently ran:
+
+```
+flutter analyze lib/features/financials/financials_screen.dart
+Analyzing financials_screen.dart...
+No issues found! (ran in 1.8s)
+```
+
+0 issues at any severity — matches Engineer's reported result.
+
+## Test Results
+
+Independently ran `flutter test test/features/financials/widgets/` (full
+directory):
+
+```
+00:05 +61: All tests passed!
+```
+
+61/61 passing, 0 failures — matches Engineer's reported result exactly.
+
+## Diff Safety Review
+
+Grepped the diff for secrets, API keys, `TODO`/`FIXME`/`debugPrint(` — zero
+matches. No leftover test scaffolding, no accidental deletions beyond the
+intended obsolete test file, no unrelated formatting churn observed in the
+diff.
+
+## Change Budget Review
+
+`git diff --numstat HEAD`:
+
+```
+10   86   lib/features/financials/financials_screen.dart
+0    253  test/features/financials/widgets/transactions_list_header_test.dart
+```
+
+No `ARCHITECT_PLAN.md` Change Budget section exists for this direct-request
+cycle. Net effect (−339/+10 total) is a large, clean deletion matching
+Engineer's stated goal precisely — no new file, no new public class, no
+new dependency, no new helper/extension/util/private-widget introduced.
+The relocated "+ Add" action reuses the existing `AppIconButton` component
+verbatim rather than inventing a wrapper.
+
+## Code Efficiency Review
+
+No new symbols introduced this cycle — only removals (`_TransactionsListHeader`
+class, `_sortAscending` field, `sortedEntries` derivation, the body "+ Add"
+`Padding`/`Row` block) and a relocation of the existing "+ Add" action into
+`AppAppBar.actions` using the pre-existing `AppIconButton` component.
+Independently confirmed no other file in `lib/` defines a similar
+sort-toggle or list-header helper that should have been reused/removed
+alongside this one. File remains well under any reasonable size guideline.
+No bloat findings.
+
+## Manual Verification Punch List
+
+The following requires a running app/device and is Tony's to execute
+directly — not attempted here per QA scope restrictions.
+
+1. Open the Financials screen for a band with `canCreate` permission.
+   **Expected:** Top-of-screen order, top to bottom, with no dead space
+   between elements, is: app bar (back arrow, "Financials" title, "+"
+   icon-only add action on the right) → Income/Expenses toggle → summary
+   header (total amount, date-filter dropdown, count line, "View Savings
+   Balance"/"Generate Report" links) → transaction cards. No "Transactions"
+   label or "Newest first ▾"/"Oldest first ▾" sort row appears anywhere,
+   and there is no visible gap where that row used to sit.
+2. Tap the "+" icon in the app bar. **Expected:** the Add Financial Entry
+   sheet opens, identical to the previous "+ Add" button's behavior.
+3. While an add/save operation is in flight (`state.isLoading` true, e.g.
+   observe immediately after submitting a new entry), attempt to tap the
+   "+" icon again. **Expected:** the icon is disabled/non-interactive
+   during the loading state, matching the prior button's disable behavior.
+4. Log in as a band member without create permission (`canCreate` false).
+   **Expected:** the "+" icon does not appear in the app bar at all (no
+   action slot, not just a disabled one).
+5. Scroll the transaction list. **Expected:** entries display in the same
+   (newest-first) order as before the sort toggle was removed, with no
+   ability to reverse the order (no visible sort control anywhere on the
+   screen).
+
+## Issues Found
+
+None. No Critical, Warning, or Suggestion findings this cycle.
+
+---
+
+# Cycle 7 (historical — APPROVED, `physics`-instance regression guard +
+collapsed-header alignment tweak)
+
+## Feature Title (Cycle 7)
+
+Financials reconciliation — add a precise `physics`-instance regression
+guard for the scroll fix (closing Cycle 6's finding that the drag-based
+test alone did not distinguish pre-fix from post-fix code) and reduce the
+collapsed-header gap between the label and total per Tony's direct visual
+tweak (Engineer Cycle 7, against already-open PR #275)
+
+## Cycle 7 Final Verdict
+
+**APPROVED**
+
+## Cycle 7 Validation Summary
 
 Confirmed branch `feature/financials-transaction-cards-reconciliation` is
 checked out with a clean-except-expected working tree, unchanged since
@@ -78,7 +272,7 @@ scratch-copy physics check is code-path/static analysis plus independent
 test-suite execution — no running app instance was used (see Manual
 Verification Punch List for the on-device items that remain Tony's job).
 
-## Architect Scope Review
+## Cycle 7 Architect Scope Review
 
 No `ARCHITECT_PLAN.md` update exists for this engineer cycle (consistent
 with Cycles 2, 4, 5, and 6's precedent). Manager's two-part invocation
@@ -121,7 +315,7 @@ checklist, verified directly:
    `progress == 0`) is untouched in the diff, and both tests pass in the
    independently re-run suite.
 
-## Completeness Check
+## Cycle 7 Completeness Check
 
 Both of this cycle's two goals are fully implemented and independently
 verified: (1) the precise `physics`-instance regression test closes last
@@ -131,7 +325,7 @@ at-rest state untouched, and the test suite updated to match. No partial
 implementation, no missing edge case, no gap between what
 `ENGINEER_REPORT.md` claims and what the diff/tests actually show.
 
-## Behavior Verification
+## Cycle 7 Behavior Verification
 
 **Part 1: runtime-exercised, not just code-path analysis.** The claim that
 the new test "distinguishes pre-fix from post-fix code" was independently
@@ -146,7 +340,7 @@ new constants at `progress == 1`, and independently re-ran
 on-device testing — real visual confirmation of the reduced gap on a
 running build is Tony's job (see Manual Verification Punch List).
 
-## Regression Check
+## Cycle 7 Regression Check
 
 **Risk: LOW.** The physics-assertion test is purely additive (a new
 `testWidgets` block; the existing drag-based test and its assertions are
@@ -163,11 +357,11 @@ regression. This cycle fully resolves the Critical residual-risk finding
 from Cycle 6 (no automated guard against the physics line being
 accidentally removed) — that guard now exists and was proven to work.
 
-## Database Safety
+## Cycle 7 Database Safety
 
 Not applicable — no migrations, RPC, or schema touched by this diff.
 
-## Analyzer Results
+## Cycle 7 Analyzer Results
 
 Independently ran:
 
@@ -182,7 +376,7 @@ No issues found! (ran in 1.9s)
 
 Clean at every severity (no info/warning/error). Matches Engineer's claim.
 
-## Test Results
+## Cycle 7 Test Results
 
 Independently ran the full directory (not just the files touched this
 cycle):
@@ -196,14 +390,14 @@ flutter test test/features/financials/widgets/
 **68/68 passing, 0 failures.** Matches Engineer's claim exactly (67 from
 Cycle 6 + 1 new physics-assertion test this cycle).
 
-## Diff Safety Review
+## Cycle 7 Diff Safety Review
 
 Grepped all three changed files for `print\(|debugPrint\(|TODO|FIXME` —
 zero matches. No secrets, API keys, or credentials present anywhere in the
 diff. No leftover test scaffolding. No accidental deletions or unrelated
 formatting churn detected.
 
-## Change Budget Review
+## Cycle 7 Change Budget Review
 
 No plan Change Budget section exists for this cycle (see Architect Scope
 Review above). This cycle's incremental changes are small and precisely
@@ -220,7 +414,7 @@ existing `_pump`/`_manyEntries` helpers — no new abstractions). Cumulative
 structural work (two-row collapse extension), not new scope introduced
 this cycle. Proportionate to the stated two-point fix.
 
-## Code Efficiency Review
+## Cycle 7 Code Efficiency Review
 
 No new helpers, providers, notifiers, or private widget classes added this
 cycle. The new physics test reuses the file's existing `_pump`/
@@ -232,7 +426,7 @@ claim — none exists; this is correctly a one-off test assertion and a
 literal constant change, not something warranting a shared helper. Nothing
 flagged as bloat.
 
-## Manual Verification Punch List
+## Cycle 7 Manual Verification Punch List
 
 The following require Tony to visually/interactively confirm on a running
 build — QA does not launch or drive the app per its operating constraints.
@@ -255,7 +449,7 @@ build — QA does not launch or drive the app per its operating constraints.
    layout jump or leftover offset — confirming the at-rest state is
    unaffected by this cycle's change.
 
-## Issues Found
+## Cycle 7 Issues Found
 
 ### Critical
 

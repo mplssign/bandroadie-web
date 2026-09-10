@@ -1020,3 +1020,174 @@ update, consistent with Cycles 2, 4, 5, and 6's precedent for this slug.
 None.
 
 ## Ready For QA: Yes
+
+---
+
+# ENGINEER_REPORT (Cycle 8)
+
+## Feature Slug
+
+`feature/financials-transaction-cards-reconciliation`
+
+## Feature Title
+
+Financials top-of-screen layout restructuring — remove the sort-toggle
+feature entirely, move the Income/Expenses toggle directly under the app
+bar, and relocate "+ Add" into the app bar as a trailing action, per Tony's
+direct layout-restructuring request
+
+## Cycle Number
+
+8 (direct Tony restructuring request, not an `ARCHITECT_PLAN.md` update,
+consistent with prior direct-request cycles for this slug)
+
+## Goal
+
+1. Remove `_TransactionsListHeader` entirely (class, call site, and its
+   sort-toggle UI/state) — no leftover unused sort logic.
+2. Remove the `_sortAscending` field and `sortedEntries` derivation; use
+   `filtered` directly in the `ListView.separated`.
+3. Move `_ViewModeToggle` to be the first widget in the body's content
+   column, directly under the app bar (title now lives in `AppAppBar`).
+4. Move the "+ Add" button into `AppAppBar`'s `actions:` slot as an
+   icon-only `AppIconButton`, matching the existing convention used by
+   `profile_screen.dart` (icon-only action, `color: Colors.white`, same
+   `leading`/`AppIconButton` back-arrow pattern already in place).
+5. Delete the now-obsolete `transactions_list_header_test.dart` and fix any
+   other test referencing the removed feature.
+
+## Architect Tasks Completed
+
+No `ARCHITECT_PLAN.md` update accompanied this cycle — this was a direct
+Tony request confined to `lib/features/financials/financials_screen.dart`.
+All 4 numbered items in the request were completed:
+
+1. Deleted the `_TransactionsListHeader` class definition, its call site,
+   and the sort-toggle-only UI it rendered.
+2. Deleted the `bool _sortAscending = false;` field and the `sortedEntries`
+   derivation (`_sortAscending ? filtered.reversed.toList() : filtered`);
+   `filtered` is now used directly for `itemCount` and `itemBuilder`
+   indexing.
+3. Removed the "+ Add" `Padding`/`Row` block from its old position (above
+   the toggle) so `_ViewModeToggle` is now the first child of the content
+   `Column` inside the outer `Expanded`.
+4. Added `actions: [if (canCreate) AppIconButton(icon: AppIcons.add, color:
+   Colors.white, onPressed: ...)]` to the `AppAppBar` in this screen's
+   `appBar:` parameter, matching the icon-only `AppIconButton` convention
+   used in `lib/features/profile/profile_screen.dart`'s `AppAppBar`
+   `actions:` (same `color: Colors.white` treatment as its edit-icon
+   action, alongside a `color: AppColors.primary` `leading` back arrow —
+   same combination financials already used for `leading`).
+
+Final top-of-screen order confirmed by re-reading the rebuilt `build()`:
+`AppAppBar` (back arrow, "Financials" title, "+ Add" icon action) →
+Income/Expenses toggle → `_SummaryHeader` → `SizedBox(height:
+Spacing.space8)` → transaction cards, with no "Transactions"/sort row in
+between.
+
+## Files Created
+
+None.
+
+## Files Modified
+
+- `lib/features/financials/financials_screen.dart` — removed
+  `_sortAscending` field, `sortedEntries` derivation, the "+ Add"
+  `Padding`/`Row` block, and the `_TransactionsListHeader` class + its call
+  site; moved `_ViewModeToggle` to the top of the content column; added
+  `actions:` to `AppAppBar` with the relocated "+ Add" as an
+  `AppIconButton`; `filtered` now used directly in the `ListView.separated`.
+
+## Files Deleted
+
+- `test/features/financials/widgets/transactions_list_header_test.dart` —
+  targeted the now-deleted `_TransactionsListHeader`/sort-toggle feature;
+  deleted per instructions rather than repurposed.
+
+## Existing Helper Search (before adding anything new)
+
+No new helper, extension, util, or private widget class was added this
+cycle — only removals and a relocation of existing widgets/state. Before
+choosing the `AppIconButton` treatment for the relocated "+ Add" action,
+searched `lib/features/**/*.dart` for existing `AppAppBar(actions: ...)`
+usages (23 files, 37 call sites) and specifically reviewed
+`profile_screen.dart`'s icon-only `AppIconButton` action to match an
+established convention rather than inventing a new visual style.
+
+## Analyzer Results
+
+`flutter analyze lib/features/financials/financials_screen.dart`:
+
+```
+Analyzing financials_screen.dart...
+No issues found! (ran in 2.4s)
+```
+
+**0 issues at any severity** — confirmed no unused imports/fields remain
+from the sort-toggle removal (`AppColors`/`AppIcons`/`Spacing` all still
+used elsewhere in the file).
+
+## Test Results
+
+`flutter test test/features/financials/widgets/` (full directory, after
+deleting `transactions_list_header_test.dart`):
+
+```
+00:06 +61: All tests passed!
+```
+
+**61/61 tests passing, 0 failures.** No other test in the suite referenced
+the removed "+ Add" row position, `_sortAscending`, or
+`_TransactionsListHeader` (verified via grep before running), so no other
+test file needed changes.
+
+## Code Efficiency/Bloat Check
+
+Net change is a large deletion (`-339` lines across the diff, `+10`
+insertions in the production file) with no new abstractions: no new
+helpers, providers, private widget classes, or fields were introduced. The
+relocated "+ Add" button reuses the existing `AppIconButton` component and
+the existing `_addEntry`/`canCreate`/`state.isLoading` logic verbatim — no
+new wrapper or one-off abstraction. File remains well under the 500-line
+Dart file guideline.
+
+## Verification (manual steps performed)
+
+1. Re-read the full rebuilt `build()` method to confirm final structural
+   order: `AppAppBar` (leading back arrow, title, "+ Add" action) →
+   `_ViewModeToggle` → `_SummaryHeader` → small `SizedBox` gap → transaction
+   `ListView.separated`, with no header/sort row remaining.
+2. Grepped the whole file for `_sortAscending`, `sortedEntries`, and
+   `_TransactionsListHeader` — zero remaining references.
+3. Grepped `test/features/financials/` for `sortAscending`,
+   `_TransactionsListHeader`, `Newest first`, `Oldest first`, and the old
+   "+ Add" `TextButton.icon` pattern — no matches outside the deleted file,
+   confirming no other test needed updates.
+4. Ran `flutter analyze` on the changed file — 0 issues.
+5. Ran `flutter test test/features/financials/widgets/` (full directory) —
+   61/61 passing.
+6. Ran `dart format` on the changed file (1 file reformatted).
+7. Ran `git diff --stat` / `git status --short` to confirm only
+   `financials_screen.dart` (modified) and
+   `transactions_list_header_test.dart` (deleted) changed — no other
+   tracked file touched.
+
+## Deviations From Plan
+
+None — this cycle was invoked directly by Manager with an explicit,
+detailed layout-restructuring request (no `ARCHITECT_PLAN.md` update),
+consistent with Cycles 2, 4, 5, 6, and 7's precedent for this slug.
+
+## Blockers Encountered
+
+None. Note: several unrelated untracked files were already present in the
+working tree at invocation time (e.g. `docs/features/bug/demo-session-
+cleanup-orphaned-anonymous-users/PR_BODY.md`,
+`docs/features/feature/financials-transaction-cards/`,
+`docs/features/transaction-drawer-redesign/PR_BODY.md`,
+`docs/reference/audits/OPTIMIZATION_AUDIT_2026-09-10.md`,
+`supabase/migrations/20260910031435_fix_notify_new_band_member_skip_demo.sql`)
+— none are inside this slug's directory or related to this change, and none
+were touched.
+
+## Ready For QA: Yes
