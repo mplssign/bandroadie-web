@@ -13,6 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
+import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/features/financials/financials_controller.dart';
 import 'package:bandroadie/features/financials/financials_screen.dart';
 import 'package:bandroadie/features/financials/models/financial_entry.dart';
@@ -420,6 +421,74 @@ void main() {
             of: generateReportRow, matching: find.byIcon(AppIcons.forward)),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'label + total render in their original centered, stacked layout when '
+    'scroll offset is 0 (progress == 0)',
+    (tester) async {
+      final entries = List.generate(
+        30,
+        (i) => _entry(id: 'e$i', amountCents: 1000 * (i + 1), isIncome: true),
+      );
+      await _pump(tester, FinancialsState(allEntries: entries));
+
+      final stackFinder = find
+          .ancestor(
+            of: find.text('TOTAL INCOME'),
+            matching: find.byType(Stack),
+          )
+          .first;
+      final aligns = tester
+          .widgetList<Align>(
+              find.descendant(of: stackFinder, matching: find.byType(Align)))
+          .toList();
+      expect(aligns.length, 2);
+      expect(aligns[0].alignment, Alignment.topCenter);
+      expect(aligns[1].alignment, Alignment.bottomCenter);
+
+      final totalText = tester
+          .widgetList<Text>(
+              find.descendant(of: stackFinder, matching: find.byType(Text)))
+          .toList()[1];
+      expect(totalText.style?.fontSize, AppFontSizes.display);
+    },
+  );
+
+  testWidgets(
+    'label moves left and total shrinks + moves right once scrolled past '
+    'the 60px collapse threshold',
+    (tester) async {
+      final entries = List.generate(
+        30,
+        (i) => _entry(id: 'e$i', amountCents: 1000 * (i + 1), isIncome: true),
+      );
+      await _pump(tester, FinancialsState(allEntries: entries));
+
+      final listViewController =
+          tester.widget<ListView>(find.byType(ListView)).controller!;
+      listViewController.jumpTo(60.0);
+      await tester.pump();
+
+      final stackFinder = find
+          .ancestor(
+            of: find.text('TOTAL INCOME'),
+            matching: find.byType(Stack),
+          )
+          .first;
+      final aligns = tester
+          .widgetList<Align>(
+              find.descendant(of: stackFinder, matching: find.byType(Align)))
+          .toList();
+      expect(aligns[0].alignment, Alignment.centerLeft);
+      expect(aligns[1].alignment, Alignment.centerRight);
+
+      final totalText = tester
+          .widgetList<Text>(
+              find.descendant(of: stackFinder, matching: find.byType(Text)))
+          .toList()[1];
+      expect(totalText.style?.fontSize, AppFontSizes.caption);
     },
   );
 }

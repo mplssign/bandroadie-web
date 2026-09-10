@@ -363,4 +363,52 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'card height is identical whether or not a badge is shown',
+    (tester) async {
+      final withBadge = _entry(
+        id: 'e14',
+        entryType: FinancialEntryType.expense,
+        isIncome: false,
+        category: 'Equipment',
+        paidToName: 'Guitar Center',
+        isReimbursed: true,
+      );
+      await _pump(
+        tester,
+        FinancialsState(
+            allEntries: [withBadge], viewMode: FinancialViewMode.expenses),
+      );
+      final withBadgeContainer = find
+          .ancestor(
+            of: find.text('Guitar Center'),
+            matching: find.byType(Container),
+          )
+          .first;
+      final heightWithBadge = tester.getSize(withBadgeContainer).height;
+
+      final withoutBadge = _entry(
+        id: 'e15',
+        entryType: FinancialEntryType.expense,
+        isIncome: false,
+        category: 'Equipment',
+        paidToName: 'Amp Shop',
+      );
+      await _pump(
+        tester,
+        FinancialsState(
+            allEntries: [withoutBadge], viewMode: FinancialViewMode.expenses),
+      );
+      final withoutBadgeContainer = find
+          .ancestor(
+            of: find.text('Amp Shop'),
+            matching: find.byType(Container),
+          )
+          .first;
+      final heightWithoutBadge = tester.getSize(withoutBadgeContainer).height;
+
+      expect(heightWithBadge, heightWithoutBadge);
+    },
+  );
 }

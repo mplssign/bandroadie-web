@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,9 +36,11 @@ class FinancialsScreen extends ConsumerStatefulWidget {
 
 class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
   bool _sortAscending = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -176,7 +180,8 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                             ? _ErrorState(message: state.error!)
                             : Column(
                                 children: [
-                                  const _SummaryHeader(),
+                                  _SummaryHeader(
+                                      scrollController: _scrollController),
                                   _TransactionsListHeader(
                                     sortAscending: _sortAscending,
                                     onToggleSort: () => setState(
@@ -192,6 +197,7 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                         : filtered.isEmpty
                                             ? const _EmptyState()
                                             : ListView.separated(
+                                                controller: _scrollController,
                                                 padding: EdgeInsets.only(
                                                   left: Spacing.pagePadding,
                                                   right: Spacing.pagePadding,
@@ -574,7 +580,9 @@ class _ViewModeToggle extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _SummaryHeader extends ConsumerWidget {
-  const _SummaryHeader();
+  const _SummaryHeader({required this.scrollController});
+
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -587,26 +595,60 @@ class _SummaryHeader extends ConsumerWidget {
     final totalFormatted =
         '\$${NumberFormat('#,##0').format(totalDollars)}.${totalRemainderCents.toString().padLeft(2, '0')}';
     final count = state.filteredEntries.length;
+    final totalColor = isIncome ? context.colors.success : AppColors.error;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
       child: Column(
         children: [
-          Text(
-            isIncome ? 'TOTAL INCOME' : 'TOTAL EXPENSES',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.footnote.copyWith(
-              color: context.colors.textMuted,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: Spacing.space4),
-          Text(
-            totalFormatted,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.displayLarge.copyWith(
-              color: isIncome ? context.colors.success : AppColors.error,
-            ),
+          AnimatedBuilder(
+            animation: scrollController,
+            builder: (context, child) {
+              final progress = scrollController.hasClients
+                  ? (scrollController.offset / 60.0).clamp(0.0, 1.0)
+                  : 0.0;
+              return SizedBox(
+                height: 64,
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.lerp(
+                        Alignment.topCenter,
+                        Alignment.centerLeft,
+                        progress,
+                      )!,
+                      child: Text(
+                        isIncome ? 'TOTAL INCOME' : 'TOTAL EXPENSES',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.footnote.copyWith(
+                          color: context.colors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.lerp(
+                        Alignment.bottomCenter,
+                        Alignment.centerRight,
+                        progress,
+                      )!,
+                      child: Text(
+                        totalFormatted,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.displayLarge.copyWith(
+                          color: totalColor,
+                          fontSize: ui.lerpDouble(
+                            AppFontSizes.display,
+                            AppFontSizes.caption,
+                            progress,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: Spacing.space4),
           Row(
@@ -641,7 +683,7 @@ class _SummaryHeader extends ConsumerWidget {
               Text(
                 ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
                 style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textMuted),
+                    .copyWith(color: context.colors.textSecondary),
               ),
             ],
           ),
@@ -781,6 +823,15 @@ class _TransactionCard extends StatelessWidget {
     final showDisbursedBadge = entry.isIncome &&
         entry.disbursements != null &&
         entry.disbursements!.isNotEmpty;
+    // Badge slot always renders (transparent when absent) so row 3's height
+    // - and therefore the whole card's height - never depends on badge state.
+    final badgeLabel = showReimbursedBadge
+        ? 'Reimbursed'
+        : showDisbursedBadge
+            ? 'Disbursed'
+            : null;
+    final badgeColor =
+        badgeLabel != null ? context.colors.success : Colors.transparent;
 
     return InkWell(
       onTap: onTap,
@@ -792,14 +843,14 @@ class _TransactionCard extends StatelessWidget {
           border: Border.all(color: context.colors.border),
         ),
         padding: const EdgeInsets.all(Spacing.space16),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
                     _title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -808,47 +859,8 @@ class _TransactionCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: Spacing.space4),
-                  Text(
-                    entry.category,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.footnote
-                        .copyWith(color: context.colors.textMuted),
-                  ),
-                  const SizedBox(height: Spacing.space4),
-                  Text(
-                    dateStr,
-                    style: AppTextStyles.footnote
-                        .copyWith(color: context.colors.textMuted),
-                  ),
-                  if (showReimbursedBadge || showDisbursedBadge) ...[
-                    const SizedBox(height: Spacing.space8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.space8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: context.colors.success),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        showReimbursedBadge ? 'Reimbursed' : 'Disbursed',
-                        style: AppTextStyles.footnote.copyWith(
-                          color: context.colors.success,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: Spacing.space12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
+                ),
+                const SizedBox(width: Spacing.space12),
                 Text(
                   '$amountPrefix${entry.formattedAmount}',
                   style: AppTextStyles.callout.copyWith(
@@ -856,9 +868,55 @@ class _TransactionCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: Spacing.space8),
+              ],
+            ),
+            const SizedBox(height: Spacing.space4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                ),
+                const SizedBox(width: Spacing.space12),
                 Icon(AppIcons.forward,
-                    size: 20, color: context.colors.textMuted),
+                    size: 20, color: context.colors.textSecondary),
+              ],
+            ),
+            const SizedBox(height: Spacing.space4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    dateStr,
+                    style: AppTextStyles.footnote
+                        .copyWith(color: context.colors.textSecondary),
+                  ),
+                ),
+                const SizedBox(width: Spacing.space12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.space8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: badgeColor),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    badgeLabel ?? '',
+                    style: AppTextStyles.footnote.copyWith(
+                      color: badgeColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
             ),
           ],

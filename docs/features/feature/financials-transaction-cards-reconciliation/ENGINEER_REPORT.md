@@ -422,3 +422,214 @@ None.
 ## Ready For QA
 
 Yes
+
+---
+
+# ENGINEER_REPORT — Cycle 5
+
+## Feature Slug
+
+`feature/financials-transaction-cards-reconciliation`
+
+## Feature Title
+
+Financials reconciliation — reposition the transaction card badge onto a
+fixed-height row, reuse the existing lighter-gray semantic token for
+secondary text, and add a scroll-collapsing summary header
+
+## Cycle Number
+
+5 (direct Tony visual/UX request, invoked by Manager against the already-open
+PR; no `ARCHITECT_PLAN.md` update — Manager's instructions stated no
+Architect plan was needed for this narrow, three-item change)
+
+## Goal
+
+In `financials_screen.dart`, implement three independent visual/UX items:
+
+1. Reposition `_TransactionCard`'s status badge so its presence/absence never
+   changes card height.
+2. Replace the darker gray used for secondary text (category, date,
+   transaction count, chevron) with a lighter shade.
+3. Make `_SummaryHeader`'s label/total collapse and shrink as the
+   transaction list scrolls, similar to a large-title-collapse pattern.
+
+## Tasks Completed
+
+### Item 1 — Badge reposition (fixed-height row)
+
+Restructured `_TransactionCard` from a two-`Column` layout (a left
+content stack of title/category/date, and a right stack of amount/chevron
+with the badge conditionally inserted wherever it fit) into three paired
+`Row`s, each pairing a left, `Expanded` text element with a fixed-width
+right-hand element:
+
+- Row 1: Title (`Expanded`) | Amount.
+- Row 2: Category (`Expanded`) | Chevron icon.
+- Row 3: Date (`Expanded`) | Badge.
+
+The badge slot (a `Container` with a border and text, previously only
+rendered when a badge label applied) now **always renders** in row 3. When
+no badge applies, `badgeLabel` is `null`, the rendered text is an empty
+string, and the border/text `Color` is `Colors.transparent` — the badge
+`Container` still occupies its layout space (same padding/border) but is
+invisible. This guarantees row 3 — and therefore the whole card — is
+exactly the same height whether or not a badge would show, which is a
+stronger guarantee than conditionally including/excluding the badge widget
+(which only coincidentally matched heights before, depending on line-height
+assumptions holding across every text style involved).
+
+### Item 2 — Lighter gray (reused existing semantic token)
+
+Before adding any new color constant, searched `brand_colors.dart` for an
+existing lighter-gray token and found `context.colors.textSecondary` is
+already the exact shade needed: `0xFFA1A1AA` (Tailwind Zinc 400), one step
+lighter than `textMuted`'s Zinc 500 `0xFF71717A`. Reused this existing
+token rather than inventing a new one-off local color constant. Applied
+`context.colors.textSecondary` to:
+
+- `_SummaryHeader`'s label text and the "• N transactions" count text.
+- `_TransactionCard`'s category text, date text, and chevron icon color.
+
+No other use of `context.colors.textMuted` elsewhere in the file was
+touched.
+
+### Item 3 — Scroll-collapsing summary header
+
+- Added a `ScrollController _scrollController` field to
+  `_FinancialsScreenState`, disposed in `dispose()`.
+- Attached `_scrollController` to the transaction `ListView.separated`.
+- `_SummaryHeader` now takes a `required ScrollController scrollController`
+  parameter (the widget can no longer be `const` as a result) and is
+  constructed with the screen's controller passed down.
+- Inside `_SummaryHeader`, the label + total portion is wrapped in an
+  `AnimatedBuilder(animation: scrollController, ...)` that computes
+  `progress = (scrollController.offset / 60.0).clamp(0.0, 1.0)` on every
+  scroll notification, and renders both texts inside a
+  `SizedBox(height: 64)` + `Stack`:
+  - Label: `Align(alignment: Alignment.lerp(Alignment.topCenter,
+    Alignment.centerLeft, progress)!, ...)`.
+  - Total: `Align(alignment: Alignment.lerp(Alignment.bottomCenter,
+    Alignment.centerRight, progress)!, ...)`, with its font size
+    interpolated via `ui.lerpDouble(AppFontSizes.display,
+    AppFontSizes.caption, progress)`.
+
+At `progress == 0` (list at rest, offset 0) the label sits top-center and
+the total sits bottom-center at the original large `AppFontSizes.display`
+size — matching the prior static layout's visual intent. At `progress == 1`
+(scrolled 60 logical px or more) the label has moved to the left and the
+total to the right at the smaller `AppFontSizes.caption` size, producing the
+collapsing effect as the user scrolls the transaction list.
+
+Two new tests were added to `summary_header_test.dart`:
+
+- One pumps the header with the controller at offset 0 and asserts the
+  label's `Align` renders `Alignment.topCenter` and the total's `Align`
+  renders `Alignment.bottomCenter`, with the total's rendered `TextStyle`
+  font size equal to `AppFontSizes.display`.
+- One scrolls the controller to offset `60.0`, pumps, and asserts both
+  `Align` widgets render `Alignment.centerLeft` / `Alignment.centerRight`
+  respectively, with the total's font size equal to `AppFontSizes.caption`.
+
+**Caveat (explicitly flagged, not a defect):** these tests verify the
+*structural* correctness of the collapse behavior — the alignment values and
+font sizes at `progress == 0` and `progress == 1` — but cannot verify true
+pixel-for-pixel visual identity between the new `SizedBox(height:
+64)`/`Stack`-based layout at `progress == 0` and the OLD plain `Column`
+layout's exact vertical spacing between the label and the total. Confirming
+that the at-rest (unscrolled) appearance is visually indistinguishable from
+before requires a human visual check on a running build (or a golden-image
+test, which wasn't requested this cycle). Flagging this explicitly for
+QA/Tony to confirm visually — it is not something the automated tests fully
+guarantee.
+
+## Files Created
+
+None.
+
+## Files Modified
+
+- `lib/features/financials/financials_screen.dart` — `_TransactionCard`
+  restructured into three paired rows with an always-rendered
+  (transparent-when-empty) badge slot; `context.colors.textSecondary`
+  applied to the secondary-text elements listed above; `ScrollController`
+  added to `_FinancialsScreenState` (created, attached to the `ListView`,
+  disposed) and threaded into `_SummaryHeader`, which now animates its
+  label/total layout and font size via `AnimatedBuilder` keyed to scroll
+  offset.
+- `test/features/financials/widgets/summary_header_test.dart` — two new
+  tests added covering the collapse behavior at `progress == 0` and
+  `progress == 1` (offset `60.0`); existing tests updated as needed for the
+  now-required `scrollController` parameter.
+- `test/features/financials/widgets/transaction_card_test.dart` — updated to
+  assert against the new three-row structure and the always-rendered
+  (possibly transparent) badge slot, and against `context.colors
+  .textSecondary` on the category/date/chevron elements.
+
+## Analyzer Results
+
+`flutter analyze lib/features/financials/financials_screen.dart`:
+
+```
+No issues found!
+```
+
+**0 issues.**
+
+## Test Results
+
+`flutter test test/features/financials/widgets/` (full directory, 5 files):
+
+```
+00:0x +65: All tests passed!
+```
+
+**65 passed, 0 failed.**
+
+## Code Efficiency/Bloat Check
+
+No new helpers, providers, or private widget classes added. The
+always-rendered badge `Container` reuses the same widget that previously
+only appeared conditionally — no duplicate badge-rendering code paths exist.
+The `AnimatedBuilder`/`Stack`/`Align` collapse logic is inlined at its single
+call site inside `_SummaryHeader`, matching the file's existing
+one-widget-per-screen-section convention. No dead code, unused imports, or
+`TODO`/`debugPrint` introduced.
+
+## Verification (manual steps performed)
+
+1. Searched `brand_colors.dart` for existing lighter-gray tokens before
+   adding any new color constant, confirming `context.colors.textSecondary`
+   already matched the requested shade exactly — avoided introducing a
+   redundant one-off constant.
+2. Ran `flutter analyze` on `financials_screen.dart` — 0 issues.
+3. Ran `flutter test test/features/financials/widgets/` (full directory,
+   5 files) — 65 passed, 0 failed.
+4. Manually traced the badge-height guarantee: with `badgeLabel == null`,
+   confirmed the `Container`'s border/text `Color` resolves to
+   `Colors.transparent` while its padding/border-width (and therefore its
+   occupied height) remain unchanged from the badge-present case.
+5. Manually traced the collapse math at both boundary conditions
+   (`offset == 0` → `progress == 0`; `offset >= 60.0` → `progress == 1`,
+   clamped) against the new tests' assertions.
+6. Ran `dart format` on all three changed files.
+7. Confirmed via `git status` that only the three files listed above show as
+   modified tracked files for this cycle.
+
+## Deviations From Plan
+
+- **Positive deviation:** rather than introducing a new local one-off color
+  constant for the lighter gray (as originally suggested), discovered and
+  reused the existing `context.colors.textSecondary` semantic token, which
+  already matched the exact required shade — avoids a redundant color
+  definition and keeps secondary-text coloring on the existing token system.
+- **Caveat, not a deviation:** the collapsing-header tests verify structural
+  correctness (alignment, font size) at both ends of the scroll range but
+  cannot verify pixel-for-pixel visual identity between the new layout at
+  rest and the prior static layout — flagged above for a human visual check.
+
+## Blockers Encountered
+
+None.
+
+## Ready For QA: Yes

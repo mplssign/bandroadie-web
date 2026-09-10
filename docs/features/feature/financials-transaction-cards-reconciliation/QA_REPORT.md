@@ -6,29 +6,297 @@
 
 ## Feature Title
 
-Financials reconciliation — standardize `financials_screen.dart`'s header
-onto the app-wide `AppScaffold` + `AppAppBar` pattern, replacing the
-Setlists-only `BackOnlyAppBar` (Engineer Cycle 4, direct Tony
-header-standardization request against already-open PR #275)
+Financials reconciliation — reposition the transaction card badge onto a
+fixed-height row, reuse the existing lighter-gray semantic token for
+secondary text, and add a scroll-collapsing summary header (Engineer Cycle
+5, direct Tony visual/UX request against already-open PR #275)
 
 ## Cycle Number
 
-4 (this QA slug's third pass. Cycle 2 and Cycle 1, below the divider, are
-historical/APPROVED, covering an earlier date-filter restyle and the
-original reconciliation-port work respectively. This cycle validates the
-`AppScaffold`/`AppAppBar` header standardization, the duplicate-title
-removal, and the `Material`-ancestor regression fix. No `ARCHITECT_PLAN.md`
-update accompanies this engineer cycle — Manager's instructions to the
-Engineer stated none was needed for this narrow, single-file change,
-consistent with the precedent set in Cycle 2, so this review validates
-directly against `ENGINEER_REPORT.md`'s Cycle 4 stated scope and the
-explicit six-point checklist in Manager's invocation, in place of a plan.)
+5 (this QA slug's fourth pass. Cycle 4, 2, and 1, below the divider, are
+historical/APPROVED, covering the `AppScaffold`/`AppAppBar` header
+standardization, an earlier date-filter restyle, and the original
+reconciliation-port work respectively. This cycle validates three
+independent visual/UX items in `financials_screen.dart`: the transaction
+card badge repositioning to a fixed-height row, the `textMuted` →
+`textSecondary` gray-token swap, and the scroll-collapsing summary header.
+No `ARCHITECT_PLAN.md` update accompanies this engineer cycle — Manager's
+instructions to the Engineer stated none was needed for this narrow,
+three-item change, consistent with the precedent set in Cycles 2 and 4, so
+this review validates directly against `ENGINEER_REPORT.md`'s Cycle 5
+stated scope and Manager's explicit invocation checklist, in place of a
+plan.)
 
 ## Final Verdict
 
 **APPROVED**
 
 ## Validation Summary
+
+Confirmed branch `feature/financials-transaction-cards-reconciliation` is
+checked out with a clean-except-expected working tree (4 modified tracked
+files — `financials_screen.dart`, `summary_header_test.dart`,
+`transaction_card_test.dart`, and this feature's `ENGINEER_REPORT.md` — all
+in scope; unrelated untracked docs/migration for other slugs present but
+irrelevant, and confirmed via `git diff HEAD --numstat` that no other
+tracked file shows a diff). Confirmed `QA_REPORT.md`'s highest existing
+cycle prior to this pass was Cycle 4/APPROVED (a different scope — header
+standardization), ruling out a duplicate or stale QA session already
+covering this Cycle 5 work. Resolved `ENGINEER_REPORT.md`'s latest section
+(Cycle 5, "Ready For QA: Yes") describing the badge/gray/scroll-collapse
+changes. Reviewed the full uncommitted diff for all three changed files
+directly (`git diff HEAD`), and confirmed the `brand_colors.dart` token
+file itself has zero diff (the gray-token change is a reuse, not a
+token-definition change). Independently re-ran `flutter analyze` on the
+three changed files (clean) and `flutter test` on the full
+`test/features/financials/widgets/` directory (65/65 passing — confirmed
+by actually re-running, not taken on faith from either the Engineer's or
+Manager's stated numbers). All validation below is code-path/static
+analysis plus independent test-suite execution — no running app instance
+was used (see Manual Verification Punch List for the items that genuinely
+require Tony's eyes on a live build, most notably the at-rest visual-parity
+caveat the Engineer explicitly flagged).
+
+## Architect Scope Review
+
+No `ARCHITECT_PLAN.md` update exists for this engineer cycle, and none was
+required per Manager's explicit instruction (consistent with the precedent
+already set and QA-accepted in Cycles 2 and 4). Manager's invocation
+described three concrete items plus specific verification asks; each is
+addressed directly below.
+
+1. **Badge reposition (`_TransactionCard`)** — confirmed via `git diff HEAD`
+   that the layout is restructured from two independent `Column`s (left
+   content stack, right amount+chevron stack) into three paired `Row`s:
+   Row 1 Title (`Expanded`) | Amount; Row 2 Category (`Expanded`) | Chevron
+   icon; Row 3 Date (`Expanded`) | Badge `Container`. The badge slot now
+   always renders: `badgeLabel` is `null` when no badge applies, the
+   rendered `Text` is `badgeLabel ?? ''`, and both the `Container`'s border
+   color and text color resolve to `Colors.transparent` in that case — the
+   `Container`'s padding (`horizontal: Spacing.space8, vertical: 2`) and
+   border width are otherwise unconditional, so its occupied height cannot
+   differ between the badge-present and badge-absent cases. Verified this
+   claim directly rather than accepting it on the Engineer's word: the new
+   `transaction_card_test.dart` test builds two full cards (one with
+   `isReimbursed: true` producing a badge, one without) and asserts
+   `tester.getSize(...).height` is identical for both. Independently traced
+   the `find.ancestor(of: find.text(paidToName), matching:
+   find.byType(Container)).first` used in that test — the badge `Container`
+   is a sibling of the title `Text` (not an ancestor), so `.first` correctly
+   resolves to the outer card `Container`, meaning the test measures the
+   whole card's height, not just row 3's. This is a genuine height
+   assertion, not a superficial structural check.
+2. **Lighter gray via existing token reuse** — confirmed
+   `context.colors.textSecondary` replaces `context.colors.textMuted` at
+   exactly 5 call sites in the diff: `_SummaryHeader`'s label `Text` and its
+   `' • N transactions'` count `Text`, and `_TransactionCard`'s category
+   `Text`, date `Text`, and chevron `Icon` color. Grepped the full file for
+   remaining `textMuted` usage post-diff: 8 hits remain, all inside
+   unrelated widgets (`_TransactionsListHeader`'s "Transactions" label and
+   sort-toggle text, and `_SavingsSheet`'s "Total Savings" label, running
+   caption, empty-state text, and per-entry date text) — none of these were
+   touched by this diff, confirming scope was exactly the 5 claimed sites,
+   no more, no less. Read `lib/app/theme/brand_colors.dart` directly:
+   `git diff HEAD -- lib/app/theme/brand_colors.dart` returns zero output
+   (untouched), and the dark-mode token values are confirmed at
+   `textSecondary: Color(0xFFA1A1AA)` (line 56) and
+   `textMuted: Color(0xFF71717A)` (line 57) — matching the Engineer's
+   stated hex values exactly. This is a reuse of an existing token, not a
+   token-definition change.
+3. **Scroll-collapsing header** — confirmed a `ScrollController
+   _scrollController` field was added to `_FinancialsScreenState`, disposed
+   in `dispose()`, and attached to the `ListView.separated`'s `controller:`
+   parameter. `_SummaryHeader` now requires `scrollController` (no longer
+   `const`) and wraps the label+total in an `AnimatedBuilder` computing
+   `progress = scrollController.offset / 60.0` (clamped 0–1, with an
+   `.hasClients` guard) inside a `SizedBox(height: 64)` + `Stack`, using
+   `Alignment.lerp(topCenter, centerLeft, progress)` for the label and
+   `Alignment.lerp(bottomCenter, centerRight, progress)` for the total, with
+   the total's font size via `ui.lerpDouble(AppFontSizes.display,
+   AppFontSizes.caption, progress)`. Both `AppFontSizes.display` (28.0) and
+   `AppFontSizes.caption` (13.0) are confirmed real, pre-existing tokens in
+   `design_tokens.dart`. Independently read both new tests in
+   `summary_header_test.dart`: the progress-0 test locates the `Stack`
+   ancestor of the `'TOTAL INCOME'` text, asserts both `Align` widgets'
+   `alignment` (`topCenter`/`bottomCenter`) and the total `Text`'s rendered
+   `fontSize == AppFontSizes.display`; the progress-1 test calls
+   `listViewController.jumpTo(60.0)`, pumps, and asserts the same two
+   `Align`s now read `centerLeft`/`centerRight` with `fontSize ==
+   AppFontSizes.caption`. Both tests genuinely exercise the two boundary
+   states via real widget-tree assertions (alignment values and computed
+   font sizes), not placeholder/no-op checks — this is structural
+   verification, not full pixel-level visual verification, exactly as the
+   Engineer's report caveats. **The Engineer's flagged caveat is valid and
+   is carried into the Manual Verification Punch List below**: the tests
+   cannot confirm the at-rest (progress 0) `Stack`-based layout is visually
+   pixel-identical to the old plain-`Column` layout's spacing — this
+   requires Tony's eyes on a live, unscrolled build.
+
+## Completeness Check
+
+All three tasks in `ENGINEER_REPORT.md`'s Cycle 5 "Tasks Completed" are
+present in the diff: (1) badge repositioned into a fixed-height row-3 slot
+with always-rendered/transparent-when-empty badge, (2) `textSecondary` gray
+token applied at all 5 specified sites, (3) `ScrollController` added,
+attached, disposed, and threaded into `_SummaryHeader`'s `AnimatedBuilder`
+collapse logic. No partial implementation or missing edge case found.
+
+## Behavior Verification
+
+Code-path analysis only (no running app instance — categorically QA's
+constraint, not a shortcut). All three items are presentational/layout
+changes to a single widget file: no business logic, provider wiring
+(`financialsProvider` reads, `setDateFilter`, `_addEntry`), or data-flow
+changes are present in the diff. The badge-presence rules
+(`showReimbursedBadge`/`showDisbursedBadge`) are unchanged from before this
+cycle — only their layout position and the always-render/transparent
+mechanism changed.
+
+## Regression Check
+
+**Risk: LOW.** Single production file changed (`financials_screen.dart`)
+plus two matching test files; no touches to auth/session, Supabase RPC
+signatures, provider init order, or platform-specific code. The new
+`ScrollController` is properly disposed in `dispose()` (confirmed in the
+diff), avoiding a leaked-controller regression. No `setState`-after-async-gap
+introduced (the `AnimatedBuilder`/scroll-offset logic is synchronous,
+listener-driven). Independently re-ran the full
+`test/features/financials/widgets/` suite (all 5 files, not just the 3
+changed ones) and got 65/65 passing, confirming no cross-widget regression
+in the same screen (sort toggle, savings sheet, add/edit form, detail
+sheet all remain green).
+
+## Database Safety
+
+Not applicable — no migrations, RPC, or schema touched by this diff.
+
+## Analyzer Results
+
+Independently ran:
+
+```
+flutter analyze lib/features/financials/financials_screen.dart \
+  test/features/financials/widgets/summary_header_test.dart \
+  test/features/financials/widgets/transaction_card_test.dart
+
+Analyzing 3 items...
+No issues found! (ran in 1.3s)
+```
+
+Clean at every severity (no info/warning/error). Matches Engineer's claim.
+
+## Test Results
+
+Independently ran the full directory (not just the files touched this
+cycle):
+
+```
+flutter test test/features/financials/widgets/
+...
+00:04 +65: All tests passed!
+```
+
+**65/65 passing, 0 failures.** Matches Engineer's claim exactly.
+
+## Diff Safety Review
+
+Grepped all three changed files for `TODO|FIXME|debugPrint\(` — zero
+matches in each. No secrets, API keys, or credentials present. No leftover
+test scaffolding or accidental deletions found — every hunk maps directly
+to one of the three tasks in `ENGINEER_REPORT.md`. `ENGINEER_REPORT.md`'s
+own diff is purely additive (a new Cycle 5 section appended after the
+existing Cycle 4 "Ready For QA / Yes" ending), no edits to prior cycle
+content.
+
+## Change Budget Review
+
+No plan Change Budget section exists for this cycle (see Architect Scope
+Review above). Raw `--numstat`: `financials_screen.dart` +122/-64,
+`summary_header_test.dart` +69/-0 (new tests only, no deletions — expected,
+since this is additive test coverage, not a bug fix), `transaction_card_test.dart`
++48/-0 (same). Proportionate to a three-item visual/UX change spanning one
+card layout restructure, one color-token swap, and one new scroll-driven
+animation, all in a single file plus matching test additions. No new files,
+no new public classes/widgets (only local variables `badgeLabel`/`badgeColor`
+and a `ScrollController` field were added — no new private widget classes),
+no new dependencies.
+
+## Code Efficiency Review
+
+No new helpers, providers, notifiers, or private widget classes added. The
+`AnimatedBuilder`/`Stack`/`Align` collapse logic is inlined at its single
+call site inside `_SummaryHeader`, consistent with the file's existing
+one-widget-per-section convention — not extracted into an unnecessary
+single-use `_buildX()` method. The badge `Container` is the same widget
+that previously rendered conditionally, now unconditionally with
+conditional styling — no duplicate badge-rendering code paths were
+introduced. Nothing flagged.
+
+## Manual Verification Punch List
+
+The following require Tony to visually/interactively confirm on a running
+build — QA does not launch or drive the app per its operating constraints.
+
+1. Open the Financials screen (income or expense view) with at least one
+   entry that has a badge (a reimbursed expense, or an income entry with
+   disbursements) and at least one entry without one. **Expected:** both
+   cards render at identical height — the badge row's presence/absence
+   produces no visible height difference, and the badge (when shown) sits
+   in the bottom-right corner of the card, aligned with the date text on
+   its left.
+2. Visually compare the category text, date text, transaction-count text,
+   and the chevron icon's color before and after this change (e.g. against
+   a build from `main` or the PR's prior commit). **Expected:** all four
+   render in a visibly lighter gray shade than before (Zinc 400 vs. Zinc
+   500) — a subtle but perceptible lightening, not a color change to a
+   different hue.
+3. Open the Financials screen and, without scrolling, confirm the summary
+   header (label + total) looks the same as it did before this change —
+   same vertical spacing/centering between the "TOTAL INCOME"/"TOTAL
+   EXPENSES" label and the dollar total. **This is the specific caveat the
+   Engineer flagged**: the new `Stack`-based at-rest layout is only
+   confirmed structurally identical (same alignment values, same font size)
+   by automated tests, not confirmed pixel-for-pixel identical to the old
+   plain-`Column` layout's exact spacing. Tony must visually confirm no
+   spacing/positioning regression is visible at rest.
+4. Scroll the transaction list down at least ~60 logical pixels (roughly
+   one card's height). **Expected:** the "TOTAL INCOME"/"TOTAL EXPENSES"
+   label animates to the left side and the dollar total animates to the
+   right side, shrinking to a smaller footnote-sized font, producing a
+   collapsing-header effect. Scroll back up to the top. **Expected:** the
+   header animates back to its original centered/stacked, full-size
+   layout.
+
+## Issues Found
+
+### Critical
+
+None.
+
+### Warnings
+
+None.
+
+### Suggestions
+
+None.
+
+---
+
+# Cycle 4 (historical — APPROVED, header standardization)
+
+## Feature Title (Cycle 4)
+
+Financials reconciliation — standardize `financials_screen.dart`'s header
+onto the app-wide `AppScaffold` + `AppAppBar` pattern, replacing the
+Setlists-only `BackOnlyAppBar` (Engineer Cycle 4, direct Tony
+header-standardization request against already-open PR #275)
+
+## Final Verdict (Cycle 4)
+
+**APPROVED**
+
+## Validation Summary (Cycle 4)
 
 Confirmed branch `feature/financials-transaction-cards-reconciliation` is
 checked out with a clean-except-expected working tree (2 modified tracked
