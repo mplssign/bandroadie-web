@@ -33,8 +33,9 @@ void main() {
   });
 
   testWidgets(
-    'Test A: "Check out the demo band" button is hidden on LoginScreen '
-    '(temporarily disabled — see _kDemoBandVisible in login_screen.dart)',
+    'Test A: "Check out the demo band" button is visible on LoginScreen on '
+    'non-web platforms (_kDemoBandVisible = !kIsWeb — see login_screen.dart; '
+    'flutter test runs on the Dart VM, so this target must render the button)',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -51,7 +52,8 @@ void main() {
       // widget tree and is found by text search.
       await tester.pump();
 
-      expect(find.text('Check out the demo band'), findsNothing);
+      // Dart VM target: kIsWeb == false → _kDemoBandVisible == true → button is emitted.
+      expect(find.text('Check out the demo band'), findsOneWidget);
     },
   );
 
