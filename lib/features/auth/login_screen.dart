@@ -477,11 +477,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   /// Builds the content cluster.
   ///
   /// Layout contract:
-  ///   - Logo + demo button (when [_kDemoBandVisible]) share the upper half of
-  ///     [availableHeight], centered within it; the logo shrinks via
-  ///     `BoxFit.contain` when the demo button consumes part of that budget.
+  ///   - Logo occupies the upper half of [availableHeight], anchored toward
+  ///     the lower portion of that half (rather than fully centered) so the
+  ///     gap to the demo button below sits roughly midway between the
+  ///     logo-hugging and email-hugging positions, and shrinks via
+  ///     `BoxFit.contain` if its intrinsic height would exceed the budget
+  ///     (PR #278 overflow safety).
+  ///   - Demo button (when [_kDemoBandVisible]) sits directly above the
+  ///     email field so it groups visually with the login form, not the
+  ///     branding cluster above.
   ///   - Logo width is 90% of the email field width.
   ///   - Form elements start at the midpoint of the available screen height.
+  ///   - Cycle 3 (owner-directed, paint-only): logo, demo link, and the
+  ///     email field + domain pills group are each nudged up via
+  ///     `Transform.translate` (50px, 65px, 50px respectively). Layout box
+  ///     sizes are unchanged, so PR #278 overflow-safety is unaffected.
   Widget _buildContentCluster({
     required bool hasValidEmail,
     required double maxWidth,
@@ -492,29 +502,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // === LOGO + DEMO BUTTON — upper half, button equidistant between logo and email ===
+        // === LOGO — upper half, anchored toward the lower portion ===
         SizedBox(
           height: availableHeight / 2,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(child: _buildLogo(logoWidth: logoWidth)),
-              if (_kDemoBandVisible) ...[
-                const SizedBox(height: 12),
-                _buildDemoButton(),
-              ],
-              const SizedBox(height: 12),
+              Flexible(
+                child: Align(
+                  // Halves the slack below the logo (vs. Alignment.center),
+                  // moving the demo button up roughly halfway back toward it.
+                  alignment: const Alignment(0, 0.5),
+                  child: Transform.translate(
+                    // Cycle 3: nudge logo up 50px per owner instruction.
+                    offset: const Offset(0, -50),
+                    child: _buildLogo(logoWidth: logoWidth),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
 
+        // === DEMO BUTTON — grouped with the login form ===
+        if (_kDemoBandVisible) ...[
+          Transform.translate(
+            // Cycle 3: nudge demo link up 65px per owner instruction.
+            offset: const Offset(0, -65),
+            child: _buildDemoButton(),
+          ),
+          const SizedBox(height: 12),
+        ],
+
         // === EMAIL FIELD ===
-        _buildEmailField(),
+        Transform.translate(
+          // Cycle 3: nudge email field up 50px per owner instruction.
+          offset: const Offset(0, -50),
+          child: _buildEmailField(),
+        ),
 
         const SizedBox(height: 12),
 
         // === DOMAIN PILLS ===
-        _buildDomainPills(maxWidth: maxWidth),
+        Transform.translate(
+          // Cycle 3: nudge domain pills up 50px per owner instruction.
+          offset: const Offset(0, -50),
+          child: _buildDomainPills(maxWidth: maxWidth),
+        ),
 
         const SizedBox(height: 24),
 
