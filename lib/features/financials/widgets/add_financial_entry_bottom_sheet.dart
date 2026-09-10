@@ -1340,6 +1340,10 @@ class _AddFinancialEntryBottomSheetState
       data: buildEventEditorTheme(),
       child: Container(
         height: MediaQuery.of(context).size.height,
+        // Reserve room for the on-screen keyboard so the fixed footer and the Notes section stay visible above it.
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         decoration: BoxDecoration(
           color: kEdSurface,
           border: Border.all(color: kEdCardBorder),

@@ -274,6 +274,23 @@ void main() {
       expect(find.text('Distribution'), findsNothing);
       expect(find.text('Notes'), findsOneWidget);
     });
+
+    testWidgets(
+        'outer container shifts up by viewInsets.bottom when keyboard is open',
+        (tester) async {
+      await _pumpSheet(tester);
+      addTearDown(tester.view.resetViewInsets);
+
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      await tester.pumpAndSettle();
+
+      final containerFinder = find
+          .byWidgetPredicate((w) => w is Container && w.margin != null)
+          .first;
+      final margin =
+          tester.widget<Container>(containerFinder).margin as EdgeInsets;
+      expect(margin.bottom, 300);
+    });
   });
 
   group('_AddFinancialEntryBottomSheet footer', () {
