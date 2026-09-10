@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
-import '../../components/ui/app_dropdown.dart';
 import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -605,20 +604,29 @@ class _SummaryHeader extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IntrinsicWidth(
-                child: AppDropdown<FinancialDateFilter>(
-                  value: state.dateFilter,
-                  onChanged: (filter) {
-                    if (filter == null) return;
-                    ref.read(financialsProvider.notifier).setDateFilter(filter);
-                  },
-                  format: _dateFilterLabel,
-                  items: FinancialDateFilter.values
-                      .map((f) => DropdownMenuItem<FinancialDateFilter>(
-                            value: f,
-                            child: Text(_dateFilterLabel(f)),
-                          ))
-                      .toList(),
+              PopupMenuButton<FinancialDateFilter>(
+                onSelected: (filter) =>
+                    ref.read(financialsProvider.notifier).setDateFilter(filter),
+                itemBuilder: (context) => FinancialDateFilter.values
+                    .map((f) => PopupMenuItem<FinancialDateFilter>(
+                          value: f,
+                          child: Text(_dateFilterLabel(f)),
+                        ))
+                    .toList(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _dateFilterLabel(state.dateFilter),
+                      style: AppTextStyles.footnote.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.space4),
+                    const Icon(AppIcons.forward,
+                        size: 16, color: AppColors.primary),
+                  ],
                 ),
               ),
               Text(

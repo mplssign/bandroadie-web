@@ -151,3 +151,127 @@ Confirmed untouched this turn (per `git status`):
 ## Ready For QA
 
 Yes
+
+---
+
+# ENGINEER_REPORT — Cycle 3
+
+## Feature Slug
+
+`feature/financials-transaction-cards-reconciliation`
+
+## Feature Title
+
+Financials reconciliation — replace the bordered date-filter select field
+with a plain text-link-with-chevron control matching `_InlineLinkButton`'s
+visual style
+
+## Cycle Number
+
+3 (direct Tony visual tweak, invoked by Manager against the already-open PR
+#275; no `ARCHITECT_PLAN.md` update — Manager's instructions stated no
+Architect plan was needed for this narrow, single-widget change)
+
+## Goal
+
+In `_SummaryHeader` (`financials_screen.dart`), replace the bordered
+`AppDropdown<FinancialDateFilter>` date-filter control with a
+`PopupMenuButton<FinancialDateFilter>` whose `child` is visually identical to
+`_InlineLinkButton` (footnote text, `FontWeight.w600`, `AppColors.primary`,
+16px `AppIcons.forward` chevron, 4px gap), while preserving the ability to
+pick between the three `FinancialDateFilter` values.
+
+## Tasks Completed
+
+1. Replaced the `IntrinsicWidth(child: AppDropdown<FinancialDateFilter>(...))`
+   block with a `PopupMenuButton<FinancialDateFilter>`:
+   - `child`: a `Row` showing `Text(_dateFilterLabel(state.dateFilter))`
+     styled with `AppTextStyles.footnote`, `FontWeight.w600`,
+     `AppColors.primary`, followed by a 4px `SizedBox` and a 16px
+     `AppIcons.forward` `Icon` — matching `_InlineLinkButton` exactly.
+   - `itemBuilder`: one `PopupMenuItem<FinancialDateFilter>` per
+     `FinancialDateFilter.values`, each with `Text(_dateFilterLabel(f))`.
+   - `onSelected`: calls
+     `ref.read(financialsProvider.notifier).setDateFilter(filter)`.
+2. Removed the now-unused `import '../../components/ui/app_dropdown.dart';`
+   — confirmed via `grep` that `AppDropdown` had exactly one usage in
+   `financials_screen.dart` (the one just replaced).
+3. Did not touch `add_financial_entry_bottom_sheet.dart`, the repository,
+   model, or any migration.
+
+## Files Created
+
+None.
+
+## Files Modified
+
+- `lib/features/financials/financials_screen.dart` — swapped the
+  `AppDropdown` date-filter control for a `PopupMenuButton`; removed the
+  unused `app_dropdown.dart` import.
+- `test/features/financials/widgets/summary_header_test.dart` — updated the
+  tests that previously asserted on `find.byType(AppDropdown<...>)`,
+  `dropdown.value`, `dropdown.items`, and `dropdown.onChanged(...)` to instead
+  assert on `find.byType(PopupMenuButton<...>)`, the rendered label text,
+  `popupButton.itemBuilder(context)`, and `popupButton.onSelected!(...)`.
+  Each test's original intent (default selection, item list contents,
+  selection dispatch, visibility when the filtered list is empty) is
+  preserved; only the widget-under-test's shape changed. Descriptions that
+  named "AppDropdown" specifically were reworded to "date filter control" /
+  "date filter menu" for accuracy.
+- `docs/features/feature/financials-transaction-cards-reconciliation/ENGINEER_REPORT.md`
+  (this section).
+
+## Analyzer Results
+
+`flutter analyze lib/features/financials/financials_screen.dart`:
+
+```
+No issues found! (ran in 2.4s)
+```
+
+(One `prefer_const_constructors` info was raised on first pass for the new
+`Icon` and fixed by marking it `const`; re-run is clean.)
+
+## Test Results
+
+`flutter test` on the full `test/features/financials/widgets/` directory (5
+files: `add_financial_entry_bottom_sheet_test.dart`,
+`financial_entry_details_bottom_sheet_test.dart`, `summary_header_test.dart`,
+`transaction_card_test.dart`, `transactions_list_header_test.dart`):
+
+**70/70 tests passing, 0 failures.**
+
+## Code Efficiency/Bloat Check
+
+No new helpers, providers, or private widget classes added — the
+`PopupMenuButton`'s `child` `Row` is inlined at the single call site, same
+pattern as the existing `_InlineLinkButton` it mirrors. `dart fix --dry-run`
+on the whole package produced no suggestions touching either changed file.
+
+## Verification (manual steps performed)
+
+1. `grep`-searched `financials_screen.dart` for `AppDropdown` before and
+   after the edit to confirm exactly one usage existed and it was fully
+   removed, justifying the import removal.
+2. Ran `flutter analyze` on the changed production file twice (before/after
+   the `const` fix) — clean on the second pass.
+3. Ran the full `test/features/financials/widgets/` suite — 70/70 passing.
+4. Ran `dart format` on both changed files.
+5. Ran `dart fix --dry-run .` and grepped for either changed file's name —
+   no matches.
+6. Confirmed via `git status --short` that only the two intended tracked
+   files (`financials_screen.dart`, `summary_header_test.dart`) show as
+   modified.
+
+## Deviations From Plan
+
+None — Manager's instructions were followed exactly as specified (no
+Architect plan applies to this cycle).
+
+## Blockers Encountered
+
+None.
+
+## Ready For QA
+
+Yes

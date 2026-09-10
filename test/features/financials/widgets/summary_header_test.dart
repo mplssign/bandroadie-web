@@ -13,7 +13,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
-import 'package:bandroadie/components/ui/app_dropdown.dart';
 import 'package:bandroadie/features/financials/financials_controller.dart';
 import 'package:bandroadie/features/financials/financials_screen.dart';
 import 'package:bandroadie/features/financials/models/financial_entry.dart';
@@ -153,23 +152,23 @@ void main() {
 
   testWidgets(
     'default state has dateFilter = FinancialDateFilter.thisYear and the '
-    'AppDropdown shows "This year"',
+    'date filter control shows "This year"',
     (tester) async {
       final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
       await _pump(
         tester,
         FinancialsState(allEntries: [entry]),
       );
-      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
-        find.byType(AppDropdown<FinancialDateFilter>),
+      expect(
+        find.byType(PopupMenuButton<FinancialDateFilter>),
+        findsOneWidget,
       );
-      expect(dropdown.value, FinancialDateFilter.thisYear);
       expect(find.text('This year'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'setting dateFilter to allTime causes the AppDropdown to render '
+    'setting dateFilter to allTime causes the date filter control to render '
     '"All time" and the trailing text to read the unfiltered count',
     (tester) async {
       final previousYear = DateTime.now().year - 1;
@@ -195,7 +194,8 @@ void main() {
   );
 
   testWidgets(
-    'renders the dropdown and count as adjacent widgets separated by " • "',
+    'renders the date filter control and count as adjacent widgets separated '
+    'by " • "',
     (tester) async {
       final threeEntries = [
         _entry(id: 'e1', amountCents: 1000, isIncome: true),
@@ -206,7 +206,10 @@ void main() {
         tester,
         FinancialsState(allEntries: threeEntries),
       );
-      expect(find.byType(AppDropdown<FinancialDateFilter>), findsOneWidget);
+      expect(
+        find.byType(PopupMenuButton<FinancialDateFilter>),
+        findsOneWidget,
+      );
       expect(find.text(' • 3 transactions'), findsOneWidget);
     },
   );
@@ -235,20 +238,20 @@ void main() {
   );
 
   testWidgets(
-    'AppDropdown<FinancialDateFilter> value is non-null in every default '
-    'state (thisYear)',
+    'date filter control label is non-null and reads "This year" in every '
+    'default state (thisYear)',
     (tester) async {
       await _pump(tester, const FinancialsState());
-      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
-        find.byType(AppDropdown<FinancialDateFilter>),
+      expect(
+        find.byType(PopupMenuButton<FinancialDateFilter>),
+        findsOneWidget,
       );
-      expect(dropdown.value, isNotNull);
-      expect(dropdown.value, FinancialDateFilter.thisYear);
+      expect(find.text('This year'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'AppDropdown format renders "This year" text, not a year numeral, for '
+    'date filter control renders "This year" text, not a year numeral, for '
     'the thisYear case',
     (tester) async {
       final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
@@ -262,7 +265,7 @@ void main() {
   );
 
   testWidgets(
-    'AppDropdown items list contains exactly the three FinancialDateFilter '
+    'date filter menu contains exactly the three FinancialDateFilter '
     'values in enum-declaration order (allTime, thisYear, thisMonth)',
     (tester) async {
       final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
@@ -270,10 +273,13 @@ void main() {
         tester,
         FinancialsState(allEntries: [entry]),
       );
-      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
-        find.byType(AppDropdown<FinancialDateFilter>),
-      );
-      final values = dropdown.items!.map((i) => i.value).toList();
+      final finder = find.byType(PopupMenuButton<FinancialDateFilter>);
+      final popupButton =
+          tester.widget<PopupMenuButton<FinancialDateFilter>>(finder);
+      final items = popupButton
+          .itemBuilder(tester.element(finder))
+          .cast<PopupMenuItem<FinancialDateFilter>>();
+      final values = items.map((i) => i.value).toList();
       expect(values, [
         FinancialDateFilter.allTime,
         FinancialDateFilter.thisYear,
@@ -283,7 +289,7 @@ void main() {
   );
 
   testWidgets(
-    'AppDropdown items render Text children with the exact strings '
+    'date filter menu items render Text children with the exact strings '
     '"All time", "This year", "This month"',
     (tester) async {
       final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
@@ -291,15 +297,18 @@ void main() {
         tester,
         FinancialsState(allEntries: [entry]),
       );
-      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
-        find.byType(AppDropdown<FinancialDateFilter>),
-      );
+      final finder = find.byType(PopupMenuButton<FinancialDateFilter>);
+      final popupButton =
+          tester.widget<PopupMenuButton<FinancialDateFilter>>(finder);
+      final items = popupButton
+          .itemBuilder(tester.element(finder))
+          .cast<PopupMenuItem<FinancialDateFilter>>();
       const expectedLabels = {
         FinancialDateFilter.allTime: 'All time',
         FinancialDateFilter.thisYear: 'This year',
         FinancialDateFilter.thisMonth: 'This month',
       };
-      for (final item in dropdown.items!) {
+      for (final item in items) {
         final child = item.child as Text;
         expect(child.data, expectedLabels[item.value]);
       }
@@ -307,8 +316,8 @@ void main() {
   );
 
   testWidgets(
-    'invoking AppDropdown.onChanged(FinancialDateFilter.allTime) dispatches '
-    'setDateFilter on the notifier',
+    'invoking PopupMenuButton.onSelected(FinancialDateFilter.allTime) '
+    'dispatches setDateFilter on the notifier',
     (tester) async {
       final entry = _entry(id: 'e1', amountCents: 5000, isIncome: true);
       final container = await _pumpWithContainer(
@@ -319,10 +328,10 @@ void main() {
         container.read(financialsProvider).dateFilter,
         FinancialDateFilter.thisYear,
       );
-      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
-        find.byType(AppDropdown<FinancialDateFilter>),
+      final popupButton = tester.widget<PopupMenuButton<FinancialDateFilter>>(
+        find.byType(PopupMenuButton<FinancialDateFilter>),
       );
-      dropdown.onChanged(FinancialDateFilter.allTime);
+      popupButton.onSelected!(FinancialDateFilter.allTime);
       await tester.pumpAndSettle();
       expect(
         container.read(financialsProvider).dateFilter,
@@ -332,8 +341,8 @@ void main() {
   );
 
   testWidgets(
-    'inline dropdown remains visible and its onChanged callback wired when '
-    'filteredEntries is empty for the selected filter',
+    'inline date filter control remains visible and its onSelected callback '
+    'wired when filteredEntries is empty for the selected filter',
     (tester) async {
       final priorYear = DateTime.now().year - 1;
       final entry = _entry(
@@ -349,19 +358,21 @@ void main() {
 
       expect(find.text('No entries yet'), findsOneWidget);
       expect(find.text('TOTAL INCOME'), findsOneWidget);
-      final dropdownFinder = find.byType(AppDropdown<FinancialDateFilter>);
-      expect(dropdownFinder, findsOneWidget);
+      final popupFinder = find.byType(PopupMenuButton<FinancialDateFilter>);
+      expect(popupFinder, findsOneWidget);
 
-      final dropdown = tester.widget<AppDropdown<FinancialDateFilter>>(
-        dropdownFinder,
-      );
-      expect(dropdown.items!.map((i) => i.value).toList(), [
+      final popupButton =
+          tester.widget<PopupMenuButton<FinancialDateFilter>>(popupFinder);
+      final items = popupButton
+          .itemBuilder(tester.element(popupFinder))
+          .cast<PopupMenuItem<FinancialDateFilter>>();
+      expect(items.map((i) => i.value).toList(), [
         FinancialDateFilter.allTime,
         FinancialDateFilter.thisYear,
         FinancialDateFilter.thisMonth,
       ]);
 
-      dropdown.onChanged(FinancialDateFilter.allTime);
+      popupButton.onSelected!(FinancialDateFilter.allTime);
       await tester.pumpAndSettle();
 
       expect(
