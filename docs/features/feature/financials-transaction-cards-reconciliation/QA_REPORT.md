@@ -6,27 +6,250 @@
 
 ## Feature Title
 
-Financials reconciliation — replace the bordered date-filter select field with
-a plain text-link-with-chevron control matching `_InlineLinkButton`'s visual
-style (Engineer Cycle 3, direct Tony visual tweak against already-open PR
-#275)
+Financials reconciliation — standardize `financials_screen.dart`'s header
+onto the app-wide `AppScaffold` + `AppAppBar` pattern, replacing the
+Setlists-only `BackOnlyAppBar` (Engineer Cycle 4, direct Tony
+header-standardization request against already-open PR #275)
 
 ## Cycle Number
 
-2 (this QA slug's first report, below the divider, was Cycle 1 / APPROVED,
-covering a different, earlier engineer cycle's reconciliation-port work.
-This is a new QA pass on top, covering the subsequent date-filter restyle.
-No `ARCHITECT_PLAN.md` update accompanies this engineer cycle — Manager's
-instructions to the Engineer stated none was needed for this narrow,
-single-widget change, so this review validates directly against
-`ENGINEER_REPORT.md`'s stated scope and the explicit checklist in Manager's
-invocation, in place of a plan.)
+4 (this QA slug's third pass. Cycle 2 and Cycle 1, below the divider, are
+historical/APPROVED, covering an earlier date-filter restyle and the
+original reconciliation-port work respectively. This cycle validates the
+`AppScaffold`/`AppAppBar` header standardization, the duplicate-title
+removal, and the `Material`-ancestor regression fix. No `ARCHITECT_PLAN.md`
+update accompanies this engineer cycle — Manager's instructions to the
+Engineer stated none was needed for this narrow, single-file change,
+consistent with the precedent set in Cycle 2, so this review validates
+directly against `ENGINEER_REPORT.md`'s Cycle 4 stated scope and the
+explicit six-point checklist in Manager's invocation, in place of a plan.)
 
 ## Final Verdict
 
 **APPROVED**
 
 ## Validation Summary
+
+Confirmed branch `feature/financials-transaction-cards-reconciliation` is
+checked out with a clean-except-expected working tree (2 modified tracked
+files — `financials_screen.dart` and `ENGINEER_REPORT.md` — all in scope;
+unrelated untracked docs/migration for other slugs present but irrelevant).
+Confirmed `QA_REPORT.md`'s highest existing cycle prior to this pass was
+Cycle 2/APPROVED, ruling out a duplicate or stale QA session already
+covering Cycle 4. Resolved `ENGINEER_REPORT.md`'s latest section (Cycle 4,
+"Ready For QA: Yes") describing the header standardization.
+Reviewed the full uncommitted diff for the changed production file directly
+(`git diff HEAD`), plus confirmed zero diff on `back_only_app_bar.dart`.
+Independently re-ran `flutter analyze` on the changed file (clean) and
+`flutter test` on the full `test/features/financials/widgets/` directory
+(62/62 passing — confirmed by actually re-running, not taken on faith from
+either the Engineer's or Manager's stated numbers). All validation below is
+code-path/static analysis plus independent test-suite execution — no running
+app instance was used (see Manual Verification Punch List for the items
+that genuinely require Tony's eyes on a live build).
+
+## Cycle 4 Architect Scope Review
+
+No `ARCHITECT_PLAN.md` update exists for this engineer cycle, and none was
+required per Manager's explicit instruction (consistent with the precedent
+already set and QA-accepted in Cycle 2). Manager's six-point checklist,
+verified directly:
+
+1. **`back_only_app_bar.dart` untouched** — `git diff HEAD --
+   lib/features/setlists/widgets/back_only_app_bar.dart` produces zero
+   output lines. Confirmed via grep it is still imported/used by
+   `lib/features/setlists/new_setlist_screen.dart` (line 968) and
+   `lib/features/setlists/setlist_detail_screen.dart` (line 2187) — Setlists
+   screens are unaffected.
+2. **Only `financials_screen.dart` shows a diff** — `git diff HEAD --numstat`
+   confirms exactly two changed tracked files: `financials_screen.dart`
+   (+36/-27) and this feature's `ENGINEER_REPORT.md` (doc only). No test
+   file required changes this cycle, matching `ENGINEER_REPORT.md`'s claim.
+3. **Exactly one "Financials" title** — read the full `build()` method
+   post-diff: the only `Text('Financials', ...)` remaining is
+   `AppAppBar`'s `title`. The former in-body `Text('Financials', style:
+   AppTextStyles.pageTitle...)` and its `Expanded` wrapper are gone from the
+   diff; the `Row` that held it now renders only the `canCreate`-gated "Add"
+   button with `mainAxisAlignment: MainAxisAlignment.end`. No duplicate
+   title present.
+4. **Back button uses the standard pattern** — confirmed the new `leading:
+   AppIconButton(icon: AppIcons.arrowLeft, color: AppColors.primary,
+   onPressed: () => Navigator.of(context).pop())` is byte-for-byte identical
+   in shape to `settings_screen.dart` and `tips_and_tricks_screen.dart`'s own
+   `AppAppBar`/`AppIconButton`/`leading` blocks (compared side by side). The
+   old `BackOnlyAppBar(onBack: ...)` `GestureDetector`-based widget is fully
+   removed from this screen. Per the Manager's framing: this cycle may
+   incidentally resolve the previously-reported macOS back-navigation bug
+   tied to `BackOnlyAppBar`'s bespoke handler, but that is a runtime,
+   on-device claim only Tony can confirm — not verified here, listed on the
+   Manual Verification Punch List instead.
+5. **`Material(type: MaterialType.transparency)` fix is real and
+   structural-only** — read `app_scaffold.dart` and confirmed `AppScaffold`
+   wraps `body` via forui's `FScaffold(header: appBar, child: body, ...)`,
+   which inserts no `Material` widget of its own around `child`, corroborating
+   the stated root cause (Flutter's `Scaffold` provides one implicitly;
+   `AppScaffold` did not). `MaterialType.transparency` is a standard Flutter
+   API guarantee that paints no surface color of its own — it is purely a
+   `Material`-ancestor placeholder for `Ink`/ripple/`TextButton` machinery,
+   not a visible layer, so it introduces no background/surface change. The
+   accompanying `SafeArea` removal is consistent, since `AppAppBar`/
+   `FScaffold` already account for the top inset the app bar occupies.
+6. **"Add" button preserved for `canCreate` users** — confirmed unchanged:
+   same `TextButton.icon`, `onPressed: state.isLoading ? null :
+   () => _addEntry(state)`, `AppIcons.add` icon, `'Add'` label,
+   `foregroundColor: AppColors.primary`. Only the enclosing `Row`'s
+   alignment (`MainAxisAlignment.end`) and its conditional gating (whole
+   `Row` now `if (canCreate)` instead of an always-rendered `Row` with an
+   inner conditional button) changed — a direct, necessary consequence of
+   removing the title `Text` that used to share the row.
+
+## Cycle 4 Completeness Check
+
+All 5 tasks listed in `ENGINEER_REPORT.md`'s Cycle 4 "Tasks Completed" are
+present in the diff: (1) `Scaffold`→`AppScaffold` swap, (2) `AppAppBar`
+configuration with title/leading, (3) `BackOnlyAppBar` widget + its import
+removed, (4) duplicate in-line title removed and "Add" row re-aligned, (5)
+`Material(type: MaterialType.transparency)` wrap added and `SafeArea`
+removed. No partial implementation found.
+
+## Cycle 4 Behavior Verification
+
+Code-path analysis only (no running app instance — categorically QA's
+constraint, not a shortcut). The change is structural/presentational: header
+chrome, title placement, and a `Material`-ancestor restoration. No business
+logic, provider wiring, or data flow was altered — `_addEntry`,
+`financialsProvider` reads, `setViewMode`, and the transaction list/sort
+logic are byte-for-byte unchanged in the diff.
+
+## Cycle 4 Regression Check
+
+**Risk: LOW.** Single production file changed; no touches to auth/session,
+Supabase RPC signatures, provider init order, or platform-specific code.
+`back_only_app_bar.dart` itself has zero diff, so Setlists screens
+(`new_setlist_screen.dart`, `setlist_detail_screen.dart`) that still import
+it are unaffected. The `Material`-ancestor regression the Engineer
+introduced and then fixed mid-cycle (31 failing tests) is the main regression
+risk this cycle carries — independently re-ran the full
+`test/features/financials/widgets/` suite myself and got 62/62 passing,
+confirming the fix holds under a fresh run rather than trusting the
+Engineer's reported number.
+
+## Cycle 4 Database Safety
+
+Not applicable — no migrations, RPC, or schema touched by this diff.
+
+## Cycle 4 Analyzer Results
+
+Independently ran:
+
+```
+flutter analyze lib/features/financials/financials_screen.dart
+Analyzing financials_screen.dart...
+No issues found! (ran in 1.8s)
+```
+
+Clean at every severity (no info/warning/error).
+
+## Cycle 4 Test Results
+
+Independently ran the full directory (not just files touched this cycle —
+none were):
+
+```
+flutter test test/features/financials/widgets/
+...
++62: All tests passed!
+```
+
+**62/62 passing, 0 failures.**
+
+## Cycle 4 Diff Safety Review
+
+Grepped the diff for `TODO|FIXME|debugPrint\(|api[_-]?key|secret|password`
+(case-insensitive). The only hit was the substring "token" inside the
+unrelated, pre-existing `import '../../app/theme/design_tokens.dart';` line —
+not a secret or debug artifact. No `TODO`/`FIXME`/`debugPrint(` introduced,
+no leftover test scaffolding, no accidental deletions, no unrelated
+formatting churn — every hunk maps directly to a task in `ENGINEER_REPORT.md`.
+
+## Cycle 4 Change Budget Review
+
+No plan Change Budget section exists for this cycle (see Cycle 4 Architect
+Scope Review). Raw `--numstat`: `financials_screen.dart` +36/-27, matching
+`ENGINEER_REPORT.md`'s self-reported "36 insertions / 27 deletions" exactly.
+Proportionate to a header-pattern swap + duplicate-title removal + one
+`Material` wrap, all in a single file. No new files, no new public
+classes/widgets, no new dependencies added.
+
+## Cycle 4 Code Efficiency Review
+
+No new helpers, providers, notifiers, or private widget classes added. The
+`AppAppBar`/`AppIconButton`/`Material` configuration is inlined at its single
+call site, matching the established `settings_screen.dart`/
+`tips_and_tricks_screen.dart` precedent (independently compared side by
+side, not taken on the Engineer's word). The "Add" button's callback and
+styling are untouched. Nothing flagged.
+
+## Cycle 4 Manual Verification Punch List
+
+The following require Tony to visually/interactively confirm on a running
+build — QA does not launch or drive the app per its operating constraints.
+
+1. Open the Financials screen on macOS and tap the back button in the app
+   bar (top-left, rose arrow icon). **Expected:** navigates back to the
+   previous screen immediately and reliably. This exercises the same
+   `AppIconButton` + `Navigator.of(context).pop()` pattern used elsewhere in
+   the app, replacing the old `BackOnlyAppBar` gesture handler — this may
+   incidentally resolve a previously-reported macOS back-navigation bug, but
+   that is for Tony to confirm, not something QA verified.
+2. Open the Financials screen on any platform. **Expected:** a single
+   "Financials" title appears in the app bar (matching the visual style of
+   the Settings and Tips & Tricks screens' headers) — no duplicate title
+   text anywhere below it.
+3. As a user with financials-create permission, confirm the "Add" button
+   still renders (top-right, below the app bar) and tapping it opens the
+   add-entry sheet as before.
+4. Visually compare the screen's background/surface before and after this
+   change (e.g. against a build from `main` or the PR's prior commit).
+   **Expected:** no visible difference — the `Material(type:
+   MaterialType.transparency)` wrap should be purely structural.
+
+## Cycle 4 Issues Found
+
+### Critical
+
+None.
+
+### Warnings
+
+None.
+
+### Suggestions
+
+- **[out-of-scope]** As in Cycle 2, no `ARCHITECT_PLAN.md` update exists for
+  this engineer cycle. Manager confirmed this was intentional for a narrow,
+  single-file change, so it is not a blocking defect here — but this is now
+  the second consecutive direct Tony/Manager-authorized plan-skip cycle on
+  this slug. Worth a process note to Architect/Manager if a third such cycle
+  occurs, or if any future direct-tweak cycle grows beyond a single-file,
+  single-concern change.
+
+---
+
+# Cycle 2 (historical — APPROVED, date-filter restyle)
+
+## Feature Title (Cycle 2)
+
+Financials reconciliation — replace the bordered date-filter select field with
+a plain text-link-with-chevron control matching `_InlineLinkButton`'s visual
+style (Engineer Cycle 3, direct Tony visual tweak against already-open PR
+#275)
+
+## Final Verdict (Cycle 2)
+
+**APPROVED**
+
+## Validation Summary (Cycle 2)
 
 Confirmed branch `feature/financials-transaction-cards-reconciliation` is
 checked out with a clean-except-expected working tree (3 modified tracked

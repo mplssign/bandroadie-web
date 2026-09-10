@@ -275,3 +275,150 @@ None.
 ## Ready For QA
 
 Yes
+
+---
+
+# ENGINEER_REPORT — Cycle 4
+
+## Feature Slug
+
+`feature/financials-transaction-cards-reconciliation`
+
+## Feature Title
+
+Financials reconciliation — standardize `financials_screen.dart`'s header
+onto the app's shared `AppScaffold` + `AppAppBar` pattern (matching
+`settings_screen.dart` / `tips_and_tricks_screen.dart`), replacing the
+Setlists-specific `BackOnlyAppBar`
+
+## Cycle Number
+
+4 (direct Tony header-standardization request, invoked by Manager against
+the already-open PR; no `ARCHITECT_PLAN.md` update for this narrow,
+single-widget change)
+
+## Goal
+
+Swap `financials_screen.dart`'s header from `Scaffold` + `BackOnlyAppBar` (a
+bespoke widget borrowed from the Setlists feature) to the shared
+`AppScaffold` + `AppAppBar` pattern with an `AppIconButton` /
+`AppIcons.arrowLeft` leading back button and a "Financials" title, then fix
+the two defects that surfaced during that swap: a duplicate page title, and a
+Material-ancestor regression that broke 31 tests.
+
+## Tasks Completed
+
+1. Replaced `Scaffold(backgroundColor: ..., body: SafeArea(...))` with
+   `AppScaffold(backgroundColor: ..., appBar: AppAppBar(...), body: ...)`.
+2. `AppAppBar` configured with: `backgroundColor: context.colors.appBarBg`,
+   `title: const Text('Financials', ...)` styled to match the other
+   `AppAppBar` screens, and `leading: AppIconButton(icon:
+   AppIcons.arrowLeft, color: AppColors.primary, onPressed: () =>
+   Navigator.of(context).pop())`.
+3. Removed the `BackOnlyAppBar(onBack: () => Navigator.of(context).pop())`
+   widget from the body `Column` (superseded by the new `AppAppBar`) and its
+   now-unused import, `import '../setlists/widgets/back_only_app_bar.dart';`.
+4. **Duplicate-title fix:** the body previously had its own in-line
+   `Text('Financials', style: AppTextStyles.pageTitle...)` inside a `Row`
+   alongside the "Add" button — this was the page's only title before this
+   cycle. Once `AppAppBar.title` started rendering "Financials" in the app
+   bar, that in-line `Text` became a second, redundant title stacked directly
+   below the first. Removed the `Text` widget and its `Expanded` wrapper,
+   collapsing the `Row` down to just the "Add" button, and changed the
+   `Row`'s alignment to `mainAxisAlignment: MainAxisAlignment.end` so the
+   "Add" button (preserved, unchanged callback/behavior) stays right-aligned
+   without the `Expanded` title spacer it used to share the row with. The
+   `Row` is now conditionally rendered only `if (canCreate)` (previously the
+   `Row` always rendered for the title, with the button as an inner
+   conditional child) since the title no longer needs to be present when the
+   button isn't.
+5. **31-test-failure root cause and fix:** replacing `Scaffold` with
+   `AppScaffold` removed the `Material` ancestor that Flutter's `Scaffold`
+   provides implicitly around its `body`. `AppScaffold` (in
+   [app_scaffold.dart](lib/components/ui/app_scaffold.dart)) wraps `body` in
+   forui's `FScaffold`, which does not insert a `Material` widget of its own.
+   `financials_screen.dart`'s body contains `Material`-dependent widgets
+   (notably the `TextButton.icon` "Add" button, plus other `Material`-
+   descendant widgets rendered deeper in the tree via `_ViewModeToggle` and
+   the transaction list), so once the implicit `Material` disappeared, any
+   widget test that pumped the screen and touched one of those widgets threw
+   "No Material widget found" (or a dependent rendering exception),
+   surfacing as 31 failing tests across the financials test suite. Fixed by
+   wrapping the body's `Stack` in `Material(type: MaterialType.transparency,
+   child: Stack(...))`, which restores a `Material` ancestor without
+   introducing an opaque surface or changing the visible background (the
+   previous `SafeArea` wrapper was removed as part of this same edit since
+   `AppAppBar`/`FScaffold` already handle the top safe-area inset that
+   `SafeArea` was providing here).
+
+## Files Created
+
+None.
+
+## Files Modified
+
+- `lib/features/financials/financials_screen.dart` — header swapped to
+  `AppScaffold` + `AppAppBar`; removed the unused `back_only_app_bar.dart`
+  import; removed the duplicate in-line title `Text`; wrapped the body in
+  `Material(type: MaterialType.transparency)` to fix the Material-ancestor
+  regression. No test file required changes this cycle.
+
+## Analyzer Results
+
+`flutter analyze lib/features/financials/financials_screen.dart`:
+
+```
+No issues found! (ran in 1.1s)
+```
+
+## Test Results
+
+`flutter test test/features/financials/widgets/` (full directory, 5 files):
+
+```
+00:04 +62: All tests passed!
+```
+
+**62/62 tests passing, 0 failures.**
+
+## Code Efficiency/Bloat Check
+
+No new helpers, providers, or private widget classes added. The `Material`
+wrap and `AppAppBar` configuration are inlined at their single call sites,
+matching the existing pattern in `settings_screen.dart` /
+`tips_and_tricks_screen.dart`. No dead code, unused imports, or
+`TODO`/`debugPrint` introduced. Net diff is 36 insertions / 27 deletions in a
+single file.
+
+## Verification (manual steps performed)
+
+1. Compared the new header block against `settings_screen.dart` and
+   `tips_and_tricks_screen.dart` to confirm `AppScaffold` + `AppAppBar` +
+   `AppIconButton` usage matches the established pattern exactly.
+2. Ran the previously-failing tests individually to capture the actual
+   "No Material widget found" exception before applying the `Material` wrap
+   fix, rather than guessing at the cause.
+3. Read `app_scaffold.dart` to confirm `FScaffold` does not itself supply a
+   `Material` ancestor around `body`, corroborating the root-cause diagnosis.
+4. Ran `flutter analyze` on `financials_screen.dart` — 0 issues.
+5. Ran `flutter test test/features/financials/widgets/` (full directory) —
+   62/62 passing.
+6. Ran `dart format` on the changed file (no changes needed beyond what was
+   already applied).
+7. Confirmed via `git status --short` that only
+   `lib/features/financials/financials_screen.dart` shows as a modified
+   tracked file for this change.
+
+## Deviations From Plan
+
+None — Manager's instructions were followed exactly as specified (no
+Architect plan applies to this cycle; scope was limited to
+`financials_screen.dart`).
+
+## Blockers Encountered
+
+None.
+
+## Ready For QA
+
+Yes

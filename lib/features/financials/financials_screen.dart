@@ -7,6 +7,9 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
+import '../../components/ui/app_app_bar.dart';
+import '../../components/ui/app_icon_button.dart';
+import '../../components/ui/app_scaffold.dart';
 import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -15,7 +18,6 @@ import 'financials_pdf_preview_screen.dart';
 import 'models/financial_entry.dart';
 import 'widgets/add_financial_entry_bottom_sheet.dart';
 import 'widgets/financial_entry_details_bottom_sheet.dart';
-import '../setlists/widgets/back_only_app_bar.dart';
 
 // ============================================================================
 // FINANCIALS SCREEN
@@ -105,40 +107,47 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
       error: (_, __) => false,
     );
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      body: SafeArea(
+      appBar: AppAppBar(
+        backgroundColor: context.colors.appBarBg,
+        title: const Text(
+          'Financials',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.title2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Material(
+        type: MaterialType.transparency,
         child: Stack(
           children: [
             Column(
               children: [
-                // Back bar (matches setlist detail)
-                BackOnlyAppBar(
-                  onBack: () => Navigator.of(context).pop(),
-                ),
                 // Page content below app bar
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Page title + add action
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          Spacing.pagePadding,
-                          Spacing.space20,
-                          Spacing.pagePadding,
-                          0,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Financials',
-                                style: AppTextStyles.pageTitle.copyWith(
-                                    color: context.colors.textPrimary),
-                              ),
-                            ),
-                            if (canCreate)
+                      // Add action (title now shown in AppAppBar)
+                      if (canCreate)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            Spacing.pagePadding,
+                            Spacing.space20,
+                            Spacing.pagePadding,
+                            0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
                               TextButton.icon(
                                 onPressed: state.isLoading
                                     ? null
@@ -149,9 +158,9 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                   foregroundColor: AppColors.primary,
                                 ),
                               ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
                       const SizedBox(height: Spacing.space16),
                       // Income / Expenses toggle
                       _ViewModeToggle(
