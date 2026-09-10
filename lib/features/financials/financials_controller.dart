@@ -14,7 +14,7 @@ import 'models/financial_entry.dart';
 
 enum FinancialViewMode { income, expenses }
 
-enum FinancialDateFilter { allTime, thisYear, thisMonth, custom }
+enum FinancialDateFilter { allTime, thisYear, thisMonth }
 
 class FinancialsState {
   final List<FinancialEntry> allEntries;
@@ -22,17 +22,13 @@ class FinancialsState {
   final String? error;
   final FinancialViewMode viewMode;
   final FinancialDateFilter dateFilter;
-  final DateTime? customStartDate;
-  final DateTime? customEndDate;
 
   const FinancialsState({
     this.allEntries = const [],
     this.isLoading = false,
     this.error,
     this.viewMode = FinancialViewMode.income,
-    this.dateFilter = FinancialDateFilter.allTime,
-    this.customStartDate,
-    this.customEndDate,
+    this.dateFilter = FinancialDateFilter.thisYear,
   });
 
   FinancialsState copyWith({
@@ -41,10 +37,7 @@ class FinancialsState {
     String? error,
     FinancialViewMode? viewMode,
     FinancialDateFilter? dateFilter,
-    DateTime? customStartDate,
-    DateTime? customEndDate,
     bool clearError = false,
-    bool clearCustomDates = false,
   }) {
     return FinancialsState(
       allEntries: allEntries ?? this.allEntries,
@@ -52,10 +45,6 @@ class FinancialsState {
       error: clearError ? null : (error ?? this.error),
       viewMode: viewMode ?? this.viewMode,
       dateFilter: dateFilter ?? this.dateFilter,
-      customStartDate:
-          clearCustomDates ? null : (customStartDate ?? this.customStartDate),
-      customEndDate:
-          clearCustomDates ? null : (customEndDate ?? this.customEndDate),
     );
   }
 
@@ -82,13 +71,6 @@ class FinancialsState {
           return e.entryDate.year == now.year;
         case FinancialDateFilter.thisMonth:
           return e.entryDate.year == now.year && e.entryDate.month == now.month;
-        case FinancialDateFilter.custom:
-          if (customStartDate == null || customEndDate == null) return true;
-          final start = DateTime(customStartDate!.year, customStartDate!.month,
-              customStartDate!.day);
-          final end = DateTime(customEndDate!.year, customEndDate!.month,
-              customEndDate!.day, 23, 59, 59);
-          return !e.entryDate.isBefore(start) && !e.entryDate.isAfter(end);
       }
     }).toList();
     entries.sort((a, b) => b.entryDate.compareTo(a.entryDate));
@@ -142,14 +124,6 @@ class FinancialsNotifier extends Notifier<FinancialsState> {
 
   void setDateFilter(FinancialDateFilter filter) {
     state = state.copyWith(dateFilter: filter);
-  }
-
-  void setCustomDateRange(DateTime start, DateTime end) {
-    state = state.copyWith(
-      dateFilter: FinancialDateFilter.custom,
-      customStartDate: start,
-      customEndDate: end,
-    );
   }
 
   Future<void> addEntry({

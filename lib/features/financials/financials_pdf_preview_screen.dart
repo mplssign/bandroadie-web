@@ -26,8 +26,6 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
   final List<FinancialEntry> entries;
   final String bandName;
   final FinancialDateFilter dateFilter;
-  final DateTime? customStartDate;
-  final DateTime? customEndDate;
   final List<MemberVM> members;
 
   /// Null means a combined report containing both income and expenses.
@@ -39,8 +37,6 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
     required this.bandName,
     required this.dateFilter,
     this.viewMode,
-    this.customStartDate,
-    this.customEndDate,
     this.members = const [],
   });
 
@@ -58,20 +54,14 @@ class _FinancialsPdfPreviewScreenState
   // ---------------------------------------------------------------------------
 
   String get _filterLabel {
+    final now = DateTime.now();
     switch (widget.dateFilter) {
       case FinancialDateFilter.allTime:
-        return 'All Time';
+        return 'All time';
       case FinancialDateFilter.thisYear:
-        return 'Year ${DateTime.now().year}';
+        return 'Year ${now.year}';
       case FinancialDateFilter.thisMonth:
-        final now = DateTime.now();
         return DateFormat('MMMM yyyy').format(now);
-      case FinancialDateFilter.custom:
-        if (widget.customStartDate != null && widget.customEndDate != null) {
-          final fmt = DateFormat('MMM d, yyyy');
-          return '${fmt.format(widget.customStartDate!)} – ${fmt.format(widget.customEndDate!)}';
-        }
-        return 'Custom';
     }
   }
 

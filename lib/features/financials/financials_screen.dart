@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,9 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
+import '../../components/ui/app_app_bar.dart';
+import '../../components/ui/app_icon_button.dart';
+import '../../components/ui/app_scaffold.dart';
 import '../bands/active_band_controller.dart';
 import '../members/members_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
@@ -16,7 +20,6 @@ import 'financials_pdf_preview_screen.dart';
 import 'models/financial_entry.dart';
 import 'widgets/add_financial_entry_bottom_sheet.dart';
 import 'widgets/financial_entry_details_bottom_sheet.dart';
-import '../setlists/widgets/back_only_app_bar.dart';
 
 // ============================================================================
 // FINANCIALS SCREEN
@@ -32,8 +35,11 @@ class FinancialsScreen extends ConsumerStatefulWidget {
 }
 
 class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void dispose() {
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -94,6 +100,7 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(financialsProvider);
+    final filtered = state.filteredEntries;
     final permissionsAsync = ref.watch(currentUserPermissionsProvider);
     final canCreate = permissionsAsync.when(
       data: (p) => p.canCreateFinancials,
@@ -101,54 +108,43 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
       error: (_, __) => false,
     );
 
-    return Scaffold(
+    return AppScaffold(
       backgroundColor: context.colors.background,
-      body: SafeArea(
+      appBar: AppAppBar(
+        backgroundColor: context.colors.appBarBg,
+        title: const Text(
+          'Financials',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: AppFontSizes.title2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          if (canCreate)
+            AppIconButton(
+              icon: AppIcons.add,
+              color: Colors.white,
+              onPressed: state.isLoading ? null : () => _addEntry(state),
+            ),
+        ],
+      ),
+      body: Material(
+        type: MaterialType.transparency,
         child: Stack(
           children: [
             Column(
               children: [
-                // Back bar (matches setlist detail)
-                BackOnlyAppBar(
-                  onBack: () => Navigator.of(context).pop(),
-                ),
                 // Page content below app bar
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Page title + add action
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          Spacing.pagePadding,
-                          Spacing.space20,
-                          Spacing.pagePadding,
-                          0,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Financials',
-                                style: AppTextStyles.pageTitle.copyWith(
-                                    color: context.colors.textPrimary),
-                              ),
-                            ),
-                            if (canCreate)
-                              TextButton.icon(
-                                onPressed: state.isLoading
-                                    ? null
-                                    : () => _addEntry(state),
-                                icon: const Icon(AppIcons.add, size: 18),
-                                label: const Text('Add'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.primary,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.space16),
                       // Income / Expenses toggle
                       _ViewModeToggle(
                         current: state.viewMode,
@@ -156,30 +152,57 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                             .read(financialsProvider.notifier)
                             .setViewMode(m),
                       ),
-                      const SizedBox(height: Spacing.space12),
-                      // Date filter row
-                      _DateFilterRow(
-                        current: state.dateFilter,
-                        customStartDate: state.customStartDate,
-                        customEndDate: state.customEndDate,
-                        onChanged: (f) => ref
-                            .read(financialsProvider.notifier)
-                            .setDateFilter(f),
-                        onCustomRange: (start, end) => ref
-                            .read(financialsProvider.notifier)
-                            .setCustomDateRange(start, end),
-                      ),
                       const SizedBox(height: Spacing.space16),
                       // Entries list
                       Expanded(
-                        child: state.isLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                    color: AppColors.primary),
-                              )
-                            : state.error != null
-                                ? _ErrorState(message: state.error!)
-                                : _EntriesList(entries: state.filteredEntries),
+                        child: state.error != null
+                            ? _ErrorState(message: state.error!)
+                            : Column(
+                                children: [
+                                  _SummaryHeader(
+                                      scrollController: _scrollController),
+                                  const SizedBox(height: Spacing.space8),
+                                  Expanded(
+                                    child: state.isLoading
+                                        ? const Center(
+                                            child: CircularProgressIndicator(
+                                                color: AppColors.primary),
+                                          )
+                                        : filtered.isEmpty
+                                            ? const _EmptyState()
+                                            : ListView.separated(
+                                                controller: _scrollController,
+                                                physics:
+                                                    const AlwaysScrollableScrollPhysics(),
+                                                padding: EdgeInsets.only(
+                                                  left: Spacing.pagePadding,
+                                                  right: Spacing.pagePadding,
+                                                  bottom: MediaQuery.of(context)
+                                                          .padding
+                                                          .bottom +
+                                                      Spacing.space16,
+                                                ),
+                                                itemCount: filtered.length,
+                                                separatorBuilder: (_, __) =>
+                                                    const SizedBox(
+                                                        height:
+                                                            Spacing.space12),
+                                                itemBuilder: (context, index) {
+                                                  final entry = filtered[index];
+                                                  return _TransactionCard(
+                                                    entry: entry,
+                                                    onTap: () =>
+                                                        showFinancialEntryDetailsSheet(
+                                                      context,
+                                                      ref,
+                                                      entry,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ],
                   ),
@@ -427,142 +450,17 @@ class _SavingsSheetState extends State<_SavingsSheet>
 }
 
 // ---------------------------------------------------------------------------
-// DATE FILTER ROW
+// DATE FILTER LABEL
 // ---------------------------------------------------------------------------
 
-class _DateFilterRow extends StatelessWidget {
-  const _DateFilterRow({
-    required this.current,
-    required this.onChanged,
-    required this.onCustomRange,
-    this.customStartDate,
-    this.customEndDate,
-  });
-
-  final FinancialDateFilter current;
-  final ValueChanged<FinancialDateFilter> onChanged;
-  final void Function(DateTime start, DateTime end) onCustomRange;
-  final DateTime? customStartDate;
-  final DateTime? customEndDate;
-
-  Future<void> _pickCustomRange(BuildContext context) async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 2),
-      initialDateRange: (customStartDate != null && customEndDate != null)
-          ? DateTimeRange(start: customStartDate!, end: customEndDate!)
-          : DateTimeRange(
-              start: DateTime(now.year, now.month),
-              end: now,
-            ),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            surface: Color(0xFF18181B),
-          ),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked != null) {
-      onCustomRange(picked.start, picked.end);
-    }
-  }
-
-  String get _customLabel {
-    if (current == FinancialDateFilter.custom &&
-        customStartDate != null &&
-        customEndDate != null) {
-      final fmt = DateFormat('MMM d');
-      final fmtYear = DateFormat('MMM d, yy');
-      final sameYear = customStartDate!.year == customEndDate!.year;
-      if (sameYear) {
-        return '${fmt.format(customStartDate!)} – ${fmt.format(customEndDate!)}';
-      }
-      return '${fmtYear.format(customStartDate!)} – ${fmtYear.format(customEndDate!)}';
-    }
-    return 'Custom';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
-      child: Row(
-        children: [
-          _FilterChip(
-            label: 'All Time',
-            active: current == FinancialDateFilter.allTime,
-            onTap: () => onChanged(FinancialDateFilter.allTime),
-          ),
-          const SizedBox(width: Spacing.space8),
-          _FilterChip(
-            label: 'This Year',
-            active: current == FinancialDateFilter.thisYear,
-            onTap: () => onChanged(FinancialDateFilter.thisYear),
-          ),
-          const SizedBox(width: Spacing.space8),
-          _FilterChip(
-            label: 'This Month',
-            active: current == FinancialDateFilter.thisMonth,
-            onTap: () => onChanged(FinancialDateFilter.thisMonth),
-          ),
-          const SizedBox(width: Spacing.space8),
-          _FilterChip(
-            label: _customLabel,
-            active: current == FinancialDateFilter.custom,
-            onTap: () => _pickCustomRange(context),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.space12,
-          vertical: Spacing.space8,
-        ),
-        decoration: BoxDecoration(
-          color: active
-              ? AppColors.primary.withValues(alpha: 0.15)
-              : context.colors.surface,
-          borderRadius: BorderRadius.circular(Spacing.chipRadius),
-          border: Border.all(
-            color: active ? AppColors.primary : context.colors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTextStyles.footnote.copyWith(
-            color: active ? AppColors.primary : context.colors.textSecondary,
-            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ),
-    );
+String _dateFilterLabel(FinancialDateFilter filter) {
+  switch (filter) {
+    case FinancialDateFilter.allTime:
+      return 'All time';
+    case FinancialDateFilter.thisYear:
+      return 'This year';
+    case FinancialDateFilter.thisMonth:
+      return 'This month';
   }
 }
 
@@ -653,217 +551,226 @@ class _ViewModeToggle extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// ENTRIES TABLE
+// SUMMARY HEADER
 // ---------------------------------------------------------------------------
 
-class _EntriesList extends ConsumerWidget {
-  const _EntriesList({required this.entries});
+class _SummaryHeader extends ConsumerWidget {
+  const _SummaryHeader({required this.scrollController});
 
-  final List<FinancialEntry> entries;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (entries.isEmpty) {
-      return const _EmptyState();
-    }
+    final state = ref.watch(financialsProvider);
+    final isIncome = state.viewMode == FinancialViewMode.income;
+    final totalCents =
+        state.filteredEntries.fold<int>(0, (sum, e) => sum + e.amountCents);
+    final totalDollars = totalCents ~/ 100;
+    final totalRemainderCents = totalCents % 100;
+    final totalFormatted =
+        '\$${NumberFormat('#,##0').format(totalDollars)}.${totalRemainderCents.toString().padLeft(2, '0')}';
+    final count = state.filteredEntries.length;
+    final totalColor = isIncome ? context.colors.success : AppColors.error;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Compute amount column width to fit the widest amount string
-        final amountDataStyle =
-            AppTextStyles.callout.copyWith(fontWeight: FontWeight.w600);
-        final amountHeaderStyle = AppTextStyles.footnote
-            .copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.5);
-        double maxAmountPx = _measureText('Amount', amountHeaderStyle);
-        for (final e in entries) {
-          final prefix = e.isIncome ? '' : '\u2212';
-          final w =
-              _measureText('$prefix${e.formattedAmount}', amountDataStyle);
-          if (w > maxAmountPx) maxAmountPx = w;
-        }
-        // 4px cell padding each side + 8px buffer
-        final amountColumnWidth = maxAmountPx + 16;
-
-        final minWidth =
-            amountColumnWidth + _kFixedColumnsWidth + Spacing.pagePadding * 2;
-        final tableWidth =
-            constraints.maxWidth < minWidth ? minWidth : constraints.maxWidth;
-        return Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: tableWidth,
-                  child: Column(
-                    children: [
-                      // Table header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: Spacing.pagePadding),
-                        child:
-                            _TableHeader(amountColumnWidth: amountColumnWidth),
-                      ),
-                      const Divider(height: 1),
-                      // Rows
-                      Expanded(
-                        child: ListView.separated(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(context).padding.bottom +
-                                Spacing.space16,
-                          ),
-                          itemCount: entries.length,
-                          separatorBuilder: (_, __) => const Divider(
-                              height: 1,
-                              indent: Spacing.pagePadding,
-                              endIndent: Spacing.pagePadding),
-                          itemBuilder: (context, index) {
-                            return _EntryTableRow(
-                              entry: entries[index],
-                              amountColumnWidth: amountColumnWidth,
-                              onTap: () => showFinancialEntryDetailsSheet(
-                                context,
-                                ref,
-                                entries[index],
-                              ),
-                            );
-                          },
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
+      child: AnimatedBuilder(
+        animation: scrollController,
+        builder: (context, child) {
+          final progress = scrollController.hasClients
+              ? (scrollController.offset / 60.0).clamp(0.0, 1.0)
+              : 0.0;
+          // Shared with the date-filter/count row and the links row below —
+          // both fade and shrink out of layout space as progress -> 1, and
+          // reverse automatically as progress -> 0 on scroll-up.
+          final collapse = (1.0 - progress).clamp(0.0, 1.0);
+          return Column(
+            children: [
+              SizedBox(
+                height: 64,
+                child: Stack(
+                  children: [
+                    Align(
+                      alignment: Alignment.lerp(
+                        Alignment.topCenter,
+                        const Alignment(-0.35, 0.0),
+                        progress,
+                      )!,
+                      child: Text(
+                        isIncome ? 'TOTAL INCOME' : 'TOTAL EXPENSES',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.footnote.copyWith(
+                          color: context.colors.textSecondary,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                    ],
+                    ),
+                    Align(
+                      alignment: Alignment.lerp(
+                        Alignment.bottomCenter,
+                        const Alignment(0.35, 0.0),
+                        progress,
+                      )!,
+                      child: Text(
+                        totalFormatted,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.displayLarge.copyWith(
+                          color: totalColor,
+                          fontSize: ui.lerpDouble(
+                            AppFontSizes.display,
+                            AppFontSizes.caption,
+                            progress,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ClipRect(
+                child: Align(
+                  heightFactor: collapse,
+                  child: Opacity(
+                    opacity: collapse,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: Spacing.space4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            PopupMenuButton<FinancialDateFilter>(
+                              onSelected: (filter) => ref
+                                  .read(financialsProvider.notifier)
+                                  .setDateFilter(filter),
+                              itemBuilder: (context) => FinancialDateFilter
+                                  .values
+                                  .map(
+                                      (f) => PopupMenuItem<FinancialDateFilter>(
+                                            value: f,
+                                            child: Text(_dateFilterLabel(f)),
+                                          ))
+                                  .toList(),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _dateFilterLabel(state.dateFilter),
+                                    style: AppTextStyles.footnote.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: Spacing.space4),
+                                  const Icon(AppIcons.forward,
+                                      size: 16, color: AppColors.primary),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
+                              style: AppTextStyles.footnote.copyWith(
+                                  color: context.colors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            // Bottom action buttons — pinned outside the horizontal scroll view
-            const _BottomActionsRow(),
-          ],
-        );
-      },
+              ClipRect(
+                child: Align(
+                  heightFactor: collapse,
+                  child: Opacity(
+                    opacity: collapse,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: Spacing.space12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _InlineLinkButton(
+                              label: 'View Savings Balance',
+                              onTap: () =>
+                                  _showSavingsSheet(context, state.allEntries),
+                            ),
+                            const SizedBox(width: Spacing.space16),
+                            _InlineLinkButton(
+                              label: 'Generate Report',
+                              onTap: state.isLoading
+                                  ? null
+                                  : () =>
+                                      _openCombinedReport(context, ref, state),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: Spacing.space16),
+            ],
+          );
+        },
+      ),
     );
   }
 }
 
-// Column widths: Amount is computed dynamically to fit content; all others are fixed.
-const _kDateWidth = 110.0;
-const _kTypeWidth = 110.0;
-const _kFromWidth = 110.0;
-const _kPaidToWidth = 110.0;
-const _kDisbursedWidth = 96.0;
-const _kSavingsWidth = 80.0;
-const _k1099Width = 50.0;
-const _kFixedColumnsWidth = _kDateWidth +
-    _kTypeWidth +
-    _kFromWidth +
-    _kPaidToWidth +
-    _kDisbursedWidth +
-    _kSavingsWidth +
-    _k1099Width;
+class _InlineLinkButton extends StatelessWidget {
+  const _InlineLinkButton({required this.label, required this.onTap});
 
-double _measureText(String text, TextStyle style) {
-  final painter = TextPainter(
-    text: TextSpan(text: text, style: style),
-    maxLines: 1,
-    textDirection: ui.TextDirection.ltr,
-  )..layout();
-  return painter.width;
-}
-
-class _TableHeader extends StatelessWidget {
-  const _TableHeader({required this.amountColumnWidth});
-
-  final double amountColumnWidth;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final borderSide = BorderSide(color: context.colors.border);
-    return IntrinsicHeight(
+    final color = onTap == null
+        ? AppColors.primary.withValues(alpha: 0.4)
+        : AppColors.primary;
+    return InkWell(
+      onTap: onTap,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: amountColumnWidth,
-            child: _HeaderCell('Amount', borderSide: borderSide),
+          Text(
+            label,
+            style: AppTextStyles.footnote.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          SizedBox(
-            width: _kDateWidth,
-            child: _HeaderCell('Date', borderSide: borderSide),
-          ),
-          SizedBox(
-            width: _kTypeWidth,
-            child: _HeaderCell('Type', borderSide: borderSide),
-          ),
-          SizedBox(
-            width: _kFromWidth,
-            child: _HeaderCell('From', borderSide: borderSide),
-          ),
-          SizedBox(
-            width: _kPaidToWidth,
-            child: _HeaderCell('Paid To', borderSide: borderSide),
-          ),
-          SizedBox(
-            width: _kDisbursedWidth,
-            child: _HeaderCell('Disbursed',
-                textAlign: TextAlign.center, borderSide: borderSide),
-          ),
-          SizedBox(
-            width: _kSavingsWidth,
-            child: _HeaderCell('Savings',
-                textAlign: TextAlign.center, borderSide: borderSide),
-          ),
-          const SizedBox(
-            width: _k1099Width,
-            child: _HeaderCell('1099', textAlign: TextAlign.center),
-          ),
+          const SizedBox(width: Spacing.space4),
+          Icon(AppIcons.forward, size: 16, color: color),
         ],
       ),
     );
   }
 }
 
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell(this.text,
-      {this.textAlign = TextAlign.left, this.borderSide});
-  final String text;
-  final TextAlign textAlign;
-  final BorderSide? borderSide;
+// ---------------------------------------------------------------------------
+// TRANSACTION CARD
+// ---------------------------------------------------------------------------
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: Spacing.space8,
-        horizontal: 4,
-      ),
-      decoration: borderSide != null
-          ? BoxDecoration(border: Border(right: borderSide!))
-          : null,
-      child: Text(
-        text,
-        textAlign: textAlign,
-        maxLines: 1,
-        softWrap: false,
-        overflow: TextOverflow.ellipsis,
-        style: AppTextStyles.footnote.copyWith(
-          color: context.colors.textMuted,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _EntryTableRow extends StatelessWidget {
-  const _EntryTableRow({
-    required this.entry,
-    required this.amountColumnWidth,
-    required this.onTap,
-  });
+class _TransactionCard extends StatelessWidget {
+  const _TransactionCard({required this.entry, required this.onTap});
 
   final FinancialEntry entry;
-  final double amountColumnWidth;
   final VoidCallback onTap;
+
+  String get _title {
+    if (entry.isIncome) {
+      return (entry.payerName != null && entry.payerName!.trim().isNotEmpty)
+          ? entry.payerName!
+          : entry.category;
+    }
+    return (entry.paidToName != null && entry.paidToName!.trim().isNotEmpty)
+        ? entry.paidToName!
+        : entry.category;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -871,172 +778,107 @@ class _EntryTableRow extends StatelessWidget {
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '' : '−';
     final dateStr = DateFormat('MMM d, yyyy').format(entry.entryDate);
-    final fromValue = entry.payerName ?? '';
-    final paidToValue = entry.paidToName ?? '';
+    final showReimbursedBadge = !entry.isIncome && entry.isReimbursed;
+    final showDisbursedBadge = entry.isIncome &&
+        entry.disbursements != null &&
+        entry.disbursements!.isNotEmpty;
+    // Badge slot always renders (transparent when absent) so row 3's height
+    // - and therefore the whole card's height - never depends on badge state.
+    final badgeLabel = showReimbursedBadge
+        ? 'Reimbursed'
+        : showDisbursedBadge
+            ? 'Disbursed'
+            : null;
+    final badgeColor =
+        badgeLabel != null ? context.colors.success : Colors.transparent;
 
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Amount — width computed to fit widest value
-              SizedBox(
-                width: amountColumnWidth,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.space16, horizontal: 4),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
+      borderRadius: BorderRadius.circular(Spacing.cardRadius),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: BorderRadius.circular(Spacing.cardRadius),
+          border: Border.all(color: context.colors.border),
+        ),
+        padding: const EdgeInsets.all(Spacing.space16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
                   child: Text(
-                    '$amountPrefix${entry.formattedAmount}',
+                    _title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.callout.copyWith(
-                      color: amountColor,
+                      color: context.colors.textPrimary,
                       fontWeight: FontWeight.w600,
                     ),
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.visible,
                   ),
                 ),
-              ),
-              // Date
-              SizedBox(
-                width: _kDateWidth,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.space16, horizontal: 4),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
-                  child: Text(
-                    dateStr,
-                    style: AppTextStyles.callout
-                        .copyWith(color: context.colors.textPrimary),
-                    maxLines: 2,
+                const SizedBox(width: Spacing.space12),
+                Text(
+                  '$amountPrefix${entry.formattedAmount}',
+                  style: AppTextStyles.callout.copyWith(
+                    color: amountColor,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              // Type
-              SizedBox(
-                width: _kTypeWidth,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.space16, horizontal: 4),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
+              ],
+            ),
+            const SizedBox(height: Spacing.space4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
                   child: Text(
                     entry.category,
-                    style: AppTextStyles.callout
-                        .copyWith(color: context.colors.textPrimary),
-                    maxLines: 2,
-                  ),
-                ),
-              ),
-              // From
-              SizedBox(
-                width: _kFromWidth,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.space16, horizontal: 4),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
-                  child: Text(
-                    fromValue,
-                    style: AppTextStyles.callout
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.footnote
                         .copyWith(color: context.colors.textSecondary),
-                    maxLines: 2,
                   ),
                 ),
-              ),
-              // Paid To
-              SizedBox(
-                width: _kPaidToWidth,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.space16, horizontal: 4),
-                  decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
+                const SizedBox(width: Spacing.space12),
+                Icon(AppIcons.forward,
+                    size: 20, color: context.colors.textSecondary),
+              ],
+            ),
+            const SizedBox(height: Spacing.space4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
                   child: Text(
-                    paidToValue,
-                    style: AppTextStyles.callout
+                    dateStr,
+                    style: AppTextStyles.footnote
                         .copyWith(color: context.colors.textSecondary),
-                    maxLines: 2,
                   ),
                 ),
-              ),
-              // Disbursed
-              SizedBox(
-                width: _kDisbursedWidth,
-                child: DecoratedBox(
+                const SizedBox(width: Spacing.space12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Spacing.space8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
-                  child: Center(
-                    child: (entry.disbursements != null &&
-                            entry.disbursements!.isNotEmpty)
-                        ? const Icon(
-                            AppIcons.success,
-                            size: 16,
-                            color: Colors.green,
-                          )
-                        : const SizedBox.shrink(),
+                    border: Border.all(color: badgeColor),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    badgeLabel ?? '',
+                    style: AppTextStyles.footnote.copyWith(
+                      color: badgeColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-              // Savings
-              SizedBox(
-                width: _kSavingsWidth,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                      border: Border(
-                          right: BorderSide(color: context.colors.border))),
-                  child: Center(
-                    child: entry.depositToSavings == true
-                        ? entry.depositToSavingsCents != null
-                            ? Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                                child: Text(
-                                  entry.formattedDepositToSavings!,
-                                  style: AppTextStyles.footnote.copyWith(
-                                    color: context.colors.success,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              )
-                            : Icon(
-                                AppIcons.dollar,
-                                size: 16,
-                                color: context.colors.success,
-                              )
-                        : const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-              // 1099
-              SizedBox(
-                width: _k1099Width,
-                child: Center(
-                  child: entry.is1099Expected == true
-                      ? const Icon(
-                          AppIcons.check,
-                          size: 16,
-                          color: Colors.orange,
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1044,47 +886,8 @@ class _EntryTableRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// BOTTOM ACTIONS ROW
+// COMBINED REPORT
 // ---------------------------------------------------------------------------
-
-class _BottomActionsRow extends ConsumerWidget {
-  const _BottomActionsRow();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(financialsProvider);
-
-    return Column(
-      children: [
-        const Divider(height: 1),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.pagePadding,
-            vertical: Spacing.space12,
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _OutlinedActionButton(
-                  label: 'View savings balance',
-                  onPressed: () => _showSavingsSheet(context, state.allEntries),
-                ),
-                const SizedBox(width: Spacing.space12),
-                _OutlinedActionButton(
-                  label: 'Generate Report',
-                  onPressed: state.isLoading
-                      ? null
-                      : () => _openCombinedReport(context, ref, state),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 void _openCombinedReport(
   BuildContext context,
@@ -1099,56 +902,10 @@ void _openCombinedReport(
         entries: state.dateFilteredEntries,
         bandName: bandName,
         dateFilter: state.dateFilter,
-        customStartDate: state.customStartDate,
-        customEndDate: state.customEndDate,
         members: members,
       ),
     ),
   );
-}
-
-/// Standard-size rose-outlined button used in the bottom action row.
-///
-/// Explicitly sized to the app's standard 48px button height (matching
-/// BrandActionButton and other OutlinedButtons across the app) rather than
-/// inheriting the app-wide OutlinedButtonTheme's full-width minimumSize —
-/// which would otherwise crash layout inside this row's horizontal scroll
-/// view.
-class _OutlinedActionButton extends StatelessWidget {
-  const _OutlinedActionButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          disabledForegroundColor: AppColors.primary.withValues(alpha: 0.4),
-          side: BorderSide(
-            width: BrandButton.borderWidth,
-            color: onPressed == null
-                ? AppColors.primary.withValues(alpha: 0.4)
-                : AppColors.primary,
-          ),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.space20,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          textStyle: AppTextStyles.button,
-        ),
-        child: Text(label),
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
