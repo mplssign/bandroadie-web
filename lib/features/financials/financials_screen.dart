@@ -198,6 +198,8 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                             ? const _EmptyState()
                                             : ListView.separated(
                                                 controller: _scrollController,
+                                                physics:
+                                                    const AlwaysScrollableScrollPhysics(),
                                                 padding: EdgeInsets.only(
                                                   left: Spacing.pagePadding,
                                                   right: Spacing.pagePadding,
@@ -599,22 +601,26 @@ class _SummaryHeader extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Spacing.pagePadding),
-      child: Column(
-        children: [
-          AnimatedBuilder(
-            animation: scrollController,
-            builder: (context, child) {
-              final progress = scrollController.hasClients
-                  ? (scrollController.offset / 60.0).clamp(0.0, 1.0)
-                  : 0.0;
-              return SizedBox(
+      child: AnimatedBuilder(
+        animation: scrollController,
+        builder: (context, child) {
+          final progress = scrollController.hasClients
+              ? (scrollController.offset / 60.0).clamp(0.0, 1.0)
+              : 0.0;
+          // Shared with the date-filter/count row and the links row below —
+          // both fade and shrink out of layout space as progress -> 1, and
+          // reverse automatically as progress -> 0 on scroll-up.
+          final collapse = (1.0 - progress).clamp(0.0, 1.0);
+          return Column(
+            children: [
+              SizedBox(
                 height: 64,
                 child: Stack(
                   children: [
                     Align(
                       alignment: Alignment.lerp(
                         Alignment.topCenter,
-                        Alignment.centerLeft,
+                        const Alignment(-0.35, 0.0),
                         progress,
                       )!,
                       child: Text(
@@ -629,7 +635,7 @@ class _SummaryHeader extends ConsumerWidget {
                     Align(
                       alignment: Alignment.lerp(
                         Alignment.bottomCenter,
-                        Alignment.centerRight,
+                        const Alignment(0.35, 0.0),
                         progress,
                       )!,
                       child: Text(
@@ -647,66 +653,95 @@ class _SummaryHeader extends ConsumerWidget {
                     ),
                   ],
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: Spacing.space4),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              PopupMenuButton<FinancialDateFilter>(
-                onSelected: (filter) =>
-                    ref.read(financialsProvider.notifier).setDateFilter(filter),
-                itemBuilder: (context) => FinancialDateFilter.values
-                    .map((f) => PopupMenuItem<FinancialDateFilter>(
-                          value: f,
-                          child: Text(_dateFilterLabel(f)),
-                        ))
-                    .toList(),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _dateFilterLabel(state.dateFilter),
-                      style: AppTextStyles.footnote.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
+              ),
+              ClipRect(
+                child: Align(
+                  heightFactor: collapse,
+                  child: Opacity(
+                    opacity: collapse,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: Spacing.space4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            PopupMenuButton<FinancialDateFilter>(
+                              onSelected: (filter) => ref
+                                  .read(financialsProvider.notifier)
+                                  .setDateFilter(filter),
+                              itemBuilder: (context) => FinancialDateFilter
+                                  .values
+                                  .map(
+                                      (f) => PopupMenuItem<FinancialDateFilter>(
+                                            value: f,
+                                            child: Text(_dateFilterLabel(f)),
+                                          ))
+                                  .toList(),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _dateFilterLabel(state.dateFilter),
+                                    style: AppTextStyles.footnote.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: Spacing.space4),
+                                  const Icon(AppIcons.forward,
+                                      size: 16, color: AppColors.primary),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
+                              style: AppTextStyles.footnote.copyWith(
+                                  color: context.colors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: Spacing.space4),
-                    const Icon(AppIcons.forward,
-                        size: 16, color: AppColors.primary),
-                  ],
+                  ),
                 ),
               ),
-              Text(
-                ' • ${count == 1 ? '1 transaction' : '$count transactions'}',
-                style: AppTextStyles.footnote
-                    .copyWith(color: context.colors.textSecondary),
+              ClipRect(
+                child: Align(
+                  heightFactor: collapse,
+                  child: Opacity(
+                    opacity: collapse,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: Spacing.space12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _InlineLinkButton(
+                              label: 'View Savings Balance',
+                              onTap: () =>
+                                  _showSavingsSheet(context, state.allEntries),
+                            ),
+                            const SizedBox(width: Spacing.space16),
+                            _InlineLinkButton(
+                              label: 'Generate Report',
+                              onTap: state.isLoading
+                                  ? null
+                                  : () =>
+                                      _openCombinedReport(context, ref, state),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(height: Spacing.space16),
             ],
-          ),
-          const SizedBox(height: Spacing.space12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _InlineLinkButton(
-                label: 'View Savings Balance',
-                onTap: () => _showSavingsSheet(context, state.allEntries),
-              ),
-              const SizedBox(width: Spacing.space16),
-              _InlineLinkButton(
-                label: 'Generate Report',
-                onTap: state.isLoading
-                    ? null
-                    : () => _openCombinedReport(context, ref, state),
-              ),
-            ],
-          ),
-          const SizedBox(height: Spacing.space16),
-        ],
+          );
+        },
       ),
     );
   }

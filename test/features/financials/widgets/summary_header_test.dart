@@ -481,14 +481,54 @@ void main() {
           .widgetList<Align>(
               find.descendant(of: stackFinder, matching: find.byType(Align)))
           .toList();
-      expect(aligns[0].alignment, Alignment.centerLeft);
-      expect(aligns[1].alignment, Alignment.centerRight);
+      expect(aligns[0].alignment, const Alignment(-0.35, 0.0));
+      expect(aligns[1].alignment, const Alignment(0.35, 0.0));
 
       final totalText = tester
           .widgetList<Text>(
               find.descendant(of: stackFinder, matching: find.byType(Text)))
           .toList()[1];
       expect(totalText.style?.fontSize, AppFontSizes.caption);
+    },
+  );
+
+  testWidgets(
+    'date-filter/count row and links row collapse and expand reversibly as '
+    'the transaction list is scrolled down then back up',
+    (tester) async {
+      final entries = List.generate(
+        30,
+        (i) => _entry(id: 'e$i', amountCents: 1000 * (i + 1), isIncome: true),
+      );
+      await _pump(tester, FinancialsState(allEntries: entries));
+
+      final listViewController =
+          tester.widget<ListView>(find.byType(ListView)).controller!;
+
+      Opacity opacityAncestorOf(Finder finder) => tester.widget<Opacity>(
+            find.ancestor(of: finder, matching: find.byType(Opacity)).first,
+          );
+
+      final dateFilterFinder =
+          find.byType(PopupMenuButton<FinancialDateFilter>);
+      final linksRowFinder = find.text('View Savings Balance');
+
+      // At rest (offset 0): both rows fully visible.
+      expect(opacityAncestorOf(dateFilterFinder).opacity, 1.0);
+      expect(opacityAncestorOf(linksRowFinder).opacity, 1.0);
+
+      // Scrolled past the 60px collapse threshold: both rows fully collapsed.
+      listViewController.jumpTo(60.0);
+      await tester.pump();
+      expect(opacityAncestorOf(dateFilterFinder).opacity, 0.0);
+      expect(opacityAncestorOf(linksRowFinder).opacity, 0.0);
+
+      // Scrolled back to rest: both rows fully visible again, proving the
+      // collapse is reversible and not a one-way animation.
+      listViewController.jumpTo(0.0);
+      await tester.pump();
+      expect(opacityAncestorOf(dateFilterFinder).opacity, 1.0);
+      expect(opacityAncestorOf(linksRowFinder).opacity, 1.0);
     },
   );
 }

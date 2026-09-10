@@ -6,32 +6,579 @@
 
 ## Feature Title
 
-Financials reconciliation — reposition the transaction card badge onto a
-fixed-height row, reuse the existing lighter-gray semantic token for
-secondary text, and add a scroll-collapsing summary header (Engineer Cycle
-5, direct Tony visual/UX request against already-open PR #275)
+Financials reconciliation — add a precise `physics`-instance regression
+guard for the scroll fix (closing Cycle 6's finding that the drag-based
+test alone did not distinguish pre-fix from post-fix code) and reduce the
+collapsed-header gap between the label and total per Tony's direct visual
+tweak (Engineer Cycle 7, against already-open PR #275)
 
 ## Cycle Number
 
-5 (this QA slug's fourth pass. Cycle 4, 2, and 1, below the divider, are
-historical/APPROVED, covering the `AppScaffold`/`AppAppBar` header
-standardization, an earlier date-filter restyle, and the original
-reconciliation-port work respectively. This cycle validates three
-independent visual/UX items in `financials_screen.dart`: the transaction
-card badge repositioning to a fixed-height row, the `textMuted` →
-`textSecondary` gray-token swap, and the scroll-collapsing summary header.
-No `ARCHITECT_PLAN.md` update accompanies this engineer cycle — Manager's
-instructions to the Engineer stated none was needed for this narrow,
-three-item change, consistent with the precedent set in Cycles 2 and 4, so
-this review validates directly against `ENGINEER_REPORT.md`'s Cycle 5
-stated scope and Manager's explicit invocation checklist, in place of a
-plan.)
+7 (this QA slug's sixth pass. Cycles 6 (REQUIRES CHANGES), 5, 4, 2, and 1,
+below the divider, are historical. This cycle validates Engineer Cycle 7,
+which directly targets this QA slug's own Cycle 6 REQUIRES CHANGES
+finding — that `financials_screen_scroll_test.dart`'s drag-based test does
+not distinguish pre-fix from post-fix code for the
+`AlwaysScrollableScrollPhysics` bugfix — plus a new, separate Tony visual
+tweak to the collapsed-header alignment. No `ARCHITECT_PLAN.md` update
+accompanies this engineer cycle — consistent with the precedent set in
+Cycles 2, 4, 5, and 6 — so this review validates directly against
+`ENGINEER_REPORT.md`'s Cycle 7 stated scope and Manager's explicit
+two-part invocation checklist, in place of a plan.)
 
 ## Final Verdict
 
 **APPROVED**
 
 ## Validation Summary
+
+Confirmed branch `feature/financials-transaction-cards-reconciliation` is
+checked out with a clean-except-expected working tree, unchanged since
+Manager's invocation. Confirmed the highest prior recorded cycle in this
+file was Cycle 6/REQUIRES CHANGES (this exact QA session's own prior
+finding), ruling out a duplicate/stale QA session silently redoing this
+work. Resolved `ENGINEER_REPORT.md`'s latest section (Cycle 7, "Ready For
+QA: Yes") and read it in full. Reviewed the full uncommitted diff for all
+three named files directly (`git diff HEAD` for the two tracked files,
+full read of the untracked new-test-addition in
+`financials_screen_scroll_test.dart`).
+
+**Part 1 (Cycle 6 finding fix) — independently re-verified empirically,
+not taken on faith.** The entire project was copied to a disposable
+scratch location outside the reviewed repo (`rsync` to
+`/tmp/qa-physics-check`, no git operations involved), the new
+`physics: const AlwaysScrollableScrollPhysics()` line was removed in that
+disposable copy only, and `financials_screen_scroll_test.dart` was run
+against it. Result: the pre-existing drag-based test still passed (as
+found in Cycle 6), but the new direct physics-assertion test failed
+immediately with `Expected: <Instance of 'AlwaysScrollableScrollPhysics'>
+Actual: <null>` — confirming the new test genuinely and precisely
+distinguishes pre-fix from post-fix code, closing this QA session's own
+Cycle 6 finding. The reviewed repository's actual working tree was never
+modified by this check (confirmed via `git status --short` immediately
+after, matching the pre-check state exactly); the scratch copy was deleted
+afterward.
+
+**Part 2 (Tony visual tweak) — verified via diff + independent test run.**
+`git diff HEAD` confirms the collapsed-state (`progress == 1`)
+`Alignment.lerp` targets in `_SummaryHeader.build()` changed from
+`Alignment.centerLeft`/`Alignment.centerRight` to `const Alignment(-0.35,
+0.0)`/`const Alignment(0.35, 0.0)`, and that the at-rest (`progress == 0`)
+targets (`Alignment.topCenter`/`Alignment.bottomCenter`) are untouched.
+`summary_header_test.dart`'s existing collapsed-state assertion was
+updated to the same two new constants; the separate at-rest assertion
+(`Alignment.topCenter`/`Alignment.bottomCenter`) elsewhere in the same file
+is unchanged.
+
+Independently re-ran `flutter analyze` on all three changed files (0
+issues at any severity) and `flutter test` on the full
+`test/features/financials/widgets/` directory (68/68 passing — actually
+re-run, not taken on faith). All validation below beyond the disposable
+scratch-copy physics check is code-path/static analysis plus independent
+test-suite execution — no running app instance was used (see Manual
+Verification Punch List for the on-device items that remain Tony's job).
+
+## Architect Scope Review
+
+No `ARCHITECT_PLAN.md` update exists for this engineer cycle (consistent
+with Cycles 2, 4, 5, and 6's precedent). Manager's two-part invocation
+checklist, verified directly:
+
+1. **Cycle 6 finding fix — CONFIRMED, genuinely closes the finding.**
+   `financials_screen_scroll_test.dart` now has a second `testWidgets`
+   block: `expect(listView.physics, isA<AlwaysScrollableScrollPhysics>());`
+   run against `tester.widget<ListView>(find.byType(ListView))`. This
+   asserts the literal `physics` instance configured on the production
+   `ListView.separated` in `financials_screen.dart` — a direct check of
+   the exact property the Cycle 6 fix sets, not a simulated drag. Verified
+   empirically (see Validation Summary) that removing the `physics:` line
+   makes this specific assertion fail immediately
+   (`Actual: <null>` is not `AlwaysScrollableScrollPhysics`), while the
+   pre-existing drag-based test in the same file continues to pass either
+   way — exactly reproducing and then resolving this QA session's own
+   Cycle 6 finding. `ENGINEER_REPORT.md`'s Cycle 7 "Part 1" section now
+   states plainly: "That claim is retracted here — it should not have been
+   stated as verification of the fix," and "Full on-device scroll-feel
+   verification ... remains a manual/Tony-run check; no automated widget
+   test can substitute for that." This does not repeat Cycle 6's
+   overstated claim — confirmed by reading the full Cycle 7 section, not
+   just the diff.
+2. **Tony visual tweak — confirmed correct and precisely scoped.**
+   `git diff HEAD` shows only the two collapsed-state (`progress == 1`)
+   `Alignment.lerp` end-targets changed, from `Alignment.centerLeft`/
+   `Alignment.centerRight` to `const Alignment(-0.35, 0.0)`/`const
+   Alignment(0.35, 0.0)`. The at-rest (`progress == 0`) start-targets
+   (`Alignment.topCenter`/`Alignment.bottomCenter`) are byte-for-byte
+   unchanged in the diff — confirmed by diffing the surrounding
+   `Alignment.lerp(...)` calls line-by-line. `summary_header_test.dart`'s
+   `'label moves left and total shrinks + moves right once scrolled past
+   the 60px collapse threshold'` test jumps the scroll controller to
+   `60.0` (progress clamps to exactly `1.0`) and now asserts
+   `aligns[0].alignment == const Alignment(-0.35, 0.0)` and
+   `aligns[1].alignment == const Alignment(0.35, 0.0)` — matching the new
+   production constants exactly. The separate at-rest test in the same
+   file (asserting `Alignment.topCenter`/`Alignment.bottomCenter` at
+   `progress == 0`) is untouched in the diff, and both tests pass in the
+   independently re-run suite.
+
+## Completeness Check
+
+Both of this cycle's two goals are fully implemented and independently
+verified: (1) the precise `physics`-instance regression test closes last
+cycle's finding, confirmed to actually fail without the fix, and (2) the
+collapsed-header alignment tweak is applied exactly as specified, with the
+at-rest state untouched, and the test suite updated to match. No partial
+implementation, no missing edge case, no gap between what
+`ENGINEER_REPORT.md` claims and what the diff/tests actually show.
+
+## Behavior Verification
+
+**Part 1: runtime-exercised, not just code-path analysis.** The claim that
+the new test "distinguishes pre-fix from post-fix code" was independently
+confirmed by actually running the test suite twice against a disposable
+scratch copy — once with the fix present (passes) and once with it
+removed (fails on the new assertion) — not merely reasoned about from
+reading the code. **Part 2: code-path analysis plus test execution.**
+Traced `Alignment.lerp(Alignment.topCenter, const Alignment(-0.35, 0.0),
+1.0)` (and the total's equivalent) to confirm they resolve to exactly the
+new constants at `progress == 1`, and independently re-ran
+`summary_header_test.dart`, which passed. Neither part involved manual
+on-device testing — real visual confirmation of the reduced gap on a
+running build is Tony's job (see Manual Verification Punch List).
+
+## Regression Check
+
+**Risk: LOW.** The physics-assertion test is purely additive (a new
+`testWidgets` block; the existing drag-based test and its assertions are
+untouched). The alignment change only swaps two `const Alignment(...)`
+literals used as `Alignment.lerp` end-targets already gated behind the
+existing `progress`/`AnimatedBuilder` mechanism from Cycles 5–6 — no new
+listener, controller, or rebuild trigger introduced, and the at-rest path
+(`progress == 0`, the common/default state) is provably unchanged. No
+touches to auth/session, Supabase RPC, provider init order, or
+platform-specific code. Independently re-ran the full
+`test/features/financials/widgets/` suite and got 68/68 passing (67 from
+Cycle 6 + 1 new physics-assertion test), confirming no cross-widget
+regression. This cycle fully resolves the Critical residual-risk finding
+from Cycle 6 (no automated guard against the physics line being
+accidentally removed) — that guard now exists and was proven to work.
+
+## Database Safety
+
+Not applicable — no migrations, RPC, or schema touched by this diff.
+
+## Analyzer Results
+
+Independently ran:
+
+```
+flutter analyze lib/features/financials/financials_screen.dart \
+  test/features/financials/widgets/summary_header_test.dart \
+  test/features/financials/widgets/financials_screen_scroll_test.dart
+
+Analyzing 3 items...
+No issues found! (ran in 1.9s)
+```
+
+Clean at every severity (no info/warning/error). Matches Engineer's claim.
+
+## Test Results
+
+Independently ran the full directory (not just the files touched this
+cycle):
+
+```
+flutter test test/features/financials/widgets/
+...
++68: All tests passed!
+```
+
+**68/68 passing, 0 failures.** Matches Engineer's claim exactly (67 from
+Cycle 6 + 1 new physics-assertion test this cycle).
+
+## Diff Safety Review
+
+Grepped all three changed files for `print\(|debugPrint\(|TODO|FIXME` —
+zero matches. No secrets, API keys, or credentials present anywhere in the
+diff. No leftover test scaffolding. No accidental deletions or unrelated
+formatting churn detected.
+
+## Change Budget Review
+
+No plan Change Budget section exists for this cycle (see Architect Scope
+Review above). This cycle's incremental changes are small and precisely
+scoped to the two stated goals: `financials_screen.dart`'s own new diff
+this cycle is the 2-line `physics:` addition (already reviewed/approved as
+production code in Cycle 6) plus a 2-constant swap
+(`Alignment.centerLeft`/`Alignment.centerRight` →
+`Alignment(-0.35, 0.0)`/`Alignment(0.35, 0.0)`) — no new widgets, helpers,
+providers, or dependencies. `summary_header_test.dart`'s new diff this
+cycle is a 2-line assertion-value update. `financials_screen_scroll_test.dart`
+grew by 13 lines (one new, focused `testWidgets` block reusing the file's
+existing `_pump`/`_manyEntries` helpers — no new abstractions). Cumulative
+`--numstat` totals shown by `git diff` include Cycle 6's already-approved
+structural work (two-row collapse extension), not new scope introduced
+this cycle. Proportionate to the stated two-point fix.
+
+## Code Efficiency Review
+
+No new helpers, providers, notifiers, or private widget classes added this
+cycle. The new physics test reuses the file's existing `_pump`/
+`_manyEntries` setup rather than duplicating it. The alignment change is a
+literal two-constant substitution with no new abstraction layer.
+Independently grepped `lib/` for an existing physics-assertion or
+collapse-alignment helper before accepting Engineer's "no existing helper"
+claim — none exists; this is correctly a one-off test assertion and a
+literal constant change, not something warranting a shared helper. Nothing
+flagged as bloat.
+
+## Manual Verification Punch List
+
+The following require Tony to visually/interactively confirm on a running
+build — QA does not launch or drive the app per its operating constraints.
+
+1. On the real device where "cards do not move" was originally reported,
+   open the Financials screen with enough transactions to exceed one
+   screen's height, and drag the transaction list up and down. **Expected:**
+   the list scrolls smoothly and immediately in response to the drag, with
+   no dead zone or stuck feeling. No automated test in this repo can
+   confirm this specific device-level symptom — this remains the one
+   genuine gap in automated coverage, now correctly and honestly disclosed
+   in `ENGINEER_REPORT.md` rather than overstated.
+2. Open the Financials screen and scroll the transaction list down past
+   the collapse threshold. **Expected:** once collapsed, the "TOTAL
+   INCOME"/"TOTAL EXPENSES" label and the total dollar amount sit visibly
+   closer together (near horizontal center) than before this change,
+   rather than pinned to the far left/right edges of the row.
+3. Scroll back up to the top. **Expected:** the label and total return to
+   their original at-rest positions (stacked top/bottom, centered) with no
+   layout jump or leftover offset — confirming the at-rest state is
+   unaffected by this cycle's change.
+
+## Issues Found
+
+### Critical
+
+None.
+
+### Warnings
+
+None.
+
+### Suggestions
+
+None.
+
+---
+
+# Cycle 6 (historical — REQUIRES CHANGES, scroll-physics fix + two-row
+collapse extension; superseded by Cycle 7's physics-test correction above)
+
+## Feature Title (Cycle 6)
+
+Financials reconciliation — fix a real reported bug (transaction list
+completely non-scrollable on a real device) and extend the Cycle 5
+scroll-collapsing summary header to the date-filter/count row and the
+links row, with a new reversibility test (Engineer Cycle 6, continuation of
+Cycle 5's scroll-collapsing header work, against already-open PR #275)
+
+## Cycle 6 Final Verdict
+
+**REQUIRES CHANGES**
+
+## Cycle 6 Validation Summary
+
+Confirmed branch `feature/financials-transaction-cards-reconciliation` is
+checked out with a clean-except-expected working tree: exactly 2 modified
+tracked files in scope (`lib/features/financials/financials_screen.dart`,
+`test/features/financials/widgets/summary_header_test.dart`), 1 new
+untracked in-scope test file
+(`test/features/financials/widgets/financials_screen_scroll_test.dart`),
+and this feature's `ENGINEER_REPORT.md` (also tracked/modified, doc-only).
+Confirmed via `git diff HEAD --numstat` that no other tracked file shows a
+diff; the remaining untracked files in the tree (`PR_BODY.md` files, an
+unrelated migration, an audit doc, a stray
+`docs/features/feature/financials-transaction-cards/` dir) are pre-existing
+artifacts from other slugs, not touched by this diff. Confirmed
+`QA_REPORT.md`'s highest existing cycle prior to this pass was Cycle
+5/APPROVED (a different, already-shipped scope), ruling out a duplicate or
+stale QA session already covering this Cycle 6 work. Resolved
+`ENGINEER_REPORT.md`'s latest section (Cycle 6, "Ready For QA: Yes").
+Reviewed the full uncommitted diff for both changed files directly
+(`git diff HEAD`) and read the new test file in full. Independently re-ran
+`flutter analyze` on all three files (clean, 0 issues) and `flutter test`
+on the full `test/features/financials/widgets/` directory (67/67 passing —
+confirmed by actually re-running, not taken on faith). **Critically, per
+this cycle's explicit instruction not to just trust the Engineer's claim
+that the new scroll test "would have failed before the physics fix,"** this
+was independently tested empirically (not just reasoned about): the entire
+project was copied to a disposable scratch location outside the reviewed
+repo (`rsync` to `/tmp/qa-scroll-check`, no git operations involved), the
+`physics: const AlwaysScrollableScrollPhysics()` line was reverted in that
+disposable copy only, and `financials_screen_scroll_test.dart` was run
+against it. **The test still passed** — it does not distinguish the
+pre-fix and post-fix code. This directly contradicts the Engineer's claim
+and is written up as a Critical finding below. The reviewed repository's
+actual working tree was never modified by this check (confirmed via
+`git status --short` immediately after, matching the pre-check state
+exactly); the scratch copy was deleted afterward. All other validation
+below is code-path/static analysis plus independent test-suite execution —
+no running app instance was used (see Manual Verification Punch List for
+the items that genuinely require Tony's eyes on a live build — most
+notably confirming the scroll fix actually works on a real device, since
+the automated test cannot confirm this).
+
+## Cycle 6 Architect Scope Review
+
+No `ARCHITECT_PLAN.md` update exists for this engineer cycle (consistent
+with Cycles 2, 4, and 5's precedent). Manager's four-point invocation
+checklist, verified directly:
+
+1. **Bug fix (scroll physics) — FAILS independent verification.**
+   `physics: const AlwaysScrollableScrollPhysics()` is confirmed added to
+   the `ListView.separated` in `financials_screen.dart` (production change
+   present and correct as a defensive addition). However, the specific
+   instruction was to confirm the new `financials_screen_scroll_test.dart`
+   is "real/meaningful (not tautological)" and "would have failed before
+   the physics fix... don't just trust the claim." Empirically verified
+   (see Validation Summary): reverting only the `physics:` line in an
+   isolated scratch copy and re-running the test produces **the same
+   passing result**. The test pumps 30 entries (exceeding one viewport)
+   inside `Expanded`-bounded layout and drags the `ListView` — under
+   `flutter test`'s synthetic gesture harness, a `ListView` whose content
+   overflows a bounded viewport scrolls under Flutter's default physics
+   regardless of `AlwaysScrollableScrollPhysics` (that widget's practical
+   effect is enabling scroll/overscroll when content does *not* overflow
+   the viewport, e.g. for pull-to-refresh on short lists — not the
+   overflowing-content case this test exercises). This means the
+   real-device symptom Tony reported (a gesture-arena/hit-testing
+   interaction specific to a physical device, not reproducible in the
+   widget-test harness) is not actually covered by this test, and the
+   Engineer's report overstates what was verified.
+2. **Two-row collapse extension — confirmed correct.** `git diff HEAD`
+   shows the `_SummaryHeader`'s `AnimatedBuilder` now computes
+   `collapse = (1.0 - progress).clamp(0.0, 1.0)` once per build, shared by
+   both new rows. The date-filter+count row and the links row are each
+   wrapped in `ClipRect(child: Align(heightFactor: collapse, child:
+   Opacity(opacity: collapse, child: <row>)))` — `Align.heightFactor`
+   shrinks occupied layout height, `ClipRect` prevents paint-through past
+   the collapsed bounds, `Opacity` fades in step. At `progress == 0`
+   (`collapse == 1`) both rows render full-size/full-opacity, matching the
+   pre-Cycle-5 static layout; at `progress == 1` (`collapse == 0`) both are
+   zero-height and transparent. Because `collapse` is a pure function of
+   `scrollController.offset` (no one-shot `AnimationController`/curve),
+   scrolling back up re-expands both rows automatically. Independently
+   verified the new reversibility test in `summary_header_test.dart`
+   genuinely checks all three states via real `Opacity` widget assertions:
+   `opacityAncestorOf(dateFilterFinder/linksRowFinder).opacity` is asserted
+   `1.0` at offset `0`, `0.0` after `jumpTo(60.0)`, and `1.0` again after
+   `jumpTo(0.0)` — three real widget-tree lookups, not placeholder checks.
+   Unlike the scroll test, this one is structurally non-tautological:
+   prior to this cycle's production change, no `Opacity` ancestor existed
+   at all around these two rows, so `find.byType(Opacity)).first` would
+   have thrown before this cycle's `ClipRect`/`Opacity` wrapping was added
+   — confirmed by reading Cycle 5's diff, which only wrapped the
+   label/total row, not these two.
+3. **No debug scaffolding — confirmed.** Grepped
+   `financials_screen_scroll_test.dart` and `summary_header_test.dart` for
+   `print\(|debugPrint\(|TODO|FIXME` — zero matches in either file.
+4. **No other file shows a diff — confirmed.** `git status --short` and
+   `git diff --numstat HEAD` both confirm exactly the 2 tracked files
+   (`financials_screen.dart`, `summary_header_test.dart`) plus this
+   feature's `ENGINEER_REPORT.md` are modified, and exactly 1 new untracked
+   file (`financials_screen_scroll_test.dart`) exists in scope. All other
+   untracked files predate this diff and belong to unrelated slugs.
+
+## Cycle 6 Completeness Check
+
+3 of 4 Cycle 6 goals are implemented and verifiable as complete: the
+production physics line is present, the two-row collapse extension is
+implemented per spec, and debug scaffolding was removed. The 4th —
+"add a test proving the two-row collapse is genuinely reversible" — is also
+implemented and *is* meaningful (see above). However, the scroll-bug fix's
+own regression test does not meet the explicit bar this cycle's
+verification required ("would have failed before the fix"): it does not.
+This is a validation-completeness gap on the single most important item
+this cycle (the user-reported bug fix itself), not a partial implementation
+of the production code — the physics line itself is a reasonable, low-risk
+addition, but its claimed proof is false.
+
+## Cycle 6 Behavior Verification
+
+Code-path analysis for the collapse-extension logic (structural argument
+above, plus the passing reversibility test) — genuinely verified, not
+runtime-exercised beyond the widget-test harness. For the scroll-physics
+fix, this cycle went beyond code-path analysis: an isolated, disposable
+copy of the project (outside the reviewed working tree) was used to
+empirically re-run the test with the fix present vs. absent, which is
+static/test-harness verification, not manual on-device testing — real
+on-device scroll behavior remains unverified and is Tony's job (see Manual
+Verification Punch List).
+
+## Cycle 6 Regression Check
+
+**Risk: LOW for the production code itself.** Both changes are additive
+and reuse established patterns: `AlwaysScrollableScrollPhysics` cannot make
+a previously-scrollable list non-scrollable (it only ever loosens scroll
+gating), and the two-row collapse extension reuses the exact
+`ClipRect`/`Align`/`Opacity` pattern already implicitly proven safe by
+Cycle 5's label/total transition, sharing the same `progress`
+value/listener rather than introducing a second `AnimatedBuilder` or
+`ScrollController` listener. No touches to auth/session, Supabase RPC,
+provider init order, or platform-specific code. Independently re-ran the
+full `test/features/financials/widgets/` suite (all 6 files) and got 67/67
+passing, confirming no cross-widget regression. **Residual risk:** because
+the new scroll-bug regression test doesn't actually exercise the
+device-specific symptom, there's no automated guard against this exact bug
+recurring (e.g., a future refactor removing the `physics:` line would not
+be caught by CI) — flagged as a Critical finding, not merely a Regression
+Check note, since it was explicitly named this cycle's key verification
+item.
+
+## Cycle 6 Database Safety
+
+Not applicable — no migrations, RPC, or schema touched by this diff.
+
+## Cycle 6 Analyzer Results
+
+Independently ran:
+
+```
+flutter analyze lib/features/financials/financials_screen.dart \
+  test/features/financials/widgets/summary_header_test.dart \
+  test/features/financials/widgets/financials_screen_scroll_test.dart
+
+Analyzing 3 items...
+No issues found! (ran in 2.5s)
+```
+
+Clean at every severity (no info/warning/error). Matches Engineer's claim.
+
+## Cycle 6 Test Results
+
+Independently ran the full directory (not just the files touched this
+cycle):
+
+```
+flutter test test/features/financials/widgets/
+...
+00:06 +67: All tests passed!
+```
+
+**67/67 passing, 0 failures.** Matches Engineer's claim exactly.
+
+## Cycle 6 Diff Safety Review
+
+Grepped `financials_screen_scroll_test.dart` and `summary_header_test.dart`
+for `print\(|debugPrint\(|TODO|FIXME` — zero matches in both. No secrets,
+API keys, or credentials present anywhere in the diff. No leftover test
+scaffolding found (the Engineer's claimed removal of 3 debug `print`
+statements is confirmed — none remain). No accidental deletions or
+unrelated formatting churn detected.
+
+## Cycle 6 Change Budget Review
+
+No plan Change Budget section exists for this cycle (see Architect Scope
+Review above). Raw `--numstat` for this turn's tracked changes:
+`summary_header_test.dart` +40/-0 (new reversibility test only, no
+deletions — expected, additive test coverage). `financials_screen.dart`'s
+cumulative diff (+99/-64) spans this cycle's earlier turn (physics line +
+two-row collapse extension) plus a `dart format` whitespace pass, per
+`ENGINEER_REPORT.md`'s own account — not re-touched production logic this
+turn. New file `financials_screen_scroll_test.dart` is 109 lines. No new
+public classes/widgets, no new dependencies, no new provider/notifier.
+Proportionate to a bug fix + feature extension + one new focused test file.
+
+## Cycle 6 Code Efficiency Review
+
+No new helpers, providers, notifiers, or private widget classes added. The
+`collapse` value is a single shared local computed once per
+`AnimatedBuilder` build, not duplicated per row. The reversibility test's
+`opacityAncestorOf` closure is local to its single test (used twice within
+it), not promoted to a shared top-level helper — appropriately scoped, not
+under- or over-abstracted. Nothing flagged as bloat.
+
+## Cycle 6 Manual Verification Punch List
+
+The following require Tony to visually/interactively confirm on a running
+build — QA does not launch or drive the app per its operating constraints.
+**Item 1 below is the most important item this cycle**, since the
+automated regression test could not be confirmed to actually validate the
+fix (see Issues Found).
+
+1. On the real device where "cards do not move" was originally reported,
+   open the Financials screen with enough transactions to exceed one
+   screen's height, and drag the transaction list up and down. **Expected:**
+   the list scrolls smoothly and immediately in response to the drag, with
+   no dead zone or stuck feeling. This is the one behavior this cycle's
+   automated test could not actually confirm — see the Critical finding
+   below.
+2. While scrolling that same list, watch the date-filter/count row (e.g.
+   "This year • 12 transactions") and the links row ("View Savings
+   Balance" / "Generate Report"). **Expected:** both rows progressively
+   fade and shrink out of layout space together as you scroll down past
+   roughly the first card's height, at the same time the
+   "TOTAL INCOME"/"TOTAL EXPENSES" label/total already do (from Cycle 5).
+3. Scroll back up to the top. **Expected:** both rows reverse cleanly —
+   fading back in and re-expanding to their original height — arriving
+   back at the exact original at-rest layout with no leftover partial
+   fade, no snapping, and no layout jump.
+4. Repeat the down/up scroll a few times in quick succession. **Expected:**
+   no visual jank, flicker, or dropped frames in the collapse/expand
+   transition, and no crash or stuck state from rapid direction changes.
+
+## Cycle 6 Issues Found
+
+### Critical
+
+- **[root-cause-diagnosis]** The new `financials_screen_scroll_test.dart`
+  regression test does not validate the scroll-physics fix it claims to.
+  Empirically confirmed (isolated disposable copy, not the reviewed repo):
+  the test passes identically with `physics: const
+  AlwaysScrollableScrollPhysics()` present and with it removed. A bounded
+  `Expanded`-height `ListView` whose content overflows the viewport scrolls
+  under Flutter's default physics in the `flutter test` harness regardless
+  of this widget — the real-device symptom Tony reported is most likely a
+  gesture-arena/hit-testing interaction that this harness cannot reproduce
+  at all. `ENGINEER_REPORT.md`'s statement "Verified by
+  `financials_screen_scroll_test.dart`..." is inaccurate: the test provides
+  no regression protection for this exact bug (a future accidental removal
+  of the `physics:` line would not be caught by this test or CI), and its
+  passing does not confirm the fix resolves the real device bug. This is
+  the single explicit verification item this cycle's invocation asked QA
+  to confirm, and it fails. Recommend the Engineer either (a) correct
+  `ENGINEER_REPORT.md` to state plainly that this specific regression
+  cannot be meaningfully unit/widget-tested and that the Manual
+  Verification Punch List is the real gate for this fix, or (b) construct
+  a test that actually distinguishes the two states (e.g., one that
+  reproduces whatever nested-layout/gesture condition caused the original
+  failure, if it can be identified more specifically than "under certain
+  layout conditions").
+
+### Warnings
+
+None.
+
+### Suggestions
+
+None.
+
+---
+
+# Cycle 5 (historical — APPROVED, badge reposition + gray token + scroll-collapse header)
+
+## Feature Title (Cycle 5)
+
+Financials reconciliation — reposition the transaction card badge onto a
+fixed-height row, reuse the existing lighter-gray semantic token for
+secondary text, and add a scroll-collapsing summary header (Engineer Cycle
+5, direct Tony visual/UX request against already-open PR #275)
+
+## Final Verdict (Cycle 5)
+
+**APPROVED**
+
+## Validation Summary (Cycle 5)
 
 Confirmed branch `feature/financials-transaction-cards-reconciliation` is
 checked out with a clean-except-expected working tree (4 modified tracked
@@ -57,7 +604,7 @@ was used (see Manual Verification Punch List for the items that genuinely
 require Tony's eyes on a live build, most notably the at-rest visual-parity
 caveat the Engineer explicitly flagged).
 
-## Architect Scope Review
+## Cycle 5 Architect Scope Review
 
 No `ARCHITECT_PLAN.md` update exists for this engineer cycle, and none was
 required per Manager's explicit instruction (consistent with the precedent
@@ -132,7 +679,7 @@ addressed directly below.
    pixel-identical to the old plain-`Column` layout's spacing — this
    requires Tony's eyes on a live, unscrolled build.
 
-## Completeness Check
+## Cycle 5 Completeness Check
 
 All three tasks in `ENGINEER_REPORT.md`'s Cycle 5 "Tasks Completed" are
 present in the diff: (1) badge repositioned into a fixed-height row-3 slot
@@ -141,7 +688,7 @@ token applied at all 5 specified sites, (3) `ScrollController` added,
 attached, disposed, and threaded into `_SummaryHeader`'s `AnimatedBuilder`
 collapse logic. No partial implementation or missing edge case found.
 
-## Behavior Verification
+## Cycle 5 Behavior Verification
 
 Code-path analysis only (no running app instance — categorically QA's
 constraint, not a shortcut). All three items are presentational/layout
@@ -152,7 +699,7 @@ changes are present in the diff. The badge-presence rules
 cycle — only their layout position and the always-render/transparent
 mechanism changed.
 
-## Regression Check
+## Cycle 5 Regression Check
 
 **Risk: LOW.** Single production file changed (`financials_screen.dart`)
 plus two matching test files; no touches to auth/session, Supabase RPC
@@ -166,11 +713,11 @@ changed ones) and got 65/65 passing, confirming no cross-widget regression
 in the same screen (sort toggle, savings sheet, add/edit form, detail
 sheet all remain green).
 
-## Database Safety
+## Cycle 5 Database Safety
 
 Not applicable — no migrations, RPC, or schema touched by this diff.
 
-## Analyzer Results
+## Cycle 5 Analyzer Results
 
 Independently ran:
 
@@ -185,7 +732,7 @@ No issues found! (ran in 1.3s)
 
 Clean at every severity (no info/warning/error). Matches Engineer's claim.
 
-## Test Results
+## Cycle 5 Test Results
 
 Independently ran the full directory (not just the files touched this
 cycle):
@@ -198,7 +745,7 @@ flutter test test/features/financials/widgets/
 
 **65/65 passing, 0 failures.** Matches Engineer's claim exactly.
 
-## Diff Safety Review
+## Cycle 5 Diff Safety Review
 
 Grepped all three changed files for `TODO|FIXME|debugPrint\(` — zero
 matches in each. No secrets, API keys, or credentials present. No leftover
@@ -208,10 +755,10 @@ own diff is purely additive (a new Cycle 5 section appended after the
 existing Cycle 4 "Ready For QA / Yes" ending), no edits to prior cycle
 content.
 
-## Change Budget Review
+## Cycle 5 Change Budget Review
 
-No plan Change Budget section exists for this cycle (see Architect Scope
-Review above). Raw `--numstat`: `financials_screen.dart` +122/-64,
+No plan Change Budget section exists for this cycle (see Cycle 5 Architect
+Scope Review above). Raw `--numstat`: `financials_screen.dart` +122/-64,
 `summary_header_test.dart` +69/-0 (new tests only, no deletions — expected,
 since this is additive test coverage, not a bug fix), `transaction_card_test.dart`
 +48/-0 (same). Proportionate to a three-item visual/UX change spanning one
@@ -221,7 +768,7 @@ no new public classes/widgets (only local variables `badgeLabel`/`badgeColor`
 and a `ScrollController` field were added — no new private widget classes),
 no new dependencies.
 
-## Code Efficiency Review
+## Cycle 5 Code Efficiency Review
 
 No new helpers, providers, notifiers, or private widget classes added. The
 `AnimatedBuilder`/`Stack`/`Align` collapse logic is inlined at its single
@@ -232,7 +779,7 @@ that previously rendered conditionally, now unconditionally with
 conditional styling — no duplicate badge-rendering code paths were
 introduced. Nothing flagged.
 
-## Manual Verification Punch List
+## Cycle 5 Manual Verification Punch List
 
 The following require Tony to visually/interactively confirm on a running
 build — QA does not launch or drive the app per its operating constraints.
@@ -267,7 +814,7 @@ build — QA does not launch or drive the app per its operating constraints.
    header animates back to its original centered/stacked, full-size
    layout.
 
-## Issues Found
+## Cycle 5 Issues Found
 
 ### Critical
 
