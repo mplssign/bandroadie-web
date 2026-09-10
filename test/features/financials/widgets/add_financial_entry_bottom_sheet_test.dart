@@ -244,11 +244,19 @@ void main() {
   });
 
   group('_AddFinancialEntryBottomSheet sections', () {
-    testWidgets('income mode shows About, Payment Details, Distribution, Notes',
+    testWidgets(
+        'income mode shows Income, Payment Details, Distribution, Notes',
         (tester) async {
       await _pumpSheet(tester);
 
-      expect(find.text('About'), findsOneWidget);
+      // The segmented toggle also renders 'Income', so match on the
+      // section-card title style (fontSize 28) to target the heading.
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Text && w.data == 'Income' && w.style?.fontSize == 28,
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Payment Details'), findsOneWidget);
       expect(find.text('Distribution'), findsOneWidget);
       expect(find.text('Reimbursement'), findsNothing);
@@ -256,11 +264,11 @@ void main() {
     });
 
     testWidgets(
-        'expense mode shows About, Payment Details, Reimbursement, Notes',
+        'expense mode shows Expenses, Payment Details, Reimbursement, Notes',
         (tester) async {
       await _pumpSheet(tester, initialIsIncome: false);
 
-      expect(find.text('About'), findsOneWidget);
+      expect(find.text('Expenses'), findsOneWidget);
       expect(find.text('Payment Details'), findsOneWidget);
       expect(find.text('Reimbursement'), findsOneWidget);
       expect(find.text('Distribution'), findsNothing);

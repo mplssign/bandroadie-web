@@ -10,11 +10,15 @@ Redesign Add/Edit Transaction Drawer with Sectioned Layout
 
 ## Cycle Number
 
-1
+2
 
 ## Final Verdict
 
 **APPROVED**
+
+(Cycle 1 verdict: APPROVED. Cycle 2 — see "Cycle 2 — Follow-up: Mode-Aware
+Section Title" below — also APPROVED. Cycle 1 findings are preserved as-is
+below; nothing from Cycle 1 was discarded.)
 
 ## Validation Summary
 
@@ -164,7 +168,7 @@ found to elevate it).
 - Read the actual predecessor constraint
   (`supabase/migrations/20260803120000_add_reimbursement_fields_to_financial_entries.sql`):
   old form was `(is_reimbursed=FALSE AND reimbursed_date IS NULL) OR
-  (is_reimbursed=TRUE AND reimbursed_date IS NOT NULL)`. The new form only
+(is_reimbursed=TRUE AND reimbursed_date IS NOT NULL)`. The new form only
   adds `AND reimbursement_method IS NULL` to the FALSE branch. Since
   `reimbursement_method` is a brand-new column (defaults `NULL` for every
   existing row), every existing row satisfies the tightened constraint —
@@ -181,7 +185,7 @@ found to elevate it).
   project ref (`xtxubluezakwmvpxsbbi`). Attempted `supabase migration list`
   against it to check pending-migration status before applying; it failed
   with `FATAL: password authentication failed for user "postgres"
-  (SQLSTATE 28P01)` even with `SUPABASE_DB_PASSWORD` set from the branch's
+(SQLSTATE 28P01)` even with `SUPABASE_DB_PASSWORD` set from the branch's
   own `supabase branches get` output. Per the explicit instruction in this
   task to not spend further time troubleshooting Supabase CLI auth, I did
   **not** attempt any workaround (no production fallback, no password
@@ -236,14 +240,14 @@ suite re-run above is the direct verification for this feature's own tests.
 
 ## Change Budget Review
 
-| File | Plan budget (combined original+addendum where applicable) | Actual net delta | Verdict |
-|---|---|---|---|
-| `add_financial_entry_bottom_sheet.dart` | +550 to +800 (orig) + +80 to +120 (addendum) = ~+630 to +920 | +549 (938 −389) | Under budget |
-| `financial_entry_repository.dart` | +25 to +40 | +18 (24 −6) | Under budget |
-| `financials_controller.dart` | +20 to +30 | +19 (21 −2) | Under budget |
-| `financials_screen.dart` | +8 to +12 | +2 (18 −16) | Under budget |
-| `financial_entry_details_bottom_sheet.dart` | +8 to +12 | +14 (99 −85) | ~1.17x — within tolerance, explained by disclosed re-indentation |
-| `models/financial_entry.dart` | +8 to +12 | +8 | At lower bound |
+| File                                        | Plan budget (combined original+addendum where applicable)    | Actual net delta | Verdict                                                          |
+| ------------------------------------------- | ------------------------------------------------------------ | ---------------- | ---------------------------------------------------------------- |
+| `add_financial_entry_bottom_sheet.dart`     | +550 to +800 (orig) + +80 to +120 (addendum) = ~+630 to +920 | +549 (938 −389)  | Under budget                                                     |
+| `financial_entry_repository.dart`           | +25 to +40                                                   | +18 (24 −6)      | Under budget                                                     |
+| `financials_controller.dart`                | +20 to +30                                                   | +19 (21 −2)      | Under budget                                                     |
+| `financials_screen.dart`                    | +8 to +12                                                    | +2 (18 −16)      | Under budget                                                     |
+| `financial_entry_details_bottom_sheet.dart` | +8 to +12                                                    | +14 (99 −85)     | ~1.17x — within tolerance, explained by disclosed re-indentation |
+| `models/financial_entry.dart`               | +8 to +12                                                    | +8               | At lower bound                                                   |
 
 No file exceeds 1.5x budget; no new files, public classes, or dependencies
 beyond what the plan expected (1 migration file; 1 test file extended, not
@@ -333,7 +337,7 @@ plan's own punch list, reproduced here for Tony to execute directly.
 3. Reduce one member's split from ~$33 to `$20`. **Expected**: Savings
    jumps to reflect the new remainder; helper text shown; Save enabled.
 4. Type `$500` into that split. **Expected**: red `"Exceeds remaining
-   balance"` appears directly beneath that split field; Save button
+balance"` appears directly beneath that split field; Save button
    disabled.
 5. Reduce that split back to a valid value. **Expected**: error clears;
    Save re-enabled; Savings auto-recomputes.
@@ -410,5 +414,109 @@ columns) plus a constraint tightening that is provably satisfied by every
 existing row from static SQL reading alone, with no RPC/RLS/trigger surface
 that would need runtime confirmation. Both Suggestion-level findings are
 non-blocking per the APPROVED criteria (no Critical/Warning present).
+
+---
+
+## Cycle 2 — Follow-up: Mode-Aware Section Title
+
+### Scope
+
+Small follow-up requested by Tony while manually testing the already-open,
+already-Cycle-1-APPROVED PR #274: change the drawer's first section title
+from the static literal `'About'` to mode-aware `_isIncome ? 'Income' :
+'Expenses'`. No new Architect diagnosis; not a re-run of the full Cycle 1
+scope.
+
+### Validation Summary
+
+Reviewed the uncommitted `git diff HEAD` scoped to exactly
+`lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart` and
+`test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart`,
+plus the "Follow-up Changes" section appended to `ENGINEER_REPORT.md`
+describing it. **Testing performed**: direct diff inspection (code-path
+analysis, not runtime), independent `flutter analyze` re-run, independent
+`flutter test` re-run of the affected test file. **Not performed**: any
+running-app/manual UI verification (not required here — this is a one-line
+literal-string change with no state, layout, or data-flow impact; no new
+punch-list item is warranted).
+
+### Diff Confirmation
+
+- `add_financial_entry_bottom_sheet.dart`: exactly one call site changed —
+  `_SectionCard(title: 'About', child: _buildAboutSection())` →
+  `_SectionCard(title: _isIncome ? 'Income' : 'Expenses', child:
+  _buildAboutSection())`. Confirmed by `git diff --numstat` (+4/-1) and by
+  reading the full hunk: nothing inside `_buildAboutSection()` itself, and no
+  other line in the file, was touched.
+- Confirmed via direct source read that `_SegmentedToggle` (the
+  Income/Expense toggle rendered just above this section card) renders the
+  literal singular strings `'Income'` and `'Expense'` at `fontSize:
+  AppFontSizes.subhead` (14.0), while `_SectionCard`'s title `Text` renders
+  at `fontSize: 28`. This independently confirms the test file's stated
+  rationale: a plain `find.text('Income')` in income mode would match both
+  the toggle label and the section title (ambiguous → test failure), so the
+  income-mode test's `find.byWidgetPredicate` match on `fontSize == 28` is
+  the correct, sound way to isolate the section-title `Text` specifically.
+  No such collision exists in expense mode because the toggle says the
+  singular `'Expense'`, not the plural `'Expenses'` used by the section
+  title — so the expense-mode test correctly keeps the simpler
+  `find.text('Expenses')`.
+- `add_financial_entry_bottom_sheet_test.dart`: exactly the two assertions
+  that referenced the old literal `'About'` were updated (income-mode test's
+  title checked via style-based predicate as above; expense-mode test's
+  title checked via `find.text('Expenses')`); test name strings updated to
+  match; no other assertion, group, or test in the file was changed.
+  Confirmed by `git diff --numstat` (+12/-4, consistent with two renamed test
+  descriptions plus the predicate replacing a single `expect` line).
+- `ENGINEER_REPORT.md`'s "Follow-up Changes" entry accurately describes both
+  file changes; no discrepancy found between the report and the actual diff.
+
+### Regression Check
+
+None applicable at more than trivial risk — this changes only a `String`
+literal passed to an existing, unmodified `_SectionCard` widget; no
+controller, state, provider, RLS, RPC, or platform-specific code is touched.
+Regression risk: **LOW**.
+
+### Analyzer Results (Cycle 2 scope)
+
+`flutter analyze lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart
+test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart` →
+**No issues found!** (independently re-run, not reused from the Engineer
+report).
+
+### Test Results (Cycle 2 scope)
+
+`flutter test test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart`
+→ **16/16 pass** (independently re-run).
+
+### Diff Safety Review (Cycle 2 scope)
+
+Grepped the scoped diff for secrets/API keys/`TODO`/`FIXME`/`debugPrint(`:
+no matches. No unrelated churn, no accidental deletions.
+
+### Change Budget / Code Efficiency (Cycle 2 scope)
+
+`+4/-1` in the source file, `+12/-4` in the test file — a single literal
+string plus the minimum test-assertion updates required to keep the suite
+truthful. No new symbols, helpers, files, or dependencies introduced;
+nothing to evaluate for bloat.
+
+### Issues Found (Cycle 2)
+
+**Critical**: None.
+**Warnings**: None.
+**Suggestions**: None.
+
+### Cycle 2 Verdict Rationale
+
+The change is exactly and only what Tony requested and what
+`ENGINEER_REPORT.md`'s Follow-up Changes entry describes; both touched files
+are limited to that one concern; the test update strategy (style-based
+predicate for the income case to avoid colliding with the toggle's own
+`'Income'` label) is verified sound by direct inspection of the toggle's text
+style, not just taken on the Engineer's word; analyzer and the full affected
+test file both pass on independent re-run; no secrets, debug artifacts, or
+out-of-scope edits found. **APPROVED**.
 
 **Report path**: `docs/features/transaction-drawer-redesign/QA_REPORT.md`

@@ -167,7 +167,7 @@ the remaining Verification Plan work (tests, analyzer, format, this report).
     text (`'Automatically calculated from remaining amount.'`) only when no
     error and `_disburse`.
 14. Save button gate — `enabled = _amountController.cents > 0 &&
-    _distributionErrors.isEmpty;`.
+_distributionErrors.isEmpty;`.
 15. Import — `import 'package:flutter/foundation.dart' show mapEquals;`
     present, correctly alphabetized at the top of the import block.
 
@@ -247,3 +247,28 @@ artifacts.
 None.
 
 ### Ready For QA: Yes
+
+## Follow-up Changes
+
+Small tweak requested by Tony before merge (no new Architect diagnosis; PR
+#274 already open):
+
+- `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart` —
+  the first section card's title was hardcoded to `'About'`. Changed to be
+  mode-aware: `'Income'` when `_isIncome` is true, `'Expenses'` when false.
+  No other change to that section's contents/fields or the rest of the
+  drawer.
+- `test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart`
+  — updated the two section-presence tests that asserted the literal text
+  `'About'`: the income-mode test now asserts `'Income'` (using a
+  `find.byWidgetPredicate` match on the section-card title style, since the
+  segmented toggle button also renders the text `'Income'` and would
+  otherwise collide with a plain `find.text` match), and the expense-mode
+  test now asserts `'Expenses'` (no collision, since the toggle button's
+  label is the singular `'Expense'`). No other assertions in either test
+  were changed.
+- `flutter analyze` on both modified files: 0 issues.
+- `flutter test test/features/financials/widgets/add_financial_entry_bottom_sheet_test.dart`:
+  16/16 pass.
+
+**Ready For QA: Yes** — still holds.

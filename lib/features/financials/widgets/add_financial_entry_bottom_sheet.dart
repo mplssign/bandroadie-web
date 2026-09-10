@@ -1308,7 +1308,10 @@ class _AddFinancialEntryBottomSheetState
           onChanged: _setIsIncome,
         ),
         const SizedBox(height: 16),
-        _SectionCard(title: 'About', child: _buildAboutSection()),
+        _SectionCard(
+          title: _isIncome ? 'Income' : 'Expenses',
+          child: _buildAboutSection(),
+        ),
         const SizedBox(height: 16),
         _SectionCard(
           title: 'Payment Details',
