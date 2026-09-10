@@ -28,9 +28,7 @@ class FinancialEntryRepository {
         .eq('band_id', bandId)
         .order('entry_date', ascending: false);
 
-    return response
-        .map<FinancialEntry>(FinancialEntry.fromJson)
-        .toList();
+    return response.map<FinancialEntry>(FinancialEntry.fromJson).toList();
   }
 
   /// Fetch the gig_pay entry for a specific gig (at most one).
@@ -56,9 +54,7 @@ class FinancialEntryRepository {
         .order('entry_date', ascending: false)
         .order('created_at', ascending: false);
 
-    return response
-        .map<FinancialEntry>(FinancialEntry.fromJson)
-        .toList();
+    return response.map<FinancialEntry>(FinancialEntry.fromJson).toList();
   }
 
   /// Insert a new expense entry linked to a gig.
@@ -252,6 +248,11 @@ class FinancialEntryRepository {
     Map<String, int>? disbursements,
     bool? depositToSavings,
     int? depositToSavingsCents,
+    String? gigId,
+    bool? isReimbursed,
+    DateTime? reimbursedDate,
+    String? reimbursementMethod,
+    String? notes,
   }) async {
     if (bandId.isEmpty) throw NoBandSelectedError();
 
@@ -274,6 +275,12 @@ class FinancialEntryRepository {
       'deposit_to_savings': depositToSavings,
       'deposit_to_savings_cents': depositToSavingsCents,
       'created_by': createdBy,
+      'gig_id': gigId,
+      'is_reimbursed': isReimbursed ?? false,
+      'reimbursed_date': reimbursedDate?.toIso8601String().split('T').first,
+      'reimbursement_method':
+          (isReimbursed ?? false) ? reimbursementMethod : null,
+      'notes': notes?.isEmpty == true ? null : notes,
     };
 
     final result = await supabase
@@ -301,6 +308,11 @@ class FinancialEntryRepository {
     Map<String, int>? disbursements,
     bool? depositToSavings,
     int? depositToSavingsCents,
+    String? gigId,
+    bool? isReimbursed,
+    DateTime? reimbursedDate,
+    String? reimbursementMethod,
+    String? notes,
   }) async {
     if (bandId.isEmpty) throw NoBandSelectedError();
 
@@ -321,6 +333,12 @@ class FinancialEntryRepository {
           'deposit_to_savings': depositToSavings,
           'deposit_to_savings_cents': depositToSavingsCents,
           'updated_at': DateTime.now().toIso8601String(),
+          'gig_id': gigId,
+          'is_reimbursed': isReimbursed ?? false,
+          'reimbursed_date': reimbursedDate?.toIso8601String().split('T').first,
+          'reimbursement_method':
+              (isReimbursed ?? false) ? reimbursementMethod : null,
+          'notes': notes?.isEmpty == true ? null : notes,
         })
         .eq('id', entryId)
         .eq('band_id', bandId)
