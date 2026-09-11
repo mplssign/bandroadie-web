@@ -906,74 +906,90 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Subtitle
-                  Text(
-                    widget.isGated
-                        ? 'Please complete your profile to continue'
-                        : 'Update your personal information',
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.body,
-                      fontWeight: FontWeight.w400,
-                      height: 1.4,
-                    ).copyWith(color: context.colors.textSecondary),
-                  ),
-                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Subtitle
+                        Text(
+                          widget.isGated
+                              ? 'Please complete your profile to continue'
+                              : 'Update your personal information',
+                          style: const TextStyle(
+                            fontSize: AppFontSizes.body,
+                            fontWeight: FontWeight.w400,
+                            height: 1.4,
+                          ).copyWith(color: context.colors.textSecondary),
+                        ),
+                        const SizedBox(height: 24),
 
-                  // ROW 1: First Name + Last Name = 2 columns side-by-side
-                  _buildTwoCol(
-                    _buildTextField(
-                      controller: _firstNameController,
-                      label: 'First Name',
+                        // ROW 1: First Name + Last Name = 2 columns side-by-side
+                        _buildTwoCol(
+                          _buildTextField(
+                            controller: _firstNameController,
+                            label: 'First Name',
+                          ),
+                          _buildTextField(
+                            controller: _lastNameController,
+                            label: 'Last Name',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ROW 2: Phone Number = full width (single field row)
+                        _buildTextField(
+                          controller: _phoneController,
+                          label: 'Phone Number',
+                          hint: '(312) 550-7844',
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [PhoneNumberInputFormatter()],
+                          errorText: _phoneErrorText,
+                          onChanged: (value) {
+                            // Clear error once phone becomes valid (only if user already tried saving)
+                            if (_hasAttemptedSave && isValidUsPhone(value)) {
+                              setState(() => _phoneErrorText = null);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ROW 3: Address + Zip Code = 2 columns side-by-side
+                        _buildTwoCol(
+                          _buildTextField(
+                            controller: _addressController,
+                            label: 'Address',
+                          ),
+                          _buildTextField(
+                            controller: _zipController,
+                            label: 'Zip Code',
+                            keyboardType: TextInputType.number,
+                            customValidator: _validateZipCode,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Birthday Section
+                        _buildBirthdaySection(),
+                        const SizedBox(height: 32),
+
+                        // Role in Band Section header (label + optional Select Band label)
+                        _buildRoleSectionHeader(),
+                      ],
                     ),
-                    _buildTextField(
-                      controller: _lastNameController,
-                      label: 'Last Name',
-                    ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // ROW 2: Phone Number = full width (single field row)
-                  _buildTextField(
-                    controller: _phoneController,
-                    label: 'Phone Number',
-                    hint: '(312) 550-7844',
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [PhoneNumberInputFormatter()],
-                    errorText: _phoneErrorText,
-                    onChanged: (value) {
-                      // Clear error once phone becomes valid (only if user already tried saving)
-                      if (_hasAttemptedSave && isValidUsPhone(value)) {
-                        setState(() => _phoneErrorText = null);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ROW 3: Address + Zip Code = 2 columns side-by-side
-                  _buildTwoCol(
-                    _buildTextField(
-                      controller: _addressController,
-                      label: 'Address',
-                    ),
-                    _buildTextField(
-                      controller: _zipController,
-                      label: 'Zip Code',
-                      keyboardType: TextInputType.number,
-                      customValidator: _validateZipCode,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Birthday Section
-                  _buildBirthdaySection(),
-                  const SizedBox(height: 32),
-
-                  // Role in Band Section
-                  _buildRoleSection(),
+                  if (_isMultiBandMode) ...[
+                    const SizedBox(height: 8),
+                    // Band selector pill row - edge to edge, no ambient horizontal inset
+                    _buildBandPillRow(),
+                  ],
+                  const SizedBox(height: 12),
+                  // Role pill row - edge to edge, no ambient horizontal inset
+                  _buildRolePillRow(),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -1165,7 +1181,59 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
     });
   }
 
-  Widget _buildRoleSection() {
+  Widget _buildRoleSectionHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Role in Band',
+          style: const TextStyle(
+            fontSize: AppFontSizes.subhead,
+            fontWeight: FontWeight.w500,
+            height: 1.4,
+          ).copyWith(color: context.colors.textPrimary),
+        ),
+
+        // Band selector label - only shown in multi-band mode
+        if (_isMultiBandMode) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Select Band',
+            style: const TextStyle(
+              fontSize: AppFontSizes.caption,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ).copyWith(color: context.colors.textSecondary),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBandPillRow() {
+    return SizedBox(
+      height: 36.0,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _userBands
+              .map(
+                (band) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _BandPill(
+                    label: band.name,
+                    isSelected: _selectedBandId == band.id,
+                    onTap: () => _onBandSelected(band.id),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRolePillRow() {
     // Build the list of all role pills with control buttons, spacing, and roles
     final allRolePills = <Widget>[
       // Control buttons: + Add and Remove
@@ -1216,67 +1284,18 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
       ),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Role in Band',
-          style: const TextStyle(
-            fontSize: AppFontSizes.subhead,
-            fontWeight: FontWeight.w500,
-            height: 1.4,
-          ).copyWith(color: context.colors.textPrimary),
+    // Single horizontal scrollable row (no wrapping)
+    return SizedBox(
+      height: 36.0,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: allRolePills
+              .expand((widget) => [widget, const SizedBox(width: 8)])
+              .toList()
+            ..removeLast(), // Remove trailing spacer
         ),
-
-        // Band selector row - only shown in multi-band mode
-        if (_isMultiBandMode) ...[
-          const SizedBox(height: 12),
-          Text(
-            'Select Band',
-            style: const TextStyle(
-              fontSize: AppFontSizes.caption,
-              fontWeight: FontWeight.w500,
-              height: 1.4,
-            ).copyWith(color: context.colors.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 36.0,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _userBands
-                    .map(
-                      (band) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _BandPill(
-                          label: band.name,
-                          isSelected: _selectedBandId == band.id,
-                          onTap: () => _onBandSelected(band.id),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 12),
-        // Single horizontal scrollable row (no wrapping)
-        SizedBox(
-          height: 36.0,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: allRolePills
-                  .expand((widget) => [widget, const SizedBox(width: 8)])
-                  .toList()
-                ..removeLast(), // Remove trailing spacer
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
