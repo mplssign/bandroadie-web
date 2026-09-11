@@ -855,19 +855,6 @@ class SetlistDetailNotifier extends Notifier<SetlistDetailState> {
     return [...songItems, ...nonSongItems];
   }
 
-  /// Debug: Run smoke test for songs query
-  /// Returns diagnostic information for troubleshooting
-  Future<Map<String, dynamic>> debugSmokeTest() async {
-    final bandId = _bandId;
-    if (bandId == null || state.setlistId.isEmpty) {
-      return {'error': 'Missing bandId or setlistId'};
-    }
-    return _repository.debugFetchSongsRaw(
-      bandId: bandId,
-      setlistId: state.setlistId,
-    );
-  }
-
   /// Delete a song from this setlist
   ///
   /// If this is the Catalog, cascades to all setlists in the band.
