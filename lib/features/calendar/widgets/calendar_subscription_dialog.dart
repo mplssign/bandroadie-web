@@ -131,7 +131,8 @@ class _CalendarSubscriptionDialogState
               ),
               child: Row(
                 children: [
-                  const Icon(AppIcons.calendar, color: AppColors.primary, size: 22),
+                  const Icon(AppIcons.calendar,
+                      color: AppColors.primary, size: 22),
                   const SizedBox(width: Spacing.space12),
                   Expanded(
                     child: Text(
@@ -360,9 +361,7 @@ class _CalendarSubscriptionDialogState
               child: SizedBox(
                 width: 18,
                 height: 18,
-                child: AppProgressIndicator(
-                  
-                ),
+                child: AppProgressIndicator(),
               ),
             ),
           ),
@@ -489,7 +488,7 @@ class _InstructionTile extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: context.colors.textPrimary,
-                  fontSize: AppFontSizes.caption,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -497,7 +496,7 @@ class _InstructionTile extends StatelessWidget {
                 instruction,
                 style: TextStyle(
                   color: context.colors.textSecondary,
-                  fontSize: AppFontSizes.caption,
+                  fontSize: AppFontSizes.subhead,
                 ),
               ),
             ],
@@ -525,14 +524,14 @@ class _NoteBullet extends StatelessWidget {
         Text(
           '•  ',
           style: TextStyle(
-              color: context.colors.textMuted, fontSize: AppFontSizes.caption),
+              color: context.colors.textMuted, fontSize: AppFontSizes.subhead),
         ),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
                 color: context.colors.textMuted,
-                fontSize: AppFontSizes.caption),
+                fontSize: AppFontSizes.subhead),
           ),
         ),
       ],
