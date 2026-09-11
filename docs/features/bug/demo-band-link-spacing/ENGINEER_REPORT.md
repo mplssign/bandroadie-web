@@ -10,7 +10,103 @@
 
 ## Cycle Number
 
-3
+4
+
+## Goal (Cycle 4)
+
+Owner-reported issue found while testing the QA-approved and merged Cycle 3 state (PR #279): the email domain shortcut pill row was getting cut off by the same 32px horizontal padding used by the rest of the login form. Owner feedback (verbatim):
+
+> "The email domain shortcut button row on the login page should extend from screen edge to edge. Currently it's getting cut off from the padding around the edges."
+
+No new `ARCHITECT_PLAN.md` was written for this cycle (direct owner instruction found during PR testing, same pattern as Cycle 3). Task scoped to `lib/features/auth/login_screen.dart` only, touching only the domain pill row's horizontal extent — logo, demo link, email field, and login button keep their existing position/inset from Cycle 3.
+
+## Diagnosis (Cycle 4)
+
+`_buildDomainPills()` is called from `_buildContentCluster()`, whose returned `Column` was, in turn, the single child of a `Padding(padding: EdgeInsets.symmetric(horizontal: 32))` applied once in `LoginScreen.build()`, wrapping the *entire* content cluster (logo, demo button, email field, domain pills, login button, message). Every child of that column — including the pill row — was therefore inset by 32px on each side, so the row's visible width was capped at `screenWidth - 64`, identical to the email field above it. There was no independent overflow/clipping bug in `_buildDomainPills` itself; the row was simply never given more than the email field's width to work with.
+
+Considered and rejected:
+- **Negative `Padding`** around the pill row to counteract the ancestor's 32px inset — `RenderPadding` asserts `padding.isNonNegative`; this throws `'padding.isNonNegative': is not true` in debug mode (confirmed via test failure during implementation).
+- **`OverflowBox`** around the pill row — works for width, but because the whole cluster lives inside a vertically-scrolling `SingleChildScrollView` (unbounded height), `OverflowBox` without an explicit height fell back to the incoming (infinite) height constraint and threw `RenderConstrainedOverflowBox object was given an infinite size during layout` (also confirmed via test failure during implementation).
+- **Full-width wrapper outside the padded container** (the approach used) — restructure so the shared 32px inset is applied to two sub-groups (logo/demo/email, and login-button/message) instead of to the whole cluster, leaving the domain pill row as a plain, unpadded sibling between them. No negative constraints, no unbounded-constraint edge cases, no change to any other element's position.
+
+## Fix Implemented (Cycle 4)
+
+In `lib/features/auth/login_screen.dart`:
+
+1. Added a `_kHorizontalPadding = 32.0` top-level constant (single source of truth for the value previously hardcoded as `32`/`64` in two places).
+2. Removed the single `Padding(hz: 32)` that wrapped the whole `_buildContentCluster()` output in `LoginScreen.build()`. `maxWidth` passed into `_buildContentCluster` is now computed with the named constant (`constraints.maxWidth - (_kHorizontalPadding * 2)`) — same value as before, no behavior change for that computation.
+3. Inside `_buildContentCluster()`, split the single flat `Column` into three siblings:
+   - A `Padding(hz: _kHorizontalPadding)`-wrapped `Column` containing the logo, demo button (when visible), and email field — unchanged content/order/spacers from Cycle 3, just re-nested one level deeper.
+   - The domain pill row (`_buildDomainPills(...)`), now a **plain sibling with no horizontal inset**, passed `maxWidth: maxWidth + (_kHorizontalPadding * 2)` (i.e. the full screen width instead of the email-field width) so it spans edge-to-edge.
+   - A second `Padding(hz: _kHorizontalPadding)`-wrapped `Column` containing the trailing spacer, login button, message, and final spacer — unchanged content/order from Cycle 3, just re-nested.
+4. Updated the `Layout contract:` doc comment on `_buildContentCluster` and the doc comment / inline "PILL SNAP-ALIGNMENT" comment on `_buildDomainPills` to describe the new full-width contract (previously documented as "aligned to email field width").
+
+All existing `Transform.translate` paint-offsets from Cycle 3 (logo -50px, demo link -65px, email field -50px, domain pills -50px) are preserved verbatim and unaffected by the re-nesting, since `Transform.translate` is paint-only and independent of tree depth. No spacer heights, `SizedBox` values, or `mainAxisAlignment`/`Align` values changed.
+
+## Files Created (Cycle 4)
+
+None.
+
+## Files Modified (Cycle 4)
+
+- [lib/features/auth/login_screen.dart](../../../../lib/features/auth/login_screen.dart) — added `_kHorizontalPadding` constant; removed the single ambient `Padding` wrap in `build()`; restructured `_buildContentCluster()`'s single `Column` into three siblings (padded logo/demo/email group, unpadded full-width domain pills, padded login-button/message group); updated two doc comments to match. Net diff: 91 insertions / 54 deletions (mostly re-indentation from the added nesting level, not new logic).
+
+## Analyzer Results (Cycle 4)
+
+```
+flutter analyze lib/features/auth/login_screen.dart
+Analyzing login_screen.dart...
+No issues found! (ran in 2.2s)
+```
+
+## Test Results (Cycle 4)
+
+```
+flutter test test/features/auth/login_screen_demo_button_test.dart
++3: All tests passed!  (Tests A, B, C)
+```
+
+20-iteration Test C loop-stability check (required by the manager brief, since this touches horizontal layout in the same tree PR #278 made overflow-safe):
+
+```
+for i in $(seq 1 20); do flutter test test/features/auth/login_screen_demo_button_test.dart --plain-name "Test C" || echo "FAILED run $i"; done
+```
+
+Result: **20/20 passed**, zero `FAILED` lines.
+
+Note: two intermediate implementation attempts (negative `Padding`, then `OverflowBox`) both failed this same test file with framework assertion errors before the final full-width-sibling restructure was adopted — those failures are not present in the final diff; only the working approach is reflected in the file.
+
+## Code Efficiency/Bloat Check (Cycle 4)
+
+- No new widgets, helpers, providers, or public methods introduced — the fix is a re-nesting of existing `Padding`/`Column` primitives already used throughout this file, plus one new `const double` to replace a duplicated magic number (`32`/`64`) that existed in two places before this change.
+- Searched `lib/` for an existing "full-bleed" / "edge-to-edge" / "break out of padding" helper before implementing — none exists; this is a one-off structural layout adjustment scoped to a single screen, not a pattern used elsewhere in the codebase, so no shared abstraction was warranted.
+- No new tests added — existing Tests A/B/C fully cover the invariants this change can affect (button presence, no stale copy, no overflow at 800×600); the visual edge-to-edge outcome is a Tony punch-list item like prior cycles in this file.
+- File size: `login_screen.dart` remains well under the 500-line Dart target after this change.
+
+## Verification (Cycle 4 — manual steps performed)
+
+- Read `_buildContentCluster`, `_buildDomainPills`, and `LoginScreen.build()` in full before editing to confirm the exact source of the 32px inset and its single wrap point.
+- Attempted two alternative fixes (negative `Padding`, `OverflowBox`) and confirmed via `flutter test` that both throw framework assertions in this file's tree (vertically-scrolling, unbounded-height parent) before settling on the full-width-sibling restructure.
+- Re-read the final diff to confirm: (a) all four Cycle 3 `Transform.translate` offsets are untouched: logo -50, demo -65, email -50, pills -50; (b) no `SizedBox` height, `mainAxisAlignment`, or `Align` value changed anywhere; (c) the login button, message, and trailing spacer are unchanged in content and order, only re-nested one level under the second `Padding`.
+- Ran `dart format` on the modified file (one reformat needed, purely whitespace from the added nesting level — no logic change).
+- Ran `flutter analyze` (clean) and `flutter test test/features/auth/login_screen_demo_button_test.dart` (3/3 pass), plus the 20-iteration Test C loop (20/20 pass).
+- Did not launch the app on any platform. Visual confirmation that the pill row now reaches both screen edges (and that the logo/demo link/email field/login button remain in their Cycle 3 positions) remains an owner-run (Tony) punch-list item, per this pipeline's existing convention for this file.
+
+## Deviations From Plan (Cycle 4)
+
+No `ARCHITECT_PLAN.md` was written for this cycle — task was a direct owner-reported issue found during PR testing, handled the same way Cycle 3 was (owner instruction → Engineer implements directly, no Architect re-pass). The user request explicitly authorized engineering judgment on the exact mechanism ("use your judgment for the cleanest correct approach"); the chosen mechanism (full-width sibling via restructured `Padding` nesting) was arrived at after two other mechanisms suggested in the request (negative margin, `OverflowBox`) were tried and found to throw framework assertions in this specific widget tree.
+
+## Blockers Encountered (Cycle 4)
+
+None in the final implementation. Two dead-end approaches were tried and discarded during implementation (see "Fix Implemented" / "Diagnosis" above) — not a blocker, but noting for QA/Tony's awareness since the request specifically anticipated a negative-margin approach that turned out not to be viable here.
+
+## Ready For QA (Cycle 4)
+
+yes
+
+---
+
+# Prior Cycle History (Cycle 3, superseded)
 
 ## Goal
 

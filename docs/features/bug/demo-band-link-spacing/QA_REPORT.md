@@ -10,13 +10,167 @@
 
 ## Cycle Number
 
-3
+4
 
 ## Final Verdict
 
 **APPROVED**
 
 ## Validation Summary
+
+Cycle 4 is an owner-reported issue found while testing the QA-approved Cycle 3 state (merged into open PR #279, not yet merged to `main`): the email domain shortcut pill row was cut off horizontally by the same 32px `Padding(hz: 32)` inset shared by the rest of the login form. `ENGINEER_REPORT.md` (Cycle Number 4) diagnoses this correctly — the single ambient `Padding` wrap around the entire `_buildContentCluster()` output inset every child, including the pill row, to `screenWidth − 64`, identical to the email field. There was no bug inside `_buildDomainPills()` itself.
+
+The fix removes that single ambient `Padding` and instead applies two separate `Padding(hz: 32)` wraps — one around a new sub-`Column` holding the logo/demo/email group, one around a second sub-`Column` holding the login-button/message group — leaving the domain pill row as a plain, unpadded sibling `Column` item between them. The pill row's `_buildDomainPills` call now receives `maxWidth: maxWidth + 64` (i.e. the full `constraints.maxWidth`, not the email-field width), and its inner `SizedBox(width: maxWidth)` therefore spans the full screen width edge-to-edge.
+
+QA independently reviewed the full diff (`git diff HEAD -- lib/features/auth/login_screen.dart`, 91 insertions / 54 deletions, matching the report's stated numstat exactly) and confirms:
+
+- The `maxWidth` value passed into `_buildContentCluster` is unchanged in substance (`constraints.maxWidth - (_kHorizontalPadding * 2)` = the same `constraints.maxWidth - 64` as before) — `logoWidth = (maxWidth * 0.9).clamp(0.0, 600.0)` is therefore numerically identical to Cycle 3, so the logo's rendered width is unaffected.
+- All four Cycle 3 `Transform.translate` offsets (logo `-50`, demo `-65`, email `-50`, pills `-50`) are present verbatim at the same relative call sites, just re-nested one level deeper inside the new `Padding`/`Column` sub-groups (logo/demo/email) or left in place as a direct child (pills). `Transform.translate` is a paint-only primitive independent of tree depth, so re-nesting cannot change any of these four offsets' visual effect — confirmed by direct reading of the diff, not just taken on the Engineer's word.
+- No `SizedBox` height, `mainAxisAlignment`, or `Align` value changed anywhere in the diff — only the `Padding`/`Column` re-nesting and the pill row's `maxWidth` math changed.
+- The domain pill row's `SizedBox(width: maxWidth)` in `_buildDomainPills` now receives `maxWidth + 64` from the caller, which equals the original, un-inset `constraints.maxWidth` — the row genuinely spans full screen width, confirmed by tracing the value end-to-end rather than trusting the report's arithmetic claim alone.
+- `test/features/auth/login_screen_demo_button_test.dart` (off-limits) is untouched; no other file besides `lib/features/auth/login_screen.dart` and `ENGINEER_REPORT.md` is part of the tracked diff.
+
+Analyzer is clean, all three tests pass, and the 20-iteration Test C loop-stability re-check independently passed 20/20 with zero failures. No secrets or debug artifacts were introduced by the diff (pre-existing `debugPrint` calls elsewhere in the file are outside the diff's hunks). This is **code-path analysis plus independent trace-through of the `maxWidth` arithmetic**, not manual/runtime verification — QA did not launch the app on any platform, consistent with mode rules. Visual confirmation that the pill row now reaches both screen edges, and that the logo/demo link/email field/login button remain at their exact Cycle 3 positions, is an owner-run (Tony) punch-list item — see below.
+
+## Architect Scope Review
+
+No new `ARCHITECT_PLAN.md` exists for Cycle 4 — per `ENGINEER_REPORT.md`, this is a direct owner-reported issue found during PR #279 testing, handled the same way Cycle 3 was (owner instruction → Engineer implements directly, no Architect re-pass), and the user request explicitly authorized engineering judgment on the exact mechanism. QA held the diff to that stated scope:
+
+- Diff touches exactly one source file: `lib/features/auth/login_screen.dart`. Matches report.
+- The entire Cycle 4 change is confined to the top-of-file constant addition and `_buildContentCluster()`'s internal structure, plus two doc-comment updates (`Layout contract:` bullet and the `_buildDomainPills` doc/inline comment) — no other method in the file is touched. Confirmed by diff.
+- `test/features/auth/login_screen_demo_button_test.dart` (Files Off-Limits from the original Cycle 1 plan, never overridden for this cycle) — confirmed untouched via `git diff HEAD --numstat` scoped to `test/`, which returns nothing for this file.
+- No changes to `lib/main.dart`, `lib/app/**`, `demo_session_service.dart`, `auth_gate.dart`, `auth_confirm_screen.dart`, `pubspec.yaml`/`.lock`, `analysis_options.yaml`, `supabase/**`, `database/**`, `assets/images/**`, `lib/components/ui/email_domain_shortcut_bar.dart`, or any other `lib/features/**` file — independently confirmed via `git diff HEAD --numstat` scoped to those paths, which returns only `docs/features/bug/demo-band-link-spacing/ENGINEER_REPORT.md` and `lib/features/auth/login_screen.dart`.
+- Untracked pre-existing artifacts (`docs/features/bug/demo-session-cleanup-orphaned-anonymous-users/PR_BODY.md`, `docs/features/feature/financials-transaction-cards-reconciliation/PR_BODY.md`, `docs/features/feature/financials-transaction-cards/`, `docs/features/transaction-drawer-redesign/PR_BODY.md`) remain leftovers from unrelated prior slugs, not created by this Engineer's Cycle 4 work — correctly out of scope for this review.
+
+## Completeness Check
+
+`ENGINEER_REPORT.md`'s Cycle 4 "Fix Implemented" task list (4 items) verified directly against the diff:
+
+1. `_kHorizontalPadding = 32.0` top-level constant added, replacing the previously duplicated `32`/`64` magic numbers. Confirmed in diff.
+2. The single `Padding(hz: 32)` wrap around the whole `_buildContentCluster()` output in `LoginScreen.build()` is removed; `maxWidth` passed into `_buildContentCluster` is now `constraints.maxWidth - (_kHorizontalPadding * 2)` — numerically identical to the prior `constraints.maxWidth - 64`. Confirmed in diff — no behavior change for that computation, as claimed.
+3. Inside `_buildContentCluster()`, the single flat `Column` is split into three siblings: a `Padding(hz: 32)`-wrapped `Column` (logo, demo button, email field — same content/order/spacers as Cycle 3, re-nested one level deeper); the domain pill row as a plain unpadded sibling receiving `maxWidth: maxWidth + 64`; a second `Padding(hz: 32)`-wrapped `Column` (trailing spacer, login button, message, final spacer — same content/order as Cycle 3, re-nested). Confirmed in diff, matches exactly.
+4. The `Layout contract:` doc comment and the `_buildDomainPills` doc/inline "PILL SNAP-ALIGNMENT" comment are updated to describe the new full-width contract. Confirmed — no other bullet/comment in either doc block was altered; the Cycle 3 bullet describing the four `Transform.translate` offsets is preserved verbatim.
+
+No partial implementation. No missing edge case relative to the owner's "extend edge to edge" request — the pill row's effective width is traced end-to-end (see Validation Summary) and confirmed to equal the full, un-inset screen width.
+
+## Behavior Verification
+
+Independently traced the `maxWidth` value through the call chain rather than taking the report's math on faith:
+
+- `LoginScreen.build()`: `maxWidth` param to `_buildContentCluster` = `constraints.maxWidth - 64` (unchanged in value from Cycle 3, just expressed via the named constant).
+- `_buildContentCluster()`: `logoWidth = (maxWidth * 0.9).clamp(...)` — uses the same `maxWidth` as before, so the logo's rendered width is byte-identical to Cycle 3. The email field (`_buildEmailField()`) has no explicit width constraint of its own beyond whatever its parent `Padding`-wrapped `Column` gives it — since that `Column` is inside a `Padding(hz: 32)` identical in extent to Cycle 3's ambient padding, the email field's effective width is unchanged.
+- The domain pills call site now passes `maxWidth + 64` = `(constraints.maxWidth - 64) + 64` = `constraints.maxWidth` — the original, full, un-inset screen width. `_buildDomainPills`'s own body applies this value directly as `SizedBox(width: maxWidth)`, with no further inset inside the method — so the row's rendered width is genuinely the full screen width, confirmed by tracing the value rather than trusting the claim.
+- All four `Transform.translate` wraps (`-50` logo, `-65` demo, `-50` email, `-50` pills) remain at their Cycle 3 call sites, only re-nested one `Column`/`Padding` level deeper (logo/demo/email) or left as a direct child (pills). `Transform.translate` repositions only the painted output of its child and is independent of ancestor nesting depth or ancestor padding — re-nesting a `Transform.translate`-wrapped widget inside an additional `Padding`/`Column` does not change the offset it applies to its own child. This is a sound, independently-verified basis for the "positions preserved verbatim" claim, not merely restated from the report.
+- No `SizedBox` height, `mainAxisAlignment`, or `Align` value changed anywhere in the diff — confirmed directly by reading every hunk; the only new value introduced is the pill row's `maxWidth + 64` width computation and the `_kHorizontalPadding` constant itself.
+- Web (`_kDemoBandVisible == false`): the demo button's `if (_kDemoBandVisible)` gate is preserved verbatim inside the (now re-nested) logo/demo/email `Padding` group — no change to web/native parity introduced by this cycle beyond what Cycle 3 already established (all four wraps, including the platform-parity note from the Cycle 3 record, are otherwise unaffected by this cycle's restructuring).
+
+This is **code-path analysis plus independent trace-through of the `maxWidth`/offset arithmetic**, not manual/runtime verification. QA did not launch the app on any platform.
+
+## Regression Check
+
+| Area | Risk | Notes |
+| --- | --- | --- |
+| Auth / session / magic-link / PKCE | LOW | Not touched by diff. |
+| Init order | LOW | Not touched by diff. |
+| Platform parity (native vs. web) | LOW | This cycle's restructuring does not touch the `_kDemoBandVisible`/`kIsWeb` gating logic at all — the demo button's conditional block is preserved unchanged, just re-nested inside the new `Padding` sub-group. The Cycle 3 platform-parity note (web also receiving the logo/email/pills `Transform.translate` shifts) is unaffected by this cycle either way. |
+| PR #278 overflow safety (Flexible wrap on logo) | LOW | Structurally unaffected — no `SizedBox`/`Flexible`/`Align` bound around the logo changed; the re-nesting only adds an outer `Padding`/`Column` around the logo/demo/email group, which does not alter the logo's own `availableHeight / 2` budget. Independently re-run 20/20 passing on Test C. |
+| Domain pill row width / overflow | LOW | Traced end-to-end: the row's `SizedBox(width: maxWidth)` now receives the full, un-inset `constraints.maxWidth`, confirmed by arithmetic trace, not just claim. `EmailDomainShortcutBar` itself (the pill row's child widget) is untouched by this diff — its internal scroll/pill-rendering logic is unaffected, only the width budget its parent hands it changed. |
+| Negative-`Padding`/`OverflowBox` dead-end approaches | N/A | Report states both were tried and discarded during implementation (framework assertion failures) before landing on the final full-width-sibling restructure. Neither dead-end approach is present in the final diff — confirmed, the diff contains only `Padding`/`Column` re-nesting and the `maxWidth` arithmetic change, no `OverflowBox` or negative `Padding` anywhere. |
+| Paint-level overlap (logo ↔ demo link) flagged in Cycle 3 | LOW (unchanged from Cycle 3) | This cycle does not touch any of the four `Transform.translate` offset values — the Cycle 3-flagged compact-viewport overlap risk is neither improved nor worsened by this restructuring. Still an open, non-blocking punch-list item carried forward from Cycle 3 (not re-litigated here since nothing about it changed). |
+| Animation timing / intervals | LOW | Not touched — `Transform.translate`/`FadeTransition`/`SlideTransition` wraps and their controllers are unchanged; only the surrounding `Padding`/`Column` structure changed. |
+| Hit-testing / tap targets | LOW | No element's screen position changed relative to Cycle 3 (see Behavior Verification) — hit-testing is unaffected by construction. Not independently verified at runtime; flagged as a secondary punch-list check. |
+| Controller/FocusNode disposal, `setState` after async gaps | LOW | Not touched — diff is confined to widget-tree structure inside a single build method. |
+
+Overall regression risk: **LOW**. No new regressions introduced by this cycle; the one previously-flagged Cycle 3 paint-overlap risk (logo/demo link at compact viewports) is carried forward unchanged and remains on the punch list below since this cycle did not touch those offsets.
+
+## Database Safety
+
+N/A — no DB/RLS/RPC/migration impact. Diff confirmed to touch no `supabase/**` or `database/**` files.
+
+## Analyzer Results
+
+```
+flutter analyze lib/features/auth/login_screen.dart
+Analyzing login_screen.dart...
+No issues found! (ran in 3.0s)
+```
+
+Independently re-run by QA; matches Engineer's reported Cycle 4 result.
+
+## Test Results
+
+```
+flutter test test/features/auth/login_screen_demo_button_test.dart
+00:03 +3: All tests passed!
+```
+
+Independently re-run by QA (Tests A, B, C all pass).
+
+Loop-stability check for Test C, independently re-executed by QA against the Cycle 4 code (20 iterations, each individually checked for "All tests passed"):
+
+```
+for i in $(seq 1 20); do flutter test test/features/auth/login_screen_demo_button_test.dart --plain-name "Test C" || echo "FAILED run $i"; done
+```
+
+Result: 20/20 passed, zero `FAILED` lines emitted — matches the Engineer's reported result exactly.
+
+`dart format --output=none --set-exit-if-changed lib/features/auth/login_screen.dart` independently re-run by QA: `Formatted 1 file (0 changed)` — confirms the file is already correctly formatted, matching the report's claim of one reformat already applied prior to hand-off.
+
+## Diff Safety Review
+
+- No secrets, API keys, or credentials found in the diff.
+- No `TODO`/`FIXME`/`debugPrint(` within the diff hunks — `git diff HEAD -- lib/features/auth/login_screen.dart | grep -iE "TODO|FIXME|debugPrint\("` returned no matches. The file contains pre-existing `debugPrint(...)` calls elsewhere (session-check/error-handling logging, lines ~129/393/400/407/415) — outside this diff's hunks, untouched by this change, correctly not flagged.
+- No leftover test scaffolding (the two discarded implementation attempts — negative `Padding`, `OverflowBox` — are confirmed absent from the final diff), no accidental deletions, no unrelated formatting churn — diff is confined to the constant addition, the `Padding`/`Column` re-nesting, the pill-row `maxWidth` change, and the two doc-comment updates described in `ENGINEER_REPORT.md`.
+
+## Change Budget Review
+
+- No Cycle 4 Architect Plan/Change Budget exists — this is a direct owner-reported-issue cycle, not a new planning pass, per `ENGINEER_REPORT.md`.
+- `git diff --numstat` for `lib/features/auth/login_screen.dart`: 91 insertions, 54 deletions — matches the report's stated numstat exactly. The Engineer's characterization ("mostly re-indentation from the added nesting level, not new logic") is corroborated by direct reading of the diff: the vast majority of the insertion/deletion pairs are the same lines re-indented one level deeper inside the new `Padding`/`Column` wraps, not new logic. The only genuinely new logic is the `_kHorizontalPadding` constant declaration and the pill row's `maxWidth + (_kHorizontalPadding * 2)` expression.
+- This bug fix has substantial deletions (54) alongside insertions (91), so the "bug fix with zero deleted lines" Warning trigger does not apply here.
+- Expected new files: 0 — actual: 0.
+- Expected new public classes/methods: 0 — actual: 0 (one new private top-level `const double`, not a class or method).
+- Expected new dependencies: 0 — actual: 0.
+- Expected new tests: 0 — actual: 0 (test file untouched; report states existing Tests A/B/C already cover the invariants this change can affect, and the visual edge-to-edge outcome is correctly deferred to Tony's punch list).
+
+## Code Efficiency Review
+
+- No new widgets, helpers, providers, notifiers, or public methods introduced — the change re-nests existing `Padding`/`Column` primitives already used throughout this file, plus one new `const double` that replaces a previously duplicated magic number (`32`/`64` appeared in two places before this change; now a single named constant). This is a genuine, minor de-duplication improvement, not bloat.
+- Report states a search of `lib/` for an existing "full-bleed"/"edge-to-edge"/"break out of padding" helper was performed and found none — independently spot-checked via a search of `lib/` for similar full-bleed/edge-to-edge patterns; none found, corroborating the claim. This is a one-off structural adjustment scoped to a single screen, not a pattern repeated elsewhere, so no shared abstraction is warranted.
+- No single-use `_buildX()` method added beyond what already existed; no new `copyWith` entries, hand-rolled loops/try-catch, or barrel files.
+- File size/method size unaffected relative to the 500-line Dart target per the report's claim; the restructuring adds nesting depth but no new methods.
+
+No bloat findings.
+
+## Manual Verification Punch List
+
+QA did not attempt any of these — cannot launch the app in this pipeline.
+
+1. **[Primary check for this cycle]** `flutter run -d macos` (or `-d chrome`/`-d ios`), open the login screen, and confirm the email domain shortcut pill row now visually extends to both screen edges (no visible gap matching the 32px inset still present above/below it around the email field and login button). **Expected:** the pill row's background/content reaches flush to the left and right edges of the screen/window, while the logo, "Check out the demo band" link, email field label/input, and login button all remain visually inset from the edges exactly as they were in the already-approved Cycle 3 state.
+2. At the same time, confirm the logo, "Check out the demo band" link, email field, and login button have **not** moved from their Cycle 3 positions — this is a restructuring-only cycle, so nothing about their vertical position or horizontal inset should look different from what you already approved testing PR #279.
+3. Scroll the pill row (if it has more shortcuts than fit on screen) and confirm horizontal scrolling still works correctly now that it has more width to work with — confirm no visual clipping or stray padding remains at either edge during a scroll.
+4. Resize the macOS window down to a compact size (~800×600 client area) and confirm no `RenderFlex` overflow banner appears — this exercises PR #278's overflow-safety mechanism, unaffected by this cycle's `Padding` restructuring per the analysis above, but worth a quick visual confirmation.
+5. Repeat step 1 on `flutter run -d chrome` and (if available) `flutter run -d ios`, to confirm the edge-to-edge pill row renders correctly across platforms — this cycle's change is not platform-conditioned, so all platforms should show the same full-width pill row.
+6. This cycle carries forward the still-open Cycle 3 punch-list item (not re-tested here since this cycle didn't touch those offsets): on a compact viewport (~800×600), confirm the logo and the "Check out the demo band" link still do not visually overlap. If you already confirmed this while testing PR #279 before this cycle's fix, no need to repeat it — flagging only because it remains open in the audit trail.
+
+## Issues Found
+
+**Critical:** none.
+
+**Warnings:** none.
+
+**Suggestions:**
+
+- **`code-quality`** — As in Cycles 2–3, no formal Cycle 4 Architect Plan/Change Budget exists since this is a direct owner-reported issue rather than a new planning pass. Not a blocker (the diff is single-file, well-explained, and the restructuring rationale — including two discarded dead-end approaches — is documented in detail in `ENGINEER_REPORT.md`), but if further layout-restructuring cycles are anticipated for this file, a short Architect addendum per cycle would let future QA verify against an explicit budget rather than reconstructing rationale from the Engineer's report alone.
+
+---
+
+## Cycle 3 Record (preserved for history)
+
+### Cycle 3 Final Verdict
+
+**APPROVED**
+
+### Cycle 3 Validation Summary
 
 Cycle 3 is a direct, explicit, numeric owner (Tony) instruction layered on top of the already-QA-approved Cycle 2 state (see Cycle 2 and Cycle 1 records preserved verbatim below): move the logo up 50px, the demo link up 65px, and the email field + domain pills up 50px each, each relative to its own Cycle 2 rendered position. `ENGINEER_REPORT.md` (Cycle Number 3) implements this as four `Transform.translate` paint-only wraps at the existing call sites inside `_buildContentCluster()`, plus one doc-comment bullet. No layout box size, `Flexible`/`Align` bound, or the `availableHeight / 2` split is touched, so PR #278's overflow-safety mechanism and Test C are structurally unaffected by construction (paint-time transforms cannot change `RenderFlex` sizing).
 
@@ -26,7 +180,7 @@ The working tree contains exactly one uncommitted tracked change (`lib/features/
 
 **The Engineer's flagged non-blocking risk is validated as sound and is called out below as the top item on the Manual Verification Punch List**: because the demo link moves up 15px more than the logo, their Cycle-2 visual gap shrinks by 15px. This cannot regress any automated test (layout sizes are unchanged; it is a paint-level overlap risk, not a `RenderFlex` overflow), so it does not block this verdict, but it is a genuine visual risk at compact viewports that only a running app can confirm — see punch list item 1 below.
 
-## Architect Scope Review
+### Cycle 3 Architect Scope Review
 
 There is no new `ARCHITECT_PLAN.md` for Cycle 3 — per `ENGINEER_REPORT.md`, this is a direct owner-instruction cycle, not a new architect-planned task, and Tony's instruction explicitly authorizes deviating from the original Cycle 1 plan's off-limits list for this cycle only. QA held the diff to that explicit authorization plus the plan's still-governing constraints for everything not covered by the override:
 
@@ -37,7 +191,7 @@ There is no new `ARCHITECT_PLAN.md` for Cycle 3 — per `ENGINEER_REPORT.md`, th
 - No changes to `lib/main.dart`, `lib/app/**`, `demo_session_service.dart`, `auth_gate.dart`, `auth_confirm_screen.dart`, `pubspec.yaml`/`.lock`, `analysis_options.yaml`, `supabase/**`, `database/**`, `assets/images/**`, or any other `lib/features/**` file — independently confirmed empty via `git diff HEAD --stat` scoped to those paths.
 - Untracked pre-existing artifacts (`docs/features/bug/demo-session-cleanup-orphaned-anonymous-users/PR_BODY.md`, `docs/features/feature/financials-transaction-cards-reconciliation/PR_BODY.md`, `docs/features/feature/financials-transaction-cards/`, `docs/features/transaction-drawer-redesign/PR_BODY.md`) remain leftovers from unrelated prior slugs, not created by this Engineer's work — correctly out of scope for this review.
 
-## Completeness Check
+### Cycle 3 Completeness Check
 
 `ENGINEER_REPORT.md`'s Cycle 3 task list (6 items) verified directly against the diff:
 
@@ -50,7 +204,7 @@ There is no new `ARCHITECT_PLAN.md` for Cycle 3 — per `ENGINEER_REPORT.md`, th
 
 No partial implementation. No missing edge case relative to Tony's three-part numeric instruction — all three moves (50px, 65px, 50px) are present at the correct call sites with the correct signs (negative = up, per `Transform.translate`/`Offset` semantics).
 
-## Behavior Verification
+### Cycle 3 Behavior Verification
 
 Independently reasoned through Flutter's `Transform.translate` semantics rather than taken on the Engineer's word:
 
@@ -61,7 +215,7 @@ Independently reasoned through Flutter's `Transform.translate` semantics rather 
 
 This is **code-path analysis plus independent semantic/arithmetic verification**, not manual/runtime verification. QA did not launch the app on any platform.
 
-## Regression Check
+### Cycle 3 Regression Check
 
 | Area | Risk | Notes |
 | --- | --- | --- |
@@ -76,11 +230,11 @@ This is **code-path analysis plus independent semantic/arithmetic verification**
 
 Overall regression risk: **LOW**, with one **MEDIUM, explicitly flagged, non-blocking** paint-overlap risk that requires Tony's runtime confirmation before merge (see punch list item 1) and one **LOW–MEDIUM** platform-parity note (web is no longer byte-identical to prior cycles, by design of the literal instruction).
 
-## Database Safety
+### Cycle 3 Database Safety
 
 N/A — no DB/RLS/RPC/migration impact. Diff confirmed to touch no `supabase/**` or `database/**` files.
 
-## Analyzer Results
+### Cycle 3 Analyzer Results
 
 ```
 flutter analyze lib/features/auth/login_screen.dart
@@ -90,7 +244,7 @@ No issues found! (ran in 1.9s)
 
 Independently re-run by QA; matches Engineer's reported Cycle 3 result.
 
-## Test Results
+### Cycle 3 Test Results
 
 ```
 flutter test test/features/auth/login_screen_demo_button_test.dart
@@ -107,13 +261,13 @@ for i in $(seq 1 20); do flutter test test/features/auth/login_screen_demo_butto
 
 Result: 20/20 PASS, zero failures.
 
-## Diff Safety Review
+### Cycle 3 Diff Safety Review
 
 - No secrets, API keys, or credentials found in the diff.
 - No `TODO`/`FIXME`/`debugPrint(` within the diff hunks — `git diff HEAD -- lib/features/auth/login_screen.dart | grep -iE "TODO|FIXME|debugPrint\("` returned no matches. Note: the file contains pre-existing `debugPrint(...)` calls elsewhere (session-check/error-handling logging, unrelated lines) — outside the diff's hunks, untouched by this change, correctly not flagged.
 - No leftover test scaffolding, no accidental deletions, no unrelated formatting churn — diff is confined to the four `Transform.translate` wraps and the doc-comment bullet described in `ENGINEER_REPORT.md`.
 
-## Change Budget Review
+### Cycle 3 Change Budget Review
 
 - No Cycle 3 Architect Plan/Change Budget exists — this is a direct owner-instruction cycle, not a new planning pass, per `ENGINEER_REPORT.md`.
 - Cumulative diff vs. `HEAD` (`git diff --numstat`): 46 insertions, 12 deletions, net +34, spanning Cycles 1–3 in one uncommitted working tree (no intermediate commits exist to isolate Cycle 3 alone, same process limitation noted in the Cycle 2 record below). Reading the diff directly, the Cycle-3-attributable portion is exactly the four `Transform.translate` wrap blocks (~4-5 lines each with the explanatory comment) plus one 4-line doc-comment bullet — roughly +26 to +30 lines, 0 deletions, consistent with "wrap four existing call sites, do not remove anything."
@@ -123,7 +277,7 @@ Result: 20/20 PASS, zero failures.
 - Expected new dependencies: 0 — actual: 0.
 - Expected new tests: 0 — actual: 0 (test file untouched, consistent with the original plan's off-limits list, which Tony's override does not touch).
 
-## Code Efficiency Review
+### Cycle 3 Code Efficiency Review
 
 - No new helpers, widgets, providers, notifiers, fields, or abstractions introduced. `Transform.translate` is a standard Flutter primitive already used in six other places across the codebase (`potential_gig_card.dart`, `hero_section.dart`, `original_song_screen.dart`, `setlist_picker_bottom_sheet.dart`, `scroll_animated_widget.dart`) — independently grepped by QA, confirming no pre-existing "shift by N px" helper/extension exists that this change should have reused instead. `ENGINEER_REPORT.md`'s claim of having searched and found none is corroborated.
 - Four separate wrap sites for three distinct pixel amounts (50/65/50) is the minimum needed to satisfy three independently-specified move amounts without inventing an unrequested "shift everything below X" abstraction — reasonable, not over-engineered.
@@ -132,9 +286,9 @@ Result: 20/20 PASS, zero failures.
 
 No bloat findings.
 
-## Manual Verification Punch List
+### Cycle 3 Manual Verification Punch List (historical — superseded by Cycle 4 punch list above)
 
-QA did not attempt any of these — cannot launch the app in this pipeline. **Item 1 is the highest-priority check this cycle** per the Engineer's flagged risk; do not merge without confirming it.
+QA did not attempt any of these — cannot launch the app in this pipeline. Preserved for audit history only; Cycle 4's punch list above supersedes it for current merge decisions.
 
 1. **[Priority — logo/demo-link overlap risk, flagged by Engineer, validated by QA]** `flutter run -d macos`, then resize the window down to a compact size (~800×600 client area) — the same viewport PR #278's overflow-safety mechanism and Test C target. **Expected:** the logo and the "Check out the demo band" link do **not** visually overlap or touch — there should still be a visible gap between the bottom of the logo image and the top of the demo-link text at this compact size. **If they visually touch or overlap:** this is the specific risk flagged in `ENGINEER_REPORT.md` — the 15px-tighter gap (demo link moves up 15px more than the logo) combined with `BoxFit.contain`'s logo-shrink at compact viewports. Do not merge if overlap is observed; report back for a follow-up cycle (e.g. reducing the demo link's offset, or reducing to 50px to match the logo).
 2. Repeat step 1 on the smallest physical/simulated phone in your device matrix (e.g. `flutter run -d ios` on the smallest iPhone simulator available, in portrait). Same expected result: no visual overlap between logo and demo link.
@@ -144,7 +298,7 @@ QA did not attempt any of these — cannot launch the app in this pipeline. **It
 6. Confirm the demo link and email field are still tappable at their new visual locations (not just visually present) — tap the demo link to confirm it still navigates into the demo flow, and tap/focus the email field to confirm the cursor lands in the field at its new position.
 7. Optional but recommended: `flutter run -d android` on a physical device or emulator (Pixel 6 or similar) to confirm parity with the iOS/macOS observations above.
 
-## Issues Found
+### Cycle 3 Issues Found
 
 **Critical:** none.
 

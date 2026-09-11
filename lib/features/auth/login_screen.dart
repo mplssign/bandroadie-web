@@ -52,6 +52,12 @@ import 'package:bandroadie/components/ui/app_text_field.dart';
 // Flip back to true once the account-cleanup job ships.
 const bool _kDemoBandVisible = !kIsWeb;
 
+// Horizontal inset applied around the login form. The domain pill row is a
+// full-width sibling outside this inset so it can render edge-to-edge
+// (Cycle 4, owner-reported: the row was cut off by the same inset used for
+// the rest of the form).
+const double _kHorizontalPadding = 32.0;
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -453,16 +459,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - (keyboardHeight * 0.5),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: AnimatedBuilder(
-                      animation: _animController,
-                      builder: (context, _) => _buildContentCluster(
-                        hasValidEmail: hasValidEmail,
-                        maxWidth: constraints.maxWidth - 64,
-                        availableHeight:
-                            constraints.maxHeight - (keyboardHeight * 0.5),
-                      ),
+                  child: AnimatedBuilder(
+                    animation: _animController,
+                    builder: (context, _) => _buildContentCluster(
+                      hasValidEmail: hasValidEmail,
+                      maxWidth:
+                          constraints.maxWidth - (_kHorizontalPadding * 2),
+                      availableHeight:
+                          constraints.maxHeight - (keyboardHeight * 0.5),
                     ),
                   ),
                 ),
@@ -492,6 +496,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   ///     email field + domain pills group are each nudged up via
   ///     `Transform.translate` (50px, 65px, 50px respectively). Layout box
   ///     sizes are unchanged, so PR #278 overflow-safety is unaffected.
+  ///   - Cycle 4: the domain pill row is a full-width sibling with no
+  ///     horizontal inset — the shared [_kHorizontalPadding] is applied to
+  ///     the logo/demo/email group and the login-button/message group
+  ///     separately instead of to the whole cluster, so the pill row alone
+  ///     spans edge-to-edge (owner-reported: it was cut off by the inset
+  ///     used for the rest of the form).
   Widget _buildContentCluster({
     required bool hasValidEmail,
     required double maxWidth,
@@ -502,63 +512,85 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // === LOGO — upper half, anchored toward the lower portion ===
-        SizedBox(
-          height: availableHeight / 2,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _kHorizontalPadding),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
-                child: Align(
-                  // Halves the slack below the logo (vs. Alignment.center),
-                  // moving the demo button up roughly halfway back toward it.
-                  alignment: const Alignment(0, 0.5),
-                  child: Transform.translate(
-                    // Cycle 3: nudge logo up 50px per owner instruction.
-                    offset: const Offset(0, -50),
-                    child: _buildLogo(logoWidth: logoWidth),
-                  ),
+              // === LOGO — upper half, anchored toward the lower portion ===
+              SizedBox(
+                height: availableHeight / 2,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Align(
+                        // Halves the slack below the logo (vs.
+                        // Alignment.center), moving the demo button up
+                        // roughly halfway back toward it.
+                        alignment: const Alignment(0, 0.5),
+                        child: Transform.translate(
+                          // Cycle 3: nudge logo up 50px per owner instruction.
+                          offset: const Offset(0, -50),
+                          child: _buildLogo(logoWidth: logoWidth),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
+              // === DEMO BUTTON — grouped with the login form ===
+              if (_kDemoBandVisible) ...[
+                Transform.translate(
+                  // Cycle 3: nudge demo link up 65px per owner instruction.
+                  offset: const Offset(0, -65),
+                  child: _buildDemoButton(),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // === EMAIL FIELD ===
+              Transform.translate(
+                // Cycle 3: nudge email field up 50px per owner instruction.
+                offset: const Offset(0, -50),
+                child: _buildEmailField(),
+              ),
+
+              const SizedBox(height: 12),
             ],
           ),
         ),
 
-        // === DEMO BUTTON — grouped with the login form ===
-        if (_kDemoBandVisible) ...[
-          Transform.translate(
-            // Cycle 3: nudge demo link up 65px per owner instruction.
-            offset: const Offset(0, -65),
-            child: _buildDemoButton(),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // === EMAIL FIELD ===
-        Transform.translate(
-          // Cycle 3: nudge email field up 50px per owner instruction.
-          offset: const Offset(0, -50),
-          child: _buildEmailField(),
-        ),
-
-        const SizedBox(height: 12),
-
-        // === DOMAIN PILLS ===
+        // === DOMAIN PILLS — full width, no horizontal inset (Cycle 4) ===
         Transform.translate(
           // Cycle 3: nudge domain pills up 50px per owner instruction.
           offset: const Offset(0, -50),
-          child: _buildDomainPills(maxWidth: maxWidth),
+          child: _buildDomainPills(
+            maxWidth: maxWidth + (_kHorizontalPadding * 2),
+          ),
         ),
 
-        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _kHorizontalPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 24),
 
-        // === LOGIN BUTTON ===
-        _buildLoginButton(hasValidEmail: hasValidEmail),
+              // === LOGIN BUTTON ===
+              _buildLoginButton(hasValidEmail: hasValidEmail),
 
-        // === MESSAGE ===
-        if (_message != null) ...[const SizedBox(height: 20), _buildMessage()],
+              // === MESSAGE ===
+              if (_message != null) ...[
+                const SizedBox(height: 20),
+                _buildMessage(),
+              ],
 
-        const SizedBox(height: 40),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -642,11 +674,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  /// Domain pills row - horizontally scrollable, aligned to email field width.
+  /// Domain pills row - horizontally scrollable, spans the full screen width
+  /// edge-to-edge (Cycle 4). [maxWidth] here is the full available width
+  /// (the caller adds the shared horizontal padding back in), not the email
+  /// field width — the caller places this widget as a sibling outside the
+  /// padded groups, so it isn't inset like the rest of the form.
   Widget _buildDomainPills({required double maxWidth}) {
     // PILL SNAP-ALIGNMENT:
-    // The pills container uses the same maxWidth as the email field.
-    // This ensures the pills row aligns perfectly with the input above.
+    // The pills container spans the full screen width so more pills are
+    // visible before horizontal scrolling kicks in, rather than being
+    // capped to the email field's (inset) width.
     // Pills scroll horizontally within this fixed-width container.
 
     return FadeTransition(
