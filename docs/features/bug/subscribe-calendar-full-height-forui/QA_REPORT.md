@@ -140,3 +140,276 @@ None.
 ### Suggestions
 
 None.
+
+---
+
+# QA Report — Cycle 6
+
+## Feature Slug
+
+`bug/subscribe-calendar-full-height-forui`
+
+## Feature Title
+
+Make Subscribe to Calendar bottom sheet full height and use Forui components
+
+## Cycle Number
+
+6
+
+## Final Verdict
+
+REQUIRES CHANGES
+
+## Validation Summary
+
+The Cycle 6 source implementation matches the finalized Architect behavior and preserves the approved prior-cycle behavior. Focused analysis is clean, formatting is stable, all 277 Flutter tests pass, and code-path inspection confirms the exact title, Add Event header parity, body order, hidden URL, copy feedback path, `bandId` flow, full-height shell, Forui controls, and typography.
+
+The verdict is blocked solely by a mandatory diff-safety failure: the newly edited `ENGINEER_REPORT.md` adds all three prohibited task/debug marker names enumerated by the QA policy. QA rules classify any such addition anywhere in the diff as an automatic Critical. Runtime UI checks were not attempted because the plan correctly classifies them as Tony-owned.
+
+Regression risk: **LOW** for the source implementation.
+
+## Architect Scope Review
+
+- Branch, Architect plan, and Engineer report all identify `bug/subscribe-calendar-full-height-forui`; the Engineer report is Cycle 6.
+- Source changes are confined to the three Cycle 6-approved files: `calendar_subscription_dialog.dart`, `calendar_screen.dart`, and `calendar_tab_content.dart`.
+- Each caller contains only the planned two-line `bandName` deletion. No off-limits source, migration, configuration, dependency, or test file changed.
+- The Cycle 4 APPROVED report above is preserved verbatim. Unrelated untracked `docs/features` artifacts were ignored.
+- The intentionally uncommitted source is expected pipeline state and was not treated as a defect.
+
+## Completeness Check
+
+- Header title is exactly `Subscribe to Band Calendar`, with no dynamic band name.
+- Header title style, alignment, padding, and close control match the Add Event reference; the Subscribe drag handle remains.
+- The raw URL widget, URL label/container, monospace style, and ellipsis are absent.
+- All five feed toggles precede the full-width `Copy subscription link` button; `How to subscribe` follows it.
+- Clipboard payload, `Copied` label, icon/success-color transition, success snackbar, mounted guard, and two-second reset remain.
+- `bandName` is absent from the dialog and both Subscribe call paths. Both callers still derive, null-check, and pass `bandId`.
+- Full-height `mainAxisMaxRatio: 1.0`, safe-area opt-in, `DecoratedBox` shell, Forui `AppButton`, Forui `AppSwitch`, and 16px/14px typography remain.
+
+## Behavior Verification
+
+**Code-path analysis only; not runtime-exercised.**
+
+The dialog receives only `bandId`, watches `calendarBandSubscriptionUrlProvider(widget.bandId)`, and passes that same ID to preference reads and writes. The copy button still calls `Clipboard.setData(ClipboardData(text: url))`, then invokes the unchanged callback that updates `_copied`, shows `Link copied to clipboard`, and resets after two seconds when mounted.
+
+The body sequence is description, feed label, five toggles, copy button, instructions, and notes. Header inspection confirms the exact literal and Add Event's 20px/w600/near-white title plus 32x32 rounded-square close button. Live dimensions, clipboard integration, accessibility announcements, and platform rendering remain owner-run checks.
+
+## Regression Check
+
+- **Calendar entry points and band isolation: LOW.** Both callers preserve their `bandId != null` gates and pass only `bandId`.
+- **Full-height and shell behavior: LOW.** Ratio, safe area, drag handle, scroll boundary, footer, and bottom inset handling remain.
+- **Copy flow: LOW.** Data source, clipboard payload, state transition, snackbar, and delayed mounted reset remain.
+- **Forui and typography: LOW.** `AppButton`, `AppSwitch`, `AppProgressIndicator`, and the approved 16px/14px hierarchy remain; shared wrappers and tokens are untouched.
+- **Auth, session, routing, notifications, ICS generation, RLS/RPC, and init order: LOW.** No controlling code changed.
+- **Platform parity: LOW by code-path analysis.** The common Flutter path has no platform conditionals; runtime platform checks are in the punch list.
+- **Lifecycle/rebuild behavior: LOW.** No controller, focus node, stream, provider, or rebuild trigger was added; mounted guards remain.
+
+## Database Safety
+
+Not applicable. No SQL, migration, RLS, RPC, grant, edge-function, or database-client change exists.
+
+## Analyzer Results
+
+Passed:
+
+`flutter analyze --no-fatal-infos lib/features/calendar/widgets/calendar_subscription_dialog.dart lib/features/calendar/calendar_screen.dart lib/features/calendar/calendar_tab_content.dart lib/shared/widgets/toggle_tile.dart`
+
+Result: `No issues found!`
+
+## Test Results
+
+Passed:
+
+`flutter test`
+
+Result: 277 tests passed, 0 failed.
+
+Formatting check passed for all three Cycle 6 source files: 0 files changed.
+
+## Diff Safety Review
+
+- `git diff --check` passed.
+- No likely credential token or secret was added.
+- No migration, dependency, test scaffolding, accidental source deletion, or unrelated source churn was found.
+- **Failed:** the added Engineer report text contains all three prohibited task/debug marker names enumerated by QA policy. This is an automatic Critical even though the sentence claims those markers are absent.
+
+## Change Budget Review
+
+- Cycle 6 source files modified: 3, exactly as budgeted. Source files created: 0.
+- Source diff against `HEAD`: `calendar_subscription_dialog.dart` +48/-72; each caller +0/-2; `toggle_tile.dart` has no uncommitted Cycle 6 delta.
+- The net deletion reflects the planned URL-surface removal, header replacement, button relocation, and dead-parameter cleanup. There is no unplanned file, public API, dependency, provider, or migration expansion.
+- The plan's whole-file expectation of exactly one `Expanded(` is inaccurate: the file has three, comprising the new header plus the pre-existing `_InstructionTile` and `_NoteBullet` layout widgets. The URL-row `Expanded(Text(url))` is removed as required. This is a verification-text defect, not an implementation defect.
+
+## Code Efficiency Review
+
+No new helper, utility, provider, notifier, private widget, dependency, field, or parameter was introduced. Cycle 6 removes dead API plumbing and reuses the existing copy widget. Existing private symbols remain file-local, and no equivalent new symbol search was necessary because no symbol was added.
+
+## Manual Verification Punch List
+
+QA does not launch or drive a running app. Tony must execute these owner-run checks:
+
+1. On iOS, open Calendar and tap `+ Subscribe to Calendar`. **Expected:** the sheet reaches full available height, respects system insets, scrolls normally, and keeps `Done` visible.
+2. Inspect the header beside Add Event. **Expected:** title is exactly `Subscribe to Band Calendar` with no band name; title styling/position and the 32x32 close control match Add Event; the Subscribe drag handle remains visible.
+3. Switch bands and reopen from each band. **Expected:** the title remains exactly `Subscribe to Band Calendar` in both.
+4. Read the body top to bottom. **Expected:** description, `Include in feed`, all five toggles, full-width `Copy subscription link`, `How to subscribe`, three instruction tiles, then notes.
+5. Inspect the copy area. **Expected:** no URL, URL container, monospace text, or ellipsis is visible; the copy button spans the same content width as `Done`.
+6. Tap `Copy subscription link`, then paste into a text field. **Expected:** the correct active-band ICS URL is pasted; button changes to `Copied` with check icon and success color; snackbar says `Link copied to clipboard`; button resets after about two seconds.
+7. Toggle each of Gigs, Potential gigs, Rehearsals, Potential rehearsals, and Member block-out days, then reopen the sheet. **Expected:** each Forui switch responds immediately and its saved state persists.
+8. Inspect `How to subscribe`. **Expected:** calendar labels render at 16px; instruction subtext and all note bullets render at 14px with no clipping or overlap.
+9. Tap `Done`, then separately tap the header close button. **Expected:** each dismisses cleanly with no error snackbar or visual glitch.
+10. With a screen reader and hardware keyboard, focus and activate the copy and close buttons. **Expected:** button roles and current labels are announced; Tab reaches close; Enter/Space dismisses; the URL is not announced as body text.
+11. Repeat the open/layout/copy checks on Android. **Expected:** full height respects Android navigation insets and `Copy subscription link` does not wrap at typical widths.
+12. Repeat on macOS. **Expected:** full-height layout, header parity, scrolling, and clipboard behavior match iOS.
+13. Repeat in Chrome web. **Expected:** full viewport height, header parity, scrolling, and browser clipboard behavior work.
+14. Open from both Calendar screen entry points. **Expected:** both produce identical band-scoped content and behavior.
+
+## Issues Found
+
+### Critical
+
+1. **[code-quality] Forbidden diff markers were added to `ENGINEER_REPORT.md`.** Its new Code Efficiency/Bloat Check sentence spells out all three prohibited marker names enumerated by QA policy. Remove or rephrase that sentence, then rerun QA. No source-code change is requested.
+
+### Warnings
+
+1. **[implementation-gap] Architect verification text has an impossible whole-file `Expanded(` count.** It expects exactly one after Cycle 6, but two approved pre-existing layout uses remain in `_InstructionTile` and `_NoteBullet`; actual whole-file count is three. The URL-specific `Expanded(Text(url))` removal is confirmed. Architect should scope this check to the removed URL block or update the expected count to three.
+
+### Suggestions
+
+None.
+
+---
+
+# QA Report — Cycle 7
+
+## Feature Slug
+
+`bug/subscribe-calendar-full-height-forui`
+
+## Feature Title
+
+Make Subscribe to Calendar bottom sheet full height and use Forui components
+
+## Cycle Number
+
+7
+
+## Final Verdict
+
+APPROVED
+
+## Validation Summary
+
+Both Cycle 6 findings are resolved. The Engineer report no longer introduces the prohibited task/debug marker literals, and the Architect verification now requires exactly three whole-file `Expanded(` occurrences, explicitly identifying the header, `_InstructionTile`, and `_NoteBullet`. The URL-specific `Expanded(Text(url))` and its visible/hidden substitutes remain absent.
+
+The source implementation remains identical to the Cycle 6 implementation by complete diff review and matching source diff arithmetic. Focused analysis is clean, `git diff --check` passes, and all 277 Flutter tests pass. Behavior was confirmed by code-path analysis only; runtime UI verification remains Tony-owned under the Architect plan.
+
+Regression risk: **LOW**.
+
+## Architect Scope Review
+
+- Branch, Architect plan, and Engineer report all identify `bug/subscribe-calendar-full-height-forui`; the Engineer report is Cycle 7.
+- Cycle 7 changes are report/verification corrections only. The cumulative source diff remains confined to the three Cycle 6-approved files, with the approved `AppToggleTile` implementation unchanged.
+- The source diff remains `calendar_subscription_dialog.dart` +48/-72 and each caller +0/-2, exactly matching Cycle 6.
+- Cycle 4 and Cycle 6 QA reports above are preserved verbatim. Unrelated untracked `docs/features` artifacts were ignored.
+- The intentionally uncommitted working tree is expected pipeline state and was not treated as a defect.
+
+## Completeness Check
+
+- The title is exactly `Subscribe to Band Calendar`; `bandName` is absent from the dialog API and both Subscribe call paths.
+- Header style, padding, alignment, and close control match Add Event; the Subscribe drag handle remains.
+- Body order is description, feed label, five toggles, full-width copy button, instructions, then notes.
+- The URL text/container, monospace style, ellipsis, and hidden URL substitutes are absent.
+- Clipboard payload, copied state, icon/success-color transition, snackbar, mounted guard, and two-second reset remain.
+- Full-height ratio, safe-area opt-in, `DecoratedBox` shell, Forui button/switch/progress paths, and 16px/14px instruction typography remain.
+- The corrected whole-file `Expanded(` count is exactly three at the three Architect-enumerated locations.
+
+## Behavior Verification
+
+**Code-path analysis only; not runtime-exercised.**
+
+Both entry points preserve their non-null `bandId` gates and pass only `bandId`. The dialog uses that ID for URL generation and preference reads/writes. `_CopyButton` remains after all five toggles and before `How to subscribe`, displays `Copy subscription link` at full width, and copies `url` without rendering it in the widget tree.
+
+The shell still opts into the full Forui sheet height and safe area, the title/close widget tree matches Add Event, `AppToggleTile` delegates to `AppSwitch`, and the instruction/note helpers retain the required 16px/14px token hierarchy.
+
+## Regression Check
+
+- **Calendar entry points and band isolation: LOW.** Both `bandId` gates and band-scoped service/provider calls remain intact.
+- **Full-height shell and platform parity: LOW.** Common Flutter/Forui layout, safe area, scrolling, footer, and inset paths are unchanged; no platform conditional changed.
+- **Header and dismissal: LOW.** Add Event parity and `Navigator.of(context).pop()` remain in code.
+- **Copy flow and hidden URL: LOW.** Clipboard data flow and feedback state remain; no URL-rendering substitute exists.
+- **Forui and typography: LOW.** Existing wrappers and tokens are consumed without shared-wrapper or theme changes.
+- **Lifecycle/rebuild behavior: LOW.** No controller, focus node, stream, provider, or rebuild trigger changed; mounted guards remain.
+- **Auth, session, routing, notifications, ICS generation, RLS/RPC, and init order: LOW.** No controlling code changed.
+
+## Database Safety
+
+Not applicable. No SQL, migration, RLS, RPC, grant, edge-function, or database-client change exists.
+
+## Analyzer Results
+
+Passed:
+
+`flutter analyze --no-fatal-infos lib/features/calendar/widgets/calendar_subscription_dialog.dart lib/features/calendar/calendar_screen.dart lib/features/calendar/calendar_tab_content.dart lib/shared/widgets/toggle_tile.dart`
+
+Result: `No issues found!`
+
+## Test Results
+
+Passed:
+
+`flutter test`
+
+Result: 277 tests passed, 0 failed.
+
+## Diff Safety Review
+
+- `git diff --check` passed.
+- The Cycle 6 Critical is resolved: `ENGINEER_REPORT.md` no longer introduces the prohibited marker literals.
+- No likely credential, migration, dependency, test scaffolding, accidental source deletion, or unrelated source churn was found.
+- The only current marker-literal match is in the preserved Cycle 4 QA text before the Cycle 6 append; it is not newly introduced by Cycle 7.
+- The corrected URL-removal checks pass: no URL-row `Expanded`, ellipsis, monospace style, selectable/hidden substitute, or caption token remains.
+
+## Change Budget Review
+
+- Cycle 7 source files modified: 0. Source files created: 0.
+- Cumulative source diff remains `calendar_subscription_dialog.dart` +48/-72, `calendar_screen.dart` +0/-2, and `calendar_tab_content.dart` +0/-2; `toggle_tile.dart` has no current delta.
+- The cumulative source change remains within the Architect budget and introduces no new public class, dependency, provider, migration, or edge function.
+- Cycle 7 documentation corrections do not expand runtime scope.
+
+## Code Efficiency Review
+
+Cycle 7 adds no source symbol or abstraction. The cumulative implementation adds no helper, provider, notifier, field, parameter, dependency, or single-use wrapper; it removes dead `bandName` plumbing and reuses established `AppButton`, `AppSwitch`, and typography tokens. No new-symbol equivalence search is required because the source diff introduces no new symbol.
+
+## Manual Verification Punch List
+
+QA does not launch or drive a running app. Tony must execute these owner-run checks:
+
+1. On iOS, open Calendar and tap `+ Subscribe to Calendar`. **Expected:** the sheet reaches full available height, respects system insets, scrolls normally, and keeps `Done` visible.
+2. Inspect the body and copy area. **Expected:** no URL, URL container, monospace text, or ellipsis is visible; `Copy subscription link` follows all five feed toggles, precedes `How to subscribe`, and spans the same content width as `Done`.
+3. Tap `Copy subscription link`, then paste into a text field. **Expected:** the active band's ICS URL is pasted; the button changes to `Copied` with check icon and success color; the snackbar says `Link copied to clipboard`; the button resets after about two seconds.
+4. Toggle Gigs, Potential gigs, Rehearsals, Potential rehearsals, and Member block-out days, then reopen the sheet. **Expected:** each Forui switch responds immediately and its saved state persists.
+5. Tap `Done`. **Expected:** the sheet dismisses with no error snackbar or visual glitch.
+6. Repeat the open/layout/copy checks on Android. **Expected:** full height respects Android navigation insets, `Done` remains visible, and the copy label does not wrap at typical widths.
+7. Repeat on macOS. **Expected:** full-height layout, scrolling, and clipboard behavior match iOS.
+8. Repeat in Chrome web. **Expected:** full viewport height, scrolling, and browser clipboard behavior work.
+9. Open from both Calendar entry points. **Expected:** both show identical band-scoped content and behavior.
+10. Compare the shell with Add Block Out or Day Detail. **Expected:** drag handle, rounded-top shell, and outer chrome match; only the close control intentionally differs to match Add Event.
+11. Inspect `How to subscribe`. **Expected:** calendar labels render at 16px; instruction subtext and all note bullets render at 14px without clipping or overlap.
+12. Compare the header beside Add Event. **Expected:** title is exactly `Subscribe to Band Calendar`, with matching 20px/w600 near-white styling, left position, 20/16 spacing, and 32x32 rounded-square close control; the Subscribe drag handle remains.
+13. Switch bands and reopen. **Expected:** the title remains exactly `Subscribe to Band Calendar`, while copied and saved data remains scoped to the active band.
+14. With a screen reader and hardware keyboard, focus and activate the copy and close buttons. **Expected:** button roles and current labels are announced; the URL is not announced as body text; Tab reaches close and Enter/Space dismisses.
+
+## Issues Found
+
+### Critical
+
+None.
+
+### Warnings
+
+None.
+
+### Suggestions
+
+None.

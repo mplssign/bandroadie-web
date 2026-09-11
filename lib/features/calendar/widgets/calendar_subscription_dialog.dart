@@ -24,7 +24,6 @@ void showCalendarSubscriptionDialog(
   BuildContext context,
   WidgetRef ref, {
   required String bandId,
-  required String bandName,
 }) {
   showAppBottomSheet(
     context: context,
@@ -34,19 +33,16 @@ void showCalendarSubscriptionDialog(
     backgroundColor: Colors.transparent,
     builder: (context) => CalendarSubscriptionDialog(
       bandId: bandId,
-      bandName: bandName,
     ),
   );
 }
 
 class CalendarSubscriptionDialog extends ConsumerStatefulWidget {
   final String bandId;
-  final String bandName;
 
   const CalendarSubscriptionDialog({
     super.key,
     required this.bandId,
-    required this.bandName,
   });
 
   @override
@@ -122,45 +118,50 @@ class _CalendarSubscriptionDialogState
               ),
             ),
 
-            const SizedBox(height: Spacing.space16),
-
             // Header
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.pagePadding,
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.pagePadding,
+                20,
+                Spacing.pagePadding,
+                16,
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(AppIcons.calendar,
-                      color: AppColors.primary, size: 22),
-                  const SizedBox(width: Spacing.space12),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      'Subscribe to ${widget.bandName} Calendar',
-                      style: AppTextStyles.title3,
+                      'Subscribe to Band Calendar',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFFAFAFA),
+                      ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: context.colors.background,
-                        shape: BoxShape.circle,
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Color(0xFFA1A1AA),
                       ),
-                      child: Icon(
-                        AppIcons.close,
-                        size: 18,
-                        color: context.colors.textSecondary,
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFF1F1F23),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: Spacing.space16),
 
             // Scrollable body
             Flexible(
@@ -262,49 +263,6 @@ class _CalendarSubscriptionDialogState
 
         const SizedBox(height: Spacing.space20),
 
-        // Subscription URL
-        Container(
-          padding: const EdgeInsets.all(Spacing.space12),
-          decoration: BoxDecoration(
-            color: context.colors.surfaceElevated,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: context.colors.border),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  url,
-                  style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: AppFontSizes.caption,
-                    fontFamily: 'monospace',
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: Spacing.space12),
-              _CopyButton(
-                url: url,
-                copied: _copied,
-                onCopied: () {
-                  setState(() => _copied = true);
-                  showSuccessSnackBar(
-                    context,
-                    message: 'Link copied to clipboard',
-                  );
-                  Future.delayed(const Duration(seconds: 2), () {
-                    if (mounted) setState(() => _copied = false);
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: Spacing.space20),
-
         // Feed content toggles
         Text(
           'Include in feed:',
@@ -365,6 +323,23 @@ class _CalendarSubscriptionDialogState
               ),
             ),
           ),
+
+        const SizedBox(height: Spacing.space20),
+
+        _CopyButton(
+          url: url,
+          copied: _copied,
+          onCopied: () {
+            setState(() => _copied = true);
+            showSuccessSnackBar(
+              context,
+              message: 'Link copied to clipboard',
+            );
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) setState(() => _copied = false);
+            });
+          },
+        ),
 
         const SizedBox(height: Spacing.space20),
 
@@ -447,7 +422,8 @@ class _CopyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppButton(
-      label: copied ? 'Copied' : 'Copy',
+      label: copied ? 'Copied' : 'Copy subscription link',
+      fullWidth: true,
       icon: copied ? AppIcons.check : AppIcons.copy,
       backgroundColor: copied ? context.colors.success : null,
       onPressed: () {

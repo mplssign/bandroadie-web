@@ -511,13 +511,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               onTap: () {
                 final activeBand = ref.read(activeBandProvider).activeBand;
                 final bandId = activeBand?.id;
-                final bandName = activeBand?.name ?? 'Band';
                 if (bandId != null) {
                   showCalendarSubscriptionDialog(
                     context,
                     ref,
                     bandId: bandId,
-                    bandName: bandName,
                   );
                 }
               },
