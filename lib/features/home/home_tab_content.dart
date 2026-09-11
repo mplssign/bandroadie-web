@@ -1125,7 +1125,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                       ref.invalidate(currentUserGigResponsesProvider);
                       ref.invalidate(potentialGigResponseSummariesProvider);
                     },
-              onTap: () => _openEditGigSheet(gig),
+              onTap: () => _openViewGigSheet(gig),
             );
           } else {
             final rehearsal = event['rehearsal'] as Rehearsal;
@@ -1174,7 +1174,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
                         ref.invalidate(
                             potentialRehearsalResponseSummariesProvider);
                       },
-                onTap: () => _openEditRehearsalSheet(rehearsal),
+                onTap: () => _openViewRehearsalSheet(rehearsal),
               ),
             );
           }

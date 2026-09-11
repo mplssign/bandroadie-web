@@ -5,16 +5,25 @@ import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/models/gig.dart';
+import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
+import '../../../app/utils/time_formatter.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../contacts/models/contact.dart';
 import '../../contacts/widgets/contact_detail_drawer.dart';
 import '../../contacts/widgets/contact_form_screen.dart';
+import '../../calendar/calendar_controller.dart';
+import '../../events/events_repository.dart';
+import '../../events/models/event_form_data.dart';
+import '../../events/widgets/potential_event_availability_section.dart';
+import '../../members/members_controller.dart';
+import '../../rehearsals/rehearsal_controller.dart';
 import '../gig_controller.dart';
+import '../gig_response_repository.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../../app/theme/app_animations.dart';
 import 'gig_notes_sheet.dart';
@@ -65,11 +74,19 @@ class ViewGigDrawer extends ConsumerStatefulWidget {
 
 class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
   late Gig _displayGig;
+  final Set<String> _selectedOfficialDateKeys = {};
+  bool _isCreatingGigs = false;
 
   @override
   void initState() {
     super.initState();
     _displayGig = widget.gig;
+
+    if (widget.gig.isPotential && ref.read(membersProvider).members.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(membersProvider.notifier).loadMembers(widget.gig.bandId);
+      });
+    }
 
     if (widget.gig.contacts.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -251,6 +268,92 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
     widget.onEdit();
   }
 
+  void _toggleOfficialDate(
+    PotentialEventDateAvailability selectedDate,
+  ) {
+    setState(() {
+      if (!_selectedOfficialDateKeys.add(selectedDate.responseKey)) {
+        _selectedOfficialDateKeys.remove(selectedDate.responseKey);
+      }
+    });
+  }
+
+  EventFormData _officialFormDataFor(
+    PotentialEventDateAvailability selectedDate,
+  ) {
+    final gig = _displayGig;
+    final originalData = EventFormData.fromGig(gig);
+    final selectedEntry = selectedDate.responseKey == 'primary'
+        ? null
+        : originalData.additionalDates.firstWhere(
+            (entry) => entry.date == selectedDate.date,
+          );
+    return originalData.copyWith(
+      date: selectedDate.date,
+      hour: selectedEntry?.hour,
+      minutes: selectedEntry?.minutes,
+      isPM: selectedEntry?.isPM,
+      isPotentialGig: false,
+      additionalDates: const [],
+    );
+  }
+
+  Future<void> _createSelectedGigs(
+    List<PotentialEventDateAvailability> availabilityDates,
+  ) async {
+    if (_selectedOfficialDateKeys.isEmpty || _isCreatingGigs) return;
+
+    final gig = _displayGig;
+    final selectedDates = availabilityDates
+        .where(
+          (date) => _selectedOfficialDateKeys.contains(date.responseKey),
+        )
+        .toList();
+    setState(() => _isCreatingGigs = true);
+
+    try {
+      final repository = ref.read(eventsRepositoryProvider);
+      await repository.updateGig(
+        gigId: gig.id,
+        bandId: gig.bandId,
+        formData: _officialFormDataFor(selectedDates.first),
+      );
+      for (final selectedDate in selectedDates.skip(1)) {
+        await repository.createGig(
+          bandId: gig.bandId,
+          formData: _officialFormDataFor(selectedDate),
+        );
+      }
+
+      await Future.wait([
+        ref.read(gigProvider.notifier).refresh(),
+        ref.read(rehearsalProvider.notifier).refresh(),
+        ref
+            .read(calendarProvider.notifier)
+            .invalidateAndRefresh(bandId: gig.bandId),
+      ]);
+
+      if (!mounted) return;
+      final count = selectedDates.length;
+      showSuccessSnackBar(
+        context,
+        message: count == 1 ? 'Gig created' : '$count gigs created',
+      );
+      Navigator.of(context).pop();
+      widget.onSaved?.call();
+    } catch (_) {
+      if (!mounted) return;
+      showErrorSnackBar(
+        context,
+        message: 'Could not create the gig. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingGigs = false);
+      }
+    }
+  }
+
   void _openContactDetail(BuildContext context, Contact contact) {
     ContactDetailDrawer.show(
       context,
@@ -309,6 +412,23 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
   @override
   Widget build(BuildContext context) {
     final gig = _displayGig;
+    final membersState = ref.watch(membersProvider);
+    final availabilityDates = [
+      PotentialEventDateAvailability(
+        responseKey: 'primary',
+        date: gig.date,
+        timeRange: TimeFormatter.formatRange(gig.startTime, gig.endTime),
+      ),
+      for (final additionalDate in gig.additionalDates)
+        PotentialEventDateAvailability(
+          responseKey: additionalDate.id,
+          date: additionalDate.date,
+          timeRange: TimeFormatter.formatRange(
+            additionalDate.startTime ?? gig.startTime,
+            gig.endTime,
+          ),
+        ),
+    ]..sort((a, b) => a.date.compareTo(b.date));
 
     return Container(
       constraints: BoxConstraints(
@@ -402,33 +522,68 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
 
                   const SizedBox(height: Spacing.space16),
 
-                  // Date/Time block
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: Spacing.pagePadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _formatFullDate(gig.date),
-                          style: AppTextStyles.title3.copyWith(
-                            color: context.colors.textPrimary,
+                  if (gig.isPotential)
+                    PotentialEventAvailabilitySection(
+                      dates: availabilityDates,
+                      members: membersState.members,
+                      isLoadingMembers: membersState.isLoading,
+                      currentUserId: supabase.auth.currentUser?.id,
+                      loadResponses: () => ref
+                          .read(gigResponseRepositoryProvider)
+                          .fetchAllDateResponses(
+                            gigId: gig.id,
+                            bandId: gig.bandId,
+                            gigDateIds: gig.additionalDates
+                                .map((date) => date.id)
+                                .toList(),
                           ),
-                        ),
-                        const SizedBox(height: Spacing.space4),
-                        Text(
-                          gig.timeRange,
-                          style: AppTextStyles.headline.copyWith(
-                            color: context.colors.textPrimary,
+                      onRespond: (responseKey, response) async {
+                        final userId = supabase.auth.currentUser?.id;
+                        if (userId == null) return;
+                        await ref
+                            .read(gigResponseRepositoryProvider)
+                            .upsertResponseForDate(
+                              gigId: gig.id,
+                              gigDateId:
+                                  responseKey == 'primary' ? null : responseKey,
+                              userId: userId,
+                              response: response,
+                            );
+                        ref.invalidate(currentUserGigResponsesProvider);
+                        ref.invalidate(currentUserGigAllDateResponsesProvider);
+                        ref.invalidate(potentialGigResponseSummariesProvider);
+                      },
+                      selectedOfficialDateKeys: _selectedOfficialDateKeys,
+                      onMakeOfficial:
+                          widget.canEdit ? _toggleOfficialDate : null,
+                    )
+                  else ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.pagePadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatFullDate(gig.date),
+                            style: AppTextStyles.title3.copyWith(
+                              color: context.colors.textPrimary,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: Spacing.space4),
+                          Text(
+                            gig.timeRange,
+                            style: AppTextStyles.headline.copyWith(
+                              color: context.colors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: Spacing.space16),
-                  const Divider(height: 1),
+                    const SizedBox(height: Spacing.space16),
+                    const Divider(height: 1),
+                  ],
 
                   // Detail rows
                   if (gig.loadInTime != null)
@@ -489,10 +644,23 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
 
           // Footer
           SheetFooter(
-            primaryLabel: 'Done',
-            onPrimary: () => Navigator.of(context).pop(),
-            cancelLabel: 'Edit',
-            onCancel: widget.canEdit ? () => _handleEdit(context) : null,
+            primaryLabel: _selectedOfficialDateKeys.isEmpty
+                ? 'Done'
+                : _selectedOfficialDateKeys.length == 1
+                    ? 'Create Gig'
+                    : 'Create (${_selectedOfficialDateKeys.length}) Gigs',
+            primaryFlex: _selectedOfficialDateKeys.isEmpty ? 1 : 2,
+            fitActionLabels: _selectedOfficialDateKeys.isNotEmpty,
+            primaryIsLoading: _isCreatingGigs,
+            onPrimary: _selectedOfficialDateKeys.isEmpty
+                ? () => Navigator.of(context).pop()
+                : () => _createSelectedGigs(availabilityDates),
+            cancelLabel: _selectedOfficialDateKeys.isEmpty ? 'Edit' : 'Cancel',
+            onCancel: !widget.canEdit
+                ? null
+                : _selectedOfficialDateKeys.isEmpty
+                    ? () => _handleEdit(context)
+                    : () => setState(_selectedOfficialDateKeys.clear),
           ),
         ],
       ),

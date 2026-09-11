@@ -18,6 +18,8 @@ class SheetFooter extends StatelessWidget {
     required this.onPrimary,
     this.primaryIsLoading = false,
     this.primaryIcon,
+    this.primaryFlex = 1,
+    this.fitActionLabels = false,
     this.cancelLabel = 'Cancel',
     this.onCancel,
     this.destructiveLabel,
@@ -36,6 +38,12 @@ class SheetFooter extends StatelessWidget {
 
   /// Optional leading icon on the primary button.
   final IconData? primaryIcon;
+
+  /// Horizontal flex for the primary button when a cancel action is shown.
+  final int primaryFlex;
+
+  /// Scales action labels down when the footer width is constrained.
+  final bool fitActionLabels;
 
   /// Label for the cancel (text) button. Defaults to 'Cancel'.
   final String cancelLabel;
@@ -63,6 +71,7 @@ class SheetFooter extends StatelessWidget {
       icon: primaryIcon,
       isLoading: primaryIsLoading,
       fullWidth: true,
+      fitLabel: fitActionLabels,
     );
 
     final Widget row = onCancel != null
@@ -74,10 +83,11 @@ class SheetFooter extends StatelessWidget {
                   onPressed: primaryIsLoading ? null : onCancel,
                   variant: AppButtonVariant.text,
                   fullWidth: true,
+                  fitLabel: fitActionLabels,
                 ),
               ),
               const SizedBox(width: Spacing.space12),
-              Expanded(child: primary),
+              Expanded(flex: primaryFlex, child: primary),
             ],
           )
         : primary;

@@ -20,6 +20,7 @@ class _StubMembersNotifier extends MembersNotifier {
 Future<void> _pumpPotentialSection(
   WidgetTester tester, {
   required bool isPotential,
+  List<AdditionalDateEntry> additionalDates = const [],
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -31,7 +32,10 @@ Future<void> _pumpPotentialSection(
         home: FTheme(
           data: AppTheme.foruiTheme(Brightness.dark),
           child: Scaffold(
-            body: _PotentialSectionWrapper(isPotential: isPotential),
+            body: _PotentialSectionWrapper(
+              isPotential: isPotential,
+              additionalDates: additionalDates,
+            ),
           ),
         ),
       ),
@@ -42,9 +46,13 @@ Future<void> _pumpPotentialSection(
 
 // Calls buildPotentialSection directly so only _buildPotentialToggle renders.
 class _PotentialSectionWrapper extends ConsumerWidget {
-  const _PotentialSectionWrapper({required this.isPotential});
+  const _PotentialSectionWrapper({
+    required this.isPotential,
+    required this.additionalDates,
+  });
 
   final bool isPotential;
+  final List<AdditionalDateEntry> additionalDates;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,7 +65,7 @@ class _PotentialSectionWrapper extends ConsumerWidget {
       fieldErrors: const {},
       isPotential: isPotential,
       onPotentialToggled: (_) {},
-      additionalDates: const [],
+      additionalDates: additionalDates,
       primaryStartTime: '',
       isRecurring: false,
       onRecurringToggled: (_) {},
@@ -75,6 +83,8 @@ class _PotentialSectionWrapper extends ConsumerWidget {
       memberAvailability: const {},
       isLoadingMemberAvailability: false,
       isLoadingUserResponse: false,
+      isEditMode: true,
+      existingEventId: 'rehearsal-1',
     );
     return fields.buildPotentialSection(context, ref);
   }
@@ -87,7 +97,7 @@ void main() {
 
       expect(find.text('Potential Rehearsal'), findsOneWidget);
       expect(
-        find.text('Toggle off once confirmed to make it official.'),
+        find.text('Choose a date below to make the rehearsal official.'),
         findsNothing,
       );
     });
@@ -97,7 +107,7 @@ void main() {
 
       expect(find.text('Potential Rehearsal'), findsOneWidget);
       expect(
-        find.text('Toggle off once confirmed to make it official.'),
+        find.text('Choose a date below to make the rehearsal official.'),
         findsOneWidget,
       );
     });
@@ -111,5 +121,26 @@ void main() {
       final labelX = tester.getTopLeft(find.text('Potential Rehearsal')).dx;
       expect(switchX, lessThan(labelX));
     });
+  });
+
+  testWidgets('edit panel omits availability and duplicate date options',
+      (tester) async {
+    await _pumpPotentialSection(
+      tester,
+      isPotential: true,
+      additionalDates: [
+        AdditionalDateEntry(
+          date: DateTime(2026, 10, 10),
+          hour: 8,
+          minutes: 30,
+          isPM: true,
+        ),
+      ],
+    );
+
+    expect(find.text('Your Availability'), findsNothing);
+    expect(find.text('Proposed Dates'), findsNothing);
+    expect(find.text('NO'), findsNothing);
+    expect(find.text('YES'), findsNothing);
   });
 }

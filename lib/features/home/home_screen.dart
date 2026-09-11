@@ -805,7 +805,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: PotentialGigCard(
               gig: potentialGig,
               bandTimezone: bandTimezone,
-              onTap: () => _openEditGigSheet(potentialGig),
+              onTap: () => _openViewGigSheet(potentialGig),
             ),
           ),
           const SizedBox(height: Spacing.space24),

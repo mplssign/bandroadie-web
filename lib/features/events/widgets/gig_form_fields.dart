@@ -1074,9 +1074,6 @@ class GigFormFields extends ConsumerWidget {
     final membersState = ref.watch(membersProvider);
     final members = membersState.members;
 
-    final isMultiDateEditMode =
-        isEditMode && existingEventId != null && additionalDates.isNotEmpty;
-
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
@@ -1113,7 +1110,7 @@ class GigFormFields extends ConsumerWidget {
                     if (isPotentialGig) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Toggle off once confirmed to make it official.',
+                        'Choose a date below to make the gig official.',
                         style: AppTextStyles.footnote.copyWith(
                           color: context.colors.textSecondary,
                         ),
@@ -1125,233 +1122,19 @@ class GigFormFields extends ConsumerWidget {
             ],
           ),
 
-          // Member grid (only visible when toggle is ON)
+          // Member selection is only needed while creating the potential gig.
           AnimatedSize(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOut,
             alignment: Alignment.topCenter,
-            child: isPotentialGig
-                ? isMultiDateEditMode
-                    ? _buildMultiDateAvailabilitySection(
-                        context, members, membersState.isLoading)
-                    : Column(
-                        children: [
-                          _buildMemberSelectionGrid(
-                              context, members, membersState.isLoading),
-                          if (isEditMode && existingEventId != null)
-                            _buildUserAvailabilitySection(context),
-                        ],
-                      )
+            child: isPotentialGig && !isEditMode
+                ? _buildMemberSelectionGrid(
+                    context,
+                    members,
+                    membersState.isLoading,
+                  )
                 : const SizedBox.shrink(),
           ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Multi-Date Availability
-  // ---------------------------------------------------------------------------
-
-  Widget _buildMultiDateAvailabilitySection(
-    BuildContext context,
-    List<MemberVM> members,
-    bool isLoading,
-  ) {
-    // Build (date, timeDisplay) pairs sorted by date
-    final allEntries = <(DateTime, String)>[
-      (selectedDate, primaryStartTime),
-      ...additionalDates.map((e) => (e.date, e.startTimeDisplay)),
-    ]..sort((a, b) => a.$1.compareTo(b.$1));
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: Spacing.space12),
-        for (int i = 0; i < allEntries.length; i++) ...[
-          if (i > 0) const SizedBox(height: Spacing.space16),
-          _buildPerDateSection(
-            context: context,
-            date: allEntries[i].$1,
-            timeDisplay: allEntries[i].$2,
-            members: members,
-            isLoading: isLoading,
-            isPrimaryDate: allEntries[i].$1 == selectedDate,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildPerDateSection({
-    required BuildContext context,
-    required DateTime date,
-    required String timeDisplay,
-    required List<MemberVM> members,
-    required bool isLoading,
-    required bool isPrimaryDate,
-  }) {
-    final dateKey = isPrimaryDate ? 'primary' : existingGigDateIds[date];
-    final availability = dateKey != null
-        ? perDateAvailability[dateKey] ?? {}
-        : <String, String?>{};
-
-    final userResponse =
-        currentUserId != null ? availability[currentUserId] : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Date + time header
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: Spacing.space8),
-          child: Text(
-            '${_formatDateDisplay(date)} · $timeDisplay',
-            style: AppTextStyles.calloutEmphasized.copyWith(
-              color: context.colors.textPrimary,
-            ),
-          ),
-        ),
-
-        // Member availability grid
-        if (isLoading || isLoadingPerDateAvailability)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: Spacing.space16),
-            child: const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: AppProgressIndicator(),
-              ),
-            ),
-          )
-        else if (members.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: Spacing.space12),
-            child: Text(
-              'No members to notify',
-              style: AppTextStyles.footnote.copyWith(
-                color: context.colors.textSecondary,
-              ),
-            ),
-          )
-        else
-          ButtonGroupGrid<MemberVM>(
-            items: members,
-            labelBuilder: (member) => _getMemberLabel(member, members),
-            labelWidgetBuilder: (member) =>
-                _buildMemberLabelWidget(context, member, members, availability),
-            isSelected: (member) => false,
-            availabilityMode: true,
-            availabilityState: (member) {
-              final response = availability[member.userId];
-              if (response == 'yes') return AvailabilityState.available;
-              if (response == 'no') return AvailabilityState.notAvailable;
-              return AvailabilityState.notResponded;
-            },
-            buttonHeight: 48,
-          ),
-
-        // Your Availability for this date
-        const SizedBox(height: Spacing.space8),
-        Text(
-          'Your Availability',
-          style: AppTextStyles.footnote.copyWith(
-            color: context.colors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: Spacing.space8),
-        Row(
-          children: [
-            Expanded(
-              child: AvailabilityButton(
-                label: 'NO',
-                icon: AppIcons.close,
-                isSelected: userResponse == 'no',
-                isPositive: false,
-                isLoading: false,
-                onPressed: () =>
-                    onPerDateResponseChanged(date, isPrimaryDate, 'no'),
-              ),
-            ),
-            const SizedBox(width: Spacing.space12),
-            Expanded(
-              child: AvailabilityButton(
-                label: 'YES',
-                icon: AppIcons.check,
-                isSelected: userResponse == 'yes',
-                isPositive: true,
-                isLoading: false,
-                onPressed: () =>
-                    onPerDateResponseChanged(date, isPrimaryDate, 'yes'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ---------------------------------------------------------------------------
-  // User Availability Section (single-date)
-  // ---------------------------------------------------------------------------
-
-  Widget _buildUserAvailabilitySection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: Spacing.space16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 1,
-            margin: const EdgeInsets.only(bottom: Spacing.space12),
-            color: context.colors.border,
-          ),
-          Text(
-            'Your Availability',
-            style: AppTextStyles.footnote.copyWith(
-              color: context.colors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: Spacing.space8),
-          if (isLoadingUserResponse)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: Spacing.space8),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: AppProgressIndicator(),
-                ),
-              ),
-            )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: AvailabilityButton(
-                    label: 'NO',
-                    icon: AppIcons.close,
-                    isSelected: currentUserResponse == 'no',
-                    isPositive: false,
-                    isLoading: false,
-                    onPressed: () => onUserResponseChanged('no'),
-                  ),
-                ),
-                const SizedBox(width: Spacing.space12),
-                Expanded(
-                  child: AvailabilityButton(
-                    label: 'YES',
-                    icon: AppIcons.check,
-                    isSelected: currentUserResponse == 'yes',
-                    isPositive: true,
-                    isLoading: false,
-                    onPressed: () => onUserResponseChanged('yes'),
-                  ),
-                ),
-              ],
-            ),
         ],
       ),
     );
@@ -1719,30 +1502,5 @@ class GigFormFields extends ConsumerWidget {
       line2: member.lastName,
       requiresTwoLines: true,
     );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Utilities
-  // ---------------------------------------------------------------------------
-
-  static String _formatDateDisplay(DateTime date) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final dayName = days[date.weekday % 7];
-    final monthName = months[date.month - 1];
-    return '$dayName, $monthName ${date.day}, ${date.year}';
   }
 }

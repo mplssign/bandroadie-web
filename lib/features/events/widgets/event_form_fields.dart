@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/event_editor_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../setlists/models/setlist.dart';
@@ -131,7 +132,7 @@ class EventFormFields extends ConsumerWidget {
           ],
         ],
 
-        // "+ Add another date/time" button (only for potential gigs/rehearsals)
+        // Add another date/time button (only for potential gigs/rehearsals)
         if (isPotentialGig) ...[
           _buildAddAnotherButton(context),
           const SizedBox(height: Spacing.space16),
@@ -349,35 +350,12 @@ class EventFormFields extends ConsumerWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildAddAnotherButton(BuildContext context) {
-    return GestureDetector(
-      onTap: isSaving ? null : onAdditionalDateAdded,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color: context.colors.background,
-          borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          border: Border.all(
-            color: context.colors.border,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(AppIcons.add, size: 18, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(
-              '+ Add another date/time',
-              style: AppTextStyles.callout.copyWith(
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AppButton(
+      label: 'Add another date/time',
+      icon: AppIcons.add,
+      variant: AppButtonVariant.outlined,
+      fullWidth: true,
+      onPressed: isSaving ? null : onAdditionalDateAdded,
     );
   }
 
@@ -578,9 +556,7 @@ class EventFormFields extends ConsumerWidget {
                 const SizedBox(
                   width: 16,
                   height: 16,
-                  child: AppProgressIndicator(
-                    
-                  ),
+                  child: AppProgressIndicator(),
                 ),
                 const SizedBox(width: 8),
                 Text(

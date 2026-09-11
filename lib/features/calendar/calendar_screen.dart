@@ -25,6 +25,7 @@ import '../home/widgets/band_switcher.dart';
 import '../home/widgets/side_drawer.dart';
 import '../profile/my_profile_screen.dart';
 import '../rehearsals/rehearsal_controller.dart';
+import '../rehearsals/widgets/view_rehearsal_drawer.dart';
 import '../settings/settings_screen.dart';
 import 'calendar_controller.dart';
 import 'models/calendar_event.dart';
@@ -273,11 +274,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       error: (_, __) => null,
     );
 
-    // Confirmed gigs: show read-only view drawer first
-    if (event.isConfirmedGig && event.gig != null) {
+    // Gigs: show read-only view drawer first
+    if (event.isGig && event.gig != null) {
       final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
           'America/Chicago';
-      final canEdit = editPerms != null && editPerms.canEditGigs;
+      final canEdit = editPerms != null &&
+          (editPerms.canEditGigs ||
+              (event.isPotentialGig && editPerms.canEditPotentialGigs));
       ViewGigDrawer.show(
         context,
         gig: event.gig!,
@@ -288,6 +291,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
           ref: ref,
           mode: EventFormMode.edit,
           initialType: EventType.gig,
+          existingEventId: event.id,
+          initialData: EventFormData.fromCalendarEvent(event),
+          onSaved: _refreshCalendarData,
+        ),
+      );
+      return;
+    }
+
+    // Rehearsals: show read-only view drawer first
+    if (event.isRehearsal && event.rehearsal != null) {
+      final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
+          'America/Chicago';
+      final canEdit = editPerms != null && editPerms.canEditGigs;
+      ViewRehearsalDrawer.show(
+        context,
+        rehearsal: event.rehearsal!,
+        bandTimezone: bandTimezone,
+        canEdit: canEdit,
+        onEdit: () => AddEditEventBottomSheet.show(
+          context,
+          ref: ref,
+          mode: EventFormMode.edit,
+          initialType: EventType.rehearsal,
           existingEventId: event.id,
           initialData: EventFormData.fromCalendarEvent(event),
           onSaved: _refreshCalendarData,

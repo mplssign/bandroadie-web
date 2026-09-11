@@ -316,6 +316,28 @@ void main() {
       expect(gap.width, Spacing.space12);
     });
 
+    testWidgets('long primary label fits narrow footer with increased flex',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(375, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _wrap(
+          SheetFooter(
+            primaryLabel: 'Create (2) Rehearsals',
+            primaryFlex: 2,
+            fitActionLabels: true,
+            onPrimary: () {},
+            onCancel: () {},
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(
+          tester.widget<SheetFooter>(find.byType(SheetFooter)).primaryFlex, 2);
+    });
+
     testWidgets('lone primary (onCancel null) → fullWidth true, no Expanded',
         (tester) async {
       await tester.pumpWidget(
