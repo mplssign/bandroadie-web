@@ -7,6 +7,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { baseCorsHeaders } from "../_shared/cors.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -52,12 +53,7 @@ function isAnonymousSession(req: Request): boolean {
 }
 
 Deno.serve(async (req) => {
-  // CORS headers - must include all headers the Supabase client sends
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey",
-  };
+  const corsHeaders = baseCorsHeaders;
 
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
