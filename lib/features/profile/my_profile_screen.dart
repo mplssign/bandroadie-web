@@ -977,11 +977,16 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
                         _buildBirthdaySection(),
                         const SizedBox(height: 32),
 
-                        // Role in Band Section header (label + optional band selector)
+                        // Role in Band Section header (label + optional Select Band label)
                         _buildRoleSectionHeader(),
                       ],
                     ),
                   ),
+                  if (_isMultiBandMode) ...[
+                    const SizedBox(height: 8),
+                    // Band selector pill row - edge to edge, no ambient horizontal inset
+                    _buildBandPillRow(),
+                  ],
                   const SizedBox(height: 12),
                   // Role pill row - edge to edge, no ambient horizontal inset
                   _buildRolePillRow(),
@@ -1189,7 +1194,7 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
           ).copyWith(color: context.colors.textPrimary),
         ),
 
-        // Band selector row - only shown in multi-band mode
+        // Band selector label - only shown in multi-band mode
         if (_isMultiBandMode) ...[
           const SizedBox(height: 12),
           Text(
@@ -1200,29 +1205,31 @@ class _MyProfileScreenState extends ConsumerState<MyProfileScreen> {
               height: 1.4,
             ).copyWith(color: context.colors.textSecondary),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 36.0,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _userBands
-                    .map(
-                      (band) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: _BandPill(
-                          label: band.name,
-                          isSelected: _selectedBandId == band.id,
-                          onTap: () => _onBandSelected(band.id),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ),
         ],
       ],
+    );
+  }
+
+  Widget _buildBandPillRow() {
+    return SizedBox(
+      height: 36.0,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _userBands
+              .map(
+                (band) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _BandPill(
+                    label: band.name,
+                    isSelected: _selectedBandId == band.id,
+                    onTap: () => _onBandSelected(band.id),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 
