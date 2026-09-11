@@ -342,6 +342,8 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
   Widget _buildMetricsRow() {
     final hasKey = widget.song.musicalKey != null &&
         widget.song.musicalKey!.trim().isNotEmpty;
+    final hasTuning =
+        widget.song.tuning != null && widget.song.tuning!.trim().isNotEmpty;
 
     return SizedBox(
       height: SongCardLayout.metricsRowHeight,
@@ -389,7 +391,8 @@ class _ReorderableSongCardState extends State<ReorderableSongCard>
                 width: tuningWidth,
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: _buildTuningBadge(),
+                  child:
+                      hasTuning ? _buildTuningBadge() : const SizedBox.shrink(),
                 ),
               ),
             ],

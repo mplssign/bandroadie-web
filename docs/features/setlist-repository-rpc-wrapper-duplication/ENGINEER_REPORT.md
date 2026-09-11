@@ -10,72 +10,64 @@ Consolidate duplicated updateSong*Override/clearSong*Override RPC wrappers in se
 
 ## Cycle Number
 
-3
+4
 
 ## Goal
 
-Consolidate the 11 metadata mutation wrappers behind two private helpers without changing public signatures, validation, exception behavior, control flow, RPC payloads, direct fallback effects, or database behavior, and remove the unreachable smoke-test methods.
+Correct Tony's failed manual PR test by ensuring a song card stops displaying a tuning badge after Song Details clears the persisted tuning, while preserving the Cycle 3 metadata helper refactor and all RPC/fallback behavior.
 
 ## Architect Tasks Completed
 
-1. Added `_callSongMetadataRpc` with configurable PGRST203 handling and RPC-path-only exception mapping.
-2. Added `_updateSongsDirectWithRpcRlsFallback` with required RPC payload-check behavior.
-3. Rewrote all 11 named metadata mutation methods as thin wrappers with explicit RPC parameter maps and direct update maps.
-4. Preserved raw PGRST203 passthrough for `updateSongTitleArtist` via `handlePgrst203: false`.
-5. Preserved `updateSongYoutubeLinks` fallback payload ignoring and `updateSongLyrics` fallback payload checking.
-6. Preserved tuning normalization and scoped enum classification through `mapUnhandledRpcException`, with no wrapper-level catch.
-7. Preserved clear-RPC-first and direct-first control flows.
-8. Deleted `debugFetchSongsRaw` and `debugSmokeTest` with no remaining references.
+1. Traced Song Details tuning clear through `clearSongTuning`, the optimistic `songs`/`items` synchronization, and the `SongUpdateEvent(clearTuning: true)` listener.
+2. Confirmed both state paths produce a `SetlistSong` with `tuning == null`; persistence and provider synchronization were already correct.
+3. Corrected `ReorderableSongCard` so a null or blank reactive tuning value keeps its reserved layout slot but renders no badge.
+4. Added a focused widget regression test that updates the same keyed stateful card from `standard_e` to a cleared tuning and verifies the `Standard` badge disappears.
+5. Left `setlist_repository.dart`, its metadata helpers, and every RPC/fallback path unchanged.
 
 ## Files Created
 
-- `docs/features/setlist-repository-rpc-wrapper-duplication/ENGINEER_REPORT.md`
+- `test/features/setlists/widgets/reorderable_song_card_test.dart`
 
 ## Files Modified
 
-- `lib/features/setlists/setlist_repository.dart`: 293 additions, 798 deletions, net -505 lines.
-- `lib/features/setlists/setlist_detail_controller.dart`: 0 additions, 13 deletions, net -13 lines.
-
-Tracked implementation total: 293 additions, 811 deletions, net -518 lines.
+- `lib/features/setlists/widgets/reorderable_song_card.dart`: conditionally renders the tuning badge only for a non-empty tuning.
+- `docs/features/setlist-repository-rpc-wrapper-duplication/ENGINEER_REPORT.md`: updated for cumulative Cycle 4.
 
 ## Analyzer Results
 
-- `flutter analyze lib/features/setlists/setlist_repository.dart lib/features/setlists/setlist_detail_controller.dart`: passed, no issues.
-- `flutter analyze`: passed, no issues.
+- `flutter analyze lib/features/setlists/widgets/reorderable_song_card.dart`: passed, no issues immediately after the implementation edit.
+- `flutter analyze lib/features/setlists/widgets/reorderable_song_card.dart test/features/setlists/widgets/reorderable_song_card_test.dart`: passed, no issues after formatting.
 - `dart fix --dry-run`: nothing to fix.
 
 ## Test Results
 
-- Focused `test/features/setlists` invocation: no discoverable tests in that path.
-- Full `flutter test`: passed, 296 tests, 0 failures.
+- Focused `reorderable_song_card_test.dart`: passed, 1 test, 0 failures.
+- Full `flutter test` was not run; Cycle 4 changes have direct focused widget coverage.
 
 ## Code Efficiency/Bloat Check
 
-- Searched `lib/` by likely helper names and RPC/direct-fallback behavior before adding helpers; no existing equivalent helper was found.
-- Added exactly two private methods and no public API, dependency, import, provider, model, or configuration changes.
-- The repository remains above the 500-line target because it was 4,454 lines before this scoped refactor; this change reduces it by 505 lines and splitting the repository is explicitly out of scope.
-- All new helper logging is `kDebugMode`-gated and required by the plan.
-- No `TODO` or `FIXME` was added.
+- Searched `lib/` for an existing song-card test harness or equivalent helper; none exists. Existing tests use local `_pump` helpers with the same `AppTheme`/`FTheme` setup, which the focused test follows.
+- Added no production helper, provider, model, dependency, configuration, logging, or public API.
+- `reorderable_song_card.dart` is 520 lines, above the 400-line feature-widget target, because it was already 518 lines and this correction adds only the two-line local visibility condition; splitting it is unrelated to the QA finding.
+- The fix replaces unconditional badge rendering with conditional rendering; it does not layer state or another synchronization mechanism over the existing flow.
+- No `TODO`, `FIXME`, or `debugPrint` was added.
 
 ## Verification
 
-- Ran scoped formatting on both modified Dart files.
-- Confirmed no references to `debugFetchSongsRaw` or `debugSmokeTest` remain in `lib/` or `test/`.
-- Confirmed `handlePgrst203: false`, both explicit `checkRpcResultPayload` values, and `mapUnhandledRpcException` are present at the intended wrappers.
-- Statically reviewed all 11 wrapper maps, fallback updates, validation messages, signatures, and exception branches against the pre-refactor diff.
-- Confirmed `git diff --check` is clean.
-- Confirmed `git diff -- supabase/` is empty.
-- Confirmed only the two plan-listed Dart files are modified; feature documentation is the only untracked directory.
-- Captured the complete `git diff` after implementation.
-- Runtime device verification was not performed; the architect assigns that punch list to Tony at PR-test time.
+- Verified `clearSongTuning` optimistically clears both `state.songs` and `state.items`, then broadcasts `SongUpdateEvent(clearTuning: true)` after persistence.
+- Verified `_applySongUpdate` also converts `clearTuning` into a model with `tuning == null` and synchronizes both lists.
+- Verified the production setlist screen uses `ReorderableSongCard`; the older `SongCard` has no production call sites and was not changed.
+- Pumped the same keyed `ReorderableSongCard` first with `standard_e`, then with a cleared model; the focused test confirms `Standard` changes from one match to zero matches.
+- Ran scoped formatting on both Cycle 4 Dart files.
+- Runtime device verification was not performed; Tony should repeat the failed Song Details clear-tuning step on the PR build.
 
 ## Deviations From Plan
 
-None.
+The original refactor plan marked all UI files off-limits because it expected runtime-equivalent repository behavior. Tony's failed manual test demonstrated a user-visible issue outside those files. Per the Cycle 4 corrective instruction, the change is narrowly limited to the active song-card rendering path plus its focused regression test; the original repository and controller refactor files are unchanged.
 
 ## Blockers Encountered
 
-None. `rg` was unavailable in the shell, so equivalent workspace search tooling was used for the two static symbol checks.
+None.
 
 ## Ready For QA
 

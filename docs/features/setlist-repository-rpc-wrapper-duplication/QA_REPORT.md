@@ -10,7 +10,7 @@ Consolidate duplicated updateSong*Override/clearSong*Override RPC wrappers in se
 
 ## Cycle Number
 
-3
+4
 
 ## Final Verdict
 
@@ -18,46 +18,54 @@ APPROVED
 
 ## Validation Summary
 
-Independent cycle-3 QA confirmed the uncommitted implementation matches the Architect plan. Review covered the full working-tree diff against `HEAD`, all 11 rewritten wrappers, both new private helpers, both dead-method deletions, scope and budget constraints, analyzer output, and the full test suite. Verification of wrapper behavior was static code-path analysis; no app instance, simulator, device, browser, or production service was launched.
+Independent cumulative cycle-4 QA reviewed the committed cycle-3 refactor and the uncommitted cycle-4 correction. The correction addresses Tony's failed manual test at the rendering boundary: cleared tuning already reaches both controller collections as `null`, but `ReorderableSongCard` previously passed that null to `tuningShortLabel`, whose historical fallback is `Standard`.
 
-Regression risk: **MEDIUM**, matching the plan. The refactor changes 11 metadata mutation bodies simultaneously and lacks direct repository unit coverage, but preserves public signatures and confines shared behavior to two private helpers.
+The same keyed card now renders no tuning badge for null or blank tuning while preserving the tuning column's reserved width. Focused and full automated checks pass. Verification was code-path analysis and widget testing only; no app, simulator, device, browser, or production service was launched.
+
+Regression risk: **MEDIUM** cumulatively because cycle 3 consolidates 11 metadata mutation methods. The cycle-4 UI correction itself is **LOW** risk.
 
 ## Architect Scope Review
 
-- Branch, Architect plan, and Engineer report all use slug `setlist-repository-rpc-wrapper-duplication`; Engineer report is cycle 3.
-- Tracked implementation changes are limited to `lib/features/setlists/setlist_repository.dart` and `lib/features/setlists/setlist_detail_controller.dart`.
-- No imports, dependencies, public APIs, providers, platform code, configuration, tests, Supabase migrations, or Edge Functions changed.
-- Exactly two planned private helpers were added. No unapproved architecture or unrelated formatting churn was found.
+- Branch, plan, Engineer report, and report path match `setlist-repository-rpc-wrapper-duplication`; the Engineer report is cycle 4.
+- The committed cycle-3 implementation remains limited to the planned repository/controller refactor plus feature documentation.
+- The cycle-4 implementation is limited to `reorderable_song_card.dart`, one focused widget test, and the Engineer report, as authorized by the corrective instruction following Tony's failed test.
+- `git diff HEAD` is empty for `setlist_repository.dart`, `setlist_detail_controller.dart`, and `supabase/`; cycle 4 changes no repository, RPC, fallback, RLS, or database behavior.
+- No unrelated source, configuration, dependency, platform, auth, routing, or initialization change was found.
 
 ## Completeness Check
 
-All 15 Architect tasks are complete. Both helpers exist in the specified location, all 11 methods are thin wrappers, `debugFetchSongsRaw` and `debugSmokeTest` were deleted, and neither dead symbol remains in `lib/` or `test/`.
+Cycle 3 remains complete: both private helpers exist, all 11 public wrappers retain their signatures and special-case behavior, and `debugFetchSongsRaw`/`debugSmokeTest` remain absent.
+
+Cycle 4 is complete. The active production card checks null and trimmed blank tuning before building the badge, keeps the tuning `SizedBox`, and has a focused regression test that updates the same keyed card from `standard_e` to null.
 
 ## Behavior Verification
 
-Static side-by-side diff and code-path analysis confirmed:
+Code-path analysis confirmed the failed behavior and correction:
 
-- All six RPC-first update wrappers use `update_song_metadata` with the complete 11-key parameter map and the correct single non-null value or title/artist pair.
-- All three clear wrappers use `clear_song_metadata` with only `p_song_id`, `p_band_id`, and their correct `p_clear_*: true` parameter. Their direct fallback maps set the matching column to `null`.
-- All direct fallback updates retain `.eq('id', songId)` and the pre-refactor column/value expression.
-- All public signatures, requiredness, early returns, validation conditions, and `ArgumentError` messages are unchanged.
-- Helper 1 checks `{success: false}`, maps PGRST203 to `Exception('Server configuration error. Please contact support.')` for the eight historical handlers, falls back only for PGRST202/42883, and rethrows other RPC exceptions.
-- `updateSongTitleArtist` retains its null/null early return, conditional direct fallback map, explicit `handlePgrst203: false`, and raw PGRST203 passthrough. It does not provide an exception mapper.
-- `updateSongTuningOverride` computes `tuningToDbEnum(tuning) ?? tuning` and `isLegacyEnumSupported(tuning)` before delegation, uses `dbTuning` on both paths, and maps only unhandled RPC-path enum exceptions. It has no wrapper-level catch, so fallback exceptions remain unclassified.
-- YouTube and Lyrics remain direct-first and fall back only for code 42501 or a message containing `policy`.
-- YouTube explicitly uses `checkRpcResultPayload: false` and does not capture or inspect the fallback RPC payload. Lyrics explicitly uses `true` and preserves `Exception(result['error'] ?? 'Unknown error')` on a failed payload.
-- The only diagnostic change is the plan-authorized consolidation into `kDebugMode`-gated helper logging. Persisted state and surfaced exception types/messages are unchanged.
+- Song Details routes null/empty tuning through `clearSongTuning`.
+- `clearSongTuning` optimistically rebuilds the song without tuning, then calls `clearSongTuningOverride` and broadcasts `SongUpdateEvent(clearTuning: true)` after persistence.
+- `_applySongUpdate` independently rebuilds cross-setlist copies without tuning when `clearTuning` is true.
+- `_syncSongStateWith` updates both `state.songs` and song entries in `state.items`, the collection used by non-Catalog setlists.
+- `SetlistSong.tuning` remains null through the model path. Persistence and state synchronization were not the defect.
+- `tuningShortLabel(null)` returns `Standard`; the old unconditional `_buildTuningBadge()` therefore rendered the stale-looking badge from correct null state.
+- The new `hasTuning` guard suppresses null and whitespace-only values. Non-empty values still use the unchanged `_buildTuningBadge()` path.
+- The focused widget test first finds the populated `Standard` badge, then repumps the same keyed card with null tuning and confirms the badge is absent.
+
+The tuning slot's `SizedBox(width: tuningWidth)` remains in the row and only its child becomes `SizedBox.shrink()`. BPM, duration, key, gaps, row height, and tuning-column geometry are unchanged.
+
+Cumulative cycle-3 review reconfirmed the complete RPC parameter maps and direct fallback maps, RPC-first versus direct-first ordering, PGRST202/42883 and 42501 handling, eight-wrapper PGRST203 conversion, raw PGRST203 passthrough for title/artist, tuning normalization and RPC-only enum mapping, and YouTube/Lyrics payload-check asymmetry.
 
 ## Regression Check
 
-- Setlists: **MEDIUM**. All affected metadata paths were statically checked; existing automated tests pass. Runtime UI persistence remains owner-run.
-- Legacy `NULL band_id` songs/RLS bypass: **MEDIUM**. RPC-first and direct-first fallback ordering, RPC names, parameter maps, and fallback conditions are preserved in code.
-- Gigs, rehearsals, Catalog logic, members, auth/session, routing, notifications, deep links, Firebase/init order, and platform parity: **LOW**. No controlling code or call sites changed.
-- Controller lifecycle, FocusNode disposal, async `setState`, and rebuild frequency: **LOW**. The only controller change is deletion of an unreachable zero-caller debug method.
+- Setlist card tuning display: **LOW**. Populated and cleared transitions are covered by the focused widget test; blank suppression is confirmed in code.
+- Setlist controller/broadcast/model synchronization: **LOW**. Read-only analysis confirms no cycle-4 changes and both local and broadcast clear paths still produce null tuning in both collections.
+- Metadata repository and legacy `NULL band_id` RLS fallback: **MEDIUM** cumulatively. Cycle-3 contracts remain intact in code; cycle 4 has no diff in these files.
+- Layout and rebuild behavior: **LOW**. The same keyed stateful card is exercised, and the reserved tuning slot dimensions are unchanged.
+- Gigs, rehearsals, Catalog sorting, members, auth/session, routing, notifications, deep links, Firebase/init order, FocusNode/controller disposal, async mounted checks, and platform parity: **LOW**. No controlling code changed.
 
 ## Database Safety
 
-Not applicable. `git diff -- supabase/` is empty. No migration, RPC definition/signature, RLS policy, grant, or SECURITY DEFINER function changed, so branch migration application and privilege probes are not required.
+Not applicable. Neither the committed cumulative diff nor cycle-4 working diff changes `supabase/`, migrations, RPC signatures, grants, RLS, or SECURITY DEFINER functions. No database branch or privilege probe was required.
 
 ## Analyzer Results
 
@@ -65,50 +73,41 @@ Not applicable. `git diff -- supabase/` is empty. No migration, RPC definition/s
 
 ## Test Results
 
-`flutter test`: **PASS**. 284 tests passed with zero failures.
-
-The Engineer report recorded 296 tests in its earlier run; the independent cycle-3 run discovered 284 and completed successfully. This count difference does not indicate a failing or skipped named plan test in the current suite output.
+- Focused `reorderable_song_card_test.dart`: **PASS**, 1 test, 0 failures.
+- Full `flutter test`: **PASS**, 297 tests, 0 failures.
 
 ## Diff Safety Review
 
-- `git diff --check`: clean.
-- No likely secrets or credentials were added.
-- No `TODO` or `FIXME` was added.
-- Added `debugPrint` calls are confined to the two plan-required helpers and are all gated by `kDebugMode`; no smoke-test/debug-only symbols remain.
-- No accidental deletion, test scaffolding, Supabase change, or out-of-scope tracked file was found.
+- `git diff --check HEAD`: clean.
+- No secret, API key, `TODO`, `FIXME`, `debugPrint`, scaffold, migration, or accidental deletion was added by cycle 4.
+- The test file is intentionally untracked at QA time and is expected pipeline state, not a defect.
+- No repository, controller, RPC, or Supabase hunk exists in cycle 4.
 
 ## Change Budget Review
 
-- `setlist_repository.dart`: 293 additions, 798 deletions, net **-505**; planned net range **-500 to -700**.
-- `setlist_detail_controller.dart`: 0 additions, 13 deletions, net **-13**; planned net range **-11 to -13**.
-- Tracked implementation total: 293 additions, 811 deletions, net **-518**; planned total net range **-511 to -713**.
-- Exactly two private methods and no new public class, public method, dependency, import, or implementation file were added.
+Cycle 3 remains within the Architect budget: `setlist_repository.dart` is net -505 lines and `setlist_detail_controller.dart` is net -13 lines, with exactly two private helpers and no new public API or dependency.
 
-Actual changes are within budget. The repository remains over the general file-size target, with the Engineer report's required justification that splitting it is explicitly outside this refactor's scope.
+Cycle 4 adds 4 and removes 1 line in `reorderable_song_card.dart`, plus one 61-line widget test. This is narrowly proportional to the corrective instruction. The production file is 520 lines, above the general 400-line widget target; the Engineer report gives the required justification that it was already 518 lines and splitting it is unrelated to this fix.
 
 ## Code Efficiency Review
 
-Independent searches across `lib/` found no pre-existing equivalent to either new helper. The helpers serve nine and two wrappers respectively; neither is a single-use abstraction. No new provider, notifier, fetch layer, unused field/parameter, hand-rolled collection substitute, barrel file, future-use flag, or single-call wrapper was introduced.
+No production helper, provider, field, parameter, class, dependency, or wrapper was added. Independent search found no existing `ReorderableSongCard` test or equivalent production visibility helper. The local boolean is used once to mirror the existing key-slot visibility pattern and avoids changing the shared tuning label fallback used by other surfaces.
 
 ## Manual Verification Punch List
 
-Setup: build the branch to a real iOS device or Simulator (`./run.sh <device-id>`). Log in as a real user. Open a setlist with at least one song.
+Owner-run only. Build PR #285 on a real iOS device or Simulator, log in, and open a setlist containing a song with a populated tuning.
 
-1. Tap the song's BPM badge. Set BPM = 123. Save. Reload the setlist (pull to refresh or navigate away and back). **Expected:** BPM displays as 123.
-2. Tap BPM badge again. Clear the value (empty input or explicit clear action). Save. Reload. **Expected:** BPM shows as unset.
-3. Tap the tuning badge. Pick "Half-Step Down". Save. Reload. **Expected:** tuning shows as "Half-Step Down".
-4. Tap tuning badge again. Pick "None" (clear). Save. Reload. **Expected:** tuning shows as unset.
-5. Tap the musical-key badge. Pick "Em". Save. Reload. **Expected:** key shows as Em.
-6. Tap key badge again. Clear. Save. Reload. **Expected:** key shows as unset.
-7. Tap the duration display, if editable in this UI, set to 3:30 (210s). Save. Reload. **Expected:** duration shows 3:30.
-8. Open the song details bottom sheet. Change title, artist, and notes in one save. **Expected:** all three persist after reload.
-9. In song details, add a YouTube URL to links. Save. **Expected:** link persists after reload.
-10. In song details, add lyrics text. Save. **Expected:** lyrics persists after reload.
-11. Throughout the above, watch for any snackbar error, red overlay, or unexpected app reload. **Expected:** none.
+1. Confirm the song card shows its populated tuning badge, then open Song Details. **Expected:** the card and Song Details show the same tuning.
+2. Clear tuning in Song Details and save. **Expected:** save succeeds, Song Details shows tuning unset, and the card's tuning badge disappears immediately without displaying `Standard`.
+3. Reopen Song Details for the same song. **Expected:** tuning remains unset and the card still has no tuning badge.
+4. Navigate away and back or pull to refresh. **Expected:** tuning remains unset and no tuning badge appears after data reload.
+5. In Song Details, set tuning to Half-Step Down and save. **Expected:** the card shows `Half-Step` immediately and still shows it after reload.
+6. Clear that tuning using the card's tuning control, if available on this setlist. **Expected:** the badge disappears and remains absent after reload.
+7. Repeat the clear on a second setlist containing the same song. **Expected:** every open/listened setlist copy loses the tuning badge after the broadcast update.
+8. During all steps, inspect BPM, duration, and musical-key columns on neighboring cards. **Expected:** values remain aligned; the missing tuning badge does not shift or resize other metric columns.
+9. Watch for snackbars, red overlays, unexpected reloads, or save failures. **Expected:** none.
 
-If any step fails, Tony reverts the PR and re-files the failing step's expected-vs-actual back to Architect.
-
-The PGRST202/42883 direct-fallback path is intentionally not exercised against production or the PR preview because doing so would require removing an RPC. Its verification is limited to the static equivalence review above.
+The PGRST202/42883 fallback path remains static-analysis-only because exercising it would require removing an RPC. It must not be tested against production.
 
 ## Issues Found
 
