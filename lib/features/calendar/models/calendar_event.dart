@@ -155,6 +155,13 @@ class CalendarEvent {
   /// Whether this is a potential (unconfirmed) gig
   bool get isPotentialGig => isGig && (gig?.isPotential ?? false);
 
+  /// Whether this is a potential (unconfirmed) rehearsal
+  bool get isPotentialRehearsal =>
+      isRehearsal && (rehearsal?.isPotential ?? false);
+
+  /// Whether this is any potential (unconfirmed) event
+  bool get isPotential => isPotentialGig || isPotentialRehearsal;
+
   /// Whether this is a confirmed gig
   bool get isConfirmedGig => isGig && (gig?.isConfirmed ?? false);
 
