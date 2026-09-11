@@ -756,78 +756,6 @@ class SetlistRepository {
   }
 
   // ==========================================================================
-  // DEBUG: SMOKE TEST QUERY
-  // ==========================================================================
-
-  /// Debug-only method to test the songs query with full console output.
-  /// Returns raw response data for inspection.
-  Future<Map<String, dynamic>> debugFetchSongsRaw({
-    required String bandId,
-    required String setlistId,
-  }) async {
-    final userId = supabase.auth.currentUser?.id;
-    debugPrint('=== DEBUG SMOKE TEST ===');
-    debugPrint('bandId: $bandId');
-    debugPrint('setlistId: $setlistId');
-    debugPrint('userId: $userId');
-
-    final result = <String, dynamic>{
-      'bandId': bandId,
-      'setlistId': setlistId,
-      'userId': userId,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-
-    try {
-      // Test 1: Can we see the setlist?
-      final setlistResult = await supabase
-          .from('setlists')
-          .select('id, name, band_id')
-          .eq('id', setlistId)
-          .maybeSingle();
-      result['setlist'] = setlistResult;
-      debugPrint('Setlist: $setlistResult');
-
-      // Test 2: Can we see setlist_songs?
-      final setlistSongsResult = await supabase
-          .from('setlist_songs')
-          .select('id, song_id, position')
-          .eq('setlist_id', setlistId)
-          .order('position');
-      result['setlist_songs_count'] = setlistSongsResult.length;
-      result['setlist_songs'] = setlistSongsResult;
-      debugPrint('Setlist songs: ${setlistSongsResult.length} rows');
-
-      // Test 3: Can we see songs?
-      if (setlistSongsResult.isNotEmpty) {
-        final songIds = setlistSongsResult.map((s) => s['song_id']).toList();
-        final songsResult = await supabase
-            .from('songs')
-            .select('id, title, artist, band_id')
-            .inFilter('id', songIds);
-        result['songs'] = songsResult;
-        debugPrint('Songs: ${songsResult.length} rows');
-      }
-
-      result['success'] = true;
-    } on PostgrestException catch (e) {
-      result['error'] = {
-        'code': e.code,
-        'message': e.message,
-        'details': e.details?.toString(),
-        'hint': e.hint,
-      };
-      debugPrint('PostgrestException: ${e.code} - ${e.message}');
-    } catch (e) {
-      result['error'] = {'message': e.toString()};
-      debugPrint('Unexpected error: $e');
-    }
-
-    debugPrint('=== END DEBUG ===');
-    return result;
-  }
-
-  // ==========================================================================
   // DELETE SONG FROM SETLIST
   // ==========================================================================
 
@@ -1520,6 +1448,90 @@ class SetlistRepository {
   // UPDATE SONG OVERRIDES (Global - syncs across all setlists)
   // ==========================================================================
 
+  /// Shared RPC-first path for update_song_metadata and clear_song_metadata callers. Set handlePgrst203=false to preserve raw PostgrestException passthrough for callers that historically did not intercept PGRST203. Provide mapUnhandledRpcException to classify RPC-path PostgrestExceptions with codes not in {PGRST203, PGRST202, 42883} into a caller-specific Exception; the hook does NOT run on fallback-path exceptions, matching pre-refactor sibling-catch scoping.
+  Future<void> _callSongMetadataRpc({
+    required String bandId,
+    required String songId,
+    required String rpcName,
+    required Map<String, dynamic> rpcParams,
+    required Map<String, dynamic> directFallbackUpdate,
+    required String logLabel,
+    bool handlePgrst203 = true,
+    Exception? Function(PostgrestException e)? mapUnhandledRpcException,
+  }) async {
+    try {
+      final result = await supabase.rpc(rpcName, params: rpcParams);
+
+      if (result is Map && result['success'] == false) {
+        final error = result['error'] ?? 'Unknown error';
+        if (kDebugMode) {
+          debugPrint('[SetlistRepository] $logLabel RPC error: $error');
+        }
+        throw Exception(error);
+      }
+    } on PostgrestException catch (e) {
+      if (handlePgrst203 && e.code == 'PGRST203') {
+        if (kDebugMode) {
+          debugPrint('[SetlistRepository] $logLabel PGRST203 migration needed');
+        }
+        throw Exception('Server configuration error. Please contact support.');
+      }
+
+      if (e.code == 'PGRST202' || e.code == '42883') {
+        if (kDebugMode) {
+          debugPrint(
+              '[SetlistRepository] $logLabel missing $rpcName; direct fallback');
+        }
+        await supabase.from('songs').update(directFallbackUpdate).eq(
+              'id',
+              songId,
+            );
+        return;
+      }
+
+      final mappedException = mapUnhandledRpcException?.call(e);
+      if (mappedException != null) throw mappedException;
+      rethrow;
+    }
+  }
+
+  /// Shared direct-first path for songs.update() callers that fall back to update_song_metadata RPC on RLS block. checkRpcResultPayload is required and must exactly match the pre-refactor caller's behavior: false for callers that ignore the fallback RPC's return value (updateSongYoutubeLinks), true for callers that treat {success: false, error: '…'} as a thrown Exception (updateSongLyrics).
+  Future<void> _updateSongsDirectWithRpcRlsFallback({
+    required String bandId,
+    required String songId,
+    required Map<String, dynamic> directUpdate,
+    required Map<String, dynamic> rpcParams,
+    required bool checkRpcResultPayload,
+    required String logLabel,
+  }) async {
+    try {
+      await supabase.from('songs').update(directUpdate).eq('id', songId);
+    } on PostgrestException catch (e) {
+      if (e.code == '42501' || e.message.contains('policy')) {
+        if (kDebugMode) {
+          debugPrint('[SetlistRepository] $logLabel RLS fallback to RPC');
+        }
+
+        if (!checkRpcResultPayload) {
+          await supabase.rpc('update_song_metadata', params: rpcParams);
+          return;
+        }
+
+        final result =
+            await supabase.rpc('update_song_metadata', params: rpcParams);
+        if (result is Map && result['success'] == false) {
+          final error = result['error'] ?? 'Unknown error';
+          if (kDebugMode) {
+            debugPrint('[SetlistRepository] $logLabel RPC error: $error');
+          }
+          throw Exception(error);
+        }
+        return;
+      }
+      rethrow;
+    }
+  }
+
   /// Updates the BPM for a song globally (syncs across all setlists).
   ///
   /// This updates the songs.bpm value directly. Changes apply to all setlists
@@ -1539,78 +1551,26 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    debugPrint(
-      '[SetlistRepository] updateSongBpmOverride: songId=$songId, bpm=$bpm, bandId=$bandId',
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'update_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': bpm,
+        'p_duration_seconds': null,
+        'p_tuning': null,
+        'p_notes': null,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': null,
+        'p_lyrics': null,
+        'p_musical_key': null,
+      },
+      directFallbackUpdate: {'bpm': bpm},
+      logLabel: 'updateSongBpmOverride',
     );
-
-    try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Pass ALL parameters to avoid function overload ambiguity (PGRST203)
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': bpm,
-          'p_duration_seconds': null,
-          'p_tuning': null,
-          'p_notes': null,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': null,
-        },
-      );
-
-      // Check RPC result - handle both Map and dynamic response types
-      debugPrint(
-        '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-      );
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Updated BPM to $bpm for song $songId (global via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      // Handle specific PostgrestException codes
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      // PGRST203 = ambiguous function call (multiple overloads)
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase.from('songs').update({'bpm': bpm}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated BPM to $bpm for song $songId (direct)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] Error updating song BPM: $e');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] Error updating song BPM: $e');
-      rethrow;
-    }
   }
 
   /// Clears the BPM for a song globally (syncs across all setlists).
@@ -1626,66 +1586,18 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    debugPrint(
-      '[SetlistRepository] clearSongBpmOverride: songId=$songId, bandId=$bandId',
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'clear_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_clear_bpm': true
+      },
+      directFallbackUpdate: {'bpm': null},
+      logLabel: 'clearSongBpmOverride',
     );
-
-    try {
-      // Use clear_song_metadata RPC with SECURITY DEFINER to bypass RLS
-      final result = await supabase.rpc(
-        'clear_song_metadata',
-        params: {'p_song_id': songId, 'p_band_id': bandId, 'p_clear_bpm': true},
-      );
-
-      // Check RPC result - handle both Map and dynamic response types
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Cleared BPM for song $songId (global via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      // PGRST203 = ambiguous function call (multiple overloads)
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] clear_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase.from('songs').update({'bpm': null}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Cleared BPM for song $songId (direct fallback)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] Error clearing song BPM: $e');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] Error clearing song BPM: $e');
-      rethrow;
-    }
   }
 
   /// Clears the tuning for a song globally (syncs across all setlists).
@@ -1701,66 +1613,18 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    debugPrint(
-      '[SetlistRepository] clearSongTuningOverride: songId=$songId, bandId=$bandId',
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'clear_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_clear_tuning': true
+      },
+      directFallbackUpdate: {'tuning': null},
+      logLabel: 'clearSongTuningOverride',
     );
-
-    try {
-      final result = await supabase.rpc(
-        'clear_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_clear_tuning': true,
-        },
-      );
-
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Cleared tuning for song $songId (global via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] clear_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase.from('songs').update({'tuning': null}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Cleared tuning for song $songId (direct fallback)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] Error clearing song tuning: $e');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] Error clearing song tuning: $e');
-      rethrow;
-    }
   }
 
   /// Clears the musical key for a song globally (syncs across all setlists).
@@ -1776,68 +1640,18 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    debugPrint(
-      '[SetlistRepository] clearSongMusicalKeyOverride: songId=$songId, bandId=$bandId',
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'clear_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_clear_musical_key': true
+      },
+      directFallbackUpdate: {'musical_key': null},
+      logLabel: 'clearSongMusicalKeyOverride',
     );
-
-    try {
-      final result = await supabase.rpc(
-        'clear_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_clear_musical_key': true,
-        },
-      );
-
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Cleared musical key for song $songId (global via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] clear_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase
-            .from('songs')
-            .update({'musical_key': null}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Cleared musical key for song $songId (direct fallback)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] Error clearing song musical key: $e');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] Error clearing song musical key: $e');
-      rethrow;
-    }
   }
 
   /// Updates the duration for a song globally (syncs across all setlists).
@@ -1857,80 +1671,26 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    debugPrint(
-      '[SetlistRepository] updateSongDurationOverride: songId=$songId, duration=$durationSeconds, bandId=$bandId',
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'update_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': durationSeconds,
+        'p_tuning': null,
+        'p_notes': null,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': null,
+        'p_lyrics': null,
+        'p_musical_key': null,
+      },
+      directFallbackUpdate: {'duration_seconds': durationSeconds},
+      logLabel: 'updateSongDurationOverride',
     );
-
-    try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Pass ALL parameters to avoid function overload ambiguity (PGRST203)
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': null,
-          'p_duration_seconds': durationSeconds,
-          'p_tuning': null,
-          'p_notes': null,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': null,
-        },
-      );
-
-      // Check RPC result - handle both Map and dynamic response types
-      debugPrint(
-        '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-      );
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Updated duration to $durationSeconds for song $songId (global via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      // Handle specific PostgrestException codes
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      // PGRST203 = ambiguous function call (multiple overloads)
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase
-            .from('songs')
-            .update({'duration_seconds': durationSeconds}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated duration to $durationSeconds for song $songId (direct)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] Error updating song duration: $e');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] Error updating song duration: $e');
-      rethrow;
-    }
   }
 
   /// Updates the tuning for a song globally (syncs across all setlists).
@@ -1956,97 +1716,39 @@ class SetlistRepository {
     // Normalize tuning value for database compatibility (handles legacy enum)
     final dbTuning = tuningToDbEnum(tuning) ?? tuning;
     final isLegacySupported = isLegacyEnumSupported(tuning);
-
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistRepository] updateSongTuning: songId=$songId, tuning=$tuning → $dbTuning, bandId=$bandId',
-      );
-    }
-
-    try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Pass ALL parameters to avoid function overload ambiguity (PGRST203)
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': null,
-          'p_duration_seconds': null,
-          'p_tuning': dbTuning,
-          'p_notes': null,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': null,
-        },
-      );
-
-      // Check RPC result - handle both Map and dynamic response types
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'update_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': null,
+        'p_tuning': dbTuning,
+        'p_notes': null,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': null,
+        'p_lyrics': null,
+        'p_musical_key': null,
+      },
+      directFallbackUpdate: {'tuning': dbTuning},
+      logLabel: 'updateSongTuningOverride',
+      mapUnhandledRpcException: (e) {
+        final isEnumError =
+            e.message.contains('invalid input value for enum') ||
+                e.message.contains('tuning_type') ||
+                e.code == '22P02' ||
+                e.code == '400';
+        if (isEnumError && !isLegacySupported) {
+          return Exception(
+            'This tuning is not yet available. Please try Standard, Drop D, Half-Step, or Full-Step.',
+          );
         }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Updated tuning to $dbTuning for song $songId (global via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      // PGRST203 = ambiguous function call (multiple overloads)
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase
-            .from('songs')
-            .update({'tuning': dbTuning}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated tuning to $dbTuning for song $songId (direct)',
-        );
-        return;
-      }
-
-      // Check for enum cast error (invalid tuning value)
-      // PostgreSQL returns 22P02 for invalid_text_representation
-      // PostgREST may wrap this as various codes
-      final isEnumError = e.message.contains('invalid input value for enum') ||
-          e.message.contains('tuning_type') ||
-          e.code == '22P02' ||
-          e.code == '400';
-
-      if (isEnumError && !isLegacySupported) {
-        throw Exception(
-          'This tuning is not yet available. Please try Standard, Drop D, Half-Step, or Full-Step.',
-        );
-      }
-      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] ❌ Error updating tuning: $e');
-      rethrow;
-    }
+        return null;
+      },
+    );
   }
 
   // ==========================================================================
@@ -2067,81 +1769,32 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
     if (kDebugMode) {
       debugPrint(
         '[SetlistRepository] updateSongNotes: songId=$songId, notes=${notes != null ? notes.substring(0, notes.length > 50 ? 50 : notes.length) : 'null'}...',
       );
     }
 
-    try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 11 parameters to avoid PGRST203 function overload ambiguity
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': null,
-          'p_duration_seconds': null,
-          'p_tuning': null,
-          'p_notes': notes,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': null,
-        },
-      );
-
-      // Check RPC result - handle both Map and dynamic response types
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Updated notes for song $songId (via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      // PGRST203 = ambiguous function call (multiple overloads)
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist. Run migration 081_fix_update_song_metadata_rpc.sql',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase.from('songs').update({'notes': notes}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated notes for song $songId (direct)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] ❌ Error updating notes: $e');
-      rethrow;
-    }
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'update_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': null,
+        'p_tuning': null,
+        'p_notes': notes,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': null,
+        'p_lyrics': null,
+        'p_musical_key': null,
+      },
+      directFallbackUpdate: {'notes': notes},
+      logLabel: 'updateSongNotes',
+    );
   }
 
   /// Updates a song's YouTube links (stored on the songs table - global).
@@ -2159,59 +1812,26 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistRepository] updateSongYoutubeLinks: songId=$songId, youtubeLinks=${youtubeLinks != null ? youtubeLinks.substring(0, youtubeLinks.length > 50 ? 50 : youtubeLinks.length) : 'null'}...',
-      );
-    }
-
-    try {
-      // Direct update on songs table
-      await supabase
-          .from('songs')
-          .update({'youtube_links': youtubeLinks}).eq('id', songId);
-      debugPrint(
-        '[SetlistRepository] ✓ Updated YouTube links for song $songId (direct)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException on direct youtube_links update: code=${e.code}, message=${e.message}',
-      );
-
-      // RLS may block direct update for legacy songs with NULL band_id.
-      // Fall back to RPC with SECURITY DEFINER which now supports p_youtube_links.
-      if (e.code == '42501' || e.message.contains('policy')) {
-        debugPrint(
-          '[SetlistRepository] RLS blocked direct update, falling back to RPC',
-        );
-        await supabase.rpc(
-          'update_song_metadata',
-          params: {
-            'p_song_id': songId,
-            'p_band_id': bandId,
-            'p_bpm': null,
-            'p_duration_seconds': null,
-            'p_tuning': null,
-            'p_notes': null,
-            'p_title': null,
-            'p_artist': null,
-            'p_youtube_links': youtubeLinks,
-            'p_lyrics': null,
-            'p_musical_key': null,
-          },
-        );
-        debugPrint(
-          '[SetlistRepository] ✓ Updated YouTube links for song $songId (via RPC fallback)',
-        );
-      } else {
-        rethrow;
-      }
-    } catch (e) {
-      if (e is PostgrestException) rethrow;
-      debugPrint('[SetlistRepository] ❌ Error updating YouTube links: $e');
-      rethrow;
-    }
+    await _updateSongsDirectWithRpcRlsFallback(
+      bandId: bandId,
+      songId: songId,
+      directUpdate: {'youtube_links': youtubeLinks},
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': null,
+        'p_tuning': null,
+        'p_notes': null,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': youtubeLinks,
+        'p_lyrics': null,
+        'p_musical_key': null,
+      },
+      checkRpcResultPayload: false,
+      logLabel: 'updateSongYoutubeLinks',
+    );
   }
 
   /// Updates a song's lyrics (stored on the songs table - global, not per-setlist).
@@ -2230,64 +1850,26 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
-
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistRepository] updateSongLyrics: songId=$songId, lyrics=${lyrics != null ? lyrics.substring(0, lyrics.length > 50 ? 50 : lyrics.length) : 'null'}...',
-      );
-    }
-
-    try {
-      // Direct update on songs table
-      await supabase.from('songs').update({'lyrics': lyrics}).eq('id', songId);
-      debugPrint(
-        '[SetlistRepository] ✓ Updated lyrics for song $songId (direct)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException on direct lyrics update: code=${e.code}, message=${e.message}',
-      );
-
-      // RLS may block direct update for legacy songs with NULL band_id.
-      // Fall back to RPC with SECURITY DEFINER which now supports p_lyrics.
-      if (e.code == '42501' || e.message.contains('policy')) {
-        debugPrint(
-          '[SetlistRepository] RLS blocked direct update, falling back to RPC',
-        );
-        final result = await supabase.rpc(
-          'update_song_metadata',
-          params: {
-            'p_song_id': songId,
-            'p_band_id': bandId,
-            'p_bpm': null,
-            'p_duration_seconds': null,
-            'p_tuning': null,
-            'p_notes': null,
-            'p_title': null,
-            'p_artist': null,
-            'p_youtube_links': null,
-            'p_lyrics': lyrics,
-            'p_musical_key': null,
-          },
-        );
-
-        if (result is Map && result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-
-        debugPrint(
-          '[SetlistRepository] ✓ Updated lyrics for song $songId (via RPC fallback)',
-        );
-      } else {
-        rethrow;
-      }
-    } catch (e) {
-      if (e is PostgrestException) rethrow;
-      debugPrint('[SetlistRepository] ❌ Error updating lyrics: $e');
-      rethrow;
-    }
+    await _updateSongsDirectWithRpcRlsFallback(
+      bandId: bandId,
+      songId: songId,
+      directUpdate: {'lyrics': lyrics},
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': null,
+        'p_tuning': null,
+        'p_notes': null,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': null,
+        'p_lyrics': lyrics,
+        'p_musical_key': null,
+      },
+      checkRpcResultPayload: true,
+      logLabel: 'updateSongLyrics',
+    );
   }
 
   /// Updates a song's title and/or artist (stored on the songs table - global).
@@ -2308,64 +1890,31 @@ class SetlistRepository {
     if (bandId.isEmpty) {
       throw ArgumentError('bandId is required for security');
     }
+    final directFallbackUpdate = <String, dynamic>{};
+    if (title != null) directFallbackUpdate['title'] = title;
+    if (artist != null) directFallbackUpdate['artist'] = artist;
 
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistRepository] updateSongTitleArtist: songId=$songId, title=$title, artist=$artist',
-      );
-    }
-
-    try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 11 parameters to avoid PGRST203 function overload ambiguity
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': null,
-          'p_duration_seconds': null,
-          'p_tuning': null,
-          'p_notes': null,
-          'p_title': title,
-          'p_artist': artist,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': null,
-        },
-      );
-
-      // Check RPC result
-      if (result is Map && result['success'] == false) {
-        final error = result['error'] ?? 'Unknown error';
-        debugPrint('[SetlistRepository] RPC returned error: $error');
-        throw Exception(error);
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Updated title/artist for song $songId (via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      // RPC may not exist - fall back to direct update
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        final updates = <String, dynamic>{};
-        if (title != null) updates['title'] = title;
-        if (artist != null) updates['artist'] = artist;
-        await supabase.from('songs').update(updates).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated title/artist for song $songId (direct)',
-        );
-        return;
-      }
-      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] ❌ Error updating title/artist: $e');
-      rethrow;
-    }
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'update_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': null,
+        'p_tuning': null,
+        'p_notes': null,
+        'p_title': title,
+        'p_artist': artist,
+        'p_youtube_links': null,
+        'p_lyrics': null,
+        'p_musical_key': null,
+      },
+      directFallbackUpdate: directFallbackUpdate,
+      logLabel: 'updateSongTitleArtist',
+      handlePgrst203: false,
+    );
   }
 
   // ==========================================================================
@@ -2387,80 +1936,26 @@ class SetlistRepository {
       throw ArgumentError('bandId is required for security');
     }
 
-    if (kDebugMode) {
-      debugPrint(
-        '[SetlistRepository] updateSongMusicalKey: songId=$songId, musicalKey=$musicalKey',
-      );
-    }
-
-    try {
-      // Use RPC with SECURITY DEFINER to bypass RLS for songs with NULL band_id
-      // Must pass ALL 11 parameters to avoid PGRST203 function overload ambiguity
-      final result = await supabase.rpc(
-        'update_song_metadata',
-        params: {
-          'p_song_id': songId,
-          'p_band_id': bandId,
-          'p_bpm': null,
-          'p_duration_seconds': null,
-          'p_tuning': null,
-          'p_notes': null,
-          'p_title': null,
-          'p_artist': null,
-          'p_youtube_links': null,
-          'p_lyrics': null,
-          'p_musical_key': musicalKey,
-        },
-      );
-
-      if (kDebugMode) {
-        debugPrint(
-          '[SetlistRepository] RPC result type: ${result.runtimeType}, value: $result',
-        );
-      }
-
-      if (result is Map) {
-        if (result['success'] == false) {
-          final error = result['error'] ?? 'Unknown error';
-          debugPrint('[SetlistRepository] RPC returned error: $error');
-          throw Exception(error);
-        }
-      }
-
-      debugPrint(
-        '[SetlistRepository] ✓ Updated musical key to $musicalKey for song $songId (via RPC)',
-      );
-    } on PostgrestException catch (e) {
-      debugPrint(
-        '[SetlistRepository] PostgrestException: code=${e.code}, message=${e.message}',
-      );
-
-      if (e.code == 'PGRST203') {
-        debugPrint(
-          '[SetlistRepository] PGRST203: Multiple function overloads exist.',
-        );
-        throw Exception('Server configuration error. Please contact support.');
-      }
-
-      if (e.code == 'PGRST202' || e.code == '42883') {
-        debugPrint(
-          '[SetlistRepository] update_song_metadata RPC not found, falling back to direct update',
-        );
-        await supabase
-            .from('songs')
-            .update({'musical_key': musicalKey}).eq('id', songId);
-        debugPrint(
-          '[SetlistRepository] ✓ Updated musical key for song $songId (direct)',
-        );
-        return;
-      }
-
-      debugPrint('[SetlistRepository] ❌ PostgrestException: ${e.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('[SetlistRepository] ❌ Error updating musical key: $e');
-      rethrow;
-    }
+    await _callSongMetadataRpc(
+      bandId: bandId,
+      songId: songId,
+      rpcName: 'update_song_metadata',
+      rpcParams: {
+        'p_song_id': songId,
+        'p_band_id': bandId,
+        'p_bpm': null,
+        'p_duration_seconds': null,
+        'p_tuning': null,
+        'p_notes': null,
+        'p_title': null,
+        'p_artist': null,
+        'p_youtube_links': null,
+        'p_lyrics': null,
+        'p_musical_key': musicalKey,
+      },
+      directFallbackUpdate: {'musical_key': musicalKey},
+      logLabel: 'updateSongMusicalKey',
+    );
   }
 
   // ==========================================================================
