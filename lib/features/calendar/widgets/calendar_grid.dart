@@ -146,8 +146,12 @@ class CalendarGrid extends StatelessWidget {
       return [];
     }
 
-    // Filter to only gigs and rehearsals (we handle block outs separately)
-    final timedEvents = events.where((e) => e.isGig || e.isRehearsal).toList();
+    // Potential events use the shared orange marker added below, so only
+    // confirmed gigs and rehearsals participate in type ordering.
+    final timedEvents = events
+        .where(
+            (event) => (event.isGig || event.isRehearsal) && !event.isPotential)
+        .toList();
 
     // Sort by start time
     timedEvents.sort((a, b) {

@@ -481,14 +481,71 @@ void main() {
           .widgetList<Align>(
               find.descendant(of: stackFinder, matching: find.byType(Align)))
           .toList();
-      expect(aligns[0].alignment, const Alignment(-0.35, 0.0));
-      expect(aligns[1].alignment, const Alignment(0.35, 0.0));
+      expect(aligns[0].alignment, const Alignment(-0.5, 0.0));
+      expect(aligns[1].alignment, const Alignment(0.5, 0.0));
 
       final totalText = tester
           .widgetList<Text>(
               find.descendant(of: stackFinder, matching: find.byType(Text)))
           .toList()[1];
       expect(totalText.style?.fontSize, AppFontSizes.caption);
+    },
+  );
+
+  testWidgets(
+    'collapsed expenses label keeps space from the amount',
+    (tester) async {
+      final entries = List.generate(
+        30,
+        (i) => _entry(
+          id: 'e$i',
+          amountCents: 1000000,
+          isIncome: false,
+        ),
+      );
+      await _pump(
+        tester,
+        FinancialsState(
+          allEntries: entries,
+          viewMode: FinancialViewMode.expenses,
+        ),
+      );
+
+      final listViewController =
+          tester.widget<ListView>(find.byType(ListView)).controller!;
+      listViewController.jumpTo(60.0);
+      await tester.pump();
+
+      final labelRect = tester.getRect(find.text('TOTAL EXPENSES'));
+      final amountRect = tester.getRect(find.text('\$300,000.00'));
+      expect(amountRect.left - labelRect.right, greaterThanOrEqualTo(16));
+    },
+  );
+
+  testWidgets(
+    'collapsed summary header releases vertical space for transactions',
+    (tester) async {
+      final entries = List.generate(
+        30,
+        (i) => _entry(id: 'e$i', amountCents: 1000 * (i + 1), isIncome: true),
+      );
+      await _pump(tester, FinancialsState(allEntries: entries));
+
+      final summaryFinder = find
+          .ancestor(
+            of: find.text('TOTAL INCOME'),
+            matching: find.byType(Padding),
+          )
+          .first;
+      final expandedHeight = tester.getSize(summaryFinder).height;
+
+      final listViewController =
+          tester.widget<ListView>(find.byType(ListView)).controller!;
+      listViewController.jumpTo(60.0);
+      await tester.pump();
+
+      final collapsedHeight = tester.getSize(summaryFinder).height;
+      expect(collapsedHeight, lessThan(expandedHeight - 40));
     },
   );
 

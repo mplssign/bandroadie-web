@@ -587,13 +587,14 @@ class _SummaryHeader extends ConsumerWidget {
           return Column(
             children: [
               SizedBox(
-                height: 64,
+                width: double.infinity,
+                height: ui.lerpDouble(64, 32, progress),
                 child: Stack(
                   children: [
                     Align(
                       alignment: Alignment.lerp(
                         Alignment.topCenter,
-                        const Alignment(-0.35, 0.0),
+                        const Alignment(-0.5, 0.0),
                         progress,
                       )!,
                       child: Text(
@@ -608,7 +609,7 @@ class _SummaryHeader extends ConsumerWidget {
                     Align(
                       alignment: Alignment.lerp(
                         Alignment.bottomCenter,
-                        const Alignment(0.35, 0.0),
+                        const Alignment(0.5, 0.0),
                         progress,
                       )!,
                       child: Text(
@@ -711,7 +712,13 @@ class _SummaryHeader extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: Spacing.space16),
+              SizedBox(
+                height: ui.lerpDouble(
+                  Spacing.space16,
+                  Spacing.space4,
+                  progress,
+                ),
+              ),
             ],
           );
         },
