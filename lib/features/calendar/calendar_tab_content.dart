@@ -251,11 +251,13 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       error: (_, __) => null,
     );
 
-    // Confirmed gigs: show read-only view drawer first
-    if (event.isConfirmedGig && event.gig != null) {
+    // Gigs: show read-only view drawer first
+    if (event.isGig && event.gig != null) {
       final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
           'America/Chicago';
-      final canEdit = editPerms != null && editPerms.canEditGigs;
+      final canEdit = editPerms != null &&
+          (editPerms.canEditGigs ||
+              (event.isPotentialGig && editPerms.canEditPotentialGigs));
       ViewGigDrawer.show(
         context,
         gig: event.gig!,
@@ -274,10 +276,8 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
       return;
     }
 
-    // Confirmed rehearsals: show read-only view drawer first
-    if (event.isRehearsal &&
-        event.rehearsal != null &&
-        !event.rehearsal!.isPotential) {
+    // Rehearsals: show read-only view drawer first
+    if (event.isRehearsal && event.rehearsal != null) {
       final bandTimezone = ref.read(activeBandProvider).activeBand?.timezone ??
           'America/Chicago';
       final canEdit = editPerms != null && editPerms.canEditGigs;

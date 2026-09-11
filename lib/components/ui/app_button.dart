@@ -36,6 +36,7 @@ class AppButton extends StatelessWidget {
     this.variant = AppButtonVariant.primary,
     this.isLoading = false,
     this.fullWidth = false,
+    this.fitLabel = false,
     this.height,
     this.backgroundColor,
     this.borderRadius,
@@ -62,6 +63,9 @@ class AppButton extends StatelessWidget {
 
   /// If true, button expands to fill available width
   final bool fullWidth;
+
+  /// Scales a text-only label down when its available width is constrained.
+  final bool fitLabel;
 
   /// Optional custom height
   final double? height;
@@ -105,7 +109,14 @@ class AppButton extends StatelessWidget {
                   Text(label),
                 ],
               )
-            : Text(label);
+            : fitLabel
+                ? Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(label),
+                    ),
+                  )
+                : Text(label);
 
     // Map AppButtonVariant to FButtonVariant
     final FButtonVariant foruiVariant;

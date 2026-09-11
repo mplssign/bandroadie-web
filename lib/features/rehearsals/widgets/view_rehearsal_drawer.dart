@@ -2,16 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/models/rehearsal.dart';
+import '../../../app/services/supabase_client.dart';
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_animations.dart';
+import '../../../app/utils/time_formatter.dart';
 import '../../../components/ui/sheet_footer.dart';
+import '../../../shared/utils/snackbar_helper.dart';
+import '../../calendar/calendar_controller.dart';
+import '../../events/events_repository.dart';
+import '../../events/models/event_form_data.dart';
+import '../../events/widgets/potential_event_availability_section.dart';
+import '../../gigs/gig_controller.dart';
+import '../../members/members_controller.dart';
 import '../../setlists/setlist_detail_screen.dart';
 import '../../setlists/setlists_screen.dart' show setlistsProvider;
+import '../rehearsal_response_repository.dart';
+import '../rehearsal_controller.dart';
 import 'rehearsal_notes_sheet.dart';
 
-class ViewRehearsalDrawer extends ConsumerWidget {
+class ViewRehearsalDrawer extends ConsumerStatefulWidget {
   final Rehearsal rehearsal;
   final String bandTimezone;
   final bool canEdit;
@@ -24,6 +35,10 @@ class ViewRehearsalDrawer extends ConsumerWidget {
     required this.canEdit,
     required this.onEdit,
   });
+
+  @override
+  ConsumerState<ViewRehearsalDrawer> createState() =>
+      _ViewRehearsalDrawerState();
 
   static Future<void> show(
     BuildContext context, {
@@ -44,10 +59,101 @@ class ViewRehearsalDrawer extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _ViewRehearsalDrawerState extends ConsumerState<ViewRehearsalDrawer> {
+  final Set<String> _selectedOfficialDateKeys = {};
+  bool _isCreatingRehearsals = false;
+
+  Rehearsal get rehearsal => widget.rehearsal;
+  bool get canEdit => widget.canEdit;
+  VoidCallback get onEdit => widget.onEdit;
 
   void _handleEdit(BuildContext context) {
     Navigator.of(context).pop();
     onEdit();
+  }
+
+  void _toggleOfficialDate(PotentialEventDateAvailability selectedDate) {
+    setState(() {
+      if (!_selectedOfficialDateKeys.add(selectedDate.responseKey)) {
+        _selectedOfficialDateKeys.remove(selectedDate.responseKey);
+      }
+    });
+  }
+
+  EventFormData _officialFormDataFor(
+    PotentialEventDateAvailability selectedDate,
+  ) {
+    final originalData = EventFormData.fromRehearsal(rehearsal);
+    final selectedEntry = selectedDate.responseKey == 'primary'
+        ? null
+        : originalData.additionalDates.firstWhere(
+            (entry) => entry.date == selectedDate.date,
+          );
+    return originalData.copyWith(
+      date: selectedDate.date,
+      hour: selectedEntry?.hour,
+      minutes: selectedEntry?.minutes,
+      isPM: selectedEntry?.isPM,
+      isPotentialGig: false,
+      additionalDates: const [],
+    );
+  }
+
+  Future<void> _createSelectedRehearsals(
+    List<PotentialEventDateAvailability> availabilityDates,
+  ) async {
+    if (_selectedOfficialDateKeys.isEmpty || _isCreatingRehearsals) return;
+
+    final selectedDates = availabilityDates
+        .where(
+          (date) => _selectedOfficialDateKeys.contains(date.responseKey),
+        )
+        .toList();
+    setState(() => _isCreatingRehearsals = true);
+
+    try {
+      final repository = ref.read(eventsRepositoryProvider);
+      await repository.updateRehearsal(
+        rehearsalId: rehearsal.id,
+        bandId: rehearsal.bandId,
+        formData: _officialFormDataFor(selectedDates.first),
+        wasRecurring: rehearsal.isRecurring,
+      );
+      for (final selectedDate in selectedDates.skip(1)) {
+        await repository.createRehearsal(
+          bandId: rehearsal.bandId,
+          formData: _officialFormDataFor(selectedDate),
+        );
+      }
+
+      await Future.wait([
+        ref.read(gigProvider.notifier).refresh(),
+        ref.read(rehearsalProvider.notifier).refresh(),
+        ref
+            .read(calendarProvider.notifier)
+            .invalidateAndRefresh(bandId: rehearsal.bandId),
+      ]);
+
+      if (!mounted) return;
+      final count = selectedDates.length;
+      showSuccessSnackBar(
+        context,
+        message: count == 1 ? 'Rehearsal created' : '$count rehearsals created',
+      );
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      showErrorSnackBar(
+        context,
+        message: 'Could not create the rehearsal. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCreatingRehearsals = false);
+      }
+    }
   }
 
   String _formatFullDate(DateTime date) {
@@ -133,14 +239,39 @@ class ViewRehearsalDrawer extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final setlistsState = ref.watch(setlistsProvider);
+    final membersState = ref.watch(membersProvider);
+    if (rehearsal.isPotential &&
+        membersState.members.isEmpty &&
+        !membersState.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(membersProvider.notifier).loadMembers(rehearsal.bandId);
+      });
+    }
     final setlistName = rehearsal.setlistId != null
         ? setlistsState.setlists
             .where((s) => s.id == rehearsal.setlistId)
             .firstOrNull
             ?.name
         : null;
+    final availabilityDates = [
+      PotentialEventDateAvailability(
+        responseKey: 'primary',
+        date: rehearsal.date,
+        timeRange:
+            TimeFormatter.formatRange(rehearsal.startTime, rehearsal.endTime),
+      ),
+      for (final additionalDate in rehearsal.additionalDates)
+        PotentialEventDateAvailability(
+          responseKey: additionalDate.id,
+          date: additionalDate.date,
+          timeRange: TimeFormatter.formatRange(
+            additionalDate.startTime ?? rehearsal.startTime,
+            rehearsal.endTime,
+          ),
+        ),
+    ]..sort((a, b) => a.date.compareTo(b.date));
 
     return Container(
       constraints: BoxConstraints(
@@ -186,24 +317,34 @@ class ViewRehearsalDrawer extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Day/date
-                        Text(
-                          _formatFullDate(rehearsal.date),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(
-                                color: context.colors.textPrimary,
-                              ),
-                        ),
-                        const SizedBox(height: Spacing.space4),
-                        // Time range
-                        Text(
-                          rehearsal.timeRange,
-                          style: AppTextStyles.title3.copyWith(
-                            color: context.colors.textPrimary,
+                        if (rehearsal.isPotential)
+                          Text(
+                            'Potential Rehearsal',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: context.colors.textPrimary,
+                                ),
+                          )
+                        else ...[
+                          Text(
+                            _formatFullDate(rehearsal.date),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
+                                  color: context.colors.textPrimary,
+                                ),
                           ),
-                        ),
+                          const SizedBox(height: Spacing.space4),
+                          Text(
+                            rehearsal.timeRange,
+                            style: AppTextStyles.title3.copyWith(
+                              color: context.colors.textPrimary,
+                            ),
+                          ),
+                        ],
                         // Location (if present)
                         if (rehearsal.location.isNotEmpty) ...[
                           const SizedBox(height: Spacing.space4),
@@ -230,6 +371,43 @@ class ViewRehearsalDrawer extends ConsumerWidget {
 
                   const SizedBox(height: Spacing.space16),
                   const Divider(height: 1),
+
+                  if (rehearsal.isPotential)
+                    PotentialEventAvailabilitySection(
+                      dates: availabilityDates,
+                      members: membersState.members,
+                      isLoadingMembers: membersState.isLoading,
+                      currentUserId: supabase.auth.currentUser?.id,
+                      loadResponses: () => ref
+                          .read(rehearsalResponseRepositoryProvider)
+                          .fetchAllDateResponses(
+                            rehearsalId: rehearsal.id,
+                            bandId: rehearsal.bandId,
+                            rehearsalDateIds: rehearsal.additionalDates
+                                .map((date) => date.id)
+                                .toList(),
+                          ),
+                      onRespond: (responseKey, response) async {
+                        final userId = supabase.auth.currentUser?.id;
+                        if (userId == null) return;
+                        await ref
+                            .read(rehearsalResponseRepositoryProvider)
+                            .upsertResponseForDate(
+                              rehearsalId: rehearsal.id,
+                              rehearsalDateId:
+                                  responseKey == 'primary' ? null : responseKey,
+                              userId: userId,
+                              response: response,
+                            );
+                        ref.invalidate(currentUserRehearsalResponsesProvider);
+                        ref.invalidate(
+                            currentUserRehearsalAllDateResponsesProvider);
+                        ref.invalidate(
+                            potentialRehearsalResponseSummariesProvider);
+                      },
+                      selectedOfficialDateKeys: _selectedOfficialDateKeys,
+                      onMakeOfficial: canEdit ? _toggleOfficialDate : null,
+                    ),
 
                   // Detail rows
                   if (rehearsal.setlistId != null && setlistName != null)
@@ -266,10 +444,23 @@ class ViewRehearsalDrawer extends ConsumerWidget {
 
           // Footer
           SheetFooter(
-            primaryLabel: 'Done',
-            onPrimary: () => Navigator.of(context).pop(),
-            cancelLabel: 'Edit',
-            onCancel: canEdit ? () => _handleEdit(context) : null,
+            primaryLabel: _selectedOfficialDateKeys.isEmpty
+                ? 'Done'
+                : _selectedOfficialDateKeys.length == 1
+                    ? 'Create Rehearsal'
+                    : 'Create (${_selectedOfficialDateKeys.length}) Rehearsals',
+            primaryFlex: _selectedOfficialDateKeys.isEmpty ? 1 : 2,
+            fitActionLabels: _selectedOfficialDateKeys.isNotEmpty,
+            primaryIsLoading: _isCreatingRehearsals,
+            onPrimary: _selectedOfficialDateKeys.isEmpty
+                ? () => Navigator.of(context).pop()
+                : () => _createSelectedRehearsals(availabilityDates),
+            cancelLabel: _selectedOfficialDateKeys.isEmpty ? 'Edit' : 'Cancel',
+            onCancel: !canEdit
+                ? null
+                : _selectedOfficialDateKeys.isEmpty
+                    ? () => _handleEdit(context)
+                    : () => setState(_selectedOfficialDateKeys.clear),
           ),
         ],
       ),
