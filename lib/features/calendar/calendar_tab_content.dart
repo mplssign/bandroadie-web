@@ -487,13 +487,11 @@ class _CalendarTabContentState extends ConsumerState<CalendarTabContent>
                 onTap: () {
                   final bandState = ref.read(activeBandProvider);
                   final bandId = bandState.activeBand?.id;
-                  final bandName = bandState.activeBand?.name ?? 'Band';
                   if (bandId != null) {
                     showCalendarSubscriptionDialog(
                       context,
                       ref,
                       bandId: bandId,
-                      bandName: bandName,
                     );
                   }
                 },
