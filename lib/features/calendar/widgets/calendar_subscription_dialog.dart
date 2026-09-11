@@ -7,6 +7,7 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../../shared/utils/snackbar_helper.dart';
 import '../../../shared/widgets/toggle_tile.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
+import '../../../components/ui/app_button.dart';
 import '../../../components/ui/app_progress_indicator.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../calendar_subscription_service.dart';
@@ -28,6 +29,8 @@ void showCalendarSubscriptionDialog(
   showAppBottomSheet(
     context: context,
     isScrollControlled: true,
+    mainAxisMaxRatio: 1.0,
+    useSafeArea: true,
     backgroundColor: Colors.transparent,
     builder: (context) => CalendarSubscriptionDialog(
       bandId: bandId,
@@ -89,7 +92,6 @@ class _CalendarSubscriptionDialogState
 
   @override
   Widget build(BuildContext context) {
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final safeBottom = MediaQuery.of(context).padding.bottom;
 
     final subscriptionUrlAsync = ref.watch(
@@ -98,11 +100,7 @@ class _CalendarSubscriptionDialogState
 
     return Material(
       color: Colors.transparent,
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight:
-              (MediaQuery.of(context).size.height - keyboardHeight) * 0.9,
-        ),
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: context.colors.surface,
           borderRadius: const BorderRadius.only(
@@ -449,41 +447,14 @@ class _CopyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: copied ? context.colors.success : AppColors.primary,
-      borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-      child: InkWell(
-        onTap: () {
-          Clipboard.setData(ClipboardData(text: url));
-          onCopied();
-        },
-        borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.space12,
-            vertical: Spacing.space8,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                copied ? AppIcons.check : AppIcons.copy,
-                size: 16,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                copied ? 'Copied' : 'Copy',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: AppFontSizes.caption,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return AppButton(
+      label: copied ? 'Copied' : 'Copy',
+      icon: copied ? AppIcons.check : AppIcons.copy,
+      backgroundColor: copied ? context.colors.success : null,
+      onPressed: () {
+        Clipboard.setData(ClipboardData(text: url));
+        onCopied();
+      },
     );
   }
 }

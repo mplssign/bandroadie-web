@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../components/ui/app_switch.dart';
 
 // ============================================================================
 // APP TOGGLE TILE
@@ -91,12 +92,9 @@ class AppToggleTile extends StatelessWidget {
                     ),
                   ),
           ),
-          Switch.adaptive(
+          AppSwitch(
             value: value,
             onChanged: enabled ? onChanged : null,
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: context.colors.surfaceOverlay,
-            inactiveThumbColor: context.colors.textSecondary,
           ),
         ],
       ),
