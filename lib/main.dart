@@ -175,10 +175,11 @@ class BandRoadieApp extends ConsumerWidget {
       },
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '');
+        final isMarketingHost = _isMarketingHost();
 
         // On web, check hostname to decide landing vs app
         if (uri.path == '/' || uri.path == '/app') {
-          if (kIsWeb && _isMarketingHost()) {
+          if (kIsWeb && isMarketingHost) {
             return fadeSlideRoute(
                 page: const LandingPage(), settings: settings);
           }
@@ -211,7 +212,7 @@ class BandRoadieApp extends ConsumerWidget {
             settings: settings,
           );
         }
-        if (kIsWeb && _isMarketingHost()) {
+        if (kIsWeb && isMarketingHost) {
           return fadeSlideRoute(page: const LandingPage(), settings: settings);
         }
         return fadeSlideRoute(
