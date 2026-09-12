@@ -200,87 +200,87 @@ String tuningShortLabel(String? tuningName, {String? customName}) {
 
 const _tuningBadgeColorMap = <String, Color>{
   // Standard
-  'standard': const Color(0xFF2563EB),
-  'standard (e)': const Color(0xFF2563EB),
-  'standard_e': const Color(0xFF2563EB),
+  'standard': Color(0xFF2563EB),
+  'standard (e)': Color(0xFF2563EB),
+  'standard_e': Color(0xFF2563EB),
 
   // Half-Step
-  'half-step': const Color(0xFFC026D3),
-  'half step down (eb)': const Color(0xFFC026D3),
-  'half_step_down': const Color(0xFFC026D3),
-  'half_step': const Color(0xFFC026D3),
-  'eb standard': const Color(0xFFC026D3),
-  'half-step down': const Color(0xFFC026D3),
+  'half-step': Color(0xFFC026D3),
+  'half step down (eb)': Color(0xFFC026D3),
+  'half_step_down': Color(0xFFC026D3),
+  'half_step': Color(0xFFC026D3),
+  'eb standard': Color(0xFFC026D3),
+  'half-step down': Color(0xFFC026D3),
 
   // Drop D
-  'drop d': const Color(0xFF65A30D),
-  'drop_d': const Color(0xFF65A30D),
+  'drop d': Color(0xFF65A30D),
+  'drop_d': Color(0xFF65A30D),
 
   // Full-Step
-  'full-step': const Color(0xFFEA580C),
-  'whole step down (d)': const Color(0xFFEA580C),
-  'whole_step_down': const Color(0xFFEA580C),
-  'full_step': const Color(0xFFEA580C),
-  'full-step down': const Color(0xFFEA580C),
+  'full-step': Color(0xFFEA580C),
+  'whole step down (d)': Color(0xFFEA580C),
+  'whole_step_down': Color(0xFFEA580C),
+  'full_step': Color(0xFFEA580C),
+  'full-step down': Color(0xFFEA580C),
 
   // Drop C
-  'drop c': const Color(0xFF06B6D4),
-  'drop_c': const Color(0xFF06B6D4),
+  'drop c': Color(0xFF06B6D4),
+  'drop_c': Color(0xFF06B6D4),
 
   // Drop Db
-  'drop db': const Color(0xFF581C87),
-  'drop db (c#)': const Color(0xFF581C87),
-  'drop_db': const Color(0xFF581C87),
+  'drop db': Color(0xFF581C87),
+  'drop db (c#)': Color(0xFF581C87),
+  'drop_db': Color(0xFF581C87),
 
   // D Standard
-  'd standard': const Color(0xFF1E40AF),
-  'd_standard': const Color(0xFF1E40AF),
+  'd standard': Color(0xFF1E40AF),
+  'd_standard': Color(0xFF1E40AF),
 
   // Drop B
-  'drop b': const Color(0xFF14532D),
-  'drop_b': const Color(0xFF14532D),
+  'drop b': Color(0xFF14532D),
+  'drop_b': Color(0xFF14532D),
 
   // B Standard
-  'b standard': const Color(0xFF312E81),
-  'b standard (baritone)': const Color(0xFF312E81),
-  'b_standard': const Color(0xFF312E81),
+  'b standard': Color(0xFF312E81),
+  'b standard (baritone)': Color(0xFF312E81),
+  'b_standard': Color(0xFF312E81),
 
   // Drop A
-  'drop a': const Color(0xFF065F46),
-  'drop_a': const Color(0xFF065F46),
+  'drop a': Color(0xFF065F46),
+  'drop_a': Color(0xFF065F46),
 
   // Open G
-  'open g': const Color(0xFFF43F5E),
-  'open_g': const Color(0xFFF43F5E),
+  'open g': Color(0xFFF43F5E),
+  'open_g': Color(0xFFF43F5E),
 
   // Open D
-  'open d': const Color(0xFFE11D48),
-  'open_d': const Color(0xFFE11D48),
+  'open d': Color(0xFFE11D48),
+  'open_d': Color(0xFFE11D48),
 
   // Open E
-  'open e': const Color(0xFFBE123C),
-  'open_e': const Color(0xFFBE123C),
+  'open e': Color(0xFFBE123C),
+  'open_e': Color(0xFFBE123C),
 
   // Open A
-  'open a': const Color(0xFF9F1239),
-  'open_a': const Color(0xFF9F1239),
+  'open a': Color(0xFF9F1239),
+  'open_a': Color(0xFF9F1239),
 
   // Open C
-  'open c': const Color(0xFF881337),
-  'open_c': const Color(0xFF881337),
+  'open c': Color(0xFF881337),
+  'open_c': Color(0xFF881337),
 
   // C Standard
-  'c standard': const Color(0xFF0891B2),
-  'c_standard': const Color(0xFF0891B2),
+  'c standard': Color(0xFF0891B2),
+  'c_standard': Color(0xFF0891B2),
 
   // A Standard
-  'a standard': const Color(0xFF0D9488),
-  'a_standard': const Color(0xFF0D9488),
+  'a standard': Color(0xFF0D9488),
+  'a_standard': Color(0xFF0D9488),
 
   // Special tunings
-  'dadgad': const Color(0xFFDB2777),
-  'nashville': const Color(0xFFF59E0B),
-  'custom': const Color(0xFF64748B),
+  'dadgad': Color(0xFFDB2777),
+  'nashville': Color(0xFFF59E0B),
+  'custom': Color(0xFF64748B),
 };
 
 /// Get the badge background color for a tuning
