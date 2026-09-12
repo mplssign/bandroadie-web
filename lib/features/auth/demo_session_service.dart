@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -70,4 +71,25 @@ class DemoSessionService {
       // heartbeat failures must not crash the app
     }
   }
+
+  /// Best-effort teardown when the app is terminating (AppLifecycleState.detached).
+  /// Fire-and-forget: frees the demo slot immediately on graceful close without
+  /// blocking shutdown. All errors are swallowed — the DB cron sweep is the
+  /// guaranteed backstop when this signal never lands (hard-kill / crash).
+  static Future<void> releaseSlotOnDetach() async {
+    try {
+      await Supabase.instance.client.functions.invoke('exit-demo-session');
+    } catch (_) {
+      // Best-effort only; cron reaps the slot if this never completes.
+    }
+  }
+
+  /// Pure predicate (testable seam): release a demo slot only on true termination
+  /// of an anonymous session — never on ordinary backgrounding, and never for a
+  /// real (non-anonymous) user.
+  static bool shouldReleaseDemoOnLifecycle(
+    AppLifecycleState state, {
+    required bool isAnonymous,
+  }) =>
+      state == AppLifecycleState.detached && isAnonymous;
 }

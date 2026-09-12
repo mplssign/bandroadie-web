@@ -228,6 +228,87 @@ in `bug/getsongbpm-hosting-doc-audit`).
 
 ---
 
+## [DECISION-005] Atomic demo admission via transaction advisory lock + faster abandoned-slot reclaim
+
+**Date:** 2026-09-12
+**Feature:** bug/demo-capacity-check-race-and-leak
+**Agent:** Architect
+**Status:** Active
+
+### Context
+
+`provision_demo_session()` enforces a hardcoded 30-concurrent-session ceiling with
+a non-atomic count-then-insert: the `SELECT count(*) ... WHERE expires_at > now()`
+and the subsequent `INSERT INTO demo_sessions` are not serialized, so under READ
+COMMITTED N concurrent first-time visitors can each read `count < 30` before any
+commits and provision more than 30 sessions (each cloning two full template
+bands). Separately, a demo slot is released only on the explicit "Exit Demo" tap;
+a visitor who closes/kills the app instead holds the slot until `expires_at` (a
+sliding TTL) plus the cron sweep interval — up to ~20 minutes per drive-by
+visitor, which compounds the race by lowering real available capacity.
+
+### Decision
+
+1. **Atomic admission.** Add a single transaction-scoped advisory lock —
+   `PERFORM pg_advisory_xact_lock(8675309001)` — in `provision_demo_session()`
+   immediately before the ceiling count and after the idempotency early-return.
+   Transaction-scoped so it auto-releases on commit OR rollback (cannot leak on
+   error) and spans the whole single-statement RPC body. Because the reservation
+   `INSERT` commits before the lock releases, each serialized provision sees the
+   prior reservation in its count, so live rows with `expires_at > now()` never
+   exceed 30.
+2. **Faster reclaim.** Reduce the sliding demo-session TTL from 15 minutes to a
+   fixed **8 minutes** (`expires_at` default + `heartbeat_demo_session()` renewal)
+   and the `cleanup_demo_sessions` cron sweep from `*/5` to `*/2`. Paired with a
+   best-effort client teardown on `AppLifecycleState.detached` (anonymous sessions
+   only) in `auth_gate.dart`, which frees the slot immediately on graceful close.
+
+### Rationale
+
+- The advisory lock is one line, cannot leak, and fully satisfies the correctness
+  requirement. Rejected alternatives (documented, not implemented): a counter
+  table (state-sync complexity), serializable isolation + client retry (retry
+  storms), and a session-level `pg_advisory_lock`/`unlock` bracketing only the
+  reservation to let clones run concurrently (needs an EXCEPTION handler to
+  guarantee unlock; higher risk under pooling). The only cost of the transaction
+  lock is serializing the bounded (≤30) clone bodies under a cold burst —
+  acceptable at the current 1/30 load; the session-lock variant is the documented
+  upgrade path if burst throughput ever matters.
+- **8-minute TTL (Tony, decided):** the advisory lock independently enforces the
+  hard 30-session safety cap, so TTL is **not** the capacity guarantee — it only
+  governs abandoned-slot turnover. Because there is no background heartbeat
+  execution (the renewal timer is suspended while the app is backgrounded) and
+  demo use is interruption-prone, a longer TTL gives a backgrounded-but-alive demo
+  materially more grace before it must re-provision. At 1/30 load faster turnover
+  buys nothing operationally, while 8 minutes still cuts worst-case abandoned-slot
+  reclamation from ~20 min to ≤10 min (≤8 min TTL + ≤2 min cron). Implemented as a
+  fixed constant in both the `expires_at` default and the heartbeat renewal — no
+  apply-time tuning.
+
+### Constraints Imposed
+
+- The layered migration re-declares `provision_demo_session()` and
+  `heartbeat_demo_session()` verbatim (plpgsql has no in-place line insert); both
+  must retain `SECURITY DEFINER` + `SET search_path = public` and re-issue their
+  exact `REVOKE ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated` so
+  `anon` never gains EXECUTE. No new SECURITY DEFINER function is introduced.
+- The 8-minute TTL and 2-minute cron interval are decided fixed constants — do not
+  reintroduce apply-time tuning for them.
+- The advisory-lock key `8675309001` is reserved for demo admission; reuse for any
+  other lock would create false contention.
+- The `detached` teardown must stay gated on `isAnonymous` and on `detached` only
+  — never on backgrounding — so it cannot regress the "background briefly and
+  return" flow or fire for real users.
+
+### Rollback Plan
+
+Revert the migration (a follow-up `CREATE OR REPLACE` restoring the prior function
+bodies without the advisory lock, the 15-minute `expires_at` default, the
+15-minute heartbeat renewal, and the `*/5` cron interval) and revert the two Dart
+files (`auth_gate.dart`, `demo_session_service.dart`). No RLS change to unwind.
+
+---
+
 ## Categories Requiring a Logged Decision
 
 Any of the following changes **must** produce a new entry before implementation:
