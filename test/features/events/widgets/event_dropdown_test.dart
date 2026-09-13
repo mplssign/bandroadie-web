@@ -1,11 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bandroadie/features/calendar/auto_conflict_blocking_service.dart';
+import 'package:bandroadie/features/calendar/block_out_repository.dart';
+import 'package:bandroadie/features/contacts/contacts_controller.dart';
+import 'package:bandroadie/features/contacts/venues_controller.dart';
+import 'package:bandroadie/features/events/events_repository.dart';
 import 'package:bandroadie/features/events/models/event_form_data.dart';
 import 'package:bandroadie/features/events/widgets/event_editor_drawer.dart';
 import 'package:bandroadie/features/events/widgets/event_editor_helpers.dart';
+import 'package:bandroadie/features/members/members_controller.dart';
+import 'package:bandroadie/features/setlists/models/setlist.dart';
+import 'package:bandroadie/features/setlists/setlists_screen.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:forui/forui.dart';
+
+class _StubSetlistsNotifier extends SetlistsNotifier {
+  @override
+  SetlistsState build() => const SetlistsState(
+        setlists: [
+          Setlist(
+            id: 'setlist-1',
+            name: 'Road Set',
+            songCount: 0,
+            totalDuration: Duration.zero,
+          ),
+        ],
+      );
+}
+
+class _StubMembersNotifier extends MembersNotifier {
+  @override
+  MembersState build() => const MembersState();
+  @override
+  Future<void> loadMembers(String? bandId, {bool forceRefresh = false}) async {}
+}
+
+class _StubVenuesNotifier extends VenuesNotifier {
+  @override
+  VenuesState build() => const VenuesState();
+  @override
+  Future<void> load(String? bandId) async {}
+}
+
+class _StubContactsNotifier extends ContactsNotifier {
+  @override
+  ContactsState build() => const ContactsState();
+  @override
+  Future<void> load(String? bandId) async {}
+}
+
+class _StubBlockOutRepository extends BlockOutRepository {
+  @override
+  Future<List<Never>> fetchBlockOutsForBand(
+    String bandId, {
+    bool forceRefresh = false,
+  }) async =>
+      const [];
+}
+
+class _CapturingEventsRepository extends EventsRepository {
+  _CapturingEventsRepository(super.autoConflictBlockingService);
+
+  EventFormData? capturedFormData;
+
+  @override
+  Future<Never> createRehearsal({
+    required String bandId,
+    required EventFormData formData,
+  }) async {
+    capturedFormData = formData;
+    throw StateError('Stop after capturing form data');
+  }
+
+  @override
+  Future<Never> updateRehearsal({
+    required String rehearsalId,
+    required String bandId,
+    required EventFormData formData,
+    bool? wasRecurring,
+  }) async {
+    capturedFormData = formData;
+    throw StateError('Stop after capturing form data');
+  }
+}
 
 void main() {
   group('EventDropdown', () {
@@ -252,5 +333,127 @@ void main() {
         );
       },
     );
+  });
+
+  group('EventEditorDrawer setlist selector (rehearsal)', () {
+    testWidgets(
+        'create mode requires location and preserves enablement across setlist selection',
+        (tester) async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      try {
+        await Supabase.initialize(
+          url: 'https://test.supabase.co',
+          publishableKey: 'test-anon-key',
+          authOptions: const FlutterAuthClientOptions(
+            autoRefreshToken: false,
+            persistSession: false,
+          ),
+        );
+      } catch (_) {}
+
+      late _CapturingEventsRepository repository;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            setlistsProvider.overrideWith(_StubSetlistsNotifier.new),
+            membersProvider.overrideWith(_StubMembersNotifier.new),
+            venuesProvider.overrideWith(_StubVenuesNotifier.new),
+            contactsProvider.overrideWith(_StubContactsNotifier.new),
+            blockOutRepositoryProvider.overrideWithValue(
+              _StubBlockOutRepository(),
+            ),
+            eventsRepositoryProvider.overrideWith(
+              (ref) => repository = _CapturingEventsRepository(
+                ref.read(autoConflictBlockingServiceProvider),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const Scaffold(
+              body: EventEditorDrawer(
+                initialEventType: EventType.rehearsal,
+                bandId: 'test-band-id',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Details'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Road Set')).dy,
+        lessThan(tester.getTopLeft(find.text('Notes (optional)')).dy),
+      );
+
+      AppButton addButton() => tester.widget<AppButton>(
+            find.widgetWithText(AppButton, 'Add Rehearsal'),
+          );
+
+      expect(addButton().onPressed, isNull);
+
+      await tester.ensureVisible(find.text('Road Set'));
+      await tester.tap(find.text('Road Set'));
+      await tester.pump();
+      expect(addButton().onPressed, isNull);
+
+      await tester.tap(find.text('None'));
+      await tester.pump();
+      expect(addButton().onPressed, isNull);
+
+      final locationInput = find.descendant(
+        of: find.byType(FAutocomplete<String>),
+        matching: find.byType(EditableText),
+      );
+      expect(locationInput, findsOneWidget);
+
+      final flutterErrors = <FlutterErrorDetails>[];
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = flutterErrors.add;
+      addTearDown(() => FlutterError.onError = originalOnError);
+
+      await tester.enterText(locationInput, 'T');
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(flutterErrors, isEmpty);
+      expect(find.byIcon(AppIcons.error), findsNothing);
+      expect(find.text('Location is required'), findsNothing);
+      expect(addButton().onPressed, isNotNull);
+
+      await tester.enterText(locationInput, 'Test Studio');
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(flutterErrors, isEmpty);
+      expect(find.byIcon(AppIcons.error), findsNothing);
+      expect(find.text('Location is required'), findsNothing);
+      expect(addButton().onPressed, isNotNull);
+
+      FlutterError.onError = originalOnError;
+
+      await tester.ensureVisible(find.text('Road Set'));
+      await tester.tap(find.text('Road Set'));
+      await tester.pump();
+      expect(addButton().onPressed, isNotNull);
+
+      await tester.tap(find.text('Add Rehearsal'));
+      await tester.pumpAndSettle();
+
+      expect(repository.capturedFormData?.location, 'Test Studio');
+      expect(repository.capturedFormData?.setlistId, 'setlist-1');
+
+      repository.capturedFormData = null;
+      await tester.ensureVisible(find.text('None'));
+      await tester.tap(find.text('None'));
+      await tester.pump();
+      expect(addButton().onPressed, isNotNull);
+      await tester.tap(find.text('Add Rehearsal'));
+      await tester.pumpAndSettle();
+
+      expect(repository.capturedFormData, isNotNull);
+      expect(repository.capturedFormData?.setlistId, isNull);
+    });
   });
 }
