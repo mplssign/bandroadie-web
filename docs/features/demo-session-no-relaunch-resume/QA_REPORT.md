@@ -10,7 +10,7 @@ Demo/anonymous sessions should not survive an app relaunch
 
 ## Cycle Number
 
-1
+3
 
 ## Final Verdict
 
@@ -36,28 +36,58 @@ gotrue 2.27.2 and supabase_flutter 2.17.2 sources** (not runtime): the local
 sign-out nulls the in-memory session synchronously before any await, so the
 success, timeout, and catch paths all leave `currentSession == null`. The actual
 relaunch/resume behavior requires a running app and is an **owner-run** check
-(Tony) per the plan — it is correctly *not* a QA gate and is transcribed as a
+(Tony) per the plan — it is correctly _not_ a QA gate and is transcribed as a
 Manual Verification Punch List below. This report distinguishes clearly between
 headless static/executable checks (performed by QA) and on-device relaunch
 verification (owner-run, not performed by QA).
 
+**Cycle 3 scope — documentation reconciliation / static-diff review only.** Per
+Tony's independent review (code at committed PR head `5a86287` confirmed correct
+and safe; **"No re-test needed"**), this cycle re-validated the **documentation**
+reconciliation only. **No Dart, test, or config behavior was changed** —
+`git diff --name-only 5a86287 -- '*.dart' 'test/**'` and
+`git diff --name-only 5a86287 -- ':(exclude)docs/**'` both return empty, so the
+approved code is byte-for-byte unchanged (`HEAD == 5a86287`, confirmed via
+`git rev-parse HEAD`). `flutter analyze` and `flutter test` were **intentionally
+not re-run** this cycle (nothing executable changed); the Analyzer/Test sections
+below record the Cycle 1 results and are annotated accordingly. This cycle
+confirmed that the Architect corrected the two remaining stale SDK-ordering
+overclaims in `ARCHITECT_PLAN.md` (the Cycle 2 Warning #4 items at the former
+L112/L161), so all five docs — `ARCHITECT_PLAN.md`, `DECISION-006`,
+`ENGINEER_REPORT.md`, `RUNTIME_CONFIG.md`, and this report — now consistently
+state that gotrue 2.27.2 `_removeSession()` synchronously nulls **only** the
+in-memory `currentSession` before any `await`/network revoke, while persisted-disk
+removal is a separate, asynchronous / fire-and-forget path `signOut()` does not
+await (no disk-vs-network ordering claimed anywhere). The single occurrence of the
+old phrasing in `ENGINEER_REPORT.md` is explicitly quoted as "prior text
+incorrectly claimed" (a Cycle 2 correction note), not a live claim. The Markdown
+formatter/reflow changes in the touched docs are preserved (not reverted).
+
 **No blocking issues.** Two non-blocking budget observations and one non-blocking
-diff-safety note are recorded below with full rationale.
+diff-safety note remain; the Cycle 2 documentation-consistency finding (the stale
+ordering overclaim in `ARCHITECT_PLAN.md`) is now **resolved** by the Architect's
+correction and is recorded as resolved below.
 
 ---
 
 ## Architect Scope Review
 
-**Pass.** `git diff HEAD --stat` shows exactly the 5 plan-listed files, 167
-insertions, 0 deletions:
+**Pass.** The feature's committed code change (measured `main`→`5a86287`,
+`git diff --stat`) is exactly the 5 plan-listed files, 167 insertions, 0
+deletions. In Cycle 3 `HEAD == 5a86287` and the **working tree contains only
+documentation changes** on top of that approved head — `git diff --name-status
+5a86287` lists solely Markdown files (`AI_DECISIONS.md`, `RUNTIME_CONFIG.md`, and
+the four `docs/features/demo-session-no-relaunch-resume/` artifacts), with
+**zero** `*.dart` / `test/` / non-doc delta and no untracked non-doc files. The
+committed code breakdown:
 
-| File | Plan-listed | In diff |
-| --- | --- | --- |
-| `lib/main.dart` | Yes | +24 |
-| `lib/features/auth/demo_session_service.dart` | Yes | +12 |
-| `test/features/auth/demo_lifecycle_predicate_test.dart` | Yes | +43 |
-| `docs/reference/general/AI_DECISIONS.md` | Yes | +87 |
-| `docs/reference/general/RUNTIME_CONFIG.md` | Yes | +1 |
+| File                                                    | Plan-listed | In diff |
+| ------------------------------------------------------- | ----------- | ------- |
+| `lib/main.dart`                                         | Yes         | +24     |
+| `lib/features/auth/demo_session_service.dart`           | Yes         | +12     |
+| `test/features/auth/demo_lifecycle_predicate_test.dart` | Yes         | +43     |
+| `docs/reference/general/AI_DECISIONS.md`                | Yes         | +87     |
+| `docs/reference/general/RUNTIME_CONFIG.md`              | Yes         | +1      |
 
 Off-limits #289 surfaces confirmed **untouched** (grep of `git diff --name-only`
 for `migrations|functions|auth_state_provider|auth_gate|login_screen|app_shell`
@@ -97,7 +127,7 @@ errors (`git diff --check` clean).
    mandated sub-topics: (a) init-order step 6.5, (b) local-sign-out-only,
    (c) login-guaranteed failure behavior, (d) one-line rollback.
 5. **RUNTIME_CONFIG** — step `6.5 Purge restored anonymous demo session (local
-   sign-out) ← native-only effect` inserted between steps 6 and 7.
+sign-out) ← native-only effect` inserted between steps 6 and 7.
 
 No partial implementation, no missing edge case the plan specified.
 
@@ -108,30 +138,36 @@ No partial implementation, no missing edge case the plan specified.
 **Method: code-path / source analysis of resolved package sources. NOT
 runtime-exercised** (relaunch behavior is owner-run — see Punch List).
 
-### gotrue `signOut()` default scope + local-before-network ordering
+### gotrue `signOut()` — synchronous in-memory clear is decisive; disk removal is fire-and-forget
 
 - Resolved versions (from `pubspec.lock`): **gotrue 2.27.2**,
   **supabase_flutter 2.17.2**.
 - `gotrue-2.27.2/lib/src/gotrue_client.dart`:
   `Future<void> signOut({SignOutScope scope = SignOutScope.local}) => _signOut(...)`.
   The default scope **is** `SignOutScope.local` — confirmed from source.
-- `_signOut()` executes, in order: `_removeSession()` (sets
-  `_currentSession = null` — **synchronous, before any await**), removes the
-  code-verifier from storage, `notifyAllSubscribers(AuthChangeEvent.signedOut)`,
-  and **only then** `await admin.signOut(...)` (the ignorable network revoke,
-  which swallows 401/403/404).
-- supabase_flutter 2.17.2 `supabase_auth.dart` listens on `onAuthStateChange`
-  and, on `AuthChangeEvent.signedOut`, calls
-  `await _localStorage.removePersistedSession()` — so the `signedOut` event
-  emitted *before* the network revoke drives persisted-storage removal
-  (`_prefs.remove(persistSessionKey)`).
+- `_signOut()` calls `_removeSession()` **first**, which sets
+  `_currentSession = null` **synchronously, before any `await` or network
+  revoke**. This synchronous in-memory null is the **decisive** guarantee:
+  `currentSession == null` for the remainder of this launch, including fully
+  offline. `_signOut()` then notifies subscribers
+  (`AuthChangeEvent.signedOut`) and **only after that** `await admin.signOut(...)`
+  (the ignorable network revoke, which swallows 401/403/404).
+- Removal of the **persisted** (on-disk) session is a **separate, non-awaited**
+  path: supabase_flutter 2.17.2 receives the `signedOut` event through its auth
+  listener and dispatches the persisted-session removal **asynchronously
+  (fire-and-forget)**; `signOut()` returns **without** awaiting that disk write.
+  Disk removal is therefore **not ordered or awaited relative to the network
+  revoke** — this report does not claim otherwise.
 
-Conclusion: the persisted + in-memory session is cleared before the network
-part, so `currentSession == null` even offline. The plan's "gotrue clears local
-storage before the network part, login guaranteed even on timeout" claim is
-**accurate** (with the precise note that persisted removal is performed by
-supabase_flutter's `signedOut` listener, which the pre-network event triggers;
-the decisive in-memory clear is synchronous inside gotrue).
+Conclusion: the decisive offline guarantee is gotrue's **synchronous in-memory**
+`_currentSession = null`, which holds even fully offline. The remaining
+disk-persistence race (an incomplete prior disk write) is **harmless** because the
+cold-start purge (step 6.5) reruns **unconditionally on every launch** and
+re-detects/re-purges any restored anonymous session before `runApp()`; the
+orphaned server-side slot is reclaimed by the unchanged #289 TTL + cron backstop.
+This matches the corrected `DECISION-006` and the Cycle 2 `ENGINEER_REPORT.md`.
+(The Cycle 1 phrasing that the "persisted + in-memory session is cleared before
+the network part" was an SDK-ordering overclaim and has been corrected here.)
 
 ### Timeout / catch cannot leave a live restored anonymous session
 
@@ -158,7 +194,7 @@ and the plan/report already document worst-case = pre-fix behavior backstopped b
 anonymous case. Real users (`isAnonymous == false`) and the no-session case are
 never purged, so real-user session persistence is preserved exactly. Fresh
 in-run demo sessions are created by `DemoSessionService.provisionAndEnter()`
-*after* startup via the demo button and never traverse `main.dart`'s cold-start
+_after_ startup via the demo button and never traverse `main.dart`'s cold-start
 path, so they are unaffected. `restoredSession?.user.isAnonymous == true` uses
 `User.isAnonymous` (verified present in gotrue 2.27.2 `types/user.dart`, `bool`,
 defaults `false`).
@@ -189,17 +225,17 @@ Overall regression risk: **LOW–MEDIUM** (plan rated MEDIUM for touching
 init-order + auth session handling; observed behavior is tightly gated and fully
 covered by static analysis + tests).
 
-| Affected system (plan impact map) | Risk | Notes |
-| --- | --- | --- |
-| Auth / session | **LOW** | Change is gated to `hasSession && isAnonymous`; `isAuthenticated` semantics unchanged; in-memory clear is synchronous and total. |
-| Routing (indirect) | **LOW** | No routing code changed; `currentSession == null` drives existing login route. |
-| Init order | **LOW** | Single insertion at 6.5, logged (DECISION-006) + RUNTIME_CONFIG updated; no other step moved. |
-| Anonymous reconcile backstop | **LOW** | `_reconcileOrphanedAnonymousSession()` untouched; `auth_gate_anonymous_recovery_test.dart` Tests A–E pass. |
-| Real-user persistence | **LOW** | Predicate case 2 (`isAnonymous:false → false`) + full-suite pass; no purge for real users. |
-| Startup robustness | **LOW** | try/catch + `.timeout(onTimeout: () {})` guarantee `runApp()` is reached even offline/on throw. |
-| Platform parity | **LOW** | Native-only effect; web inert (verified via `_kDemoBandVisible`). No native-only change silently affecting web or vice-versa. |
-| Setlists / Gigs / Rehearsals / Members / Notifications | **LOW** | No touchpoints. |
-| DB / RLS / RPC | **N/A** | No DB change. |
+| Affected system (plan impact map)                      | Risk    | Notes                                                                                                                            |
+| ------------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Auth / session                                         | **LOW** | Change is gated to `hasSession && isAnonymous`; `isAuthenticated` semantics unchanged; in-memory clear is synchronous and total. |
+| Routing (indirect)                                     | **LOW** | No routing code changed; `currentSession == null` drives existing login route.                                                   |
+| Init order                                             | **LOW** | Single insertion at 6.5, logged (DECISION-006) + RUNTIME_CONFIG updated; no other step moved.                                    |
+| Anonymous reconcile backstop                           | **LOW** | `_reconcileOrphanedAnonymousSession()` untouched; `auth_gate_anonymous_recovery_test.dart` Tests A–E pass.                       |
+| Real-user persistence                                  | **LOW** | Predicate case 2 (`isAnonymous:false → false`) + full-suite pass; no purge for real users.                                       |
+| Startup robustness                                     | **LOW** | try/catch + `.timeout(onTimeout: () {})` guarantee `runApp()` is reached even offline/on throw.                                  |
+| Platform parity                                        | **LOW** | Native-only effect; web inert (verified via `_kDemoBandVisible`). No native-only change silently affecting web or vice-versa.    |
+| Setlists / Gigs / Rehearsals / Members / Notifications | **LOW** | No touchpoints.                                                                                                                  |
+| DB / RLS / RPC                                         | **N/A** | No DB change.                                                                                                                    |
 
 No new `setState`-after-async-gap, no Controller/FocusNode disposal change, no
 RPC signature/parameter-order change, no rebuild-frequency change.
@@ -225,12 +261,17 @@ test/features/auth/demo_lifecycle_predicate_test.dart` →
 no info-level residue). The two changed docs are Markdown (not analyzed). No
 pre-existing violation exists in any diff-touched file.
 
+**Cycle 3 note:** not re-run this cycle — no Dart file changed since the Cycle 1
+run (`git diff --name-only 5a86287 -- '*.dart'` is empty), so the Cycle 1
+"No issues found!" result stands unchanged. Re-running was intentionally skipped
+per Tony's "No re-test needed" instruction.
+
 ---
 
 ## Test Results
 
 - `flutter test test/features/auth/demo_lifecycle_predicate_test.dart
-  test/features/auth/auth_gate_anonymous_recovery_test.dart` → **All 12 tests
+test/features/auth/auth_gate_anonymous_recovery_test.dart` → **All 12 tests
   passed.** The 4 new `shouldPurgeRestoredAnonymousSession` truth-table cases
   pass (`T/T→true`, `T/F→false`, `F/F→false`, `F/T→false`); the existing
   lifecycle-predicate group and the anonymous-recovery reconcile backstop
@@ -239,6 +280,11 @@ pre-existing violation exists in any diff-touched file.
   previously-flaky `login_screen_demo_button_test.dart` passed in this run. This
   branch introduces zero changes under `test/` outside the one predicate test
   file.
+
+**Cycle 3 note:** not re-run this cycle — no test file changed since the Cycle 1
+run (`git diff --name-only 5a86287 -- 'test/**'` is empty), so the Cycle 1 pass
+(12 focused + 292 full-suite) stands unchanged. Re-running was intentionally
+skipped per Tony's "No re-test needed" instruction.
 
 ---
 
@@ -263,6 +309,10 @@ pre-existing violation exists in any diff-touched file.
 - **Leftover scaffolding / accidental deletions / unrelated churn:** none.
   Zero deletions is expected — this is a net-additive guard inserted into an
   existing flow (not a bug fix), as the Engineer report explains.
+- **Cycle 3 working-tree delta (docs only):** `git diff --check 5a86287` is clean
+  (no whitespace errors); the changes are Markdown content/formatter-reflow in the
+  five doc files plus the untracked `PR_BODY.md` — no secrets, no `TODO`/`FIXME`,
+  no new `debugPrint`, no code.
 
 ---
 
@@ -270,19 +320,19 @@ pre-existing violation exists in any diff-touched file.
 
 `git diff --numstat` vs. the plan's Change Budget:
 
-| File | Budget | Actual | Ratio | Assessment |
-| --- | --- | --- | --- | --- |
-| `lib/main.dart` | +~12 | +24 | 2.0x | See Warning (comments only; plan under-budgeted its own snippet). |
-| `demo_session_service.dart` | +~10 | +12 | 1.2x | Within 1.5x — OK. |
-| `demo_lifecycle_predicate_test.dart` | +~30 | +43 | 1.43x | Within 1.5x — OK. |
-| `AI_DECISIONS.md` | +~30 | +87 | 2.9x | See Warning (mandated doc content; proportional to siblings). |
-| `RUNTIME_CONFIG.md` | +~2 | +1 | 0.5x | Under budget — OK. |
-| New files | 0 | 0 | — | OK. |
-| New public methods | 1 | 1 | — | Exactly the planned predicate. |
-| New dependencies | 0 | 0 | — | OK. |
+| File                                 | Budget | Actual | Ratio | Assessment                                                        |
+| ------------------------------------ | ------ | ------ | ----- | ----------------------------------------------------------------- |
+| `lib/main.dart`                      | +~12   | +24    | 2.0x  | See Warning (comments only; plan under-budgeted its own snippet). |
+| `demo_session_service.dart`          | +~10   | +12    | 1.2x  | Within 1.5x — OK.                                                 |
+| `demo_lifecycle_predicate_test.dart` | +~30   | +43    | 1.43x | Within 1.5x — OK.                                                 |
+| `AI_DECISIONS.md`                    | +~30   | +87    | 2.9x  | See Warning (mandated doc content; proportional to siblings).     |
+| `RUNTIME_CONFIG.md`                  | +~2    | +1     | 0.5x  | Under budget — OK.                                                |
+| New files                            | 0      | 0      | —     | OK.                                                               |
+| New public methods                   | 1      | 1      | —     | Exactly the planned predicate.                                    |
+| New dependencies                     | 0      | 0      | —     | OK.                                                               |
 
-The two >1.5x files are both cases where the plan's per-file line *budget* was
-optimistic relative to the content the plan's own *tasks* required, not
+The two >1.5x files are both cases where the plan's per-file line _budget_ was
+optimistic relative to the content the plan's own _tasks_ required, not
 engineer-introduced bloat (details in Issues Found).
 
 ---
@@ -292,7 +342,7 @@ engineer-introduced bloat (details in Issues Found).
 - **Reuse:** independently grepped `lib/` for a pre-existing cold-start /
   restored-anonymous purge helper. The sibling
   `DemoSessionService.shouldReleaseDemoOnLifecycle` has different semantics
-  (lifecycle-`detached` slot *release*, not cold-start *purge*); the inline
+  (lifecycle-`detached` slot _release_, not cold-start _purge_); the inline
   `isAnonymous` checks in `auth_gate.dart` / `app_shell.dart` are runtime
   routing/exit checks, not a reusable pure predicate. No existing equivalent —
   the new predicate is justified and mirrors #289's established testable-seam
@@ -346,8 +396,8 @@ None.
    `code-quality`. The excess is entirely explanatory comments: the plan's own
    Task-2 code snippet is already ~20 lines (6-line comment + the guarded block),
    and the Engineer added one further ~3-line inline comment documenting the
-   offline/timeout guarantee. So the overage versus the code the plan *actually
-   prescribed* is ~4 comment lines — the `+~12` figure was internally
+   offline/timeout guarantee. So the overage versus the code the plan _actually
+   prescribed_ is ~4 comment lines — the `+~12` figure was internally
    inconsistent with the plan's own Task-2 listing. No logic bloat; no new
    symbol beyond the planned predicate. **Non-blocking.**
 2. **`AI_DECISIONS.md` entry is 2.9x its line budget (87 vs +~30).** — Category:
@@ -365,6 +415,20 @@ None.
    Tony prefers zero `debugPrint` in committed code as a hard policy, this line
    (and the 3 pre-existing ones in `main.dart`) would be the follow-up — but
    that is a project-wide convention decision, out of scope for this feature.
+4. **[RESOLVED in Cycle 3] `ARCHITECT_PLAN.md` SDK-ordering overclaim corrected.**
+   — Category: `code-quality` (documentation consistency). In Cycle 2 the plan
+   still asserted that `signOut` clears the **persisted** on-disk session
+   **before** the network revoke in two places (then at L112 / L161). The
+   Architect has since reworded both: the plan now states gotrue 2.27.2
+   `_removeSession()` synchronously nulls **only** the in-memory `_currentSession`
+   before any `await`/network revoke, and that persisted-disk removal is a
+   **separate, asynchronous / fire-and-forget** path `signOut()` does not await
+   (no disk-vs-network ordering). Verified in Cycle 3 via
+   `git diff 5a86287 -- ARCHITECT_PLAN.md` (both prior overclaim spots replaced)
+   and a full-doc ordering sweep that found **zero** remaining live
+   persisted-before-network claims across all five docs. The plan now matches the
+   corrected `DECISION-006`, `ENGINEER_REPORT.md`, and this report. **No action
+   remaining.**
 
 ### Suggestions
 
@@ -377,15 +441,37 @@ None.
 
 ## Verdict Rationale
 
-All APPROVED gates are met: plan match (5 files, no off-limits surface), all
-tasks complete, no regressions (reconcile backstop + full suite green), DB safety
-N/A, analyzer clean at every severity, required tests pass, no out-of-scope or
-unsafe changes, no secrets, no Critical-level bloat (0 new files, 1 planned
-public method, 0 new dependencies, no AI-shaped code). The core offline/timeout
-safety guarantee was verified by source analysis of gotrue 2.27.2 /
-supabase_flutter 2.17.2. The three Warnings are non-blocking (two are
-plan-budget-vs-content inconsistencies; one is a plan-prescribed,
-convention-consistent, analyzer-clean `debugPrint`). Relaunch behavior is
-owner-run and captured as a Manual Verification Punch List, not a QA gate.
+**Cycle 3 is a documentation-reconciliation / static-diff re-validation only.**
+The approved code at committed head `5a86287` is unchanged (zero `*.dart` /
+`test/` / non-doc delta from `5a86287`, `HEAD == 5a86287` confirmed via
+`git rev-parse HEAD`), so `flutter analyze` / `flutter test` were intentionally
+**not** re-run (Tony's "No re-test needed"); the Cycle 1 clean-analyzer and
+all-green-test results stand. This cycle confirmed the Architect resolved the
+Cycle 2 documentation-consistency finding: `ARCHITECT_PLAN.md` no longer claims
+disk removal is ordered before the network revoke — verified via
+`git diff 5a86287 -- ARCHITECT_PLAN.md` (both prior overclaim spots reworded) and
+a full-doc ordering sweep finding **zero** remaining live persisted-before-network
+claims. All five docs (`ARCHITECT_PLAN.md`, `DECISION-006`, `ENGINEER_REPORT.md`,
+`RUNTIME_CONFIG.md`, this report) now consistently state gotrue 2.27.2
+`_removeSession()` synchronously nulls **only** the in-memory `currentSession`
+before any `await`/network revoke (the decisive offline login guarantee), that
+persisted disk removal is a **separate, asynchronous / fire-and-forget** path
+`signOut()` does **not** await (no disk-vs-network ordering), that the
+unconditional per-launch step-6.5 purge makes an incomplete prior disk write safe
+by re-detecting/re-purging before `runApp()`, and that #289's TTL + cron remains
+the server-slot backstop. The `ENGINEER_REPORT.md` occurrence of the old phrasing
+is explicitly quoted as "prior text incorrectly claimed" (a Cycle 2 correction
+note), not a live claim. The Markdown formatter/reflow changes in the touched docs
+are preserved.
+
+All APPROVED gates remain met: plan match (5 code files, no off-limits surface),
+all tasks complete, no regressions (reconcile backstop + full suite green in Cycle
+1), DB safety N/A, analyzer clean (Cycle 1), required tests pass (Cycle 1), no
+out-of-scope or unsafe changes, no secrets, no Critical-level bloat. The remaining
+findings are all non-blocking (two plan budget-vs-content inconsistencies and one
+plan-prescribed, convention-consistent, analyzer-clean `debugPrint`); the Cycle 2
+SDK-ordering overclaim in `ARCHITECT_PLAN.md` is now **resolved**. Relaunch
+behavior is owner-run and captured as a 5-step Manual Verification Punch List
+(preserved in full), not a QA gate.
 
 **Final Verdict: APPROVED.**

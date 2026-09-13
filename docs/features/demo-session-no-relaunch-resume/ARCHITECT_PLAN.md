@@ -49,7 +49,7 @@ The only existing anonymous-specific branch,
 `_reconcileOrphanedAnonymousSession()`
 ([auth_gate.dart](lib/features/auth/auth_gate.dart#L303-L328)), signs an
 anonymous user out globally on cold start **only if their demo band no longer
-exists** — i.e. only *after* the slot was already reclaimed. It never fires
+exists** — i.e. only _after_ the slot was already reclaimed. It never fires
 while the demo session is still live, which is exactly the window this feature
 targets.
 
@@ -67,13 +67,13 @@ Cold-start auth path, native (confirmed by reading the code):
    `isAuthenticated == true` for the anonymous session.
 3. `AuthGate` shows the splash (native: `_showSplash = !kIsWeb`) stacked over
    `_buildAuthContent()`. Because `isAuthenticated == true`, the underlying
-   content is *not* `LoginScreen`; it proceeds through the profile gate
+   content is _not_ `LoginScreen`; it proceeds through the profile gate
    (anonymous → treated complete,
    [auth_gate.dart](lib/features/auth/auth_gate.dart#L236-L245)) and into
    `AppShell` once bands load.
 
 Load-bearing safeguards that **read the Supabase client session as ground
-truth** and will actively *resurrect* any session the provider layer tries to
+truth** and will actively _resurrect_ any session the provider layer tries to
 drop — these are why a provider/widget-only fix is fragile:
 
 - The `build()` safeguard: if the provider says "no session" but
@@ -105,13 +105,20 @@ Demo lifecycle facts confirmed:
 - A **fresh** in-run demo session is created by
   `DemoSessionService.provisionAndEnter()`
   ([demo_session_service.dart](lib/features/auth/demo_session_service.dart#L16-L37))
-  only *after* the app is running and the user taps the demo button — it never
+  only _after_ the app is running and the user taps the demo button — it never
   passes through `main.dart`'s startup path. This cleanly separates "restored at
   cold start" (purge) from "created during this run" (keep).
-- `signOut(scope: SignOutScope.local)` in gotrue clears the in-memory session
-  and persisted local storage **before** attempting the ignorable network
-  revoke, so it removes the session even offline. This is the guarantee that
-  login is presented regardless of connectivity.
+- `signOut(scope: SignOutScope.local)` in gotrue 2.27.2 synchronously nulls
+  only the **in-memory** `_currentSession` (`_removeSession()`) before any
+  `await` or network revoke, so `currentSession == null` — and login is
+  presented — for this launch even fully offline. Persisted-disk removal is a
+  **separate** path: supabase_flutter 2.17.2 receives the `signedOut` event
+  through its auth listener and dispatches the disk removal asynchronously
+  (fire-and-forget); `signOut()` does not await disk completion, so no
+  disk-vs-network ordering is guaranteed. An incomplete disk removal is still
+  safe because the cold-start purge reruns every launch, re-detecting and
+  re-purging any restored anonymous session before `runApp()`; #289's TTL +
+  cron remains the server-slot backstop.
 
 ## Proposed Solution
 
@@ -123,9 +130,11 @@ Behavior:
 
 - After Supabase init, read `currentSession`. If it is a restored anonymous
   session, perform a **local** sign-out (`SignOutScope.local`), bounded by a
-  short timeout so a slow/offline network revoke cannot delay startup. Because
-  gotrue clears local + persisted storage before the network part, this makes
-  `currentSession == null` before `runApp()`.
+  short timeout so a slow/offline network revoke cannot delay startup. gotrue
+  synchronously nulls the in-memory session before any network revoke, so
+  `currentSession == null` before `runApp()` (persisted-disk removal is a
+  separate, asynchronous path; an incomplete disk write is re-purged on the
+  next launch).
 - The gate condition is expressed via a new pure predicate on
   `DemoSessionService` (mirroring #289's `shouldReleaseDemoOnLifecycle` testable
   seam) so the "restored anonymous only; never real users; never no-session"
@@ -145,6 +154,7 @@ it does **not** call the `exit-demo-session` edge function to release/delete the
 server-side demo slot.
 
 Rationale:
+
 - The primary requirement — "demo never resumes on relaunch" — is fully and
   instantly satisfied by the local sign-out, with **no network dependency** and
   no added startup latency in the common case. This honors the Manager's stated
@@ -157,9 +167,12 @@ Rationale:
   earlier — not required by this feature, and it would put a network call
   (plus timeout/ordering complexity) on the startup path.
 - **Failure behavior (login guaranteed):** `signOut(scope: SignOutScope.local)`
-  removes the persisted session from local storage client-side *before* the
-  ignorable network revoke, so even fully offline `currentSession` becomes
-  `null` and the app routes to login. The now-orphaned server-side slot is
+  synchronously nulls the in-memory session _before_ any network revoke, so
+  even fully offline `currentSession` becomes `null` and the app routes to
+  login. Persisted-disk removal is separate and asynchronous — not awaited, no
+  ordering guaranteed — and an incomplete disk write stays safe because the
+  cold-start purge reruns every launch and re-purges the restored session
+  before `runApp()`. The now-orphaned server-side slot is
   reclaimed by the unchanged #289 TTL + cron backstop; if a later authenticated
   cold start ever observes an anonymous session whose band is already gone, the
   existing `_reconcileOrphanedAnonymousSession()` global sign-out still applies.
@@ -206,23 +219,23 @@ sibling `DemoSessionService` predicate tests).
 
 ## Files to Modify
 
-| File | Change |
-| --- | --- |
-| [lib/main.dart](lib/main.dart) | Add `import 'features/auth/demo_session_service.dart';`. After the `Supabase.initialize()` try/catch block and before the Firebase init block, add the cold-start purge: read `currentSession`, and if `DemoSessionService.shouldPurgeRestoredAnonymousSession(...)` is true, `await` `signOut(scope: SignOutScope.local)` inside try/catch with a short (~2 s) `.timeout(...)`. |
-| [lib/features/auth/demo_session_service.dart](lib/features/auth/demo_session_service.dart) | Add one pure static predicate `shouldPurgeRestoredAnonymousSession({required bool hasSession, required bool isAnonymous}) => hasSession && isAnonymous;` with a doc comment stating restored-anonymous-only intent. Do **not** modify any existing method (`provisionAndEnter`, `exit`, `heartbeat`, `releaseSlotOnDetach`, `shouldReleaseDemoOnLifecycle`). |
-| [test/features/auth/demo_lifecycle_predicate_test.dart](test/features/auth/demo_lifecycle_predicate_test.dart) | Add a new `group('shouldPurgeRestoredAnonymousSession', ...)` with the truth-table cases (see Verification Plan). |
-| [docs/reference/general/AI_DECISIONS.md](docs/reference/general/AI_DECISIONS.md) | Append `DECISION-006` documenting the init-order insertion and the local-sign-out-only choice (content in Task Breakdown). |
-| [docs/reference/general/RUNTIME_CONFIG.md](docs/reference/general/RUNTIME_CONFIG.md) | Insert step `6.5` into the init-order block. |
+| File                                                                                                           | Change                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [lib/main.dart](lib/main.dart)                                                                                 | Add `import 'features/auth/demo_session_service.dart';`. After the `Supabase.initialize()` try/catch block and before the Firebase init block, add the cold-start purge: read `currentSession`, and if `DemoSessionService.shouldPurgeRestoredAnonymousSession(...)` is true, `await` `signOut(scope: SignOutScope.local)` inside try/catch with a short (~2 s) `.timeout(...)`. |
+| [lib/features/auth/demo_session_service.dart](lib/features/auth/demo_session_service.dart)                     | Add one pure static predicate `shouldPurgeRestoredAnonymousSession({required bool hasSession, required bool isAnonymous}) => hasSession && isAnonymous;` with a doc comment stating restored-anonymous-only intent. Do **not** modify any existing method (`provisionAndEnter`, `exit`, `heartbeat`, `releaseSlotOnDetach`, `shouldReleaseDemoOnLifecycle`).                     |
+| [test/features/auth/demo_lifecycle_predicate_test.dart](test/features/auth/demo_lifecycle_predicate_test.dart) | Add a new `group('shouldPurgeRestoredAnonymousSession', ...)` with the truth-table cases (see Verification Plan).                                                                                                                                                                                                                                                                |
+| [docs/reference/general/AI_DECISIONS.md](docs/reference/general/AI_DECISIONS.md)                               | Append `DECISION-006` documenting the init-order insertion and the local-sign-out-only choice (content in Task Breakdown).                                                                                                                                                                                                                                                       |
+| [docs/reference/general/RUNTIME_CONFIG.md](docs/reference/general/RUNTIME_CONFIG.md)                           | Insert step `6.5` into the init-order block.                                                                                                                                                                                                                                                                                                                                     |
 
 ## Files Off-Limits
 
-| File / Area | Why |
-| --- | --- |
-| `supabase/migrations/**`, `supabase/functions/exit-demo-session/**`, `provision_demo_session`, `heartbeat_demo_session`, `cleanup_demo_sessions` cron, advisory lock `8675309001`, 8-min TTL, 2-min cron, grants, capacity math | Shipped and authoritative in #289 (DECISION-005). This feature changes only relaunch-resume behavior, not TTL/capacity/reclamation. |
-| `lib/features/auth/auth_state_provider.dart` | `isAuthenticated == session != null` must stay unchanged; the fix works by nulling `currentSession` upstream, not by re-defining auth semantics (which would break the live demo flow and real-user persistence). |
-| `AuthGate` routing, safeguards, sync timer, `_reconcileOrphanedAnonymousSession()` | Left intact as an unchanged safety net; the purge makes the restored-anonymous case unreachable at cold start, but the reconcile backstop stays for any residual edge case. |
-| `lib/features/auth/login_screen.dart` (`_kDemoBandVisible`, `_enterDemo`) | Demo entry/gating and fresh-session creation are unchanged. |
-| `lib/features/shell/app_shell.dart` (`Exit Demo`) | The in-app exit path already works; not touched. |
+| File / Area                                                                                                                                                                                                                     | Why                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/migrations/**`, `supabase/functions/exit-demo-session/**`, `provision_demo_session`, `heartbeat_demo_session`, `cleanup_demo_sessions` cron, advisory lock `8675309001`, 8-min TTL, 2-min cron, grants, capacity math | Shipped and authoritative in #289 (DECISION-005). This feature changes only relaunch-resume behavior, not TTL/capacity/reclamation.                                                                               |
+| `lib/features/auth/auth_state_provider.dart`                                                                                                                                                                                    | `isAuthenticated == session != null` must stay unchanged; the fix works by nulling `currentSession` upstream, not by re-defining auth semantics (which would break the live demo flow and real-user persistence). |
+| `AuthGate` routing, safeguards, sync timer, `_reconcileOrphanedAnonymousSession()`                                                                                                                                              | Left intact as an unchanged safety net; the purge makes the restored-anonymous case unreachable at cold start, but the reconcile backstop stays for any residual edge case.                                       |
+| `lib/features/auth/login_screen.dart` (`_kDemoBandVisible`, `_enterDemo`)                                                                                                                                                       | Demo entry/gating and fresh-session creation are unchanged.                                                                                                                                                       |
+| `lib/features/shell/app_shell.dart` (`Exit Demo`)                                                                                                                                                                               | The in-app exit path already works; not touched.                                                                                                                                                                  |
 
 ## Change Budget
 
@@ -239,20 +252,20 @@ sibling `DemoSessionService` predicate tests).
 
 ## System Impact Map
 
-| System | Status | Notes |
-| --- | --- | --- |
-| Auth | **Affected** | Cold start now purges a restored anonymous session before `runApp()`. Real-user (non-anonymous) restore is unaffected. |
-| Routing | **Affected (indirect)** | With `currentSession == null`, existing routing lands on `LoginScreen`. No routing code changes. |
-| Init order | **Affected** | New step 6.5 (logged decision + RUNTIME_CONFIG update). |
-| Setlists / Gigs / Rehearsals / Members / Notifications | **Unaffected** | No touchpoints. |
-| Platforms | **Native (iOS/Android/macOS): affected** by the purge. **Web: unaffected** — `_kDemoBandVisible == false` on web means no anonymous session ever exists, so the purge is inert; no `!kIsWeb` gate needed. |
-| DB / RLS / RPC | **Unaffected** | No DB change. |
+| System                                                 | Status                                                                                                                                                                                                    | Notes                                                                                                                  |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Auth                                                   | **Affected**                                                                                                                                                                                              | Cold start now purges a restored anonymous session before `runApp()`. Real-user (non-anonymous) restore is unaffected. |
+| Routing                                                | **Affected (indirect)**                                                                                                                                                                                   | With `currentSession == null`, existing routing lands on `LoginScreen`. No routing code changes.                       |
+| Init order                                             | **Affected**                                                                                                                                                                                              | New step 6.5 (logged decision + RUNTIME_CONFIG update).                                                                |
+| Setlists / Gigs / Rehearsals / Members / Notifications | **Unaffected**                                                                                                                                                                                            | No touchpoints.                                                                                                        |
+| Platforms                                              | **Native (iOS/Android/macOS): affected** by the purge. **Web: unaffected** — `_kDemoBandVisible == false` on web means no anonymous session ever exists, so the purge is inert; no `!kIsWeb` gate needed. |
+| DB / RLS / RPC                                         | **Unaffected**                                                                                                                                                                                            | No DB change.                                                                                                          |
 
 ## Regression Risk
 
 **MEDIUM.** The touched surfaces (init order + auth session handling) are
 high-sensitivity, but the actual behavioral change is tightly gated to a
-*restored anonymous* session and is a superset of the pre-existing
+_restored anonymous_ session and is a superset of the pre-existing
 `FormatException` "sign out and continue" pattern already present at the same
 point in `main.dart`. Real users, web, and the live in-run demo flow are
 provably unaffected because the gate is `hasSession && isAnonymous` and fresh
@@ -264,6 +277,7 @@ latency in the rare offline-demo-relaunch case, bounded by the `.timeout`.
 1. **`DemoSessionService` predicate.** In
    [lib/features/auth/demo_session_service.dart](lib/features/auth/demo_session_service.dart),
    add a pure static method next to `shouldReleaseDemoOnLifecycle`:
+
    ```dart
    /// Pure predicate (testable seam): a session that must be purged at cold
    /// start is a *restored* anonymous demo session — one already in storage
@@ -277,6 +291,7 @@ latency in the rare offline-demo-relaunch case, bounded by the `.timeout`.
    }) =>
        hasSession && isAnonymous;
    ```
+
    Do not alter any existing method.
 
 2. **`main.dart` cold-start purge.** Add
@@ -284,13 +299,17 @@ latency in the rare offline-demo-relaunch case, bounded by the `.timeout`.
    immediately after the `Supabase.initialize()` try/catch block (the one with
    the `FormatException` retry) and **before** the `// Initialize Firebase`
    block, insert:
+
    ```dart
    // Never resume an anonymous/demo session across a relaunch. A restored
    // anonymous session is purged locally so cold start always lands on login;
    // fresh in-run demo sessions (created after startup) are unaffected. Real
    // users are non-anonymous and skip this entirely. Bounded so a slow/offline
-   // network revoke can't delay startup — gotrue clears local storage before
-   // the network part, so login is guaranteed even on timeout.
+   // network revoke can't delay startup — gotrue synchronously clears the
+   // in-memory session before any network work, so this launch lands on login
+   // even on timeout. Disk-persistence cleanup is asynchronous/non-awaited, so
+   // a purge that times out may leave the stored session on disk; this
+   // cold-start purge reruns on every launch and catches it next time.
    final restoredSession = Supabase.instance.client.auth.currentSession;
    if (DemoSessionService.shouldPurgeRestoredAnonymousSession(
      hasSession: restoredSession != null,
@@ -305,6 +324,7 @@ latency in the rare offline-demo-relaunch case, bounded by the `.timeout`.
      }
    }
    ```
+
    (`SignOutScope` is already available via the existing unprefixed
    `package:supabase_flutter/supabase_flutter.dart` import.)
 
@@ -324,7 +344,7 @@ latency in the rare offline-demo-relaunch case, bounded by the `.timeout`.
    the predicate, the test, and the two doc edits — no DB to unwind).
 
 5. **Update RUNTIME_CONFIG.** Insert step `6.5 Purge restored anonymous demo
-   session (local sign-out) ← native-only effect` into the init-order block in
+session (local sign-out) ← native-only effect` into the init-order block in
    [docs/reference/general/RUNTIME_CONFIG.md](docs/reference/general/RUNTIME_CONFIG.md#L15-L20),
    between `6. Supabase.initialize()` and `7. Firebase.initializeApp()`.
 

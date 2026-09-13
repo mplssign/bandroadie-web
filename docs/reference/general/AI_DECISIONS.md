@@ -365,9 +365,18 @@ Cold-start handling is **local sign-out only** — it does **not** call the
 
 ### Login-guaranteed failure behavior
 
-`signOut(scope: SignOutScope.local)` removes the persisted session from local
-storage client-side *before* the ignorable network revoke, so even fully offline
-`currentSession` becomes `null` and the app routes to login. The orphaned
+`signOut(scope: SignOutScope.local)` synchronously nulls the **in-memory** session
+before any awaited work or network revoke: gotrue 2.27.2's `_removeSession()` sets
+`_currentSession = null` up front, so `currentSession` is guaranteed `null` for the
+remainder of this launch — including fully offline — and the app routes to login.
+Removal of the **persisted** session from disk is a separate, non-awaited path:
+supabase_flutter 2.17.2 receives the `signedOut` event through its auth listener and
+dispatches the persisted-session removal asynchronously (fire-and-forget), so
+`signOut()` returns without waiting on that disk write — disk removal is _not_
+ordered or awaited relative to the revoke. That remaining disk-persistence race is
+harmless because the cold-start purge (step 6.5) reruns **unconditionally on every
+launch**: if a prior disk removal never completed, the restored anonymous session is
+detected and purged again before `runApp()`, so login is still shown. The orphaned
 server-side slot is reclaimed by the unchanged #289 TTL + cron backstop; the
 existing `_reconcileOrphanedAnonymousSession()` global sign-out still applies for
 any later authenticated cold start that observes an anonymous session whose band is
