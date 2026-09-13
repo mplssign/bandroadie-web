@@ -1407,3 +1407,710 @@ parity.
   sufficient for this UI-only change.
 - Any change to `QA_REPORT.md` or `PR_BODY.md` in Cycle 4 — those
   documents will be updated by QA and Manager respectively.
+
+---
+
+## Cycle 5 Addendum — Scope Narrowed to Confirmed Cards Only
+
+### Cycle 5 Feature Input (verbatim)
+
+> `No Setlist Selected` badges should only appear for gig and rehearsal -
+> not potential gigs or potential rehearsals.
+
+### Cycle 5 Problem Summary
+
+Cycle 4 landed the "No Setlist Selected" badge on all four dashboard card
+variants (confirmed rehearsal, potential rehearsal, confirmed gig,
+potential gig). Tony's Cycle 5 clarification narrows scope: the badge is
+correct on the two confirmed variants and must not appear on either
+potential variant. Cycle 5 deletes the two potential-variant production
+insertions, restoring both potential cards to their exact pre-Cycle-4
+production layout, and reworks the two potential-variant test groups
+so their coverage flips from asserting "badge renders" to asserting
+"badge is absent" — retaining automated coverage of the defining
+Cycle 5 negative behavior for null id, non-null id, and (on the gig
+side) the `delete_setlist` stale-name cascade. Every confirmed-card
+behavior — production and test — stays byte-identical to what Cycle 4
+shipped. No new files, no new production surface, no DB/RLS/RPC change.
+
+### Cycle 5 Root Cause
+
+**Confidence: HIGH — code-confirmed on the committed branch.**
+
+Cycle 4's committed change (`c5489c4 feat(home): show missing setlist
+badges`) added four badge insertions across three widgets plus four
+test groups. Current state of the branch:
+
+- [lib/features/home/widgets/rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart)
+  `_buildPotentialCard` — `if (widget.rehearsal.setlistId == null) ...[]`
+  spread wrapped in `Center(child: IntrinsicWidth(child: Container(...)))`
+  currently at lines 471-500, sitting between the centered Location
+  `Text` and `const Spacer()`. **Superseded by Cycle 5 — delete.**
+- [lib/features/home/widgets/rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart)
+  `_buildConfirmedCard` — `else if (widget.rehearsal.setlistId == null)
+  ...[]` branch currently at lines 724-750, appended to the existing
+  selected-setlist spread. **Correct per Cycle 5 — retain unchanged.**
+- [lib/features/home/widgets/confirmed_gig_card.dart](lib/features/home/widgets/confirmed_gig_card.dart)
+  `ConfirmedGigCard.build` — `if (widget.gig.setlistId == null) ...[]`
+  block currently at lines 124-150, appended after the Time `Text`.
+  **Correct per Cycle 5 — retain unchanged.**
+- [lib/features/home/widgets/potential_gig_card.dart](lib/features/home/widgets/potential_gig_card.dart)
+  `PotentialGigCard.build` — `if (widget.gig.setlistId == null) ...[]`
+  spread wrapped in `Center(child: IntrinsicWidth(child: Container(...)))`
+  currently at lines 470-499, sitting between the centered venue+city
+  `Row` and `const Spacer()`. **Superseded by Cycle 5 — delete.**
+
+Test file
+[test/features/home/widgets/dashboard_no_setlist_badge_test.dart](test/features/home/widgets/dashboard_no_setlist_badge_test.dart)
+has four top-level groups (`grep_search` on `^  group(` returned lines
+50, 122, 195, 241):
+
+- Group 1 (line 50) `RehearsalCard confirmed No Setlist Selected badge`
+  — **retain unchanged** (three cases, all still correct post-Cycle-5).
+- Group 2 (line 122) `RehearsalCard potential No Setlist Selected badge`
+  — three cases as shipped:
+  - Case 1 (lines 123-143) asserts the badge **renders** when
+    `rehearsal.setlistId == null` on the potential branch. Under
+    Cycle 5 this positive expectation is wrong — the potential branch
+    must never render the badge. **Assertion superseded — flip
+    `findsOneWidget` → `findsNothing`; retest name updated to match
+    the new negative behavior; every other line in the case body
+    (harness, fixture call, `await tester.pump()`) unchanged.**
+  - Case 2 (lines 145-168) asserts the badge **does not render** when
+    `rehearsal.setlistId` is non-null. **Retain unchanged** — this
+    is one of the two defining negatives Cycle 5 mandates.
+  - Case 3 (lines 171-192) asserts the badge does not render during
+    the `setlistName` loading race (`setlistId != null && setlistName
+    == null`). Under Cycle 5 this reduces to the same "non-null id →
+    no badge" behavior Case 2 already covers, and is not part of
+    Tony's minimum discriminating matrix. **Delete the case body**
+    (~22 lines) to keep the group's coverage minimal while still
+    asserting both defining negatives.
+- Group 3 (line 195) `ConfirmedGigCard No Setlist Selected badge`
+  — **retain unchanged** (two cases, both still correct post-Cycle-5).
+- Group 4 (line 241) `PotentialGigCard No Setlist Selected badge`
+  — three cases as shipped:
+  - Case 1 (lines 242-262) asserts the badge **renders** when
+    `gig.setlistId == null` on the potential-gig branch. **Assertion
+    superseded — flip `findsOneWidget` → `findsNothing`; retest name
+    updated to match the new negative behavior; every other line
+    unchanged.**
+  - Case 2 (lines 265-287) asserts the badge **does not render** when
+    `gig.setlistId` is non-null. **Retain unchanged** — the second
+    defining negative Cycle 5 mandates.
+  - Case 3 (lines 290-310) asserts the badge **renders** when
+    `gig.setlistId == null` but `gig.setlistName` is a stale
+    non-null string (`delete_setlist` cascade). Under Cycle 5 the
+    whole potential-gig variant is silenced regardless of any
+    stale-name behavior, so the assertion flips. **Assertion
+    superseded — flip `findsOneWidget` → `findsNothing`; retest name
+    updated to reflect that no badge renders even in the cascade
+    edge case; every other line unchanged.** Retaining this case
+    preserves the stale-name discriminator Tony explicitly asked to
+    keep — it proves the deletion is complete and no gate leak lets
+    the badge slip through via the denormalized name column.
+
+Because Group 4 survives (with reworked assertions) and continues to
+pump `PotentialGigCard(...)`, the top-of-file
+`import 'package:bandroadie/features/home/widgets/potential_gig_card.dart';`
+remains a live reference and **must be retained** — deleting it would
+fail `flutter analyze` at Group 4's case bodies. Every other existing
+import also stays.
+
+The private test fixtures `_buildRehearsal` and `_buildGig` remain
+referenced by every group (Groups 1 and 3 with `isPotential: false`,
+Groups 2 and 4 with `isPotential: true`) and **must not be modified**.
+Their `required bool isPotential` parameters stay as-is — tightening
+those signatures is out of scope for Cycle 5.
+
+### Cycle 5 Scope Correction — Supersedes Cycle 4 Potential Coverage
+
+Cycle 5 supersedes exclusively the potential-variant portions of the
+Cycle 4 addendum. All other Cycle 4 content stands:
+
+- **Cycle 4 Proposed Solution** — the "Potential rehearsal card" and
+  "Potential gig card" subsections are superseded; both potential
+  cards now render no setlist affordance in any state.
+- **Cycle 4 Loading / Unknown-State Handling** — the two potential
+  truth tables are superseded (see Cycle 5 truth tables below).
+- **Cycle 4 Files to Modify** — the `_buildPotentialCard` bullet in
+  `rehearsal_card.dart` and the `PotentialGigCard.build` bullet in
+  `potential_gig_card.dart` are superseded (both blocks reverted).
+- **Cycle 4 Engineer Task Breakdown** — Tasks 2 and 4 (potential
+  rehearsal and potential gig production changes) are superseded
+  (both reverted).
+- **Cycle 4 Verification Plan and owner-run punch list** — punch-list
+  steps 3, 4, 7, 8, and 10 (potential-variant checks that expected
+  the badge or specific loading-race behavior) are superseded by the
+  Cycle 5 punch list below.
+- **Cycle 4 test file scope** — Groups 2 and 4 are reworked in place:
+  their positive "renders badge" expectations are superseded by
+  negative "does not render badge" expectations (assertion flips
+  plus the redundant Group 2 loading-race case removed). Groups
+  1 and 3 stay byte-identical.
+
+Retained unchanged from prior cycles: Cycles 1-3 setlist selector
+inside the rehearsal editor drawer; Cycle 4's `_buildConfirmedCard`
+`else if` muted badge; Cycle 4's `ConfirmedGigCard` muted badge; Cycle
+4 test Groups 1 and 3; every Cycle 4 files-off-limits ruling except
+those explicitly relaxed above.
+
+### Cycle 5 Proposed Solution
+
+Two deletions of committed production content plus a targeted rework of
+the two potential-branch test groups:
+
+1. Delete the potential-rehearsal `if (widget.rehearsal.setlistId ==
+   null) ...[]` spread in
+   [rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart)
+   at lines 471-500 (inside `_buildPotentialCard`, including the leading
+   `const SizedBox(height: 12)` and the surrounding `Center(child:
+   IntrinsicWidth(child: Container(...)))`). After deletion the centered
+   Location `Text` is immediately followed by `const Spacer(),` — the
+   exact pre-Cycle-4 order.
+2. Delete the potential-gig `if (widget.gig.setlistId == null) ...[]`
+   spread in
+   [potential_gig_card.dart](lib/features/home/widgets/potential_gig_card.dart)
+   at lines 470-499 (inside `PotentialGigCard.build`, same shape as the
+   rehearsal deletion). After deletion the venue+city `Row` is
+   immediately followed by `const Spacer(),` — the exact pre-Cycle-4
+   order.
+3. Rework the two potential-branch groups in
+   [dashboard_no_setlist_badge_test.dart](test/features/home/widgets/dashboard_no_setlist_badge_test.dart)
+   so they cover the new negative behavior instead of the deleted
+   positive one. This is a targeted edit, not a group-level deletion:
+   - **Group 2 — potential rehearsal:** flip Case 1's assertion from
+     `findsOneWidget` to `findsNothing` and rename the case to
+     `'does not render "No Setlist Selected" when '
+     'rehearsal.setlistId is null'`. Retain Case 2 (non-null id, no
+     badge) unchanged. Delete Case 3 (the redundant loading-race case
+     — see Cycle 5 Root Cause). Group 2 ends up with two negative
+     cases covering the minimum discriminating matrix (null id and
+     non-null id both assert `findsNothing`).
+   - **Group 4 — potential gig:** flip Case 1's assertion from
+     `findsOneWidget` to `findsNothing` and rename to `'does not
+     render "No Setlist Selected" when gig.setlistId is null'`.
+     Retain Case 2 (non-null id, no badge) unchanged. Flip Case 3's
+     assertion from `findsOneWidget` to `findsNothing` and rename to
+     `'does not render "No Setlist Selected" when gig.setlistId is
+     null but setlistName is stale (delete_setlist cascade)'` — this
+     retains the stale-name discriminator so Cycle 5 asserts the
+     variant is silenced even in the cascade edge case. Group 4 ends
+     up with three negative cases: null id, non-null id, and null id
+     with stale non-null name — all assert `findsNothing`.
+   - **Keep every import**, including
+     `package:bandroadie/features/home/widgets/potential_gig_card.dart`
+     — Group 4 continues to pump `PotentialGigCard(...)` and needs
+     it. Keep `_buildRehearsal`, `_buildGig`, the pump harness
+     (`MaterialApp(theme: AppTheme.darkTheme, home: Scaffold(body:
+     ...))`), the fixture calls (`isPotential: true` where applicable),
+     and the `await tester.pump()` (no `pumpAndSettle` — the pulse
+     controller repeats indefinitely).
+
+The confirmed-rehearsal `else if` branch (lines 724-750), the
+confirmed-gig `if` block (lines 124-150), and test Groups 1 and 3 stay
+byte-identical to Cycle 4.
+
+### Cycle 5 Loading / Unknown-State Handling
+
+**Confirmed rehearsal card** — unchanged from Cycle 4:
+
+| `rehearsal.setlistId` | `setlistName` prop | Renders |
+| --------------------- | ------------------ | ------- |
+| non-null | non-null | existing rose selected-setlist pill |
+| non-null | `null` (loading / filtered / cascade race) | nothing (loading-race preservation) |
+| `null` | (any) | muted "No Setlist Selected" pill |
+
+**Confirmed gig card** — unchanged from Cycle 4:
+
+| `gig.setlistId` | Renders |
+| --------------- | ------- |
+| non-null | nothing |
+| `null` | muted "No Setlist Selected" pill |
+
+**Potential rehearsal card** — supersedes Cycle 4:
+
+| `rehearsal.setlistId` | Renders (setlist slot) |
+| --------------------- | ---------------------- |
+| non-null | nothing |
+| `null` | nothing |
+
+**Potential gig card** — supersedes Cycle 4:
+
+| `gig.setlistId` | Renders (setlist slot) |
+| --------------- | ---------------------- |
+| non-null | nothing |
+| `null` | nothing |
+
+Both potential variants render no setlist affordance in any state —
+exact pre-Cycle-4 behavior. Cycle 4's `delete_setlist`-cascade
+stale-name concern remains addressed on the confirmed gig card via the
+retained `gig.setlistId == null` gate; it is inapplicable to the
+potential gig card because that card renders nothing regardless.
+`setlistsProvider` loading race is likewise addressed on the confirmed
+rehearsal card via the retained `setlistId == null` gate; inapplicable
+to the potential rehearsal card.
+
+### Cycle 5 Database Impact
+
+n/a. No migration, RLS policy, RPC, trigger, grant, or index change.
+Cycles 1-4 imposed no DB changes; Cycle 5 imposes none either.
+`has_function_privilege` checks remain unchanged.
+
+### Cycle 5 Flutter Architecture Changes
+
+None. No new / renamed / removed provider, controller, repository,
+model, service, or shared widget file. Two deletions in dashboard
+card widgets plus a targeted rework of the two potential-branch
+test groups (assertion flips, test-name rewordings, one redundant
+case removed).
+
+### Cycle 5 Files to Create
+
+None.
+
+### Cycle 5 Files to Modify
+
+- [lib/features/home/widgets/rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart)
+  — inside `_buildPotentialCard`, delete the entire `if
+  (widget.rehearsal.setlistId == null) ...[ const SizedBox(height: 12),
+  Center(child: IntrinsicWidth(child: Container(...))) ,]` spread
+  currently at lines 471-500. Do not modify `_buildConfirmedCard`
+  (including the `else if (widget.rehearsal.setlistId == null) ...[]`
+  branch at lines 724-750 — that branch is Cycle 4's correct behavior
+  and stays). Do not modify chip label, `AnimatedDateLabel` widgets,
+  Location `Text`, `const Spacer()`, availability button row,
+  `_RehearsalDateNavButton`, `_FullWidthAvailabilityButton`, pulse
+  controller, focus nodes, or any formatter. No import changes.
+
+- [lib/features/home/widgets/potential_gig_card.dart](lib/features/home/widgets/potential_gig_card.dart)
+  — inside `PotentialGigCard.build`, delete the entire `if
+  (widget.gig.setlistId == null) ...[ const SizedBox(height: 12),
+  Center(child: IntrinsicWidth(child: Container(...))) ,]` spread
+  currently at lines 470-499. Do not modify chip label,
+  `AnimatedDateLabel` widgets, venue+city `Row`, `const Spacer()`,
+  availability button row, `_DateNavButton`,
+  `_FullWidthAvailabilityButton`, `PotentialChip`, pulse controller,
+  focus nodes, or any handler. No import changes.
+
+- [test/features/home/widgets/dashboard_no_setlist_badge_test.dart](test/features/home/widgets/dashboard_no_setlist_badge_test.dart)
+  — targeted rework of Groups 2 and 4:
+  1. **Group 2 — potential rehearsal** (`group('RehearsalCard
+     potential No Setlist Selected badge', ...)` currently at lines
+     122-193). In Case 1 (currently lines 123-143), change the case
+     name string from `'renders "No Setlist Selected" when
+     rehearsal.setlistId is null'` to `'does not render "No Setlist
+     Selected" when rehearsal.setlistId is null'` and flip the final
+     `expect(find.text('No Setlist Selected'), findsOneWidget);` to
+     `expect(find.text('No Setlist Selected'), findsNothing);`.
+     Every other line in Case 1 (`await tester.pumpWidget(...)`
+     harness, `_buildRehearsal(isPotential: true)` fixture call,
+     `await tester.pump()`) stays byte-identical. Retain Case 2
+     unchanged. Delete Case 3 entirely — the redundant loading-race
+     case whose behavior is fully covered by Case 2 under Cycle 5.
+     The resulting Group 2 has two `testWidgets` cases: null id
+     asserts `findsNothing`, non-null id asserts `findsNothing`.
+  2. **Group 4 — potential gig** (`group('PotentialGigCard No
+     Setlist Selected badge', ...)` currently at lines 241-311). In
+     Case 1 (currently lines 242-262), change the case name string
+     from `'renders "No Setlist Selected" when gig.setlistId is
+     null'` to `'does not render "No Setlist Selected" when
+     gig.setlistId is null'` and flip the final assertion from
+     `findsOneWidget` to `findsNothing`. Every other line in Case 1
+     stays byte-identical. Retain Case 2 unchanged. In Case 3
+     (currently lines 290-310), change the case name string from
+     `'renders "No Setlist Selected" when gig.setlistId is null but
+     setlistName is stale (delete_setlist cascade)'` to `'does not
+     render "No Setlist Selected" when gig.setlistId is null but
+     setlistName is stale (delete_setlist cascade)'` and flip the
+     final assertion from `findsOneWidget` to `findsNothing`. Every
+     other line in Case 3 (harness, `_buildGig(isPotential: true,
+     setlistName: 'Old Set')` fixture call, `await tester.pump()`)
+     stays byte-identical. The resulting Group 4 has three
+     `testWidgets` cases: null id asserts `findsNothing`, non-null id
+     asserts `findsNothing`, null id with stale non-null name asserts
+     `findsNothing`.
+  3. **Do not** delete or rename any import — in particular, the
+     `import 'package:bandroadie/features/home/widgets/potential_gig_card.dart';`
+     line stays (Group 4 still pumps `PotentialGigCard(...)`). Do
+     not modify `_buildRehearsal`, `_buildGig`, Group 1, Group 3,
+     the surrounding pump harness (`MaterialApp(theme:
+     AppTheme.darkTheme, home: Scaffold(body: ...))`), or the
+     `await tester.pump()` calls that keep the potential-branch
+     pulse controllers happy. Do not tighten fixture signatures.
+     Do not add `pumpAndSettle` anywhere in this file.
+
+### Cycle 5 Files Off-Limits
+
+- [lib/features/home/widgets/confirmed_gig_card.dart](lib/features/home/widgets/confirmed_gig_card.dart)
+  — Cycle 4's `if (widget.gig.setlistId == null) ...[]` block at lines
+  124-150 is correct per Cycle 5 and must not be touched. No other
+  child of `ConfirmedGigCard.build` may be modified either.
+- `_buildConfirmedCard` in
+  [lib/features/home/widgets/rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart)
+  including the entire `else if (widget.rehearsal.setlistId == null)
+  ...[]` branch at lines 724-750 — correct per Cycle 5, must not be
+  touched. Every method other than the single deletion inside
+  `_buildPotentialCard` is off-limits.
+- Groups 1 and 3, the private fixture builders `_buildRehearsal` and
+  `_buildGig`, every existing import (including
+  `package:bandroadie/features/home/widgets/potential_gig_card.dart`
+  — Group 4 still pumps `PotentialGigCard(...)`), the shared pump
+  harness inside every case body (`MaterialApp(theme:
+  AppTheme.darkTheme, home: Scaffold(body: ...))`), the fixture
+  argument shape passed to each pump, and the trailing
+  `await tester.pump()` calls that satisfy the pulse controllers on
+  the potential branches — all off-limits. Groups 2 and 4 are in
+  scope only for the specific edits Cycle 5 Files to Modify lists
+  (case-name strings, assertion values, and Group 2 Case 3
+  deletion); every other line inside those groups is off-limits.
+- All Cycle 4 Files Off-Limits and all Cycles 1-3 Files Off-Limits (see
+  main and Cycle 4 sections above) remain off-limits.
+- [docs/features/add-setlist-to-rehearsal/QA_REPORT.md](docs/features/add-setlist-to-rehearsal/QA_REPORT.md),
+  [docs/features/add-setlist-to-rehearsal/PR_BODY.md](docs/features/add-setlist-to-rehearsal/PR_BODY.md),
+  and [docs/features/add-setlist-to-rehearsal/ENGINEER_REPORT.md](docs/features/add-setlist-to-rehearsal/ENGINEER_REPORT.md)
+  — Cycle 5 does not overwrite any of them; QA and Manager own their
+  updates.
+- Every migration under `supabase/migrations/**`, every edge function
+  under `supabase/functions/**`, all platform config, entitlements,
+  `Podfile`, `AndroidManifest.xml`, and `main.dart` init order.
+- [lib/features/home/home_screen.dart](lib/features/home/home_screen.dart),
+  [lib/features/home/home_tab_content.dart](lib/features/home/home_tab_content.dart),
+  every view/editor drawer, every calendar surface, every model,
+  every repository, every provider — call sites already pass the props
+  the retained confirmed variants need; Cycle 5 changes no wiring.
+
+### Cycle 5 Change Budget
+
+- [rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart):
+  approximately -30 lines net (delete the entire potential-branch
+  `if (...) ...[]` spread; no other change).
+- [potential_gig_card.dart](lib/features/home/widgets/potential_gig_card.dart):
+  approximately -30 lines net (delete the entire `if (...) ...[]`
+  spread; no other change).
+- [dashboard_no_setlist_badge_test.dart](test/features/home/widgets/dashboard_no_setlist_badge_test.dart):
+  approximately -25 lines net (delete Group 2 Case 3's loading-race
+  test body — roughly 22 lines including its surrounding blank line;
+  three assertion flips of `findsOneWidget` → `findsNothing` are
+  net-zero on line count; three test-name string edits are net-zero
+  on line count; no import changes; no fixture changes).
+- Cycle 5 net repo delta: approximately **-85 lines. Two production
+  deletions plus one test-file rework (assertion flips + one redundant
+  case deleted).**
+- Expected new files: 0.
+- Expected new public classes / methods: 0.
+- Expected new dependencies: 0.
+
+### Cycle 5 System Impact Map
+
+| System | Status | Notes |
+| ------ | ------ | ----- |
+| Gigs | affected (dashboard render only) | `PotentialGigCard` reverts to pre-Cycle-4 layout — no setlist affordance in any state. `ConfirmedGigCard` unchanged from Cycle 4 (badge when `setlistId == null`). |
+| Rehearsals | affected (dashboard render only) | `RehearsalCard._buildPotentialCard` reverts to pre-Cycle-4 layout — no setlist affordance in any state. `RehearsalCard._buildConfirmedCard` unchanged from Cycle 4 (existing rose selected pill + `else if` muted badge). |
+| Setlists | unaffected | No provider, RPC, route, or model change. |
+| Members / Auth / Routing / Notifications / Platforms | unaffected | No touched surface. |
+
+### Cycle 5 Regression Risk
+
+**LOW.**
+
+- Pure deletion of the two purely-additive UI spreads Cycle 4 added
+  to the potential variants. Each spread is self-contained, bounded
+  above by a preserved sibling widget (Location `Text` / venue+city
+  `Row`) and below by a preserved `const Spacer()`. Removing them
+  cannot regress any sibling widget's position, size, or animation.
+- No touched code path shares state, session, routing, init order,
+  RLS, RPCs, triggers, notifications, or platform-conditional code.
+- Retained confirmed-variant badge behavior is byte-identical to
+  Cycle 4's post-review state:
+  - Confirmed rehearsal — existing rose pill still gated on
+    `setlistId != null && setlistName != null`; muted "No Setlist
+    Selected" pill still gated on `setlistId == null`; loading-race
+    gap (id non-null, name null) still renders nothing.
+  - Confirmed gig — muted "No Setlist Selected" pill still gated on
+    `gig.setlistId == null`, id-authoritative against the
+    `delete_setlist` stale-name cascade.
+- Test coverage regression: the surviving Groups 1 and 3 still
+  exercise every retained confirmed-variant code path unchanged, and
+  the reworked Groups 2 and 4 now assert the defining Cycle 5
+  negative behavior (no badge on either potential variant across
+  null id, non-null id, and — for the gig group — the
+  `delete_setlist` stale-name cascade edge case). The one deleted
+  case body is the Group 2 loading-race case, whose behavior under
+  Cycle 5 is fully subsumed by the retained "non-null id → no
+  badge" case in the same group.
+- Potential card RSVP surface (chip label, date/time animated labels,
+  YES/NO buttons, date-navigation chevrons, keyboard focus order,
+  pulse animation controller, optimistic response handling) sits
+  outside the deleted spread and is untouched.
+
+### Cycle 5 Engineer Task Breakdown
+
+1. **Delete the potential-rehearsal badge block.** In
+   [lib/features/home/widgets/rehearsal_card.dart](lib/features/home/widgets/rehearsal_card.dart),
+   inside `_buildPotentialCard`, delete the entire `if
+   (widget.rehearsal.setlistId == null) ...[ ... ]` spread currently at
+   lines 471-500. After deletion, the centered Location `Text` must be
+   immediately followed by `const Spacer(),` with no intervening
+   widget. Do not touch `_buildConfirmedCard`, do not modify any
+   import, and do not modify any other widget in this file.
+
+2. **Delete the potential-gig badge block.** In
+   [lib/features/home/widgets/potential_gig_card.dart](lib/features/home/widgets/potential_gig_card.dart),
+   inside `PotentialGigCard.build`, delete the entire `if
+   (widget.gig.setlistId == null) ...[ ... ]` spread currently at lines
+   470-499. After deletion, the venue+city `Row` must be immediately
+   followed by `const Spacer(),` with no intervening widget. Do not
+   modify any import or any other widget in this file.
+
+3. **Rework the two potential-branch test groups in place.** In
+   [test/features/home/widgets/dashboard_no_setlist_badge_test.dart](test/features/home/widgets/dashboard_no_setlist_badge_test.dart),
+   apply exactly these edits — nothing else in the file may change.
+   1. **Group 2 — potential rehearsal.** In Case 1 (currently at
+      lines 123-143 — the `'renders "No Setlist Selected" when
+      rehearsal.setlistId is null'` test that pumps
+      `_buildRehearsal(isPotential: true)` with no `setlistName` and
+      currently asserts `findsOneWidget`):
+      - Rename the case string to `'does not render "No Setlist
+        Selected" when rehearsal.setlistId is null'`.
+      - Flip the trailing assertion from
+        `expect(find.text('No Setlist Selected'), findsOneWidget);`
+        to `expect(find.text('No Setlist Selected'), findsNothing);`.
+      - Do not touch the `await tester.pumpWidget(...)` harness,
+        the `_buildRehearsal(isPotential: true)` call, or the
+        `await tester.pump()` line — the pump harness Cycle 4
+        established and the RSVP/layout-safe `pump()` (no
+        `pumpAndSettle`) must be preserved byte-identical.
+      Retain Case 2 (currently lines 145-168, `'does not render "No
+      Setlist Selected" when rehearsal.setlistId is non-null'`)
+      byte-identical. Delete Case 3 in its entirety (currently
+      lines 171-192, `'does not render "No Setlist Selected" when
+      setlistId is non-null but setlistName is null (loading race)'`)
+      including the leading blank line — under Cycle 5 its behavior
+      is fully covered by Case 2 and it is not part of the minimum
+      discriminating matrix.
+   2. **Group 4 — potential gig.** In Case 1 (currently at lines
+      242-262 — the `'renders "No Setlist Selected" when
+      gig.setlistId is null'` test that pumps
+      `_buildGig(isPotential: true)` with no `setlistName` and
+      currently asserts `findsOneWidget`):
+      - Rename the case string to `'does not render "No Setlist
+        Selected" when gig.setlistId is null'`.
+      - Flip the trailing assertion from `findsOneWidget` to
+        `findsNothing`.
+      - Do not touch the harness, the `_buildGig(isPotential:
+        true)` call, or the `await tester.pump()` line.
+      Retain Case 2 (currently lines 265-287, `'does not render "No
+      Setlist Selected" when gig.setlistId is non-null'`)
+      byte-identical. In Case 3 (currently lines 290-310 — the
+      `'renders "No Setlist Selected" when gig.setlistId is null
+      but setlistName is stale (delete_setlist cascade)'` test that
+      pumps `_buildGig(isPotential: true, setlistName: 'Old Set')`
+      and currently asserts `findsOneWidget`):
+      - Rename the case string to `'does not render "No Setlist
+        Selected" when gig.setlistId is null but setlistName is
+        stale (delete_setlist cascade)'`.
+      - Flip the trailing assertion from `findsOneWidget` to
+        `findsNothing`.
+      - Do not touch the harness, the `_buildGig(isPotential:
+        true, setlistName: 'Old Set')` fixture call, or the
+        `await tester.pump()` line — this case's discriminating
+        power under Cycle 5 comes from pumping the exact
+        stale-name cascade scenario and asserting the badge stays
+        absent.
+   3. **Do not touch any import.** In particular, keep the
+      `import 'package:bandroadie/features/home/widgets/potential_gig_card.dart';`
+      line — Group 4 still pumps `PotentialGigCard(...)` in every
+      case. Do not touch `_buildRehearsal`, `_buildGig`, Group 1,
+      Group 3, or any blank line outside Group 2 Case 3's deleted
+      block. Do not tighten fixture signatures. Do not add
+      `pumpAndSettle` anywhere.
+
+### Cycle 5 Verification Plan
+
+#### Tier 1 — pre-deploy (QA-executable, no running app)
+
+1. `flutter analyze` — no new warnings or errors. The
+   `potential_gig_card.dart` import in the test file must remain
+   present and referenced by Group 4 (do not introduce an
+   `unused_import` diagnostic there).
+2. `flutter test test/features/home/widgets/dashboard_no_setlist_badge_test.dart`
+   — all four groups remain (`RehearsalCard confirmed`,
+   `RehearsalCard potential`, `ConfirmedGigCard`, `PotentialGigCard`)
+   and every case passes. Expected reduced case count is 10 (Group 1:
+   3 confirmed-rehearsal cases unchanged; Group 2: 2 potential-
+   rehearsal negative cases — null id `findsNothing`, non-null id
+   `findsNothing`; Group 3: 2 confirmed-gig cases unchanged; Group 4:
+   3 potential-gig negative cases — null id `findsNothing`, non-null
+   id `findsNothing`, null id with stale non-null name `findsNothing`).
+   Groups 2 and 4 together provide the automated gate for the defining
+   Cycle 5 negative behavior: **the badge must be absent on both
+   potential variants across both null and non-null setlist ids**.
+   Group 4's stale-name case additionally asserts the deletion is
+   complete against the `delete_setlist` cascade edge case (no gate
+   leak via denormalized name). `flutter test` reports "All tests
+   passed" for this file.
+3. `flutter test` full suite — no other test regresses. Cycles 1-3
+   test files (`event_dropdown_test.dart`,
+   `rehearsal_form_fields_test.dart`, and any others touched earlier
+   in this feature) still pass unchanged.
+4. Static SQL / migration review — none required; Cycle 5 adds no
+   migration.
+
+#### Tier 2 — post-deploy
+
+n/a. No migration, no RPC change, no post-deploy step.
+
+#### Cycle 5 owner-run punch list (Tony, at PR-test / apply time)
+
+QA cannot exercise a running app; hand these to Tony verbatim. Run on
+at least one native platform (macOS or iOS) plus Web to confirm
+platform parity.
+
+1. **Confirmed rehearsal, no setlist selected.** Open Home with an
+   upcoming confirmed rehearsal that has no setlist selected (create
+   via Add → Rehearsal, leave the setlist selector on "None", save).
+   **Expected:** The confirmed rehearsal card shows the outlined muted
+   "No Setlist Selected" pill below the Location row, left-aligned.
+
+2. **Confirmed rehearsal, setlist selected.** Edit the same rehearsal
+   via View Rehearsal → Edit Rehearsal, pick any setlist, save. Reload
+   Home.
+   **Expected:** The rose-outlined selected-setlist pill appears with
+   the chosen setlist name. The muted "No Setlist Selected" pill is
+   not shown.
+
+3. **Confirmed gig, no setlist selected.** Ensure a confirmed gig is
+   visible in the "Upcoming Gigs" row without a setlist selected
+   (create via Add → Gig, leave the Show Details setlist selector on
+   "None", save).
+   **Expected:** The confirmed gig card shows the outlined muted
+   "No Setlist Selected" pill below the Time row, left-aligned,
+   styled identically to step 1.
+
+4. **Confirmed gig, setlist selected.** Edit the gig via View Gig →
+   Edit Gig, pick any setlist, save. Reload Home.
+   **Expected:** The muted "No Setlist Selected" pill is not shown.
+
+5. **Potential rehearsal, no setlist selected.** Ensure a POTENTIAL
+   REHEARSAL card is visible on Home with no setlist selected (create
+   via the potential-rehearsal flow, leave setlist on "None", save).
+   **Expected:** The potential rehearsal card shows **no** muted "No
+   Setlist Selected" pill anywhere. Chip label → date → time →
+   Location text → YES/NO button row renders exactly as before
+   Cycle 4 — Location `Text` is immediately followed by the button
+   row (with `Spacer` between them anchoring the row to the bottom).
+
+6. **Potential rehearsal, setlist selected.** Edit the same potential
+   rehearsal via View Rehearsal → Edit Rehearsal, pick any setlist,
+   save. Reload Home.
+   **Expected:** Same as step 5 — no badge, potential card layout
+   unchanged.
+
+7. **Potential gig, no setlist selected.** Ensure a POTENTIAL GIG
+   card is visible on Home with no setlist selected (create via the
+   potential-gig flow, leave setlist on "None", save).
+   **Expected:** The potential gig card shows **no** muted "No
+   Setlist Selected" pill anywhere. Chip label → date → time →
+   venue+city row → YES/NO button row renders exactly as before
+   Cycle 4 — venue+city `Row` is immediately followed by the button
+   row (with `Spacer` between them anchoring the row to the bottom).
+
+8. **Potential gig, setlist selected.** Edit the gig via View Gig →
+   Edit Gig, pick any setlist, save. Reload Home.
+   **Expected:** Same as step 7 — no badge, potential card layout
+   unchanged.
+
+9. **Loading race — confirmed rehearsal card.** With a confirmed
+   rehearsal that has a setlist selected, force a fresh cold start
+   (kill and relaunch the app). Land on Home.
+   **Expected:** During the brief `setlistsProvider` load, the
+   rehearsal card renders neither the rose pill nor the muted "No
+   Setlist Selected" pill. Once the provider populates, the rose
+   pill appears. No transient "No Setlist Selected" flash.
+
+10. **Platform parity.** Repeat steps 1, 3, 5, and 7 on Web
+    (bandroadie.com) or a second native platform.
+    **Expected:** Identical result across surfaces — confirmed cards
+    show the muted pill in the no-setlist state; potential cards
+    never show it in either state.
+
+### Cycle 5 QA Regression Areas
+
+- **Confirmed rehearsal card behavior:** existing rose pill,
+  loading-race preservation, and Cycle 4 muted badge all retained.
+  Covered by Group 1 of the widget test.
+- **Confirmed gig card behavior:** Cycle 4 muted badge retained,
+  including id-authoritative gating against `delete_setlist`
+  stale-name cascade. Covered by Group 3 of the widget test.
+- **Potential rehearsal card behavior:** must return to the exact
+  pre-Cycle-4 layout — chip → date → time → Location → `Spacer` →
+  YES/NO button row, with no setlist affordance for any `setlistId`
+  value. **Automated gate:** Group 2 of the widget test — two
+  negative cases asserting `findsNothing` for null and non-null
+  `setlistId`. **Owner-run coverage:** steps 5 and 6 confirm the
+  same behavior in a running app.
+- **Potential gig card behavior:** must return to the exact
+  pre-Cycle-4 layout — chip → date → time → venue+city → `Spacer` →
+  YES/NO button row, with no setlist affordance for any `setlistId`
+  value or any `delete_setlist` stale-name cascade state.
+  **Automated gate:** Group 4 of the widget test — three negative
+  cases asserting `findsNothing` for null id, non-null id, and null
+  id with stale non-null name (the cascade edge case). **Owner-run
+  coverage:** steps 7 and 8.
+- **Potential card RSVP surface:** YES/NO buttons, date-navigation
+  chevrons, keyboard focus order, pulse animation controllers, and
+  optimistic response handling all sit outside the deleted spreads
+  and remain unchanged.
+- **View / editor drawers, calendar surfaces, home wiring
+  (`home_screen.dart`, `home_tab_content.dart`):** not touched.
+- **`setlistsProvider` loading race — rehearsal side:** confirmed
+  branch still gates on `setlistId == null`, so no false-negative
+  badge during load. Potential branch renders no badge in any
+  state, so the loading race is inapplicable there.
+- **`delete_setlist` stale-name cascade — gig side:** confirmed
+  branch still gates on `gig.setlistId == null`, id-authoritative
+  and unaffected by stale `gig.setlistName`. Potential branch
+  renders no badge in any state.
+- **Uncommitted formatter-only edits to
+  [QA_REPORT.md](docs/features/add-setlist-to-rehearsal/QA_REPORT.md),
+  [PR_BODY.md](docs/features/add-setlist-to-rehearsal/PR_BODY.md),
+  and [ENGINEER_REPORT.md](docs/features/add-setlist-to-rehearsal/ENGINEER_REPORT.md):**
+  Cycle 5 does not overwrite any of them.
+
+### Cycle 5 Rollout Strategy
+
+- Same PR #291 on the existing feature branch
+  `feature/add-setlist-to-rehearsal` — no new branch, no new PR.
+- No feature flag — pure deletion of additive UI Cycle 4 shipped
+  behind the same dashboard rendering paths.
+- No migration to apply. Deploy is code-only.
+- Rollback: revert the Cycle 5 commit to restore Cycle 4's
+  four-variant badge coverage. No data cleanup needed at any layer
+  (no column / row / RPC / RLS change was ever proposed).
+
+### Cycle 5 Out of Scope
+
+- Any change to `ConfirmedGigCard`'s Cycle 4 badge or
+  `RehearsalCard._buildConfirmedCard`'s Cycle 4 `else if` branch —
+  both correct per Cycle 5.
+- Any refactor extracting a shared `_NoSetlistBadge` widget — Cycle 4
+  chose inlined blocks; Cycle 5 keeps the surviving confirmed inlined
+  blocks byte-identical.
+- Any positive expectation of the "No Setlist Selected" badge on
+  either potential variant — the reworked Groups 2 and 4 assert
+  exclusively `findsNothing`; no case in the entire suite may
+  assert `findsOneWidget` for that text against a `PotentialGigCard`
+  or against `RehearsalCard` with `isPotential: true`.
+- Any tightening of `_buildRehearsal` / `_buildGig` test fixture
+  signatures (e.g. dropping `required bool isPotential` because
+  Groups 2 and 4 still call with `isPotential: true`). Fixtures
+  stay as-is.
+- Any change to `home_screen.dart` / `home_tab_content.dart`,
+  view/editor drawers, calendar cards, models, repositories,
+  providers, or migrations.
+- Any change to `QA_REPORT.md`, `PR_BODY.md`, or `ENGINEER_REPORT.md`
+  in Cycle 5 — QA and Manager own their updates.
+- Golden-file or integration coverage — Tier 1 widget tests plus the
+  owner-run punch list are sufficient for this deletion-only UI
+  change.

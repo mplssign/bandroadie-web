@@ -121,7 +121,8 @@ void main() {
 
   group('RehearsalCard potential No Setlist Selected badge', () {
     testWidgets(
-      'renders "No Setlist Selected" when rehearsal.setlistId is null',
+      'does not render "No Setlist Selected" when '
+      'rehearsal.setlistId is null',
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
@@ -138,7 +139,7 @@ void main() {
         );
         await tester.pump();
 
-        expect(find.text('No Setlist Selected'), findsOneWidget);
+        expect(find.text('No Setlist Selected'), findsNothing);
       },
     );
 
@@ -157,30 +158,6 @@ void main() {
                 ),
                 bandTimezone: 'America/Chicago',
                 setlistName: 'Road Set',
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-
-        expect(find.text('No Setlist Selected'), findsNothing);
-      },
-    );
-
-    testWidgets(
-      'does not render "No Setlist Selected" when setlistId is non-null '
-      'but setlistName is null (loading race)',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: AppTheme.darkTheme,
-            home: Scaffold(
-              body: RehearsalCard(
-                rehearsal: _buildRehearsal(
-                  isPotential: true,
-                  setlistId: 'setlist-1',
-                ),
-                bandTimezone: 'America/Chicago',
               ),
             ),
           ),
@@ -240,7 +217,7 @@ void main() {
 
   group('PotentialGigCard No Setlist Selected badge', () {
     testWidgets(
-      'renders "No Setlist Selected" when gig.setlistId is null',
+      'does not render "No Setlist Selected" when gig.setlistId is null',
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
@@ -257,7 +234,7 @@ void main() {
         );
         await tester.pump();
 
-        expect(find.text('No Setlist Selected'), findsOneWidget);
+        expect(find.text('No Setlist Selected'), findsNothing);
       },
     );
 
@@ -286,7 +263,7 @@ void main() {
     );
 
     testWidgets(
-      'renders "No Setlist Selected" when gig.setlistId is null but '
+      'does not render "No Setlist Selected" when gig.setlistId is null but '
       'setlistName is stale (delete_setlist cascade)',
       (tester) async {
         await tester.pumpWidget(
@@ -305,7 +282,7 @@ void main() {
         );
         await tester.pump();
 
-        expect(find.text('No Setlist Selected'), findsOneWidget);
+        expect(find.text('No Setlist Selected'), findsNothing);
       },
     );
   });
