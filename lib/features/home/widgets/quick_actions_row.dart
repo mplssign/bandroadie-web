@@ -54,22 +54,22 @@ class QuickActionsRow extends StatelessWidget {
       );
     }
 
-    if (showCreateSetlist) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
-      buttons.add(
-        _buildQuickActionButton(
-          label: '+ Create Setlist',
-          onPressed: onCreateSetlist,
-        ),
-      );
-    }
-
     if (showFinancials) {
       if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
       buttons.add(
         _buildQuickActionButton(
           label: 'Financials',
           onPressed: onFinancials,
+        ),
+      );
+    }
+
+    if (showCreateSetlist) {
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
+      buttons.add(
+        _buildQuickActionButton(
+          label: '+ Create Setlist',
+          onPressed: onCreateSetlist,
         ),
       );
     }
