@@ -13,6 +13,7 @@ import 'package:bandroadie/features/events/widgets/event_editor_helpers.dart';
 import 'package:bandroadie/features/members/members_controller.dart';
 import 'package:bandroadie/features/setlists/models/setlist.dart';
 import 'package:bandroadie/features/setlists/setlists_screen.dart';
+import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:forui/forui.dart';
@@ -408,9 +409,29 @@ void main() {
         matching: find.byType(EditableText),
       );
       expect(locationInput, findsOneWidget);
+
+      final flutterErrors = <FlutterErrorDetails>[];
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = flutterErrors.add;
+      addTearDown(() => FlutterError.onError = originalOnError);
+
+      await tester.enterText(locationInput, 'T');
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(flutterErrors, isEmpty);
+      expect(find.byIcon(AppIcons.error), findsNothing);
+      expect(find.text('Location is required'), findsNothing);
+      expect(addButton().onPressed, isNotNull);
+
       await tester.enterText(locationInput, 'Test Studio');
       await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(flutterErrors, isEmpty);
+      expect(find.byIcon(AppIcons.error), findsNothing);
+      expect(find.text('Location is required'), findsNothing);
       expect(addButton().onPressed, isNotNull);
+
+      FlutterError.onError = originalOnError;
 
       await tester.ensureVisible(find.text('Road Set'));
       await tester.tap(find.text('Road Set'));

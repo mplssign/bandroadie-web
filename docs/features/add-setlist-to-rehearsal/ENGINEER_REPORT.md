@@ -10,18 +10,19 @@ Add a setlist to a rehearsal
 
 ## Cycle Number
 
-5
+6
 
 ## Goal
 
-Restrict the dashboard `No Setlist Selected` badge to confirmed rehearsal and confirmed gig cards by restoring both potential card variants to their pre-Cycle-4 layouts and updating the potential-card tests to assert badge absence.
+Investigate Tony's report of a brief error message when beginning to enter a location for a new rehearsal, reproduce it with the smallest focused widget-test change, and make a production change only if the test exposes a concrete defect.
 
 ## Architect Tasks Completed
 
-1. Deleted the Cycle 4 badge spread from `RehearsalCard._buildPotentialCard`, restoring Location immediately before its `Spacer`.
-2. Deleted the Cycle 4 badge spread from `PotentialGigCard.build`, restoring the venue and city row immediately before its `Spacer`.
-3. Updated the potential rehearsal and potential gig groups to assert badge absence, retained all four groups and the potential gig stale-name case, and removed only the redundant potential rehearsal loading-race case.
-4. Preserved the confirmed rehearsal implementation and tests, `ConfirmedGigCard` implementation and tests, all imports, and both private fixture builders unchanged.
+1. Extended the existing create-mode rehearsal test around the real managed `FAutocomplete<String>` rather than adding a new harness.
+2. Captured `FlutterError.onError` during location entry and checked `tester.takeException()` after both the exact first character (`T`) and the full value (`Test Studio`).
+3. Asserted after each input that no framework error was captured, no pending tester exception existed, no drawer error icon or `Location is required` message was visible, and the `Add Rehearsal` button was enabled.
+4. Preserved the pre-entry disabled-button check and the existing setlist selection, save payload, and `None` clearing coverage.
+5. Traced the relevant production path: `RehearsalFormFields` forwards managed autocomplete text through `onChange`; `EventEditorDrawer` stores it, removes only `_fieldErrors['location']`, and renders the general banner only when `_errorMessage` is non-null. The focused test did not expose a defect in that path.
 
 ## Files Created
 
@@ -29,45 +30,43 @@ None.
 
 ## Files Modified
 
-- `lib/features/home/widgets/rehearsal_card.dart`
-- `lib/features/home/widgets/potential_gig_card.dart`
-- `test/features/home/widgets/dashboard_no_setlist_badge_test.dart`
+- `test/features/events/widgets/event_dropdown_test.dart`
 - `docs/features/add-setlist-to-rehearsal/ENGINEER_REPORT.md`
 
 ## Analyzer Results
 
 - `dart fix --dry-run`: `Nothing to fix!`
-- Final changed-file `flutter analyze` over the two production files and focused test: `No issues found! (ran in 1.5s)`.
+- Changed-file `flutter analyze test/features/events/widgets/event_dropdown_test.dart`: `No issues found! (ran in 2.4s)`.
 
 ## Test Results
 
-- Focused dashboard test: `flutter test test/features/home/widgets/dashboard_no_setlist_badge_test.dart` passed 10/10 before formatting, after formatting, and after the final scope restoration.
-- Event regression test: `flutter test test/features/events/widgets/event_dropdown_test.dart` passed 7/7.
+- Focused event test passed 7/7 immediately after the test edit and again after formatting.
+- Dashboard badge regression test passed 10/10; Cycle 5 behavior remains unchanged.
 - Full suite: `flutter test` passed 321/321 tests.
 
 ## Code Efficiency/Bloat Check
 
-- The production correction is deletion-only: two self-contained Cycle 4 badge spreads were removed with no replacement logic, helper, provider, dependency, or public API.
-- No helper search was required because Cycle 5 adds no helper, extension, utility, or private widget class.
-- The focused test removes one redundant case and changes only the three prescribed names and assertions; fixtures, imports, harnesses, and confirmed groups remain unchanged.
-- The two production files remain above the 500-line target from pre-existing code; Cycle 5 reduces both files and the plan forbids adjacent refactoring.
-- The changed hunks contain no `TODO`, `FIXME`, or `debugPrint` additions, and the net deletion remains within the plan's change budget.
+- No production code changed because the reported behavior did not reproduce and no concrete defect was observed.
+- The regression coverage is inline in the existing create-mode test; no helper, extension, utility, private widget, provider, dependency, or public API was added, so no helper search was required.
+- The test adds only the error capture and assertions needed to discriminate first-character behavior from full-value behavior while retaining existing setlist coverage.
+- The changed Dart file remains below the 500-line target. The changed hunks add no `TODO`, `FIXME`, or `debugPrint`.
 
 ## Verification
 
-- Ran `dart format` only on the two changed production Dart files and the focused test; restored one formatter-only `PotentialChip` wrap so the off-limits widget remained byte-identical.
-- Verified the potential rehearsal Location widget and potential gig venue and city row are each immediately followed by their original `Spacer`.
-- Verified the final implementation/test diff touches no confirmed branch, confirmed test group, import, fixture builder, or unrelated potential-card logic.
-- `git diff --check` passed with no whitespace errors.
-- No running-app or platform manual verification was performed by Engineer; the Cycle 5 owner-run punch list remains for Tony.
+- The focused widget test reproduced the exact sequence `empty -> T -> Test Studio` through the real `FAutocomplete<String>`.
+- Before input, `Add Rehearsal` was disabled. After `T`, it was enabled and remained enabled after `Test Studio`.
+- At both input checkpoints, `FlutterError.onError` captured zero errors, `tester.takeException()` returned null, and neither the general error-banner icon nor `Location is required` was visible.
+- `dart format test/features/events/widgets/event_dropdown_test.dart` reported `0 changed`.
+- No running-app or platform manual verification was performed by Engineer.
+- Finding: not reproduced in the widget harness. Further diagnosis requires the exact message text or a screenshot, the affected platform, and whether the flash occurs before, on, or just after the first keystroke (including whether the user had attempted Save first).
 
 ## Deviations From Plan
 
-None.
+Cycle 6 follows Tony's explicit runtime-investigation instructions, which supersede Cycle 5's report-file restriction and authorize the focused event test plus a directly controlling production file only if a defect reproduces. No production file was changed because the automated reproduction passed.
 
 ## Blockers Encountered
 
-None.
+The runtime message was not reproduced, and its text, screenshot, platform, and precise timing were not available. Those details are required to identify a different runtime-only source without guessing.
 
 ## Ready For QA
 

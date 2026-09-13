@@ -12,6 +12,7 @@ The rehearsal model, database column, save paths, edit prefill, and display surf
 - Preserves the confirmed rehearsal's existing selected-setlist badge and suppresses false empty badges while its setlist name loads.
 - Preserves the gig and block-out layouts unchanged.
 - Adds widget coverage for the `Details` layout, selector-before-Notes order, required Location gate, selecting a setlist through the public create path, and clearing it with `None`.
+- Captures framework errors during first-character Location entry and verifies no error banner, validation message, or exception appears as `Add Rehearsal` enables.
 - Adds 10 widget cases covering confirmed-card badges and potential-card badge absence across selected, unselected, loading-name, and stale-name states.
 - Adds no migration, RPC, dependency, route, provider, or public API.
 
@@ -23,7 +24,9 @@ The rehearsal model, database column, save paths, edit prefill, and display surf
 - Full Flutter suite: 321/321 passed.
 - QA verdict: **APPROVED**, LOW regression risk.
 
-QA recorded no Cycle 5 findings. Create-mode coverage confirms that Location is required: selecting a setlist alone intentionally leaves `Add Rehearsal` disabled, while entering Location enables it and setlist changes preserve that enabled state. Confirmed dashboard badges key off the authoritative setlist ID; potential cards never render the badge.
+QA recorded no Cycle 6 findings. Create-mode coverage confirms that Location is required: selecting a setlist alone intentionally leaves `Add Rehearsal` disabled, while entering Location enables it and setlist changes preserve that enabled state. Confirmed dashboard badges key off the authoritative setlist ID; potential cards never render the badge.
+
+Accepted limitation: a brief error flash observed once during native Location entry could not be reproduced in the widget harness, and its exact message was not captured. No speculative production change was made. If it recurs, capture the exact text or a screen recording, platform/OS, app build, timing relative to the first character, and whether Save or another validation action was attempted first.
 
 ## Manual Verification
 
@@ -41,3 +44,6 @@ QA recorded no Cycle 5 findings. Create-mode coverage confirms that Location is 
 12. Confirm potential rehearsal and potential gig cards never show `No Setlist Selected`, whether a setlist is selected or not.
 13. Cold-start with a confirmed rehearsal that has a selected setlist. Confirm no transient `No Setlist Selected` badge appears while its setlist name loads.
 14. Repeat the confirmed and potential dashboard checks on Web and confirm matching behavior.
+15. On the native platform where the brief Location error was observed, start a screen recording and open a fresh Add Rehearsal drawer. Without attempting Save, type `T`, pause, then complete `Test Studio`. Confirm no error banner, inline message, snackbar, system message, or framework overlay flashes and that `Add Rehearsal` enables after the first character.
+16. Repeat step 15 with the original interaction history, including any focus, clear, re-entry, or attempted validation. If anything flashes, preserve its exact text, UI location, first video frame, platform/OS, and app build.
+17. Repeat step 15 on Web and record any platform difference.
