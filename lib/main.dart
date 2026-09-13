@@ -19,6 +19,7 @@ import 'app/theme/app_theme.dart';
 import 'app/theme/theme_mode_controller.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
+import 'features/auth/demo_session_service.dart';
 import 'features/auth/invite_screen.dart';
 import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
@@ -50,6 +51,18 @@ Future<void> main() async {
     // Show error UI instead of crashing
     runApp(ConfigErrorApp(errorMessage: configError));
     return;
+  }
+
+  // Never resume an anonymous/demo session across a relaunch. supabase_flutter
+  // restores a persisted session during Supabase.initialize() AND runs a
+  // non-awaited background recoverSession() that re-reads storage after init
+  // returns — so purging after init is undone by that background restore. Purge
+  // the restored anonymous session from disk BEFORE the SDK reads it, so nothing
+  // is restored and cold start lands on login. Native-only: the demo entry point
+  // never runs on web (kIsWeb), so no anonymous session exists there to purge.
+  // Real (non-anonymous) sessions are left untouched.
+  if (!kIsWeb) {
+    await DemoSessionService.purgePersistedAnonymousSession(supabaseUrl);
   }
 
   // Initialize Supabase with PKCE auth flow for magic links

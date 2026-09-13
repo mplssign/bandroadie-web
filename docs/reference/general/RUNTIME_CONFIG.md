@@ -14,6 +14,7 @@ The following sequence is fixed. Never reorder. Never insert steps between exist
 3. Portrait orientation lock
 4. AppVersionService.init()
 5. validateSupabaseConfig()     ← validates --dart-define values, fails fast if missing
+5.5 Purge persisted anonymous demo session   ← native-only; BEFORE Supabase.initialize()
 6. Supabase.initialize()
 7. Firebase.initializeApp()     ← iOS / Android only, skipped on web
 8. DeepLinkService setup
@@ -28,20 +29,20 @@ The following sequence is fixed. Never reorder. Never insert steps between exist
 
 BandRoadie uses compile-time injection exclusively. There is no runtime config loading.
 
-| Source | Status |
-|--------|--------|
-| `--dart-define` flags | ✅ Only permitted config source |
-| Runtime `.env` file | ❌ Never — not permitted |
-| `flutter_dotenv` or equivalent | ❌ Never — not permitted |
-| Hardcoded credentials | ❌ Never — guardrails violation |
+| Source                         | Status                          |
+| ------------------------------ | ------------------------------- |
+| `--dart-define` flags          | ✅ Only permitted config source |
+| Runtime `.env` file            | ❌ Never — not permitted        |
+| `flutter_dotenv` or equivalent | ❌ Never — not permitted        |
+| Hardcoded credentials          | ❌ Never — guardrails violation |
 
 ---
 
 ## Required `--dart-define` Keys
 
-| Key | Description |
-|-----|-------------|
-| `SUPABASE_URL` | Supabase project URL |
+| Key                 | Description                                     |
+| ------------------- | ----------------------------------------------- |
+| `SUPABASE_URL`      | Supabase project URL                            |
 | `SUPABASE_ANON_KEY` | Supabase anon (public) key — never service_role |
 
 `validateSupabaseConfig()` in `lib/main.dart` checks for these at startup and fails fast with a clear error if either is missing or malformed.
@@ -51,6 +52,7 @@ BandRoadie uses compile-time injection exclusively. There is no runtime config l
 ## Running the App Locally
 
 ### iOS Simulator
+
 ```bash
 flutter run -d "iPhone" \
   --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
@@ -58,6 +60,7 @@ flutter run -d "iPhone" \
 ```
 
 ### Android Emulator
+
 ```bash
 flutter run -d emulator-5554 \
   --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
@@ -65,6 +68,7 @@ flutter run -d emulator-5554 \
 ```
 
 ### Web (Chrome)
+
 ```bash
 flutter run -d chrome \
   --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
@@ -72,6 +76,7 @@ flutter run -d chrome \
 ```
 
 ### VS Code (Recommended)
+
 A launch template is provided at `.vscode/launch.template.json`.
 
 ```bash
@@ -93,6 +98,7 @@ Web builds are built and deployed locally by running `tools/deploy_web.sh`. The 
 ```
 
 The `.env` file must define:
+
 - `SUPABASE_URL` — Supabase project URL
 - `SUPABASE_ANON_KEY` — Supabase anon (public) key
 
@@ -104,12 +110,12 @@ Without these values, `validateSupabaseConfig()` fails and the app will not star
 
 ## Platform Differences
 
-| Area | Native (iOS / macOS / Android) | Web |
-|------|-------------------------------|-----|
-| Config | `--dart-define` only | `--dart-define` only |
-| Auth flow | PKCE | PKCE (as of 2026-04-14 — was implicit) |
-| Firebase | Initialized (step 7) | Not initialized |
-| Deep links | Handled via `DeepLinkService` | Not applicable |
+| Area       | Native (iOS / macOS / Android) | Web                                    |
+| ---------- | ------------------------------ | -------------------------------------- |
+| Config     | `--dart-define` only           | `--dart-define` only                   |
+| Auth flow  | PKCE                           | PKCE (as of 2026-04-14 — was implicit) |
+| Firebase   | Initialized (step 7)           | Not initialized                        |
+| Deep links | Handled via `DeepLinkService`  | Not applicable                         |
 
 ---
 
@@ -117,11 +123,11 @@ Without these values, `validateSupabaseConfig()` fails and the app will not star
 
 Firebase is initialized on native platforms only (iOS, Android, macOS). The web build skips Firebase initialization entirely.
 
-| Platform | Config File |
-|----------|------------|
-| Android | `android/app/google-services.json` |
-| iOS | `ios/Runner/GoogleService-Info.plist` |
-| macOS | `macos/Runner/GoogleService-Info.plist` |
+| Platform | Config File                             |
+| -------- | --------------------------------------- |
+| Android  | `android/app/google-services.json`      |
+| iOS      | `ios/Runner/GoogleService-Info.plist`   |
+| macOS    | `macos/Runner/GoogleService-Info.plist` |
 
 Firebase is used exclusively for push notification delivery via FCM. It is not used for authentication.
 
@@ -139,4 +145,4 @@ Configured in Supabase Dashboard under **Authentication → URL Configuration �
 
 ---
 
-*Any proposed change to initialization order or config loading must produce a new entry in `AI_DECISIONS.md` before the Architect plan is written.*
+_Any proposed change to initialization order or config loading must produce a new entry in `AI_DECISIONS.md` before the Architect plan is written._
