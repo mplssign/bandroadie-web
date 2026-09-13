@@ -10,7 +10,7 @@ Add a setlist to a rehearsal
 
 ## Cycle Number
 
-2
+3
 
 ## Final Verdict
 
@@ -18,67 +18,80 @@ APPROVED
 
 ## Validation Summary
 
-The Cycle 2 revision matches Tony's requested rehearsal UX: the separate
-Setlist and Notes cards are replaced by one `Details` card, the existing
-setlist selector is first, and the existing Notes field is below it. The
-select/save and None/clear behavior from Cycle 1 remains intact.
+Cycle 3 independently confirms that Tony's finding is expected required-field
+behavior when Location is empty, not a reproducible implementation defect at
+the current PR head. A setlist is optional and intentionally does not satisfy
+the create-mode Location requirement. Entering `Test Studio` through the real
+Location autocomplete enables Add Rehearsal; selecting or clearing a setlist
+then leaves it enabled and submits the expected Location and `setlistId`.
 
-Independent QA validation passed: changed-file analysis is clean, formatting
-requires no changes, `dart fix --dry-run` finds nothing, the focused test file
-passes 7/7, and the full suite passes 311/311.
+QA performed code-path analysis and widget-test execution, not manual device or
+browser testing. Changed-file analysis is clean, the focused test passes 7/7,
+and the full suite passes 311/311. Overall regression risk is **LOW**.
 
-Overall regression risk is **LOW**. QA performed code-path analysis and widget
-test execution only. No running app, simulator, emulator, or browser was
-launched; the runtime checks are correctly owner-run and listed below.
+The Manager-held `pipeline.lock` was neither acquired nor modified.
 
 ## Architect Scope Review
 
 - The branch, Architect plan, and Engineer report all use
-  `feature/add-setlist-to-rehearsal`; the Engineer report is Cycle 2 and says
+  `feature/add-setlist-to-rehearsal`; the Engineer report is Cycle 3 and states
   `Ready For QA: Yes`.
-- Tony's Cycle 2 request supersedes the Cycle 1 plan's separate `Setlist` and
-  `Notes` card presentation. The implementation differs from that presentation
-  detail only: it uses one `Details` card with selector above Notes.
-- Implementation changes remain confined to
-  `lib/features/events/widgets/event_editor_drawer.dart` and
-  `test/features/events/widgets/event_dropdown_test.dart`.
-- The gig and block-out branches, `_buildShowPrepSection`, selector
-  implementation, providers, repositories, models, migrations, routing,
-  initialization, and platform configuration are unchanged.
-- No implementation file, public API, dependency, migration, RPC, provider, or
-  architectural abstraction was added.
+- The working tree contains only the expected Cycle 3 test/report changes and
+  the Manager's removal of the committed Cycle 2 QA report before this fresh
+  report was created.
+- Cycle 3 modifies the plan-approved
+  `test/features/events/widgets/event_dropdown_test.dart` and the mandatory
+  reports. No production, migration, configuration, dependency, or generated
+  file is changed in this cycle.
+- The Cycle 2 production implementation remains unchanged: the rehearsal
+  `Details` section contains the existing setlist selector above Notes. The gig
+  and block-out branches remain untouched.
+- No provider, controller, repository contract, model, public API, test hook,
+  route, initialization order, platform configuration, RPC, or RLS policy was
+  added or changed.
 
 ## Completeness Check
 
-- The rehearsal branch renders one `_SectionCard` titled `Details` after
-  Location.
-- Its child `Column` renders `buildSetlistSelector(context, ref)` first,
-  `Spacing.space16` second, and `_buildNotesSection(...)` last.
-- The focused test asserts the unique `Details` title and confirms the
-  `Road Set` pill is vertically above `Notes (optional)`.
-- The test still selects `Road Set`, taps Update, and observes
-  `EventFormData.setlistId == 'setlist-1'` through the existing repository
-  capture path.
-- The same test still selects `None`, taps Update, and observes a non-null
-  submission with `EventFormData.setlistId == null`.
-- Existing test groups and private test stubs are unchanged in Cycle 2.
+- The test now pumps a create-mode rehearsal drawer with the real Location
+  `FAutocomplete`, the existing setlist selector, and a fake repository that
+  captures `createRehearsal` form data.
+- It verifies Add Rehearsal starts disabled while Location is empty.
+- It verifies selecting `Road Set`, then `None`, while Location is empty keeps
+  Add Rehearsal disabled.
+- It enters `Test Studio` and verifies Add Rehearsal becomes enabled.
+- It selects `Road Set`, verifies the button stays enabled, saves, and observes
+  `location == 'Test Studio'` and `setlistId == 'setlist-1'`.
+- It selects `None`, verifies the button stays enabled, saves again, and
+  observes `setlistId == null`.
+- Existing layout assertions still verify `Details` is rendered and the
+  setlist pill appears above `Notes (optional)`.
 
-All Cycle 2 tasks are complete.
+All Cycle 3 tasks are complete. No production change was required because the
+reported state is the intended validation state when Location is blank.
 
 ## Behavior Verification
 
-**Method:** code-path analysis plus widget-test execution; not runtime device
-testing.
+**Method:** code-path analysis plus widget-test execution; not runtime device or
+browser testing.
 
-The root-cause fix remains mounted in the rehearsal branch. Cycle 2 changes
-only its presentation container: the real selector continues to update
-`_selectedSetlistId` / `_selectedSetlistName`, `_buildFormData()` continues to
-emit those values, and the unchanged repository path persists or clears the
-association.
+The controlling production path is internally consistent:
 
-The focused test exercises the public edit/save path twice and confirms both
-the selected ID and cleared null value. Its coordinate assertion independently
-confirms the requested selector-before-Notes vertical order.
+- `RehearsalFormFields` forwards the managed Location autocomplete's text via
+  `onLocationTextChanged`.
+- `EventEditorDrawer` stores that value in `_rehearsalLocationText` inside
+  `setState`, causing the footer to rebuild.
+- Create-mode `_canSave` requires trimmed rehearsal Location to be non-empty.
+  It does not require a setlist.
+- Setlist selection updates only `_selectedSetlistId` and
+  `_selectedSetlistName`; it neither fills nor clears Location.
+- `_buildFormData()` emits the same trimmed Location and selected setlist state,
+  and the create path passes it to `createRehearsal`.
+
+Therefore, selecting a setlist with blank Location must leave Add Rehearsal
+disabled. The focused test exercised the actual controls and could not
+reproduce a disabled button after entering a valid Location. Tony's report is
+expected required-field behavior on the facts provided, not a PR-head defect.
+The running-app confirmation remains owner-run below.
 
 ## Regression Check
 
@@ -86,37 +99,37 @@ Overall risk: **LOW**.
 
 | System | Risk | Evidence |
 | --- | --- | --- |
-| Rehearsals | LOW | Revised Details layout and select/clear save behavior passed the focused test. Existing create/update/recurring persistence is unchanged. |
-| Gigs | LOW | Gig branch and Show Details helper have no Cycle 2 diff; full suite passed. Runtime presentation remains owner-run. |
-| Block-outs | LOW | Conditional branch has no diff; full suite passed. |
+| Rehearsals | LOW | Create-mode Location gate, setlist select/clear state, and submitted form data pass the focused test. |
+| Gigs | LOW | No production or gig-test path changed; the full suite passes. |
+| Block-outs | LOW | No production or block-out path changed; the full suite passes. |
 | Setlists | LOW | Existing provider and selector are reused unchanged. |
-| Members/Auth/Routing | LOW | No provider contract, session, permission, route, or initialization change. |
-| Notifications | LOW | No trigger or notification code changed. |
-| Platforms | LOW | Shared Flutter widget only; no platform-conditional or configuration change. Native/Web parity remains owner-run. |
+| Members/Auth/Routing | LOW | No permission, session, provider contract, route, or initialization change. |
+| Notifications | LOW | No repository, trigger, or notification code changed. |
+| Platforms | LOW | No platform-specific code changed; native/Web runtime parity remains owner-run. |
 
 No RPC signature or parameter order changed. No Controller or FocusNode
-lifecycle changed, no async production callback was introduced, and no new
-rebuild source was added.
+lifecycle changed, no production async gap was added, and the only relevant
+rebuild is the existing `setState` invoked by Location/setlist callbacks.
 
 ## Database Safety
 
-Not applicable. The diff contains no SQL, migration, RPC, RLS, grant, schema,
-or repository change. Migration apply and `has_function_privilege` checks are
-not required.
+Not applicable. Cycle 3 contains no SQL, migration, RPC, RLS, grant, schema, or
+repository change. Migration apply and `has_function_privilege` checks are not
+required.
 
 ## Analyzer Results
 
 Command:
 
-`flutter analyze lib/features/events/widgets/event_editor_drawer.dart test/features/events/widgets/event_dropdown_test.dart`
+`flutter analyze test/features/events/widgets/event_dropdown_test.dart`
 
 Result: **PASS** - `No issues found!` at every severity.
 
-Additional static checks:
+Formatting check:
 
-- `dart format --output=none --set-exit-if-changed ...`: **PASS**, 2 files
-  checked, 0 changed.
-- `dart fix --dry-run`: **PASS**, `Nothing to fix!`.
+`dart format --output=none --set-exit-if-changed test/features/events/widgets/event_dropdown_test.dart`
+
+Result: **PASS** - 1 file checked, 0 changed.
 
 ## Test Results
 
@@ -128,76 +141,80 @@ These QA runs independently reproduce the Engineer's reported counts.
 ## Diff Safety Review
 
 - `git diff --check`: clean.
-- The added implementation/test lines contain no `TODO`, `FIXME`,
-  `debugPrint(`, credential-like token, or secret.
-- No accidental implementation deletion, generated artifact, golden file,
-  integration test, or unrelated formatting churn is present.
-- The only non-implementation working-tree artifacts are the expected feature
-  reports and PR body.
+- Automated added-line scans found no `TODO`, `FIXME`, `debugPrint(`,
+  private-key marker, service-role marker, or credential-like token in the
+  implementation/test diff.
+- No implementation deletion, production change, generated artifact, golden
+  file, integration test, migration, dependency, or unrelated formatting churn
+  is present.
+- The removed Cycle 2 QA report was an expected Manager action for the duplicate
+  guard; its prior verdict and findings were reviewed from the deletion diff
+  before this Cycle 3 report was created.
 
 ## Change Budget Review
 
-Cycle 2 working-tree Dart delta against `HEAD`:
+Cycle 3 implementation/test delta against `HEAD`:
 
 | File | Actual | Assessment |
 | --- | ---: | --- |
-| `event_editor_drawer.dart` | +9 / -6 | Small local replacement |
-| `event_dropdown_test.dart` | +7 / -2 | Existing test assertion update |
-| Total Dart diff | +16 / -8, net +8 | Within the plan's +90-line total budget |
+| `event_dropdown_test.dart` | +44 / -16, net +28 | 60 changed lines; within the plan's 40-80 test-line budget |
+| Production files | +0 / -0 | Justified: the reported behavior is the existing required-Location gate |
 
-Cycle 1's sole non-blocking `code-quality` warning was a 1.71x cumulative
-budget overage caused by the private full-drawer test harness. Cycle 2 neither
-repeats nor worsens it: no stub or harness line was added, and the current test
-delta only renames the case and adds presentation assertions. The historical
-warning remains documented in Cycle 1; there is no new Cycle 2 budget finding.
-
-The production file remains above its size target for pre-existing reasons.
-The Engineer report provides the required one-line justification, and the
-requested local replacement does not expand the file's responsibilities.
+There are no new files, public classes/methods, dependencies, or production
+lines. The Cycle 1 historical **[code-quality]** warning concerned a 1.71x
+cumulative test-harness budget overage. Cycle 2 did not worsen it, and Cycle 3's
+replacement test delta is independently within budget, so the warning does not
+repeat.
 
 ## Code Efficiency Review
 
-Cycle 2 adds no symbol, helper, extension, widget class, provider, notifier,
-field, parameter, dependency, or public surface, so no equivalent-symbol search
-is applicable. The local `Column` is the existing direct composition needed to
-place selector, spacing, and Notes in order; extracting it would create a
-single-call-site wrapper.
-
-The revision also removes the obsolete sibling-card structure rather than
-layering another section around it. No code-quality bloat finding is present.
+Cycle 3 adds no production symbol or abstraction. The fake repository's
+`createRehearsal` override reuses the existing capture pattern. The local
+`addButton()` finder is called repeatedly and keeps callback-state assertions
+consistent; no equivalent production helper was found or would be appropriate
+for a widget test. No unused state, future-facing flag, wrapper widget,
+provider, notifier, or dependency was added.
 
 ## Manual Verification Punch List
 
 QA cannot exercise a running app. Tony should run these steps on at least one
 native platform (macOS or iOS) and Web.
 
-1. Open Home -> Add -> Rehearsal.
-   **Expected:** One `Details` card appears after Location. Inside it, the
-   `Setlist` label and selectable `None` / band-setlist pills are visibly above
-   the `Notes (optional)` field; there are no separate Setlist or Notes cards.
-2. Complete the required rehearsal fields, select a non-catalog setlist pill,
-   enter a note, and save.
-   **Expected:** Save succeeds. The Home rehearsal card shows the selected
+1. Open Home -> Add -> Rehearsal and leave Location empty.
+   **Expected:** The `Details` card shows the setlist selector above Notes, and
+   Add Rehearsal is disabled because Location is required.
+2. While Location is still empty, select a non-catalog setlist, then select
+   `None`.
+   **Expected:** Both pills respond visually, but Add Rehearsal remains disabled
+   because selecting a setlist does not satisfy the Location requirement.
+3. Enter a non-whitespace Location such as `Test Studio`.
+   **Expected:** Add Rehearsal becomes enabled without requiring a setlist.
+4. With `Test Studio` still entered, select a non-catalog setlist, then select
+   `None`, then select the setlist again.
+   **Expected:** Add Rehearsal stays enabled through every selection change;
+   setlist selection never clears Location.
+5. Save with `Test Studio` and the non-catalog setlist selected.
+   **Expected:** Save succeeds and the Home rehearsal card shows the selected
    setlist name.
-3. Reopen that rehearsal through View Rehearsal -> Edit.
-   **Expected:** The `Details` card keeps the selector above Notes, the saved
-   setlist pill is selected, and the note is preserved.
-4. Select `None` and save again.
-   **Expected:** Save succeeds. Reopening shows `None` selected, the note is
-   still preserved, and the Home rehearsal card no longer shows a setlist pill.
-5. In a band with no setlists, open Add -> Rehearsal.
-   **Expected:** The `Details` card shows `None` and `+ Create Setlist` above
-   Notes, matching the gig selector behavior.
-6. Create or edit a recurring rehearsal and choose a setlist.
+6. Reopen that rehearsal through View Rehearsal -> Edit.
+   **Expected:** Location is `Test Studio`, the saved setlist pill is selected,
+   and the selector remains above Notes in `Details`.
+7. Select `None` and save again.
+   **Expected:** Save succeeds; reopening shows `None` selected and the Home
+   rehearsal card no longer shows a setlist pill.
+8. In a band with no setlists, open Add -> Rehearsal and enter a Location.
+   **Expected:** `Details` shows `None` and `+ Create Setlist`; Add Rehearsal is
+   enabled once Location is non-empty.
+9. Create or edit a recurring rehearsal with a valid Location and setlist.
    **Expected:** Save succeeds and each generated rehearsal instance shows the
-   selected setlist; clearing with `None` removes the association as existing
-   recurring-series behavior specifies.
-7. Repeat steps 1-4 on Web.
-   **Expected:** Layout, selection, save/reload, note preservation, and clearing
-   behavior match the native platform.
-8. Open Add -> Gig.
-   **Expected:** `Show Details` still contains the setlist selector and contacts,
-   and the gig Notes card remains separate and unchanged.
+   selected setlist; clearing with `None` removes the association.
+10. Repeat steps 1-7 on Web.
+    **Expected:** Location gating, selector behavior, save/reload, and clearing
+    match the native platform. If the button remains disabled after step 3,
+    record the exact Location value and platform as a new runtime discrepancy.
+11. Open Add -> Gig.
+    **Expected:** `Show Details` still contains the setlist selector and
+    contacts, and the gig Notes card remains separate and unchanged.
 
 ## Issues Found
 
@@ -207,8 +224,8 @@ None.
 
 ### Warnings
 
-None. Cycle 1's historical **[code-quality]** budget warning was not worsened
-or repeated by the Cycle 2 delta.
+None. Cycle 1's historical **[code-quality]** warning was not repeated in
+Cycles 2 or 3.
 
 ### Suggestions
 

@@ -10,19 +10,20 @@ Add a setlist to a rehearsal
 
 ## Cycle Number
 
-2
+3
 
 ## Goal
 
-Address Tony's runtime finding that the rehearsal editor did not visibly present a setlist section by combining the selector and Notes input in a single `Details` section, with the selectable setlist pills above Notes.
+Diagnose Tony's runtime finding that selecting a rehearsal setlist left Add Rehearsal disabled, without weakening the required-location validation, and add create-mode coverage for the actual Location control, setlist selection, button enablement, and submitted form data.
 
 ## Architect Tasks Completed
 
-1. Replaced the rehearsal-only sibling `Setlist` and `Notes` cards with one `_SectionCard` titled `Details`.
-2. Rendered the existing `buildSetlistSelector(context, ref)` first and the existing `_buildNotesSection(context, eventFormFields)` second, separated by `Spacing.space16`.
-3. Updated the existing rehearsal selector test to verify the `Details` title and confirm the `Road Set` pill is vertically above the `Notes (optional)` field.
-4. Retained the existing public save-path assertions that selecting `Road Set` submits `setlistId: 'setlist-1'` and selecting `None` submits `setlistId: null`.
-5. Left the gig and block-out layouts and the selector implementation unchanged.
+1. Reviewed the create-mode state path in `EventEditorDrawer`: the managed Location autocomplete calls `onLocationTextChanged`, which updates `_rehearsalLocationText` inside `setState`; `_canSave` requires its trimmed value to be non-empty; setlist selection updates only the selected setlist fields.
+2. Reworked the existing rehearsal selector widget test from edit mode with a prefilled location to create mode using the actual `FAutocomplete` Location input and Add Rehearsal button.
+3. Verified that selecting a setlist while Location is empty leaves Add Rehearsal disabled, preserving required-location validation.
+4. Verified that entering a valid Location enables Add Rehearsal and subsequently selecting or clearing a setlist preserves the enabled state.
+5. Extended the existing fake repository to capture `createRehearsal` form data and verified the submitted Location, selected `setlistId`, and cleared `setlistId`.
+6. Reproduced the required behavior successfully, so no production change was made.
 
 ## Files Created
 
@@ -30,37 +31,40 @@ None.
 
 ## Files Modified
 
-- `lib/features/events/widgets/event_editor_drawer.dart`
 - `test/features/events/widgets/event_dropdown_test.dart`
 - `docs/features/add-setlist-to-rehearsal/ENGINEER_REPORT.md`
 
 ## Analyzer Results
 
-- `dart fix --dry-run`: `Nothing to fix!`
-- `flutter analyze lib/features/events/widgets/event_editor_drawer.dart test/features/events/widgets/event_dropdown_test.dart`: `No issues found! (ran in 2.6s)` after formatting.
+- Initial `dart fix --dry-run` identified two scoped test suggestions; both were applied manually.
+- Final `dart fix --dry-run`: `Nothing to fix!`
+- `flutter analyze test/features/events/widgets/event_dropdown_test.dart`: `No issues found! (ran in 1.9s)`.
 
 ## Test Results
 
-- Focused: `flutter test test/features/events/widgets/event_dropdown_test.dart` passed 7/7 tests before and after formatting.
+- New create-mode regression test passed independently.
+- Focused: `flutter test test/features/events/widgets/event_dropdown_test.dart` passed 7/7 tests after formatting.
 - Full suite: `flutter test` passed 311/311 tests.
 
 ## Code Efficiency/Bloat Check
 
-- The production change replaces the obsolete sibling-card structure and reuses the existing selector, Notes builder, spacing token, and `Column` pattern; no helper, widget class, provider, repository method, dependency, or test hook was added.
-- The existing private test stubs and repository capture path remain unchanged; Cycle 2 adds only presentation assertions to the existing test.
-- `event_editor_drawer.dart` remains above the Dart file-size target due to its pre-existing size. The requested local replacement does not expand its responsibilities, and the plan prohibits a broader refactor.
+- No production code was added because the focused reproduction passed against the existing implementation.
+- The test reuses the existing private repository fake and provider stubs; only a `createRehearsal` override and direct interaction assertions were added. No new helper, widget, provider, dependency, or test hook was introduced.
+- The revised test deletes the edit-mode fixture and replaces it with the smaller create-mode setup needed to expose the reported interaction.
 - The changed hunks contain no `TODO`, `FIXME`, or `debugPrint` calls.
 
 ## Verification
 
-- Ran `dart format` on only `lib/features/events/widgets/event_editor_drawer.dart` and `test/features/events/widgets/event_dropdown_test.dart`; one file required formatting.
-- The focused widget test verified the `Details` title, the `Road Set` pill above `Notes (optional)`, selection submission, and `None` clearing.
-- The full Flutter test suite and changed-file analyzer passed after formatting.
-- Tony's manual PR test supplied the runtime finding for this cycle. No additional running-app or platform manual verification was performed by Engineer.
+- Ran `dart format test/features/events/widgets/event_dropdown_test.dart`; formatting made no changes.
+- The create-mode widget test exercised the actual Location autocomplete control and asserted the Add Rehearsal callback state before and after setlist and Location interactions.
+- The fake repository captured `location: 'Test Studio'` with `setlistId: 'setlist-1'`, then captured `setlistId: null` after selecting None.
+- Changed-file analysis, the focused test file, and the full Flutter suite passed after formatting.
+- No running-app or platform manual verification was performed by Engineer.
 
 ## Deviations From Plan
 
-- Tony's Cycle 2 feedback supersedes the Cycle 1 plan's separate `_SectionCard(title: 'Setlist')` and `_SectionCard(title: 'Notes')` presentation. The revised rehearsal layout uses the explicitly requested single `Details` card while retaining the plan-approved files, existing selector, and save behavior.
+- Cycle 3 required diagnosis did not reproduce a production defect at the current PR head. The production file was reviewed but not modified; only the plan-approved test file and mandatory Engineer report changed.
+- The current implementation intentionally keeps Add Rehearsal disabled when Location is empty, even after selecting a setlist. Entering Location triggers `setState`, and later setlist selection does not clear `_rehearsalLocationText`, so the button remains enabled and save carries the selected setlist.
 
 ## Blockers Encountered
 

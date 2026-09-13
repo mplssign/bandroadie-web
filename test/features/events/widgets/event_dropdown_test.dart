@@ -14,6 +14,7 @@ import 'package:bandroadie/features/members/members_controller.dart';
 import 'package:bandroadie/features/setlists/models/setlist.dart';
 import 'package:bandroadie/features/setlists/setlists_screen.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
+import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:forui/forui.dart';
 
 class _StubSetlistsNotifier extends SetlistsNotifier {
@@ -64,6 +65,15 @@ class _CapturingEventsRepository extends EventsRepository {
   _CapturingEventsRepository(super.autoConflictBlockingService);
 
   EventFormData? capturedFormData;
+
+  @override
+  Future<Never> createRehearsal({
+    required String bandId,
+    required EventFormData formData,
+  }) async {
+    capturedFormData = formData;
+    throw StateError('Stop after capturing form data');
+  }
 
   @override
   Future<Never> updateRehearsal({
@@ -325,7 +335,8 @@ void main() {
   });
 
   group('EventEditorDrawer setlist selector (rehearsal)', () {
-    testWidgets('renders details, selects, and clears a rehearsal setlist',
+    testWidgets(
+        'create mode requires location and preserves enablement across setlist selection',
         (tester) async {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
@@ -341,15 +352,6 @@ void main() {
       } catch (_) {}
 
       late _CapturingEventsRepository repository;
-      final existingEvent = EventFormData(
-        type: EventType.rehearsal,
-        date: DateTime(2026, 9, 13),
-        hour: 7,
-        minutes: 0,
-        isPM: true,
-        duration: EventDuration.hour1,
-        location: 'Test Studio',
-      );
 
       await tester.pumpWidget(
         ProviderScope(
@@ -369,12 +371,9 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.darkTheme,
-            home: Scaffold(
+            home: const Scaffold(
               body: EventEditorDrawer(
-                mode: EventEditorMode.edit,
                 initialEventType: EventType.rehearsal,
-                existingEvent: existingEvent,
-                existingEventId: 'rehearsal-1',
                 bandId: 'test-band-id',
               ),
             ),
@@ -388,19 +387,48 @@ void main() {
         tester.getTopLeft(find.text('Road Set')).dy,
         lessThan(tester.getTopLeft(find.text('Notes (optional)')).dy),
       );
+
+      AppButton addButton() => tester.widget<AppButton>(
+            find.widgetWithText(AppButton, 'Add Rehearsal'),
+          );
+
+      expect(addButton().onPressed, isNull);
+
       await tester.ensureVisible(find.text('Road Set'));
       await tester.tap(find.text('Road Set'));
       await tester.pump();
-      await tester.tap(find.text('Update'));
+      expect(addButton().onPressed, isNull);
+
+      await tester.tap(find.text('None'));
+      await tester.pump();
+      expect(addButton().onPressed, isNull);
+
+      final locationInput = find.descendant(
+        of: find.byType(FAutocomplete<String>),
+        matching: find.byType(EditableText),
+      );
+      expect(locationInput, findsOneWidget);
+      await tester.enterText(locationInput, 'Test Studio');
+      await tester.pump();
+      expect(addButton().onPressed, isNotNull);
+
+      await tester.ensureVisible(find.text('Road Set'));
+      await tester.tap(find.text('Road Set'));
+      await tester.pump();
+      expect(addButton().onPressed, isNotNull);
+
+      await tester.tap(find.text('Add Rehearsal'));
       await tester.pumpAndSettle();
 
+      expect(repository.capturedFormData?.location, 'Test Studio');
       expect(repository.capturedFormData?.setlistId, 'setlist-1');
 
       repository.capturedFormData = null;
       await tester.ensureVisible(find.text('None'));
       await tester.tap(find.text('None'));
       await tester.pump();
-      await tester.tap(find.text('Update'));
+      expect(addButton().onPressed, isNotNull);
+      await tester.tap(find.text('Add Rehearsal'));
       await tester.pumpAndSettle();
 
       expect(repository.capturedFormData, isNotNull);
