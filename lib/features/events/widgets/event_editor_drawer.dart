@@ -2966,13 +2966,16 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   context, gigFormFields, rehearsalFormFields)),
           const SizedBox(height: 16),
           _SectionCard(
-            title: 'Setlist',
-            child: eventFormFields.buildSetlistSelector(context, ref),
+            title: 'Details',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                eventFormFields.buildSetlistSelector(context, ref),
+                const SizedBox(height: Spacing.space16),
+                _buildNotesSection(context, eventFormFields),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          _SectionCard(
-              title: 'Notes',
-              child: _buildNotesSection(context, eventFormFields)),
           if (_isEditMode && !widget.viewOnly) ...[
             const SizedBox(height: Spacing.space24),
             EventDeleteButton(

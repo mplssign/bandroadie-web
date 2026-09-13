@@ -10,7 +10,7 @@ Add a setlist to a rehearsal
 
 ## Cycle Number
 
-1
+2
 
 ## Final Verdict
 
@@ -18,37 +18,67 @@ APPROVED
 
 ## Validation Summary
 
-The implementation matches the Architect plan: the existing setlist selector is mounted in the rehearsal branch between Location and Notes, and the requested widget coverage observes both selection and clearing through the existing repository save path. The changed-file analyzer passed, the focused test file passed 7/7, and the full suite passed 311/311.
+The Cycle 2 revision matches Tony's requested rehearsal UX: the separate
+Setlist and Notes cards are replaced by one `Details` card, the existing
+setlist selector is first, and the existing Notes field is below it. The
+select/save and None/clear behavior from Cycle 1 remains intact.
 
-Overall regression risk is **LOW**. No running app, simulator, emulator, or browser was launched; the runtime checks are correctly classified by the Architect as owner-run and are reproduced below.
+Independent QA validation passed: changed-file analysis is clean, formatting
+requires no changes, `dart fix --dry-run` finds nothing, the focused test file
+passes 7/7, and the full suite passes 311/311.
+
+Overall regression risk is **LOW**. QA performed code-path analysis and widget
+test execution only. No running app, simulator, emulator, or browser was
+launched; the runtime checks are correctly owner-run and listed below.
 
 ## Architect Scope Review
 
-- The plan, Engineer report, and branch all use `feature/add-setlist-to-rehearsal`.
-- The only tracked changes are `lib/features/events/widgets/event_editor_drawer.dart` and `test/features/events/widgets/event_dropdown_test.dart`, exactly as authorized.
-- The production diff is limited to the planned five-line `_SectionCard` insertion in the rehearsal layout.
-- The gig and block-out branches, `_buildShowPrepSection`, providers, repositories, models, migrations, routing, initialization, platform configuration, and all files marked off-limits are unchanged.
-- No code file, public API, dependency, migration, RPC, or architectural abstraction was added.
+- The branch, Architect plan, and Engineer report all use
+  `feature/add-setlist-to-rehearsal`; the Engineer report is Cycle 2 and says
+  `Ready For QA: Yes`.
+- Tony's Cycle 2 request supersedes the Cycle 1 plan's separate `Setlist` and
+  `Notes` card presentation. The implementation differs from that presentation
+  detail only: it uses one `Details` card with selector above Notes.
+- Implementation changes remain confined to
+  `lib/features/events/widgets/event_editor_drawer.dart` and
+  `test/features/events/widgets/event_dropdown_test.dart`.
+- The gig and block-out branches, `_buildShowPrepSection`, selector
+  implementation, providers, repositories, models, migrations, routing,
+  initialization, and platform configuration are unchanged.
+- No implementation file, public API, dependency, migration, RPC, provider, or
+  architectural abstraction was added.
 
 ## Completeness Check
 
-- The rehearsal layout renders a `Setlist` section between Location and Notes.
-- The section reuses `EventFormFields.buildSetlistSelector` unchanged.
-- The test pumps an edit-mode rehearsal with exactly one non-catalog setlist.
-- The test confirms the `Setlist` text renders.
-- Selecting `Road Set` reaches `EventFormData.setlistId` as `setlist-1` through `EventsRepository.updateRehearsal`.
-- Selecting `None` and saving again reaches `EventFormData.setlistId` as `null`.
-- Existing test groups were not moved or modified.
+- The rehearsal branch renders one `_SectionCard` titled `Details` after
+  Location.
+- Its child `Column` renders `buildSetlistSelector(context, ref)` first,
+  `Spacing.space16` second, and `_buildNotesSection(...)` last.
+- The focused test asserts the unique `Details` title and confirms the
+  `Road Set` pill is vertically above `Notes (optional)`.
+- The test still selects `Road Set`, taps Update, and observes
+  `EventFormData.setlistId == 'setlist-1'` through the existing repository
+  capture path.
+- The same test still selects `None`, taps Update, and observes a non-null
+  submission with `EventFormData.setlistId == null`.
+- Existing test groups and private test stubs are unchanged in Cycle 2.
 
-All Architect tasks are complete.
+All Cycle 2 tasks are complete.
 
 ## Behavior Verification
 
-**Method:** code-path analysis plus widget-test execution; not runtime device testing.
+**Method:** code-path analysis plus widget-test execution; not runtime device
+testing.
 
-The root cause was the missing selector mount in the rehearsal branch. The production hunk fixes that root cause directly. The existing selector callback updates `_selectedSetlistId` and `_selectedSetlistName`; `_buildFormData()` emits those values; and the unchanged repository writes `formData.setlistId` on rehearsal create, update, and recurring-series paths.
+The root-cause fix remains mounted in the rehearsal branch. Cycle 2 changes
+only its presentation container: the real selector continues to update
+`_selectedSetlistId` / `_selectedSetlistName`, `_buildFormData()` continues to
+emit those values, and the unchanged repository path persists or clears the
+association.
 
-The focused test exercised the public edit/save path twice and independently confirmed the selected ID and cleared `null` value captured by the repository test double.
+The focused test exercises the public edit/save path twice and confirms both
+the selected ID and cleared null value. Its coordinate assertion independently
+confirms the requested selector-before-Notes vertical order.
 
 ## Regression Check
 
@@ -56,85 +86,118 @@ Overall risk: **LOW**.
 
 | System | Risk | Evidence |
 | --- | --- | --- |
-| Rehearsals | LOW | Planned UI insertion; render/select/clear save path passed. Existing create/update/recurring persistence remains unchanged. |
-| Gigs | LOW | Gig branch and Show Details helper have no diff; full suite passed. Owner-run step 7 covers runtime presentation. |
+| Rehearsals | LOW | Revised Details layout and select/clear save behavior passed the focused test. Existing create/update/recurring persistence is unchanged. |
+| Gigs | LOW | Gig branch and Show Details helper have no Cycle 2 diff; full suite passed. Runtime presentation remains owner-run. |
 | Block-outs | LOW | Conditional branch has no diff; full suite passed. |
-| Setlists | LOW | Existing provider and selector are reused unchanged; focused test uses the real selector behavior. |
-| Members/Auth/Routing | LOW | No provider contract, session, permission, or route changes. |
+| Setlists | LOW | Existing provider and selector are reused unchanged. |
+| Members/Auth/Routing | LOW | No provider contract, session, permission, route, or initialization change. |
 | Notifications | LOW | No trigger or notification code changed. |
 | Platforms | LOW | Shared Flutter widget only; no platform-conditional or configuration change. Native/Web parity remains owner-run. |
 
-No RPC signature or parameter order changed. Initialization order is unchanged. No Controller or FocusNode lifecycle was added or altered, no async production callback was introduced, and no new rebuild source was added beyond mounting the existing band-scoped selector in the intended rehearsal layout.
+No RPC signature or parameter order changed. No Controller or FocusNode
+lifecycle changed, no async production callback was introduced, and no new
+rebuild source was added.
 
 ## Database Safety
 
-Not applicable. The diff contains no SQL, migration, RPC, RLS, grant, schema, or repository change. Migration apply and `has_function_privilege` checks are therefore not required by the plan.
+Not applicable. The diff contains no SQL, migration, RPC, RLS, grant, schema,
+or repository change. Migration apply and `has_function_privilege` checks are
+not required.
 
 ## Analyzer Results
 
+Command:
+
 `flutter analyze lib/features/events/widgets/event_editor_drawer.dart test/features/events/widgets/event_dropdown_test.dart`
 
-Result: **PASS** — `No issues found!` at every severity.
+Result: **PASS** - `No issues found!` at every severity.
+
+Additional static checks:
+
+- `dart format --output=none --set-exit-if-changed ...`: **PASS**, 2 files
+  checked, 0 changed.
+- `dart fix --dry-run`: **PASS**, `Nothing to fix!`.
 
 ## Test Results
 
-- Focused test file, `test/features/events/widgets/event_dropdown_test.dart`: **PASS**, 7 passed / 0 failed.
+- Focused `event_dropdown_test.dart`: **PASS**, 7 passed / 0 failed.
 - Full Flutter suite: **PASS**, 311 passed / 0 failed.
 
-These runs independently reproduce the Engineer's reported counts.
+These QA runs independently reproduce the Engineer's reported counts.
 
 ## Diff Safety Review
 
 - `git diff --check`: clean.
-- Required diff scan found no added `TODO`, `FIXME`, or `debugPrint(`.
-- No secret or real API credential is present; `https://test.supabase.co` and `test-anon-key` are explicit test placeholders.
-- No accidental deletion, generated artifact, golden file, integration test, test scaffold outside the authorized file, or unrelated formatting churn is present.
-- Post-validation status showed no additional files changed by analysis or tests.
+- The added implementation/test lines contain no `TODO`, `FIXME`,
+  `debugPrint(`, credential-like token, or secret.
+- No accidental implementation deletion, generated artifact, golden file,
+  integration test, or unrelated formatting churn is present.
+- The only non-implementation working-tree artifacts are the expected feature
+  reports and PR body.
 
 ## Change Budget Review
 
-| File | Architect Budget | Actual | Assessment |
-| --- | ---: | ---: | --- |
-| `event_editor_drawer.dart` | +5 to +8 | +5 / -0 | Within budget |
-| `event_dropdown_test.dart` | +40 to +80 | +149 / -0 | 1.86x the upper estimate |
-| Total Dart diff | At most +90 | +154 / -0 | 1.71x the total cap |
+Cycle 2 working-tree Dart delta against `HEAD`:
 
-The total exceeds the plan cap by 1.71x, which requires a `code-quality` Warning under the QA rubric. It does not cross the 2x Critical threshold. The deviation is documented in the Engineer report and is isolated to private test harness code needed to prevent Supabase access and capture the existing public save path.
+| File | Actual | Assessment |
+| --- | ---: | --- |
+| `event_editor_drawer.dart` | +9 / -6 | Small local replacement |
+| `event_dropdown_test.dart` | +7 / -2 | Existing test assertion update |
+| Total Dart diff | +16 / -8, net +8 | Within the plan's +90-line total budget |
 
-The zero-deletion bug fix is justified: the root cause was a missing UI section, so no production line needed replacement or removal. The Engineer also documented why the pre-existing 3,585-line production file remains above its size target under the Architect's no-refactor constraint.
+Cycle 1's sole non-blocking `code-quality` warning was a 1.71x cumulative
+budget overage caused by the private full-drawer test harness. Cycle 2 neither
+repeats nor worsens it: no stub or harness line was added, and the current test
+delta only renames the case and adds presentation assertions. The historical
+warning remains documented in Cycle 1; there is no new Cycle 2 budget finding.
+
+The production file remains above its size target for pre-existing reasons.
+The Engineer report provides the required one-line justification, and the
+requested local replacement does not expand the file's responsibilities.
 
 ## Code Efficiency Review
 
-Independent searches found no reusable equivalent for the new test symbols in `lib/`. Similar members, contacts, and venues stubs exist only as private classes in other test files and cannot be imported. Every new private stub in this diff is used by the drawer harness; there is no new production helper, provider, notifier, wrapper, dead parameter, unread field, or future-facing configuration.
+Cycle 2 adds no symbol, helper, extension, widget class, provider, notifier,
+field, parameter, dependency, or public surface, so no equivalent-symbol search
+is applicable. The local `Column` is the existing direct composition needed to
+place selector, spacing, and Notes in order; extracting it would create a
+single-call-site wrapper.
 
-The enlarged test harness is locally necessary and does not create Critical-level bloat, but its arithmetic budget overage remains recorded as a Warning.
+The revision also removes the obsolete sibling-card structure rather than
+layering another section around it. No code-quality bloat finding is present.
 
 ## Manual Verification Punch List
 
-QA cannot exercise a running app; these steps are for Tony at PR-test / apply time. Run each on at least one native platform (macOS or iOS) plus Web to confirm platform parity.
+QA cannot exercise a running app. Tony should run these steps on at least one
+native platform (macOS or iOS) and Web.
 
-1. Open Home → Add → Rehearsal.
-   **Expected:** A "Setlist" section is visible between the Location section
-   and the Notes section, showing at least a "None" pill and any existing
-   band setlists as pills.
-2. Fill in required rehearsal fields (location, date, time). Tap a setlist
-   pill (any non-catalog setlist). Save.
-   **Expected:** Save succeeds. The rehearsal card on Home shows the selected
-   setlist name in the setlist pill.
-3. Reopen the same rehearsal via View Rehearsal → Edit.
-   **Expected:** The "Setlist" section is present and the previously chosen
-   pill is highlighted as selected.
-4. Tap the "None" pill. Save.
-   **Expected:** Save succeeds. Reopening the rehearsal shows "None"
-   selected and the setlist pill disappears from the rehearsal card.
-5. In a band that has no setlists yet, open Add → Rehearsal.
-   **Expected:** The "Setlist" section shows a "None" pill plus a
-   `+ Create Setlist` shortcut (identical to the gig editor's behaviour).
-6. Repeat step 2 on Web (bandroadie.com).
-   **Expected:** Same visual layout, same save behaviour, same reload
-   behaviour — confirms platform parity.
-7. Confirm gigs are unchanged: open Add → Gig, verify the "Show Details"
-   section still renders the setlist selector plus the contacts subsection.
+1. Open Home -> Add -> Rehearsal.
+   **Expected:** One `Details` card appears after Location. Inside it, the
+   `Setlist` label and selectable `None` / band-setlist pills are visibly above
+   the `Notes (optional)` field; there are no separate Setlist or Notes cards.
+2. Complete the required rehearsal fields, select a non-catalog setlist pill,
+   enter a note, and save.
+   **Expected:** Save succeeds. The Home rehearsal card shows the selected
+   setlist name.
+3. Reopen that rehearsal through View Rehearsal -> Edit.
+   **Expected:** The `Details` card keeps the selector above Notes, the saved
+   setlist pill is selected, and the note is preserved.
+4. Select `None` and save again.
+   **Expected:** Save succeeds. Reopening shows `None` selected, the note is
+   still preserved, and the Home rehearsal card no longer shows a setlist pill.
+5. In a band with no setlists, open Add -> Rehearsal.
+   **Expected:** The `Details` card shows `None` and `+ Create Setlist` above
+   Notes, matching the gig selector behavior.
+6. Create or edit a recurring rehearsal and choose a setlist.
+   **Expected:** Save succeeds and each generated rehearsal instance shows the
+   selected setlist; clearing with `None` removes the association as existing
+   recurring-series behavior specifies.
+7. Repeat steps 1-4 on Web.
+   **Expected:** Layout, selection, save/reload, note preservation, and clearing
+   behavior match the native platform.
+8. Open Add -> Gig.
+   **Expected:** `Show Details` still contains the setlist selector and contacts,
+   and the gig Notes card remains separate and unchanged.
 
 ## Issues Found
 
@@ -144,7 +207,8 @@ None.
 
 ### Warnings
 
-1. **[code-quality] Change-budget overage:** The test diff is +149 lines versus the +80 upper estimate (1.86x), and the total Dart diff is +154 versus the +90 cap (1.71x). The excess is documented, test-only, private, and justified by the full drawer's isolation and capture requirements; it does not block approval under the Critical-level bloat threshold.
+None. Cycle 1's historical **[code-quality]** budget warning was not worsened
+or repeated by the Cycle 2 delta.
 
 ### Suggestions
 

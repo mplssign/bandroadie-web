@@ -325,7 +325,8 @@ void main() {
   });
 
   group('EventEditorDrawer setlist selector (rehearsal)', () {
-    testWidgets('selects and clears a rehearsal setlist', (tester) async {
+    testWidgets('renders details, selects, and clears a rehearsal setlist',
+        (tester) async {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
       try {
@@ -382,7 +383,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Setlist'), findsWidgets);
+      expect(find.text('Details'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Road Set')).dy,
+        lessThan(tester.getTopLeft(find.text('Notes (optional)')).dy),
+      );
       await tester.ensureVisible(find.text('Road Set'));
       await tester.tap(find.text('Road Set'));
       await tester.pump();
