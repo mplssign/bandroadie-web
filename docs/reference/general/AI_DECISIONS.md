@@ -309,6 +309,93 @@ files (`auth_gate.dart`, `demo_session_service.dart`). No RLS change to unwind.
 
 ---
 
+## [DECISION-006] Cold-start purge of restored anonymous demo session (local sign-out only)
+
+**Date:** 2026-09-13
+**Feature:** feature/demo-session-no-relaunch-resume
+**Agent:** Architect
+**Status:** Active
+
+### Context
+
+On native platforms the demo entry point creates an anonymous Supabase session.
+`supabase_flutter` persists that session like a real-user session, so on the next
+cold start it is restored and the app auto-routes straight back into the Demo Band
+— skipping the login screen — for as long as #289's TTL has not yet reclaimed the
+underlying `demo_sessions` slot. Auto-resume is correct for authenticated real
+users but wrong for the anonymous demo flow, which should always start clean at the
+login screen on relaunch. Every existing auth path (`AuthStateNotifier.build()`,
+the `build()` safeguard, the 5 s sync timer, `refreshSession`/`forceRefresh`, the
+`initialSession` replay) reads `Supabase.instance.client.auth.currentSession` as
+ground truth and will resurrect any session the provider layer tries to drop, so a
+provider/widget-only fix is fragile.
+
+### Decision
+
+Insert a new initialization step **6.5** into the fixed app init order: after
+`Supabase.initialize()` (and its existing `FormatException` retry) and **before**
+`Firebase.initializeApp()`, read `currentSession` and, if it is a restored
+anonymous session, perform a **local** sign-out (`SignOutScope.local`) bounded by a
+~2 s timeout. The gate is a new pure static predicate
+`DemoSessionService.shouldPurgeRestoredAnonymousSession({hasSession, isAnonymous})
+=> hasSession && isAnonymous` (a testable seam mirroring #289's
+`shouldReleaseDemoOnLifecycle`). With `currentSession == null` before `runApp()`,
+every existing auth path agrees "no session" and routes to `LoginScreen` with zero
+special-casing; `isAuthenticated == session != null` is left literally unchanged,
+preserving real-user persistence exactly.
+
+Cold-start handling is **local sign-out only** — it does **not** call the
+`exit-demo-session` edge function to release the server-side slot.
+
+### Rationale
+
+- The requirement ("demo never resumes on relaunch") is fully and instantly
+  satisfied by the local sign-out with no network dependency and no added startup
+  latency in the common case. Honoring the Manager's preference that the fix not
+  depend on exit-time network completion, a pure local clear depends on no network
+  at all.
+- Server-side slot reclamation is already owned by #289's 8-minute TTL + 2-minute
+  cron sweep (off-limits) and the best-effort `detached` release. A second
+  cold-start release would be a redundant, overlapping mechanism whose only benefit
+  is freeing a slot a few minutes earlier — not required here, and it would put a
+  network call plus timeout/ordering complexity on the startup path.
+- Nulling `currentSession` upstream is the only robust, low-blast-radius fix: any
+  approach that leaves `currentSession` non-null while routing to login is undone
+  by the `build()` safeguard on the first frame.
+
+### Login-guaranteed failure behavior
+
+`signOut(scope: SignOutScope.local)` removes the persisted session from local
+storage client-side *before* the ignorable network revoke, so even fully offline
+`currentSession` becomes `null` and the app routes to login. The orphaned
+server-side slot is reclaimed by the unchanged #289 TTL + cron backstop; the
+existing `_reconcileOrphanedAnonymousSession()` global sign-out still applies for
+any later authenticated cold start that observes an anonymous session whose band is
+gone. If the bounded `signOut` itself throws, `main.dart` swallows it and still
+proceeds to `runApp()`; the worst case for that one launch is pre-fix behavior,
+backstopped by TTL — no crash, no regression for real users.
+
+### Constraints Imposed
+
+- Init step 6.5 sits strictly between existing steps 6 and 7; no other step is
+  reordered. `RUNTIME_CONFIG.md` reflects it.
+- The purge is gated on `hasSession && isAnonymous` only — never real users, never
+  the no-session case — so real-user persistence and the live in-run demo flow are
+  unaffected.
+- `isAuthenticated == session != null` must stay unchanged; the fix works by
+  nulling `currentSession` upstream, not by redefining auth semantics.
+- No cold-start server-side demo-slot release; reclamation stays with #289's
+  untouched TTL + cron.
+
+### Rollback Plan
+
+Revert `lib/main.dart` (import + purge block), the predicate in
+`lib/features/auth/demo_session_service.dart`, the test group in
+`test/features/auth/demo_lifecycle_predicate_test.dart`, and the two doc edits
+(this entry and the `RUNTIME_CONFIG.md` step 6.5). No database to unwind.
+
+---
+
 ## Categories Requiring a Logged Decision
 
 Any of the following changes **must** produce a new entry before implementation:

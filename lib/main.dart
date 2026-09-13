@@ -19,6 +19,7 @@ import 'app/theme/app_theme.dart';
 import 'app/theme/theme_mode_controller.dart';
 import 'features/auth/auth_gate.dart';
 import 'features/auth/auth_confirm_screen.dart';
+import 'features/auth/demo_session_service.dart';
 import 'features/auth/invite_screen.dart';
 import 'features/landing/landing_page.dart';
 import 'features/legal/privacy_policy_screen.dart';
@@ -87,6 +88,29 @@ Future<void> main() async {
         detectSessionInUri: kIsWeb,
       ),
     );
+  }
+
+  // Never resume an anonymous/demo session across a relaunch. A restored
+  // anonymous session is purged locally so cold start always lands on login;
+  // fresh in-run demo sessions (created after startup) are unaffected. Real
+  // users are non-anonymous and skip this entirely. Bounded so a slow/offline
+  // network revoke can't delay startup — gotrue clears local storage before
+  // the network part, so login is guaranteed even on timeout.
+  final restoredSession = Supabase.instance.client.auth.currentSession;
+  if (DemoSessionService.shouldPurgeRestoredAnonymousSession(
+    hasSession: restoredSession != null,
+    isAnonymous: restoredSession?.user.isAnonymous == true,
+  )) {
+    try {
+      // Local sign-out (gotrue's default scope): clears in-memory + persisted
+      // storage before the ignorable network revoke, so login is guaranteed
+      // even offline. Bounded so a slow revoke can't delay startup.
+      await Supabase.instance.client.auth
+          .signOut()
+          .timeout(const Duration(seconds: 2), onTimeout: () {});
+    } catch (e) {
+      debugPrint('[Main] Anonymous demo session purge failed: $e');
+    }
   }
 
   // Initialize Firebase for push notifications

@@ -92,4 +92,16 @@ class DemoSessionService {
     required bool isAnonymous,
   }) =>
       state == AppLifecycleState.detached && isAnonymous;
+
+  /// Pure predicate (testable seam): a session that must be purged at cold
+  /// start is a *restored* anonymous demo session — one already in storage
+  /// when the app launches. Fresh in-run demo sessions never reach this path
+  /// (they are created after startup via the demo button). Real users
+  /// (non-anonymous) and the no-session case are never purged, so persistent
+  /// real-user sessions are preserved exactly.
+  static bool shouldPurgeRestoredAnonymousSession({
+    required bool hasSession,
+    required bool isAnonymous,
+  }) =>
+      hasSession && isAnonymous;
 }

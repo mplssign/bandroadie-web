@@ -49,4 +49,47 @@ void main() {
       }
     });
   });
+
+  group('shouldPurgeRestoredAnonymousSession', () {
+    test('returns true for a restored anonymous demo session', () {
+      expect(
+        DemoSessionService.shouldPurgeRestoredAnonymousSession(
+          hasSession: true,
+          isAnonymous: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('returns false for a real (non-anonymous) session', () {
+      // Guards real-user persistence: a restored real session must never purge.
+      expect(
+        DemoSessionService.shouldPurgeRestoredAnonymousSession(
+          hasSession: true,
+          isAnonymous: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('returns false when there is no session', () {
+      expect(
+        DemoSessionService.shouldPurgeRestoredAnonymousSession(
+          hasSession: false,
+          isAnonymous: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('returns false when no session dominates a stale anonymous flag', () {
+      expect(
+        DemoSessionService.shouldPurgeRestoredAnonymousSession(
+          hasSession: false,
+          isAnonymous: true,
+        ),
+        isFalse,
+      );
+    });
+  });
 }
