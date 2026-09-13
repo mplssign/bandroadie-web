@@ -348,7 +348,7 @@ class _RehearsalCardState extends State<RehearsalCard>
             return AppCard(
               padding: EdgeInsets.zero,
               borderRadius: BorderRadius.circular(Spacing.cardRadius),
-              color: const Color(0x14F97316), // orange-500 tint background
+              color: const Color(0x33F97316), // orange-500 @ ~20% alpha background tint
               border: Border.all(
                 color: borderColor,
                 width: 1.5,
@@ -597,7 +597,7 @@ class _RehearsalCardState extends State<RehearsalCard>
             color: const Color(0x330EA5E9), // sky-500 @ 20% alpha
             width: 1.5,
           ),
-          color: const Color(0x140EA5E9), // sky-500 @ ~8% alpha background tint
+          color: const Color(0x1F0EA5E9), // sky-500 @ ~12% alpha background tint
           child: Container(
             constraints: const BoxConstraints(
               minHeight: Spacing.rehearsalCardHeight,

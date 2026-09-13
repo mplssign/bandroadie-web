@@ -312,7 +312,7 @@ class _PotentialGigCardState extends State<PotentialGigCard>
             return AppCard(
               padding: EdgeInsets.zero,
               borderRadius: BorderRadius.circular(Spacing.cardRadius),
-              color: const Color(0x14F97316), // orange-500 tint background
+              color: const Color(0x33F97316), // orange-500 @ ~20% alpha background tint
               border: Border.all(
                 color: borderColor,
                 width: 1.5,
