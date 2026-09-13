@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1140,6 +1141,33 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     }
   }
 
+  Future<String?> _uploadPickedBytesToStorage(
+    Uint8List bytes,
+    String extension,
+  ) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      extension = extension.toLowerCase();
+      if (!const {'png', 'jpg', 'jpeg', 'gif', 'webp'}.contains(extension)) {
+        extension = 'png';
+      }
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '$userId/$timestamp.$extension';
+      final opts = FileOptions(contentType: 'image/$extension', upsert: true);
+
+      await supabase.storage.from('band-avatars').uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: opts,
+          );
+      return supabase.storage.from('band-avatars').getPublicUrl(fileName);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Check and request camera permission
   /// Returns true if permission is granted, false otherwise
   Future<bool> _checkCameraPermission() async {
@@ -1283,8 +1311,52 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     );
   }
 
+  Future<void> _pickImageFromWebFilePicker() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      final file = result?.files.single;
+      final bytes = file?.bytes;
+      if (bytes == null || !mounted) return;
+      setState(() {
+        _isUploadingImage = true;
+        _uploadedImageUrl = null;
+      });
+      HapticFeedback.lightImpact();
+      final uploadedUrl = await _uploadPickedBytesToStorage(
+        bytes,
+        file?.extension ?? 'png',
+      );
+      if (!mounted) return;
+      setState(() {
+        _uploadedImageUrl = uploadedUrl;
+        _isUploadingImage = false;
+      });
+      if (_isEditMode && uploadedUrl != null) {
+        ref.read(draftBandProvider.notifier).updateImageUrl(uploadedUrl);
+      }
+
+      if (uploadedUrl != null) {
+        showSuccessSnackBar(context, message: 'Image uploaded successfully');
+      } else {
+        showErrorSnackBar(context, message: 'Failed to upload image');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isUploadingImage = false);
+      _showErrorSnackBar('Failed to pick image. Please try again.');
+    }
+  }
+
   // ignore: unused_element
   Future<void> _pickImage() async {
+    if (kIsWeb) {
+      await _pickImageFromWebFilePicker();
+      return;
+    }
+
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: context.colors.surface,
