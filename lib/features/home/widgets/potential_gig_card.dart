@@ -467,6 +467,37 @@ class _PotentialGigCardState extends State<PotentialGigCard>
                     ],
                   ),
 
+                  if (widget.gig.setlistId == null) ...[
+                    const SizedBox(height: 12),
+                    Center(
+                      child: IntrinsicWidth(
+                        child: Container(
+                          height: 32,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius:
+                                BorderRadius.circular(Spacing.chipRadius),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'No Setlist Selected',
+                            style: AppTextStyles.footnote.copyWith(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+
                   const Spacer(),
 
                   // Button row: [← nav] [NO] [YES] [nav →] when multi-date,
