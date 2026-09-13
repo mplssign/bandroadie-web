@@ -1,11 +1,81 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bandroadie/features/calendar/auto_conflict_blocking_service.dart';
+import 'package:bandroadie/features/calendar/block_out_repository.dart';
+import 'package:bandroadie/features/contacts/contacts_controller.dart';
+import 'package:bandroadie/features/contacts/venues_controller.dart';
+import 'package:bandroadie/features/events/events_repository.dart';
 import 'package:bandroadie/features/events/models/event_form_data.dart';
 import 'package:bandroadie/features/events/widgets/event_editor_drawer.dart';
 import 'package:bandroadie/features/events/widgets/event_editor_helpers.dart';
+import 'package:bandroadie/features/members/members_controller.dart';
+import 'package:bandroadie/features/setlists/models/setlist.dart';
+import 'package:bandroadie/features/setlists/setlists_screen.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:forui/forui.dart';
+
+class _StubSetlistsNotifier extends SetlistsNotifier {
+  @override
+  SetlistsState build() => const SetlistsState(
+        setlists: [
+          Setlist(
+            id: 'setlist-1',
+            name: 'Road Set',
+            songCount: 0,
+            totalDuration: Duration.zero,
+          ),
+        ],
+      );
+}
+
+class _StubMembersNotifier extends MembersNotifier {
+  @override
+  MembersState build() => const MembersState();
+  @override
+  Future<void> loadMembers(String? bandId, {bool forceRefresh = false}) async {}
+}
+
+class _StubVenuesNotifier extends VenuesNotifier {
+  @override
+  VenuesState build() => const VenuesState();
+  @override
+  Future<void> load(String? bandId) async {}
+}
+
+class _StubContactsNotifier extends ContactsNotifier {
+  @override
+  ContactsState build() => const ContactsState();
+  @override
+  Future<void> load(String? bandId) async {}
+}
+
+class _StubBlockOutRepository extends BlockOutRepository {
+  @override
+  Future<List<Never>> fetchBlockOutsForBand(
+    String bandId, {
+    bool forceRefresh = false,
+  }) async =>
+      const [];
+}
+
+class _CapturingEventsRepository extends EventsRepository {
+  _CapturingEventsRepository(super.autoConflictBlockingService);
+
+  EventFormData? capturedFormData;
+
+  @override
+  Future<Never> updateRehearsal({
+    required String rehearsalId,
+    required String bandId,
+    required EventFormData formData,
+    bool? wasRecurring,
+  }) async {
+    capturedFormData = formData;
+    throw StateError('Stop after capturing form data');
+  }
+}
 
 void main() {
   group('EventDropdown', () {
@@ -252,5 +322,84 @@ void main() {
         );
       },
     );
+  });
+
+  group('EventEditorDrawer setlist selector (rehearsal)', () {
+    testWidgets('selects and clears a rehearsal setlist', (tester) async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      try {
+        await Supabase.initialize(
+          url: 'https://test.supabase.co',
+          publishableKey: 'test-anon-key',
+          authOptions: const FlutterAuthClientOptions(
+            autoRefreshToken: false,
+            persistSession: false,
+          ),
+        );
+      } catch (_) {}
+
+      late _CapturingEventsRepository repository;
+      final existingEvent = EventFormData(
+        type: EventType.rehearsal,
+        date: DateTime(2026, 9, 13),
+        hour: 7,
+        minutes: 0,
+        isPM: true,
+        duration: EventDuration.hour1,
+        location: 'Test Studio',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            setlistsProvider.overrideWith(_StubSetlistsNotifier.new),
+            membersProvider.overrideWith(_StubMembersNotifier.new),
+            venuesProvider.overrideWith(_StubVenuesNotifier.new),
+            contactsProvider.overrideWith(_StubContactsNotifier.new),
+            blockOutRepositoryProvider.overrideWithValue(
+              _StubBlockOutRepository(),
+            ),
+            eventsRepositoryProvider.overrideWith(
+              (ref) => repository = _CapturingEventsRepository(
+                ref.read(autoConflictBlockingServiceProvider),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: Scaffold(
+              body: EventEditorDrawer(
+                mode: EventEditorMode.edit,
+                initialEventType: EventType.rehearsal,
+                existingEvent: existingEvent,
+                existingEventId: 'rehearsal-1',
+                bandId: 'test-band-id',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Setlist'), findsWidgets);
+      await tester.ensureVisible(find.text('Road Set'));
+      await tester.tap(find.text('Road Set'));
+      await tester.pump();
+      await tester.tap(find.text('Update'));
+      await tester.pumpAndSettle();
+
+      expect(repository.capturedFormData?.setlistId, 'setlist-1');
+
+      repository.capturedFormData = null;
+      await tester.ensureVisible(find.text('None'));
+      await tester.tap(find.text('None'));
+      await tester.pump();
+      await tester.tap(find.text('Update'));
+      await tester.pumpAndSettle();
+
+      expect(repository.capturedFormData, isNotNull);
+      expect(repository.capturedFormData?.setlistId, isNull);
+    });
   });
 }

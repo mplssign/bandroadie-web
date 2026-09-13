@@ -2966,6 +2966,11 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
                   context, gigFormFields, rehearsalFormFields)),
           const SizedBox(height: 16),
           _SectionCard(
+            title: 'Setlist',
+            child: eventFormFields.buildSetlistSelector(context, ref),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
               title: 'Notes',
               child: _buildNotesSection(context, eventFormFields)),
           if (_isEditMode && !widget.viewOnly) ...[
