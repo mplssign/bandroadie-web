@@ -144,6 +144,15 @@ class _AuthGateState extends ConsumerState<AuthGate>
       });
     }
 
+    // Best-effort demo-slot release on true termination (detached), gated on an
+    // anonymous session so it never fires for real users or on mere backgrounding.
+    if (DemoSessionService.shouldReleaseDemoOnLifecycle(
+      state,
+      isAnonymous: supabase.auth.currentSession?.user.isAnonymous == true,
+    )) {
+      unawaited(DemoSessionService.releaseSlotOnDetach());
+    }
+
     _previousLifecycleState = state;
   }
 
