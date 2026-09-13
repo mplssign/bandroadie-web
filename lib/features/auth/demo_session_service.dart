@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../bands/active_band_controller.dart';
@@ -93,15 +96,46 @@ class DemoSessionService {
   }) =>
       state == AppLifecycleState.detached && isAnonymous;
 
-  /// Pure predicate (testable seam): a session that must be purged at cold
-  /// start is a *restored* anonymous demo session — one already in storage
-  /// when the app launches. Fresh in-run demo sessions never reach this path
-  /// (they are created after startup via the demo button). Real users
-  /// (non-anonymous) and the no-session case are never purged, so persistent
-  /// real-user sessions are preserved exactly.
-  static bool shouldPurgeRestoredAnonymousSession({
-    required bool hasSession,
-    required bool isAnonymous,
-  }) =>
-      hasSession && isAnonymous;
+  /// Pure predicate (testable seam): whether a persisted session JSON blob is
+  /// an anonymous (demo) session. Malformed or absent JSON is treated as
+  /// non-anonymous — fail-safe, so a real user's stored session is never
+  /// mistaken for a demo session and dropped.
+  static bool isPersistedSessionAnonymous(String? rawSessionJson) {
+    if (rawSessionJson == null) return false;
+    try {
+      final decoded = jsonDecode(rawSessionJson);
+      final user = decoded is Map ? decoded['user'] : null;
+      return user is Map && user['is_anonymous'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Deletes a *restored* anonymous demo session from local storage, and must
+  /// run BEFORE `Supabase.initialize()`. This is what guarantees a demo never
+  /// resumes across a relaunch: `supabase_flutter` restores a persisted session
+  /// during `initialize()` AND kicks off a non-awaited background
+  /// `recoverSession()` that re-reads storage after `initialize()` returns, so a
+  /// post-init local sign-out is silently undone by that background restore.
+  /// Clearing the on-disk anonymous session first leaves the SDK nothing to
+  /// restore, so `currentSession` stays null and cold start lands on login.
+  ///
+  /// Real (non-anonymous) sessions are left untouched, preserving real-user
+  /// persistence exactly. Best-effort: any failure (or a storage-key mismatch)
+  /// degrades to prior behavior, backstopped by #289's server-side TTL + cron —
+  /// it never drops a real user's session.
+  static Future<void> purgePersistedAnonymousSession(String supabaseUrl) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // Mirrors supabase_flutter's own persist-key derivation
+      // (SharedPreferencesLocalStorage, supabase.dart).
+      final key =
+          'sb-${Uri.parse(supabaseUrl).host.split('.').first}-auth-token';
+      if (isPersistedSessionAnonymous(prefs.getString(key))) {
+        await prefs.remove(key);
+      }
+    } catch (_) {
+      // Best-effort only; #289 TTL + cron reclaim the server slot regardless.
+    }
+  }
 }

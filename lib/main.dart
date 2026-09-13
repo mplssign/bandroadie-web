@@ -53,6 +53,18 @@ Future<void> main() async {
     return;
   }
 
+  // Never resume an anonymous/demo session across a relaunch. supabase_flutter
+  // restores a persisted session during Supabase.initialize() AND runs a
+  // non-awaited background recoverSession() that re-reads storage after init
+  // returns — so purging after init is undone by that background restore. Purge
+  // the restored anonymous session from disk BEFORE the SDK reads it, so nothing
+  // is restored and cold start lands on login. Native-only: the demo entry point
+  // never runs on web (kIsWeb), so no anonymous session exists there to purge.
+  // Real (non-anonymous) sessions are left untouched.
+  if (!kIsWeb) {
+    await DemoSessionService.purgePersistedAnonymousSession(supabaseUrl);
+  }
+
   // Initialize Supabase with PKCE auth flow for magic links
   // We handle deep links manually via DeepLinkService to support all app states:
   // - App launched from link (cold start)
@@ -88,29 +100,6 @@ Future<void> main() async {
         detectSessionInUri: kIsWeb,
       ),
     );
-  }
-
-  // Never resume an anonymous/demo session across a relaunch. A restored
-  // anonymous session is purged locally so cold start always lands on login;
-  // fresh in-run demo sessions (created after startup) are unaffected. Real
-  // users are non-anonymous and skip this entirely. Bounded so a slow/offline
-  // network revoke can't delay startup — gotrue clears local storage before
-  // the network part, so login is guaranteed even on timeout.
-  final restoredSession = Supabase.instance.client.auth.currentSession;
-  if (DemoSessionService.shouldPurgeRestoredAnonymousSession(
-    hasSession: restoredSession != null,
-    isAnonymous: restoredSession?.user.isAnonymous == true,
-  )) {
-    try {
-      // Local sign-out (gotrue's default scope): clears in-memory + persisted
-      // storage before the ignorable network revoke, so login is guaranteed
-      // even offline. Bounded so a slow revoke can't delay startup.
-      await Supabase.instance.client.auth
-          .signOut()
-          .timeout(const Duration(seconds: 2), onTimeout: () {});
-    } catch (e) {
-      debugPrint('[Main] Anonymous demo session purge failed: $e');
-    }
   }
 
   // Initialize Firebase for push notifications

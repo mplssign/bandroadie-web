@@ -309,12 +309,32 @@ files (`auth_gate.dart`, `demo_session_service.dart`). No RLS change to unwind.
 
 ---
 
-## [DECISION-006] Cold-start purge of restored anonymous demo session (local sign-out only)
+## [DECISION-006] Pre-init disk purge of a restored anonymous demo session
 
 **Date:** 2026-09-13
 **Feature:** feature/demo-session-no-relaunch-resume
-**Agent:** Architect
+**Agent:** Architect (Cycle 4 mechanism correction by Engineer)
 **Status:** Active
+
+### Cycle 4 correction (why the mechanism changed)
+
+Cycles 1–3 implemented this as init **step 6.5**: after `Supabase.initialize()`,
+read `currentSession` and, if it was a restored anonymous session, `signOut(scope:
+SignOutScope.local)`. Static analysis and headless tests passed, but the owner
+relaunch test **failed** — a demo still resumed into the Demo Band on cold start.
+
+Root cause (confirmed against `supabase_flutter` 2.17.2 / gotrue 2.27.2 source):
+`Supabase.initialize()` restores the persisted session into `currentSession` (via
+`setInitialSession`), so the step-6.5 `signOut()` did null it. But
+`Supabase.initialize()` **also fires a non-awaited background `recoverSession()`**
+as a `CancelableOperation` (`supabase.dart`) that runs *after* `initialize()`
+returns. That background task re-reads the still-persisted, non-expired anonymous
+session from disk and calls `_saveSession()` → `_currentSession = session`,
+**resurrecting** the anonymous session in memory (and emitting `tokenRefreshed`).
+The step-6.5 disk removal (`removePersistedSession`, dispatched from the
+`signedOut` event) is itself asynchronous/fire-and-forget and loses the race. No
+post-init `signOut()` — timed out, retried, or awaited — can deterministically
+beat that background restore. The mechanism was therefore replaced (see Decision).
 
 ### Context
 
@@ -324,84 +344,89 @@ cold start it is restored and the app auto-routes straight back into the Demo Ba
 — skipping the login screen — for as long as #289's TTL has not yet reclaimed the
 underlying `demo_sessions` slot. Auto-resume is correct for authenticated real
 users but wrong for the anonymous demo flow, which should always start clean at the
-login screen on relaunch. Every existing auth path (`AuthStateNotifier.build()`,
-the `build()` safeguard, the 5 s sync timer, `refreshSession`/`forceRefresh`, the
-`initialSession` replay) reads `Supabase.instance.client.auth.currentSession` as
-ground truth and will resurrect any session the provider layer tries to drop, so a
-provider/widget-only fix is fragile.
+login screen on relaunch. Because the SDK restores the persisted session *and*
+resurrects it via a background `recoverSession()`, the only deterministic fix is to
+ensure the anonymous session is not on disk when the SDK reads it.
 
 ### Decision
 
-Insert a new initialization step **6.5** into the fixed app init order: after
-`Supabase.initialize()` (and its existing `FormatException` retry) and **before**
-`Firebase.initializeApp()`, read `currentSession` and, if it is a restored
-anonymous session, perform a **local** sign-out (`SignOutScope.local`) bounded by a
-~2 s timeout. The gate is a new pure static predicate
-`DemoSessionService.shouldPurgeRestoredAnonymousSession({hasSession, isAnonymous})
-=> hasSession && isAnonymous` (a testable seam mirroring #289's
-`shouldReleaseDemoOnLifecycle`). With `currentSession == null` before `runApp()`,
-every existing auth path agrees "no session" and routes to `LoginScreen` with zero
-special-casing; `isAuthenticated == session != null` is left literally unchanged,
-preserving real-user persistence exactly.
+Insert a new initialization step **5.5** into the fixed app init order: after
+`validateSupabaseConfig()` and **before** `Supabase.initialize()`, purge any
+persisted **anonymous** session from local storage so the SDK has nothing to
+restore or resurrect. The purge is `DemoSessionService.purgePersistedAnonymousSession(supabaseUrl)`
+— it reads `supabase_flutter`'s own persist key (`sb-<ref>-auth-token`) from
+`SharedPreferences`, and, gated by the pure predicate
+`DemoSessionService.isPersistedSessionAnonymous(rawJson)` (a testable seam),
+removes the key only when the stored session's `user.is_anonymous == true`. It is
+native-only (`!kIsWeb`): the demo entry point never runs on web, so no anonymous
+session exists there to purge.
 
-Cold-start handling is **local sign-out only** — it does **not** call the
-`exit-demo-session` edge function to release the server-side slot.
+With no anonymous session on disk at init time, `Supabase.initialize()`'s restore
+(`setInitialSession`) and its background `recoverSession()` both find nothing, so
+`currentSession` stays `null` and every existing auth path routes to `LoginScreen`
+with zero special-casing. `isAuthenticated == session != null` is left literally
+unchanged, preserving real-user persistence exactly.
+
+This replaces the Cycle 1–3 post-init local sign-out (init step 6.5), which was
+undone by the SDK's background restore (see Cycle 4 correction). No cold-start
+server-side slot release is performed; reclamation stays with #289's untouched
+TTL + cron.
 
 ### Rationale
 
-- The requirement ("demo never resumes on relaunch") is fully and instantly
-  satisfied by the local sign-out with no network dependency and no added startup
-  latency in the common case. Honoring the Manager's preference that the fix not
-  depend on exit-time network completion, a pure local clear depends on no network
-  at all.
+- Deterministic, no race: clearing the on-disk anonymous session *before* the SDK
+  reads it removes the resurrection vector entirely, rather than fighting the
+  SDK's non-awaited background `recoverSession()` after the fact.
+- No network dependency and no added startup latency in the common case (a single
+  `SharedPreferences` read; a remove only when an anonymous session is present).
+  Honors the Manager's preference that the fix not depend on exit-time or
+  startup-time network completion.
+- Fail-safe for real users: the purge removes a key **only** when the stored
+  session parses as `is_anonymous == true`. A malformed blob, a real-user session,
+  a missing key, or a storage-key mismatch all leave storage untouched — the worst
+  case is prior (demo-resume) behavior for that one launch, backstopped by #289's
+  TTL + cron, never a dropped real-user session.
 - Server-side slot reclamation is already owned by #289's 8-minute TTL + 2-minute
-  cron sweep (off-limits) and the best-effort `detached` release. A second
-  cold-start release would be a redundant, overlapping mechanism whose only benefit
-  is freeing a slot a few minutes earlier — not required here, and it would put a
-  network call plus timeout/ordering complexity on the startup path.
-- Nulling `currentSession` upstream is the only robust, low-blast-radius fix: any
-  approach that leaves `currentSession` non-null while routing to login is undone
-  by the `build()` safeguard on the first frame.
+  cron sweep (off-limits) and the best-effort `detached` release; no second
+  reclamation mechanism is added.
 
-### Login-guaranteed failure behavior
+### Login guarantee and failure behavior
 
-`signOut(scope: SignOutScope.local)` synchronously nulls the **in-memory** session
-before any awaited work or network revoke: gotrue 2.27.2's `_removeSession()` sets
-`_currentSession = null` up front, so `currentSession` is guaranteed `null` for the
-remainder of this launch — including fully offline — and the app routes to login.
-Removal of the **persisted** session from disk is a separate, non-awaited path:
-supabase_flutter 2.17.2 receives the `signedOut` event through its auth listener and
-dispatches the persisted-session removal asynchronously (fire-and-forget), so
-`signOut()` returns without waiting on that disk write — disk removal is _not_
-ordered or awaited relative to the revoke. That remaining disk-persistence race is
-harmless because the cold-start purge (step 6.5) reruns **unconditionally on every
-launch**: if a prior disk removal never completed, the restored anonymous session is
-detected and purged again before `runApp()`, so login is still shown. The orphaned
-server-side slot is reclaimed by the unchanged #289 TTL + cron backstop; the
+Because the anonymous session is deleted from disk before `Supabase.initialize()`,
+the SDK's `hasAccessToken()` returns false during init, `setInitialSession` is
+skipped, and the background `recoverSession()` finds nothing — `currentSession` is
+`null` for the whole launch with no network involved, so the app routes to login.
+If the purge itself throws (e.g. a `SharedPreferences` read failure), the error is
+swallowed and startup still proceeds to `Supabase.initialize()`; the worst case for
+that one launch is the pre-fix demo-resume behavior, reclaimed by the unchanged
+#289 TTL + cron backstop, with no crash and no regression for real users. The
 existing `_reconcileOrphanedAnonymousSession()` global sign-out still applies for
 any later authenticated cold start that observes an anonymous session whose band is
-gone. If the bounded `signOut` itself throws, `main.dart` swallows it and still
-proceeds to `runApp()`; the worst case for that one launch is pre-fix behavior,
-backstopped by TTL — no crash, no regression for real users.
+gone.
 
 ### Constraints Imposed
 
-- Init step 6.5 sits strictly between existing steps 6 and 7; no other step is
-  reordered. `RUNTIME_CONFIG.md` reflects it.
-- The purge is gated on `hasSession && isAnonymous` only — never real users, never
-  the no-session case — so real-user persistence and the live in-run demo flow are
-  unaffected.
+- Init step 5.5 sits strictly between existing steps 5 and 6 (before
+  `Supabase.initialize()`); no other step is reordered. `RUNTIME_CONFIG.md`
+  reflects it.
+- The purge removes storage **only** for a session whose `user.is_anonymous == true`
+  — never a real user, never the no-session case — so real-user persistence and the
+  live in-run demo flow are unaffected.
 - `isAuthenticated == session != null` must stay unchanged; the fix works by
-  nulling `currentSession` upstream, not by redefining auth semantics.
+  keeping `currentSession` empty upstream, not by redefining auth semantics.
+- The persist-key derivation must mirror `supabase_flutter`'s
+  (`sb-${host.split('.').first}-auth-token`); a mismatch degrades to prior
+  behavior (fail-safe), never a real-user regression.
 - No cold-start server-side demo-slot release; reclamation stays with #289's
   untouched TTL + cron.
 
 ### Rollback Plan
 
-Revert `lib/main.dart` (import + purge block), the predicate in
-`lib/features/auth/demo_session_service.dart`, the test group in
+Revert `lib/main.dart` (the pre-init purge call), the
+`isPersistedSessionAnonymous` + `purgePersistedAnonymousSession` methods in
+`lib/features/auth/demo_session_service.dart`, the test groups in
 `test/features/auth/demo_lifecycle_predicate_test.dart`, and the two doc edits
-(this entry and the `RUNTIME_CONFIG.md` step 6.5). No database to unwind.
+(this entry and the `RUNTIME_CONFIG.md` step 5.5). No database to unwind.
 
 ---
 
