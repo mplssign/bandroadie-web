@@ -46,11 +46,9 @@ import 'package:bandroadie/components/ui/app_progress_indicator.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 
-// Temporarily disabled: anonymous demo sessions leave orphaned auth.users/
-// public.users rows with no cleanup job, and anonymous sign-in has no
-// visible bot/rate-limit protection (see incident review, 2026-09-08).
-// Flip back to true once the account-cleanup job ships.
-const bool _kDemoBandVisible = !kIsWeb;
+// Publicly visible on every platform; capacity is bounded by migration
+// 20260912130000 (30 slots, 8-min TTL, 2-min cron sweep).
+const bool _kDemoBandVisible = true;
 
 // Horizontal inset applied around the login form. The domain pill row is a
 // full-width sibling outside this inset so it can render edge-to-edge

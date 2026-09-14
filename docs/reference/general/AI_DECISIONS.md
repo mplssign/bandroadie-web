@@ -430,6 +430,27 @@ Revert `lib/main.dart` (the pre-init purge call), the
 
 ---
 
+## [DECISION-007] Login-screen demo entry point visible on all platforms
+
+**Date:** 2026-09-13
+**Feature:** feature/unhide-demo-band-link
+**Agent:** Architect
+**Status:** Active
+
+### Decision
+
+Set `_kDemoBandVisible = true` so the login-screen demo entry point is publicly
+visible on every platform. This supersedes DECISION-006's native-only scoping
+for visibility only. The pre-init anonymous-session purge in `lib/main.dart`
+intentionally remains gated by `if (!kIsWeb)` because this feature restores
+visibility without changing the link's behavior.
+
+Capacity remains bounded by migration 20260912130000's 30-slot ceiling,
+8-minute TTL, and 2-minute cron sweep, plus Supabase's auth-layer rate limiting.
+This accepts the web exposure without adding an app-level per-IP throttle.
+
+---
+
 ## Categories Requiring a Logged Decision
 
 Any of the following changes **must** produce a new entry before implementation:
