@@ -1352,7 +1352,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
   // ignore: unused_element
   Future<void> _pickImage() async {
-    if (kIsWeb) {
+    if (kIsWeb || Platform.isMacOS) {
       await _pickImageFromWebFilePicker();
       return;
     }

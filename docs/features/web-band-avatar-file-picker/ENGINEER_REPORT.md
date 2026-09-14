@@ -6,29 +6,26 @@
 
 ## Feature Title
 
-Use a desktop file picker for band avatar uploads on web
+Use a desktop file picker for band avatar uploads on web and macOS
 
 ## Cycle Number
 
-2
+3
 
 ## Goal
 
-Resolve QA Cycle 1's Critical `[code-quality]` finding by removing the two newly added `debugPrint(` calls while preserving the web upload helper's silent-null contract, the web picker helper's user-facing error contract, and all existing native behavior.
+Address Tony's Cycle 2 owner-test feedback that native macOS still showed the mobile "Choose Image Source" sheet. Route macOS through the existing direct file browser used by web while preserving the iOS and Android source sheet.
 
 ## Architect Tasks Completed
 
-- Removed the newly added `debugPrint(` call from `_uploadPickedBytesToStorage()`; its catch still returns `null` silently so the caller presents the existing upload error snackbar.
-- Removed the newly added `debugPrint(` call from `_pickImageFromWebFilePicker()`; its catch still guards `mounted`, resets `_isUploadingImage`, and presents the existing picker error snackbar.
-- Added the `kIsWeb` import and early-return branch at the top of `_pickImage()`.
-- Added `_pickImageFromWebFilePicker()` using `FilePicker`, in-memory bytes, existing upload-state fields, draft-band URL propagation, haptics, mounted guards, and existing snackbar behavior.
-- Added `_uploadPickedBytesToStorage()` with authenticated object naming, lowercase extension normalization, the `png|jpg|jpeg|gif|webp` whitelist, `png` fallback, direct `uploadBinary`, and public-URL retrieval.
-- Preserved `_uploadImageToStorage(File)` and every line of the existing mobile/macOS `_pickImage()` path after the new web guard.
-- Left the stale `unused_element` ignore, avatar contracts, tests, dependencies, Supabase code, routing, auth, and initialization unchanged.
+- Changed the `_pickImage()` guard from `if (kIsWeb)` to `if (kIsWeb || Platform.isMacOS)`.
+- Reused `_pickImageFromWebFilePicker()` unchanged for native macOS.
+- Preserved the complete iOS/Android source-sheet path, upload helpers, imports, tests, dependencies, platform files, Supabase code, routing, auth, and initialization.
+- Added no debug logging.
 
 ## Files Created
 
-- None in Cycle 2.
+- None.
 
 ## Files Modified
 
@@ -38,8 +35,8 @@ Resolve QA Cycle 1's Critical `[code-quality]` finding by removing the two newly
 ## Analyzer Results
 
 - `dart fix --dry-run`: `Nothing to fix!`
-- Final focused `flutter analyze lib/features/bands/band_form_screen.dart`: `No issues found! (ran in 2.5s)`
-- Full `flutter analyze`: `No issues found! (ran in 4.7s)`
+- Focused `flutter analyze lib/features/bands/band_form_screen.dart`: `No issues found! (ran in 2.4s)`
+- Full `flutter analyze`: `No issues found! (ran in 5.3s)`
 
 ## Test Results
 
@@ -48,31 +45,31 @@ Resolve QA Cycle 1's Critical `[code-quality]` finding by removing the two newly
 
 ## Code Efficiency/Bloat Check
 
-- Final implementation delta: 72 insertions, 0 deletions, within the revised approved net +53 to +73 budget.
-- Existing-helper search across `lib/`: no existing helper for web band-avatar image picking or direct band-avatar byte upload; the only matching upload was the existing `File`-based helper in the owning screen.
-- Both new methods are private; no provider, model field, widget contract, dependency, or public API was added.
-- `band_form_screen.dart` remains above the Dart file-size target because the approved plan confines this web-only behavior to the existing owning screen and explicitly prohibits the broader extraction/refactor.
-- Zero implementation deletions are intentional: the root cause was a missing web platform branch and bytes upload path, while the plan requires the existing mobile path to remain unchanged.
+- Cycle 3 source delta against `HEAD`: 1 insertion, 1 deletion, net 0; exactly the approved one-line condition replacement.
+- Cumulative source delta against `main`: 72 insertions, 0 deletions, within the approved +53 to +73 budget.
+- No helper, provider, model field, widget, dependency, public API, or test was added; the existing file-picker helper is reused unchanged.
+- `band_form_screen.dart` remains above the Dart file-size target because the plan requires a one-line edit in the existing owning screen and prohibits extraction or refactoring.
 
 ## Verification
 
-- QA Cycle 1 Critical `[code-quality]` finding corrected: both newly added catch-level `debugPrint(` calls were removed without changing their silent-null or user-facing error behavior.
-- Ran `dart format lib/features/bands/band_form_screen.dart`: `Formatted 1 file (1 changed) in 0.01 seconds`; restored two unrelated pre-existing format-only hunks so the final diff contains only planned code.
-- Mandatory added-`debugPrint(` diff gate: exactly 0.
-- `showModalBottomSheet` count: exactly 2.
-- `kIsWeb`: import plus guard at the top of `_pickImage()`.
-- `_uploadImageToStorage`: original definition plus its existing three call sites; definition unchanged.
-- `_uploadPickedBytesToStorage`: exactly one definition and one call site.
-- Extension whitelist and `png` fallback are present in the bytes upload helper.
-- `visibleForTesting` search under `lib/features/bands/`: no output.
-- Test-tree diff/status, `BandAvatar`/`DraftBandState` diff, dependency diff, Supabase diff, and `git diff --check`: all produced empty output.
-- Final source diff size: 72 insertions, 0 deletions in `lib/features/bands/band_form_screen.dart`.
-- Final worktree scope before this report: only `lib/features/bands/band_form_screen.dart` modified and `docs/features/web-band-avatar-file-picker/` untracked.
-- Tier 2 owner-run punch list W1-W9 was not performed; the plan reserves it for Tony at PR-test/apply time.
+- Tony's Cycle 2 owner test established that macOS still opened the mobile "Choose Image Source" sheet; Cycle 3 changes only the platform predicate that controls that behavior.
+- `dart format lib/features/bands/band_form_screen.dart`: `Formatted 1 file (1 changed) in 0.05 seconds`; two unrelated pre-existing format-only hunks were restored so the final source diff contains only the approved guard.
+- Widened guard grep: one hit at line 1355; narrower `if (kIsWeb) {` count: 0.
+- `showModalBottomSheet` count: 2.
+- `_uploadImageToStorage`: one definition and three existing call sites.
+- `_uploadPickedBytesToStorage`: one definition and one call site.
+- Extension whitelist `png|jpg|jpeg|gif|webp` and `png` fallback remain present.
+- Added `debugPrint(` diff count: 0.
+- Incremental source diff against `HEAD`: `1 file changed, 1 insertion(+), 1 deletion(-)`; numstat `1 1`.
+- Cumulative source diff against `main`: `1 file changed, 72 insertions(+)`; numstat `72 0`.
+- Test-tree tracked diff and full untracked status: empty.
+- `visibleForTesting` search: empty.
+- `BandAvatar`/`DraftBandState`, dependency, macOS/iOS/Android/Windows/Linux, and Supabase migration/function diffs: empty.
+- Tier 2 runtime checks were not rerun by Engineer; the plan reserves W1-W9 for Tony. Tony's triggering macOS owner-test result is documented above.
 
 ## Deviations From Plan
 
-None.
+- The untracked-test gate used `git status --short --untracked-files=all -- test/` instead of `git ls-files --others --exclude-standard -- test/` because Engineer mode permits only `git branch`, `git status`, and `git diff`. The equivalent result was empty.
 
 ## Blockers Encountered
 

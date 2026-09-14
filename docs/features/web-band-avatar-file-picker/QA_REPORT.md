@@ -6,11 +6,11 @@
 
 ## Feature Title
 
-Use a desktop file picker for band avatar uploads on web
+Use a desktop file picker for band avatar uploads on web and macOS
 
 ## Cycle Number
 
-2
+3
 
 ## Final Verdict
 
@@ -18,72 +18,63 @@ APPROVED
 
 ## Validation Summary
 
-The implementation matches the revised Architect plan and passes every Tier 1
-gate. Full and focused analysis are clean, all 310 tests observed by QA pass,
-the web/native split remains correctly scoped, and the `+72/-0` implementation
-delta is within the revised budget. QA Cycle 1's only Critical finding is
-resolved mechanically: the implementation diff adds exactly zero
-`debugPrint(` calls, while both revised catch contracts remain intact.
+The Cycle 3 implementation matches the revised Architect plan and passes every
+Tier 1 gate. Full and focused analysis are clean, all 322 tests observed by QA
+pass, the incremental source delta is exactly `+1/-1`, and the cumulative
+source delta remains `+72/-0`. The guard is exactly
+`kIsWeb || Platform.isMacOS`, with no Windows/Linux expansion and zero added
+`debugPrint(` calls.
 
 Validation was static code-path analysis only. No app, simulator, emulator, or
 browser was launched or driven by QA.
 
 ## Architect Scope Review
 
-- Branch, Architect plan, Engineer report, and requested feature slug all
-  match `web-band-avatar-file-picker`; the Engineer report is Cycle 2.
-- The implementation diff modifies only
-  [lib/features/bands/band_form_screen.dart](../../../lib/features/bands/band_form_screen.dart).
-- The untracked feature directory contains only the Architect plan, Engineer
-  report, and this required QA report.
-- No off-limits avatar contract, draft-state contract, test, dependency,
-  Supabase, init, auth, routing, or non-Bands file changed.
+- Branch, Architect plan, Engineer report, and requested feature slug match
+  `web-band-avatar-file-picker`; both reports identify Cycle 3.
+- The incremental implementation diff modifies only
+  [lib/features/bands/band_form_screen.dart](../../../lib/features/bands/band_form_screen.dart),
+  replacing one approved guard line. The revised Architect and Engineer
+  reports are the only other pre-QA working-tree changes.
+- The cumulative diff against `main` contains only the feature documentation
+  and the same Bands screen. No other implementation file changed.
+- No off-limits avatar/draft contract, test, dependency, platform file,
+  Supabase surface, initialization, auth, routing, or non-Bands source changed.
 - No database migration, RPC, policy, trigger, edge function, package, public
-  API, provider, controller, repository, or service was added or changed.
+  API, provider, controller, repository, service, or test was added or changed.
 
 ## Completeness Check
 
-All functional Architect tasks are present:
+The complete Cycle 3 task is present: `_pickImage()` now begins with the exact
+three-line `if (kIsWeb || Platform.isMacOS)` branch, invokes the existing
+file-picker helper, and returns before the bottom sheet. `||` evaluates
+left-to-right, so Flutter Web's true `kIsWeb` operand short-circuits before
+`Platform.isMacOS` is evaluated.
 
-- `kIsWeb` is imported and guards the first executable branch of `_pickImage()`.
-- Web calls `_pickImageFromWebFilePicker()` and returns before the bottom sheet,
-  permission checks, `image_picker`, and `dart:io.File` path.
-- The web picker requests `FileType.image` with `withData: true` and uploads
-  `PlatformFile.bytes` directly.
-- `_uploadPickedBytesToStorage()` scopes the object to the authenticated user,
-  normalizes and whitelists `png|jpg|jpeg|gif|webp`, falls back to `png`, uses
-  the existing `band-avatars` bucket, and returns its public URL.
-- Cancellation/null bytes return silently. Async state updates and snackbar
-  access are guarded by `mounted`; success and failure clear upload state.
-- Edit mode propagates a successful URL through `draftBandProvider`; create and
-  edit submission reuse `_uploadedImageUrl`; existing dirty-state comparison
-  detects the new URL while `_selectedImage` remains null on web.
-- The native/mobile/macOS picker body and `_uploadImageToStorage(File)` are
-  unchanged after the new guard.
-
-The implementation is complete against the revised plan. The two Cycle 1
-catch-level debug logs are absent without any other functional change.
+Every other source line is unchanged from the approved Cycle 2 baseline. The
+existing bytes helper, extension whitelist/fallback, `File` upload helper,
+permission helpers, imports, mobile bottom sheet, and private method names are
+preserved. No required task or specified edge case is missing.
 
 ## Behavior Verification
 
 Code-path analysis confirms:
 
-- Web opens the browser file chooser directly with no web bottom sheet.
-- Web bytes never pass through `File(image.path)` or `File.readAsBytes()`.
-- iOS, Android, and macOS continue through the existing bottom-sheet and
-  `image_picker` path because `kIsWeb` is false.
-- A cancelled picker or null bytes does not mutate state or show a snackbar.
-- Missing authentication prevents a storage upload and reaches the existing
-  failure feedback path.
-- Storage object keys cannot receive an arbitrary picker extension; the
-  validated extension also supplies the planned `image/<extension>` content
-  type.
-- Successful edit-mode uploads update both the form URL and draft avatar URL;
-  `_uploadedImageUrl != _initialImageUrl` marks the form dirty.
+- Web takes the first branch because `kIsWeb` is true, opens `FilePicker`, and
+  returns before `showModalBottomSheet`.
+- Native macOS evaluates `Platform.isMacOS` as true, uses the same direct
+  `FilePicker` bytes path, and returns before the bottom sheet.
+- iOS and Android evaluate both operands as false, then retain the existing
+  camera/photo-library sheet, permission checks, `image_picker`, `File`, and
+  `_uploadImageToStorage(File)` path unchanged.
+- Windows and Linux also evaluate the predicate as false. They were not
+  intentionally broadened and remain on the pre-existing fallthrough path.
+- The Cycle 2 cancellation, bytes upload, extension validation, storage,
+  snackbar, draft URL, and dirty-state behavior is unchanged.
 
-These outcomes were confirmed in code, not exercised at runtime. Runtime web
-chooser, storage policy, rendering, and native platform behavior remain the
-owner-run checks W1-W9 below.
+These outcomes were confirmed by static code-path analysis and incremental plus
+cumulative diff review, not exercised at runtime. Runtime picker, upload,
+rendering, and native behavior remain the owner-run checks W1-W9 below.
 
 ## Regression Check
 
@@ -91,9 +82,11 @@ owner-run checks W1-W9 below.
 
 | System area | Result |
 |---|---|
-| Bands — web avatar upload | Intended guarded behavior added; byte upload and URL propagation confirmed in code. |
+| Bands — web avatar upload | Existing Cycle 2 direct file-picker route is preserved exactly. |
+| Bands — macOS avatar upload | Intended guard expansion routes macOS through the existing direct file-picker bytes path. |
 | Bands — create/edit/delete/import/export | Existing submit paths preserved; no unrelated flow changed. |
-| iOS / Android / macOS avatar upload | Existing branch is textually unchanged after the web guard. |
+| iOS / Android avatar upload | Existing bottom-sheet and `File` upload branch is textually unchanged. |
+| Windows / Linux avatar upload | Predicate does not include either platform; existing fallthrough remains. |
 | Supabase Storage | Same bucket, authenticated user path, `uploadBinary`, upsert behavior, and public URL pattern. |
 | Home / Calendar shells | `BandAvatar` and `DraftBandState.localImageFile` contracts untouched. |
 | Gigs / Rehearsals / Setlists / Members / Contacts / Financials | No files changed. |
@@ -101,10 +94,8 @@ owner-run checks W1-W9 below.
 | App and Firebase initialization | `lib/main.dart` unchanged; init order unaffected. |
 | RLS / RPCs / triggers / edge functions | No files changed. |
 
-No controller or `FocusNode` lifecycle changed. Both new async paths check
-`mounted` before post-gap `setState`, provider, context, or snackbar access.
-Rebuild frequency changes only while the existing upload state and URL fields
-are updated.
+No controller, `FocusNode`, async state handling, rebuild trigger, or disposal
+behavior changed in Cycle 3.
 
 ## Database Safety
 
@@ -114,16 +105,13 @@ required.
 
 ## Analyzer Results
 
-- `flutter analyze`: PASS — no issues found in 5.6s.
+- `flutter analyze`: PASS — no issues found in 5.7s.
 - `flutter analyze lib/features/bands/band_form_screen.dart`: PASS — no issues
-  found in 1.1s.
+  found in 2.5s.
 
 ## Test Results
 
-- Full `flutter test`: PASS — 310 passed, 0 failed.
-- The Engineer report records 322 passes; QA reports the exact total produced
-  by the Cycle 2 validation run. The suite completed successfully, so the count
-  discrepancy does not change the gate result.
+- Full Flutter test suite: PASS — 322 passed, 0 failed.
 - Tracked test diff: empty.
 - Untracked test status: empty. QA used targeted `git status --short -- test/`
   as the policy-compliant equivalent of the plan's `git ls-files` command,
@@ -137,35 +125,35 @@ required.
 - No secret, API key, token, password, service-role credential, or private-key
   material detected in added lines.
 - No accidental deletion or unrelated formatting churn detected.
-- Mandatory Cycle 2 gate: added `debugPrint(` count is exactly 0. The two calls
-  rejected in Cycle 1 have been removed.
+- Added `debugPrint(` count is exactly 0 in both the incremental Cycle 3 source
+  diff and the cumulative source diff against `main`.
+- `showModalBottomSheet` count is exactly 2; the widened guard has one hit; the
+  narrower `if (kIsWeb) {` form has zero hits.
+- Platform, dependency, public-contract, test, database, and initialization
+  diffs are empty in both relevant scope checks.
 
 ## Change Budget Review
 
-- Actual implementation delta: `+72/-0` in one approved source file.
-- Revised Architect budget: net `+53..+73`; actual is within budget and below the 1.5x
-  warning threshold.
-- New implementation/test files: 0. New public symbols: 0. New dependencies: 0.
-- Zero deletions are justified in the Engineer report: this bug required a
-  missing web guard and bytes path while the plan requires the native path to
-  remain unchanged.
+- Incremental Cycle 3 source delta: `+1/-1` in one approved source file,
+  exactly matching the plan's budget.
+- Cumulative source delta against `main`: `+72/-0`, within the approved
+  `+53..+73` range and below the 1.5x warning threshold.
+- New Cycle 3 implementation/test files: 0. New symbols: 0. New public API: 0.
+  New dependencies: 0.
 - The touched file is 2,425 lines. The Engineer report supplies the required
   one-line justification: the Architect confines the behavior to the existing
   owning screen and prohibits the broader extraction/refactor.
 
 ## Code Efficiency Review
 
-- Both new methods are private and explicitly required by the Architect plan.
-- Independent search found no existing web band-avatar picker or direct
-  band-avatar bytes upload helper elsewhere under `lib/`.
-- The only other matching upload is the existing `File`-based sibling helper,
-  which the plan requires to remain separate and untouched.
-- No duplicate provider state, unused field/parameter, new widget abstraction,
-  re-fetching builder, hand-rolled collection helper, future flag, barrel file,
-  or public API was introduced.
-- Although each helper has one call site, both extractions are explicitly
-  prescribed by the Architect and keep the platform branch readable; they are
-  not out-of-scope abstractions.
+- Cycle 3 adds no symbol or abstraction; it reuses the existing private
+  file-picker helper exactly as prescribed.
+- Independent search found other general file-picker usages but no second
+  band-avatar bytes helper. The bytes helper still has one definition and one
+  call site; the existing `File` upload sibling remains separate and untouched.
+- No duplicate state, unused field/parameter, widget abstraction, provider,
+  builder, collection helper, future flag, barrel file, or public API was
+  introduced.
 
 ## Manual Verification Punch List
 
@@ -207,10 +195,26 @@ required.
    2. **Expected:** identical prior behavior; both Take Photo and Photo
       Library paths work.
 
-**W7. macOS — mobile bottom sheet preserved**
-   1. Repeat W5 in the macOS build (`flutter run -d macos`).
-   2. **Expected:** identical prior behavior. The macOS path uses the
-      existing `image_picker` flow unchanged.
+**W7. macOS — native file picker replaces bottom sheet (Cycle 3 fix confirmation)**
+   1. Run the macOS build via `./run.sh macos` (or `flutter run -d macos`)
+      against the built `bug/web-band-avatar-file-picker` binary. Sign in.
+   2. Navigate to Settings → Edit Band (or Create Band).
+   3. Tap the "+" upload icon at the left of the avatar color strip.
+   4. **Expected:** The macOS native `NSOpenPanel` file-selection dialog
+      opens immediately, filtered to image files. No "Choose Image
+      Source" bottom sheet appears. No "Take Photo" / "Photo Library"
+      row is visible anywhere.
+   5. Pick a local `.png` (or `.jpeg`) from the Finder dialog.
+   6. **Expected:** The dialog closes; the avatar area briefly shows the
+      uploading spinner overlay; then displays the uploaded image. A
+      "Image uploaded successfully" snackbar appears.
+   7. Save the form; reopen the band. **Expected:** The avatar persists
+      and loads via `Image.network`.
+   8. Reopen the picker (repeat step 3) and dismiss the `NSOpenPanel`
+      with Cancel.
+   9. **Expected:** No snackbar, no state change, no error toast.
+  10. Repeat step 5 with a `.webp` file. **Expected:** upload succeeds
+      and the avatar renders (extension-whitelist parity with W8).
 
 **W8. Web — extension normalization spot-check**
    1. On web, pick a `.jpeg` file (not `.jpg`).

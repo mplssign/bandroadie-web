@@ -6,50 +6,133 @@
 
 ## Feature Title
 
-Use a desktop file picker for band avatar uploads on web
+Use a desktop file picker for band avatar uploads on web and macOS
+
+## Cycle Number
+
+3
+
+## Cycle 3 Revision Trigger
+
+Tony's owner-test walkthrough of the Cycle 2 build (currently committed as
+`7c68ab8` on branch `bug/web-band-avatar-file-picker`, open as PR #294)
+surfaced a revised product requirement: the same file-chooser UX the Cycle 2
+fix delivered on Flutter Web at `app.bandroadie.com` must also apply on the
+native macOS app. Cycle 2's `kIsWeb`-scoped guard leaves macOS on the mobile
+"Choose Image Source" bottom sheet path, which is the same mobile-oriented
+UX Cycle 2 rejected for web. Cycle 3 broadens the platform predicate to
+include macOS while leaving iOS, Android, Windows, and Linux untouched. No
+Cycle 2 implementation is undone — the bytes upload helper, the file-chooser
+helper, the extension whitelist, the `showModalBottomSheet` count, and the
+zero-added-`debugPrint(` reconciliation from QA Cycle 1 are all retained.
 
 ## Problem Summary
 
-On the web app, activating the band avatar upload control (the "+" icon on the
-color strip in Create Band / Edit Band) presents the mobile-oriented
-`showModalBottomSheet` titled "Choose Image Source" with "Take Photo" and
-"Photo Library" options. Web users cannot select an image file from their
-desktop file system through this UI. Mobile (iOS/Android) behavior is correct
-and must be preserved.
+The band-avatar upload control (the "+" icon on the color strip in
+Create Band / Edit Band) presents a `showModalBottomSheet` titled
+"Choose Image Source" with "Take Photo" / "Photo Library" options tied to
+`image_picker`'s camera/gallery sources. Prior to Cycle 2 this was wrong on
+web because web users cannot select a desktop file through a
+camera/photo-library sheet — Cycle 2 shipped a `kIsWeb`-scoped file-chooser
+branch that resolved that. Owner testing of Cycle 2 showed the same UX is
+also wrong on macOS: the macOS app is a desktop native binary with no
+phone-style camera, so a "Take Photo" / "Photo Library" sheet is a
+mobile-oriented mismatch on that platform too. macOS users expect a native
+`NSOpenPanel` file chooser. iOS and Android behavior is correct and must be
+preserved. Windows and Linux are explicitly out of scope per Tony's product
+decision (see Out of Scope for the rationale).
 
 ## Root Cause
 
-**Confidence: HIGH** (confirmed directly in code).
+**Confidence: HIGH** for both the Cycle 2 (web) diagnosis and the Cycle 3
+(macOS) expansion. Every claim below is confirmed against the currently
+committed source at `HEAD` on branch `bug/web-band-avatar-file-picker`
+(commit `7c68ab8`).
 
-In [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart#L1287-L1385),
-`_pickImage()` unconditionally opens a `showModalBottomSheet<ImageSource>` and
-then calls `_imagePicker.pickImage(source: ImageSource.camera | .gallery)` with
-no `kIsWeb` branch. Both selected sources are mobile-oriented.
+The class-of-bug is a single-platform guard in `_pickImage()`. Prior to
+Cycle 2 the method unconditionally opened a `showModalBottomSheet<ImageSource>`
+with "Take Photo" / "Photo Library" tied to `image_picker`'s camera/gallery
+sources, and wrapped the result in `dart:io.File(image.path)`. Cycle 2
+added a `kIsWeb`-scoped early-return that routes web through
+`_pickImageFromWebFilePicker()` (bytes-based `file_picker` +
+`_uploadPickedBytesToStorage(...)`). That guard is now committed at
+[band_form_screen.dart#L1354-L1358](lib/features/bands/band_form_screen.dart#L1354-L1358):
 
-Two things go wrong on web:
+```dart
+Future<void> _pickImage() async {
+  if (kIsWeb) {
+    await _pickImageFromWebFilePicker();
+    return;
+  }
+  // showModalBottomSheet<ImageSource>(...) → image_picker → File(image.path)
+}
+```
 
-1. The bottom sheet itself is the wrong UX — web users expect a direct browser
-   file chooser, not a camera/photo-library sheet.
-2. The result path builds
-   `File(image.path)` from `dart:io` (imported at
-   [line 1](lib/features/bands/band_form_screen.dart#L1) of the same file),
-   which is not usable on Flutter Web — `XFile.path` on web is a `blob:` URL
-   and `dart:io.File` cannot open it. Even if the user got past the sheet, the
-   downstream upload path (which does `imageFile.readAsBytes()` via
-   `dart:io.File`) is not a working web path.
+**Cycle 3 root cause:** the guard is scoped to `kIsWeb` only. On macOS
+`kIsWeb == false`, so control falls through to the mobile bottom sheet and
+the mobile-oriented `image_picker` camera/gallery path — the same UX
+mismatch Cycle 2 rejected on web, for the same underlying reason (desktop
+platform, no phone-style camera, users expect the native OS file chooser).
+`grep -n "Platform.isMacOS" lib/features/bands/band_form_screen.dart`
+returns zero hits — no macOS-specific branch exists anywhere in this file.
 
-`grep -n "kIsWeb" lib/features/bands/band_form_screen.dart` returns zero hits.
-There is no platform branch in this file's picker or upload flow.
+Every piece of machinery Cycle 3 needs is already on the branch and known
+good from Cycle 2's APPROVED validation:
 
-The `file_picker` package (`^8.1.2`) is already a project dependency
-([pubspec.yaml](pubspec.yaml#L34)) and is already used successfully on web
-elsewhere in this same file at
-[line 788](lib/features/bands/band_form_screen.dart#L788)
-(`FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions:
-['json'], withData: true)` for JSON backup import). The web-safe picker
-pattern is already established in the same class.
+- `_pickImageFromWebFilePicker()` at
+  [band_form_screen.dart#L1314](lib/features/bands/band_form_screen.dart#L1314)
+  is platform-agnostic — it calls `FilePicker.platform.pickFiles(type:
+  FileType.image, withData: true)`, reads `PlatformFile.bytes`, and
+  delegates to the bytes-upload helper. `file_picker: ^8.1.2` at
+  [pubspec.yaml#L34](pubspec.yaml#L34) already ships macOS support and
+  populates `PlatformFile.bytes` from the native `NSOpenPanel` when
+  `withData: true`.
+- `_uploadPickedBytesToStorage(Uint8List, String)` at
+  [band_form_screen.dart#L1144](lib/features/bands/band_form_screen.dart#L1144)
+  is transport-agnostic — it accepts bytes from any source and writes to
+  the existing `band-avatars` bucket. The `png|jpg|jpeg|gif|webp` whitelist
+  and `png` fallback are unchanged.
+- macOS's sandbox entitlements at
+  [macos/Runner/Release.entitlements](macos/Runner/Release.entitlements)
+  and
+  [macos/Runner/DebugProfile.entitlements](macos/Runner/DebugProfile.entitlements)
+  already declare `com.apple.security.files.user-selected.read-write:
+  true` — exactly what the sandboxed app needs to read a user-selected
+  file returned from `NSOpenPanel`. No entitlements change is required.
+- `dart:io` is already imported at
+  [band_form_screen.dart#L1](lib/features/bands/band_form_screen.dart#L1),
+  and this file already uses `Platform.isIOS` / `Platform.isAndroid`
+  inside `_checkCameraPermission()` and `_checkPhotoLibraryPermission()`
+  (both reached only from the mobile branch of `_pickImage()`, i.e. only
+  when `kIsWeb == false`). Adding `Platform.isMacOS` to a short-circuit
+  `||` after `kIsWeb` follows the existing pattern — on web the LHS is a
+  compile-time `true` and the RHS is not evaluated at runtime.
+
+Cycle 3 therefore needs only a single-line widening of the guard predicate,
+from `if (kIsWeb)` to `if (kIsWeb || Platform.isMacOS)`. No new helper, no
+new dependency, no new entitlement, no rename, no widget-contract change,
+no new `debugPrint(` line.
 
 ## Existing System Analysis
+
+**Cycle 3 note:** the pre-Cycle-2 code excerpts and line numbers below
+(`_pickImage` at ~L1287, `_uploadImageToStorage` at ~L1110, avatar wiring at
+~L1715, submit paths at ~L325 and ~L470) describe the surface as it was
+when Cycle 1 was written. All of that reasoning still applies unchanged
+for Cycle 3 — the widget-tree contracts, the dirty-tracking predicate,
+the pre-uploaded submit paths, and the draft-band URL propagation all
+remain the correct places to plug in a second desktop platform. The
+current committed line numbers on branch `bug/web-band-avatar-file-picker`
+differ because Cycle 2 added ~72 lines above them; the relevant symbols
+now live at
+[band_form_screen.dart#L1354](lib/features/bands/band_form_screen.dart#L1354)
+(`_pickImage`),
+[#L1314](lib/features/bands/band_form_screen.dart#L1314)
+(`_pickImageFromWebFilePicker`),
+[#L1144](lib/features/bands/band_form_screen.dart#L1144)
+(`_uploadPickedBytesToStorage`), and
+[#L1111](lib/features/bands/band_form_screen.dart#L1111)
+(`_uploadImageToStorage(File)`).
 
 The relevant surface is contained entirely inside
 [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart)
@@ -112,95 +195,96 @@ this bug's concern and is out of scope for this fix (see Out of Scope).
 
 ## Proposed Solution
 
-Add a single `kIsWeb` branch at the top of
-`_pickImage()`. On web, skip the bottom sheet entirely and call
-`FilePicker.platform.pickFiles(type: FileType.image, withData: true)`, then
-upload the returned bytes directly to the same Supabase Storage bucket
-(`band-avatars`) via a new sibling method that takes bytes + extension. On
-mobile (and macOS), the existing `showModalBottomSheet` + `image_picker` path
-is preserved unchanged.
+Widen the existing `kIsWeb` guard at the top of `_pickImage()` to
+`kIsWeb || Platform.isMacOS`. Every other line of the file, and every
+other file in the repository, stays untouched.
 
-Do **not** change `BandAvatar`'s public contract. Do **not** add a
-`Uint8List? localImageBytes` field to `DraftBandState`. On web, `_selectedImage`
-stays `null`; the local preview during the brief upload window shows the
-color-block-with-initials that `BandAvatar` already renders when both
-`localImageFile` and `imageUrl` are null. Once `_uploadedImageUrl` is set,
-the network image renders through the existing `Image.network` path.
-
-Rationale for skipping local `Image.memory` preview on web:
-
-- Adding byte-based preview requires threading `Uint8List?` through
-  `BandAvatar` and the ~14 downstream widgets (see Existing System Analysis).
-  That is disproportionate to the fix and increases regression surface across
-  Home, Calendar, Setlists, Contacts, Members, and the empty-home state.
-- Uploads to `band-avatars` are fast for a 512×512-class image at 85 quality
-  (single Supabase Storage `uploadBinary` call with `upsert: true`), so the
-  window between pick and network-image display is short and already covered
-  by `_isUploadingImage` (the existing spinner overlay).
-- The existing `_isUploadingImage` overlay renders on top of `BandAvatar`
-  ([line 1720ish](lib/features/bands/band_form_screen.dart#L1716)); the user
-  gets clear feedback during the upload gap on web with zero widget-tree
-  changes.
-
-### Upload helper
-
-Introduce a new private method
-`Future<String?> _uploadPickedBytesToStorage(Uint8List bytes, String extension)`
-alongside the existing `_uploadImageToStorage(File imageFile)`. It performs
-the same three-step Supabase Storage flow (name → `uploadBinary` → `getPublicUrl`),
-using bytes directly with `contentType: 'image/$extension'`. The existing
-`_uploadImageToStorage(File)` is untouched so mobile behavior cannot regress.
-
-### Extension handling
-
-`FilePicker.platform.pickFiles(type: FileType.image, ...)` returns
-`PlatformFile.extension`. Normalize to lowercase; if missing, default to
-`'png'` (arbitrary safe fallback that matches an allowed content type).
-Do **not** allow arbitrary extensions to flow into the storage key
-unvalidated — restrict to `png|jpg|jpeg|gif|webp` and fall back to `png` if
-the extension is outside that set. This prevents a malformed extension (e.g.
-`../foo`) from ending up in the storage object name.
-
-### No permission checks on web
-
-The existing `_checkCameraPermission()` and `_checkPhotoLibraryPermission()`
-already special-case Android and iOS; on web the browser's file input
-requires no `permission_handler` gate and any attempt to run it there is a
-no-op / logic hole. Skip both on the web path.
-
-### Code organization
-
-Extract the web pick+upload sequence into a small private helper
-`_pickImageFromWebFilePicker()` on `_BandFormScreenState` that:
-
-1. Calls `FilePicker.platform.pickFiles(type: FileType.image, withData: true)`.
-2. Validates non-null bytes.
-3. Calls `_uploadPickedBytesToStorage(...)`.
-4. Updates `_isUploadingImage`, `_uploadedImageUrl`, and the draft-band
-   `updateImageUrl(...)` on success; shows the existing success/error
-   snackbars.
-
-`_pickImage()`'s top becomes:
+### Cycle 3 change (the entire delta)
 
 ```dart
-if (kIsWeb) {
-  await _pickImageFromWebFilePicker();
-  return;
+// Before (currently committed on this branch):
+Future<void> _pickImage() async {
+  if (kIsWeb) {
+    await _pickImageFromWebFilePicker();
+    return;
+  }
+  // mobile bottom sheet + image_picker path (unchanged)
 }
-// existing mobile path unchanged from here
+
+// After (Cycle 3):
+Future<void> _pickImage() async {
+  if (kIsWeb || Platform.isMacOS) {
+    await _pickImageFromWebFilePicker();
+    return;
+  }
+  // mobile bottom sheet + image_picker path (unchanged)
+}
 ```
 
-This extraction is for readability inside `_BandFormScreenState`, not for
-testability. Both `_BandFormScreenState` and `_pickImageFromWebFilePicker`
-are library-private and are **not** annotated `@visibleForTesting`; adding
-that annotation would introduce a public API surface solely for tests, which
-is not proportionate to a web-only bug fix and would contradict the "zero
-new public API surface" budget below. Behavior verification is instead
-static (analyzer + grep gates in the QA harness) plus a numbered owner-run
-punch list Tony executes at PR-test time. See Verification Plan for the
-concrete reasoning (SupabaseClient, `FilePicker.platform`, and the
-plugin/storage boundary all lack existing dependency-injection or mocking
-seams in this repo).
+One token change. `Platform.isMacOS` is safe to reference here:
+
+- `dart:io` is already imported at
+  [band_form_screen.dart#L1](lib/features/bands/band_form_screen.dart#L1);
+  no import edit is required.
+- On Flutter Web, `kIsWeb` is a compile-time constant `true`, so the
+  `||`'s right-hand side is not evaluated at runtime. This matches the
+  existing `Platform.isIOS` / `Platform.isAndroid` usage in
+  `_checkCameraPermission()` and `_checkPhotoLibraryPermission()`, which
+  are also reached only when `kIsWeb == false` and have shipped on web
+  without incident.
+- On native macOS, `kIsWeb == false` and `Platform.isMacOS == true`, so
+  the branch takes and `_pickImageFromWebFilePicker()` handles the
+  `NSOpenPanel` + bytes-upload flow. iOS / Android continue to fall
+  through to the existing mobile branch unchanged (`Platform.isMacOS` is
+  `false` on both).
+
+### Method-name pragmatism
+
+`_pickImageFromWebFilePicker` is a private symbol whose name will slightly
+misdescribe its callers after Cycle 3 (it now handles web + macOS). A
+rename is not part of Cycle 3: it would expand the diff surface beyond a
+one-token guard change, force QA to re-grep for a new symbol, and provide
+no behavioral value — the misleading name is a library-private
+readability nit, not a correctness bug. A future cleanup PR may rename it
+(see Out of Scope).
+
+### Why the Cycle 2 helpers already cover macOS
+
+- `FilePicker.platform.pickFiles(type: FileType.image, withData: true)`
+  on macOS opens the native `NSOpenPanel` filtered to image types and
+  populates `PlatformFile.bytes` in-memory. The Cycle 2 helper reads
+  exactly that field and hands the bytes to
+  `_uploadPickedBytesToStorage`.
+- `_uploadPickedBytesToStorage`'s `png|jpg|jpeg|gif|webp` extension
+  whitelist and `png` fallback are transport-agnostic and equally correct
+  for a file picked from macOS Finder as for one picked from a browser
+  file input.
+- Extension is read from `PlatformFile.extension`, which on macOS is
+  parsed from the picked file's name by the `file_picker` plugin. The
+  whitelist gates any hostile or unexpected value before it reaches the
+  Supabase Storage object key.
+- `HapticFeedback.lightImpact()` is a no-op on macOS (the desktop `Haptic`
+  channel is unimplemented on that platform) but does not throw — it is
+  safe to leave in the shared helper. This matches the pre-existing
+  behavior on web where the same call is also a no-op.
+- Success → `showSuccessSnackBar`, failure → `showErrorSnackBar`,
+  cancellation → silent return. All three paths are already exercised on
+  web and require no macOS-specific handling.
+
+### What does not change
+
+- The mobile branch of `_pickImage()` (bottom sheet + `image_picker` +
+  `dart:io.File`) is textually unchanged. iOS and Android continue on it
+  byte-for-byte.
+- `_uploadImageToStorage(File imageFile)` is untouched (still used by the
+  mobile branch).
+- `BandAvatar`, `DraftBandState.localImageFile`, and every downstream
+  widget that threads `localImageFile: File?` remain on their existing
+  contracts.
+- No `debugPrint(` line is added anywhere in the file. The Cycle 1
+  reconciliation stays in force.
+- No macOS `Info.plist` change, no macOS Podfile change, no
+  Runner.xcodeproj change.
 
 ## Database Impact
 
@@ -212,18 +296,29 @@ or from a `Uint8List`.
 ## Flutter Architecture Changes
 
 - No new controller, provider, repository, or service.
-- No new package dependency (`file_picker` already present, already used on
-  web in this file).
+- No new package dependency. `file_picker: ^8.1.2` already supports macOS's
+  native `NSOpenPanel` with `withData: true` — verified against the
+  currently committed [pubspec.yaml](pubspec.yaml#L34).
+- No new entitlement. macOS's sandbox already declares
+  `com.apple.security.files.user-selected.read-write: true` in both
+  [macos/Runner/Release.entitlements](macos/Runner/Release.entitlements)
+  and
+  [macos/Runner/DebugProfile.entitlements](macos/Runner/DebugProfile.entitlements),
+  which is exactly what `NSOpenPanel`-returned files require to be read
+  back by the sandboxed app.
 - No init-order change (`WidgetsFlutterBinding` → URL strategy → orientation
   lock → `AppVersionService.init` → `validateSupabaseConfig` →
   `Supabase.initialize` → `Firebase.initializeApp` [native only] →
   `DeepLinkService` → `runApp` is untouched).
 - No routing change.
 - No auth-flow change (PKCE on both platforms unchanged).
-- Platform conditionality is confined to a single `kIsWeb` branch inside one
-  method on one screen. iOS, Android, and macOS retain their current
-  `image_picker` + `showModalBottomSheet` flow byte-for-byte. Firebase and
-  `DeepLinkService` are not touched.
+- Platform conditionality remains confined to a single guard inside one
+  method on one screen. iOS and Android retain their `image_picker` +
+  `showModalBottomSheet` flow byte-for-byte; the mobile branch is
+  textually unchanged from Cycle 2. macOS is the platform whose behavior
+  changes in Cycle 3 — it moves off the mobile branch onto the Cycle 2
+  file-chooser branch. Windows and Linux are not touched (see Out of Scope).
+- Firebase and `DeepLinkService` are not touched.
 
 ## Files to Create
 
@@ -234,66 +329,90 @@ or from a `Uint8List`.
 ## Files to Modify
 
 - [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart) —
-  - Add `import 'package:flutter/foundation.dart' show kIsWeb;` (if not
-    already present via another import — currently not).
-  - Add a `kIsWeb` early-return branch at the top of `_pickImage()` that
-    calls a new `_pickImageFromWebFilePicker()`.
-  - Add `_pickImageFromWebFilePicker()`: pick via
-    `FilePicker.platform.pickFiles(type: FileType.image, withData: true)`,
-    validate bytes, upload via new helper, update
-    `_isUploadingImage` / `_uploadedImageUrl`, call
-    `draftBandProvider.notifier.updateImageUrl(...)` in edit mode, wire the
-    existing success/error snackbars.
-  - Add `_uploadPickedBytesToStorage(Uint8List bytes, String extension)`:
-    same three-step flow as `_uploadImageToStorage`, but takes bytes and a
-    validated extension. Normalize/whitelist the extension to
-    `png|jpg|jpeg|gif|webp`, fallback `png`.
-  - Do **not** modify the mobile branch of `_pickImage()`.
-  - Do **not** modify `_uploadImageToStorage(File)`.
+  **one line edit only.** In `_pickImage()` at
+  [line 1355](lib/features/bands/band_form_screen.dart#L1355), change the
+  existing guard from
+
+  ```dart
+  if (kIsWeb) {
+  ```
+
+  to
+
+  ```dart
+  if (kIsWeb || Platform.isMacOS) {
+  ```
+
+  Every other line in this file, including the entire mobile branch of
+  `_pickImage()`, both upload helpers, both permission helpers, the
+  `kIsWeb` import, and the `dart:io` import, is textually unchanged.
 
 ## Files Off-Limits
 
+- Every part of
+  [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart)
+  **except** the single guard-line change in `_pickImage()` described
+  above. In particular: both upload helpers, both permission helpers, the
+  mobile branch of `_pickImage()`, `_pickImageFromWebFilePicker()`, the
+  imports, and the stale `// ignore: unused_element` above `_pickImage()`
+  are all off-limits.
 - [lib/features/bands/widgets/band_avatar.dart](lib/features/bands/widgets/band_avatar.dart) —
   Adding a bytes-based preview field ripples through ~14 downstream widgets.
   The fix does not require it.
 - [lib/features/bands/active_band_controller.dart](lib/features/bands/active_band_controller.dart) —
-  `DraftBandState.localImageFile` contract stays as `File?`; the web path
-  simply doesn't populate it and lets `updateImageUrl(...)` handle the
-  post-upload preview.
+  `DraftBandState.localImageFile` contract stays as `File?`; the macOS
+  path (like the web path) simply doesn't populate it and lets
+  `updateImageUrl(...)` handle the post-upload preview.
 - All widgets that thread `localImageFile: File?`:
   `home_app_bar.dart`, `home_screen.dart`, `home_tab_content.dart`,
   `empty_home_state.dart`, `calendar_app_bar.dart`, `calendar_screen.dart`,
   `calendar_tab_content.dart`, `setlists_app_bar.dart`, `setlists_screen.dart`,
   `setlists_tab_content.dart`, `contacts_tab_content.dart`,
   `members_tab_content.dart`.
-- `pubspec.yaml` — no dependency changes. `file_picker` and `image_picker`
-  stay at their current versions.
+- `pubspec.yaml` and `pubspec.lock` — no dependency changes.
+- All macOS platform files: `macos/Runner/Release.entitlements`,
+  `macos/Runner/DebugProfile.entitlements`, `macos/Runner/Info.plist`,
+  `macos/Podfile`, `macos/Runner.xcodeproj/`, `macos/Runner.xcworkspace/`.
+  The existing `com.apple.security.files.user-selected.read-write: true`
+  entitlement is already sufficient.
+- All iOS platform files (`ios/`), all Android platform files (`android/`),
+  all Windows platform files (`windows/`), and all Linux platform files
+  (`linux/`).
 - All Supabase migrations, RPCs, storage policies, and edge functions.
 - `lib/main.dart` — no init-order or config change.
 - All non-Bands features (auth, gigs, rehearsals, setlists, notifications,
   routing, financials).
-- The stale `// ignore: unused_element` at
-  [band_form_screen.dart#L1286](lib/features/bands/band_form_screen.dart#L1286)
-  — do not touch it in this fix (see Out of Scope).
 
 ## Change Budget
 
+### Cycle 3 delta (incremental, on top of the currently committed Cycle 2)
+
 - [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart):
-  **+53 to +73 lines net** (~20 lines for the web-branch method call +
-  guard, ~34 lines for the new `_pickImageFromWebFilePicker()`, ~24 lines
-  for the new `_uploadPickedBytesToStorage(...)`, ~1 import line). No line
-  deletions from the mobile path. QA Cycle 1 reconciliation: neither new
-  helper adds a `debugPrint` line, so each helper's line count drops by 1
-  versus the pre-QA-Cycle-1 contract (the previous range was +55 to +75).
-- Test files: **+0 files, +0 lines** in `test/`. No new or modified test
-  file is required — see Verification Plan for why the widget test is
-  omitted.
+  **+1 / −1 lines** (a single line's condition changes from `if (kIsWeb) {`
+  to `if (kIsWeb || Platform.isMacOS) {`). Net line delta: **0**.
+- Test files: **+0 files, +0 lines** in `test/`.
 - Expected new files anywhere in the repo: **0**.
-- Expected new public classes / methods (public API surface): **0**. Both
-  new methods are private (`_pickImageFromWebFilePicker`,
-  `_uploadPickedBytesToStorage`) on `_BandFormScreenState`. No
-  `@visibleForTesting` annotation is added.
-- Expected new dependencies: **0** (neither runtime nor `dev_dependencies`).
+- Expected new public classes / methods: **0** — no rename, no new symbol,
+  no `@visibleForTesting` annotation.
+- Expected new dependencies: **0**.
+- Expected new `debugPrint(` lines: **0**.
+
+### Cumulative branch budget (`main`..`HEAD` after Cycle 3 lands)
+
+Because Cycle 3 modifies a line that was already added in Cycle 2 (an
+in-place condition edit inside the already-added `if (kIsWeb) {` block),
+the cumulative `git diff --stat main..HEAD -- lib/features/bands/band_form_screen.dart`
+remains within the Cycle 2 approved budget:
+
+- Net line delta versus `main`: **+53 to +73** (unchanged from Cycle 2).
+  QA's Cycle 2 measurement was `+72/-0`; Cycle 3 does not shift that
+  number because the token added on the modified line (` || Platform.isMacOS`)
+  is small enough that the line does not re-wrap. If Engineer's local
+  `dart format` re-wraps the line, the net delta may rise to `+73`; both
+  outcomes remain in-bounds.
+- Cumulative new files: **0**.
+- Cumulative new public symbols: **0**.
+- Cumulative new dependencies: **0**.
 
 ## System Impact Map
 
@@ -314,164 +433,159 @@ or from a `Uint8List`.
 | Supabase Storage (`band-avatars` bucket) | unaffected (same bucket, same object naming pattern, same upload API) |
 | Supabase RLS / RPCs / triggers | unaffected |
 | Edge functions | unaffected |
-| Platforms — Web | **behavior fix** |
+| Platforms — Web | unaffected in Cycle 3 (Cycle 2 already fixed this on branch) |
 | Platforms — iOS | unaffected (mobile branch untouched) |
 | Platforms — Android | unaffected (mobile branch untouched) |
-| Platforms — macOS | unaffected (mobile branch untouched, macOS continues to hit the existing `image_picker` code path exactly as today) |
+| Platforms — macOS | **behavior fix in Cycle 3** (moves from mobile bottom sheet to `NSOpenPanel` file chooser via the Cycle 2 file-chooser helper) |
+| Platforms — Windows | unaffected (out of scope per Tony) |
+| Platforms — Linux | unaffected (out of scope per Tony) |
+| macOS entitlements | unaffected (already sufficient) |
 | App init order (`main.dart`) | unaffected |
 | Firebase init (native only) | unaffected |
 | `DeepLinkService` | unaffected |
 
 ## Regression Risk
 
-**LOW.**
+**Cycle 3 delta risk: LOW.** The change is a one-token widening of an
+already-shipped, QA-APPROVED guard. The Cycle 2 helpers it now delegates
+to on macOS are platform-agnostic by construction (they accept bytes and
+do not depend on `dart:io.File`).
+
+**Cumulative branch risk: LOW.**
 
 - No auth, session, routing, or init-order code is touched.
 - No database, RLS, RPC, or edge-function surface is touched.
 - The mobile `image_picker` + bottom-sheet code path is not edited — it is
-  simply skipped when `kIsWeb == true`.
-- The upload helper for `File` is not modified; a sibling bytes-based helper
-  is added instead.
-- Widget-tree contracts (`BandAvatar`, `DraftBandState.localImageFile`) are
-  unchanged, so the ~14 downstream avatar-preview call sites are unaffected.
-- The primary residual risk is a wrong file extension flowing into the
-  storage object name; the whitelist + fallback in
-  `_uploadPickedBytesToStorage` closes that.
+  simply skipped when `kIsWeb == true` or `Platform.isMacOS == true`.
+- iOS and Android remain on the mobile branch byte-for-byte; the guard
+  widening's short-circuit `||` evaluates left-to-right and
+  `Platform.isMacOS` is `false` on both platforms.
+- The upload helper for `File` is not modified; the bytes-based sibling
+  is reused.
+- Widget-tree contracts (`BandAvatar`, `DraftBandState.localImageFile`)
+  are unchanged, so the ~14 downstream avatar-preview call sites remain
+  unaffected.
+- macOS's `com.apple.security.files.user-selected.read-write`
+  entitlement is already declared for both Debug and Release, so the
+  sandboxed macOS binary can read the file returned from `NSOpenPanel`
+  without any Xcode project change.
+- Residual risk: a picked file's extension is unusual on macOS (e.g. a
+  `.heic` still-image from a macOS Continuity import). The `png` fallback
+  in `_uploadPickedBytesToStorage`'s whitelist normalizes any
+  outside-whitelist extension to `png`; the upload still succeeds and
+  `Image.network` still renders the resulting object.
 
 ## Engineer Task Breakdown
 
-1. In [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart),
-   add `import 'package:flutter/foundation.dart' show kIsWeb;` alongside the
-   other `flutter/foundation`-adjacent imports. Confirm no duplicate import.
+Cycle 3 is a single-token edit. The full task list is:
 
-2. In the same file, add a new private async method
-   `_uploadPickedBytesToStorage(Uint8List bytes, String extension)` beside
-   `_uploadImageToStorage(File)`:
-   - Read `supabase.auth.currentUser?.id`; return `null` if missing.
-   - Normalize `extension` to lowercase; if not in `{png, jpg, jpeg, gif,
-     webp}`, replace with `png`.
-   - Build `fileName = '$userId/$timestamp.$extension'`.
-   - Call
-     `supabase.storage.from('band-avatars').uploadBinary(fileName, bytes,
-     fileOptions: FileOptions(contentType: 'image/$extension', upsert:
-     true))`.
-   - Return
-     `supabase.storage.from('band-avatars').getPublicUrl(fileName)`.
-   - Wrap in `try/catch`; on catch, return `null` silently. Do **not** add
-     any `debugPrint(...)` line inside this catch. QA Cycle 1 rejected the
-     earlier "matching the existing helper's style" instruction because
-     `_uploadImageToStorage(File)`'s pre-existing `debugPrint('[Upload] …')`
-     is a legacy line that stays where it is; the web-only sibling does
-     **not** replicate it. The user-facing error surfaces via the caller's
-     `showErrorSnackBar(context, message: 'Failed to upload image')` in
-     `_pickImageFromWebFilePicker` when this method returns `null`.
+1. Open [lib/features/bands/band_form_screen.dart](lib/features/bands/band_form_screen.dart)
+   and locate `_pickImage()` (currently at
+   [line 1354](lib/features/bands/band_form_screen.dart#L1354)).
 
-3. In the same file, add a new private async method
-   `_pickImageFromWebFilePicker()`:
-   - `final result = await FilePicker.platform.pickFiles(type: FileType.image,
-     withData: true);`
-   - If `result == null` or the single file has null `bytes`, return silently
-     (mirrors the existing "user cancelled" behavior).
-   - Read `bytes = result.files.single.bytes!` and
-     `extension = result.files.single.extension ?? 'png'`.
-   - `setState(() { _isUploadingImage = true; _uploadedImageUrl = null; });`
-   - `HapticFeedback.lightImpact();` (parity with the existing mobile flow).
-   - `final uploadedUrl = await _uploadPickedBytesToStorage(bytes,
-     extension);`
-   - On `mounted`, `setState(() { _uploadedImageUrl = uploadedUrl;
-     _isUploadingImage = false; });`.
-   - If `_isEditMode && uploadedUrl != null`, call
-     `ref.read(draftBandProvider.notifier).updateImageUrl(uploadedUrl);`.
-   - Show `showSuccessSnackBar(context, message: 'Image uploaded
-     successfully')` on success, `showErrorSnackBar(context, message: 'Failed
-     to upload image')` on `null`.
-   - Wrap the pick+upload sequence in `try/catch`. On catch:
-     1. Guard on `mounted` — return early if the state is unmounted.
-     2. `setState(() => _isUploadingImage = false);` — reset the spinner
-        overlay so the UI does not stay stuck in the uploading state.
-     3. `showErrorSnackBar(context, message: 'Failed to pick image. Please
-        try again.');` — surface the failure to the user.
-     Do **not** add any `debugPrint(...)` line inside this catch. The
-     pre-existing `debugPrint('[PickImage] Error: $e')` in the mobile
-     branch's catch is a legacy line that stays where it is; the web
-     branch does **not** replicate it. QA Cycle 1 rejected the earlier
-     "matching the mobile branch's generic-error handling" phrasing
-     because it invited that debug-log parity.
+2. Change the existing guard at
+   [line 1355](lib/features/bands/band_form_screen.dart#L1355) from:
 
-4. In `_pickImage()`, at the very first line of the method body, add:
    ```dart
    if (kIsWeb) {
      await _pickImageFromWebFilePicker();
      return;
    }
    ```
-   Leave every line after that block unchanged.
 
-5. Do not modify the stale `// ignore: unused_element` directive above
-   `_pickImage()`. Do not modify `_uploadImageToStorage(File)`. Do not
+   to:
+
+   ```dart
+   if (kIsWeb || Platform.isMacOS) {
+     await _pickImageFromWebFilePicker();
+     return;
+   }
+   ```
+
+   No other line in the method or the file is edited. Do not rename
+   `_pickImageFromWebFilePicker`. Do not add any `debugPrint(` line. Do not
+   add or remove any import (`dart:io` and `kIsWeb` are already imported).
+   Do not modify the stale `// ignore: unused_element` above `_pickImage()`.
+   Do not modify `_uploadImageToStorage(File)`,
+   `_uploadPickedBytesToStorage`, `_pickImageFromWebFilePicker`,
+   `_checkCameraPermission`, or `_checkPhotoLibraryPermission`. Do not
    modify `BandAvatar`, `DraftBandState`, or any widget that consumes
    `localImageFile: File?`. Do not annotate any method as
-   `@visibleForTesting`, do not create or modify any test file, and do not
-   add or bump any entry in `dev_dependencies` (no `mockito`, no `mocktail`,
-   no test-only helpers).
+   `@visibleForTesting`. Do not create or modify any test file. Do not
+   add, bump, or remove any entry in `dependencies` or `dev_dependencies`.
+   Do not modify any file under `macos/`, `ios/`, `android/`, `windows/`,
+   `linux/`, `supabase/`, or `lib/main.dart`.
 
-6. Run `flutter analyze`; ensure clean, no new `dart:io`-on-web warnings, no
-   unused imports.
+3. Run `dart format lib/features/bands/band_form_screen.dart`. If the
+   formatter re-wraps the guard line, keep the re-wrapped form and confirm
+   the semantics still express `kIsWeb || Platform.isMacOS` (do not
+   convert it to two nested `if` statements, do not add parentheses that
+   change grouping).
 
-7. Run `flutter test`; the full suite passes with no regressions. No new
-   test is added in this PR (see Verification Plan for rationale).
+4. Run `flutter analyze`; must be clean with no new warnings.
+
+5. Run `flutter test`; the full suite passes with no regressions. No new
+   test is added or expected in this PR (see Verification Plan for the
+   ongoing Cycle 1 rationale).
 
 ## Verification Plan
 
 ### Why no behavioral widget test in this PR
 
-A `flutter test` widget test that exercises the actual web pick+upload flow
-is intentionally omitted. The engineering cost is disproportionate to a
-web-only bug fix, and the coverage gap is fully closed by the Tier 1 static
-gates plus the Tier 2 owner-run punch list. The concrete blockers, all
-grounded in the current repo:
+A `flutter test` widget test that exercises the actual pick+upload flow
+(on web or macOS) is intentionally omitted. The engineering cost is
+disproportionate to a one-line guard-widening bug fix, and the coverage
+gap is fully closed by the Tier 1 static gates plus the Tier 2 owner-run
+punch list. The concrete blockers, all grounded in the current repo:
 
 1. `_BandFormScreenState` is library-private. It cannot be referenced by
    name from `test/features/bands/*`, so casting a `StatefulElement`'s
-   state to `_BandFormScreenState` and calling `_pickImageFromWebFilePicker()`
-   is not legal Dart across libraries.
+   state to `_BandFormScreenState` and calling
+   `_pickImageFromWebFilePicker()` is not legal Dart across libraries.
 2. Making `_pickImageFromWebFilePicker` public — either by rename or by
-   `@visibleForTesting` — would introduce a public API surface solely for a
-   test. No file under `lib/` currently uses `@visibleForTesting`; this
-   would be a first-time convention adopted for one test, contradicting
-   both the "zero new public API surface" line in the Change Budget and the
-   private-method design in Proposed Solution. Per the plan's own
-   guardrails, that tradeoff is not justified for a bug fix.
+   `@visibleForTesting` — would introduce a public API surface solely
+   for a test. No file under `lib/` currently uses `@visibleForTesting`;
+   this would be a first-time convention adopted for one test,
+   contradicting both the "zero new public API surface" line in the
+   Change Budget and the private-method design in Proposed Solution. Per
+   the plan's own guardrails, that tradeoff is not justified for a bug
+   fix.
 3. Even if `_pickImageFromWebFilePicker` were callable from a test, the
-   assertion the test needs to make — "the upload produced a public URL and
-   `_uploadedImageUrl` is set" — depends on
+   assertion the test needs to make — "the upload produced a public URL
+   and `_uploadedImageUrl` is set" — depends on
    `supabase.storage.from('band-avatars').uploadBinary(...)` and
    `getPublicUrl(...)`. `SupabaseClient` is a global singleton
    (`Supabase.instance.client`, wrapped by the top-level
-   [supabase](lib/app/services/supabase_client.dart#L13) getter). There is
-   no dependency-injection provider for it, no fake/mocked storage client
-   anywhere under `test/` (`grep -R "band-avatars\|uploadBinary\|storage.from" test/`
-   returns no hits), and `dev_dependencies` contains neither `mockito` nor
+   [supabase](lib/app/services/supabase_client.dart#L13) getter). There
+   is no dependency-injection provider for it, no fake/mocked storage
+   client anywhere under `test/`
+   (`grep -R "band-avatars\|uploadBinary\|storage.from" test/` returns no
+   hits), and `dev_dependencies` contains neither `mockito` nor
    `mocktail` — only `flutter_test`. Wiring a fake storage seam would
    require either a real Supabase-mocking dev dependency (new dependency,
    out of budget) or a production-code refactor that injects the storage
-   client (a genuine architectural change, out of scope for a `kIsWeb`
-   branch bug fix).
+   client (a genuine architectural change, out of scope for a
+   guard-widening bug fix).
 4. `FilePicker.platform` on its own is swappable (its `PlatformInterface`
-   allows `FilePicker.platform = FakeFilePickerPlatform()`), but the value
-   of a test that only proves "we called `pickFiles`" is small compared to
-   what W1–W9 already prove on a real browser.
+   allows `FilePicker.platform = FakeFilePickerPlatform()`), but the
+   value of a test that only proves "we called `pickFiles`" is small
+   compared to what W1–W9 already prove on real browsers and native
+   platforms.
 
-The Tier 1 gates below therefore verify the exact code shape that produces
-the fix — the `kIsWeb` guard, the bytes-based sibling helper, the untouched
-mobile path, the untouched `BandAvatar`/`DraftBandState` contracts, and the
-change-budget bounds — and the Tier 2 punch list Tony runs at PR-test time
-exercises the actual behavior end-to-end on the deployed web build plus the
-three mobile platforms.
+The Tier 1 gates below therefore verify the exact code shape that
+produces the fix — the widened `kIsWeb || Platform.isMacOS` guard, the
+unchanged Cycle 2 helpers, the untouched mobile path, the untouched
+`BandAvatar`/`DraftBandState` contracts, and the change-budget bounds —
+and the Tier 2 punch list Tony runs at PR-test time exercises the actual
+behavior end-to-end on the deployed web build plus all three native
+platforms.
 
 ### Tier 1 — Pre-deploy (QA gate; mechanically executable without a running app)
 
-Never call the code path being replaced.
+Never call the code path being replaced. All working-tree gates use the
+working tree (implementation is uncommitted through QA); commit-history
+diffs `main..HEAD` reflect the Cycle 2 baseline and are checked separately
+where noted.
 
 1. **Static analysis:** `flutter analyze` — clean, no new warnings, no
    `avoid_web_libraries_in_flutter` / `dart:io` warnings introduced.
@@ -479,38 +593,49 @@ Never call the code path being replaced.
    `grep -c "showModalBottomSheet" lib/features/bands/band_form_screen.dart`
    returns exactly `2`. Both hits stay put — one for the invitation-email
    bottom sheet (currently
-   [line 546](lib/features/bands/band_form_screen.dart#L546)) and one
+   [line 547](lib/features/bands/band_form_screen.dart#L547)) and one
    inside the mobile branch of `_pickImage()` (currently
-   [line 1288](lib/features/bands/band_form_screen.dart#L1288)). No third
-   `showModalBottomSheet(` call is introduced by
-   `_pickImageFromWebFilePicker()`.
-3. **Static grep — web branch present:**
-   `grep -n "kIsWeb" lib/features/bands/band_form_screen.dart` returns at
-   least one hit. QA visually confirms it is the guard at the top of
-   `_pickImage()`'s body (i.e., the surrounding lines match the snippet in
-   Proposed Solution) and is followed by `await _pickImageFromWebFilePicker();`
-   then `return;`.
+   [line 1360](lib/features/bands/band_form_screen.dart#L1360)). Cycle 3
+   does not introduce or remove any `showModalBottomSheet(` call.
+3. **Static grep — widened guard present (Cycle 3 signature):**
+   `grep -n "kIsWeb || Platform.isMacOS" lib/features/bands/band_form_screen.dart`
+   returns exactly one hit. QA visually confirms it is the guard at the
+   top of `_pickImage()`'s body — the exact three-line block below is
+   present, with no parenthesization changes and no additional
+   short-circuit terms (no `|| Platform.isWindows`, no `|| Platform.isLinux`):
+
+   ```dart
+   if (kIsWeb || Platform.isMacOS) {
+     await _pickImageFromWebFilePicker();
+     return;
+   }
+   ```
+
+   In addition, `grep -c "if (kIsWeb) {" lib/features/bands/band_form_screen.dart`
+   returns exactly `0` (the Cycle 2 narrower form is gone).
 4. **Static grep — File-based upload preserved:**
    `grep -n "_uploadImageToStorage" lib/features/bands/band_form_screen.dart`
    still shows the definition
    `Future<String?> _uploadImageToStorage(File imageFile) async {`
    unchanged (currently at
-   [line 1110](lib/features/bands/band_form_screen.dart#L1110)).
-5. **Static grep — bytes-based upload added:**
+   [line 1111](lib/features/bands/band_form_screen.dart#L1111)).
+5. **Static grep — bytes-based upload unchanged:**
    `grep -n "_uploadPickedBytesToStorage" lib/features/bands/band_form_screen.dart`
-   returns the new method definition and exactly one call site (inside
-   `_pickImageFromWebFilePicker()`).
-6. **Static grep — extension whitelist present:**
+   returns the definition (currently at
+   [line 1144](lib/features/bands/band_form_screen.dart#L1144)) plus
+   exactly one call site (inside `_pickImageFromWebFilePicker`, currently
+   at
+   [line 1328](lib/features/bands/band_form_screen.dart#L1328)). No
+   second call site has been added.
+6. **Static grep — extension whitelist present (unchanged from Cycle 2):**
    `grep -n "png\|jpg\|jpeg\|gif\|webp" lib/features/bands/band_form_screen.dart`
-   returns at least one hit inside `_uploadPickedBytesToStorage`. QA
-   visually confirms the fallback (`'png'`) branch is executed when the
-   picked extension is outside the whitelist. This is the only guard on the
-   extension flowing into the Supabase Storage object key; Tony validates
-   the runtime behavior in W8.
-7. **Widget-test file absence:** the pipeline deliberately leaves Engineer
-   implementation uncommitted through QA, so this gate must inspect the
-   working tree, not `main..HEAD`. Both of the following commands must
-   produce empty output:
+   returns at least one hit inside `_uploadPickedBytesToStorage`, and the
+   `png` fallback branch for outside-whitelist values remains present.
+   Tony validates the runtime behavior in W8.
+7. **Widget-test file absence:** the pipeline deliberately leaves
+   Engineer implementation uncommitted through QA, so this gate must
+   inspect the working tree, not `main..HEAD`. Both of the following
+   commands must produce empty output:
    - `git diff --stat -- test/` — no tracked-file changes under `test/`.
    - `git ls-files --others --exclude-standard -- test/` — no new
      (untracked) files under `test/`.
@@ -520,39 +645,44 @@ Never call the code path being replaced.
    produces any output, QA must reject the PR and route it back for
    reconciliation.
 8. **`@visibleForTesting` absence:**
-   `grep -rn "visibleForTesting" lib/features/bands/` returns no hits. This
-   guards against Engineer working around the private-method boundary by
-   quietly promoting `_pickImageFromWebFilePicker` to a testable public
-   method — which the Change Budget explicitly disallows.
-9. **`BandAvatar` and `DraftBandState` public API untouched:** working-tree
-   check (implementation is uncommitted through QA, so `main..HEAD` would
-   falsely show no changes):
+   `grep -rn "visibleForTesting" lib/features/bands/` returns no hits.
+   This guards against Engineer working around the private-method
+   boundary by quietly promoting `_pickImageFromWebFilePicker` to a
+   testable public method — which the Change Budget explicitly disallows.
+9. **`BandAvatar` and `DraftBandState` public API untouched:**
+   working-tree check:
    `git diff --stat -- lib/features/bands/widgets/band_avatar.dart lib/features/bands/active_band_controller.dart`
    returns empty output (no modified lines against either file).
-10. **No dev-dependency drift:** working-tree check (implementation is
-    uncommitted through QA):
+10. **No dependency drift:** working-tree check:
     `git diff -- pubspec.yaml pubspec.lock` returns empty output — no
     changes to `dependencies:` or `dev_dependencies:` (in particular no
     addition of `mockito` or `mocktail`).
-11. **Change budget compliance:** working-tree check (implementation is
-    uncommitted through QA):
-    `git diff --stat -- lib/features/bands/band_form_screen.dart`
-    reports a net line delta (insertions minus deletions) within +53 to
-    +73.
-12. **No newly added `debugPrint(` calls (mandatory diff-safety gate):**
-    working-tree check (implementation is uncommitted through QA):
+11. **Change budget compliance:** two checks, both working-tree.
+    - `git diff --stat -- lib/features/bands/band_form_screen.dart`
+      versus the Cycle 2 baseline commit (`git diff HEAD --stat --
+      lib/features/bands/band_form_screen.dart`) reports a Cycle 3
+      incremental net line delta between `−1/+1` and `−2/+2`. Anything
+      larger indicates Engineer over-reached.
+    - `git diff --stat main -- lib/features/bands/band_form_screen.dart`
+      reports a cumulative net line delta within +53 to +73 (Cycle 2
+      approved budget carries forward; Cycle 3 does not shift it).
+12. **No newly added `debugPrint(` calls (Cycle 1 diff-safety gate
+    remains in force):** working-tree check:
     `git diff -- lib/features/bands/band_form_screen.dart | grep -c '^+.*debugPrint('`
-    returns exactly `0`. Neither new helper
-    (`_uploadPickedBytesToStorage`, `_pickImageFromWebFilePicker`) logs
-    via `debugPrint`. The pre-existing `debugPrint` lines in the mobile
-    branch of `_pickImage()` and in `_uploadImageToStorage(File)` are not
-    modified by this PR and therefore do not appear as `^+` additions in
-    the diff. This gate reconciles QA Cycle 1's Critical `[code-quality]`
-    finding and is non-negotiable — if the count is anything other than
-    `0`, QA must reject the PR and route it back for reconciliation.
-13. **`flutter test` — full suite, no regressions:** `flutter test` runs
-    to green with the existing suite. No new test is added or expected in
-    this PR (see gate 7).
+    returns exactly `0`. The pre-existing `debugPrint` lines in the
+    mobile branch of `_pickImage()` and in `_uploadImageToStorage(File)`
+    are not modified by Cycle 3 and therefore do not appear as `^+`
+    additions. If the count is anything other than `0`, QA must reject
+    the PR and route it back for reconciliation.
+13. **macOS / iOS / Android / Windows / Linux platform files untouched:**
+    working-tree check:
+    `git diff --stat -- macos/ ios/ android/ windows/ linux/`
+    returns empty output. In particular no change to either macOS
+    entitlements file, no change to any `Info.plist`, no change to any
+    Xcode / Gradle / CMake project file.
+14. **`flutter test` — full suite, no regressions:** `flutter test` runs
+    to green with the existing suite. No new test is added or expected
+    in this PR (see gate 7).
 
 ### Tier 2 — Post-deploy (owner-run punch list; Tony executes at PR-test / apply time)
 
@@ -597,10 +727,26 @@ mechanically executable in the QA harness. Deliver as an exact punch list.
    2. **Expected:** identical prior behavior; both Take Photo and Photo
       Library paths work.
 
-**W7. macOS — mobile bottom sheet preserved**
-   1. Repeat W5 in the macOS build (`flutter run -d macos`).
-   2. **Expected:** identical prior behavior. The macOS path uses the
-      existing `image_picker` flow unchanged.
+**W7. macOS — native file picker replaces bottom sheet (Cycle 3 fix confirmation)**
+   1. Run the macOS build via `./run.sh macos` (or `flutter run -d macos`)
+      against the built `bug/web-band-avatar-file-picker` binary. Sign in.
+   2. Navigate to Settings → Edit Band (or Create Band).
+   3. Tap the "+" upload icon at the left of the avatar color strip.
+   4. **Expected:** The macOS native `NSOpenPanel` file-selection dialog
+      opens immediately, filtered to image files. No "Choose Image
+      Source" bottom sheet appears. No "Take Photo" / "Photo Library"
+      row is visible anywhere.
+   5. Pick a local `.png` (or `.jpeg`) from the Finder dialog.
+   6. **Expected:** The dialog closes; the avatar area briefly shows the
+      uploading spinner overlay; then displays the uploaded image. A
+      "Image uploaded successfully" snackbar appears.
+   7. Save the form; reopen the band. **Expected:** The avatar persists
+      and loads via `Image.network`.
+   8. Reopen the picker (repeat step 3) and dismiss the `NSOpenPanel`
+      with Cancel.
+   9. **Expected:** No snackbar, no state change, no error toast.
+  10. Repeat step 5 with a `.webp` file. **Expected:** upload succeeds
+      and the avatar renders (extension-whitelist parity with W8).
 
 **W8. Web — extension normalization spot-check**
    1. On web, pick a `.jpeg` file (not `.jpg`).
@@ -621,13 +767,15 @@ QA must run and report on:
 
 - `flutter analyze` — clean.
 - `flutter test` — full suite, all pass. No new test file is added or
-  expected in this PR (see Tier 1 gate 7 and the "Why no behavioral widget
-  test" note above).
-- Static gates 2–12 in Tier 1 above, including gate 12's mandatory
-  diff-safety check that the implementation diff adds zero new
-  `debugPrint(` calls.
-- Static SQL/migration review — **none applicable** (no migrations in this
-  PR). QA must confirm no files under `supabase/migrations/` or
+  expected in this PR (see Tier 1 gate 7 and the "Why no behavioral
+  widget test" note above).
+- Static gates 2–13 in Tier 1 above, including gate 3's mandatory check
+  that the guard reads exactly `if (kIsWeb || Platform.isMacOS) {`, gate
+  11's incremental- and cumulative-budget checks, gate 12's zero-new-
+  `debugPrint(` diff-safety check, and gate 13's macOS/iOS/Android/
+  Windows/Linux platform-files-untouched check.
+- Static SQL/migration review — **none applicable** (no migrations in
+  this PR). QA must confirm no files under `supabase/migrations/` or
   `supabase/functions/` are modified.
 - Ephemeral-DB apply-check — **not applicable** (no migrations).
 
@@ -637,48 +785,77 @@ punch list.
 
 ## Rollout Strategy
 
-Single PR against `main`.
+Single PR (#294) against `main` on branch `bug/web-band-avatar-file-picker`.
 
 - Merge triggers the web deploy via `tools/deploy_web.sh` / Vercel; no
-  feature flag, no phased rollout — the behavior change is web-only and
-  strictly additive (a bug fix).
-- iOS / Android / macOS builds require no coordinated release: the mobile
-  code path is byte-identical, so the fix does not need to ship in a mobile
-  binary. Users on existing mobile builds are unaffected.
-- Rollback: revert the single commit and redeploy the web build. No database
-  or storage state is created or altered that would need cleanup.
+  feature flag, no phased rollout — the web behavior change is strictly
+  additive (a bug fix that lands with Cycle 2 + Cycle 3 together on this
+  branch).
+- **macOS binary:** the Cycle 3 fix only reaches macOS users after a
+  fresh macOS build is cut. iOS and Android continue on the mobile branch
+  byte-for-byte and do **not** require a new binary; users on the current
+  iOS/Android builds are unaffected. Tony chooses whether to cut a new
+  macOS release now or fold it into the next scheduled desktop release.
+- Windows and Linux users, if any exist on non-standard flutter builds
+  from this repo, remain on the mobile bottom sheet code path
+  (unchanged). See Out of Scope.
+- Rollback: revert the single-line guard change (or revert the whole
+  Cycle 2 + Cycle 3 branch merge commit) and redeploy the web build. No
+  database or storage state is created or altered that would need
+  cleanup.
 
 ## Out of Scope
 
-- **A behavioral `flutter test` widget test for the web pick+upload path.**
+- **Windows and Linux platform coverage.** Tony explicitly limited Cycle
+  3's expansion to macOS + web. On Windows and Linux the current code
+  falls through to the mobile bottom sheet + `image_picker` path. That
+  path may be broken or partially unusable on those platforms today
+  (`image_picker` has weaker desktop support than macOS/iOS/Android), but
+  no code evidence forces us to widen scope now and the product
+  requirement is explicit. If a future ticket asks for Windows/Linux, the
+  same predicate widening pattern (`|| Platform.isWindows || Platform.isLinux`)
+  can be re-applied — the Cycle 2 helpers are already platform-agnostic.
+- **Renaming `_pickImageFromWebFilePicker`** to reflect that it now
+  serves web + macOS. The name is a library-private readability nit; a
+  rename would expand the diff surface beyond a one-token guard edit,
+  force QA to re-grep for a new symbol, and provide no behavioral value.
+  A future cleanup PR may rename it (a natural candidate is
+  `_pickImageViaFileChooser`).
+- **A behavioral `flutter test` widget test for the pick+upload path.**
   Explicitly out of scope for this PR. `_BandFormScreenState` and
-  `_pickImageFromWebFilePicker` are library-private and cannot be reached
-  from `test/features/bands/*` without either promoting them to public API
-  or adding a first-ever `@visibleForTesting` annotation — both of which
-  contradict this plan's zero-new-public-API budget. And even if the method
-  were reachable, the flow's assertion (`_uploadedImageUrl` is set) depends
-  on `supabase.storage.from('band-avatars').uploadBinary(...)`, for which
+  `_pickImageFromWebFilePicker` are library-private and cannot be
+  reached from `test/features/bands/*` without either promoting them to
+  public API or adding a first-ever `@visibleForTesting` annotation —
+  both of which contradict this plan's zero-new-public-API budget. And
+  even if the method were reachable, the flow's assertion
+  (`_uploadedImageUrl` is set) depends on
+  `supabase.storage.from('band-avatars').uploadBinary(...)`, for which
   the repo has no fake, no dependency-injection seam, and no
-  `mockito`/`mocktail` dev dependency. Behavior is verified end-to-end by
-  the Tier 2 owner-run punch list (W1–W9). A future PR that adds a general
-  `SupabaseClient` mocking convention (or a `SupabaseStorageClient`
-  provider seam) could revisit this, but it must not ride along with this
-  bug fix.
-- The stale `// ignore: unused_element` at
-  [band_form_screen.dart#L1286](lib/features/bands/band_form_screen.dart#L1286)
-  above `_pickImage()`. It is a false-positive suppressor that predates this
-  bug; removing it is a lint-cleanup task and is not part of this fix.
-- Any refactor to unify `_uploadImageToStorage(File)` and
-  `_uploadPickedBytesToStorage(Uint8List, String)` behind a single helper.
-  Keep them as siblings to guarantee mobile behavior is untouched.
-- Any change to `BandAvatar` to render `Image.memory` for a bytes-based
-  local preview on web. The `_isUploadingImage` overlay plus fast post-upload
-  `Image.network` render is sufficient; a bytes-based preview would ripple
-  through ~14 downstream widgets (see Files Off-Limits).
-- Any change to macOS's picker experience. macOS currently uses the mobile
-  `image_picker` path; that behavior is preserved. If desktop-native macOS
-  file picking is desired, it is a separate feature.
-- Any change to how `avatar_color` is chosen or persisted.
-- Any change to Supabase Storage bucket configuration, policies, or RLS.
-- Any change to the invitation email flow, band-creation RPC, or backup
-  import/export flows in the same screen.
+  `mockito`/`mocktail` dev dependency. Behavior is verified end-to-end
+  by the Tier 2 owner-run punch list (W1–W9). A future PR that adds a
+  general `SupabaseClient` mocking convention (or a
+  `SupabaseStorageClient` provider seam) could revisit this, but it must
+  not ride along with this bug fix.
+- **The stale `// ignore: unused_element`** at
+  [band_form_screen.dart#L1353](lib/features/bands/band_form_screen.dart#L1353)
+  above `_pickImage()`. It is a false-positive suppressor that predates
+  this bug; removing it is a lint-cleanup task and is not part of this
+  fix.
+- **Any refactor to unify `_uploadImageToStorage(File)` and
+  `_uploadPickedBytesToStorage(Uint8List, String)`** behind a single
+  helper. Keep them as siblings to guarantee iOS/Android behavior is
+  untouched.
+- **Any change to `BandAvatar`** to render `Image.memory` for a
+  bytes-based local preview on web or macOS. The `_isUploadingImage`
+  overlay plus fast post-upload `Image.network` render is sufficient; a
+  bytes-based preview would ripple through ~14 downstream widgets (see
+  Files Off-Limits).
+- **Any change to how `avatar_color` is chosen or persisted.**
+- **Any change to Supabase Storage bucket configuration, policies, or
+  RLS.**
+- **Any change to macOS entitlements, `Info.plist`, or Xcode project
+  files.** The existing
+  `com.apple.security.files.user-selected.read-write` entitlement is
+  already correct.
+- **Any change to the invitation email flow, band-creation RPC, or
+  backup import/export flows** in the same screen.
