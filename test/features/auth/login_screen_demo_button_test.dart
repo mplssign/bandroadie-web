@@ -34,8 +34,7 @@ void main() {
 
   testWidgets(
     'Test A: "Check out the demo band" button is visible on LoginScreen on '
-    'non-web platforms (_kDemoBandVisible = !kIsWeb — see login_screen.dart; '
-    'flutter test runs on the Dart VM, so this target must render the button)',
+    'every platform (_kDemoBandVisible = true — see login_screen.dart).',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -52,7 +51,7 @@ void main() {
       // widget tree and is found by text search.
       await tester.pump();
 
-      // Dart VM target: kIsWeb == false → _kDemoBandVisible == true → button is emitted.
+      // _kDemoBandVisible == true on every target → button is emitted.
       expect(find.text('Check out the demo band'), findsOneWidget);
     },
   );
