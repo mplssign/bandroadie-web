@@ -326,7 +326,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       if (_selectedImage != null && imageUrl == null) {
         imageUrl = await _uploadImageToStorage(_selectedImage!);
         if (imageUrl == null && _selectedImage != null) {
-          throw const StorageException('Image upload failed. Please try again.');
+          throw const StorageException(
+              'Image upload failed. Please try again.');
         }
       }
 
@@ -2358,8 +2359,7 @@ class _BackupSheetPanel extends StatelessWidget {
           onPressed: isLoading ? null : onTap,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
-            side: BorderSide(
-                color: AppColors.primary.withValues(alpha: 0.6)),
+            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.6)),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
