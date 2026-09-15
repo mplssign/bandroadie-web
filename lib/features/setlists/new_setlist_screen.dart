@@ -31,7 +31,6 @@ import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
 import 'widgets/add_to_setlist/bulk_entry_screen.dart';
 import 'widgets/add_to_setlist/category_button.dart';
 import 'widgets/add_to_setlist/original_song_screen.dart';
-import 'widgets/back_only_app_bar.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/song_lookup_overlay.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -897,9 +896,10 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
         backgroundColor: context.colors.background,
         appBar: AppAppBar(
           backgroundColor: context.colors.appBarBg,
+          title: Text('New Setlist', style: AppTextStyles.title3),
           leading: AppIconButton(
-            icon: AppIcons.close,
-            color: Colors.white,
+            icon: AppIcons.arrowLeft,
+            color: AppColors.primary,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -953,21 +953,19 @@ class _NewSetlistScreenState extends ConsumerState<NewSetlistScreen>
 
     return AppScaffold(
       backgroundColor: context.colors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(state),
-            Expanded(child: _buildBody(state)),
-          ],
+      appBar: AppAppBar(
+        backgroundColor: context.colors.appBarBg,
+        title: Text('New Setlist', style: AppTextStyles.title3),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: (state.isDeleting || state.isReordering || _isSavingName)
+            ? const [AppProgressIndicator()]
+            : const [],
       ),
-    );
-  }
-
-  Widget _buildAppBar(SetlistDetailState state) {
-    return BackOnlyAppBar(
-      onBack: () => Navigator.of(context).pop(),
-      showLoading: state.isDeleting || state.isReordering || _isSavingName,
+      body: _buildBody(state),
     );
   }
 
