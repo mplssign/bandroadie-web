@@ -12,6 +12,8 @@ import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/field_hint.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../bands/active_band_controller.dart';
+import '../../bands/currency/band_currency.dart';
 import '../../contacts/contacts_controller.dart';
 import '../../financials/models/financial_entry.dart';
 import '../../members/member_vm.dart';
@@ -720,7 +722,10 @@ class GigFormFields extends ConsumerWidget {
   }
 
   /// Builds the gig pay button (called from parent build method).
-  Widget buildGigPayButton(BuildContext context) {
+  Widget buildGigPayButton(BuildContext context, WidgetRef ref) {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     final hasDetails = gigPayDetails != null && gigPayDetails!.amountCents > 0;
 
     if (!hasDetails) {
@@ -744,7 +749,7 @@ class GigFormFields extends ConsumerWidget {
     }
 
     final label =
-        '${gigPayDetails!.formattedAmount}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}';
+        '${gigPayDetails!.formatAmount(currencyCode)}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -768,7 +773,10 @@ class GigFormFields extends ConsumerWidget {
   }
 
   /// Builds the expenses section shown beneath Gig Pay.
-  Widget buildExpensesSection(BuildContext context) {
+  Widget buildExpensesSection(BuildContext context, WidgetRef ref) {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     if (!showExpensesSection) {
       return const SizedBox.shrink();
     }
@@ -855,7 +863,7 @@ class GigFormFields extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        expense.formattedAmount,
+                        expense.formatAmount(currencyCode),
                         style: AppTextStyles.calloutEmphasized.copyWith(
                           color: context.colors.textPrimary,
                         ),

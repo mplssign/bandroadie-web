@@ -13,18 +13,21 @@ import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/services/supabase_client.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import '../../components/ui/app_app_bar.dart';
 import '../../components/ui/app_button.dart';
 import '../../components/ui/app_dialog.dart';
 import '../../components/ui/app_dropdown.dart';
+import '../../components/ui/app_icon_button.dart';
 import '../../components/ui/app_text_form_field.dart';
 import '../../components/ui/email_domain_shortcut_bar.dart';
 import '../../components/ui/field_hint.dart';
-import '../../components/ui/frosted_glass_bar.dart';
 import '../../shared/utils/initials.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import 'active_band_controller.dart';
+import 'currency/band_currency.dart';
 import 'widgets/band_avatar.dart';
+import 'widgets/section_card.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
@@ -134,6 +137,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   String? _initialImageUrl;
   String _initialTimezone = 'America/Chicago';
   String _selectedTimezone = 'America/Chicago';
+  String _initialCurrencyCode = BandCurrency.defaultCode;
+  String _selectedCurrencyCode = BandCurrency.defaultCode;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -178,6 +183,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       _initialImageUrl = band.imageUrl;
       _initialTimezone = band.timezone;
       _selectedTimezone = band.timezone;
+      _initialCurrencyCode = band.currencyCode;
+      _selectedCurrencyCode = band.currencyCode;
 
       // Initialize draft band state for real-time header preview
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -255,8 +262,13 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final imageChanged =
         _selectedImage != null || _uploadedImageUrl != _initialImageUrl;
     final timezoneChanged = _selectedTimezone != _initialTimezone;
+    final currencyChanged = _selectedCurrencyCode != _initialCurrencyCode;
 
-    return nameChanged || colorChanged || imageChanged || timezoneChanged;
+    return nameChanged ||
+        colorChanged ||
+        imageChanged ||
+        timezoneChanged ||
+        currencyChanged;
   }
 
   void _addEmail() {
@@ -354,12 +366,10 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         throw Exception('Failed to create band - no ID returned');
       }
 
-      // Save selected timezone
-      if (_selectedTimezone != 'America/Chicago') {
-        await supabase
-            .from('bands')
-            .update({'timezone': _selectedTimezone}).eq('id', bandId);
-      }
+      await supabase.from('bands').update({
+        'timezone': _selectedTimezone,
+        'currency_code': _selectedCurrencyCode,
+      }).eq('id', bandId);
 
       // Send invites
       for (final email in _inviteEmails) {
@@ -434,23 +444,23 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       debugPrint('[CreateBand] Details: ${e.details}');
       debugPrint('[CreateBand] Hint: ${e.hint}');
       debugPrint('[CreateBand] Stack: $stack');
-      setState(() => _isSubmitting = false);
       if (mounted) {
+        setState(() => _isSubmitting = false);
         _showErrorSnackBar(_mapPostgrestError(e));
       }
     } on StorageException catch (e, stack) {
       debugPrint('[CreateBand] StorageException: ${e.message}');
       debugPrint('[CreateBand] Stack: $stack');
-      setState(() => _isSubmitting = false);
       if (mounted) {
+        setState(() => _isSubmitting = false);
         _showErrorSnackBar('Image upload failed: ${e.message}');
       }
     } catch (e, stack) {
       debugPrint('[CreateBand] Error: $e');
       debugPrint('[CreateBand] Error type: ${e.runtimeType}');
       debugPrint('[CreateBand] Stack: $stack');
-      setState(() => _isSubmitting = false);
       if (mounted) {
+        setState(() => _isSubmitting = false);
         _showErrorSnackBar(
           'Failed to create band: ${e.toString().length > 200 ? e.toString().substring(0, 200) : e.toString()}',
         );
@@ -491,6 +501,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         'avatar_color': _selectedAvatarColor,
         'image_url': imageUrl,
         'timezone': _selectedTimezone,
+        'currency_code': _selectedCurrencyCode,
         'updated_at': now.toIso8601String(),
       }).eq('id', band.id);
 
@@ -503,6 +514,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         createdBy: band.createdBy,
         avatarColor: _selectedAvatarColor,
         timezone: _selectedTimezone,
+        currencyCode: _selectedCurrencyCode,
         createdAt: band.createdAt,
         updatedAt: now,
       );
@@ -520,14 +532,14 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       }
     } on PostgrestException catch (e) {
       debugPrint('[UpdateBand] PostgrestException: ${e.code} - ${e.message}');
-      setState(() => _isSubmitting = false);
       if (mounted) {
+        setState(() => _isSubmitting = false);
         _showErrorSnackBar(_mapPostgrestError(e));
       }
     } catch (e) {
       debugPrint('[UpdateBand] Error: $e');
-      setState(() => _isSubmitting = false);
       if (mounted) {
+        setState(() => _isSubmitting = false);
         _showErrorSnackBar('Failed to update band');
       }
     }
@@ -537,229 +549,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   // BACKUP / RESTORE
   // ─────────────────────────────────────────────────────────────────────────
 
-  void _showBackupRestoreSheet() {
-    final permissionsAsync = ref.read(currentUserPermissionsProvider);
-    final canRestore = permissionsAsync.when(
-      data: (perms) => perms.canDeleteBand,
-      loading: () => false,
-      error: (_, __) => false,
-    );
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    color: context.colors.textMuted.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                if (canRestore)
-                  IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: _BackupSheetPanel(
-                            icon: AppIcons.download,
-                            label: 'Backup Data',
-                            description:
-                                'Save a local copy of your band\'s current data.',
-                            bullets: const [
-                              'Band info & members',
-                              'Songs & setlists',
-                              'Gigs & rehearsals',
-                              'Block-out dates',
-                            ],
-                            isLoading: _isExporting,
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              _startExport();
-                            },
-                          ),
-                        ),
-                        VerticalDivider(
-                          width: 28,
-                          thickness: 1,
-                          color:
-                              context.colors.textMuted.withValues(alpha: 0.2),
-                        ),
-                        Expanded(
-                          child: _BackupSheetPanel(
-                            icon: AppIcons.rotateCcw,
-                            label: 'Restore Data',
-                            description:
-                                'Replace current band data with a backup file.',
-                            bullets: const [
-                              'Band info & members',
-                              'Songs & setlists',
-                              'Gigs & rehearsals',
-                              'Block-out dates',
-                            ],
-                            isLoading: _isImporting,
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              _showImportDialog();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  _BackupSheetPanel(
-                    icon: AppIcons.download,
-                    label: 'Backup Data',
-                    description:
-                        'Save a local copy of your band\'s current data.',
-                    bullets: const [
-                      'Band info & members',
-                      'Songs & setlists',
-                      'Gigs & rehearsals',
-                      'Block-out dates',
-                    ],
-                    isLoading: _isExporting,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _startExport();
-                    },
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   /// Directly opens the file-save picker with no intermediate dialog.
   Future<void> _startExport() async {
     final band = widget.initialBand;
     if (band == null) return;
     await _performExport(band.id, band.name);
-  }
-
-  // ignore: unused_element
-  Future<void> _showExportDialog() async {
-    final band = widget.initialBand;
-    if (band == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: context.colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(AppIcons.download, color: AppColors.primary, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Backup Band Data',
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: AppFontSizes.title,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'A backup file will be created for ${band.name}. The backup includes:',
-              style: TextStyle(
-                  color: context.colors.textSecondary,
-                  fontSize: AppFontSizes.subhead),
-            ),
-            const SizedBox(height: 12),
-            ...[
-              'Band details and settings',
-              'Members and roles',
-              'Songs and setlists',
-              'Gigs and rehearsals',
-              'Block-out dates',
-            ].map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• ',
-                        style: TextStyle(
-                            color: context.colors.textSecondary,
-                            fontSize: AppFontSizes.subhead)),
-                    Expanded(
-                        child: Text(item,
-                            style: TextStyle(
-                                color: context.colors.textSecondary,
-                                fontSize: AppFontSizes.subhead))),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: context.colors.surfaceElevated,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '⚠ Backup files may contain sensitive information such as lyrics, notes, and member details. Store the file securely.',
-                style: TextStyle(
-                    color: context.colors.textMuted,
-                    fontSize: AppFontSizes.caption),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel',
-                style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: AppFontSizes.body)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Backup',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: AppFontSizes.body,
-                    fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      await _performExport(band.id, band.name);
-    }
   }
 
   Future<void> _performExport(String bandId, String bandName) async {
@@ -1015,7 +809,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     setState(() => _isDeleting = true);
 
@@ -1034,12 +828,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         debugPrint(
           '[DeleteBand] RPC returned false or null, deletion may have failed',
         );
+        if (!mounted) return;
         setState(() => _isDeleting = false);
-        if (mounted) {
-          _showErrorSnackBar(
-            'Failed to delete band: operation did not complete',
-          );
-        }
+        _showErrorSnackBar(
+          'Failed to delete band: operation did not complete',
+        );
         return;
       }
 
@@ -1072,8 +865,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       }
     } on PostgrestException catch (e) {
       debugPrint('[DeleteBand] PostgrestException: ${e.code} - ${e.message}');
-      setState(() => _isDeleting = false);
       if (mounted) {
+        setState(() => _isDeleting = false);
         // Parse user-friendly error messages from RPC exceptions
         String errorMessage = e.message;
         if (errorMessage.contains('Permission denied')) {
@@ -1085,8 +878,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       }
     } catch (e) {
       debugPrint('[DeleteBand] Error: $e');
-      setState(() => _isDeleting = false);
       if (mounted) {
+        setState(() => _isDeleting = false);
         _showErrorSnackBar('Failed to delete band');
       }
     }
@@ -1488,6 +1281,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       final fileExists = await imageFile.exists();
       debugPrint('[PickImage] File exists: $fileExists');
 
+      if (!mounted) return;
       setState(() {
         _selectedImage = imageFile;
         _isUploadingImage = true;
@@ -1563,182 +1357,248 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
   @override
   Widget build(BuildContext context) {
-    final title = _isEditMode ? 'Edit Band' : 'Create New Band';
-    final subtitle = _isEditMode
-        ? 'Update your band details'
-        : 'Set up your band and invite members';
-    final submitLabel = _isEditMode ? 'Update Band' : 'Create Band';
+    final submitLabel = _isEditMode ? 'Save Changes' : 'Create Band';
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Column(
-              children: [
-                _buildAppBar(),
-                Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(Spacing.pagePadding),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: TextStyle(
-                                  fontSize: AppFontSizes.title2,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.25,
-                                  color: context.colors.textPrimary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildAppBar(),
+            Expanded(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(Spacing.pagePadding),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SectionCard(
+                            title: 'About',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionLabel('Band name'),
+                                const SizedBox(height: Spacing.space8),
+                                _buildTextInput(
+                                  controller: _bandNameController,
+                                  focusNode: _bandNameFocusNode,
+                                  hintText: 'Enter band name',
+                                  textCapitalization: TextCapitalization.words,
+                                  inputFormatters: [
+                                    CapitalizeWordsTextFormatter(),
+                                  ],
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter a band name';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                subtitle,
-                                style: TextStyle(
-                                  fontSize: AppFontSizes.body,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.4,
-                                  color: context.colors.textSecondary,
+                                FieldHint(
+                                  text:
+                                      'This is how your band will appear everywhere.',
+                                  controller: _bandNameHintController,
                                 ),
-                              ),
-                              const SizedBox(height: Spacing.space32),
-
-                              // Band name input
-                              _buildSectionLabel('Band name'),
-                              const SizedBox(height: Spacing.space8),
-                              _buildTextInput(
-                                controller: _bandNameController,
-                                focusNode: _bandNameFocusNode,
-                                hintText: 'Enter band name',
-                                textCapitalization: TextCapitalization.words,
-                                inputFormatters: [
-                                  CapitalizeWordsTextFormatter(),
+                                const SizedBox(height: Spacing.space24),
+                                _buildSectionLabel('Band avatar'),
+                                const SizedBox(height: Spacing.space12),
+                                _buildAvatarSection(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: Spacing.space16),
+                          SectionCard(
+                            title: 'Location',
+                            child: Column(
+                              children: [
+                                _buildTimezoneSection(),
+                                const SizedBox(height: Spacing.space24),
+                                _buildCurrencySection(),
+                              ],
+                            ),
+                          ),
+                          if (!_isEditMode) ...[
+                            const SizedBox(height: Spacing.space16),
+                            SectionCard(
+                              title: 'Invite Members',
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Add email addresses to invite members to your band',
+                                    style: TextStyle(
+                                      fontSize: AppFontSizes.body,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.4,
+                                      color: context.colors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: Spacing.space12),
+                                  _buildEmailInput(),
+                                  const SizedBox(height: Spacing.space8),
+                                  EmailDomainShortcutBar(
+                                    controller: _emailController,
+                                  ),
+                                  if (_inviteEmails.isNotEmpty) ...[
+                                    const SizedBox(height: Spacing.space24),
+                                    _buildSectionLabel('Invites sent'),
+                                    const SizedBox(height: Spacing.space12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: _inviteEmails
+                                          .map(
+                                            (email) => _EmailPill(
+                                              email: email,
+                                              onRemove: () =>
+                                                  _removeEmail(email),
+                                            ),
+                                          )
+                                          .toList(),
+                                    ),
+                                  ],
                                 ],
-                                // Note: Live avatar preview handled by _onBandNameChanged listener
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter a band name';
-                                  }
-                                  return null;
+                              ),
+                            ),
+                          ],
+                          if (_isEditMode) ...[
+                            const SizedBox(height: Spacing.space16),
+                            SectionCard(
+                              title: 'Band Data',
+                              child: Builder(
+                                builder: (context) {
+                                  final permissionsAsync = ref.watch(
+                                    currentUserPermissionsProvider,
+                                  );
+                                  final canExport = permissionsAsync.when(
+                                    data: (perms) => perms.canExportBandData,
+                                    loading: () => false,
+                                    error: (_, __) => false,
+                                  );
+                                  final canRestore = permissionsAsync.when(
+                                    data: (perms) => perms.canDeleteBand,
+                                    loading: () => false,
+                                    error: (_, __) => false,
+                                  );
+                                  final isBusy = _isSubmitting ||
+                                      _isDeleting ||
+                                      _isExporting ||
+                                      _isImporting;
+                                  final buttons = <Widget>[
+                                    if (canExport)
+                                      AppButton(
+                                        label: 'Backup Data',
+                                        icon: AppIcons.download,
+                                        variant: AppButtonVariant.outlined,
+                                        fullWidth: true,
+                                        isLoading: _isExporting,
+                                        onPressed: isBusy ? null : _startExport,
+                                      ),
+                                    if (canRestore)
+                                      AppButton(
+                                        label: 'Restore Data',
+                                        icon: AppIcons.rotateCcw,
+                                        variant: AppButtonVariant.outlined,
+                                        fullWidth: true,
+                                        isLoading: _isImporting,
+                                        onPressed:
+                                            isBusy ? null : _showImportDialog,
+                                      ),
+                                  ];
+
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Save a local backup or restore this band from a backup file.',
+                                        style: TextStyle(
+                                          fontSize: AppFontSizes.body,
+                                          color: context.colors.textSecondary,
+                                        ),
+                                      ),
+                                      if (buttons.isNotEmpty) ...[
+                                        const SizedBox(
+                                          height: Spacing.space16,
+                                        ),
+                                        LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            if (buttons.length == 2 &&
+                                                constraints.maxWidth >= 560) {
+                                              return Row(
+                                                children: [
+                                                  Expanded(child: buttons[0]),
+                                                  const SizedBox(
+                                                    width: Spacing.space12,
+                                                  ),
+                                                  Expanded(child: buttons[1]),
+                                                ],
+                                              );
+                                            }
+                                            return Column(
+                                              children: [
+                                                for (var index = 0;
+                                                    index < buttons.length;
+                                                    index++) ...[
+                                                  buttons[index],
+                                                  if (index <
+                                                      buttons.length - 1)
+                                                    const SizedBox(
+                                                      height: Spacing.space12,
+                                                    ),
+                                                ],
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ],
+                                  );
                                 },
                               ),
-                              FieldHint(
-                                text:
-                                    "This is how your band will appear everywhere.",
-                                controller: _bandNameHintController,
-                              ),
-                              const SizedBox(height: Spacing.space24),
-
-                              // Band avatar section
-                              _buildSectionLabel('Band avatar'),
-                              const SizedBox(height: Spacing.space12),
-                              _buildAvatarSection(),
-                              const SizedBox(height: Spacing.space32),
-
-                              // Timezone picker
-                              _buildTimezoneSection(),
-                              const SizedBox(height: Spacing.space32),
-
-                              // Invite members section (only for create mode)
-                              if (!_isEditMode) ...[
-                                _buildSectionLabel('Invite Members'),
-                                const SizedBox(height: Spacing.space6),
-                                Text(
-                                  'Add email addresses to invite members to your band',
-                                  style: TextStyle(
-                                    fontSize: AppFontSizes.body,
-                                    fontWeight: FontWeight.w400,
-                                    height: 1.4,
-                                    color: context.colors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: Spacing.space12),
-                                _buildEmailInput(),
-                                const SizedBox(height: Spacing.space8),
-                                EmailDomainShortcutBar(
-                                    controller: _emailController),
-                                if (_inviteEmails.isNotEmpty) ...[
-                                  const SizedBox(height: Spacing.space24),
-                                  _buildSectionLabel('Invites sent'),
-                                  const SizedBox(height: Spacing.space12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: _inviteEmails
-                                        .map(
-                                          (email) => _EmailPill(
-                                            email: email,
-                                            onRemove: () => _removeEmail(email),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ],
-                              ],
-
-                              // Submit button
-                              const SizedBox(height: Spacing.space32),
-                              _buildSubmitButton(submitLabel),
-                              const SizedBox(height: Spacing.space48),
-                            ],
-                          ),
-                        ),
+                            ),
+                          ],
+                          const SizedBox(height: Spacing.space32),
+                          _buildSubmitButton(submitLabel),
+                          const SizedBox(height: Spacing.space48),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildAppBar() {
-    return FrostedGlassBar(
-      height: Spacing.appBarHeight,
-      padding: const EdgeInsets.symmetric(horizontal: Spacing.space16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (_isEditMode) {
-                ref.read(draftBandProvider.notifier).cancelEditing();
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  AppIcons.back,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                Text(
-                  'Back',
-                  style: TextStyle(
-                    fontSize: AppFontSizes.body,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-        ],
+    return AppAppBar(
+      backgroundColor: context.colors.appBarBg,
+      leading: AppIconButton(
+        icon: AppIcons.arrowLeft,
+        color: AppColors.primary,
+        onPressed: _handleBackPress,
+      ),
+      title: Text(
+        _isEditMode ? 'Edit Band' : 'New Band',
+        style: AppTextStyles.title3,
       ),
     );
+  }
+
+  void _handleBackPress() {
+    if (_isEditMode) {
+      ref.read(draftBandProvider.notifier).cancelEditing();
+    }
+    Navigator.of(context).pop();
   }
 
   Widget _buildSectionLabel(String label) {
@@ -2125,6 +1985,76 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     );
   }
 
+  Widget _buildCurrencySection() {
+    final bool canEdit;
+    if (!_isEditMode) {
+      canEdit = true;
+    } else {
+      canEdit = ref.watch(currentUserPermissionsProvider).when(
+            data: (permissions) => permissions.canEditBandSettings,
+            loading: () => false,
+            error: (_, __) => false,
+          );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel('Currency'),
+        const SizedBox(height: Spacing.space6),
+        Text(
+          'Used for financials, gig pay, and reports',
+          style: TextStyle(
+            fontSize: AppFontSizes.body,
+            fontWeight: FontWeight.w400,
+            height: 1.4,
+            color: context.colors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: Spacing.space12),
+        AppDropdown<String>(
+          value: BandCurrency.byIsoCode.containsKey(_selectedCurrencyCode)
+              ? _selectedCurrencyCode
+              : BandCurrency.defaultCode,
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _selectedCurrencyCode = value);
+            }
+          },
+          enabled: canEdit,
+          validator: (value) => value == null ? 'Currency is required' : null,
+          format: (value) =>
+              BandCurrency.byIsoCode[value]?.pickerLabel ?? value,
+          children: [
+            for (final group in BandCurrency.pickerGroups())
+              FSelectSection<String>(
+                label: Text(
+                  group.label,
+                  style: TextStyle(
+                    color: context.colors.primaryLight,
+                    fontSize: AppFontSizes.title,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                items: group.items,
+              ),
+          ],
+        ),
+        if (!canEdit)
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.space8),
+            child: Text(
+              'Only admins can change the currency',
+              style: TextStyle(
+                color: context.colors.textMuted,
+                fontSize: AppFontSizes.caption,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildEmailInput() {
     return Row(
       children: [
@@ -2159,7 +2089,11 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
   Widget _buildSubmitButton(String label) {
     final isEnabled = _isEditMode
-        ? _isDirty && !_isSubmitting && !_isDeleting
+        ? _isDirty &&
+            !_isSubmitting &&
+            !_isDeleting &&
+            !_isExporting &&
+            !_isImporting
         : !_isSubmitting;
 
     return Column(
@@ -2174,14 +2108,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         const SizedBox(height: Spacing.space16),
         // Cancel button
         TextButton(
-          onPressed: (_isSubmitting || _isDeleting)
-              ? null
-              : () {
-                  if (_isEditMode) {
-                    ref.read(draftBandProvider.notifier).cancelEditing();
-                  }
-                  Navigator.of(context).pop();
-                },
+          onPressed: (_isSubmitting || _isDeleting) ? null : _handleBackPress,
           child: Text(
             'Cancel',
             style: TextStyle(
@@ -2192,86 +2119,45 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
             ),
           ),
         ),
-        // Delete button (edit mode only, admin only)
         if (_isEditMode) ...[
-          // Only show delete button if user has canDeleteBand permission
           Builder(builder: (context) {
             final permissionsAsync = ref.watch(currentUserPermissionsProvider);
-            final canExport = permissionsAsync.when(
-              data: (perms) => perms.canExportBandData,
-              loading: () => false,
-              error: (_, __) => false,
-            );
             final canDelete = permissionsAsync.when(
               data: (perms) => perms.canDeleteBand,
               loading: () => false,
               error: (_, __) => false,
             );
-            if (!canExport) return const SizedBox.shrink();
-            final isBusy =
-                _isSubmitting || _isDeleting || _isExporting || _isImporting;
-            return Column(
-              children: [
-                const SizedBox(height: Spacing.space24),
-                // Backup / Restore entry point
-                OutlinedButton.icon(
-                  onPressed: isBusy ? null : _showBackupRestoreSheet,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.6)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                  ),
-                  icon: (_isExporting || _isImporting)
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primary),
+            if (!canDelete) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: Spacing.space8),
+              child: TextButton(
+                onPressed: (_isSubmitting ||
+                        _isDeleting ||
+                        _isExporting ||
+                        _isImporting)
+                    ? null
+                    : _deleteBand,
+                child: _isDeleting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
                           ),
-                        )
-                      : const Icon(AppIcons.rotateCcw, size: 15),
-                  label: Text(
-                    canDelete ? 'Backup / Restore Data' : 'Backup Data',
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.subhead,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (canDelete) ...[
-                  const SizedBox(height: Spacing.space8),
-                  TextButton(
-                    onPressed:
-                        (_isSubmitting || _isDeleting) ? null : _deleteBand,
-                    child: _isDeleting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primary,
-                              ),
-                            ),
-                          )
-                        : const Text(
-                            'Delete',
-                            style: TextStyle(
-                              fontSize: AppFontSizes.subhead,
-                              fontWeight: FontWeight.w400,
-                              color: AppColors.primary,
-                              decoration: TextDecoration.none,
-                            ),
-                          ),
-                  ),
-                ],
-              ],
+                        ),
+                      )
+                    : const Text(
+                        'Delete Band',
+                        style: TextStyle(
+                          fontSize: AppFontSizes.subhead,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.primary,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+              ),
             );
           }),
         ],
@@ -2324,102 +2210,6 @@ class _EmailPill extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Backup / Restore bottom-sheet panel (one side of the two-column sheet)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _BackupSheetPanel extends StatelessWidget {
-  const _BackupSheetPanel({
-    required this.icon,
-    required this.label,
-    required this.description,
-    required this.bullets,
-    required this.onTap,
-    this.isLoading = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String description;
-  final List<String> bullets;
-  final VoidCallback onTap;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Outlined action button
-        OutlinedButton.icon(
-          onPressed: isLoading ? null : onTap,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.6)),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          ),
-          icon: isLoading
-              ? const SizedBox(
-                  width: 15,
-                  height: 15,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                )
-              : Icon(icon, size: 16),
-          label: Text(
-            label,
-            style: const TextStyle(
-              fontSize: AppFontSizes.subhead,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        // Description
-        Text(
-          description,
-          style: TextStyle(
-            fontSize: AppFontSizes.subhead,
-            color: context.colors.textPrimary,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Bullet list
-        ...bullets.map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('• ',
-                    style: TextStyle(
-                        fontSize: AppFontSizes.subhead,
-                        color: context.colors.textPrimary)),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: TextStyle(
-                      fontSize: AppFontSizes.subhead,
-                      color: context.colors.textPrimary,
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

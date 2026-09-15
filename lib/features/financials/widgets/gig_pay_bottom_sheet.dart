@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_icons.dart';
@@ -11,6 +12,8 @@ import '../../../components/ui/app_text_field.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
 import '../../../shared/widgets/currency_input_field.dart';
+import '../../bands/active_band_controller.dart';
+import '../../bands/currency/band_currency.dart';
 import '../models/financial_entry.dart';
 
 // ============================================================================
@@ -22,7 +25,7 @@ import '../models/financial_entry.dart';
 // Returns null on dismiss/cancel (no changes applied).
 // ============================================================================
 
-class GigPayBottomSheet extends StatefulWidget {
+class GigPayBottomSheet extends ConsumerStatefulWidget {
   const GigPayBottomSheet({
     super.key,
     required this.defaultPaymentDate,
@@ -52,10 +55,10 @@ class GigPayBottomSheet extends StatefulWidget {
   final bool viewOnly;
 
   @override
-  State<GigPayBottomSheet> createState() => _GigPayBottomSheetState();
+  ConsumerState<GigPayBottomSheet> createState() => _GigPayBottomSheetState();
 }
 
-class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
+class _GigPayBottomSheetState extends ConsumerState<GigPayBottomSheet> {
   late final CurrencyInputController _amountController;
   late final TextEditingController _payerController;
   late final TextEditingController _paidToOtherController;
@@ -171,6 +174,8 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM d, yyyy').format(_paymentDate);
+    final activeBand = ref.watch(activeBandProvider).activeBand;
+    final currencyCode = activeBand?.currencyCode ?? BandCurrency.defaultCode;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -223,6 +228,7 @@ class _GigPayBottomSheetState extends State<GigPayBottomSheet> {
                   ),
                   const SizedBox(height: 6),
                   CurrencyTextField(
+                    currencySymbol: BandCurrency.symbolFor(currencyCode),
                     controller: _amountController,
                     label: '',
                     enabled: !widget.viewOnly,

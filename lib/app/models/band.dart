@@ -13,6 +13,7 @@ class Band {
   final String? createdBy;
   final String avatarColor;
   final String timezone;
+  final String currencyCode;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -23,6 +24,7 @@ class Band {
     this.createdBy,
     this.avatarColor = 'bg-red-600',
     this.timezone = 'America/Chicago',
+    this.currencyCode = 'USD',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -36,6 +38,7 @@ class Band {
       createdBy: json['created_by'] as String?,
       avatarColor: json['avatar_color'] as String? ?? 'bg-red-600',
       timezone: json['timezone'] as String? ?? 'America/Chicago',
+      currencyCode: json['currency_code'] as String? ?? 'USD',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -49,6 +52,7 @@ class Band {
       'created_by': createdBy,
       'avatar_color': avatarColor,
       'timezone': timezone,
+      'currency_code': currencyCode,
     };
   }
 

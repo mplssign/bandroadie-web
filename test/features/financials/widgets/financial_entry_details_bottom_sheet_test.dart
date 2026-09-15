@@ -12,6 +12,7 @@ import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/models/gig.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/features/bands/active_band_controller.dart';
@@ -47,6 +48,19 @@ class _StubVenuesNotifier extends VenuesNotifier {
   VenuesState build() => const VenuesState();
   @override
   Future<void> load(String? bandId) async {}
+}
+
+class _SeededActiveBandNotifier extends ActiveBandNotifier {
+  @override
+  ActiveBandState build() {
+    final band = Band(
+      id: 'band-1',
+      name: 'Test Band',
+      createdAt: DateTime(2024),
+      updatedAt: DateTime(2024),
+    );
+    return ActiveBandState(userBands: [band], activeBand: band);
+  }
 }
 
 // Captures the reimbursement fields forwarded through the Edit-launch
@@ -168,6 +182,7 @@ Future<void> _pumpSheet(
     ProviderScope(
       overrides: [
         gigProvider.overrideWith(() => _FakeGigNotifier(gigState)),
+        activeBandProvider.overrideWith(_SeededActiveBandNotifier.new),
         ...extraOverrides,
       ],
       child: MaterialApp(

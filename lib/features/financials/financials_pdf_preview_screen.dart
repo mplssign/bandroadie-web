@@ -27,6 +27,7 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
   final String bandName;
   final FinancialDateFilter dateFilter;
   final List<MemberVM> members;
+  final String currencyCode;
 
   /// Null means a combined report containing both income and expenses.
   final FinancialViewMode? viewMode;
@@ -36,6 +37,7 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
     required this.entries,
     required this.bandName,
     required this.dateFilter,
+    required this.currencyCode,
     this.viewMode,
     this.members = const [],
   });
@@ -97,6 +99,7 @@ class _FinancialsPdfPreviewScreenState
           bandName: widget.bandName,
           dateRangeLabel: _filterLabel,
           members: widget.members,
+          currencyCode: widget.currencyCode,
         ),
       ),
     );

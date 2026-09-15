@@ -21,6 +21,7 @@ import '../../../components/ui/confirm_action_dialog.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../features/members/member_vm.dart';
 import '../../bands/active_band_controller.dart';
+import '../../bands/currency/band_currency.dart';
 import '../../contacts/contacts_controller.dart';
 import '../../contacts/venues_controller.dart';
 import '../../gigs/gig_controller.dart';
@@ -114,14 +115,8 @@ Future<void> showAddFinancialEntrySheet(
   );
 }
 
-/// Formats an integer cents value as a dollar string, matching the
-/// [FinancialEntry.formattedAmount] pattern (e.g. 52354 → "\$523.54").
-String _formatSavingsCents(int cents) {
-  final dollars = cents ~/ 100;
-  final remainder = cents % 100;
-  final dollarsFormatted = NumberFormat('#,##0').format(dollars);
-  return '\$$dollarsFormatted.${remainder.toString().padLeft(2, '0')}';
-}
+String _formatSavingsCents(int cents, String currencyCode) =>
+    BandCurrency.formatCents(cents, currencyCode);
 
 // ---------------------------------------------------------------------------
 // Private sheet widget
@@ -710,6 +705,10 @@ class _AddFinancialEntryBottomSheetState
 
   Widget _buildAboutSection() {
     final dateStr = DateFormat('MMM d, yyyy').format(_entryDate);
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
+    final currencySymbol = BandCurrency.symbolFor(currencyCode);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -748,6 +747,7 @@ class _AddFinancialEntryBottomSheetState
         CurrencyTextField(
           controller: _amountController,
           label: 'Amount',
+          currencySymbol: currencySymbol,
         ),
         const SizedBox(height: Spacing.space16),
         Text(
@@ -989,6 +989,10 @@ class _AddFinancialEntryBottomSheetState
   }
 
   Widget _buildDistributionSection() {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
+    final currencySymbol = BandCurrency.symbolFor(currencyCode);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1054,6 +1058,7 @@ class _AddFinancialEntryBottomSheetState
                                         ? CurrencyTextField(
                                             controller: ctrl,
                                             label: '',
+                                            currencySymbol: currencySymbol,
                                             clearOnFocus: true,
                                             onChanged: () =>
                                                 _syncDistributionState(
@@ -1104,7 +1109,7 @@ class _AddFinancialEntryBottomSheetState
                 if (widget.savingsTotalCents != null) ...[
                   const SizedBox(width: 4),
                   Text(
-                    '(${_formatSavingsCents(widget.savingsTotalCents!)})',
+                    '(${_formatSavingsCents(widget.savingsTotalCents!, currencyCode)})',
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.success),
                   ),
@@ -1145,6 +1150,7 @@ class _AddFinancialEntryBottomSheetState
                       CurrencyTextField(
                         controller: _depositToSavingsController,
                         label: 'Savings Amount',
+                        currencySymbol: currencySymbol,
                         clearOnFocus: true,
                         onChanged: () => _syncDistributionState(
                           changedFieldKey: 'savings',

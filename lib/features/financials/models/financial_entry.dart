@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+import '../../bands/currency/band_currency.dart';
 
 // ============================================================================
 // FINANCIAL ENTRY MODELS
@@ -164,22 +164,12 @@ class FinancialEntry {
     };
   }
 
-  /// Formatted amount as a dollar string with commas (e.g., "$1,500.00")
-  String get formattedAmount {
-    final dollars = amountCents ~/ 100;
-    final cents = amountCents % 100;
-    final dollarsFormatted = NumberFormat('#,##0').format(dollars);
-    return '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
-  }
+  String formatAmount(String currencyCode) =>
+      BandCurrency.formatCents(amountCents, currencyCode);
 
-  /// Formatted savings amount (e.g., "$250.00"). Returns null if cents is null.
-  String? get formattedDepositToSavings {
-    final c = depositToSavingsCents;
-    if (c == null) return null;
-    final dollars = c ~/ 100;
-    final cents = c % 100;
-    final dollarsFormatted = NumberFormat('#,##0').format(dollars);
-    return '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
+  String? formatDepositToSavings(String currencyCode) {
+    if (depositToSavingsCents == null) return null;
+    return BandCurrency.formatCents(depositToSavingsCents!, currencyCode);
   }
 }
 
@@ -233,11 +223,6 @@ class GigPayDetails {
     );
   }
 
-  /// Formatted amount as a dollar string with commas (e.g., "$1,500.00")
-  String get formattedAmount {
-    final dollars = amountCents ~/ 100;
-    final cents = amountCents % 100;
-    final dollarsFormatted = NumberFormat('#,##0').format(dollars);
-    return '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
-  }
+  String formatAmount(String currencyCode) =>
+      BandCurrency.formatCents(amountCents, currencyCode);
 }

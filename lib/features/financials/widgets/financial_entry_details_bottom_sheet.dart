@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/brand_colors.dart';
 import '../../../app/theme/design_tokens.dart';
+import '../../bands/active_band_controller.dart';
+import '../../bands/currency/band_currency.dart';
 import '../../gigs/gig_controller.dart';
 import '../../members/members_controller.dart';
 import '../financials_controller.dart';
@@ -25,21 +27,22 @@ Future<void> showFinancialEntryDetailsSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _FinancialEntryDetailsSheet(entry: entry, ref: ref),
+    builder: (_) => _FinancialEntryDetailsSheet(entry: entry),
   );
 }
 
-class _FinancialEntryDetailsSheet extends StatelessWidget {
+class _FinancialEntryDetailsSheet extends ConsumerWidget {
   const _FinancialEntryDetailsSheet({
     required this.entry,
-    required this.ref,
   });
 
   final FinancialEntry entry;
-  final WidgetRef ref;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     final amountColor =
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '+' : '−';
@@ -103,7 +106,7 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$amountPrefix${entry.formattedAmount}',
+                            '$amountPrefix${entry.formatAmount(currencyCode)}',
                             style: AppTextStyles.displayLarge
                                 .copyWith(color: amountColor),
                           ),
@@ -180,7 +183,7 @@ class _FinancialEntryDetailsSheet extends StatelessWidget {
                   _DetailRow(
                     label: 'Deposit to Savings',
                     value: entry.depositToSavingsCents != null
-                        ? entry.formattedDepositToSavings!
+                        ? entry.formatDepositToSavings(currencyCode)!
                         : 'Yes',
                   ),
                 ],
