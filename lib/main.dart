@@ -224,11 +224,13 @@ class BandRoadieApp extends ConsumerWidget {
           final tokenHash = uri.queryParameters['token_hash'];
           final code = uri.queryParameters['code'];
           final type = uri.queryParameters['type'];
+          final inviteToken = uri.queryParameters['invite_token'];
           return fadeSlideRoute(
             page: AuthConfirmScreen(
               tokenHash: tokenHash,
               code: code,
               type: type,
+              inviteToken: inviteToken,
             ),
             settings: settings,
           );

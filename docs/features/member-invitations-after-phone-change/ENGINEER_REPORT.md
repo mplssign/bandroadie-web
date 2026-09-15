@@ -10,64 +10,64 @@ Member invitations fail after a band member changes phone number
 
 ## Cycle Number
 
-1
+6
 
 ## Goal
 
-Resume the existing uncommitted implementation, keep the approved Members tab invite fix aligned with the architect plan, repair only local test defects, and complete the required validation and reporting.
+Fix QA Cycle 5's single Critical `unused_catch_clause` finding in the plan-approved invite screen without changing behavior, then revalidate the touched auth slice and update this report with the exact results.
 
 ## Architect Tasks Completed
 
-1. Replaced the stale `BandFormScreen` import in `members_tab_content.dart` with `InviteMembersScreen`.
-2. Updated `MembersTabContent._openInviteScreen()` to push `InviteMembersScreen(band: bandState.activeBand!)`.
-3. Added the populated-members header `Add` affordance in `MembersTabContent`, wired to `_openInviteScreen()` and styled with `AppIcons.add` and `AppColors.primary`.
-4. Removed the stale pending-invites comment from `members_tab_content.dart`.
-5. Completed `test/features/members/members_tab_content_test.dart` with empty-state and populated-state coverage for the Members tab invite entry points.
+1. Fixed the QA-reported `unused_catch_clause` in `lib/features/auth/invite_screen.dart` by changing `on FunctionsFetchException catch (e)` to `on FunctionsFetchException`, preserving the existing network-specific recovery behavior.
+2. Left all other implementation, tests, server behavior, and off-limits files unchanged in this cycle.
 
 ## Files Created
 
-- `test/features/members/members_tab_content_test.dart`
-- `docs/features/member-invitations-after-phone-change/ENGINEER_REPORT.md`
+None.
 
 ## Files Modified
 
-- `lib/features/members/members_tab_content.dart`
-- `test/features/members/members_tab_content_test.dart`
+- `docs/features/member-invitations-after-phone-change/ENGINEER_REPORT.md`
+- `lib/features/auth/invite_screen.dart`
 
 ## Analyzer Results
 
-- `flutter analyze lib/features/members/members_tab_content.dart test/features/members/members_tab_content_test.dart`
-- Result: `No issues found! (ran in 1.8s)`
+- Command: `flutter analyze lib/features/auth/auth_confirm_screen.dart lib/features/auth/invite_screen.dart lib/main.dart test/features/auth/auth_confirm_screen_test.dart test/features/auth/invite_screen_test.dart`
+- Result: `Analyzing 5 items... No issues found! (ran in 3.0s)`
 
 ## Test Results
 
-- Focused widget test: `flutter test test/features/members/members_tab_content_test.dart`
-- Result: `00:02 +2: All tests passed!`
-- Full suite: `flutter test`
-- Result: `00:48 +312: All tests passed!`
+- Command: `flutter test test/features/auth/invite_screen_test.dart test/features/auth/auth_confirm_screen_test.dart test/features/members/members_tab_content_test.dart`
+- Result: `00:06 +11: All tests passed!`
+- Coverage of the combined run: `invite_screen_test.dart` `+7`, `auth_confirm_screen_test.dart` `+2`, `members_tab_content_test.dart` `+2`.
 
 ## Code Efficiency/Bloat Check
 
-- Reused the existing invite destination pattern from `contacts_tab_content.dart` and the existing header affordance pattern from `band_members_view.dart`; no new production helpers, widgets, providers, or abstractions were added.
-- `dart fix --dry-run` result: `Nothing to fix!`
-- Changed production file remains within the mode size target; no file-size justification needed.
+- No new helper, abstraction, or widget was added in Cycle 6.
+- The fix replaces the defective catch binding rather than layering on behavior.
+- `dart format` changed only the target file after the one-line code edit.
 
 ## Verification
 
-- Ran `dart format lib/features/members/members_tab_content.dart test/features/members/members_tab_content_test.dart`.
-- Ran `dart fix --dry-run`.
-- Ran the focused Members tab widget test.
-- Ran filtered `flutter analyze` on changed files only.
-- Ran the full `flutter test` suite.
-- No live/manual app verification was performed in this headless session.
+- Branch/state precheck
+	Command: `bash scripts/clear_stale_git_lock.sh && GIT_OPTIONAL_LOCKS=0 git branch --show-current && GIT_OPTIONAL_LOCKS=0 git status --short`
+	Result: branch `bug/member-invitations-after-phone-change`; the worktree contained the existing prior-cycle plan-area diff plus this cycle's report/file updates.
+- Formatting
+	Command: `dart format lib/features/auth/invite_screen.dart`
+	Result: `Formatted lib/features/auth/invite_screen.dart` and `Formatted 1 file (1 changed) in 0.02 seconds.`
+- Focused analyzer and tests
+	Command: `flutter analyze lib/features/auth/auth_confirm_screen.dart lib/features/auth/invite_screen.dart lib/main.dart test/features/auth/auth_confirm_screen_test.dart test/features/auth/invite_screen_test.dart && flutter test test/features/auth/invite_screen_test.dart test/features/auth/auth_confirm_screen_test.dart test/features/members/members_tab_content_test.dart`
+	Result: analyzer clean; focused tests passed with `00:06 +11: All tests passed!`
+- Cheapest regression proof for the finding
+	Result: the five-file analyzer no longer reports `unused_catch_clause`, which was the literal QA finding on `lib/features/auth/invite_screen.dart`.
 
 ## Deviations From Plan
 
-- The widget test verifies the pushed route target by recording the `PageRoute` and inspecting its built page instead of fully mounting `InviteMembersScreen` after navigation. This keeps the test scoped to `MembersTabContent` and avoids unrelated pre-existing destination-screen test-host failures during route settlement.
+- None.
 
 ## Blockers Encountered
 
-- None blocking completion.
+- None.
 
 ## Ready For QA
 

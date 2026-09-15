@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/utils/web_storage.dart';
 import 'auth_gate.dart';
 import 'auth_state_provider.dart';
+import 'invite_screen.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
@@ -28,7 +29,14 @@ class AuthConfirmScreen extends ConsumerStatefulWidget {
   final String? tokenHash;
   final String? code; // PKCE flow uses code parameter
   final String? type;
-  const AuthConfirmScreen({super.key, this.tokenHash, this.code, this.type});
+  final String? inviteToken; // present when confirming an invite-login
+  const AuthConfirmScreen({
+    super.key,
+    this.tokenHash,
+    this.code,
+    this.type,
+    this.inviteToken,
+  });
 
   @override
   ConsumerState<AuthConfirmScreen> createState() => _AuthConfirmScreenState();
@@ -81,13 +89,22 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
     // we'll handle this in the error flow
   }
 
-  /// Navigate to the main app after successful auth
+  /// Navigate to the main app (or back into the invite flow) after successful auth
   void _navigateToHome() {
     if (_navigating) return;
     _navigating = true;
+    final inviteToken = widget.inviteToken;
+    if (inviteToken != null && inviteToken.isNotEmpty) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => InviteScreen(token: inviteToken)),
+        (route) => false,
+      );
+      return;
+    }
     debugPrint('🚀 Navigating to app from fragment auth');
     if (kIsWeb) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/app', (route) => false);
     } else {
       Navigator.pushAndRemoveUntil(
         context,
@@ -298,6 +315,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       int attempts = 0;
       const maxAttempts = 10; // 5 seconds max
       while (attempts < maxAttempts) {
+        if (!mounted) return;
         final authState = ref.read(authStateProvider);
         if (authState.isAuthenticated) {
           debugPrint('✅ Auth state provider synced (attempt ${attempts + 1})');
@@ -314,26 +332,7 @@ class _AuthConfirmScreenState extends ConsumerState<AuthConfirmScreen> {
       }
 
       if (!mounted) return;
-
-      // On web, navigate to /app route explicitly to update URL
-      // On mobile, just push AuthGate
-      if (kIsWeb) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/app',
-          (route) => false, // Remove all previous routes
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AuthGate()),
-          (route) => false, // Remove all previous routes
-        );
-      }
-
-      setState(() {
-        _loading = false;
-      });
+      _navigateToHome();
     } on SocketException {
       debugPrint('❌ NETWORK ERROR: No internet connection');
       setState(() {
