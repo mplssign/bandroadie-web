@@ -90,6 +90,42 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
     });
 
+    testWidgets(
+      'AppAlertDialog wraps content in Spacing.space24 padding',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => FTheme(
+              data: FTheme.neutral.dark.touch,
+              child: child!,
+            ),
+            home: Scaffold(
+              body: AppAlertDialog(
+                title: 'Alert',
+                message: 'Body',
+                actions: [
+                  DialogAction(label: 'OK', onPressed: () {}),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Alert'), findsOneWidget);
+        expect(
+          find.ancestor(
+            of: find.text('Alert'),
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Padding &&
+                  widget.padding == const EdgeInsets.all(24.0),
+            ),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets('destructive action uses destructive variant', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

@@ -1,3 +1,4 @@
+import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
@@ -84,32 +85,35 @@ class AppAlertDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FDialog(
-      builder: (context, style) => Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Text(message),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: actions.map((action) {
-              return Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: FButton(
-                  onPress: action.onPressed,
-                  variant: action.isDestructive
-                      ? FButtonVariant.destructive
-                      : FButtonVariant.outline,
-                  child: Text(action.label),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
+      builder: (context, style) => Padding(
+        padding: const EdgeInsets.all(Spacing.space24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text(message),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: actions.map((action) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: FButton(
+                    onPress: action.onPressed,
+                    variant: action.isDestructive
+                        ? FButtonVariant.destructive
+                        : FButtonVariant.outline,
+                    child: Text(action.label),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }
