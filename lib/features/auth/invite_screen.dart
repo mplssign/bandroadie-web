@@ -37,6 +37,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
   bool _accepted = false;
   String? _bandName;
   bool _needsAuth = false;
+  String? _authMessage;
   bool _signingIn = false;
   final _emailController = TextEditingController();
   String? _emailError;
@@ -124,6 +125,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       _loading = true;
       _error = null;
       _needsAuth = false; // Clear the auth UI if showing
+      _authMessage = null;
     });
 
     try {
@@ -131,27 +133,14 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
 
       final response = await Supabase.instance.client.functions.invoke(
         'accept-invite',
-        body: {'token': token},
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token}),
       );
 
       debugPrint('[InviteScreen] Response status: ${response.status}');
       debugPrint('[InviteScreen] Response data: ${response.data}');
 
-      if (response.status != 200) {
-        final errorMsg = response.data is Map
-            ? response.data['error']
-            : 'Failed to accept invite';
-        if (!mounted) return;
-        setState(() {
-          _error = errorMsg?.toString() ?? 'Failed to accept invite';
-          _loading = false;
-        });
-        return;
-      }
-
-      final data = response.data is Map
-          ? response.data
-          : jsonDecode(response.data.toString());
+      final data = _asMap(response.data);
 
       String? acceptedBandName;
       final legacyBandName = data['band_name'];
@@ -183,7 +172,10 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         }
       }
 
-      if (data['success'] == true) {
+      final hasAcceptedBand =
+          acceptedBandId != null || acceptedBandName != null;
+
+      if (data['success'] == true && hasAcceptedBand) {
         // Clear pending invite token since we've successfully accepted
         await PendingInviteHelper.clearPendingInviteToken();
 
@@ -212,10 +204,23 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
       } else {
         if (!mounted) return;
         setState(() {
-          _error = data['error']?.toString() ?? 'Failed to accept invite';
+          _hasTriedAccept = false;
+          _needsAuth = true;
           _loading = false;
+          _magicLinkSent = false;
+          _authMessage =
+              'Sign in with your invited email to accept this invite.';
+          _error = null;
         });
       }
+    } on FunctionsHttpException catch (e) {
+      await _handleAcceptHttpError(e);
+    } on FunctionsFetchException {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Network error. Check your connection and try again.';
+        _loading = false;
+      });
     } catch (e) {
       debugPrint('[InviteScreen] Error accepting invite: $e');
       if (!mounted) return;
@@ -224,6 +229,100 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _handleAcceptHttpError(FunctionsHttpException error) async {
+    final details = _asMap(error.details);
+    final code = _errorCode(details);
+    final message = _errorMessage(details);
+
+    if (error.status == 401) {
+      await _safeLocalSignOut();
+      if (!mounted) return;
+      setState(() {
+        _hasTriedAccept = false;
+        _needsAuth = true;
+        _loading = false;
+        _magicLinkSent = false;
+        _authMessage =
+            'Your session expired. Sign in with your invited email to accept this invite.';
+        _error = null;
+      });
+      return;
+    }
+
+    if (error.status == 403 && code == 'email_mismatch') {
+      await _safeLocalSignOut();
+      if (!mounted) return;
+      setState(() {
+        _hasTriedAccept = false;
+        _needsAuth = true;
+        _loading = false;
+        _magicLinkSent = false;
+        _authMessage =
+            'This invite was sent to a different email. Sign in with that address.';
+        _error = null;
+      });
+      return;
+    }
+
+    if (error.status == 409 && code == 'invite_unavailable') {
+      if (!mounted) return;
+      setState(() {
+        _error = 'This invite is no longer available.';
+        _loading = false;
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _error = message ??
+          'We couldn\'t finish accepting your invite. Please try again.';
+      _loading = false;
+    });
+  }
+
+  Future<void> _safeLocalSignOut() async {
+    try {
+      // ignore: avoid_redundant_argument_values -- explicit for intent/future-proofing (plan-mandated)
+      await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {}
+  }
+
+  Map<String, dynamic> _asMap(Object? details) {
+    if (details is Map<String, dynamic>) {
+      return details;
+    }
+    if (details is Map) {
+      return details.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    }
+    if (details is String && details.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(details);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+        if (decoded is Map) {
+          return decoded.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+        }
+      } catch (_) {}
+    }
+    return const {};
+  }
+
+  String? _errorCode(Map<String, dynamic> details) {
+    final code = details['code'];
+    return code is String && code.isNotEmpty ? code : null;
+  }
+
+  String? _errorMessage(Map<String, dynamic> details) {
+    final error = details['error'];
+    return error is String && error.isNotEmpty ? error : null;
   }
 
   Future<void> _sendMagicLink() async {
@@ -241,9 +340,14 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     });
 
     try {
-      // Build redirect URL that includes the invite token
+      // Build redirect URL through the standard web auth-confirm route so the
+      // invite-login handoff uses the same PKCE confirmation path as normal login.
       final token = widget.token;
-      final redirectUrl = 'https://app.bandroadie.com/invite?token=$token';
+      final redirectUrl = Uri.https(
+        'app.bandroadie.com',
+        '/auth/confirm',
+        {'invite_token': token ?? ''},
+      ).toString();
 
       // Store the invite token in SharedPreferences so AuthGate can pick it up
       // This handles the case where the redirect doesn't work as expected
@@ -457,6 +561,20 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           style: TextStyle(color: Colors.white70, fontSize: AppFontSizes.body),
           textAlign: TextAlign.center,
         ),
+        if (_authMessage != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 320,
+            child: Text(
+              _authMessage!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: AppFontSizes.subhead,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
         const SizedBox(height: 32),
         SizedBox(
           width: 320,

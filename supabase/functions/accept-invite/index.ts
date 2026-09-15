@@ -8,6 +8,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { baseCorsHeaders } from "../_shared/cors.ts";
+import { classifyTokenInvite, tokenInviteResponse } from "./invite_result.ts";
 
 const corsHeaders = baseCorsHeaders;
 
@@ -89,13 +90,12 @@ serve(async (req) => {
     }> = [];
 
     if (inviteToken) {
-      const { data: inviteByToken, error: tokenInviteError } = await supabaseAdmin
-        .from("band_invitations")
-        .select("id, band_id, bands(name)")
-        .eq("token", inviteToken)
-        .eq("email", authUser.email.toLowerCase())
-        .in("status", ["pending", "sent"])
-        .maybeSingle();
+      const { data: inviteByToken, error: tokenInviteError } =
+        await supabaseAdmin
+          .from("band_invitations")
+          .select("id, band_id, email, status, expires_at, bands(name)")
+          .eq("token", inviteToken)
+          .maybeSingle();
 
       if (tokenInviteError) {
         console.error(
@@ -111,12 +111,45 @@ serve(async (req) => {
         );
       }
 
-      if (inviteByToken) {
-        invitations = [inviteByToken];
+      const classification = classifyTokenInvite(
+        inviteByToken,
+        authUser.email,
+        new Date(),
+      );
+
+      if (classification.kind === "eligible") {
+        const { error: rpcError } = await supabaseAdmin.rpc(
+          "accept_band_invite",
+          {
+            p_invite_id: classification.invite.id,
+            p_user_id: authUser.id,
+          },
+        );
+
+        if (rpcError) {
+          console.error(
+            `[accept-invite] RPC error for invite ${classification.invite.id}:`,
+            rpcError.message,
+          );
+        }
+
+        const response = tokenInviteResponse(classification, {
+          rpcFailed: rpcError != null,
+        });
+        return new Response(JSON.stringify(response.body), {
+          status: response.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
+
+      const response = tokenInviteResponse(classification);
+      return new Response(JSON.stringify(response.body), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    if (!inviteToken || invitations.length === 0) {
+    if (!inviteToken) {
       const { data: allInvites, error: inviteError } = await supabaseAdmin
         .from("band_invitations")
         .select("id, band_id, bands(name)")
@@ -124,7 +157,10 @@ serve(async (req) => {
         .in("status", ["pending", "sent"]);
 
       if (inviteError) {
-        console.error("[accept-invite] Error fetching invitations:", inviteError);
+        console.error(
+          "[accept-invite] Error fetching invitations:",
+          inviteError,
+        );
         return new Response(
           JSON.stringify({ error: "Failed to fetch invitations" }),
           {
@@ -182,8 +218,7 @@ serve(async (req) => {
           continue;
         }
 
-        const bandName =
-          (invite.bands as { name?: string })?.name || "Unknown";
+        const bandName = (invite.bands as { name?: string })?.name || "Unknown";
         acceptedBands.push(bandName);
         acceptedBandIds.push(invite.band_id);
         console.log(`[accept-invite] Accepted invite to: ${bandName}`);
