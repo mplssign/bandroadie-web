@@ -451,6 +451,47 @@ This accepts the web exposure without adding an app-level per-IP throttle.
 
 ---
 
+## [DECISION-008] Android edge-to-edge display mode on startup
+
+**Date:** 2026-09-14
+**Feature:** bug/android-play-console-compatibility-warnings
+**Agent:** Architect
+**Status:** Active
+
+### Context
+
+Google Play Console reports that DEX code optimization is below its threshold
+and that edge-to-edge may not display for all users on Android 15 and later.
+Both findings are in scope for this feature. The large-screen orientation
+recommendation is an accepted warning and is not part of the fix.
+
+### Decision
+
+Insert `SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)` and a
+transparent `SystemUiOverlayStyle` as initialization step 3, between the web URL
+strategy and the existing portrait orientation lock. The portrait orientation
+lock becomes step 4 and remains unchanged.
+
+### Rationale
+
+Google Play recommends an explicit edge-to-edge setup for apps targeting SDK 35
+on Android 15 and later. Existing `SafeArea` coverage handles system-bar insets
+without widget-layer changes, and the dark-mode-only design already matches
+`Brightness.light` system bar icons.
+
+### Constraints Imposed
+
+- Any future non-edge-to-edge system UI mode must supersede this decision.
+- The existing portrait orientation lock is unaffected and remains in force on
+  all form factors.
+
+### Rollback Plan
+
+Revert the two `SystemChrome` calls added to `lib/main.dart` and remove the new
+step 3 entries from `RUNTIME_CONFIG.md` and `architecture.md`.
+
+---
+
 ## Categories Requiring a Logged Decision
 
 Any of the following changes **must** produce a new entry before implementation:

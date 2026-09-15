@@ -11,14 +11,15 @@ The following sequence is fixed. Never reorder. Never insert steps between exist
 ```
 1. WidgetsFlutterBinding.ensureInitialized()
 2. URL strategy (web only)
-3. Portrait orientation lock
-4. AppVersionService.init()
-5. validateSupabaseConfig()     ← validates --dart-define values, fails fast if missing
-5.5 Purge persisted anonymous demo session   ← native-only; BEFORE Supabase.initialize()
-6. Supabase.initialize()
-7. Firebase.initializeApp()     ← iOS / Android only, skipped on web
-8. DeepLinkService setup
-9. runApp()
+3. Edge-to-edge display mode + transparent system UI overlay
+4. Portrait orientation lock
+5. AppVersionService.init()
+6. validateSupabaseConfig()     ← validates --dart-define values, fails fast if missing
+6.5 Purge persisted anonymous demo session   ← native-only; BEFORE Supabase.initialize()
+7. Supabase.initialize()
+8. Firebase.initializeApp()     ← iOS / Android only, skipped on web
+9. DeepLinkService setup
+10. runApp()
 ```
 
 **Entry point:** `lib/main.dart`
