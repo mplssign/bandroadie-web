@@ -30,7 +30,6 @@ import 'widgets/add_to_setlist/add_to_setlist_overlay.dart';
 import 'widgets/add_to_setlist/bulk_entry_screen.dart';
 import 'widgets/add_to_setlist/category_button.dart';
 import 'widgets/add_to_setlist/original_song_screen.dart';
-import 'widgets/back_only_app_bar.dart';
 import 'widgets/reorderable_song_card.dart';
 import 'widgets/selection_circle.dart';
 import 'widgets/setlist_picker_bottom_sheet.dart';
@@ -47,6 +46,7 @@ import '../songs/services/song_enrichment_orchestrator.dart';
 import '../songs/widgets/enrichment_selector_bottom_sheet.dart';
 import '../songs/widgets/enrichment_results_overlay.dart';
 import '../songs/widgets/enrichment_progress_overlay.dart';
+import 'package:bandroadie/components/ui/app_app_bar.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/app_card.dart';
 import 'package:bandroadie/components/ui/app_icon_button.dart';
@@ -2158,35 +2158,32 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen>
 
     return AppScaffold(
       backgroundColor: context.colors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Main content
-            Column(
-              children: [
-                _buildAppBar(state),
-                Expanded(child: _buildBody(state, canEdit)),
-              ],
-            ),
-
-            // Sticky bottom actions (Select Mode only)
-            if (_isSelectMode && state.isCatalog)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _buildSelectModeBottomActions(),
-              ),
-          ],
+      appBar: AppAppBar(
+        backgroundColor: context.colors.appBarBg,
+        title: Text('Setlist', style: AppTextStyles.title3),
+        leading: AppIconButton(
+          icon: AppIcons.arrowLeft,
+          color: AppColors.primary,
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: (state.isDeleting || state.isReordering)
+            ? const [AppProgressIndicator()]
+            : const [],
       ),
-    );
-  }
+      body: Stack(
+        children: [
+          _buildBody(state, canEdit),
 
-  Widget _buildAppBar(SetlistDetailState state) {
-    return BackOnlyAppBar(
-      onBack: () => Navigator.of(context).pop(),
-      showLoading: state.isDeleting || state.isReordering,
+          // Sticky bottom actions (Select Mode only)
+          if (_isSelectMode && state.isCatalog)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _buildSelectModeBottomActions(),
+            ),
+        ],
+      ),
     );
   }
 
