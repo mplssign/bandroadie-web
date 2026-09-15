@@ -23,3 +23,5 @@
 -keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
 -keep class io.flutter.embedding.android.FlutterPlayStoreSplitApplication { *; }
 # --- End Flutter keep rules ---
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
