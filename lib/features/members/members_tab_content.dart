@@ -7,7 +7,7 @@ import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../../shared/scroll/scroll_blur_notifier.dart';
 import '../bands/active_band_controller.dart';
-import '../bands/band_form_screen.dart';
+import '../contacts/widgets/invite_members_screen.dart';
 import '../home/widgets/home_app_bar.dart';
 import '../shell/overlay_state.dart';
 import 'members_controller.dart';
@@ -99,10 +99,7 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
       // Use custom fade+slide transition for smooth navigation
       Navigator.of(context).push(
         fadeSlideRoute(
-          page: BandFormScreen(
-            mode: BandFormMode.edit,
-            initialBand: bandState.activeBand,
-          ),
+          page: InviteMembersScreen(band: bandState.activeBand!),
         ),
       );
     }
@@ -254,13 +251,27 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Members',
-                    style: TextStyle(
-                      fontSize: AppFontSizes.display,
-                      fontWeight: FontWeight.w700,
-                      color: context.colors.textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Members',
+                          style: TextStyle(
+                            fontSize: AppFontSizes.display,
+                            fontWeight: FontWeight.w700,
+                            color: context.colors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _openInviteScreen,
+                        icon: const Icon(AppIcons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -308,7 +319,6 @@ class _MembersTabContentState extends ConsumerState<MembersTabContent>
               ),
             ),
 
-          // NOTE: Pending invites are shown in Edit Band screen, not here
           // Only actual band members (completed profile) appear on this page
 
           // Bottom padding for nav bar (extra space to scroll past)
