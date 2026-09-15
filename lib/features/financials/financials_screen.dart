@@ -13,6 +13,7 @@ import '../../components/ui/app_app_bar.dart';
 import '../../components/ui/app_icon_button.dart';
 import '../../components/ui/app_scaffold.dart';
 import '../bands/active_band_controller.dart';
+import '../bands/currency/band_currency.dart';
 import '../members/members_controller.dart';
 import '../members/permissions/band_permissions_provider.dart';
 import 'financials_controller.dart';
@@ -234,7 +235,7 @@ void _showSavingsSheet(BuildContext context, List<FinancialEntry> allEntries) {
   );
 }
 
-class _SavingsSheet extends StatefulWidget {
+class _SavingsSheet extends ConsumerStatefulWidget {
   const _SavingsSheet({
     required this.entries,
     required this.totalCents,
@@ -244,10 +245,10 @@ class _SavingsSheet extends StatefulWidget {
   final int totalCents;
 
   @override
-  State<_SavingsSheet> createState() => _SavingsSheetState();
+  ConsumerState<_SavingsSheet> createState() => _SavingsSheetState();
 }
 
-class _SavingsSheetState extends State<_SavingsSheet>
+class _SavingsSheetState extends ConsumerState<_SavingsSheet>
     with SingleTickerProviderStateMixin {
   late final AnimationController _countController;
   late final Animation<double> _countAnim;
@@ -255,12 +256,8 @@ class _SavingsSheetState extends State<_SavingsSheet>
 
   static const _countDuration = Duration(milliseconds: 1400);
 
-  String _fmt(int cents) {
-    final dollars = cents ~/ 100;
-    final remainder = cents % 100;
-    final formatted = NumberFormat('#,##0').format(dollars);
-    return '\$$formatted.${remainder.toString().padLeft(2, '0')}';
-  }
+  String _fmt(int cents, String currencyCode) =>
+      BandCurrency.formatCents(cents, currencyCode);
 
   @override
   void initState() {
@@ -292,6 +289,9 @@ class _SavingsSheetState extends State<_SavingsSheet>
 
   @override
   Widget build(BuildContext context) {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     return DraggableScrollableSheet(
       initialChildSize: 0.55,
       minChildSize: 0.35,
@@ -342,7 +342,7 @@ class _SavingsSheetState extends State<_SavingsSheet>
                       final displayed =
                           (widget.totalCents * _countAnim.value).round();
                       return Text(
-                        _fmt(displayed),
+                        _fmt(displayed, currencyCode),
                         style: AppTextStyles.displayLarge.copyWith(
                           color: context.colors.success,
                           fontWeight: FontWeight.w800,
@@ -412,7 +412,10 @@ class _SavingsSheetState extends State<_SavingsSheet>
                                     ),
                                     Text(
                                       e.depositToSavingsCents != null
-                                          ? _fmt(e.depositToSavingsCents!)
+                                          ? _fmt(
+                                              e.depositToSavingsCents!,
+                                              currencyCode,
+                                            )
                                           : '—',
                                       style: AppTextStyles.callout.copyWith(
                                         color: context.colors.success,
@@ -565,10 +568,10 @@ class _SummaryHeader extends ConsumerWidget {
     final isIncome = state.viewMode == FinancialViewMode.income;
     final totalCents =
         state.filteredEntries.fold<int>(0, (sum, e) => sum + e.amountCents);
-    final totalDollars = totalCents ~/ 100;
-    final totalRemainderCents = totalCents % 100;
-    final totalFormatted =
-        '\$${NumberFormat('#,##0').format(totalDollars)}.${totalRemainderCents.toString().padLeft(2, '0')}';
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
+    final totalFormatted = BandCurrency.formatCents(totalCents, currencyCode);
     final count = state.filteredEntries.length;
     final totalColor = isIncome ? context.colors.success : AppColors.error;
 
@@ -762,7 +765,7 @@ class _InlineLinkButton extends StatelessWidget {
 // TRANSACTION CARD
 // ---------------------------------------------------------------------------
 
-class _TransactionCard extends StatelessWidget {
+class _TransactionCard extends ConsumerWidget {
   const _TransactionCard({required this.entry, required this.onTap});
 
   final FinancialEntry entry;
@@ -780,7 +783,10 @@ class _TransactionCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     final amountColor =
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '' : '−';
@@ -828,7 +834,7 @@ class _TransactionCard extends StatelessWidget {
                 ),
                 const SizedBox(width: Spacing.space12),
                 Text(
-                  '$amountPrefix${entry.formattedAmount}',
+                  '$amountPrefix${entry.formatAmount(currencyCode)}',
                   style: AppTextStyles.callout.copyWith(
                     color: amountColor,
                     fontWeight: FontWeight.w600,
@@ -901,7 +907,9 @@ void _openCombinedReport(
   WidgetRef ref,
   FinancialsState state,
 ) {
-  final bandName = ref.read(activeBandProvider).activeBand?.name ?? 'Band';
+  final activeBand = ref.read(activeBandProvider).activeBand;
+  final bandName = activeBand?.name ?? 'Band';
+  final currencyCode = activeBand?.currencyCode ?? BandCurrency.defaultCode;
   final members = ref.read(membersProvider).members;
   Navigator.of(context).push(
     MaterialPageRoute(
@@ -910,6 +918,7 @@ void _openCombinedReport(
         bandName: bandName,
         dateFilter: state.dateFilter,
         members: members,
+        currencyCode: currencyCode,
       ),
     ),
   );

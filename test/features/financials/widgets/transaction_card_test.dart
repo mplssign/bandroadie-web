@@ -11,9 +11,11 @@ import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/features/bands/active_band_controller.dart';
 import 'package:bandroadie/features/financials/financials_controller.dart';
 import 'package:bandroadie/features/financials/financials_screen.dart';
 import 'package:bandroadie/features/financials/models/financial_entry.dart';
@@ -25,6 +27,24 @@ class _FakeFinancialsNotifier extends FinancialsNotifier {
   final FinancialsState _state;
   @override
   FinancialsState build() => _state;
+}
+
+class _SeededActiveBandNotifier extends ActiveBandNotifier {
+  _SeededActiveBandNotifier(this.currencyCode);
+
+  final String currencyCode;
+
+  @override
+  ActiveBandState build() {
+    final band = Band(
+      id: 'band-1',
+      name: 'Test Band',
+      currencyCode: currencyCode,
+      createdAt: DateTime(2024),
+      updatedAt: DateTime(2024),
+    );
+    return ActiveBandState(userBands: [band], activeBand: band);
+  }
 }
 
 FinancialEntry _entry({
@@ -57,13 +77,20 @@ FinancialEntry _entry({
   );
 }
 
-Future<void> _pump(WidgetTester tester, FinancialsState state) async {
+Future<void> _pump(
+  WidgetTester tester,
+  FinancialsState state, {
+  String currencyCode = 'USD',
+}) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         financialsProvider.overrideWith(() => _FakeFinancialsNotifier(state)),
+        activeBandProvider.overrideWith(
+          () => _SeededActiveBandNotifier(currencyCode),
+        ),
         currentUserPermissionsProvider
             .overrideWith((ref) async => BandPermissions.admin),
       ],
@@ -318,6 +345,7 @@ void main() {
       await _pump(
         tester,
         FinancialsState(allEntries: [income]),
+        currencyCode: 'CAD',
       );
       final incomeCardContainer = find
           .ancestor(
@@ -327,7 +355,7 @@ void main() {
           .first;
       final incomeText = tester.widget<Text>(find.descendant(
         of: incomeCardContainer,
-        matching: find.text('\$150.00'),
+        matching: find.text(r'C$150.00'),
       ));
       expect(incomeText.style?.color, BrandColors.dark.success);
     },

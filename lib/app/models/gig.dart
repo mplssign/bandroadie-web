@@ -15,6 +15,7 @@
 // ============================================================================
 
 import '../utils/time_formatter.dart';
+import '../../features/bands/currency/band_currency.dart';
 import '../../features/contacts/models/contact.dart';
 import 'gig_date.dart';
 
@@ -239,17 +240,11 @@ class Gig {
   /// Returns true if this gig has a pay amount specified
   bool get hasPay => gigPayCents != null && gigPayCents! > 0;
 
-  /// Formatted gig pay (e.g., "$1,500.00")
+  /// Formatted gig pay.
   /// Returns null if no pay is specified.
-  String? get formattedPay {
+  String? formatPay(String currencyCode) {
     if (gigPayCents == null) return null;
-    final dollars = gigPayCents! ~/ 100;
-    final cents = gigPayCents! % 100;
-    final dollarsStr = dollars.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (m) => '${m[1]},',
-        );
-    return '\$$dollarsStr.${cents.toString().padLeft(2, '0')}';
+    return BandCurrency.formatCents(gigPayCents!, currencyCode);
   }
 
   @override

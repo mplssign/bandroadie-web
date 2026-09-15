@@ -13,6 +13,8 @@ import '../../../app/utils/time_formatter.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../shared/utils/snackbar_helper.dart';
+import '../../bands/active_band_controller.dart';
+import '../../bands/currency/band_currency.dart';
 import '../../contacts/models/contact.dart';
 import '../../contacts/widgets/contact_detail_drawer.dart';
 import '../../contacts/widgets/contact_form_screen.dart';
@@ -412,6 +414,9 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
   @override
   Widget build(BuildContext context) {
     final gig = _displayGig;
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     final membersState = ref.watch(membersProvider);
     final availabilityDates = [
       PotentialEventDateAvailability(
@@ -610,7 +615,7 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
                   if (gig.gigPayCents != null)
                     _DetailRow(
                       label: 'Gig pay',
-                      value: gig.formattedPay ?? '',
+                      value: gig.formatPay(currencyCode) ?? '',
                     ),
 
                   if (gig.contacts.isNotEmpty)

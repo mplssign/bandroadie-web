@@ -11,9 +11,11 @@ import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
+import 'package:bandroadie/features/bands/active_band_controller.dart';
 import 'package:bandroadie/features/financials/financials_controller.dart';
 import 'package:bandroadie/features/financials/financials_screen.dart';
 import 'package:bandroadie/features/financials/models/financial_entry.dart';
@@ -25,6 +27,19 @@ class _FakeFinancialsNotifier extends FinancialsNotifier {
   final FinancialsState _state;
   @override
   FinancialsState build() => _state;
+}
+
+class _SeededActiveBandNotifier extends ActiveBandNotifier {
+  @override
+  ActiveBandState build() {
+    final band = Band(
+      id: 'band-1',
+      name: 'Test Band',
+      createdAt: DateTime(2024),
+      updatedAt: DateTime(2024),
+    );
+    return ActiveBandState(userBands: [band], activeBand: band);
+  }
 }
 
 FinancialEntry _entry({
@@ -56,6 +71,7 @@ Future<void> _pump(WidgetTester tester, FinancialsState state) async {
     ProviderScope(
       overrides: [
         financialsProvider.overrideWith(() => _FakeFinancialsNotifier(state)),
+        activeBandProvider.overrideWith(_SeededActiveBandNotifier.new),
         currentUserPermissionsProvider
             .overrideWith((ref) async => BandPermissions.admin),
       ],
@@ -77,6 +93,7 @@ Future<ProviderContainer> _pumpWithContainer(
 ) async {
   final container = ProviderContainer(overrides: [
     financialsProvider.overrideWith(() => _FakeFinancialsNotifier(state)),
+    activeBandProvider.overrideWith(_SeededActiveBandNotifier.new),
     currentUserPermissionsProvider
         .overrideWith((ref) async => BandPermissions.admin),
   ]);

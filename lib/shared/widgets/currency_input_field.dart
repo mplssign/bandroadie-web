@@ -37,14 +37,16 @@ class CurrencyInputController extends ValueNotifier<int> {
   }
 
   /// Format current value as currency string (e.g., "$125.00")
-  String get formattedValue {
+  String get formattedValue => formatValue(r'$');
+
+  String formatValue(String currencySymbol) {
     final dollarPart = value ~/ 100;
     final centsPart = value % 100;
 
     // Add thousands separators for large amounts
     final dollarStr = _formatWithCommas(dollarPart);
 
-    return '\$$dollarStr.${centsPart.toString().padLeft(2, '0')}';
+    return '$currencySymbol$dollarStr.${centsPart.toString().padLeft(2, '0')}';
   }
 
   /// Format integer with thousands separators
@@ -82,14 +84,16 @@ class CurrencyInputField extends StatefulWidget {
     super.key,
     required this.controller,
     this.label = 'Amount',
-    this.hint = '\$0.00',
+    this.hint,
+    this.currencySymbol = r'$',
     this.enabled = true,
     this.onChanged,
   });
 
   final CurrencyInputController controller;
   final String label;
-  final String hint;
+  final String? hint;
+  final String currencySymbol;
   final bool enabled;
   final VoidCallback? onChanged;
 
@@ -105,7 +109,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
   void initState() {
     super.initState();
     _textController = TextEditingController(
-      text: widget.controller.formattedValue,
+      text: widget.controller.formatValue(widget.currencySymbol),
     );
     _focusNode = FocusNode();
 
@@ -122,7 +126,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
   }
 
   void _onControllerChanged() {
-    final newText = widget.controller.formattedValue;
+    final newText = widget.controller.formatValue(widget.currencySymbol);
     if (_textController.text != newText) {
       _textController.text = newText;
       // Move cursor to end
@@ -152,7 +156,7 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
     }
 
     // Update text field display
-    _textController.text = widget.controller.formattedValue;
+    _textController.text = widget.controller.formatValue(widget.currencySymbol);
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: _textController.text.length),
     );
@@ -215,8 +219,10 @@ class _CurrencyInputFieldState extends State<CurrencyInputField> {
                   Expanded(
                     child: Text(
                       widget.controller.isEmpty
-                          ? widget.hint
-                          : widget.controller.formattedValue,
+                          ? widget.hint ?? '${widget.currencySymbol}0.00'
+                          : widget.controller.formatValue(
+                              widget.currencySymbol,
+                            ),
                       style: AppTextStyles.callout.copyWith(
                         color: widget.controller.isEmpty
                             ? context.colors.textMuted
@@ -253,7 +259,8 @@ class CurrencyTextField extends StatefulWidget {
     super.key,
     required this.controller,
     this.label = 'Gig Pay (optional)',
-    this.hint = '\$0.00',
+    this.hint,
+    this.currencySymbol = r'$',
     this.enabled = true,
     this.onChanged,
     this.clearOnFocus = false,
@@ -261,7 +268,8 @@ class CurrencyTextField extends StatefulWidget {
 
   final CurrencyInputController controller;
   final String label;
-  final String hint;
+  final String? hint;
+  final String currencySymbol;
   final bool enabled;
   final VoidCallback? onChanged;
 
@@ -284,7 +292,9 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
     _focusNode = FocusNode();
     _focusNode.addListener(_onFocusChange);
     _textController = TextEditingController(
-      text: widget.controller.isEmpty ? '' : widget.controller.formattedValue,
+      text: widget.controller.isEmpty
+          ? ''
+          : widget.controller.formatValue(widget.currencySymbol),
     );
     widget.controller.addListener(_syncFromController);
   }
@@ -312,8 +322,10 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
 
   void _syncFromController() {
     final display = widget.controller.isEmpty
-        ? (_isFocused && widget.clearOnFocus ? r'$0.00' : '')
-        : widget.controller.formattedValue;
+        ? (_isFocused && widget.clearOnFocus
+            ? '${widget.currencySymbol}0.00'
+            : '')
+        : widget.controller.formatValue(widget.currencySymbol);
     if (_textController.text != display) {
       _textController.text = display;
       _textController.selection = TextSelection.fromPosition(
@@ -338,10 +350,10 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
     // Update display — when focused+clearOnFocus and zero, keep showing $0.00
     final display =
         (widget.controller.isEmpty && widget.clearOnFocus && _isFocused)
-            ? r'$0.00'
+            ? '${widget.currencySymbol}0.00'
             : widget.controller.isEmpty
                 ? ''
-                : widget.controller.formattedValue;
+                : widget.controller.formatValue(widget.currencySymbol);
     if (_textController.text != display) {
       _textController.text = display;
       _textController.selection = TextSelection.fromPosition(
@@ -371,10 +383,13 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
           focusNode: _focusNode,
           enabled: widget.enabled,
           keyboardType: TextInputType.number,
-          hintText: widget.hint,
+          hintText: widget.hint ?? '${widget.currencySymbol}0.00',
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
-            _CurrencyInputFormatter(widget.controller),
+            _CurrencyInputFormatter(
+              widget.controller,
+              widget.currencySymbol,
+            ),
           ],
           onChanged: _onChanged,
           suffixIcon: widget.controller.isNotEmpty && widget.enabled
@@ -397,9 +412,10 @@ class _CurrencyTextFieldState extends State<CurrencyTextField> {
 
 /// Custom input formatter for POS-style currency entry
 class _CurrencyInputFormatter extends TextInputFormatter {
-  _CurrencyInputFormatter(this.controller);
+  _CurrencyInputFormatter(this.controller, this.currencySymbol);
 
   final CurrencyInputController controller;
+  final String currencySymbol;
 
   @override
   TextEditingValue formatEditUpdate(
@@ -421,7 +437,7 @@ class _CurrencyInputFormatter extends TextInputFormatter {
     controller.cents = cents.clamp(0, 99999999);
 
     // Format for display
-    final formatted = controller.formattedValue;
+    final formatted = controller.formatValue(currencySymbol);
 
     return TextEditingValue(
       text: formatted,

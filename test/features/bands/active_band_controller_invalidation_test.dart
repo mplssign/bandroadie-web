@@ -91,4 +91,52 @@ void main() {
       expect(container.read(venuesProvider).error, isNull);
     });
   });
+
+  group('updateActiveBand notifies on currency-only change', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      container = ProviderContainer(
+        overrides: [
+          activeBandProvider.overrideWith(_SeededActiveBandNotifier.new),
+        ],
+      );
+    });
+
+    tearDown(() => container.dispose());
+
+    test('notifies for USD to CAD and deduplicates identical CAD state', () {
+      final received = <String?>[];
+      container.listen<ActiveBandState>(
+        activeBandProvider,
+        (previous, next) => received.add(next.activeBand?.currencyCode),
+        // ignore: avoid_redundant_argument_values
+        fireImmediately: false,
+      );
+      final cadBand = Band(
+        id: _band1.id,
+        name: _band1.name,
+        imageUrl: _band1.imageUrl,
+        createdBy: _band1.createdBy,
+        avatarColor: _band1.avatarColor,
+        timezone: _band1.timezone,
+        currencyCode: 'CAD',
+        createdAt: _band1.createdAt,
+        updatedAt: _band1.updatedAt,
+      );
+
+      container.read(activeBandProvider.notifier).updateActiveBand(cadBand);
+
+      expect(
+        container.read(activeBandProvider).activeBand!.currencyCode,
+        'CAD',
+      );
+      expect(received, contains('CAD'));
+
+      final notificationCount = received.length;
+      container.read(activeBandProvider.notifier).updateActiveBand(cadBand);
+
+      expect(received, hasLength(notificationCount));
+    });
+  });
 }

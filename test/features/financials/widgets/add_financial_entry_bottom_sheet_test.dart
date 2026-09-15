@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 
+import 'package:bandroadie/app/models/band.dart';
 import 'package:bandroadie/app/theme/app_theme.dart';
 import 'package:bandroadie/components/ui/app_dropdown.dart';
 import 'package:bandroadie/components/ui/app_switch.dart';
@@ -45,10 +46,24 @@ class _StubGigNotifier extends GigNotifier {
   Future<void> refresh() async {}
 }
 
+class _SeededActiveBandNotifier extends ActiveBandNotifier {
+  @override
+  ActiveBandState build() {
+    final band = Band(
+      id: 'test-band-id',
+      name: 'Test Band',
+      createdAt: DateTime(2024),
+      updatedAt: DateTime(2024),
+    );
+    return ActiveBandState(userBands: [band], activeBand: band);
+  }
+}
+
 final _baseOverrides = [
   contactsProvider.overrideWith(_StubContactsNotifier.new),
   venuesProvider.overrideWith(_StubVenuesNotifier.new),
   gigProvider.overrideWith(_StubGigNotifier.new),
+  activeBandProvider.overrideWith(_SeededActiveBandNotifier.new),
   activeBandIdProvider.overrideWithValue('test-band-id'),
   currentUserPermissionsProvider.overrideWith(
     (ref) async => BandPermissions.admin,
