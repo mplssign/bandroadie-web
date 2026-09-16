@@ -169,13 +169,18 @@ class CalendarState {
 class CalendarNotifier extends Notifier<CalendarState> {
   static final Map<String, MonthData> _cache = {};
 
+  // View state — the month the user is currently looking at. Instance-level so
+  // it survives build() re-runs triggered by activeBandIdProvider changes
+  // (band switches).
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+
   @override
   CalendarState build() {
     final bandId = ref.watch(activeBandIdProvider);
 
     if (bandId == null || bandId.isEmpty) {
       return CalendarState(
-        selectedMonth: DateTime.now(),
+        selectedMonth: _selectedMonth,
         error: 'No band selected',
       );
     }
@@ -187,7 +192,7 @@ class CalendarNotifier extends Notifier<CalendarState> {
     _loadEventsForBand(bandId);
 
     return CalendarState(
-      selectedMonth: DateTime.now(),
+      selectedMonth: _selectedMonth,
       isLoading: true,
     );
   }
@@ -451,15 +456,17 @@ class CalendarNotifier extends Notifier<CalendarState> {
   }
 
   void setSelectedMonth(DateTime month) {
+    _selectedMonth = DateTime(month.year, month.month);
     state = state.copyWith(
-      selectedMonth: DateTime(month.year, month.month),
+      selectedMonth: _selectedMonth,
     );
   }
 
   void reset() {
     clearCache();
+    _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
     state = CalendarState(
-      selectedMonth: DateTime.now(),
+      selectedMonth: _selectedMonth,
     );
   }
 }
