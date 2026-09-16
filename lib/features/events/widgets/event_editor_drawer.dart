@@ -2714,6 +2714,10 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       data: buildEventEditorTheme(),
       child: Container(
         height: MediaQuery.of(context).size.height,
+        // Reserve room for the on-screen keyboard so the footer stays visible.
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         decoration: BoxDecoration(
           color: kEdSurface,
           border: Border.all(color: kEdCardBorder),
