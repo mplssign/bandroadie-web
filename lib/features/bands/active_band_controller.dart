@@ -335,7 +335,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
 
     state = state.copyWith(activeBand: band);
 
-    ref.invalidate(currentUserPermissionsProvider);
     _invalidateBandScopedProviders();
 
     ref.read(selectedSetlistProvider.notifier).clear();
@@ -481,8 +480,6 @@ class ActiveBandNotifier extends Notifier<ActiveBandState> {
   Future<void> reset() async {
     await _clearPersistedBandId();
     state = const ActiveBandState();
-
-    ref.invalidate(currentUserPermissionsProvider);
   }
 }
 
