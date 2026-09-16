@@ -414,9 +414,8 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
   @override
   Widget build(BuildContext context) {
     final gig = _displayGig;
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     final membersState = ref.watch(membersProvider);
     final availabilityDates = [
       PotentialEventDateAvailability(
@@ -615,7 +614,7 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
                   if (gig.gigPayCents != null)
                     _DetailRow(
                       label: 'Gig pay',
-                      value: gig.formatPay(currencyCode) ?? '',
+                      value: gig.formatPay(currency) ?? '',
                     ),
 
                   if (gig.contacts.isNotEmpty)

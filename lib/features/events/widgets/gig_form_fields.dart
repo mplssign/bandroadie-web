@@ -723,9 +723,8 @@ class GigFormFields extends ConsumerWidget {
 
   /// Builds the gig pay button (called from parent build method).
   Widget buildGigPayButton(BuildContext context, WidgetRef ref) {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     final hasDetails = gigPayDetails != null && gigPayDetails!.amountCents > 0;
 
     if (!hasDetails) {
@@ -749,7 +748,7 @@ class GigFormFields extends ConsumerWidget {
     }
 
     final label =
-        '${gigPayDetails!.formatAmount(currencyCode)}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}';
+        '${gigPayDetails!.formatAmount(currency)}${gigPayDetails!.payerName != null ? ' · ${gigPayDetails!.payerName}' : ''}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -774,9 +773,8 @@ class GigFormFields extends ConsumerWidget {
 
   /// Builds the expenses section shown beneath Gig Pay.
   Widget buildExpensesSection(BuildContext context, WidgetRef ref) {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     if (!showExpensesSection) {
       return const SizedBox.shrink();
     }
@@ -863,7 +861,7 @@ class GigFormFields extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        expense.formatAmount(currencyCode),
+                        expense.formatAmount(currency),
                         style: AppTextStyles.calloutEmphasized.copyWith(
                           color: context.colors.textPrimary,
                         ),

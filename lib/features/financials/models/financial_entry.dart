@@ -164,12 +164,11 @@ class FinancialEntry {
     };
   }
 
-  String formatAmount(String currencyCode) =>
-      BandCurrency.formatCents(amountCents, currencyCode);
+  String formatAmount(BandCurrency currency) => currency.format(amountCents);
 
-  String? formatDepositToSavings(String currencyCode) {
+  String? formatDepositToSavings(BandCurrency currency) {
     if (depositToSavingsCents == null) return null;
-    return BandCurrency.formatCents(depositToSavingsCents!, currencyCode);
+    return currency.format(depositToSavingsCents!);
   }
 }
 
@@ -223,6 +222,5 @@ class GigPayDetails {
     );
   }
 
-  String formatAmount(String currencyCode) =>
-      BandCurrency.formatCents(amountCents, currencyCode);
+  String formatAmount(BandCurrency currency) => currency.format(amountCents);
 }

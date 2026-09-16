@@ -30,9 +30,10 @@ class _FakeFinancialsNotifier extends FinancialsNotifier {
 }
 
 class _SeededActiveBandNotifier extends ActiveBandNotifier {
-  _SeededActiveBandNotifier(this.currencyCode);
+  _SeededActiveBandNotifier(this.currencyCode, this.locale);
 
   final String currencyCode;
+  final String locale;
 
   @override
   ActiveBandState build() {
@@ -40,6 +41,7 @@ class _SeededActiveBandNotifier extends ActiveBandNotifier {
       id: 'band-1',
       name: 'Test Band',
       currencyCode: currencyCode,
+      locale: locale,
       createdAt: DateTime(2024),
       updatedAt: DateTime(2024),
     );
@@ -81,6 +83,7 @@ Future<void> _pump(
   WidgetTester tester,
   FinancialsState state, {
   String currencyCode = 'USD',
+  String locale = 'en_US',
 }) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump();
@@ -89,7 +92,7 @@ Future<void> _pump(
       overrides: [
         financialsProvider.overrideWith(() => _FakeFinancialsNotifier(state)),
         activeBandProvider.overrideWith(
-          () => _SeededActiveBandNotifier(currencyCode),
+          () => _SeededActiveBandNotifier(currencyCode, locale),
         ),
         currentUserPermissionsProvider
             .overrideWith((ref) async => BandPermissions.admin),
@@ -346,6 +349,7 @@ void main() {
         tester,
         FinancialsState(allEntries: [income]),
         currencyCode: 'CAD',
+        locale: 'en_CA',
       );
       final incomeCardContainer = find
           .ancestor(

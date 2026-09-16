@@ -256,8 +256,7 @@ class _SavingsSheetState extends ConsumerState<_SavingsSheet>
 
   static const _countDuration = Duration(milliseconds: 1400);
 
-  String _fmt(int cents, String currencyCode) =>
-      BandCurrency.formatCents(cents, currencyCode);
+  String _fmt(int cents, BandCurrency currency) => currency.format(cents);
 
   @override
   void initState() {
@@ -289,9 +288,8 @@ class _SavingsSheetState extends ConsumerState<_SavingsSheet>
 
   @override
   Widget build(BuildContext context) {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     return DraggableScrollableSheet(
       initialChildSize: 0.55,
       minChildSize: 0.35,
@@ -342,7 +340,7 @@ class _SavingsSheetState extends ConsumerState<_SavingsSheet>
                       final displayed =
                           (widget.totalCents * _countAnim.value).round();
                       return Text(
-                        _fmt(displayed, currencyCode),
+                        _fmt(displayed, currency),
                         style: AppTextStyles.displayLarge.copyWith(
                           color: context.colors.success,
                           fontWeight: FontWeight.w800,
@@ -414,7 +412,7 @@ class _SavingsSheetState extends ConsumerState<_SavingsSheet>
                                       e.depositToSavingsCents != null
                                           ? _fmt(
                                               e.depositToSavingsCents!,
-                                              currencyCode,
+                                              currency,
                                             )
                                           : '—',
                                       style: AppTextStyles.callout.copyWith(
@@ -568,10 +566,9 @@ class _SummaryHeader extends ConsumerWidget {
     final isIncome = state.viewMode == FinancialViewMode.income;
     final totalCents =
         state.filteredEntries.fold<int>(0, (sum, e) => sum + e.amountCents);
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
-    final totalFormatted = BandCurrency.formatCents(totalCents, currencyCode);
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
+    final totalFormatted = currency.format(totalCents);
     final count = state.filteredEntries.length;
     final totalColor = isIncome ? context.colors.success : AppColors.error;
 
@@ -784,9 +781,8 @@ class _TransactionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     final amountColor =
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '' : '−';
@@ -834,7 +830,7 @@ class _TransactionCard extends ConsumerWidget {
                 ),
                 const SizedBox(width: Spacing.space12),
                 Text(
-                  '$amountPrefix${entry.formatAmount(currencyCode)}',
+                  '$amountPrefix${entry.formatAmount(currency)}',
                   style: AppTextStyles.callout.copyWith(
                     color: amountColor,
                     fontWeight: FontWeight.w600,
@@ -909,7 +905,7 @@ void _openCombinedReport(
 ) {
   final activeBand = ref.read(activeBandProvider).activeBand;
   final bandName = activeBand?.name ?? 'Band';
-  final currencyCode = activeBand?.currencyCode ?? BandCurrency.defaultCode;
+  final currency = activeBand?.currency ?? BandCurrency.fallback;
   final members = ref.read(membersProvider).members;
   Navigator.of(context).push(
     MaterialPageRoute(
@@ -918,7 +914,7 @@ void _openCombinedReport(
         bandName: bandName,
         dateFilter: state.dateFilter,
         members: members,
-        currencyCode: currencyCode,
+        currency: currency,
       ),
     ),
   );

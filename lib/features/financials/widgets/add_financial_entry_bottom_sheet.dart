@@ -115,8 +115,8 @@ Future<void> showAddFinancialEntrySheet(
   );
 }
 
-String _formatSavingsCents(int cents, String currencyCode) =>
-    BandCurrency.formatCents(cents, currencyCode);
+String _formatSavingsCents(int cents, BandCurrency currency) =>
+    currency.format(cents);
 
 // ---------------------------------------------------------------------------
 // Private sheet widget
@@ -705,10 +705,9 @@ class _AddFinancialEntryBottomSheetState
 
   Widget _buildAboutSection() {
     final dateStr = DateFormat('MMM d, yyyy').format(_entryDate);
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
-    final currencySymbol = BandCurrency.symbolFor(currencyCode);
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
+    final currencySymbol = currency.glyph;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -989,10 +988,9 @@ class _AddFinancialEntryBottomSheetState
   }
 
   Widget _buildDistributionSection() {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
-    final currencySymbol = BandCurrency.symbolFor(currencyCode);
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
+    final currencySymbol = currency.glyph;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1109,7 +1107,7 @@ class _AddFinancialEntryBottomSheetState
                 if (widget.savingsTotalCents != null) ...[
                   const SizedBox(width: 4),
                   Text(
-                    '(${_formatSavingsCents(widget.savingsTotalCents!, currencyCode)})',
+                    '(${_formatSavingsCents(widget.savingsTotalCents!, currency)})',
                     style: AppTextStyles.callout
                         .copyWith(color: context.colors.success),
                   ),
