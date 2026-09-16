@@ -337,7 +337,7 @@ void main() {
 
   group('EventEditorDrawer setlist selector (rehearsal)', () {
     testWidgets(
-        'create mode requires location and preserves enablement across setlist selection',
+        'create mode preserves button enablement across setlist selection',
         (tester) async {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
@@ -393,16 +393,14 @@ void main() {
             find.widgetWithText(AppButton, 'Add Rehearsal'),
           );
 
-      expect(addButton().onPressed, isNull);
-
       await tester.ensureVisible(find.text('Road Set'));
       await tester.tap(find.text('Road Set'));
       await tester.pump();
-      expect(addButton().onPressed, isNull);
+      expect(addButton().onPressed, isNotNull);
 
       await tester.tap(find.text('None'));
       await tester.pump();
-      expect(addButton().onPressed, isNull);
+      expect(addButton().onPressed, isNotNull);
 
       final locationInput = find.descendant(
         of: find.byType(FAutocomplete<String>),
@@ -454,6 +452,68 @@ void main() {
 
       expect(repository.capturedFormData, isNotNull);
       expect(repository.capturedFormData?.setlistId, isNull);
+    });
+
+    testWidgets(
+        'create mode with empty location surfaces inline error and does not call repository',
+        (tester) async {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      try {
+        await Supabase.initialize(
+          url: 'https://test.supabase.co',
+          publishableKey: 'test-anon-key',
+          authOptions: const FlutterAuthClientOptions(
+            autoRefreshToken: false,
+            persistSession: false,
+          ),
+        );
+      } catch (_) {}
+
+      // Nullable: the location guard short-circuits _handleSave before
+      // eventsRepositoryProvider is ever read, so this is never assigned.
+      _CapturingEventsRepository? repository;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            setlistsProvider.overrideWith(_StubSetlistsNotifier.new),
+            membersProvider.overrideWith(_StubMembersNotifier.new),
+            venuesProvider.overrideWith(_StubVenuesNotifier.new),
+            contactsProvider.overrideWith(_StubContactsNotifier.new),
+            blockOutRepositoryProvider.overrideWithValue(
+              _StubBlockOutRepository(),
+            ),
+            eventsRepositoryProvider.overrideWith(
+              (ref) => repository = _CapturingEventsRepository(
+                ref.read(autoConflictBlockingServiceProvider),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: const Scaffold(
+              body: EventEditorDrawer(
+                initialEventType: EventType.rehearsal,
+                bandId: 'test-band-id',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      AppButton addButton() => tester.widget<AppButton>(
+            find.widgetWithText(AppButton, 'Add Rehearsal'),
+          );
+
+      expect(addButton().onPressed, isNotNull);
+
+      await tester.tap(find.text('Add Rehearsal'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Location is required'), findsAtLeastNWidgets(1));
+      expect(repository?.capturedFormData, isNull);
     });
   });
 }

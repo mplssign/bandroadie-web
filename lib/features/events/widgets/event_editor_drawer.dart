@@ -3137,13 +3137,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       return false;
     }
     if (widget.mode == EventEditorMode.edit) return _isDirty;
-    return switch (_eventType) {
-      EventType.gig => (_gigNameText?.trim().isNotEmpty ?? false) &&
-          (_gigCityText?.trim().isNotEmpty ?? false),
-      EventType.rehearsal =>
-        (_rehearsalLocationText?.trim().isNotEmpty ?? false),
-      EventType.blockOut => true,
-    };
+    return true;
   }
 
   Widget _buildStickyFooter(BuildContext context) {

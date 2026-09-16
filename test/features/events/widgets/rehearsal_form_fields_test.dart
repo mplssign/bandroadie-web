@@ -90,7 +90,90 @@ class _PotentialSectionWrapper extends ConsumerWidget {
   }
 }
 
+// Pumps the full form via build() to check the location label + errors.
+Future<void> _pumpLocationField(
+  WidgetTester tester, {
+  Map<String, String> fieldErrors = const {},
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        membersProvider.overrideWith(_StubMembersNotifier.new),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: FTheme(
+          data: AppTheme.foruiTheme(Brightness.dark),
+          child: Scaffold(
+            body: _LocationFieldWrapper(fieldErrors: fieldErrors),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+// Calls build() directly so the location autocomplete label renders.
+class _LocationFieldWrapper extends ConsumerWidget {
+  const _LocationFieldWrapper({required this.fieldErrors});
+
+  final Map<String, String> fieldErrors;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fields = RehearsalFormFields(
+      isSaving: false,
+      locationAutocompleteController: FAutocompleteController(),
+      locationHintController: FieldHintController(),
+      locationSuggestions: const [],
+      onLocationTextChanged: (_) {},
+      fieldErrors: fieldErrors,
+      isPotential: false,
+      onPotentialToggled: (_) {},
+      additionalDates: const [],
+      primaryStartTime: '',
+      isRecurring: false,
+      onRecurringToggled: (_) {},
+      recurringSlideAnimation: const AlwaysStoppedAnimation(Offset.zero),
+      recurringFadeAnimation: const AlwaysStoppedAnimation(0.0),
+      selectedDays: const {},
+      onDayToggled: (_) {},
+      frequency: RecurrenceFrequency.weekly,
+      onFrequencyChanged: (_) {},
+      untilDate: null,
+      onUntilDateTap: () {},
+      onUntilDateCleared: () {},
+      selectedDate: DateTime(2024),
+      onMarkDirty: () {},
+      memberAvailability: const {},
+      isLoadingMemberAvailability: false,
+      isLoadingUserResponse: false,
+      isEditMode: true,
+      existingEventId: 'rehearsal-1',
+    );
+    return fields.build(context, ref);
+  }
+}
+
 void main() {
+  group('RehearsalFormFields location label', () {
+    testWidgets('location label shows required marker', (tester) async {
+      await _pumpLocationField(tester);
+
+      expect(find.text('Location *'), findsOneWidget);
+    });
+
+    testWidgets('location fieldErrors renders inline error', (tester) async {
+      await _pumpLocationField(
+        tester,
+        fieldErrors: const {'location': 'Location is required'},
+      );
+
+      expect(find.text('Location is required'), findsOneWidget);
+    });
+  });
+
   group('RehearsalFormFields potential toggle subtext', () {
     testWidgets('subtext is absent when isPotential is false', (tester) async {
       await _pumpPotentialSection(tester, isPotential: false);
