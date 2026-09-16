@@ -23,7 +23,7 @@ jobs:
         # when a new stable release lands and upstream packages are not ready yet.
         # Tradeoff: this requires manual version bumps to adopt newer patches.
         with:
-          flutter-version: "3.47.1"
+          flutter-version: "3.47.4"
 
       - name: Install dependencies
         run: flutter pub get
