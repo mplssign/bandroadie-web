@@ -6,6 +6,8 @@
 // Schema: public.bands
 // ============================================================================
 
+import '../../features/bands/currency/band_currency.dart';
+
 class Band {
   final String id;
   final String name;
@@ -14,6 +16,7 @@ class Band {
   final String avatarColor;
   final String timezone;
   final String currencyCode;
+  final String locale;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -25,6 +28,7 @@ class Band {
     this.avatarColor = 'bg-red-600',
     this.timezone = 'America/Chicago',
     this.currencyCode = 'USD',
+    this.locale = 'en_US',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -39,6 +43,7 @@ class Band {
       avatarColor: json['avatar_color'] as String? ?? 'bg-red-600',
       timezone: json['timezone'] as String? ?? 'America/Chicago',
       currencyCode: json['currency_code'] as String? ?? 'USD',
+      locale: json['locale'] as String? ?? 'en_US',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -53,8 +58,14 @@ class Band {
       'avatar_color': avatarColor,
       'timezone': timezone,
       'currency_code': currencyCode,
+      'locale': locale,
     };
   }
+
+  BandCurrency get currency =>
+      BandCurrency.byLocale[locale] ??
+      BandCurrency.byIsoCode[currencyCode] ??
+      BandCurrency.fallback;
 
   @override
   String toString() => 'Band(id: $id, name: $name)';

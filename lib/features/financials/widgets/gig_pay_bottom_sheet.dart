@@ -175,7 +175,7 @@ class _GigPayBottomSheetState extends ConsumerState<GigPayBottomSheet> {
   Widget build(BuildContext context) {
     final dateStr = DateFormat('MMM d, yyyy').format(_paymentDate);
     final activeBand = ref.watch(activeBandProvider).activeBand;
-    final currencyCode = activeBand?.currencyCode ?? BandCurrency.defaultCode;
+    final currency = activeBand?.currency ?? BandCurrency.fallback;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -228,7 +228,7 @@ class _GigPayBottomSheetState extends ConsumerState<GigPayBottomSheet> {
                   ),
                   const SizedBox(height: 6),
                   CurrencyTextField(
-                    currencySymbol: BandCurrency.symbolFor(currencyCode),
+                    currencySymbol: currency.glyph,
                     controller: _amountController,
                     label: '',
                     enabled: !widget.viewOnly,

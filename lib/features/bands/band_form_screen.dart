@@ -137,8 +137,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
   String? _initialImageUrl;
   String _initialTimezone = 'America/Chicago';
   String _selectedTimezone = 'America/Chicago';
-  String _initialCurrencyCode = BandCurrency.defaultCode;
-  String _selectedCurrencyCode = BandCurrency.defaultCode;
+  String _initialLocale = 'en_US';
+  String _selectedLocale = 'en_US';
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -183,8 +183,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
       _initialImageUrl = band.imageUrl;
       _initialTimezone = band.timezone;
       _selectedTimezone = band.timezone;
-      _initialCurrencyCode = band.currencyCode;
-      _selectedCurrencyCode = band.currencyCode;
+      _initialLocale = band.locale;
+      _selectedLocale = band.locale;
 
       // Initialize draft band state for real-time header preview
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -262,7 +262,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     final imageChanged =
         _selectedImage != null || _uploadedImageUrl != _initialImageUrl;
     final timezoneChanged = _selectedTimezone != _initialTimezone;
-    final currencyChanged = _selectedCurrencyCode != _initialCurrencyCode;
+    final currencyChanged = _selectedLocale != _initialLocale;
 
     return nameChanged ||
         colorChanged ||
@@ -368,7 +368,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
 
       await supabase.from('bands').update({
         'timezone': _selectedTimezone,
-        'currency_code': _selectedCurrencyCode,
+        'currency_code': BandCurrency.byLocale[_selectedLocale]!.isoCode,
+        'locale': _selectedLocale,
       }).eq('id', bandId);
 
       // Send invites
@@ -476,6 +477,7 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
     try {
       final band = widget.initialBand!;
       final bandName = _bandNameController.text.trim();
+      final currencyCode = BandCurrency.byLocale[_selectedLocale]!.isoCode;
 
       // Upload new image if selected and not already uploaded
       String? imageUrl = _uploadedImageUrl;
@@ -501,7 +503,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         'avatar_color': _selectedAvatarColor,
         'image_url': imageUrl,
         'timezone': _selectedTimezone,
-        'currency_code': _selectedCurrencyCode,
+        'currency_code': currencyCode,
+        'locale': _selectedLocale,
         'updated_at': now.toIso8601String(),
       }).eq('id', band.id);
 
@@ -514,7 +517,8 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         createdBy: band.createdBy,
         avatarColor: _selectedAvatarColor,
         timezone: _selectedTimezone,
-        currencyCode: _selectedCurrencyCode,
+        currencyCode: currencyCode,
+        locale: _selectedLocale,
         createdAt: band.createdAt,
         updatedAt: now,
       );
@@ -2013,18 +2017,17 @@ class _BandFormScreenState extends ConsumerState<BandFormScreen>
         ),
         const SizedBox(height: Spacing.space12),
         AppDropdown<String>(
-          value: BandCurrency.byIsoCode.containsKey(_selectedCurrencyCode)
-              ? _selectedCurrencyCode
-              : BandCurrency.defaultCode,
+          value: BandCurrency.byLocale.containsKey(_selectedLocale)
+              ? _selectedLocale
+              : BandCurrency.fallback.locale,
           onChanged: (value) {
             if (value != null) {
-              setState(() => _selectedCurrencyCode = value);
+              setState(() => _selectedLocale = value);
             }
           },
           enabled: canEdit,
           validator: (value) => value == null ? 'Currency is required' : null,
-          format: (value) =>
-              BandCurrency.byIsoCode[value]?.pickerLabel ?? value,
+          format: (value) => BandCurrency.byLocale[value]?.pickerLabel ?? value,
           children: [
             for (final group in BandCurrency.pickerGroups())
               FSelectSection<String>(

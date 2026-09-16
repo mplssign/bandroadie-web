@@ -40,9 +40,8 @@ class _FinancialEntryDetailsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     final amountColor =
         entry.isIncome ? context.colors.success : AppColors.error;
     final amountPrefix = entry.isIncome ? '+' : '−';
@@ -106,7 +105,7 @@ class _FinancialEntryDetailsSheet extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$amountPrefix${entry.formatAmount(currencyCode)}',
+                            '$amountPrefix${entry.formatAmount(currency)}',
                             style: AppTextStyles.displayLarge
                                 .copyWith(color: amountColor),
                           ),
@@ -183,7 +182,7 @@ class _FinancialEntryDetailsSheet extends ConsumerWidget {
                   _DetailRow(
                     label: 'Deposit to Savings',
                     value: entry.depositToSavingsCents != null
-                        ? entry.formatDepositToSavings(currencyCode)!
+                        ? entry.formatDepositToSavings(currency)!
                         : 'Yes',
                   ),
                 ],

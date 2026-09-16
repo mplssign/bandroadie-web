@@ -26,12 +26,8 @@ List<pw.Widget> buildFinancialsReportContent({
   required String bandName,
   required String dateRangeLabel,
   required List<MemberVM> members,
-  required String currencyCode,
+  required BandCurrency currency,
 }) {
-  final moneyFmt = NumberFormat.currency(
-    symbol: BandCurrency.symbolFor(currencyCode),
-    decimalDigits: 2,
-  );
   final dateFmt = DateFormat('MMM d, yyyy');
   final widgets = <pw.Widget>[];
 
@@ -61,7 +57,7 @@ List<pw.Widget> buildFinancialsReportContent({
     emptyText: 'No income during this period.',
     totalLabel: 'TOTAL INCOME',
     totalAmountColor: _textBlack,
-    moneyFmt: moneyFmt,
+    currency: currency,
     dateFmt: dateFmt,
     members: members,
   ));
@@ -74,16 +70,16 @@ List<pw.Widget> buildFinancialsReportContent({
     emptyText: 'No expenses during this period.',
     totalLabel: 'TOTAL EXPENSES',
     totalAmountColor: _textBlack,
-    moneyFmt: moneyFmt,
+    currency: currency,
     dateFmt: dateFmt,
     members: members,
   ));
 
   widgets.add(_buildThickDivider());
 
-  widgets.addAll(_buildBandSavingsSection(entries, moneyFmt));
+  widgets.addAll(_buildBandSavingsSection(entries, currency));
 
-  widgets.addAll(_buildBandDisbursementsSection(entries, members, moneyFmt));
+  widgets.addAll(_buildBandDisbursementsSection(entries, members, currency));
 
   return widgets;
 }
@@ -137,7 +133,7 @@ List<pw.Widget> _buildItemizedSection({
   required String emptyText,
   required String totalLabel,
   required PdfColor totalAmountColor,
-  required NumberFormat moneyFmt,
+  required BandCurrency currency,
   required DateFormat dateFmt,
   required List<MemberVM> members,
 }) {
@@ -167,13 +163,13 @@ List<pw.Widget> _buildItemizedSection({
   final membersById = {for (final m in members) m.userId: m};
 
   for (final entry in sorted) {
-    widgets.add(_buildItemRow(entry, membersById, moneyFmt, dateFmt));
+    widgets.add(_buildItemRow(entry, membersById, currency, dateFmt));
   }
 
   widgets.addAll([
     pw.SizedBox(height: 4),
     _buildSubtotalRow(
-        totalLabel, totalCents, moneyFmt, _textBlack, totalAmountColor),
+        totalLabel, totalCents, currency, _textBlack, totalAmountColor),
     pw.SizedBox(height: 24),
   ]);
 
@@ -243,7 +239,7 @@ String _resolvePaidTo(FinancialEntry entry, Map<String, MemberVM> membersById) {
 pw.Widget _buildItemRow(
   FinancialEntry entry,
   Map<String, MemberVM> membersById,
-  NumberFormat moneyFmt,
+  BandCurrency currency,
   DateFormat dateFmt,
 ) {
   final singleLineStyle = const pw.TextStyle(fontSize: 10, color: _textBlack);
@@ -303,7 +299,7 @@ pw.Widget _buildItemRow(
         pw.SizedBox(
           width: _colWidthAmount,
           child: pw.Text(
-            moneyFmt.format(entry.amountCents / 100),
+            currency.format(entry.amountCents),
             style: singleLineStyle,
             textAlign: pw.TextAlign.right,
             maxLines: 1,
@@ -321,7 +317,7 @@ pw.Widget _buildItemRow(
 
 List<pw.Widget> _buildBandSavingsSection(
   List<FinancialEntry> entries,
-  NumberFormat moneyFmt,
+  BandCurrency currency,
 ) {
   final deposits = entries.where((e) => e.depositToSavings == true).toList()
     ..sort((a, b) => a.entryDate.compareTo(b.entryDate));
@@ -344,14 +340,14 @@ List<pw.Widget> _buildBandSavingsSection(
       dateFmt.format(entry.entryDate),
       label,
       entry.depositToSavingsCents ?? 0,
-      moneyFmt,
+      currency,
     ));
   }
 
   widgets.addAll([
     pw.SizedBox(height: 4),
     _buildSubtotalRow(
-        'TOTAL DEPOSITS', totalCents, moneyFmt, _textBlack, _textBlack),
+        'TOTAL DEPOSITS', totalCents, currency, _textBlack, _textBlack),
     pw.SizedBox(height: 24),
   ]);
 
@@ -362,7 +358,7 @@ pw.Widget _buildDateLineItem(
   String dateLabel,
   String description,
   int amountCents,
-  NumberFormat moneyFmt,
+  BandCurrency currency,
 ) {
   return pw.Container(
     decoration: const pw.BoxDecoration(
@@ -387,7 +383,7 @@ pw.Widget _buildDateLineItem(
           ),
         ),
         pw.Text(
-          moneyFmt.format(amountCents / 100),
+          currency.format(amountCents),
           style: const pw.TextStyle(fontSize: 11, color: _textBlack),
         ),
       ],
@@ -414,7 +410,7 @@ class _DisbursementLineItem {
 List<pw.Widget> _buildBandDisbursementsSection(
   List<FinancialEntry> entries,
   List<MemberVM> members,
-  NumberFormat moneyFmt,
+  BandCurrency currency,
 ) {
   final byUserId = <String, List<_DisbursementLineItem>>{};
 
@@ -470,7 +466,7 @@ List<pw.Widget> _buildBandDisbursementsSection(
 
     for (final item in items) {
       totalCents += item.amountCents;
-      widgets.add(_buildDisbursementLineItem(item, moneyFmt));
+      widgets.add(_buildDisbursementLineItem(item, currency));
     }
   }
 
@@ -478,7 +474,7 @@ List<pw.Widget> _buildBandDisbursementsSection(
     pw.SizedBox(height: 4),
     _buildThickDivider(),
     _buildSubtotalRow(
-        'TOTAL DISBURSEMENTS', totalCents, moneyFmt, _textBlack, _textBlack),
+        'TOTAL DISBURSEMENTS', totalCents, currency, _textBlack, _textBlack),
     _buildThickDivider(),
   ]);
 
@@ -487,7 +483,7 @@ List<pw.Widget> _buildBandDisbursementsSection(
 
 pw.Widget _buildDisbursementLineItem(
   _DisbursementLineItem item,
-  NumberFormat moneyFmt,
+  BandCurrency currency,
 ) {
   return pw.Container(
     decoration: const pw.BoxDecoration(
@@ -506,7 +502,7 @@ pw.Widget _buildDisbursementLineItem(
           ),
         ),
         pw.Text(
-          moneyFmt.format(item.amountCents / 100),
+          currency.format(item.amountCents),
           style: const pw.TextStyle(fontSize: 11, color: _textBlack),
         ),
       ],
@@ -544,7 +540,7 @@ pw.Widget _buildSectionHeader(
 pw.Widget _buildSubtotalRow(
   String label,
   int amountCents,
-  NumberFormat moneyFmt,
+  BandCurrency currency,
   PdfColor textColor,
   PdfColor amountColor,
 ) {
@@ -562,7 +558,7 @@ pw.Widget _buildSubtotalRow(
           ),
         ),
         pw.Text(
-          moneyFmt.format(amountCents / 100),
+          currency.format(amountCents),
           style: pw.TextStyle(
             fontSize: 12,
             fontWeight: pw.FontWeight.bold,

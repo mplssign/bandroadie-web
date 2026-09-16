@@ -242,9 +242,9 @@ class Gig {
 
   /// Formatted gig pay.
   /// Returns null if no pay is specified.
-  String? formatPay(String currencyCode) {
+  String? formatPay(BandCurrency currency) {
     if (gigPayCents == null) return null;
-    return BandCurrency.formatCents(gigPayCents!, currencyCode);
+    return currency.format(gigPayCents!);
   }
 
   @override

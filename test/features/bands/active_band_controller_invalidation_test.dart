@@ -121,6 +121,7 @@ void main() {
         avatarColor: _band1.avatarColor,
         timezone: _band1.timezone,
         currencyCode: 'CAD',
+        locale: 'en_CA',
         createdAt: _band1.createdAt,
         updatedAt: _band1.updatedAt,
       );
@@ -137,6 +138,31 @@ void main() {
       container.read(activeBandProvider.notifier).updateActiveBand(cadBand);
 
       expect(received, hasLength(notificationCount));
+    });
+
+    test('distinguishes a locale-only USD change', () {
+      final ecuadorBand = Band(
+        id: _band1.id,
+        name: _band1.name,
+        imageUrl: _band1.imageUrl,
+        createdBy: _band1.createdBy,
+        avatarColor: _band1.avatarColor,
+        timezone: _band1.timezone,
+        locale: 'es_EC',
+        createdAt: _band1.createdAt,
+        updatedAt: _band1.updatedAt,
+      );
+      final unitedStates = ActiveBandState(
+        userBands: [_band1],
+        activeBand: _band1,
+      );
+      final ecuador = ActiveBandState(
+        userBands: [ecuadorBand],
+        activeBand: ecuadorBand,
+      );
+
+      expect(ecuador, isNot(equals(unitedStates)));
+      expect(ecuador.hashCode, isNot(unitedStates.hashCode));
     });
   });
 }

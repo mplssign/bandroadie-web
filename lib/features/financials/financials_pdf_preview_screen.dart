@@ -11,6 +11,7 @@ import 'package:printing/printing.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
+import '../bands/currency/band_currency.dart';
 import '../members/member_vm.dart';
 import 'financials_controller.dart';
 import 'financials_report_builder.dart';
@@ -27,7 +28,7 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
   final String bandName;
   final FinancialDateFilter dateFilter;
   final List<MemberVM> members;
-  final String currencyCode;
+  final BandCurrency currency;
 
   /// Null means a combined report containing both income and expenses.
   final FinancialViewMode? viewMode;
@@ -37,7 +38,7 @@ class FinancialsPdfPreviewScreen extends StatefulWidget {
     required this.entries,
     required this.bandName,
     required this.dateFilter,
-    required this.currencyCode,
+    required this.currency,
     this.viewMode,
     this.members = const [],
   });
@@ -99,7 +100,7 @@ class _FinancialsPdfPreviewScreenState
           bandName: widget.bandName,
           dateRangeLabel: _filterLabel,
           members: widget.members,
-          currencyCode: widget.currencyCode,
+          currency: widget.currency,
         ),
       ),
     );

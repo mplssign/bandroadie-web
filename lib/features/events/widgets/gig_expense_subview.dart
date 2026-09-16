@@ -40,8 +40,7 @@ class GigExpenseDraft {
   final bool isReimbursed;
   final DateTime? reimbursedDate;
 
-  String formatAmount(String currencyCode) =>
-      BandCurrency.formatCents(amountCents, currencyCode);
+  String formatAmount(BandCurrency currency) => currency.format(amountCents);
 
   GigExpenseDraft copyWith({
     String? localId,
@@ -260,9 +259,8 @@ class _GigExpenseSubViewState extends ConsumerState<GigExpenseSubView> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyCode =
-        ref.watch(activeBandProvider).activeBand?.currencyCode ??
-            BandCurrency.defaultCode;
+    final currency = ref.watch(activeBandProvider).activeBand?.currency ??
+        BandCurrency.fallback;
     final canSave = widget.canEdit &&
         !widget.isSaving &&
         _amountController.cents > 0 &&
@@ -277,7 +275,7 @@ class _GigExpenseSubViewState extends ConsumerState<GigExpenseSubView> {
         CurrencyTextField(
           controller: _amountController,
           label: 'Amount',
-          currencySymbol: BandCurrency.symbolFor(currencyCode),
+          currencySymbol: currency.glyph,
           enabled: widget.canEdit && !widget.isSaving,
         ),
         const SizedBox(height: Spacing.space16),
