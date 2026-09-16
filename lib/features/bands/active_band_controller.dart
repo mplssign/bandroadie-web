@@ -192,6 +192,7 @@ class ActiveBandState {
         activeBand?.name == other.activeBand?.name &&
         activeBand?.imageUrl == other.activeBand?.imageUrl &&
         activeBand?.avatarColor == other.activeBand?.avatarColor &&
+        activeBand?.currencyCode == other.activeBand?.currencyCode &&
         isLoading == other.isLoading &&
         error == other.error &&
         userBands.length == other.userBands.length &&
@@ -204,6 +205,7 @@ class ActiveBandState {
         activeBand?.name,
         activeBand?.imageUrl,
         activeBand?.avatarColor,
+        activeBand?.currencyCode,
         isLoading,
         error,
         userBands.length,

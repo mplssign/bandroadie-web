@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../bands/currency/band_currency.dart';
 import '../members/member_vm.dart';
 import 'models/financial_entry.dart';
 
@@ -25,8 +26,12 @@ List<pw.Widget> buildFinancialsReportContent({
   required String bandName,
   required String dateRangeLabel,
   required List<MemberVM> members,
+  required String currencyCode,
 }) {
-  final moneyFmt = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+  final moneyFmt = NumberFormat.currency(
+    symbol: BandCurrency.symbolFor(currencyCode),
+    decimalDigits: 2,
+  );
   final dateFmt = DateFormat('MMM d, yyyy');
   final widgets = <pw.Widget>[];
 

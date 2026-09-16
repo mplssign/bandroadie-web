@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_icons.dart';
@@ -10,6 +11,8 @@ import '../../../components/ui/app_dropdown.dart';
 import '../../../components/ui/app_switch.dart';
 import '../../../components/ui/app_text_field.dart';
 import '../../../shared/widgets/currency_input_field.dart';
+import '../../bands/active_band_controller.dart';
+import '../../bands/currency/band_currency.dart';
 import '../../members/member_vm.dart';
 
 class GigExpenseDraft {
@@ -37,12 +40,8 @@ class GigExpenseDraft {
   final bool isReimbursed;
   final DateTime? reimbursedDate;
 
-  String get formattedAmount {
-    final dollars = amountCents ~/ 100;
-    final cents = amountCents % 100;
-    final dollarsFormatted = NumberFormat('#,##0').format(dollars);
-    return '\$$dollarsFormatted.${cents.toString().padLeft(2, '0')}';
-  }
+  String formatAmount(String currencyCode) =>
+      BandCurrency.formatCents(amountCents, currencyCode);
 
   GigExpenseDraft copyWith({
     String? localId,
@@ -80,7 +79,7 @@ class GigExpenseDraft {
   }
 }
 
-class GigExpenseSubView extends StatefulWidget {
+class GigExpenseSubView extends ConsumerStatefulWidget {
   const GigExpenseSubView({
     super.key,
     required this.members,
@@ -107,10 +106,10 @@ class GigExpenseSubView extends StatefulWidget {
   final bool isDeleting;
 
   @override
-  State<GigExpenseSubView> createState() => _GigExpenseSubViewState();
+  ConsumerState<GigExpenseSubView> createState() => _GigExpenseSubViewState();
 }
 
-class _GigExpenseSubViewState extends State<GigExpenseSubView> {
+class _GigExpenseSubViewState extends ConsumerState<GigExpenseSubView> {
   static const String _kOther = '__other__';
   static const List<String> _kPresetCategories = [
     'Marketing',
@@ -261,6 +260,9 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyCode =
+        ref.watch(activeBandProvider).activeBand?.currencyCode ??
+            BandCurrency.defaultCode;
     final canSave = widget.canEdit &&
         !widget.isSaving &&
         _amountController.cents > 0 &&
@@ -275,6 +277,7 @@ class _GigExpenseSubViewState extends State<GigExpenseSubView> {
         CurrencyTextField(
           controller: _amountController,
           label: 'Amount',
+          currencySymbol: BandCurrency.symbolFor(currencyCode),
           enabled: widget.canEdit && !widget.isSaving,
         ),
         const SizedBox(height: Spacing.space16),

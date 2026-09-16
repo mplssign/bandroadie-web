@@ -3120,9 +3120,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        gigFormFields!.buildGigPayButton(context),
+        gigFormFields!.buildGigPayButton(context, ref),
         const SizedBox(height: Spacing.space16),
-        gigFormFields.buildExpensesSection(context),
+        gigFormFields.buildExpensesSection(context, ref),
       ],
     );
   }
