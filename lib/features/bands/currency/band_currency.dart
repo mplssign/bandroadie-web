@@ -22,7 +22,7 @@ class BandCurrency {
   static const List<BandCurrency> shortlist = [
     BandCurrency(
       group: 'America',
-      countryLabel: 'United States / Ecuador',
+      countryLabel: 'United States',
       isoCode: 'USD',
       name: 'US Dollar',
       symbol: r'$',

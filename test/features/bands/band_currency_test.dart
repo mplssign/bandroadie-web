@@ -8,10 +8,10 @@ const _symbol = 'symbol';
 
 const _expectedCurrencies = <Map<String, Object?>>[
   {
-    _country: 'United States / Ecuador',
+    _country: 'United States',
     _code: 'USD',
     _name: 'US Dollar',
-    _symbol: r'$'
+    _symbol: r'$',
   },
   {_country: 'Canada', _code: 'CAD', _name: 'Canadian Dollar', _symbol: r'C$'},
   {_country: 'Mexico', _code: 'MXN', _name: 'Mexican Peso', _symbol: r'$'},
@@ -112,11 +112,10 @@ void main() {
     }
   });
 
-  test('USD preserves the Ecuador composite mapping in America', () {
+  test('USD is a single United States row in America', () {
     final usd = BandCurrency.byIsoCode['USD']!;
 
-    expect(usd.countryLabel, 'United States / Ecuador');
-    expect(usd.countryLabel, contains('Ecuador'));
+    expect(usd.countryLabel, 'United States');
     expect(usd.group, 'America');
     expect(
       BandCurrency.shortlist.where((entry) => entry.isoCode == 'USD'),

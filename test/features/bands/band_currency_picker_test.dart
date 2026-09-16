@@ -34,7 +34,7 @@ void main() {
     expect(usdGroups, hasLength(1));
     expect(usdGroups.single.label, 'America');
     expect(
-      usdGroups.single.items['United States / Ecuador — US Dollar (USD)'],
+      usdGroups.single.items['United States — US Dollar (USD)'],
       'USD',
     );
     expect(eurGroups, hasLength(1));
@@ -45,12 +45,12 @@ void main() {
     );
   });
 
-  test('Bulgaria and Ecuador do not have standalone rows', () {
+  test('Bulgaria retains composite row and Ecuador is fully absent', () {
     final labels = BandCurrency.pickerGroups()
         .expand((group) => group.items.keys)
         .toList();
 
     expect(labels, isNot(contains(matches(RegExp(r'^Bulgaria —')))));
-    expect(labels, isNot(contains(matches(RegExp(r'^Ecuador —')))));
+    expect(labels, everyElement(isNot(contains('Ecuador'))));
   });
 }

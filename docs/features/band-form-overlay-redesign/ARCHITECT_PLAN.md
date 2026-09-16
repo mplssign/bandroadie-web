@@ -25,7 +25,7 @@ Tier 1 after Engineer.
   direct read of
   [active_band_controller.dart lines 186–212](lib/features/bands/active_band_controller.dart#L186-L212):
   `ActiveBandState.==` compares `activeBand?.id / name / imageUrl /
-  avatarColor`, and `Object.hash(...)` in `hashCode` hashes the same four
+avatarColor`, and `Object.hash(...)` in `hashCode` hashes the same four
   fields. Neither `currencyCode` nor `timezone` participates. Riverpod
   3.4.2 `Notifier` uses `previous != next` to decide notification (verified
   in `~/.pub-cache/hosted/pub.dev/riverpod-3.4.2/lib/src` per Cycle 3
@@ -142,8 +142,8 @@ change.
   - The CHECK `IN (...)` list parses to exactly 30 unique ISO code
     string literals, in the exact order and set specified in Database
     Impact § (`USD, CAD, MXN, EUR, GBP, CHF, PLN, CZK, HUF, DKK, SEK,
-    NOK, ISK, RON, RSD, ALL, MKD, MDL, UAH, ARS, BOB, BRL, CLP, COP,
-    GYD, PYG, PEN, SRD, UYU, VES`). Dedupe into a set; assert size 30;
+NOK, ISK, RON, RSD, ALL, MKD, MDL, UAH, ARS, BOB, BRL, CLP, COP,
+GYD, PYG, PEN, SRD, UYU, VES`). Dedupe into a set; assert size 30;
     assert set-equality against the 30-code set T1-2 asserts against
     the Dart `BandCurrency.shortlist`.
   - The migration file contains no `CREATE OR REPLACE FUNCTION`, no
@@ -198,6 +198,226 @@ change.
   `20260915120000_add_currency_code_to_bands.sql` stays in the tree
   unapplied; Tony owns staging + production application per Rollout
   Strategy.
+
+## Cycle 6 Amendment (2026-09-15)
+
+**Cumulative Cycle Number: 6. Confidence: HIGH.** Owner-requested,
+open-PR (#307) label-only revision superseding QA Cycle 5 APPROVED.
+Owner feedback verbatim: *"Under America, it lists 'United States /
+Ecuador' it should just be 'United States'."* This is a product-copy
+correction to a single record in
+`lib/features/bands/currency/band_currency.dart` plus the two test
+files that assert against it. Every non-USD row, all currency names,
+all symbols, the 30-code CHECK migration, the `Band` model, the
+`ActiveBandState` equality fix, the `SectionCard` widget, the
+Backup/Restore inline redesign, the header-swap, the money-formatter
+fan-out, the persistence contract, and every other Cycle 3/4/5
+decision remain closed and unchanged. **Confirmed by direct read of
+[lib/features/bands/currency/band_currency.dart line 25](lib/features/bands/currency/band_currency.dart#L25):
+the shortlist entry currently reads `countryLabel: 'United States /
+Ecuador'`. That is the sole product-copy defect this amendment
+corrects.**
+
+- **New product interpretation — USD row uses the single-country
+  label.** In `BandCurrency.shortlist`, the record with `isoCode:
+'USD'` must have exactly `countryLabel: 'United States'`. The
+  derived `pickerLabel` — computed as `'$countryLabel — $name
+($isoCode)'` — therefore becomes exactly `'United States — US
+Dollar (USD)'`. No source-code path other than that single
+  `countryLabel` string literal changes to accomplish this: the
+  getter shape at
+  [band_currency.dart line 18](lib/features/bands/currency/band_currency.dart#L18)
+  is unchanged. USD remains one unique, selectable, persisted ISO
+  code; `defaultCode` remains `'USD'`; no separate Ecuador picker
+  row is added anywhere.
+- **EUR remains the Bulgaria composite.** The EUR record's
+  `countryLabel` continues to read exactly `'Eurozone / Bulgaria'`
+  and the derived picker label continues to read exactly `'Eurozone
+/ Bulgaria — Euro (EUR)'`. Tony has separately confirmed the EUR
+  row stays as-is; the Cycle 6 correction does **not** touch the
+  Europe group. If Tony issues a follow-up correction to the EUR
+  label, that would be a separate cycle, not a bundled edit here.
+- **Picker cardinalities are preserved exactly.** The picker still
+  returns 30 unique ISO-backed rows, grouped America 3 / Europe 16
+  / South America 11, in the Feature Input order. `USD` still sits
+  in America as the first record. `EUR` still sits in Europe as the
+  first record. No group loses a row; no group gains a row; no
+  standalone Ecuador row is introduced anywhere.
+- **Bulgaria stays visible in the picker; Ecuador is now fully
+  absent from every visible label.** Bulgaria retains its composite
+  presence via the EUR row. Ecuador — previously visible only inside
+  the USD composite — is no longer surfaced in the picker at all.
+  Existing System Analysis §, Root Cause §, and Proposed Solution §
+  historical prose describing why Ecuador's ISO code coincides with
+  USD in the supplied 32-row list is factually still accurate and
+  remains, but every downstream assertion that Ecuador must appear
+  in a picker label or `countryLabel` is inverted: Ecuador must
+  **not** appear in any visible label after Cycle 6.
+- **Exact source touches (three files, byte-narrow):**
+  - `lib/features/bands/currency/band_currency.dart` — change
+    exactly one string literal on
+    [line 25](lib/features/bands/currency/band_currency.dart#L25)
+    from `'United States / Ecuador'` to `'United States'`. No
+    other line in this file changes.
+  - `test/features/bands/band_currency_test.dart` — three
+    focused changes: (a) the ordered fixture entry at
+    [line 11](test/features/bands/band_currency_test.dart#L11)
+    updates its `_country:` value to `'United States'`; (b) the
+    focused test named `'USD preserves the Ecuador composite
+mapping in America'` (currently
+    [lines 115–124](test/features/bands/band_currency_test.dart#L115-L124))
+    renames to `'USD is a single United States row in America'`,
+    updates its `countryLabel` assertion to `'United States'`,
+    and **removes** its `contains('Ecuador')` assertion —
+    replaced by a positive assertion that
+    `usd.countryLabel == 'United States'` (already covered by
+    the fixture but restated at the focused test for a clear
+    failure message); (c) the EUR-composite test at
+    [lines 126–135](test/features/bands/band_currency_test.dart#L126-L135)
+    is byte-frozen — `'Eurozone / Bulgaria'` and
+    `contains('Bulgaria')` both remain.
+  - `test/features/bands/band_currency_picker_test.dart` — two
+    focused changes: (a) the USD picker-label assertion at
+    [line 37](test/features/bands/band_currency_picker_test.dart#L37)
+    updates its expected key to exactly `'United States — US
+Dollar (USD)'`; the EUR assertion at
+    [line 42](test/features/bands/band_currency_picker_test.dart#L42)
+    remains exactly `'Eurozone / Bulgaria — Euro (EUR)'`; (b)
+    the test named `'Bulgaria and Ecuador do not have standalone
+rows'` (currently
+    [lines 48–55](test/features/bands/band_currency_picker_test.dart#L48-L55))
+    is renamed to `'Bulgaria retains composite row and Ecuador is
+fully absent'` and its two assertions are updated so it
+    (i) still asserts no `items` key across any group matches
+    `RegExp(r'^Bulgaria —')` — the Bulgaria composite is inside
+    the EUR label but Bulgaria never heads a standalone row —
+    and (ii) newly asserts that no `items` key across any group
+    contains the literal substring `'Ecuador'` anywhere (not
+    just at the start of the label). This is stricter than the
+    Cycle 5 `RegExp(r'^Ecuador —')` check by design: after
+    Cycle 6 the word Ecuador must not appear anywhere in any
+    picker label, including inside a composite.
+- **`ARCHITECT_PLAN.md` prose sync.** Downstream in this file
+  (Proposed Solution §2 label table, Proposed Solution §2 composite
+  prose, Verification T1-2 composite-label bullet, Verification T1-2b
+  USD assertion and Ecuador-exclusion bullet, Engineer Task Breakdown
+  step 3, and Tier 2 PR-test step 3) each contain one or more literal
+  references to the pre-Cycle-6 `'United States / Ecuador'` USD label
+  or to Ecuador-appears-in-composite verification. Each of those
+  spots is updated in place by this amendment so downstream sections
+  read consistently with the Cycle 6 product interpretation; the
+  Cycle 3/4/5 amendment history above is preserved verbatim as
+  cycle history and not retroactively edited.
+- **`FEATURE_INPUT.md` remains historical input and is NOT edited.**
+  Confirmed by direct read: `FEATURE_INPUT.md` describes the redesign
+  goals (shared header, sectioned layout, currency setting, inline
+  backup/restore) and does not enumerate the country-string strings
+  for the curated shortlist — it delegates the shortlist wording to
+  Architect interpretation. The Cycle 6 correction is a product
+  interpretation refinement over that same delegation, not a Feature
+  Input revision. Architect does not touch `FEATURE_INPUT.md`;
+  Engineer does not touch it; QA does not touch it.
+- **`PR_BODY.md` is NOT edited by Architect; label references there
+  need Manager sync.** The current open-PR body at
+  [PR_BODY.md line 13](docs/features/band-form-overlay-redesign/PR_BODY.md#L13)
+  still reads `- USD label: \`United States / Ecuador — US Dollar
+(USD)\``. The Architect brief explicitly forbids Architect from
+  editing `PR_BODY.md`. That single bullet will be updated by Manager
+  during the standard PR body sync step after Engineer's Cycle 6
+  code change lands and QA re-verifies — Architect flags this as a
+  known-stale bullet requiring Manager sync, not as an Architect
+  action.
+- **`ENGINEER_REPORT.md` and `QA_REPORT.md` are NOT edited by
+  Architect.** Both files contain stale prose referencing the
+  Cycle 5 `'United States / Ecuador'` composite (ENGINEER_REPORT.md
+  item 13; QA_REPORT.md items 57 and 147). Both will be rewritten
+  from scratch by Engineer and QA respectively during their Cycle 6
+  passes — Architect does not merge, patch, or edit either.
+- **Prior QA Cycle 5 APPROVED is superseded.** The Cycle 5
+  APPROVED verdict was rendered against the pre-Cycle-6 USD label.
+  Owner acceptance testing (this Cycle 6 revision) reopens the QA
+  gate. QA **must not** rely on the Cycle 5 report and **must**
+  issue a fresh Cycle 6 verdict after Engineer's Cycle 6 pass. The
+  Cycle 6 QA gate re-executes every Tier 1 check (T1-1, T1-2,
+  T1-2b, T1-3, T1-4, T1-4b, T1-5, T1-6, T1-8) against the updated
+  tree; APPROVED requires all of them to pass **and** the Cycle 6
+  label-only source touches (single `countryLabel` line in
+  `band_currency.dart`, three focused updates in
+  `band_currency_test.dart`, two focused updates in
+  `band_currency_picker_test.dart`) to hold under the Cycle 6
+  change budget below.
+- **Cycle 6 change budget — label-only correction.** Sub-budgets
+  layered on top of the Cycle 3/4/5 caps, not replacing them.
+  Measured against the current Cycle 5-APPROVED working tree
+  (i.e. relative to the immediately preceding cycle's file
+  contents, not against `main`). Any excursion beyond these
+  sub-budgets is a scope breach QA must flag.
+  - `lib/features/bands/currency/band_currency.dart`: **net delta
+    = 0** (one literal string edit in place; no line added, no
+    line removed). Cycle 5 file size 267 lines is preserved
+    verbatim.
+  - `test/features/bands/band_currency_test.dart`: **net delta
+    ≤ ±3** (the fixture map entry update is a literal-string
+    swap on one line; the renamed focused test's body changes
+    from four `expect`s to three because the `contains('Ecuador')`
+    assertion is removed; overall file stays at ≤ 220 lines per
+    the Cycle 4 C2 hard cap and Cycle 5 file size 161 remains
+    inside the cap).
+  - `test/features/bands/band_currency_picker_test.dart`: **net
+    delta ≤ +3** (the USD picker key updates to the new label;
+    the renamed test replaces one regex assertion with one
+    substring-containment assertion and preserves the Bulgaria
+    regex assertion). Cycle 5 file size 56 lines. Post-Cycle 6
+    ceiling remains inside the Cycle 3 60–100-line intended
+    range for this file.
+  - `docs/features/band-form-overlay-redesign/ARCHITECT_PLAN.md`:
+    net delta accepted (this Cycle 6 amendment + downstream
+    literal-reference sync). Architect is the sole owner of
+    this file per the guardrails.
+  - No other file in `lib/`, `test/`, `supabase/migrations/`,
+    `supabase/functions/`, `pubspec.yaml`, `pubspec.lock`,
+    `web/`, `ios/`, `android/`, `macos/`, or `linux/` may
+    change under Cycle 6. In particular:
+    `supabase/migrations/20260915120000_add_currency_code_to_bands.sql`
+    is **byte-frozen** — the CHECK constraint's 30-code list is
+    ISO-code-only and never referenced the string "Ecuador" or
+    "United States" at the SQL layer.
+  - New public classes/methods: 0. New dependencies: 0. New
+    providers: 0. New migrations: 0. New RPCs/`SECURITY
+    DEFINER` functions: 0. New RLS policies: 0.
+- **Regression risk — LOW for Cycle 6.** The change is a single
+  visible label. No data-model change, no persistence-format change,
+  no equality-notification change, no formatter change, no
+  permission-gate change, no init-order change, no platform-conditional
+  change, no auth-flow change, no RLS change, no RPC change, no
+  migration change. The bands-scoped MEDIUM-risk classification from
+  Cycle 3 (formatter fan-out) and Cycle 4 (active-band notification
+  equality) remains accurate for the cumulative feature but does not
+  ratchet upward for this cycle. QA can re-run Tier 1 mechanically
+  against the label-corrected tree.
+- **Locale-aware number formatting stays out of scope for Cycle 6.**
+  Tony's separate, prior broader request for locale-aware
+  number-formatting behavior (locale-specific thousands separators,
+  decimal separator, decimal-place precision per currency) **is not
+  resolved** by this amendment and is not authorized for Engineer
+  implementation in Cycle 6. The open product-choice questions —
+  which locale drives grouping (band's country, device locale, or a
+  new user-level setting), and what decimal precision each currency
+  uses (all 2 decimals as today, or per-ISO-4217 minor-unit
+  precision) — are **not** answered by the owner feedback quoted
+  above, and Engineer must not silently choose defaults inside
+  `BandCurrency.formatCents` under cover of this label revision. If
+  Engineer's Cycle 6 diff modifies `NumberFormat` locale or
+  `decimalDigits` inside `BandCurrency.formatCents` or the PDF
+  builder, QA must flag that as a scope breach and REQUIRES CHANGES.
+  The locale-formatting decision is a follow-up cycle that starts
+  from a separate Feature Input and answered product questions, not
+  a Cycle 6 side effect.
+- **Migration remains unapplied — restated for Cycle 6.** No database
+  migration is applied or directed to apply as part of this pipeline.
+  `20260915120000_add_currency_code_to_bands.sql` stays in the tree
+  unapplied and byte-frozen; Tony owns staging + production
+  application per Rollout Strategy.
 
 ## Problem Summary
 
@@ -255,7 +475,7 @@ currency support.
 - [lib/components/ui/app_icon_button.dart](lib/components/ui/app_icon_button.dart) —
   `AppIconButton` wraps `FButton.icon`. In [new_setlist_screen.dart](lib/features/setlists/new_setlist_screen.dart#L897-L904)
   the back-icon pattern is `AppIconButton(icon: AppIcons.arrowLeft, color:
-  AppColors.primary, onPressed: () => Navigator.of(context).pop())`. This is
+AppColors.primary, onPressed: () => Navigator.of(context).pop())`. This is
   the pattern the redesigned Band Form should adopt (back icon, not close
   icon — matches the Feature Input's Expected Behavior).
 
@@ -311,7 +531,7 @@ currency support.
   and Forui 0.26.0 (`~/.pub-cache/hosted/pub.dev/forui-0.26.0/lib/src/widgets/select/select_item.dart`),
   which is the version resolved in `pubspec.lock`.
 - `AppDropdown<T>` wraps `FSelect<T>.rich` with `FSelectControl<T>.lifted(value:
-  value, onChange: onChanged)` and a caller-supplied `format(T)` for the
+value, onChange: onChanged)` and a caller-supplied `format(T)` for the
   selected-value label. The `T` value is the sole selection identity —
   `format` receives only the value, not the row/section it came from.
 - `FSelectSection<T>(items: Map<String, T>)` binds a display label (map key,
@@ -339,21 +559,21 @@ currency support.
 
 Confirmed by grep + inspection:
 
-| # | File | Line | Kind |
-|---|------|------|------|
-| 1 | [lib/shared/widgets/currency_input_field.dart](lib/shared/widgets/currency_input_field.dart#L47) | 47 | `CurrencyInputController.formattedValue` prefix `'\$'` |
-| 2 | [lib/shared/widgets/currency_input_field.dart](lib/shared/widgets/currency_input_field.dart#L85) | 85, 256 | `CurrencyInputField.hint` / `CurrencyTextField.hint` default `'\$0.00'` |
-| 3 | [lib/app/models/gig.dart](lib/app/models/gig.dart#L244-L252) | 252 | `Gig.formattedPay` `'\$'` prefix |
-| 4 | [lib/features/events/widgets/gig_expense_subview.dart](lib/features/events/widgets/gig_expense_subview.dart#L40-L45) | 44 | `GigExpenseDraft.formattedAmount` `'\$'` prefix |
-| 5 | [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart#L168-L172) | 172 | `FinancialEntry.formattedAmount` `'\$'` prefix |
-| 6 | [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart#L176-L183) | 182 | `FinancialEntry.formattedDepositToSavings` `'\$'` prefix |
-| 7 | [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart#L237-L242) | 241 | `GigPayDetails.formattedAmount` `'\$'` prefix |
-| 8 | [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart#L258-L263) | 262 | `_SavingsSheet._fmt` `'\$'` prefix |
-| 9 | [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart#L570-L572) | 571 | `_SummaryHeader.totalFormatted` inline `'\$'` |
-| 10 | [lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart#L120-L124) | 123 | `_formatSavingsCents` `'\$'` prefix |
-| 11 | [lib/features/financials/financials_report_builder.dart](lib/features/financials/financials_report_builder.dart#L29) | 29 | `NumberFormat.currency(symbol: '\$', decimalDigits: 2)` for PDF |
-| 12 | [lib/features/gigs/widgets/view_gig_drawer.dart](lib/features/gigs/widgets/view_gig_drawer.dart#L613) | 613 | Consumes `gig.formattedPay` (transitively #3) |
-| 13 | [lib/features/events/widgets/gig_form_fields.dart](lib/features/events/widgets/gig_form_fields.dart#L747-L858) | 747, 858 | Consumes `gigPayDetails.formattedAmount` (transitively #7) and `expense.formattedAmount` (transitively #4) |
+| #   | File                                                                                                                                                     | Line     | Kind                                                                                                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | [lib/shared/widgets/currency_input_field.dart](lib/shared/widgets/currency_input_field.dart#L47)                                                         | 47       | `CurrencyInputController.formattedValue` prefix `'\$'`                                                     |
+| 2   | [lib/shared/widgets/currency_input_field.dart](lib/shared/widgets/currency_input_field.dart#L85)                                                         | 85, 256  | `CurrencyInputField.hint` / `CurrencyTextField.hint` default `'\$0.00'`                                    |
+| 3   | [lib/app/models/gig.dart](lib/app/models/gig.dart#L244-L252)                                                                                             | 252      | `Gig.formattedPay` `'\$'` prefix                                                                           |
+| 4   | [lib/features/events/widgets/gig_expense_subview.dart](lib/features/events/widgets/gig_expense_subview.dart#L40-L45)                                     | 44       | `GigExpenseDraft.formattedAmount` `'\$'` prefix                                                            |
+| 5   | [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart#L168-L172)                                     | 172      | `FinancialEntry.formattedAmount` `'\$'` prefix                                                             |
+| 6   | [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart#L176-L183)                                     | 182      | `FinancialEntry.formattedDepositToSavings` `'\$'` prefix                                                   |
+| 7   | [lib/features/financials/models/financial_entry.dart](lib/features/financials/models/financial_entry.dart#L237-L242)                                     | 241      | `GigPayDetails.formattedAmount` `'\$'` prefix                                                              |
+| 8   | [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart#L258-L263)                                               | 262      | `_SavingsSheet._fmt` `'\$'` prefix                                                                         |
+| 9   | [lib/features/financials/financials_screen.dart](lib/features/financials/financials_screen.dart#L570-L572)                                               | 571      | `_SummaryHeader.totalFormatted` inline `'\$'`                                                              |
+| 10  | [lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart](lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart#L120-L124) | 123      | `_formatSavingsCents` `'\$'` prefix                                                                        |
+| 11  | [lib/features/financials/financials_report_builder.dart](lib/features/financials/financials_report_builder.dart#L29)                                     | 29       | `NumberFormat.currency(symbol: '\$', decimalDigits: 2)` for PDF                                            |
+| 12  | [lib/features/gigs/widgets/view_gig_drawer.dart](lib/features/gigs/widgets/view_gig_drawer.dart#L613)                                                    | 613      | Consumes `gig.formattedPay` (transitively #3)                                                              |
+| 13  | [lib/features/events/widgets/gig_form_fields.dart](lib/features/events/widgets/gig_form_fields.dart#L747-L858)                                           | 747, 858 | Consumes `gigPayDetails.formattedAmount` (transitively #7) and `expense.formattedAmount` (transitively #4) |
 
 Also transitively downstream through model getters (no new prefix logic to
 change, only the model getter behind them):
@@ -403,7 +623,7 @@ authorization for free. This is critical: no new policy, no new RPC, no
 
 - [supabase/migrations/087_fix_create_band_no_profile.sql](supabase/migrations/087_fix_create_band_no_profile.sql#L9-L86)
   — `SECURITY DEFINER`, signature `(p_name text, p_avatar_color text,
-  p_image_url text)`. Timezone in create mode is applied via a post-create
+p_image_url text)`. Timezone in create mode is applied via a post-create
   `bands.update({'timezone': _selectedTimezone}).eq('id', bandId)`
   (line 337–340 of band_form_screen). **Currency follows the same
   post-create UPDATE pattern.** No RPC signature change, no new grant.
@@ -423,7 +643,7 @@ one-to-one.
   rows.
 - `Band` model gains `final String currencyCode` with `= 'USD'` in the
   constructor default. `fromJson` parses `json['currency_code'] as String? ??
-  'USD'`. `toJson` includes `'currency_code': currencyCode`. Adding an
+'USD'`. `toJson` includes `'currency_code': currencyCode`. Adding an
   optional-with-default field keeps every existing `Band(...)` call site
   and every existing test constructing `Band(...)` compilable — validated by
   reading [test/features/auth/auth_gate_anonymous_recovery_test.dart](test/features/auth/auth_gate_anonymous_recovery_test.dart#L210)
@@ -460,7 +680,7 @@ the plan mentions currency scope):**
   set persisted to `bands.currency_code` is exactly these 30 codes, in the
   ordering shown in the CHECK constraint (Database Impact §):
   America → `USD, CAD, MXN` (3); Europe → `EUR, GBP, CHF, PLN, CZK, HUF,
-  DKK, SEK, NOK, ISK, RON, RSD, ALL, MKD, MDL, UAH` (16); South America →
+DKK, SEK, NOK, ISK, RON, RSD, ALL, MKD, MDL, UAH` (16); South America →
   `ARS, BOB, BRL, CLP, COP, GYD, PYG, PEN, SRD, UYU, VES` (11).
 - **30 picker rows.** Exactly one selectable row per unique ISO code (per
   the `FSelect<String>` semantics documented in Existing System Analysis §).
@@ -469,36 +689,43 @@ the plan mentions currency scope):**
   in Europe (first via Eurozone). Bulgaria and Ecuador do **not** get their
   own picker rows.
 
-**Preserving Bulgaria and Ecuador in the visible labels.**
+**Preserving Bulgaria in the visible EUR label; USD uses the single
+United States label (Cycle 6).**
 
-For the 28 non-shared codes, the picker label follows the format
-`"<Country> — <Name> (<Code>)"` (e.g. `"Canada — Canadian Dollar (CAD)"`),
-sourcing country / currency-name / symbol strings verbatim from Tony's
-supplied 32-row list.
+For the 29 single-country codes, the picker label follows the format
+`"<Country> — <Name> (<Code>)"` (e.g. `"Canada — Canadian Dollar (CAD)"`
+and — per Cycle 6 — `"United States — US Dollar (USD)"`), sourcing
+country / currency-name / symbol strings verbatim from Tony's supplied
+32-row list, with `USD`'s `countryLabel` fixed at exactly `'United
+States'` per the Cycle 6 owner correction.
 
-For the two shared codes, the picker label uses a slash-separated composite
-of both supplied country strings, in supplied-order, on a single row. The
-exact strings are:
+For the single remaining composite code (`EUR`), the picker label uses a
+slash-separated composite of both supplied country strings, in
+supplied-order, on a single row. The exact strings are:
 
-| ISO code | Group | Exact picker label |
-|----------|-------|--------------------|
-| `USD` | America | `United States / Ecuador — US Dollar (USD)` |
-| `EUR` | Europe | `Eurozone / Bulgaria — Euro (EUR)` |
+| ISO code | Group   | Exact picker label                          |
+| -------- | ------- | ------------------------------------------- |
+| `USD`    | America | `United States — US Dollar (USD)`           |
+| `EUR`    | Europe  | `Eurozone / Bulgaria — Euro (EUR)`          |
 
 ("Eurozone" is the primary-country string Tony supplied for the EUR row;
 Engineer must not paraphrase it — it is the source of truth for the
-composite left-hand side.) The composite pattern deliberately mirrors the
-non-composite `"<Country> — <Name> (<Code>)"` shape so the visual language
-is consistent across all 30 rows.
+composite left-hand side.) The single-country USD label and the
+composite EUR label both derive from the same `'$countryLabel — $name
+($isoCode)'` getter shape at
+[band_currency.dart line 18](lib/features/bands/currency/band_currency.dart#L18)
+— the getter is not modified in Cycle 6, only the underlying
+`countryLabel` string literal for the USD record.
 
 **Module contents (`lib/features/bands/currency/band_currency.dart`):**
 
 - `class BandCurrency { final String countryLabel; final String isoCode;
-  final String name; final String? symbol; ... }` — **exactly 30 records**,
-  one per unique ISO code. For `USD` and `EUR`, `countryLabel` is the
-  composite string above (`"United States / Ecuador"` and
-  `"Eurozone / Bulgaria"` respectively). For the other 28, `countryLabel`
-  is the single supplied country string.
+final String name; final String? symbol; ... }` — **exactly 30 records**,
+  one per unique ISO code. For `EUR`, `countryLabel` is the composite
+  string `"Eurozone / Bulgaria"`. For `USD`, `countryLabel` is exactly
+  `"United States"` (Cycle 6 owner correction — no Ecuador substring
+  anywhere). For the other 28, `countryLabel` is the single supplied
+  country string.
 - Group ordering matches the Feature Input: **America, Europe, South
   America**. `USD` sits in America (first-occurrence via United States);
   `EUR` sits in Europe (first-occurrence via Eurozone).
@@ -506,7 +733,7 @@ is consistent across all 30 rows.
 - `static List<BandCurrency> shortlist` — the 30 entries, in the same
   order as the CHECK constraint list.
 - `static Map<String, BandCurrency> byIsoCode` — `{ for (final e in
-  shortlist) e.isoCode: e }`; because `isoCode` values are unique across
+shortlist) e.isoCode: e }`; because `isoCode` values are unique across
   the 30 records, this map has exactly 30 entries and no
   earlier-overwrites-later ambiguity.
 - `static String symbolFor(String code)` — returns the symbol if the
@@ -515,12 +742,12 @@ is consistent across all 30 rows.
   Switzerland, Serbia, or North Macedonia).
 - `static String formatCents(int cents, String code)` — the single money
   formatter used by every call site. Delegates to `NumberFormat('#,##0.00',
-  'en_US')` for the numeric portion, then prefixes `symbolFor(code)`. This
+'en_US')` for the numeric portion, then prefixes `symbolFor(code)`. This
   preserves the current visual (`\$1,234.56`) for USD while transparently
   swapping the prefix for other codes.
 - `class BandCurrencyPickerGroup { final String label; final
-  Map<String, String> items; const BandCurrencyPickerGroup({required this.label,
-  required this.items}); }` plus
+Map<String, String> items; const BandCurrencyPickerGroup({required this.label,
+required this.items}); }` plus
   `static List<BandCurrencyPickerGroup> pickerGroups()` — a pure, widget-free,
   ref-free builder that returns exactly three groups in Feature Input order —
   `America` (3 items), `Europe` (16 items), `South America` (11 items) —
@@ -556,9 +783,9 @@ There is no `AppDropdown` value that resolves to more than one row.
     referenced from both create-mode and edit-mode branches of the Band Form,
     and could be reused later without a third copy).
   - Container: `color: context.colors.surfaceElevated`, `border:
-    Border.all(color: context.colors.border.withValues(alpha: 0.6))`,
+Border.all(color: context.colors.border.withValues(alpha: 0.6))`,
     `borderRadius: BorderRadius.circular(Spacing.cardRadius)`, `padding:
-    EdgeInsets.all(Spacing.space20)`.
+EdgeInsets.all(Spacing.space20)`.
   - Title `Text` with `AppTypography.heading2`-shaped style but color
     `context.colors.textPrimary`.
   - This reproduces the **visual language** of the Add Event drawer's
@@ -580,7 +807,7 @@ Section order (top → bottom, each a `SectionCard`):
    `_buildTimezoneSection`: `AppDropdown<String>` value = ISO code, `format`
    = the picker label defined in Proposed Solution §2 (composite for `USD`
    / `EUR`, single-country for the other 28), `children` = `FSelectSection<
-   String>` groups keyed on America (3 rows) / Europe (16 rows) / South
+String>` groups keyed on America (3 rows) / Europe (16 rows) / South
    America (11 rows) — **30 picker rows total, every value unique**. Always
    enabled in create mode (matches timezone).
 3. **Invite Members** — existing email input + `EmailDomainShortcutBar` +
@@ -617,9 +844,9 @@ Section order:
 ### 6. Shared overlay header
 
 - Replace `_buildAppBar()` with `AppAppBar(backgroundColor: context.colors.appBarBg,
-  leading: AppIconButton(icon: AppIcons.arrowLeft, color: AppColors.primary,
-  onPressed: _handleBackPress), title: Text(_isEditMode ? 'Edit Band' : 'New
-  Band', style: AppTextStyles.title3))`. `_handleBackPress` cancels the
+leading: AppIconButton(icon: AppIcons.arrowLeft, color: AppColors.primary,
+onPressed: _handleBackPress), title: Text(_isEditMode ? 'Edit Band' : 'New
+Band', style: AppTextStyles.title3))`. `_handleBackPress` cancels the
   `draftBandProvider` in edit mode (preserving the existing behavior in
   `_buildAppBar`'s current `GestureDetector.onTap`) then pops.
 - Delete `FrostedGlassBar` import.
@@ -702,10 +929,10 @@ the symbol changes; PDF layout and decimal precision are unchanged.
   scope. Not mandatory.
 - **Currency as a new RPC param on `create_band`.** Would require a new
   `SECURITY DEFINER` migration with matching `REVOKE ALL FROM PUBLIC, anon`
-  + `GRANT EXECUTE ... TO authenticated`, a `has_function_privilege`
-  verification, and lockstep changes in `data_backup_service.dart`'s restore
-  path (which also calls `create_band`). Timezone doesn't do this — it uses
-  a post-create UPDATE — and there's no reason currency should. Rejected.
+  - `GRANT EXECUTE ... TO authenticated`, a `has_function_privilege`
+    verification, and lockstep changes in `data_backup_service.dart`'s restore
+    path (which also calls `create_band`). Timezone doesn't do this — it uses
+    a post-create UPDATE — and there's no reason currency should. Rejected.
 - **Reuse the existing private `_SectionCard`.** Would import
   `event_editor_theme.dart` colors into the Band Form, breaking light/dark
   parity. Rejected per Feature Input decision #4.
@@ -870,12 +1097,12 @@ Each entry includes the specific change intent, not a rewrite.
   changes.
 - **`lib/app/models/gig.dart`** — replace `String? get formattedPay` with
   `String? formatPay(String currencyCode) => …
-  BandCurrency.formatCents(gigPayCents!, currencyCode)`. Single call site
+BandCurrency.formatCents(gigPayCents!, currencyCode)`. Single call site
   (`view_gig_drawer.dart:613`) updated accordingly.
 - **`lib/features/events/widgets/gig_expense_subview.dart`** — replace
   `String get formattedAmount` on `GigExpenseDraft` with
   `String formatAmount(String currencyCode) =>
-  BandCurrency.formatCents(amountCents, currencyCode)`. Any consumer
+BandCurrency.formatCents(amountCents, currencyCode)`. Any consumer
   updated. The `CurrencyTextField` widget instance at line ~275 gets the
   `currencySymbol` param wired through.
 - **`lib/features/financials/models/financial_entry.dart`** — replace
@@ -886,7 +1113,7 @@ Each entry includes the specific change intent, not a rewrite.
   required `String currencyCode` param to `buildFinancialsReportContent(...)`
   and to every internal helper that currently uses `moneyFmt`. Change
   line 29 to `final moneyFmt = NumberFormat.currency(symbol:
-  BandCurrency.symbolFor(currencyCode), decimalDigits: 2)`.
+BandCurrency.symbolFor(currencyCode), decimalDigits: 2)`.
 - **`lib/features/financials/financials_pdf_preview_screen.dart`** — add
   required `String currencyCode` constructor param, thread it into the
   `buildFinancialsReportContent(...)` call.
@@ -897,14 +1124,13 @@ Each entry includes the specific change intent, not a rewrite.
   `BandCurrency.formatCents`.
 - **`lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`** —
   `_formatSavingsCents` becomes `_formatSavingsCents(int cents, String
-  code)`. Local `CurrencyTextField` instances get the `currencySymbol`
+code)`. Local `CurrencyTextField` instances get the `currencySymbol`
   parameter.
 - **`lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart`** —
   reads the active band `currencyCode` in `build` and calls the new
   `entry.formatAmount(code)` / `entry.formatDepositToSavings(code)` methods.
 - **`lib/features/gigs/widgets/view_gig_drawer.dart`** — reads the active
-  band `currencyCode` in `build` and calls `gig.formatPay(code)` on line
-  613.
+  band `currencyCode` in `build` and calls `gig.formatPay(code)` on line 613.
 - **`lib/features/events/widgets/gig_form_fields.dart`** — reads currency
   code from ref and calls the new methods for lines 747 (`gigPayDetails`)
   and 858 (`expense`).
@@ -915,7 +1141,7 @@ Each entry includes the specific change intent, not a rewrite.
   `currencySymbol` through to the `CurrencyTextField` at line 226.
 - **`test/features/bands/active_band_controller_invalidation_test.dart`** —
   extend with one new `group('updateActiveBand notifies on currency-only
-  change', ...)` (Cycle 4 Amendment C1 regression). Do not delete, rename,
+change', ...)` (Cycle 4 Amendment C1 regression). Do not delete, rename,
   or alter the existing `selectBand invalidates band-scoped providers`
   group; do not modify existing helper bands, `_SeededActiveBandNotifier`,
   or the file's imports beyond adding a listener helper if needed. Cases
@@ -988,37 +1214,37 @@ Line-count numbers below are **net deltas** measured against `main` at
 **Count: 6.** Adding any additional new file counts as a scope breach and QA
 must flag it.
 
-| Path | Expected size |
-|------|---------------|
-| `supabase/migrations/20260915120000_add_currency_code_to_bands.sql` | 25–45 lines |
-| `lib/features/bands/currency/band_currency.dart` | 150–210 lines (pure Dart, no `package:meta` import; includes `pickerGroups()` + `BandCurrencyPickerGroup`) |
-| `lib/features/bands/widgets/section_card.dart` | 35–60 lines |
-| `test/features/bands/band_currency_test.dart` | **≤ 220 lines (Cycle 4 C2 hard cap; target 110–180)** — preserves the complete ordered 30-record `countryLabel` / `isoCode` / `name` / `symbol-or-null` comparison and all focused format assertions from Cycle 3; see "Compaction pattern" below. Do not reduce coverage. |
-| `test/features/bands/band_currency_picker_test.dart` | 50–100 lines |
-| `test/features/bands/band_model_test.dart` | 40–80 lines |
+| Path                                                                | Expected size                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supabase/migrations/20260915120000_add_currency_code_to_bands.sql` | 25–45 lines                                                                                                                                                                                                                                                                |
+| `lib/features/bands/currency/band_currency.dart`                    | 150–210 lines (pure Dart, no `package:meta` import; includes `pickerGroups()` + `BandCurrencyPickerGroup`)                                                                                                                                                                 |
+| `lib/features/bands/widgets/section_card.dart`                      | 35–60 lines                                                                                                                                                                                                                                                                |
+| `test/features/bands/band_currency_test.dart`                       | **≤ 220 lines (Cycle 4 C2 hard cap; target 110–180)** — preserves the complete ordered 30-record `countryLabel` / `isoCode` / `name` / `symbol-or-null` comparison and all focused format assertions from Cycle 3; see "Compaction pattern" below. Do not reduce coverage. |
+| `test/features/bands/band_currency_picker_test.dart`                | 50–100 lines                                                                                                                                                                                                                                                               |
+| `test/features/bands/band_model_test.dart`                          | 40–80 lines                                                                                                                                                                                                                                                                |
 
 ### Modified files
 
-| Path | Expected net delta |
-|------|--------------------|
-| `lib/features/bands/band_form_screen.dart` | −350 to −150 (net removal: sheet + panel + unused dialog − section wrappers + currency dropdown) |
-| `lib/app/models/band.dart` | +6 to +10 |
-| `lib/features/bands/active_band_controller.dart` | **+2 to +3 (Cycle 4 C1 cap)** — one comparison line in `ActiveBandState.==` plus one `Object.hash(...)` argument in `hashCode`; no method-body reordering, no rename, no import change |
-| `lib/shared/widgets/currency_input_field.dart` | +12 to +25 |
-| `lib/app/models/gig.dart` | −4 to +5 |
-| `lib/features/events/widgets/gig_expense_subview.dart` | −2 to +8 |
-| `lib/features/financials/models/financial_entry.dart` | −10 to +6 |
-| `lib/features/financials/financials_report_builder.dart` | +3 to +8 |
-| `lib/features/financials/financials_pdf_preview_screen.dart` | +3 to +6 |
-| `lib/features/financials/financials_screen.dart` | +6 to +14 |
-| `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart` | +5 to +12 |
-| `lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart` | +2 to +6 |
-| `lib/features/gigs/widgets/view_gig_drawer.dart` | +2 to +6 |
-| `lib/features/events/widgets/gig_form_fields.dart` | +4 to +10 |
-| `lib/features/events/widgets/event_editor_drawer.dart` | +2 to +6 |
-| `lib/features/financials/widgets/gig_pay_bottom_sheet.dart` | **+1 to +6 (Cycle 4 W1 cap)** — the smallest legitimate consolidation is (a) fold the two-line `ref.watch(activeBandProvider).activeBand?.currencyCode ?? BandCurrency.defaultCode` fallback into a single-line local, and (b) add the `currencySymbol:` argument to the existing `CurrencyTextField(...)` on its existing constructor line rather than on a new line. No other behavior change; no unrelated refactor. |
-| `test/features/bands/active_band_controller_invalidation_test.dart` | +25 to +50 (one added `group(...)` per Verification T1-4b; existing group untouched) |
-| existing financials/widgets test files (5 files) | +5 to +20 each |
+| Path                                                                        | Expected net delta                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/features/bands/band_form_screen.dart`                                  | −350 to −150 (net removal: sheet + panel + unused dialog − section wrappers + currency dropdown)                                                                                                                                                                                                                                                                                                                        |
+| `lib/app/models/band.dart`                                                  | +6 to +10                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `lib/features/bands/active_band_controller.dart`                            | **+2 to +3 (Cycle 4 C1 cap)** — one comparison line in `ActiveBandState.==` plus one `Object.hash(...)` argument in `hashCode`; no method-body reordering, no rename, no import change                                                                                                                                                                                                                                  |
+| `lib/shared/widgets/currency_input_field.dart`                              | +12 to +25                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `lib/app/models/gig.dart`                                                   | −4 to +5                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/events/widgets/gig_expense_subview.dart`                      | −2 to +8                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/financials/models/financial_entry.dart`                       | −10 to +6                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `lib/features/financials/financials_report_builder.dart`                    | +3 to +8                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/financials/financials_pdf_preview_screen.dart`                | +3 to +6                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/financials/financials_screen.dart`                            | +6 to +14                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `lib/features/financials/widgets/add_financial_entry_bottom_sheet.dart`     | +5 to +12                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `lib/features/financials/widgets/financial_entry_details_bottom_sheet.dart` | +2 to +6                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/gigs/widgets/view_gig_drawer.dart`                            | +2 to +6                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/events/widgets/gig_form_fields.dart`                          | +4 to +10                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `lib/features/events/widgets/event_editor_drawer.dart`                      | +2 to +6                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `lib/features/financials/widgets/gig_pay_bottom_sheet.dart`                 | **+1 to +6 (Cycle 4 W1 cap)** — the smallest legitimate consolidation is (a) fold the two-line `ref.watch(activeBandProvider).activeBand?.currencyCode ?? BandCurrency.defaultCode` fallback into a single-line local, and (b) add the `currencySymbol:` argument to the existing `CurrencyTextField(...)` on its existing constructor line rather than on a new line. No other behavior change; no unrelated refactor. |
+| `test/features/bands/active_band_controller_invalidation_test.dart`         | +25 to +50 (one added `group(...)` per Verification T1-4b; existing group untouched)                                                                                                                                                                                                                                                                                                                                    |
+| existing financials/widgets test files (5 files)                            | +5 to +20 each                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### Other
 
@@ -1048,21 +1274,21 @@ must flag it.
   `test('shortlist matches the exact 30-record ordered contract', ...)`
   block, asserting each of the four fields per index with an indexed
   `expect(shortlist[i].countryLabel, expected[i]['countryLabel'], reason:
-  'index $i')`. Four `expect`s per row × 30 rows compiles into ~120 lines
+'index $i')`. Four `expect`s per row × 30 rows compiles into ~120 lines
   of assertions if declared vertically, but compacts to ~40 lines when the
   fixture is written as tight one-line `Map` literals and iterated. This
   preserves the same 120 individual assertions (same coverage) inside the
   cap.
 - Keep the focused format assertions (`formatCents(150000, 'USD') ==
-  '\$1,500.00'`, `formatCents(150000, 'EUR') == '€1,500.00'`,
+'\$1,500.00'`, `formatCents(150000, 'EUR') == '€1,500.00'`,
   `formatCents(0, 'USD') == '\$0.00'`, `formatCents(99, 'USD') ==
-  '\$0.99'`, MXN `\$`, GYD `G\$`, MDL fallback to `MDL`, CHF/RSD/MKD
+'\$0.99'`, MXN `\$`, GYD `G\$`, MDL fallback to `MDL`, CHF/RSD/MKD
   fallback) as individual `expect`s inside a single `group('formatCents
-  and symbolFor', ...)`. Do not fold these into a table — the failure
+and symbolFor', ...)`. Do not fold these into a table — the failure
   messages need to point at specific codes.
 - Keep the singleton composite-label assertions
   (`BandCurrency.byIsoCode['USD']!.countryLabel == 'United States /
-  Ecuador'` and `['EUR']!.countryLabel == 'Eurozone / Bulgaria'`) as
+Ecuador'` and `['EUR']!.countryLabel == 'Eurozone / Bulgaria'`) as
   standalone `test(...)` blocks so a regression there is obvious in the
   report.
 - Do **not** remove or weaken any assertion present in the Cycle 3 file.
@@ -1114,7 +1340,7 @@ must flag it.
   by exhaustive enumeration in the Existing System Analysis table above.
 - **Active-band notification equality (Cycle 4 C1 authorized fix).** The
   Cycle 3 gap — currency-only `updateActiveBand` producing `previous ==
-  next` and suppressing listener notification — is closed by adding
+next` and suppressing listener notification — is closed by adding
   `currencyCode` to `ActiveBandState.==` and `hashCode`. This raises the
   bands-scoped risk from LOW to MEDIUM for one cycle because the
   notification-decision gate for every `activeBandProvider` watcher is
@@ -1144,14 +1370,14 @@ Manager makes the single commit only after literal QA APPROVED.** The
 step order exists to keep Engineer's local analyzer green as each layer
 lands, not to fence commit points.
 
-1. **DB migration.** Create
-   `supabase/migrations/20260915120000_add_currency_code_to_bands.sql` per
-   Database Impact. Do not apply — Tony applies at PR-test / release time.
-2. **Band model.** Add `currencyCode` to `lib/app/models/band.dart` with
-   default `'USD'`, and to `fromJson` / `toJson` / constructor. Add
-   `test/features/bands/band_model_test.dart` covering default,
-   round-trip, and legacy-row-missing-column parsing.
-2b. **Active-band notification equality fix (Cycle 4 Amendment C1).** In
+1.  **DB migration.** Create
+    `supabase/migrations/20260915120000_add_currency_code_to_bands.sql` per
+    Database Impact. Do not apply — Tony applies at PR-test / release time.
+2.  **Band model.** Add `currencyCode` to `lib/app/models/band.dart` with
+    default `'USD'`, and to `fromJson` / `toJson` / constructor. Add
+    `test/features/bands/band_model_test.dart` covering default,
+    round-trip, and legacy-row-missing-column parsing.
+    2b. **Active-band notification equality fix (Cycle 4 Amendment C1).** In
     `lib/features/bands/active_band_controller.dart`, add exactly one
     comparison clause `activeBand?.currencyCode ==
     other.activeBand?.currencyCode &&` inside `ActiveBandState.==` between
@@ -1164,52 +1390,54 @@ lands, not to fence commit points.
     `_invalidateBandScopedProviders`, or any persistence helper. Do **not**
     add `timezone` to either method (Out of Scope).
 
-    Then extend
-    `test/features/bands/active_band_controller_invalidation_test.dart`
-    with a new group per Verification T1-4b. Do not alter the existing
-    `selectBand invalidates band-scoped providers` group. This test must
-    fail against the pre-fix controller (proving falsifiability) and pass
-    against the fixed controller.
-3. **Currency module.** Create
-   `lib/features/bands/currency/band_currency.dart` with **exactly 30
-   `BandCurrency` records** — one per unique ISO code — using the country
-   strings, currency names, and symbols verbatim from Tony's supplied
-   32-row list, with `USD`'s and `EUR`'s `countryLabel` set to the
-   composite strings specified in Proposed Solution §2
-   (`"United States / Ecuador"` and `"Eurozone / Bulgaria"` respectively).
-   Implement `symbolFor`, `formatCents`, `defaultCode`. Add the public,
-   widget-free `BandCurrencyPickerGroup` value type and the
-   `static List<BandCurrencyPickerGroup> pickerGroups()` builder in the
-   same file (Proposed Solution §2). Do not import `forui`,
-   `flutter/widgets`, `riverpod`, or `package:meta/meta.dart` from this
-   file — immutability is guaranteed by `final` fields + `const`
-   constructors on both types (Cycle 4 Amendment W2). Create
-   `test/features/bands/band_currency_test.dart` per Verification T1-2 and
-   the Change Budget § "Compaction pattern" (≤ 220 lines, full 30-record
-   coverage preserved), **and**
-   `test/features/bands/band_currency_picker_test.dart` per Verification
-   T1-2b — the picker test calls `BandCurrency.pickerGroups()` directly
-   (no widget pump, no `ProviderContainer`).
-4. **SectionCard widget.** Create
-   `lib/features/bands/widgets/section_card.dart`.
-5. **Currency-aware inputs.** Update
-   `lib/shared/widgets/currency_input_field.dart` to accept optional
-   `currencySymbol`, defaulting to `'\$'` — analyzer clean, existing call
-   sites untouched.
-6. **Model-getter → method conversion.** Convert `Gig.formattedPay`,
-   `GigExpenseDraft.formattedAmount`, `FinancialEntry.formattedAmount`,
-   `FinancialEntry.formattedDepositToSavings`, `GigPayDetails.formattedAmount`
-   into methods taking `String currencyCode`. Update all in-repo callers
-   in the same step so `flutter analyze` is clean at the end of this
-   step's edits.
-7. **PDF preview + report builder.** Add required `currencyCode` param;
-   wire through from `financials_screen.dart` PDF launch site.
-8. **Financials screen internals.** Update `_SavingsSheet._fmt`,
-   `_SummaryHeader.totalFormatted`, and `add_financial_entry_bottom_sheet.dart`
-   `_formatSavingsCents` + `CurrencyTextField` instances.
-9. **View-gig / financial-details / gig-pay / gig-form-fields / gig-expense
-   / event-editor call sites.** Feed the new methods with the active band's
-   `currencyCode`.
+        Then extend
+        `test/features/bands/active_band_controller_invalidation_test.dart`
+        with a new group per Verification T1-4b. Do not alter the existing
+        `selectBand invalidates band-scoped providers` group. This test must
+        fail against the pre-fix controller (proving falsifiability) and pass
+        against the fixed controller.
+
+3.  **Currency module.** Create
+    `lib/features/bands/currency/band_currency.dart` with **exactly 30
+    `BandCurrency` records** — one per unique ISO code — using the country
+    strings, currency names, and symbols verbatim from Tony's supplied
+    32-row list, with `USD`'s `countryLabel` set to exactly `"United
+    States"` (Cycle 6 owner correction — single-country label, no
+    Ecuador substring) and `EUR`'s `countryLabel` set to the composite
+    `"Eurozone / Bulgaria"` per Proposed Solution §2. Implement
+    `symbolFor`, `formatCents`, `defaultCode`. Add the public,
+    widget-free `BandCurrencyPickerGroup` value type and the
+    `static List<BandCurrencyPickerGroup> pickerGroups()` builder in the
+    same file (Proposed Solution §2). Do not import `forui`,
+    `flutter/widgets`, `riverpod`, or `package:meta/meta.dart` from this
+    file — immutability is guaranteed by `final` fields + `const`
+    constructors on both types (Cycle 4 Amendment W2). Create
+    `test/features/bands/band_currency_test.dart` per Verification T1-2 and
+    the Change Budget § "Compaction pattern" (≤ 220 lines, full 30-record
+    coverage preserved), **and**
+    `test/features/bands/band_currency_picker_test.dart` per Verification
+    T1-2b — the picker test calls `BandCurrency.pickerGroups()` directly
+    (no widget pump, no `ProviderContainer`).
+4.  **SectionCard widget.** Create
+    `lib/features/bands/widgets/section_card.dart`.
+5.  **Currency-aware inputs.** Update
+    `lib/shared/widgets/currency_input_field.dart` to accept optional
+    `currencySymbol`, defaulting to `'\$'` — analyzer clean, existing call
+    sites untouched.
+6.  **Model-getter → method conversion.** Convert `Gig.formattedPay`,
+    `GigExpenseDraft.formattedAmount`, `FinancialEntry.formattedAmount`,
+    `FinancialEntry.formattedDepositToSavings`, `GigPayDetails.formattedAmount`
+    into methods taking `String currencyCode`. Update all in-repo callers
+    in the same step so `flutter analyze` is clean at the end of this
+    step's edits.
+7.  **PDF preview + report builder.** Add required `currencyCode` param;
+    wire through from `financials_screen.dart` PDF launch site.
+8.  **Financials screen internals.** Update `_SavingsSheet._fmt`,
+    `_SummaryHeader.totalFormatted`, and `add_financial_entry_bottom_sheet.dart`
+    `_formatSavingsCents` + `CurrencyTextField` instances.
+9.  **View-gig / financial-details / gig-pay / gig-form-fields / gig-expense
+    / event-editor call sites.** Feed the new methods with the active band's
+    `currencyCode`.
 10. **Band Form redesign — Create mode.** Swap `_buildAppBar` for
     `AppAppBar` + back icon. Wrap About / Location (+ new currency
     dropdown, built by mapping each `BandCurrencyPickerGroup` returned by
@@ -1240,37 +1468,41 @@ QA can execute all of the following without launching the app:
   new warnings (existing warnings on unmodified files may persist).
 - **T1-2 `flutter test test/features/bands/band_currency_test.dart`.**
   Cases (each falsifiable — a wrong shortlist fails at least one):
-    - `BandCurrency.shortlist.length == 30`.
-    - `BandCurrency.shortlist.map((e) => e.isoCode).toSet().length == 30`
-      — every `isoCode` is unique across the shortlist. This is the guard
-      that fails if a future edit re-introduces a per-supplied-row entry.
-    - `BandCurrency.shortlist.map((e) => e.isoCode).toSet()` equals exactly
-      the 30-code set from the CHECK constraint:
-      `{'USD','CAD','MXN','EUR','GBP','CHF','PLN','CZK','HUF','DKK',
-      'SEK','NOK','ISK','RON','RSD','ALL','MKD','MDL','UAH','ARS','BOB',
-      'BRL','CLP','COP','GYD','PYG','PEN','SRD','UYU','VES'}`.
-    - `BandCurrency.byIsoCode.length == 30` and
-      `BandCurrency.byIsoCode.keys.toSet()` equals the same 30-code set.
-    - `BandCurrency.defaultCode == 'USD'`.
-    - Composite-label preservation (Bulgaria / Ecuador visible):
-      - `BandCurrency.byIsoCode['USD']!.countryLabel == 'United States / Ecuador'`.
-      - `BandCurrency.byIsoCode['EUR']!.countryLabel == 'Eurozone / Bulgaria'`.
-      - Both composite `countryLabel`s contain the literal substrings
-        `'Bulgaria'` / `'Ecuador'` respectively — asserted separately so
-        the test survives future minor punctuation edits and still
-        catches accidental removal of the duplicate-country info.
-    - Symbol fallback: `symbolFor('USD') == '\$'`,
-      `symbolFor('EUR') == '€'`, `symbolFor('CHF') == 'CHF'` (no symbol →
-      falls back to code), `symbolFor('RSD') == 'RSD'`,
-      `symbolFor('MKD') == 'MKD'`.
-    - Formatting: `formatCents(150000, 'USD') == '\$1,500.00'`,
-      `formatCents(150000, 'EUR') == '€1,500.00'`,
-      `formatCents(0, 'USD') == '\$0.00'`,
-      `formatCents(99, 'USD') == '\$0.99'`.
-    - Group placement (single row per code): a single
-      `BandCurrency.shortlist.where((e) => e.isoCode == 'USD')` returns
-      exactly one record whose group is America; same test for `'EUR'`
-      returns exactly one record whose group is Europe.
+  - `BandCurrency.shortlist.length == 30`.
+  - `BandCurrency.shortlist.map((e) => e.isoCode).toSet().length == 30`
+    — every `isoCode` is unique across the shortlist. This is the guard
+    that fails if a future edit re-introduces a per-supplied-row entry.
+  - `BandCurrency.shortlist.map((e) => e.isoCode).toSet()` equals exactly
+    the 30-code set from the CHECK constraint:
+    `{'USD','CAD','MXN','EUR','GBP','CHF','PLN','CZK','HUF','DKK',
+'SEK','NOK','ISK','RON','RSD','ALL','MKD','MDL','UAH','ARS','BOB',
+'BRL','CLP','COP','GYD','PYG','PEN','SRD','UYU','VES'}`.
+  - `BandCurrency.byIsoCode.length == 30` and
+    `BandCurrency.byIsoCode.keys.toSet()` equals the same 30-code set.
+  - `BandCurrency.defaultCode == 'USD'`.
+  - Label contract (Cycle 6 owner-corrected — USD is single-country,
+    EUR keeps the Bulgaria composite):
+    - `BandCurrency.byIsoCode['USD']!.countryLabel == 'United States'`
+      (exact string; no Ecuador substring anywhere in the value).
+    - `BandCurrency.byIsoCode['EUR']!.countryLabel == 'Eurozone / Bulgaria'`.
+    - The EUR `countryLabel` contains the literal substring `'Bulgaria'`
+      — asserted separately so the test catches accidental removal of
+      the Bulgaria composite. The USD `countryLabel` must **not**
+      contain the literal substring `'Ecuador'` — asserted separately
+      so a future regression that reintroduces Ecuador into the USD
+      label (in any casing or position) fails visibly.
+  - Symbol fallback: `symbolFor('USD') == '\$'`,
+    `symbolFor('EUR') == '€'`, `symbolFor('CHF') == 'CHF'` (no symbol →
+    falls back to code), `symbolFor('RSD') == 'RSD'`,
+    `symbolFor('MKD') == 'MKD'`.
+  - Formatting: `formatCents(150000, 'USD') == '\$1,500.00'`,
+    `formatCents(150000, 'EUR') == '€1,500.00'`,
+    `formatCents(0, 'USD') == '\$0.00'`,
+    `formatCents(99, 'USD') == '\$0.99'`.
+  - Group placement (single row per code): a single
+    `BandCurrency.shortlist.where((e) => e.isoCode == 'USD')` returns
+    exactly one record whose group is America; same test for `'EUR'`
+    returns exactly one record whose group is Europe.
 - **T1-2b `flutter test test/features/bands/band_currency_picker_test.dart`
   (new file, listed in Files to Create item 5).** Pure builder-level check
   on the currency picker's group-building helper. The helper is
@@ -1278,69 +1510,76 @@ QA can execute all of the following without launching the app:
   returning `List<BandCurrencyPickerGroup>` (Proposed Solution §2). It is
   widget-free and ref-free by contract, so the test calls it directly
   without pumping a widget or spinning up a `ProviderContainer`. Cases:
-    - `BandCurrency.pickerGroups().length == 3` and the three group
-      `label`s in list order are `['America', 'Europe', 'South America']`.
-    - Flattening every `BandCurrencyPickerGroup.items` map yields exactly
-      30 entries in total (America group `.items.length == 3`, Europe
-      group `.items.length == 16`, South America group `.items.length ==
-      11`).
-    - `Set` of all ISO code values across every group has size 30 — no
-      duplicate picker values.
-    - `Set` of all display-label keys across every group has size 30 — no
-      duplicate picker labels.
-    - The `'USD'` value appears in exactly one group, and that group's
-      `label` reads `'America'`; the display-label key mapping to `'USD'`
-      is exactly `'United States / Ecuador — US Dollar (USD)'`.
-    - The `'EUR'` value appears in exactly one group, and that group's
-      `label` reads `'Europe'`; the display-label key mapping to `'EUR'`
-      is exactly `'Eurozone / Bulgaria — Euro (EUR)'`.
-    - No group contains an `items` key matching `RegExp(r'^Bulgaria —')`
-      or `RegExp(r'^Ecuador —')` — the composite-only representation is
-      preserved (Bulgaria and Ecuador never head a standalone row).
+  - `BandCurrency.pickerGroups().length == 3` and the three group
+    `label`s in list order are `['America', 'Europe', 'South America']`.
+  - Flattening every `BandCurrencyPickerGroup.items` map yields exactly
+    30 entries in total (America group `.items.length == 3`, Europe
+    group `.items.length == 16`, South America group `.items.length ==
+11`).
+  - `Set` of all ISO code values across every group has size 30 — no
+    duplicate picker values.
+  - `Set` of all display-label keys across every group has size 30 — no
+    duplicate picker labels.
+  - The `'USD'` value appears in exactly one group, and that group's
+    `label` reads `'America'`; the display-label key mapping to `'USD'`
+    is exactly `'United States — US Dollar (USD)'` (Cycle 6
+    owner-corrected — single-country label, no Ecuador substring
+    anywhere).
+  - The `'EUR'` value appears in exactly one group, and that group's
+    `label` reads `'Europe'`; the display-label key mapping to `'EUR'`
+    is exactly `'Eurozone / Bulgaria — Euro (EUR)'`.
+  - No group contains an `items` key matching `RegExp(r'^Bulgaria —')`
+    — Bulgaria's composite presence lives inside the EUR label but
+    Bulgaria never heads a standalone row.
+  - No group contains an `items` key that contains the literal
+    substring `'Ecuador'` anywhere in the key — Cycle 6 requires
+    Ecuador to be fully absent from every visible picker label, not
+    merely absent from the row heading. This is stricter than the
+    Cycle 5 `RegExp(r'^Ecuador —')` check by design.
 - **T1-3 `flutter test test/features/bands/band_model_test.dart`.** Cases:
-    - `Band.fromJson({...no currency_code})` yields `currencyCode == 'USD'`.
-    - `Band.fromJson({...'currency_code': 'EUR'})` yields `currencyCode ==
-      'EUR'`.
-    - `toJson()` round-trip preserves the code.
-    - `Band(...)` constructor without `currencyCode` argument defaults to
-      `'USD'`.
+  - `Band.fromJson({...no currency_code})` yields `currencyCode == 'USD'`.
+  - `Band.fromJson({...'currency_code': 'EUR'})` yields `currencyCode ==
+'EUR'`.
+  - `toJson()` round-trip preserves the code.
+  - `Band(...)` constructor without `currencyCode` argument defaults to
+    `'USD'`.
 - **T1-4 `flutter test test/features/bands/active_band_controller_invalidation_test.dart`
   and `test/features/auth/auth_gate_anonymous_recovery_test.dart`.**
   These files construct `Band(...)` directly; they must still compile and
   pass with the new default-valued field.
 - **T1-4b Currency-only `updateActiveBand` notification (Cycle 4
   Amendment C1).** New `group('updateActiveBand notifies on currency-only
-  change', ...)` inside
+change', ...)` inside
   `test/features/bands/active_band_controller_invalidation_test.dart`; do
   not touch the existing group. This test provably fails against the
   pre-fix controller (`ActiveBandState.==` / `hashCode` omitting
   `currencyCode`) and passes against the fixed controller. Cases:
-    - Build a `ProviderContainer` with a seeded `ActiveBandNotifier`
-      whose initial `activeBand` is a `Band` copy with
-      `currencyCode: 'USD'` and whose seeded `userBands` contains that
-      same band. Reuse the file's existing `_SeededActiveBandNotifier`
-      pattern; add a currency-explicit variant if needed.
-    - Register a listener via
-      `container.listen<ActiveBandState>(activeBandProvider, (prev, next)
-      => received.add(next.activeBand?.currencyCode))` with
-      `fireImmediately: false`, into a local `final received =
-      <String?>[]`.
-    - Call
-      `container.read(activeBandProvider.notifier).updateActiveBand(band)`
-      with a `Band` copy where every non-currency field — `id`, `name`,
-      `imageUrl`, `avatarColor`, `createdBy`, `timezone`, `createdAt`,
-      `updatedAt` — equals the seeded band's field, and only
-      `currencyCode` differs (`'USD'` → `'CAD'`).
-    - Assert `container.read(activeBandProvider).activeBand!.currencyCode
-      == 'CAD'` (state actually stored the update) **and** `received`
-      contains at least one `'CAD'` entry (Riverpod actually notified
-      the listener because `previous != next` after the equality fix).
-    - Also assert the reciprocal case: a second `updateActiveBand` with
-      the same `'CAD'` band and every other field identical produces no
-      new listener entry (i.e. equality still deduplicates identical
-      states, so the fix does not over-notify).
-    - Do **not** assert anything about `timezone` propagation — that is
-      an out-of-scope adjacent defect.
+  - Build a `ProviderContainer` with a seeded `ActiveBandNotifier`
+    whose initial `activeBand` is a `Band` copy with
+    `currencyCode: 'USD'` and whose seeded `userBands` contains that
+    same band. Reuse the file's existing `_SeededActiveBandNotifier`
+    pattern; add a currency-explicit variant if needed.
+  - Register a listener via
+    `container.listen<ActiveBandState>(activeBandProvider, (prev, next)
+=> received.add(next.activeBand?.currencyCode))` with
+    `fireImmediately: false`, into a local `final received =
+<String?>[]`.
+  - Call
+    `container.read(activeBandProvider.notifier).updateActiveBand(band)`
+    with a `Band` copy where every non-currency field — `id`, `name`,
+    `imageUrl`, `avatarColor`, `createdBy`, `timezone`, `createdAt`,
+    `updatedAt` — equals the seeded band's field, and only
+    `currencyCode` differs (`'USD'` → `'CAD'`).
+  - Assert `container.read(activeBandProvider).activeBand!.currencyCode
+== 'CAD'` (state actually stored the update) **and** `received`
+    contains at least one `'CAD'` entry (Riverpod actually notified
+    the listener because `previous != next` after the equality fix).
+  - Also assert the reciprocal case: a second `updateActiveBand` with
+    the same `'CAD'` band and every other field identical produces no
+    new listener entry (i.e. equality still deduplicates identical
+    states, so the fix does not over-notify).
+  - Do **not** assert anything about `timezone` propagation — that is
+    an out-of-scope adjacent defect.
 - **T1-5 `flutter test test/features/financials/widgets/`.** All five
   financials widget tests pass with their updated string expectations
   (still `$…` in USD-defaulted test bands — the symbol changes but tests
@@ -1368,7 +1607,7 @@ QA can execute all of the following without launching the app:
   T1-6 static SQL review; QA does not open a Supabase client, does not
   spin up a scratch database, does not execute `psql`, and does not
   invoke `supabase db push` / `supabase migration up` / `supabase db
-  reset` in any form. The absence of an executed apply is documented as
+reset` in any form. The absence of an executed apply is documented as
   an accepted residual in QA Regression Areas and does not block
   APPROVED.
 - **T1-8 Model consumers compile-clean.** Grep for
@@ -1389,19 +1628,19 @@ or a scratch DB he controls; runtime replacement for the deleted
 T1-7):**
 
 E1. On a scratch database (local Supabase CLI stack or a disposable
-    Postgres branch), apply
-    `supabase/migrations/20260915120000_add_currency_code_to_bands.sql`
-    once. **Expected:** applies cleanly with no errors.
+Postgres branch), apply
+`supabase/migrations/20260915120000_add_currency_code_to_bands.sql`
+once. **Expected:** applies cleanly with no errors.
 E2. Re-apply the same migration against the same scratch database.
-    **Expected:** second apply is a no-op — the `ADD COLUMN IF NOT
+**Expected:** second apply is a no-op — the `ADD COLUMN IF NOT
     EXISTS` and `DROP CONSTRAINT IF EXISTS` guards fire; no error.
 E3. Attempt `INSERT INTO bands (…, currency_code) VALUES (…, 'ZZZ');`
-    (or `UPDATE bands SET currency_code = 'ZZZ' WHERE id = <any>;` on a
-    seeded row). **Expected:** `bands_currency_code_check` violation.
+(or `UPDATE bands SET currency_code = 'ZZZ' WHERE id = <any>;` on a
+seeded row). **Expected:** `bands_currency_code_check` violation.
 E4. Insert a band row without specifying `currency_code` (or observe an
-    existing row after the apply). **Expected:** `currency_code` reads
-    `'USD'` — the `NOT NULL DEFAULT 'USD'` populates every row that
-    doesn't provide a value.
+existing row after the apply). **Expected:** `currency_code` reads
+`'USD'` — the `NOT NULL DEFAULT 'USD'` populates every row that
+doesn't provide a value.
 
 If any of E1–E4 fails, stop and file back to Architect before applying
 to staging. The plan expects E1–E4 to pass because T1-6 already
@@ -1420,20 +1659,23 @@ confirmed the file's static shape.
    dropdown lists exactly **30 selectable rows**, grouped under three
    headers `America` (3 rows) / `Europe` (16 rows) / `South America`
    (11 rows), in the Feature Input's order. Under `America`, `USD`
-   appears exactly once, labeled `United States / Ecuador — US Dollar
-   (USD)`. Under `Europe`, `EUR` appears exactly once, labeled
-   `Eurozone / Bulgaria — Euro (EUR)`. There is **no** standalone
-   `Bulgaria — …` row under `Europe` and **no** standalone
-   `Ecuador — …` row under `South America` — Bulgaria and Ecuador
-   appear only inside the composite `USD` / `EUR` labels above. South
-   America therefore has 11 selectable rows, not 12.
+   appears exactly once, labeled exactly `United States — US Dollar
+(USD)` (Cycle 6 owner-corrected — single-country label, Ecuador
+   must not appear anywhere in the USD row). Under `Europe`, `EUR`
+   appears exactly once, labeled `Eurozone / Bulgaria — Euro (EUR)`.
+   There is **no** standalone `Bulgaria — …` row under `Europe`;
+   Bulgaria appears only inside the composite EUR label. There is
+   **no** row anywhere in the picker whose visible label contains
+   the substring `Ecuador` — Ecuador is fully absent from every
+   picker label after Cycle 6. South America therefore has 11
+   selectable rows, not 12.
 4. Select "Canadian Dollar (CAD)". **Expected:** the picker collapses;
    the field shows "Canada — Canadian Dollar (CAD)". No error.
 5. Fill in a band name, add one invite email, tap Create Band.
    **Expected:** the band is created; you land on the dashboard; the
    band's persisted `currency_code` is `CAD` (verifiable in
    Supabase Studio: `SELECT id, name, currency_code FROM bands WHERE
-   id = '<new id>'`).
+id = '<new id>'`).
 6. Switch to the newly created band, open Financials. **Expected:**
    the summary total and each entry displays with a `C$` prefix (not
    `$`).
@@ -1467,7 +1709,7 @@ confirmed the file's static shape.
 **Apply/release-time (production migration apply):**
 
 16. Before applying: capture `SELECT count(*) FROM bands` and `SELECT
-    count(*) FROM bands WHERE currency_code = 'USD'`. Expected pre-
+count(*) FROM bands WHERE currency_code = 'USD'`. Expected pre-
     apply: the second query errors (column doesn't exist yet). Skip
     if pre-migration.
 17. Apply the migration. **Expected:** exits cleanly.
