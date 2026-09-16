@@ -11,46 +11,50 @@ void main() {
       'South America',
     ]);
     expect(groups, hasLength(3));
-    expect(groups[0].items, hasLength(3));
-    expect(groups[1].items, hasLength(16));
+    expect(groups[0].items, hasLength(4));
+    expect(groups[1].items, hasLength(17));
     expect(groups[2].items, hasLength(11));
   });
 
-  test('picker rows have globally unique labels and ISO values', () {
+  test('picker rows have globally unique labels and locale values', () {
     final groups = BandCurrency.pickerGroups();
     final entries = groups.expand((group) => group.items.entries).toList();
 
-    expect(entries, hasLength(30));
-    expect(entries.map((entry) => entry.key).toSet(), hasLength(30));
-    expect(entries.map((entry) => entry.value).toSet(), hasLength(30));
+    expect(entries, hasLength(32));
+    expect(entries.map((entry) => entry.key).toSet(), hasLength(32));
+    expect(entries.map((entry) => entry.value).toSet(), hasLength(32));
   });
 
-  test('USD and EUR use one exact composite row in the correct group', () {
+  test('USD and EUR each have two distinct country rows', () {
     final groups = BandCurrency.pickerGroups();
 
-    final usdGroups = groups.where((group) => group.items.containsValue('USD'));
-    final eurGroups = groups.where((group) => group.items.containsValue('EUR'));
+    final usdRows = groups
+        .expand((group) => group.items.entries)
+        .where((entry) => entry.key.contains('(USD)'));
+    final eurRows = groups
+        .expand((group) => group.items.entries)
+        .where((entry) => entry.key.contains('(EUR)'));
 
-    expect(usdGroups, hasLength(1));
-    expect(usdGroups.single.label, 'America');
+    expect(usdRows, hasLength(2));
     expect(
-      usdGroups.single.items['United States — US Dollar (USD)'],
-      'USD',
+      usdRows.map((e) => e.key).toSet(),
+      {'United States — US Dollar (USD)', 'Ecuador — US Dollar (USD)'},
     );
-    expect(eurGroups, hasLength(1));
-    expect(eurGroups.single.label, 'Europe');
+    expect(eurRows, hasLength(2));
     expect(
-      eurGroups.single.items['Eurozone / Bulgaria — Euro (EUR)'],
-      'EUR',
+      eurRows.map((e) => e.key).toSet(),
+      {'Eurozone (generic) — Euro (EUR)', 'Bulgaria — Euro (EUR)'},
     );
   });
 
-  test('Bulgaria retains composite row and Ecuador is fully absent', () {
-    final labels = BandCurrency.pickerGroups()
-        .expand((group) => group.items.keys)
-        .toList();
+  test(
+      'Ecuador and Bulgaria are their own distinct rows, each with the '
+      'correct locale', () {
+    final groups = BandCurrency.pickerGroups();
+    final americaItems = groups.firstWhere((g) => g.label == 'America').items;
+    final europeItems = groups.firstWhere((g) => g.label == 'Europe').items;
 
-    expect(labels, isNot(contains(matches(RegExp(r'^Bulgaria —')))));
-    expect(labels, everyElement(isNot(contains('Ecuador'))));
+    expect(americaItems['Ecuador — US Dollar (USD)'], 'es_EC');
+    expect(europeItems['Bulgaria — Euro (EUR)'], 'bg_BG');
   });
 }
