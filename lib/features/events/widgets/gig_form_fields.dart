@@ -982,7 +982,7 @@ class GigFormFields extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Gig Venue / Festival / Name',
+          'Gig Venue / Festival / Name *',
           style: AppTextStyles.footnote.copyWith(
             color: context.colors.textSecondary,
           ),
@@ -1032,7 +1032,7 @@ class GigFormFields extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'City',
+          'City *',
           style: AppTextStyles.footnote.copyWith(
             color: context.colors.textSecondary,
           ),

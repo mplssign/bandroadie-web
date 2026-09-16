@@ -173,7 +173,7 @@ class RehearsalFormFields extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Location',
+          'Location *',
           style: AppTextStyles.footnote.copyWith(
             color: context.colors.textSecondary,
           ),
