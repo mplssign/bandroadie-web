@@ -899,3 +899,249 @@ not attempted here per this mode's restrictions on live-app verification:
 ## Issues Found
 
 None.
+
+# CYCLE 5
+
+## Feature Slug
+
+`bug/edit-gig-soundcheck-not-persisted`
+
+## Feature Title
+
+Soundcheck time in gig editor never marks form dirty and isn't persisted
+
+## Cycle Number
+
+5
+
+## Final Verdict
+
+**APPROVED**
+
+## Validation Summary
+
+Reviewed the "# CYCLE 5" section of `ENGINEER_REPORT.md` against the
+uncommitted working-tree diff (`git diff HEAD`, branch
+`bug/edit-gig-soundcheck-not-persisted`; tree otherwise matches PR #322's
+committed Cycles 1-4, clean except the expected in-progress Cycle 5
+changes). This cycle has no `ARCHITECT_PLAN.md` amendment — it is an
+investigation task assigned directly by Manager in response to a Tony bug
+report, not a plan-driven implementation cycle, so the Engineer report's
+own Root Cause section is the scope authority here, consistent with how
+Cycle 4 was handled. `git diff --numstat` confirms the entire code change
+is 44 insertions, 0 deletions, in exactly one file:
+`test/features/events/widgets/event_editor_drawer_test.dart`. No `lib/`
+file was touched — consistent with the Engineer's claim that no code
+defect was found.
+
+Every factual claim in the Root Cause section was independently
+re-verified from primary sources, not taken on the Engineer's narrative:
+
+- **Migration claim.** Read
+  [20260904120001_seed_demo_templates.sql](../../../../supabase/migrations/20260904120001_seed_demo_templates.sql#L505-L507)
+  directly — the demo template gigs' `INSERT INTO public.gigs` column
+  list is exactly `(id, band_id, name, date, start_time, end_time,
+  location, address, state, setlist_id, is_potential)`. `load_in_time` is
+  absent, confirmed by column position, not just by search. Independently
+  grepped every `.sql` file under `supabase/migrations/` for
+  `load_in_time` — the only writes are the original
+  `085_add_load_in_time_to_gigs.sql` column-add and the three cited
+  cloning migrations' verbatim `SELECT ... load_in_time`/`INSERT ...
+  v_gig.load_in_time` passthroughs; zero `UPDATE ... SET load_in_time`
+  statements anywhere. Read the full clone block in the latest-applied
+  [20260912130000_demo_session_capacity_hardening.sql](../../../../supabase/migrations/20260912130000_demo_session_capacity_hardening.sql#L296-L331)
+  — confirmed `v_gig.load_in_time` is read from the template row and
+  passed straight into the clone's `INSERT`, with no computed fallback or
+  default anywhere in the block. This matches the Engineer's claim
+  exactly.
+- **Idempotency claim.** Read the same migration's "Idempotency check"
+  block (L89-100) — confirmed a `demo_sessions` row lookup by
+  `auth_user_id` returns the existing clone band IDs and exits before any
+  re-cloning occurs. This supports the demo-session-reuse hypothesis as
+  plausible, not confirmed against live data (Engineer's report is
+  explicit about this same limitation).
+- **Arithmetic claim.** Independently hand-computed both new test cases
+  against the actual `computeSoundcheckDefault` implementation in
+  [event_editor_drawer.dart](../../../../lib/features/events/widgets/event_editor_drawer.dart#L134-L165),
+  not just re-run: for load-in 11:30 PM (23:30 in minutes-from-midnight =
+  1410) + 60 min offset, modulo 1440 = 30 → 12:30 AM — matches the test's
+  expected `(12, 30, false)` exactly. For `TimeFormatter.parse('20:00')`
+  (read
+  [time_formatter.dart](../../../../lib/app/utils/time_formatter.dart#L82-L95)
+  directly — bare 24h regex path, no AM/PM marker, correctly parses to
+  8:00 PM) chained into `computeSoundcheckDefault`'s load-in-unset branch
+  (start 8:00 PM = 1200 min, − 60 min offset = 1140 min = 7:00 PM) —
+  matches the test's expected `(7, 0, true)` exactly. Both hand
+  derivations independently confirm the test expectations and the
+  Engineer's narrative are correct, not just internally consistent with
+  each other.
+
+## Architect Scope Review
+
+No `ARCHITECT_PLAN.md` amendment exists for Cycle 5, and none was
+expected — this cycle is a Manager-directed root-cause investigation of a
+field report, not a plan-scoped implementation task. The Engineer's own
+stated scope (root-cause the reported behavior; do not guess) is what the
+diff is measured against. Confirmed via `git diff --numstat` that the
+change is confined to the one expected test file plus
+`ENGINEER_REPORT.md` itself — no other file, and critically no `lib/`
+file, was touched.
+
+## Completeness Check
+
+All three investigative threads the Engineer's report commits to were
+independently followed to a real conclusion, not left open:
+
+1. Demo-seed-populates-load-in-time hypothesis — checked against primary
+   migration source, refuted.
+2. Arithmetic/AM-PM-conversion-bug hypothesis — checked via independent
+   hand-calculation against the live function, refuted.
+3. Demo-session-reuse (real, previously-persisted load-in value)
+   explanation — correctly flagged as the most-likely explanation but
+   *not* independently confirmable from this sandbox (no live-data access,
+   consistent with this mode's own guardrails against querying
+   production), and the report is honest about that limitation rather
+   than overclaiming a confirmed root cause. No task requirement was
+   skipped or left silently unaddressed.
+
+## Behavior Verification
+
+Code-path analysis and independent hand-calculation only — no
+runtime/on-device verification was performed or is possible for a
+data-state hypothesis that depends on one specific demo band's live,
+already-provisioned row (categorically an owner-run check, not a QA one;
+see Manual Verification Punch List). Both new test cases were confirmed
+correct independently (see Validation Summary), and `computeSoundcheckDefault`
+and `onLoadInTimeSet`/`TimeFormatter.parse` were read in full and found to
+match the Engineer's description with no discrepancy.
+
+## Regression Check
+
+**LOW.** No `lib/` file was touched; the diff is two additive `test()`
+cases appended to an existing `group()` in an existing test file. No
+auth/session, Supabase RPC, init order, platform-parity, disposal, or
+async-gap surface is at risk from a test-only addition that calls an
+already-tested pure function with new input values.
+
+## Database Safety
+
+Not applicable — no migration created or modified this cycle. The four
+cited migrations were read for verification only, not touched.
+
+## Analyzer Results
+
+Independently re-ran `flutter analyze` against the touched test file plus
+the two `lib/` files the Engineer's claims depend on:
+
+```
+flutter analyze test/features/events/widgets/event_editor_drawer_test.dart \
+  lib/features/events/widgets/event_editor_drawer.dart \
+  lib/features/events/models/event_form_data.dart
+```
+
+**No issues found!** — matches Engineer's report.
+
+## Test Results
+
+Independently re-ran the full named suite (not just trusted the report):
+
+```
+flutter test test/features/events/widgets/event_editor_drawer_test.dart \
+  test/app/models/gig_test.dart \
+  test/features/events/models/event_form_data_test.dart \
+  test/features/events/widgets/gig_form_fields_test.dart
+```
+
+**18/18 passed**, including both new Cycle 5 cases (`load-in set near
+midnight: soundcheck correctly wraps into AM` and `demo-seed-shaped 24h
+start time with load-in unset: PM default`). Matches Engineer's reported
+count exactly.
+
+## Diff Safety Review
+
+`git diff HEAD -- test/features/events/widgets/event_editor_drawer_test.dart`
+searched for secrets, `TODO`/`FIXME`/`debugPrint(` — none found. No
+leftover test scaffolding (the Engineer's report describes a temporary
+reproduction harness that was deleted before this cycle finished;
+confirmed absent from both the diff and `git status`), no accidental
+deletions, no unrelated formatting churn. The two untracked `PR_BODY.md`
+files and the untracked `docs/features/lighten-muted-text-color/` and
+other feature-doc entries visible in `git status` are pre-existing,
+unrelated to this slug's diff, and were left untouched.
+
+## Change Budget Review
+
+`git diff --numstat` for the touched test file: 44 insertions, 0
+deletions. No Change Budget section exists for this cycle (no plan
+amendment, consistent with Cycle 4's precedent), and a 44-line, two-case
+test-only addition with no new class/helper/provider is trivially
+reasonable regardless. The "bug fix with zero deleted lines" rule from
+this mode's Change Budget & Bloat step does not apply here — this is not
+a bug fix (no code was changed; the Engineer's conclusion is that no fix
+was needed), so there is nothing to have deleted.
+
+## Code Efficiency Review
+
+Two `test()` cases added to an existing `group()`, both calling the
+already-tested `computeSoundcheckDefault` function with new input values
+— no new class, method, provider, or helper introduced. Engineer's report
+states a search was done for an existing near-midnight-wrap or
+24h-format-start-time case before adding these; independently confirmed
+by reading the pre-existing three cases in the same group (load-in-set
+mid-day, load-in-unset mid-day, load-in-unset midnight-wrap) — neither of
+the two new cases duplicates an existing one. No `TODO`/`FIXME`/
+`debugPrint` in the diff.
+
+## Manual Verification Punch List
+
+This is the one owner-run diagnostic this cycle produces. It is not a
+completeness gap and does not block this verdict — write it here for
+Manager to relay directly to Tony:
+
+1. Open the exact demo-band gig where you saw the soundcheck time default
+   incorrectly (2 hours after the gig's start time, showing AM instead of
+   PM).
+2. Before tapping "Set Soundcheck Time," look at the **Load-in Time** row
+   just above it.
+   **Expected/what to check:** If that row already shows a real time
+   (not the "+ Set Load-in Time" placeholder), that's the explanation —
+   the soundcheck default is being calculated from that saved load-in
+   time (load-in + 1 hour), which is working correctly. If the load-in
+   time shown is something unusual for that gig (for example, a time
+   very close to midnight for an evening show), that's very likely a
+   leftover value saved during earlier testing on this same demo band,
+   not a new bug.
+3. If step 2 shows an unusual leftover load-in time, tap "Clear" on the
+   Load-in Time row, then tap "Set Soundcheck Time" again.
+   **Expected:** With load-in cleared, soundcheck should now default to
+   one hour *before* the gig's start time, in the correct AM/PM — if it
+   does, that confirms the original report was caused by old test data on
+   that one demo gig, not a bug in the app.
+
+## Issues Found
+
+**Suggestions:**
+
+- **[out-of-scope-adjacent, informational only — not a defect and not
+  blocking]** The task asked me to weigh whether a defensive UI change
+  (showing the load-in value before computing the soundcheck default) is
+  warranted regardless of root cause. Independently traced the render
+  path: `EventEditorDrawer` already calls
+  [`gigFormFields.buildLoadInTimeSelector(context)`](../../../../lib/features/events/widgets/event_editor_drawer.dart#L3143)
+  immediately followed by
+  [`gigFormFields.buildSoundcheckRow(context)`](../../../../lib/features/events/widgets/event_editor_drawer.dart#L3145)
+  in the same column, one row directly above the other, and both rows
+  always render their live current value (or the "+ Set..." placeholder
+  when unset) — this was built in Cycles 1-4, not new. The affordance
+  the task asks about — seeing the actual load-in value before the
+  soundcheck default is computed from it — **already exists** in the
+  current UI structure; no additional code change is needed to satisfy
+  it. This is a confirmation, not a new finding, and does not affect the
+  verdict.
+
+No Critical or Warning findings. The investigation is thorough,
+evidence-based (every claim checked against primary source, not narrative
+alone), honest about what could and could not be confirmed from this
+sandbox, and produces two correct, non-duplicative permanent regression
+tests with no code touched because no defect exists to fix. This is an
+acceptable outcome for this cycle.

@@ -795,3 +795,259 @@ None.
 ## Ready For QA
 
 **Yes.**
+
+---
+
+# CYCLE 5
+
+## Feature Slug
+
+`bug/edit-gig-soundcheck-not-persisted`
+
+## Feature Title
+
+Soundcheck time in gig editor never marks form dirty and isn't persisted
+
+## Cycle Number
+
+5
+
+## Goal
+
+Tony tested on an existing ("demo band") gig and reported that tapping
+"Set soundcheck time" defaulted the soundcheck time to 2 hours after the
+gig's start time, showing AM instead of PM (expected: load-in + 1 hour, or
+gig start − 1 hour when load-in is unset, per Cycle 3). Root-cause this —
+not guess — including the explicit hypothesis that the demo band's gig may
+already have a seeded `load_in_time`, and independently re-check
+`computeSoundcheckDefault`'s own arithmetic and the AM/PM conversion
+pattern.
+
+## Root Cause
+
+**No code defect was found in `computeSoundcheckDefault`, `onSoundcheckTimeSet`,
+`onLoadInTimeSet`, `EventFormData.fromGig`'s load-in/soundcheck parsing, or
+`TimeFormatter.parse`/`ParsedTime`'s AM/PM conversion arithmetic — all were
+re-verified correct by direct reproduction, not by inspection alone.** The
+"demo-seeded load-in" hypothesis given in the task is **refuted** by direct
+evidence; the true likely explanation is a **persisted (non-seed) data state**
+on that specific reused demo gig, detailed below.
+
+### Hypothesis 1 (demo seed populates `load_in_time`) — REFUTED
+
+Read all three named migrations plus the original seed migration
+(`20260904120001_seed_demo_templates.sql`, the actual source of the demo
+template gigs' column values — the three named migrations only *clone* from
+it, they don't set values themselves):
+
+- `20260904120001_seed_demo_templates.sql` L506-507: the `INSERT INTO
+  public.gigs` column list is `(id, band_id, name, date, start_time,
+  end_time, location, address, state, setlist_id, is_potential)` — **no
+  `load_in_time` column at all**, so every seed gig's `load_in_time` is
+  `NULL` by column default. It also never appears in a later `UPDATE
+  ... SET load_in_time` anywhere in `supabase/migrations/` (checked via
+  regex search across the whole directory — zero matches).
+- `20260904120003_provision_demo_session_rpc.sql` L280-289,
+  `20260912122827_demo_relative_date_offsets.sql` L359-368, and
+  `20260912130000_demo_session_capacity_hardening.sql` L322-331 (the
+  current, latest-applied version of `provision_demo_session()`) all clone
+  gigs identically: `SELECT ... load_in_time ... FROM gigs WHERE band_id =
+  v_template.id` then `INSERT ... v_gig.load_in_time ...` — a **verbatim
+  passthrough of a `NULL` value**, never a computed default.
+- Client-side, `lib/app/models/gig.dart` L102 (`loadInTime: json['load_in_time']
+  as String?`) and `lib/features/events/events_repository.dart` are the only
+  two places `load_in_time` is read/written in Dart — both are plain
+  passthroughs, no computed fallback exists anywhere in `lib/`.
+
+**Conclusion: a freshly-provisioned demo gig's `load_in_time` is genuinely
+`NULL`,** not seeded. `computeSoundcheckDefault` would take its load-in-unset
+branch (`soundcheck = gig start − 1 hour`) for a fresh clone, which the next
+check confirms produces the *correct* PM result — not the reported bug.
+
+### Hypothesis 2 (bug in `computeSoundcheckDefault` / AM-PM arithmetic) — REFUTED by reproduction
+
+The demo seed also stores `start_time`/`end_time` as bare 24-hour text (e.g.
+`'20:00'`, no `AM`/`PM` marker) — unlike real app-created gigs, which always
+write `H:MM AM/PM` via `startTimeDisplay`. This is a real, if harmless,
+format inconsistency worth noting, but it is not the bug: I wrote a
+temporary (uncommitted, deleted before finishing — same discipline as
+Cycle 2's throwaway repro) `flutter test` that ran every demo-seed gig's
+exact `start_time` string (`20:00`, `19:00`, `17:00`, `16:00`, `21:00`,
+`18:00`, `19:30`, `22:00`) through the real chain — `TimeFormatter.parse`
+→ `computeSoundcheckDefault` (load-in unset) — and every single case
+produced the correct result: `start − 1 hour`, `isPM: true`. Example:
+`'20:00'` parses to `8:00 PM` and yields soundcheck `7:00 PM`, not "2 hours
+after, AM." This is now a permanent, committed regression test (see Files
+Modified) rather than a throwaway.
+
+I also re-derived `computeSoundcheckDefault`'s load-in-set branch and the
+24h↔12h conversion pattern (`isPM && hour != 12 ? hour + 12 : (!isPM &&
+hour == 12 ? 0 : hour)` and its inverse) algebraically for every hour 0-23
+and confirmed the modulo-1440 wrap is correct in both directions, including
+when the load-in value is itself close to midnight — e.g. load-in `11:30
+PM` (23:30) + 60 min = 1470 min = `00:30` = `12:30 AM`. **This wrap into AM
+is correct behavior**, not a bug, for a load-in value that is genuinely
+close to midnight — added as a permanent test case (see Files Modified).
+
+I also re-checked `onLoadInTimeSet` (the callback that computes load-in's
+*own* default when a user taps "Set Load-in Time"): `start − 120 minutes`,
+algebraically and via the same reproduction harness — correct in every
+demo-seed case (e.g. `8:00 PM` start → `6:00 PM` load-in). The task's own
+hinted failure mode ("if load-in itself is incorrectly parsed as start+1hour
+instead of start-2hours") does **not** occur anywhere in this codebase —
+`onLoadInTimeSet` has never been touched by any cycle and computes `start −
+120` exactly.
+
+### Most likely actual explanation — demo session reuse (not fully confirmable from this sandbox)
+
+`provision_demo_session()` (all three migration versions, most recently
+`20260912130000_demo_session_capacity_hardening.sql` L96-104) has an
+**idempotency check**: if a `demo_sessions` row already exists for the
+caller's anonymous `auth_user_id`, it returns the **existing** clone band
+IDs without re-cloning anything. This means a given anonymous device/user
+does **not** get a fresh demo clone on every visit — it's the *same*
+persistent clone band across every session on that device (as long as
+`purgePersistedAnonymousSession` in `lib/main.dart` hasn't reset the
+underlying auth user). Given Cycle 2's own manual punch list explicitly
+told Tony to "retest Tier 2 step 7 (tap Update on a gig with soundcheck
+set)" across Cycles 1-4, it is very plausible that a **real, previously
+saved edit** (e.g. a load-in time manually set during earlier QA/testing,
+possibly an edge-case value near midnight while testing the wrap case) is
+what's now present on that specific gig — not a fresh `NULL` from the seed.
+If so, `computeSoundcheckDefault` is correctly deriving `load-in + 1 hour`
+from that real, already-persisted load-in value; a load-in near midnight
+would legitimately produce an AM soundcheck result, matching what Tony saw.
+
+**I could not directly confirm this against the live data** — no
+Docker/local Postgres is available in this sandbox (same limitation Cycle 2
+documented) and I do not have a service-role credential to query the linked
+remote project directly (using one would violate this pipeline's guardrails
+against bypassing RLS from tooling). This is the strongest evidence-based
+explanation given what's checkable from source alone, but it is a data-state
+hypothesis, not a confirmed one.
+
+**Recommended diagnostic for Tony/QA before the next cycle:** on that exact
+gig, check what the **Load-in Time** row shows *before* tapping "Set
+Soundcheck Time." If it already shows a real time (not "+ Set Load-in
+Time"), that confirms load-in is non-null and explains the soundcheck
+default deriving from it; note what value it shows — if it's implausible
+(e.g. near midnight for an evening gig), that's leftover test data from an
+earlier cycle's manual testing on this same reused demo clone, not a fresh
+bug, and can be cleared via "Clear" on the load-in row to re-verify the
+load-in-unset default independently.
+
+## Files Created
+
+None this cycle.
+
+## Files Modified
+
+- `test/features/events/widgets/event_editor_drawer_test.dart` — added two
+  permanent regression cases to the existing `computeSoundcheckDefault`
+  group: (1) load-in set near midnight correctly wraps to AM (documents the
+  correct-by-design behavior at the center of Tony's report), and (2) a
+  demo-seed-shaped 24-hour `start_time` string (`'20:00'`, load-in unset)
+  chained through `TimeFormatter.parse` end-to-end, confirming the exact
+  demo-data shape produces the correct PM default. No other line in the
+  file touched.
+
+No `lib/` file was modified — no code defect was found to fix (see Root
+Cause above). `EventFormData.fromGig`'s load-in/soundcheck parsing block,
+`onLoadInTimeSet`, and `TimeFormatter.parse` were all re-read and
+re-verified correct, not edited.
+
+## Analyzer Results
+
+`flutter analyze test/features/events/widgets/event_editor_drawer_test.dart
+lib/features/events/widgets/event_editor_drawer.dart
+lib/features/events/models/event_form_data.dart`: **No issues found.**
+
+## Test Results
+
+`flutter test test/features/events/widgets/event_editor_drawer_test.dart
+test/app/models/gig_test.dart
+test/features/events/models/event_form_data_test.dart
+test/features/events/widgets/gig_form_fields_test.dart`: **18/18 passed**
+(16 pre-existing from Cycles 1-3 + 2 new Cycle 5 cases).
+
+The temporary reproduction harness described in Hypothesis 2 above was run,
+confirmed all 8 demo-seed start-time strings produce correct PM results,
+then deleted before finishing this cycle — not part of the diff, not
+tracked in `git status`.
+
+## Code Efficiency/Bloat Check
+
+- No new class, method, provider, or helper introduced — two `test()` cases
+  added to an existing `group()` in an existing test file, calling the
+  same `computeSoundcheckDefault` function already under test.
+- Searched for an existing "near-midnight wrap" or "24h-format start time"
+  test case before adding these — Cycle 3's existing 3 cases cover
+  load-in-set (mid-day), load-in-unset (mid-day), and load-in-unset
+  midnight-wrap, but no case covers load-in-*set* wrapping into AM, nor a
+  bare-24h-text start time — confirmed these two new cases are genuinely
+  new coverage, not duplicates.
+- No `TODO`/`FIXME`/`debugPrint` added. No file-size guardrail impact
+  (test file net +43 lines, well under any container/feature-widget
+  threshold; this is a plain test file).
+
+## Verification (manual steps performed)
+
+- Read `20260904120001_seed_demo_templates.sql`'s gig `INSERT` column list
+  directly — confirmed `load_in_time` is absent, refuting Hypothesis 1.
+- Read all three demo-provisioning migrations' gig-cloning blocks — confirmed
+  all three (including the latest-applied `20260912130000` version) merely
+  pass `v_gig.load_in_time` through verbatim, never compute a default.
+- Grepped `supabase/migrations/**` for any `UPDATE ... load_in_time` —
+  zero matches.
+- Grepped `lib/**` for every `loadInTime`/`load_in_time` read/write site —
+  confirmed both are plain passthroughs (`Gig.fromJson`/`toJson`,
+  `EventsRepository` payloads), no client-side computed default anywhere.
+- Ran a temporary, uncommitted `flutter test` reproduction chaining
+  `TimeFormatter.parse` → `computeSoundcheckDefault` for every demo-seed
+  gig's exact `start_time` string — all 8 produced the correct PM result,
+  refuting Hypothesis 2. Converted the most representative case into a
+  permanent committed test.
+- Algebraically re-derived `computeSoundcheckDefault`'s load-in-set branch
+  and `onLoadInTimeSet`'s own default for every hour 0-23, confirming the
+  modulo-1440 wrap direction is correct in both branches, including the
+  midnight-adjacent case that produces an AM result from a PM-adjacent
+  load-in — confirmed this is correct-by-design, added as a permanent test.
+- Read `provision_demo_session()`'s idempotency-check block (all three
+  migration versions) to identify the demo-session-reuse explanation for
+  how a real, non-seed value could persist on a "seeded" gig across testing
+  cycles.
+- Ran `flutter analyze` and `flutter test` as reported above.
+- Ran `dart format` on the touched test file (0 changes — already
+  formatted).
+- Did not query the live/linked Supabase project's actual demo gig row data
+  — no Docker/local Postgres available in this sandbox (same limitation as
+  Cycle 2), and using a service-role credential to query the remote project
+  directly would violate this pipeline's guardrails. Flagged as an open,
+  Tony/QA-owned diagnostic step above rather than guessed at.
+
+## Deviations From Plan
+
+None — no `lib/` file needed a change; only test coverage was added to the
+existing Cycle 3 test file, which is not a scope expansion (same file
+Cycle 3 created for this exact function).
+
+## Blockers Encountered
+
+Could not directly inspect the live demo band's actual `gigs` row data for
+the gig Tony tested (no Docker/local Postgres in this sandbox, no
+service-role credential available per pipeline guardrails). This blocked
+fully confirming the demo-session-reuse hypothesis beyond "most likely
+explanation given the source evidence" — flagged as a Tony/QA-owned
+diagnostic step in Root Cause above rather than guessed at or worked around.
+
+## Ready For QA
+
+**Yes** — no code defect was found after exhaustive, evidence-based
+investigation (SQL seed source read directly, all three provisioning RPC
+versions read directly, every `load_in_time`/AM-PM conversion site in
+`lib/` re-verified, and a reproduction test run against the exact demo-seed
+data shapes). Two permanent regression tests were added documenting the
+correct (not buggy) behavior at the center of the report. Flagging the
+demo-session-reuse explanation and its recommended diagnostic step clearly
+for QA/Tony, since it could not be confirmed against live data from this
+sandbox.
