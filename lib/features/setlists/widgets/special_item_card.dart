@@ -4,6 +4,7 @@ import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
 import '../models/setlist_item.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/app_animations.dart';
 
 // ============================================================================
 // SPECIAL ITEM CARD
@@ -86,7 +87,7 @@ class SpecialItemCard extends StatelessWidget {
   /// Set Break: Red filled background, centered title "SET BREAK – 20 mins"
   Widget _buildSetBreakCard(BuildContext context) {
     final accentColor = _accentColor(context);
-    return GestureDetector(
+    return AnimatedCardPressable(
       onTap: onTap,
       child: Container(
         height: 48,
@@ -140,7 +141,7 @@ class SpecialItemCard extends StatelessWidget {
   /// Pause: Accent-tinted card with purpose titles and optional duration below
   Widget _buildPauseCard(BuildContext context) {
     final accentColor = _accentColor(context);
-    return GestureDetector(
+    return AnimatedCardPressable(
       onTap: onTap,
       child: Container(
         constraints: const BoxConstraints(minHeight: 56),

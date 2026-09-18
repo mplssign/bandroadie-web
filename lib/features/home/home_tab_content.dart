@@ -385,9 +385,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
 
   void _handleOpenFinancials() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FinancialsScreen(),
-      ),
+      fadeSlideRoute(page: const FinancialsScreen()),
     );
   }
 

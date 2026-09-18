@@ -8,6 +8,7 @@ import '../models/app_notification.dart';
 import '../models/notification_type.dart';
 import '../notification_controller.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
+import 'package:bandroadie/app/theme/app_animations.dart';
 
 // ============================================================================
 // NOTIFICATION CARD
@@ -22,7 +23,7 @@ class NotificationCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
+    return AnimatedCardPressable(
       onTap: () {
         // Mark as read on tap
         if (!notification.isRead) {

@@ -447,9 +447,8 @@ class VenueDetailScreen extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(
+      return AnimatedPressable(
         onTap: onTap,
-        behavior: HitTestBehavior.opaque,
         child: entry,
       );
     }

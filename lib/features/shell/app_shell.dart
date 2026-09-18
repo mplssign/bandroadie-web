@@ -282,25 +282,25 @@ class _MenuDrawerLayer extends ConsumerWidget {
         onClose();
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const MyProfileScreen()));
+        ).push(fadeSlideRoute(page: const MyProfileScreen()));
       },
       onSettingsTap: () {
         onClose();
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+        ).push(fadeSlideRoute(page: const SettingsScreen()));
       },
       onTipsAndTricksTap: () {
         onClose();
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const TipsAndTricksScreen()));
+        ).push(fadeSlideRoute(page: const TipsAndTricksScreen()));
       },
       onReportBugsTap: () {
         onClose();
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const BugReportScreen()));
+        ).push(fadeSlideRoute(page: const BugReportScreen()));
       },
       onLogOutTap: () async {
         onClose();

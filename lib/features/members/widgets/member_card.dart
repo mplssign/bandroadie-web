@@ -6,6 +6,7 @@ import '../member_vm.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/app/theme/app_animations.dart';
 import '../../../components/ui/app_card.dart';
 
 // ============================================================================
@@ -290,9 +291,9 @@ class _MemberCardState extends State<MemberCard> {
           ),
           const SizedBox(width: _MemberCardTokens.iconTextGap),
           Expanded(
-            child: GestureDetector(
+            child: AnimatedPressable(
               onTap: onTap,
-              behavior: HitTestBehavior.opaque,
+              enabled: onTap != null,
               child: label != null
                   ? RichText(
                       maxLines: 2,

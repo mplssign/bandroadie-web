@@ -750,7 +750,7 @@ class _DetailRow extends StatelessWidget {
 
     return Column(
       children: [
-        onTap != null ? InkWell(onTap: onTap, child: row) : row,
+        onTap != null ? AnimatedPressable(onTap: onTap, child: row) : row,
         Divider(height: 1, color: context.colors.border),
       ],
     );
