@@ -31,5 +31,13 @@ void main() {
       expect(BrandColors.dark.primarySubtle, equals(const Color(0x4DF43F5E)));
       expect(BrandColors.light.primarySubtle, equals(const Color(0x1AF43F5E)));
     });
+
+    test('BrandColors.dark.textMuted is Zinc-300 #D4D4D8', () {
+      expect(BrandColors.dark.textMuted, equals(const Color(0xFFD4D4D8)));
+    });
+
+    test('BrandColors.light.textMuted is unchanged (#020617)', () {
+      expect(BrandColors.light.textMuted, equals(const Color(0xFF020617)));
+    });
   });
 }
