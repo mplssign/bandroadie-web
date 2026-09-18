@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/app/theme/app_animations.dart';
 import '../models/lyrics_data.dart';
 import '../services/lyrics_view_settings_service.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
@@ -31,27 +32,12 @@ void showLyricsViewScreen(
   required String songTitle,
 }) {
   Navigator.of(context).push(
-    PageRouteBuilder(
-      pageBuilder: (context, anim1, anim2) => _LyricsViewScreen(
+    fadeSlideUpRoute(
+      page: _LyricsViewScreen(
         lyrics: lyrics,
         songId: songId,
         songTitle: songTitle,
       ),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.05),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(parent: animation, curve: AppCurves.ease),
-            ),
-            child: child,
-          ),
-        );
-      },
-      transitionDuration: AppDurations.medium,
     ),
   );
 }

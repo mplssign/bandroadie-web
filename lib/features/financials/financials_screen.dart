@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
+import '../../app/theme/app_animations.dart';
 import '../../components/ui/app_app_bar.dart';
 import '../../components/ui/app_icon_button.dart';
 import '../../components/ui/app_scaffold.dart';
@@ -908,8 +909,8 @@ void _openCombinedReport(
   final currency = activeBand?.currency ?? BandCurrency.fallback;
   final members = ref.read(membersProvider).members;
   Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => FinancialsPdfPreviewScreen(
+    fadeSlideRoute(
+      page: FinancialsPdfPreviewScreen(
         entries: state.dateFilteredEntries,
         bandName: bandName,
         dateFilter: state.dateFilter,

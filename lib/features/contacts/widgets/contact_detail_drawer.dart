@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/app/theme/app_animations.dart';
 import '../../../app/utils/phone_formatter.dart';
 import '../../../components/ui/sheet_footer.dart';
 import '../../../components/ui/app_bottom_sheet.dart';
@@ -232,7 +233,7 @@ class _DetailRow extends StatelessWidget {
 
     return Column(
       children: [
-        onTap != null ? InkWell(onTap: onTap, child: row) : row,
+        onTap != null ? AnimatedPressable(onTap: onTap, child: row) : row,
         Divider(height: 1, color: context.colors.border),
       ],
     );

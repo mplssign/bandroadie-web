@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:bandroadie/app/theme/design_tokens.dart';
 import 'package:bandroadie/app/theme/brand_colors.dart';
+import 'package:bandroadie/app/theme/app_animations.dart';
 import 'package:bandroadie/components/ui/app_text_field.dart';
 import 'package:bandroadie/components/ui/app_button.dart';
 import 'package:bandroadie/components/ui/sheet_footer.dart';
@@ -135,8 +136,8 @@ class _PrintOptionsBottomSheetState extends State<PrintOptionsBottomSheet> {
     }
     if (mounted) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SetlistPdfPreviewScreen(
+        fadeSlideRoute(
+          page: SetlistPdfPreviewScreen(
             setlistName: widget.setlistName,
             items: widget.items,
             template: _current,

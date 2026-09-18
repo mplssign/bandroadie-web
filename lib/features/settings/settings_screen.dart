@@ -6,6 +6,7 @@ import '../../app/services/supabase_client.dart';
 import '../../app/theme/brand_colors.dart';
 import '../../app/theme/design_tokens.dart';
 import '../../app/theme/theme_mode_controller.dart';
+import '../../app/theme/app_animations.dart';
 import '../../shared/utils/snackbar_helper.dart';
 import '../notifications/notification_settings_screen.dart';
 import '../calendar/one_calendar_settings_screen.dart';
@@ -93,18 +94,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Navigate to notification settings
   void _openNotifications() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const NotificationSettingsScreen(),
-      ),
+      fadeSlideRoute(page: const NotificationSettingsScreen()),
     );
   }
 
   /// Navigate to One Calendar settings
   void _openOneCalendar() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const OneCalendarSettingsScreen(),
-      ),
+      fadeSlideRoute(page: const OneCalendarSettingsScreen()),
     );
   }
 
@@ -443,52 +440,49 @@ class _SettingsListItem extends StatelessWidget {
     final iconColor =
         item.isDestructive ? AppColors.error : context.colors.textSecondary;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: item.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              Icon(item.icon, color: iconColor, size: 24),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+    return AnimatedPressable(
+      onTap: item.onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Icon(item.icon, color: iconColor, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.label,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: AppFontSizes.body,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (item.subtitle != null) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      item.label,
+                      item.subtitle!,
                       style: TextStyle(
-                        color: textColor,
-                        fontSize: AppFontSizes.body,
-                        fontWeight: FontWeight.w500,
+                        color: item.isDestructive
+                            ? AppColors.error.withValues(alpha: 0.7)
+                            : context.colors.textSecondary,
+                        fontSize: AppFontSizes.caption,
                       ),
                     ),
-                    if (item.subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        item.subtitle!,
-                        style: TextStyle(
-                          color: item.isDestructive
-                              ? AppColors.error.withValues(alpha: 0.7)
-                              : context.colors.textSecondary,
-                          fontSize: AppFontSizes.caption,
-                        ),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
-              Icon(
-                AppIcons.forward,
-                color: item.isDestructive
-                    ? AppColors.error.withValues(alpha: 0.5)
-                    : context.colors.textSecondary.withValues(alpha: 0.5),
-                size: 24,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              AppIcons.forward,
+              color: item.isDestructive
+                  ? AppColors.error.withValues(alpha: 0.5)
+                  : context.colors.textSecondary.withValues(alpha: 0.5),
+              size: 24,
+            ),
+          ],
         ),
       ),
     );
