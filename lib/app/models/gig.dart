@@ -27,6 +27,7 @@ class Gig {
   final String startTime;
   final String endTime;
   final String? loadInTime; // Optional load-in time (e.g., "6:00 PM")
+  final String? soundcheckTime; // Optional soundcheck time (e.g., "6:00 PM")
   final String location;
   final String? setlistId;
   final String? setlistName;
@@ -72,6 +73,7 @@ class Gig {
     required this.startTime,
     required this.endTime,
     this.loadInTime,
+    this.soundcheckTime,
     required this.location,
     this.address,
     this.state,
@@ -98,6 +100,7 @@ class Gig {
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
       loadInTime: json['load_in_time'] as String?,
+      soundcheckTime: json['soundcheck_time'] as String?,
       location: json['location'] as String,
       address: json['address'] as String?,
       state: (json['state'] as String?)?.toUpperCase(),
@@ -124,6 +127,7 @@ class Gig {
       'start_time': startTime,
       'end_time': endTime,
       'load_in_time': loadInTime,
+      'soundcheck_time': soundcheckTime,
       'location': location,
       'address': address,
       'state': state?.toUpperCase(),

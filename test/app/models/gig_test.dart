@@ -77,6 +77,52 @@ void main() {
       });
     });
 
+    group('soundcheck_time round trip', () {
+      test('preserves a non-null soundcheck_time through fromJson/toJson', () {
+        final json = {
+          'id': 'gig-id',
+          'band_id': 'band-id',
+          'name': 'Test Gig',
+          'date': '2026-06-01',
+          'start_time': '7:00 PM',
+          'end_time': '10:00 PM',
+          'location': 'Minneapolis',
+          'is_potential': false,
+          'soundcheck_time': '6:00 PM',
+          'gig_dates': const [],
+          'created_at': '2026-05-01T12:00:00.000Z',
+          'updated_at': '2026-05-02T12:00:00.000Z',
+        };
+
+        final gig = Gig.fromJson(json);
+
+        expect(gig.soundcheckTime, '6:00 PM');
+        expect(gig.toJson()['soundcheck_time'], '6:00 PM');
+      });
+
+      test('preserves a null soundcheck_time through fromJson/toJson', () {
+        final json = {
+          'id': 'gig-id',
+          'band_id': 'band-id',
+          'name': 'Test Gig',
+          'date': '2026-06-01',
+          'start_time': '7:00 PM',
+          'end_time': '10:00 PM',
+          'location': 'Minneapolis',
+          'is_potential': false,
+          'soundcheck_time': null,
+          'gig_dates': const [],
+          'created_at': '2026-05-01T12:00:00.000Z',
+          'updated_at': '2026-05-02T12:00:00.000Z',
+        };
+
+        final gig = Gig.fromJson(json);
+
+        expect(gig.soundcheckTime, isNull);
+        expect(gig.toJson()['soundcheck_time'], isNull);
+      });
+    });
+
     group('fullLocationDisplay', () {
       test('address, location, and state all present returns two lines', () {
         final gig = _buildGig(address: '123 Main St', state: 'MN');

@@ -609,29 +609,22 @@ class GigFormFields extends ConsumerWidget {
     if (soundcheckHour == null ||
         soundcheckMinutes == null ||
         soundcheckIsPM == null) {
-      return GestureDetector(
-        onTap: isSaving ? null : onSoundcheckTimeSet,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-            border: Border.all(color: context.colors.border),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Soundcheck Time',
+            style: AppTextStyles.footnote.copyWith(
+              color: context.colors.textSecondary,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(AppIcons.add, color: context.colors.textSecondary, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                '+ Set Soundcheck Time (Optional)',
-                style: AppTextStyles.callout.copyWith(
-                  color: context.colors.textSecondary,
-                ),
-              ),
-            ],
+          const SizedBox(height: 6),
+          EventAddValueButton(
+            label: 'Set soundcheck time',
+            onPressed: onSoundcheckTimeSet,
+            isSaving: isSaving,
           ),
-        ),
+        ],
       );
     }
 

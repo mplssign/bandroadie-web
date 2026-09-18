@@ -596,6 +596,12 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
                       value: gig.loadInTime!,
                     ),
 
+                  if (gig.soundcheckTime != null)
+                    _DetailRow(
+                      label: 'Soundcheck',
+                      value: gig.soundcheckTime!,
+                    ),
+
                   if (gig.setlistId != null)
                     _DetailRow(
                       label: 'Setlist',
@@ -703,7 +709,7 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 68,
+            width: 108,
             child: Text(
               label,
               style: AppTextStyles.callout.copyWith(
