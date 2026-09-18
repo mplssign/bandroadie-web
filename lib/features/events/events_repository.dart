@@ -15,6 +15,41 @@ import 'models/event_form_data.dart';
 // BAND ISOLATION: Every operation REQUIRES a non-null bandId.
 // ============================================================================
 
+DateTime _normalizeDate(DateTime date) =>
+    DateTime(date.year, date.month, date.day);
+
+/// Whether [formData] changes gig scheduling relative to [preGig] — main
+/// date, `is_potential`, or the set of additional dates. Used to gate the
+/// auto-block resync so non-scheduling edits don't re-fire block-out
+/// notifications.
+@visibleForTesting
+bool didGigSchedulingChange(Gig preGig, EventFormData formData) {
+  if (_normalizeDate(preGig.date) != _normalizeDate(formData.date)) {
+    return true;
+  }
+  if (preGig.isPotential != formData.isPotentialGig) {
+    return true;
+  }
+
+  final preDates =
+      preGig.additionalDates.map((d) => _normalizeDate(d.date)).toSet();
+  final newDates =
+      formData.additionalDates.map((e) => _normalizeDate(e.date)).toSet();
+  return preDates.length != newDates.length || !preDates.containsAll(newDates);
+}
+
+/// Whether [formData] changes rehearsal scheduling relative to [preRehearsal]
+/// — main date or `is_potential`. Used to gate the auto-block resync so
+/// non-scheduling edits don't re-fire block-out notifications.
+@visibleForTesting
+bool didRehearsalSchedulingChange(
+    Rehearsal preRehearsal, EventFormData formData) {
+  if (_normalizeDate(preRehearsal.date) != _normalizeDate(formData.date)) {
+    return true;
+  }
+  return preRehearsal.isPotential != formData.isPotentialGig;
+}
+
 /// Exception thrown when attempting operations without a band context.
 class NoBandSelectedError extends Error {
   final String message;
@@ -398,6 +433,24 @@ class EventsRepository {
       await _deleteChildRehearsals(rehearsalId: rehearsalId, bandId: bandId);
     }
 
+    final preUpdateSnapshot = await supabase
+        .from('rehearsals')
+        .select('id, band_id, date, is_potential')
+        .eq('id', rehearsalId)
+        .eq('band_id', bandId)
+        .single();
+    final preRehearsal = Rehearsal(
+      id: preUpdateSnapshot['id'] as String,
+      bandId: preUpdateSnapshot['band_id'] as String,
+      date: DateTime.parse(preUpdateSnapshot['date'] as String),
+      startTime: '',
+      endTime: '',
+      location: '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      isPotential: preUpdateSnapshot['is_potential'] as bool? ?? false,
+    );
+
     // Standard update (no recurrence generation needed)
     final data = {
       'date': formData.date.toIso8601String().split('T')[0],
@@ -431,34 +484,38 @@ class EventsRepository {
     // Sync additional dates for multi-date potential rehearsals
     await _syncRehearsalDates(rehearsalId, formData);
 
-    // Resync auto-block dates (delete old, recreate if confirmed)
-    try {
-      await _autoConflictBlockingService.clearAutoBlocksForSource(
-        sourceRehearsalId: rehearsalId,
-      );
+    // Resync auto-block dates (delete old, recreate if confirmed) — only
+    // when the edit actually changed scheduling, to avoid re-firing
+    // block-out notifications on non-scheduling edits.
+    if (didRehearsalSchedulingChange(preRehearsal, formData)) {
+      try {
+        await _autoConflictBlockingService.clearAutoBlocksForSource(
+          sourceRehearsalId: rehearsalId,
+        );
 
-      if (!formData.isPotentialGig) {
-        final userId = supabase.auth.currentUser?.id;
-        if (userId != null) {
-          final bandResponse = await supabase
-              .from('bands')
-              .select('name')
-              .eq('id', bandId)
-              .single();
-          final bandName = bandResponse['name'] as String;
+        if (!formData.isPotentialGig) {
+          final userId = supabase.auth.currentUser?.id;
+          if (userId != null) {
+            final bandResponse = await supabase
+                .from('bands')
+                .select('name')
+                .eq('id', bandId)
+                .single();
+            final bandName = bandResponse['name'] as String;
 
-          await _autoConflictBlockingService.autoBlockConflictingDates(
-            userId: userId,
-            eventBandId: bandId,
-            eventDates: [formData.date],
-            eventName: 'Rehearsal',
-            bandName: bandName,
-            sourceRehearsalIdsByDate: [rehearsalId],
-          );
+            await _autoConflictBlockingService.autoBlockConflictingDates(
+              userId: userId,
+              eventBandId: bandId,
+              eventDates: [formData.date],
+              eventName: 'Rehearsal',
+              bandName: bandName,
+              sourceRehearsalIdsByDate: [rehearsalId],
+            );
+          }
         }
+      } catch (e) {
+        debugPrint('[EventsRepository] Auto-block resync failed: $e');
       }
-    } catch (e) {
-      debugPrint('[EventsRepository] Auto-block resync failed: $e');
     }
 
     invalidateCache(bandId);
@@ -807,6 +864,14 @@ class EventsRepository {
 
     debugPrint('[EventsRepository] Updating gig $gigId for band: $bandId');
 
+    final preUpdateResponse = await supabase
+        .from('gigs')
+        .select(_gigSelectClause)
+        .eq('id', gigId)
+        .eq('band_id', bandId)
+        .single();
+    final preGig = Gig.fromJson(preUpdateResponse);
+
     final data = {
       'name': name,
       'date': formData.date.toIso8601String().split('T')[0],
@@ -843,39 +908,43 @@ class EventsRepository {
       contactIds: formData.contactIds,
     );
 
-    // Resync auto-block dates (delete old, recreate if confirmed)
-    try {
-      await _autoConflictBlockingService.clearAutoBlocksForSource(
-        sourceGigId: gigId,
-      );
+    // Resync auto-block dates (delete old, recreate if confirmed) — only
+    // when the edit actually changed scheduling, to avoid re-firing
+    // block-out notifications on non-scheduling edits.
+    if (didGigSchedulingChange(preGig, formData)) {
+      try {
+        await _autoConflictBlockingService.clearAutoBlocksForSource(
+          sourceGigId: gigId,
+        );
 
-      if (!formData.isPotentialGig) {
-        final userId = supabase.auth.currentUser?.id;
-        if (userId != null) {
-          final bandResponse = await supabase
-              .from('bands')
-              .select('name')
-              .eq('id', bandId)
-              .single();
-          final bandName = bandResponse['name'] as String;
+        if (!formData.isPotentialGig) {
+          final userId = supabase.auth.currentUser?.id;
+          if (userId != null) {
+            final bandResponse = await supabase
+                .from('bands')
+                .select('name')
+                .eq('id', bandId)
+                .single();
+            final bandName = bandResponse['name'] as String;
 
-          final allDates = [
-            formData.date,
-            ...formData.additionalDates.map((e) => e.date),
-          ];
+            final allDates = [
+              formData.date,
+              ...formData.additionalDates.map((e) => e.date),
+            ];
 
-          await _autoConflictBlockingService.autoBlockConflictingDates(
-            userId: userId,
-            eventBandId: bandId,
-            eventDates: allDates,
-            eventName: formData.name ?? formData.displayName,
-            bandName: bandName,
-            sourceGigId: gigId,
-          );
+            await _autoConflictBlockingService.autoBlockConflictingDates(
+              userId: userId,
+              eventBandId: bandId,
+              eventDates: allDates,
+              eventName: formData.name ?? formData.displayName,
+              bandName: bandName,
+              sourceGigId: gigId,
+            );
+          }
         }
+      } catch (e) {
+        debugPrint('[EventsRepository] Auto-block resync failed: $e');
       }
-    } catch (e) {
-      debugPrint('[EventsRepository] Auto-block resync failed: $e');
     }
 
     invalidateCache(bandId);
