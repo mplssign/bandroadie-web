@@ -22,6 +22,7 @@ import 'financials_pdf_preview_screen.dart';
 import 'models/financial_entry.dart';
 import 'widgets/add_financial_entry_bottom_sheet.dart';
 import 'widgets/financial_entry_details_bottom_sheet.dart';
+import 'widgets/transaction_card_skeleton.dart';
 
 // ============================================================================
 // FINANCIALS SCREEN
@@ -166,9 +167,23 @@ class _FinancialsScreenState extends ConsumerState<FinancialsScreen> {
                                   const SizedBox(height: Spacing.space8),
                                   Expanded(
                                     child: state.isLoading
-                                        ? const Center(
-                                            child: CircularProgressIndicator(
-                                                color: AppColors.primary),
+                                        ? ListView.separated(
+                                            padding: EdgeInsets.only(
+                                              left: Spacing.pagePadding,
+                                              right: Spacing.pagePadding,
+                                              bottom: MediaQuery.of(context)
+                                                      .padding
+                                                      .bottom +
+                                                  Spacing.space16,
+                                            ),
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount: 5,
+                                            separatorBuilder: (_, __) =>
+                                                const SizedBox(
+                                                    height: Spacing.space12),
+                                            itemBuilder: (_, __) =>
+                                                const TransactionCardSkeleton(),
                                           )
                                         : filtered.isEmpty
                                             ? const _EmptyState()
