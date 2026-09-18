@@ -709,7 +709,7 @@ class _DetailRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 68,
+            width: 108,
             child: Text(
               label,
               style: AppTextStyles.callout.copyWith(

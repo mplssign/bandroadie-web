@@ -655,3 +655,143 @@ None.
 ## Ready For QA
 
 **Yes.**
+
+---
+
+# CYCLE 4
+
+## Feature Slug
+
+`bug/edit-gig-soundcheck-not-persisted`
+
+## Feature Title
+
+Soundcheck time in gig editor never marks form dirty and isn't persisted
+
+## Cycle Number
+
+4
+
+## Goal
+
+Fix a visual regression found during Tony's pre-merge testing of PR #322:
+row labels in the read-only View Gig details drawer
+(`lib/features/gigs/widgets/view_gig_drawer.dart`) — "Load in",
+"Soundcheck" (added in Cycle 3), "Setlist", "Gig pay", "Contacts", "Notes"
+— wrap onto a second line instead of staying on one line.
+
+## Root Cause
+
+`_DetailRow` (private widget, ~L687-761) renders its `label` inside a
+hardcoded `SizedBox(width: 68, child: Text(label, ...))`. At the
+`AppTextStyles.callout` style (16px, weight 400), "Soundcheck" (10
+characters) does not fit in 68 logical pixels, so Flutter's default text
+layout wraps it onto a second line. No `maxLines`/`overflow` was set, so
+there was no defensive guard against this either.
+
+## Fix Applied
+
+Widened the fixed label column from `width: 68` to `width: 96` and added
+`maxLines: 1` + `overflow: TextOverflow.ellipsis` to the label `Text` in
+`_DetailRow`, as a defensive guard against any future longer label. No
+other property of `_DetailRow` (padding, the value column's `Expanded`
+behavior, chevron, divider) was touched, and no other caller/row in the
+file was affected — this is a single-widget, single-property-group change.
+
+**Amendment (same cycle, per Tony's explicit follow-up "do not truncate
+the labels"):** Tony rejected the ellipsis-truncation guard outright — he
+wants the label column wide enough that no label ever needs truncating,
+not a column that silently clips a label if it runs long. Removed
+`maxLines: 1` and `overflow: TextOverflow.ellipsis` from the label `Text`
+entirely, and widened the `SizedBox` further from `width: 96` to
+`width: 108` so "Load in", "Soundcheck", "Setlist", "Gig pay", "Contacts",
+and "Notes" all render on a single line with no wrapping and no
+truncation, relying solely on the column width being large enough rather
+than a truncation fallback.
+
+**Width justification (updated):** `AppTextStyles.callout` is 16px/weight
+400 (Geist). For a regular-weight sans-serif at 16px, average glyph
+advance width is roughly 0.55–0.6× the font size (~8.8–9.6px/char);
+"Soundcheck" is 10 characters, giving an estimated natural width of
+~90–96px. The prior 96px column left only a ~0–6px margin above that
+estimate — too tight to guarantee zero wrapping across font-metric
+variance or larger accessibility text-scale settings once the ellipsis
+safety net is gone. 108px gives "Soundcheck" a ~12–18px margin instead,
+while still staying well short of encroaching on the value column's
+`Expanded` space (drawer content width minus padding is far larger than
+108+8 px).
+
+## Files Modified
+
+- `lib/features/gigs/widgets/view_gig_drawer.dart` — in `_DetailRow`,
+  changed `SizedBox(width: 68, ...)` to `SizedBox(width: 96, ...)` and
+  added `maxLines: 1` and `overflow: TextOverflow.ellipsis` to the label
+  `Text`; amended in the same cycle to `SizedBox(width: 108, ...)` with
+  `maxLines`/`overflow` removed entirely, per Tony's follow-up. No other
+  line touched — confirmed via `git diff`.
+
+## Analyzer Results
+
+`flutter analyze lib/features/gigs/widgets/view_gig_drawer.dart`: **No
+issues found.**
+
+## Test Results
+
+Searched `test/` for any existing test covering `_DetailRow` or
+`ViewGigDrawer` label rendering — none exists (grep for `_DetailRow`,
+`ViewGigDrawer`, `view_gig_drawer` across `test/` returned no matches), so
+there is nothing pre-existing to regress-check. Per the plan's guidance,
+did not create a new test file for this: the fix is a single hardcoded
+layout constant plus a defensive overflow guard, and the drawer requires a
+live gig + Supabase/Riverpod context to pump, which is disproportionate
+setup for a one-line width assertion. `flutter test` was not run for this
+cycle (not required by the amendment and no coverage exists for the
+touched widget).
+
+## Code Efficiency/Bloat Check
+
+- No new widget, method, provider, or helper introduced — this is a pure
+  constant-value + property change on an existing private widget.
+- Searched for an existing shared "label column width" or text-truncation
+  helper before hardcoding 96 inline (matching the pre-existing pattern,
+  which already hardcoded 68 inline with no named constant) — no existing
+  equivalent constant found in `lib/app/theme/design_tokens.dart` for a
+  fixed label-column width, so kept it inline consistent with the existing
+  code's own convention rather than introducing a new named constant for a
+  single call site.
+- No `TODO`/`FIXME`/`debugPrint` added. No file-size guardrail impact
+  (net +1 line; `view_gig_drawer.dart` was already over the 500-line
+  target before this cycle, per Cycle 3's note — this cycle adds no
+  meaningful size).
+
+## Verification (manual steps performed)
+
+- Read the full diff: confirmed only the `SizedBox` width value (now 108)
+  changed inside `_DetailRow`, and that `maxLines`/`overflow` were removed
+  from the label `Text` rather than merely re-tuned; the value column's
+  `Expanded`, row padding, divider, and chevron are byte-for-byte
+  unchanged.
+- Confirmed via `grep` that `_DetailRow` has exactly one definition and one
+  hardcoded-width call site in the file, so no other row/caller could be
+  affected by this change.
+- Re-ran `flutter analyze lib/features/gigs/widgets/view_gig_drawer.dart`
+  after the amendment: **No issues found.**
+- Did not run the app on a simulator/device to visually re-confirm the
+  single-line rendering (no simulator session available in this
+  environment) — this is a static/analyzer-only verification; recommend
+  Tony re-check the drawer visually as part of his pre-merge pass, same as
+  originally reported.
+
+## Deviations From Plan
+
+None — no `ARCHITECT_PLAN.md` amendment was made for this cycle, per the
+Manager's instruction that the fix is narrow enough to document directly
+here; the touched file was already listed in Cycle 3's Files to Modify.
+
+## Blockers Encountered
+
+None.
+
+## Ready For QA
+
+**Yes.**

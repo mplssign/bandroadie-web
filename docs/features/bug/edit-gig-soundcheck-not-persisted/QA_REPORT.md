@@ -728,3 +728,174 @@ None.
    record type in a low-cost follow-up (see Warning 1 above) — purely
    stylistic, no functional difference, would tighten the diff against the
    plan's explicit "exactly 0 new public classes" gate.
+
+---
+
+# CYCLE 4
+
+## Feature Slug
+
+`bug/edit-gig-soundcheck-not-persisted`
+
+## Feature Title
+
+Soundcheck time in gig editor never marks form dirty and isn't persisted
+
+## Cycle Number
+
+4
+
+## Final Verdict
+
+**APPROVED**
+
+## Validation Summary
+
+Reviewed `ENGINEER_REPORT.md`'s "# CYCLE 4" section against the uncommitted
+working-tree diff (`git diff HEAD`, branch
+`bug/edit-gig-soundcheck-not-persisted`, tree otherwise matches PR #322's
+committed Cycles 1-3, clean except the expected Cycle 4 in-progress
+changes). This cycle has no `ARCHITECT_PLAN.md` amendment — Manager judged
+the fix in-scope since `view_gig_drawer.dart` was already a plan-listed
+file in Cycle 3 — so the Engineer report itself is the scope authority for
+this cycle's diff, consistent with the Manager's stated instruction.
+`git diff --numstat` confirms the entire code change is a single line
+modified in `lib/features/gigs/widgets/view_gig_drawer.dart` (1 insertion,
+1 deletion): `_DetailRow`'s label `SizedBox(width: 68, ...)` →
+`SizedBox(width: 108, ...)`. No other line in the file, and no other file
+outside the two expected (the code file plus `ENGINEER_REPORT.md` itself),
+was touched.
+
+## Architect Scope Review
+
+No `ARCHITECT_PLAN.md` amendment exists for Cycle 4. Per the Manager's
+framing, this is an approved narrow follow-up on a file already in scope
+from Cycle 3 (`lib/features/gigs/widgets/view_gig_drawer.dart`), not a
+plan violation. Confirmed via `git diff` that the change is exactly the
+single `SizedBox` width value — no other property of `_DetailRow`
+(padding, the value column's `Expanded` behavior, chevron, divider) and no
+other row/caller in the file was touched.
+
+## Completeness Check
+
+Engineer's report describes two sub-steps within this cycle: (1) an
+initial attempt widening to 96px with `maxLines: 1` +
+`TextOverflow.ellipsis` as a truncation guard, and (2) an amendment, after
+Tony explicitly said "do not truncate the labels," removing the
+truncation properties entirely and widening further to 108px. Read the
+current file state directly (not just the report's narrative): confirmed
+only the final state — `width: 108`, no `maxLines`, no `overflow` — is
+present in the working tree. The intermediate 96px/ellipsis attempt is not
+present anywhere in the diff or file; the amendment fully superseded it as
+described.
+
+## Behavior Verification
+
+Code-path analysis only (no runtime/on-device verification performed — see
+Manual Verification Punch List). Confirmed via direct file read
+([view_gig_drawer.dart](../../../../lib/features/gigs/widgets/view_gig_drawer.dart#L707-L715)):
+
+- `label` `Text` has no `maxLines` or `overflow` property — no truncation
+  logic remains anywhere in `_DetailRow` or the file, matching Tony's
+  explicit requirement.
+- Width justification is plausible: `AppTextStyles.callout` resolves to
+  16px, `FontWeight.w400`, `Geist` font family
+  ([design_tokens.dart](../../../../lib/app/theme/design_tokens.dart#L364-L370)).
+  For a regular-weight proportional sans-serif at 16px, typical average
+  glyph advance is ~0.55–0.6× font size (~8.8–9.6px/char); "Soundcheck"
+  (10 characters, the longest of the six row labels) has an estimated
+  natural width of ~88–96px. A 108px column leaves roughly a 12–20px
+  margin over that estimate, which is a reasonable safety margin given
+  font-metric estimation variance. This is a plausibility check from font
+  metrics, not a pixel-measured or on-device confirmation — Geist's actual
+  glyph widths were not measured directly, and text-scale/accessibility
+  settings were not exercised.
+- All six labels named in the bug report ("Load in", "Soundcheck",
+  "Setlist", "Gig pay", "Contacts", "Notes") are shorter than or equal to
+  "Soundcheck" in character count, so the 108px column is the binding
+  constraint for all of them, not just one row.
+
+## Regression Check
+
+**LOW.** The diff touches exactly one numeric literal in one private
+widget (`_DetailRow`), used only for its label column width. `_DetailRow`
+is a single, contained widget with no other callers affected — confirmed
+by the widget's containing file structure (definition and all render
+logic self-contained in `_DetailRow`, no external state, no
+provider/controller interaction). No auth/session, Supabase RPC, init
+order, platform-parity, disposal, or async-gap surface is touched by a
+static layout width change. The value column's `Expanded` behavior,
+divider, and chevron are unchanged, so no other visual regression is
+plausible from this diff.
+
+## Database Safety
+
+Not applicable — no migration or SQL touched in this cycle.
+
+## Analyzer Results
+
+Independently re-ran `flutter analyze lib/features/gigs/widgets/view_gig_drawer.dart`:
+**No issues found!** (matches Engineer's report).
+
+## Test Results
+
+No existing test covers `_DetailRow` or `ViewGigDrawer` (confirmed no
+`test/` reference to either name), so nothing to regress-check and
+`flutter test` was not required for this cycle per the plan's/mode's
+guidance — Engineer's report states the same and no coverage exists for
+the touched widget.
+
+## Diff Safety Review
+
+`git diff HEAD -- lib/features/gigs/widgets/view_gig_drawer.dart` searched
+for secrets, `TODO`/`FIXME`/`debugPrint(` — none found. No leftover test
+scaffolding, no accidental deletions, no unrelated formatting churn; the
+diff is exactly the one numeric literal change described above.
+
+## Change Budget Review
+
+`git diff --numstat` for `lib/features/gigs/widgets/view_gig_drawer.dart`:
+1 insertion, 1 deletion. No Change Budget section exists for this cycle
+(no plan amendment), but a single-line numeric-literal change is trivially
+within any reasonable budget — no new symbol, widget, method, provider, or
+dependency introduced. No pre-existing-helper search was needed since
+nothing new was created.
+
+## Code Efficiency Review
+
+Pure constant-value change on an existing private widget property — no
+new abstraction, no bloat. The Engineer report's note that no named
+label-width constant exists in `design_tokens.dart` and that the file
+already hardcoded the prior value (68) inline is confirmed consistent
+with the existing code's own convention; not introducing a new named
+constant for a single call site is a reasonable, non-blocking judgment
+call, not scope inflation.
+
+## Manual Verification Punch List
+
+The following requires a running app/device and is Tony's to execute —
+not attempted here per this mode's restrictions on live-app verification:
+
+1. Open the app and navigate to any gig's read-only View Gig details
+   drawer (a gig with a Soundcheck time set, so the "Soundcheck" row
+   renders).
+   **Expected:** All row labels — "Load in", "Soundcheck", "Setlist",
+   "Gig pay", "Contacts", "Notes" — render fully on a single line, with no
+   line-wrapping onto a second line and no visible truncation/ellipsis
+   (none exists in code, but confirm nothing else in the render pipeline,
+   e.g. platform-specific font substitution, reintroduces wrapping).
+2. If the device/simulator has an enlarged accessibility text-scale
+   setting available, repeat step 1 with text scale increased.
+   **Expected:** Labels still fit on one line, or if not, note how far off
+   108px is — this is the font-metric-estimation risk called out in
+   Behavior Verification above, not independently confirmed here.
+3. Confirm the value column (right of the label) still has adequate width
+   and does not appear visually cramped now that the label column is
+   wider.
+   **Expected:** Value text (e.g. gig date, venue, dollar amounts) still
+   renders normally with no unexpected wrapping caused by the narrower
+   `Expanded` space.
+
+## Issues Found
+
+None.
