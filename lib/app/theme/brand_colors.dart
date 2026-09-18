@@ -54,7 +54,7 @@ class BrandColors extends ThemeExtension<BrandColors> {
     borderStrong: Color(0xFF52525B),
     textPrimary: Color(0xFFFAFAFA),
     textSecondary: Color(0xFFA1A1AA),
-    textMuted: Color(0xFF71717A),
+    textMuted: Color(0xFFD4D4D8), // Zinc-300
     textDisabled: Color(0xFF52525B),
     primary: AppColors.primary,
     primaryDim: Color(0xFFFF2056),
