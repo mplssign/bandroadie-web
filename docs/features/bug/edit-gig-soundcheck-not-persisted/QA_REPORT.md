@@ -558,8 +558,8 @@ matching the Engineer's reported count and the Cycle 2 QA-APPROVED baseline.
 ## Diff Safety Review
 
 - `git diff HEAD -- lib/features/events/widgets/event_editor_drawer.dart
-  lib/features/gigs/widgets/view_gig_drawer.dart | grep -niE
-  "TODO|FIXME|debugPrint\(|api[_-]?key|secret|password|token\s*="` → **no
+lib/features/gigs/widgets/view_gig_drawer.dart | grep -niE
+"TODO|FIXME|debugPrint\(|api[_-]?key|secret|password|token\s*="` → **no
   matches.** No secrets, no debug artifacts, no leftover markers.
 - No leftover test scaffolding in the diff; the new test file is a
   permanent, plan-anticipated addition, not throwaway.
@@ -571,11 +571,11 @@ matching the Engineer's reported count and the Cycle 2 QA-APPROVED baseline.
 Actual `git diff HEAD --numstat` vs. the Cycle 3 amendment's Change Budget
 table:
 
-| File                                                        | Budgeted (net) | Actual (ins/del, net) | Verdict                                                                     |
-| ------------------------------------------------------------ | -------------- | ----------------------- | ---------------------------------------------------------------------------- |
-| `lib/features/events/widgets/event_editor_drawer.dart`      | +18 to +25     | +57/-3, net +54          | **~2.2–3x over budget** — see independent assessment below                  |
-| `lib/features/gigs/widgets/view_gig_drawer.dart`             | +5             | +6/-0, net +6            | within tolerance                                                            |
-| `test/features/events/widgets/event_editor_drawer_test.dart` | +40 to +55     | +51 (new file)           | within range, matches plan's explicit fallback allowance for a new file     |
+| File                                                         | Budgeted (net) | Actual (ins/del, net) | Verdict                                                                 |
+| ------------------------------------------------------------ | -------------- | --------------------- | ----------------------------------------------------------------------- |
+| `lib/features/events/widgets/event_editor_drawer.dart`       | +18 to +25     | +57/-3, net +54       | **~2.2–3x over budget** — see independent assessment below              |
+| `lib/features/gigs/widgets/view_gig_drawer.dart`             | +5             | +6/-0, net +6         | within tolerance                                                        |
+| `test/features/events/widgets/event_editor_drawer_test.dart` | +40 to +55     | +51 (new file)        | within range, matches plan's explicit fallback allowance for a new file |
 
 New-file count: 1 — matches the plan's explicit exception ("Engineer may
 create a single new test file" if the search-first check is documented,
@@ -941,13 +941,13 @@ re-verified from primary sources, not taken on the Engineer's narrative:
   [20260904120001_seed_demo_templates.sql](../../../../supabase/migrations/20260904120001_seed_demo_templates.sql#L505-L507)
   directly — the demo template gigs' `INSERT INTO public.gigs` column
   list is exactly `(id, band_id, name, date, start_time, end_time,
-  location, address, state, setlist_id, is_potential)`. `load_in_time` is
+location, address, state, setlist_id, is_potential)`. `load_in_time` is
   absent, confirmed by column position, not just by search. Independently
   grepped every `.sql` file under `supabase/migrations/` for
   `load_in_time` — the only writes are the original
   `085_add_load_in_time_to_gigs.sql` column-add and the three cited
   cloning migrations' verbatim `SELECT ... load_in_time`/`INSERT ...
-  v_gig.load_in_time` passthroughs; zero `UPDATE ... SET load_in_time`
+v_gig.load_in_time` passthroughs; zero `UPDATE ... SET load_in_time`
   statements anywhere. Read the full clone block in the latest-applied
   [20260912130000_demo_session_capacity_hardening.sql](../../../../supabase/migrations/20260912130000_demo_session_capacity_hardening.sql#L296-L331)
   — confirmed `v_gig.load_in_time` is read from the template row and
@@ -963,8 +963,7 @@ re-verified from primary sources, not taken on the Engineer's narrative:
 - **Arithmetic claim.** Independently hand-computed both new test cases
   against the actual `computeSoundcheckDefault` implementation in
   [event_editor_drawer.dart](../../../../lib/features/events/widgets/event_editor_drawer.dart#L134-L165),
-  not just re-run: for load-in 11:30 PM (23:30 in minutes-from-midnight =
-  1410) + 60 min offset, modulo 1440 = 30 → 12:30 AM — matches the test's
+  not just re-run: for load-in 11:30 PM (23:30 in minutes-from-midnight = 1410) + 60 min offset, modulo 1440 = 30 → 12:30 AM — matches the test's
   expected `(12, 30, false)` exactly. For `TimeFormatter.parse('20:00')`
   (read
   [time_formatter.dart](../../../../lib/app/utils/time_formatter.dart#L82-L95)
@@ -998,7 +997,7 @@ independently followed to a real conclusion, not left open:
    hand-calculation against the live function, refuted.
 3. Demo-session-reuse (real, previously-persisted load-in value)
    explanation — correctly flagged as the most-likely explanation but
-   *not* independently confirmable from this sandbox (no live-data access,
+   _not_ independently confirmable from this sandbox (no live-data access,
    consistent with this mode's own guardrails against querying
    production), and the report is honest about that limitation rather
    than overclaiming a confirmed root cause. No task requirement was
@@ -1114,7 +1113,7 @@ Manager to relay directly to Tony:
 3. If step 2 shows an unusual leftover load-in time, tap "Clear" on the
    Load-in Time row, then tap "Set Soundcheck Time" again.
    **Expected:** With load-in cleared, soundcheck should now default to
-   one hour *before* the gig's start time, in the correct AM/PM — if it
+   one hour _before_ the gig's start time, in the correct AM/PM — if it
    does, that confirms the original report was caused by old test data on
    that one demo gig, not a bug in the app.
 

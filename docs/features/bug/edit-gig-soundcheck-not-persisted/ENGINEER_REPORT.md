@@ -507,7 +507,7 @@ All 6 steps of the Cycle 3 "Engineer Task Breakdown" section:
    default from load-in (if set) + 60 minutes, or gig start − 60 minutes
    (if load-in unset), wrapped modulo 24×60 and converted back to 12-hour +
    PM boolean — replacing the hardcoded `_soundcheckHour = 6; _soundcheckMinutes
-   = 0; _soundcheckIsPM = false;`.
+= 0; _soundcheckIsPM = false;`.
 2. Confirmed by direct read that `onLoadInTimeSet` and the other four
    soundcheck callbacks (`onSoundcheckTimeCleared`, `onSoundcheckHourChanged`,
    `onSoundcheckMinutesChanged`, `onSoundcheckAmPmChanged`) are byte-for-byte
@@ -837,32 +837,32 @@ on that specific reused demo gig, detailed below.
 
 Read all three named migrations plus the original seed migration
 (`20260904120001_seed_demo_templates.sql`, the actual source of the demo
-template gigs' column values — the three named migrations only *clone* from
+template gigs' column values — the three named migrations only _clone_ from
 it, they don't set values themselves):
 
 - `20260904120001_seed_demo_templates.sql` L506-507: the `INSERT INTO
-  public.gigs` column list is `(id, band_id, name, date, start_time,
-  end_time, location, address, state, setlist_id, is_potential)` — **no
+public.gigs` column list is `(id, band_id, name, date, start_time,
+end_time, location, address, state, setlist_id, is_potential)` — **no
   `load_in_time` column at all**, so every seed gig's `load_in_time` is
   `NULL` by column default. It also never appears in a later `UPDATE
-  ... SET load_in_time` anywhere in `supabase/migrations/` (checked via
+... SET load_in_time` anywhere in `supabase/migrations/` (checked via
   regex search across the whole directory — zero matches).
 - `20260904120003_provision_demo_session_rpc.sql` L280-289,
   `20260912122827_demo_relative_date_offsets.sql` L359-368, and
   `20260912130000_demo_session_capacity_hardening.sql` L322-331 (the
   current, latest-applied version of `provision_demo_session()`) all clone
   gigs identically: `SELECT ... load_in_time ... FROM gigs WHERE band_id =
-  v_template.id` then `INSERT ... v_gig.load_in_time ...` — a **verbatim
+v_template.id` then `INSERT ... v_gig.load_in_time ...` — a **verbatim
   passthrough of a `NULL` value**, never a computed default.
 - Client-side, `lib/app/models/gig.dart` L102 (`loadInTime: json['load_in_time']
-  as String?`) and `lib/features/events/events_repository.dart` are the only
+as String?`) and `lib/features/events/events_repository.dart` are the only
   two places `load_in_time` is read/written in Dart — both are plain
   passthroughs, no computed fallback exists anywhere in `lib/`.
 
 **Conclusion: a freshly-provisioned demo gig's `load_in_time` is genuinely
 `NULL`,** not seeded. `computeSoundcheckDefault` would take its load-in-unset
 branch (`soundcheck = gig start − 1 hour`) for a fresh clone, which the next
-check confirms produces the *correct* PM result — not the reported bug.
+check confirms produces the _correct_ PM result — not the reported bug.
 
 ### Hypothesis 2 (bug in `computeSoundcheckDefault` / AM-PM arithmetic) — REFUTED by reproduction
 
@@ -890,7 +890,7 @@ is correct behavior**, not a bug, for a load-in value that is genuinely
 close to midnight — added as a permanent test case (see Files Modified).
 
 I also re-checked `onLoadInTimeSet` (the callback that computes load-in's
-*own* default when a user taps "Set Load-in Time"): `start − 120 minutes`,
+_own_ default when a user taps "Set Load-in Time"): `start − 120 minutes`,
 algebraically and via the same reproduction harness — correct in every
 demo-seed case (e.g. `8:00 PM` start → `6:00 PM` load-in). The task's own
 hinted failure mode ("if load-in itself is incorrectly parsed as start+1hour
@@ -905,7 +905,7 @@ instead of start-2hours") does **not** occur anywhere in this codebase —
 **idempotency check**: if a `demo_sessions` row already exists for the
 caller's anonymous `auth_user_id`, it returns the **existing** clone band
 IDs without re-cloning anything. This means a given anonymous device/user
-does **not** get a fresh demo clone on every visit — it's the *same*
+does **not** get a fresh demo clone on every visit — it's the _same_
 persistent clone band across every session on that device (as long as
 `purgePersistedAnonymousSession` in `lib/main.dart` hasn't reset the
 underlying auth user). Given Cycle 2's own manual punch list explicitly
@@ -927,7 +927,7 @@ explanation given what's checkable from source alone, but it is a data-state
 hypothesis, not a confirmed one.
 
 **Recommended diagnostic for Tony/QA before the next cycle:** on that exact
-gig, check what the **Load-in Time** row shows *before* tapping "Set
+gig, check what the **Load-in Time** row shows _before_ tapping "Set
 Soundcheck Time." If it already shows a real time (not "+ Set Load-in
 Time"), that confirms load-in is non-null and explains the soundcheck
 default deriving from it; note what value it shows — if it's implausible
@@ -983,7 +983,7 @@ tracked in `git status`.
 - Searched for an existing "near-midnight wrap" or "24h-format start time"
   test case before adding these — Cycle 3's existing 3 cases cover
   load-in-set (mid-day), load-in-unset (mid-day), and load-in-unset
-  midnight-wrap, but no case covers load-in-*set* wrapping into AM, nor a
+  midnight-wrap, but no case covers load-in-_set_ wrapping into AM, nor a
   bare-24h-text start time — confirmed these two new cases are genuinely
   new coverage, not duplicates.
 - No `TODO`/`FIXME`/`debugPrint` added. No file-size guardrail impact
