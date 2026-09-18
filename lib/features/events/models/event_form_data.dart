@@ -272,6 +272,11 @@ class EventFormData {
   final int? loadInMinutes; // 0, 15, 30, 45
   final bool? loadInIsPM;
 
+  // Soundcheck time fields (gigs only, optional)
+  final int? soundcheckHour; // 1-12
+  final int? soundcheckMinutes; // 0, 15, 30, 45
+  final bool? soundcheckIsPM;
+
   // Potential gig fields (gigs only)
   final bool isPotentialGig;
   final Set<String> selectedMemberIds; // User IDs of members to notify
@@ -333,6 +338,9 @@ class EventFormData {
     this.loadInHour,
     this.loadInMinutes,
     this.loadInIsPM,
+    this.soundcheckHour,
+    this.soundcheckMinutes,
+    this.soundcheckIsPM,
     this.isPotentialGig = false,
     this.selectedMemberIds = const {},
     this.additionalDates = const <AdditionalDateEntry>[],
@@ -385,6 +393,19 @@ class EventFormData {
     final minStr = loadInMinutes!.toString().padLeft(2, '0');
     final amPm = loadInIsPM! ? 'PM' : 'AM';
     return '$loadInHour:$minStr $amPm';
+  }
+
+  /// Convert soundcheck time to 12-hour display string (e.g., "6:00 PM")
+  /// Returns null if no soundcheck time is set
+  String? get soundcheckTimeDisplay {
+    if (soundcheckHour == null ||
+        soundcheckMinutes == null ||
+        soundcheckIsPM == null) {
+      return null;
+    }
+    final minStr = soundcheckMinutes!.toString().padLeft(2, '0');
+    final amPm = soundcheckIsPM! ? 'PM' : 'AM';
+    return '$soundcheckHour:$minStr $amPm';
   }
 
   /// Calculate end time based on duration
@@ -574,6 +595,17 @@ class EventFormData {
       loadInIsPM = loadInParsed.isPM;
     }
 
+    // Parse soundcheck time if present
+    int? soundcheckHour;
+    int? soundcheckMinutes;
+    bool? soundcheckIsPM;
+    if (gig.soundcheckTime != null) {
+      final soundcheckParsed = _parseTime(gig.soundcheckTime!);
+      soundcheckHour = soundcheckParsed.hour;
+      soundcheckMinutes = soundcheckParsed.minutes;
+      soundcheckIsPM = soundcheckParsed.isPM;
+    }
+
     return EventFormData(
       type: EventType.gig,
       date: gig.date,
@@ -587,6 +619,9 @@ class EventFormData {
       loadInHour: loadInHour,
       loadInMinutes: loadInMinutes,
       loadInIsPM: loadInIsPM,
+      soundcheckHour: soundcheckHour,
+      soundcheckMinutes: soundcheckMinutes,
+      soundcheckIsPM: soundcheckIsPM,
       isPotentialGig: gig.isPotential,
       selectedMemberIds: gig.requiredMemberIds,
       additionalDates: gig.additionalDates.map((d) {

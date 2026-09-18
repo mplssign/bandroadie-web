@@ -131,7 +131,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
   int? _loadInHour;
   int? _loadInMinutes;
   bool? _loadInIsPM;
-  // Soundcheck time state (UI-only, not persisted)
+  // Soundcheck time state (gigs only, optional)
   int? _soundcheckHour;
   int? _soundcheckMinutes;
   bool? _soundcheckIsPM;
@@ -278,6 +278,14 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _loadInHour = data.loadInHour;
         _loadInMinutes = data.loadInMinutes;
         _loadInIsPM = data.loadInIsPM;
+      }
+      // Populate soundcheck time if present
+      if (data.soundcheckHour != null &&
+          data.soundcheckMinutes != null &&
+          data.soundcheckIsPM != null) {
+        _soundcheckHour = data.soundcheckHour;
+        _soundcheckMinutes = data.soundcheckMinutes;
+        _soundcheckIsPM = data.soundcheckIsPM;
       }
       _rehearsalLocationText = data.location;
       _gigCityText = data.location; // For gigs, location field is city
@@ -1225,6 +1233,9 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       loadInHour: _loadInHour,
       loadInMinutes: _loadInMinutes,
       loadInIsPM: _loadInIsPM,
+      soundcheckHour: _soundcheckHour,
+      soundcheckMinutes: _soundcheckMinutes,
+      soundcheckIsPM: _soundcheckIsPM,
       isPotentialGig: _isPotentialGig,
       selectedMemberIds: _selectedMemberIds,
       additionalDates:
@@ -2591,6 +2602,38 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         _markDirty();
         HapticFeedback.selectionClick();
       },
+      soundcheckHour: _soundcheckHour,
+      soundcheckMinutes: _soundcheckMinutes,
+      soundcheckIsPM: _soundcheckIsPM,
+      onSoundcheckTimeSet: () {
+        setState(() {
+          _soundcheckHour = 6;
+          _soundcheckMinutes = 0;
+          _soundcheckIsPM = false;
+        });
+        _markDirty();
+      },
+      onSoundcheckTimeCleared: () {
+        setState(() {
+          _soundcheckHour = null;
+          _soundcheckMinutes = null;
+          _soundcheckIsPM = null;
+        });
+        _markDirty();
+      },
+      onSoundcheckHourChanged: (v) {
+        setState(() => _soundcheckHour = v);
+        _markDirty();
+      },
+      onSoundcheckMinutesChanged: (v) {
+        setState(() => _soundcheckMinutes = v);
+        _markDirty();
+      },
+      onSoundcheckAmPmChanged: (isPM) {
+        setState(() => _soundcheckIsPM = isPM);
+        _markDirty();
+        HapticFeedback.selectionClick();
+      },
       gigPayDetails: _gigPayDetails,
       onGigPayTap: _handleGigPayTap,
       showExpensesSection: canViewFinancials,
@@ -3045,42 +3088,7 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
         if (isGig) ...[
           gigFormFields!.buildLoadInTimeSelector(context),
           const SizedBox(height: 16),
-          const Text(
-            'Soundcheck',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFFE4E4E7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 150),
-            curve: const Cubic(0.4, 0, 0.2, 1),
-            child: _soundcheckHour == null
-                ? EventAddValueButton(
-                    label: 'Set soundcheck time',
-                    onPressed: () => setState(() {
-                      _soundcheckHour = 6;
-                      _soundcheckMinutes = 0;
-                      _soundcheckIsPM = false;
-                    }),
-                    isSaving: _isSaving,
-                  )
-                : Row(
-                    children: [
-                      Expanded(child: _buildSoundcheckTimePicker(context)),
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _soundcheckHour = null;
-                          _soundcheckMinutes = null;
-                          _soundcheckIsPM = null;
-                        }),
-                        child: const Text('Clear'),
-                      ),
-                    ],
-                  ),
-          ),
+          gigFormFields.buildSoundcheckRow(context),
         ],
       ],
     );
@@ -3167,61 +3175,6 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
               widget.onCancelled?.call();
               Navigator.of(context).pop();
             },
-    );
-  }
-
-  Widget _buildSoundcheckTimePicker(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: EventDropdown<int>(
-            value: _soundcheckHour!,
-            items: List.generate(12, (i) => i + 1),
-            onChanged: (v) {
-              if (v != null) setState(() => _soundcheckHour = v);
-            },
-            labelBuilder: (v) => v.toString(),
-            isSaving: _isSaving,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: EventDropdown<int>(
-            value: _soundcheckMinutes!,
-            items: const [0, 15, 30, 45],
-            onChanged: (v) {
-              if (v != null) setState(() => _soundcheckMinutes = v);
-            },
-            labelBuilder: (v) => ':${v.toString().padLeft(2, '0')}',
-            isSaving: _isSaving,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: context.colors.background,
-            borderRadius: BorderRadius.circular(Spacing.buttonRadius),
-          ),
-          padding: const EdgeInsets.all(4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AmPmToggleButton(
-                label: 'AM',
-                isSelected: !_soundcheckIsPM!,
-                isSaving: _isSaving,
-                onTap: () => setState(() => _soundcheckIsPM = false),
-              ),
-              AmPmToggleButton(
-                label: 'PM',
-                isSelected: _soundcheckIsPM!,
-                isSaving: _isSaving,
-                onTap: () => setState(() => _soundcheckIsPM = true),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
