@@ -36,11 +36,13 @@ import '../shell/overlay_state.dart';
 import 'widgets/confirmed_gig_card.dart';
 import 'widgets/empty_home_state.dart';
 import 'widgets/empty_section_card.dart';
+import 'widgets/gig_card_skeleton.dart';
 import 'widgets/home_app_bar.dart';
 import 'widgets/no_band_state.dart';
 import 'widgets/potential_gig_card.dart';
 import 'widgets/quick_actions_row.dart';
 import 'widgets/rehearsal_card.dart';
+import 'widgets/rehearsal_card_skeleton.dart';
 import 'widgets/section_header.dart';
 import 'package:bandroadie/app/theme/app_icons.dart';
 
@@ -631,7 +633,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
     } else if (gigState.isLoading || rehearsalState.isLoading || dataIsStale) {
       // Show loading if either is loading OR data is from a different band
       stateKey = 'loading-gigs';
-      stateWidget = _buildLoadingState('Setting up the stage...');
+      stateWidget = _buildLoadingSkeleton();
     } else if (!gigState.hasGigs && !hasRehearsal) {
       // Check empty BEFORE error — empty is not an error condition
       stateKey = 'empty';
@@ -748,6 +750,63 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingSkeleton() {
+    return ColoredBox(
+      color: context.colors.background,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: Spacing.appBarHeight + MediaQuery.of(context).padding.top,
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.pagePadding,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: Spacing.space24),
+                  const SectionHeader(
+                    title: 'Upcoming Rehearsals',
+                    topSpacing: Spacing.space24,
+                  ),
+                  const SizedBox(height: Spacing.space12),
+                  SizedBox(
+                    height: Spacing.rehearsalCardHeight,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 2,
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemBuilder: (_, __) => const RehearsalCardSkeleton(),
+                    ),
+                  ),
+                  const SectionHeader(
+                    title: 'Upcoming Gigs',
+                    topSpacing: Spacing.space24,
+                  ),
+                  const SizedBox(height: Spacing.space12),
+                  const GigCardSkeleton(),
+                  SizedBox(
+                    height: Spacing.space48 +
+                        Spacing.bottomNavHeight +
+                        MediaQuery.of(context).padding.bottom +
+                        32,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
