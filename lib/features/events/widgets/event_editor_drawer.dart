@@ -118,6 +118,52 @@ class EventEditorDrawer extends ConsumerStatefulWidget {
   ConsumerState<EventEditorDrawer> createState() => _EventEditorDrawerState();
 }
 
+/// Result of [computeSoundcheckDefault]: a 12-hour clock value + AM/PM flag.
+@visibleForTesting
+class SoundcheckDefault {
+  const SoundcheckDefault(this.hour, this.minutes, this.isPM);
+
+  final int hour;
+  final int minutes;
+  final bool isPM;
+}
+
+/// Defaults soundcheck to one hour after load-in when load-in is set, or one
+/// hour before the gig start time when load-in is unset.
+@visibleForTesting
+SoundcheckDefault computeSoundcheckDefault({
+  required int? loadInHour,
+  required int? loadInMinutes,
+  required bool? loadInIsPM,
+  required int selectedHour,
+  required int selectedMinutes,
+  required bool isPM,
+}) {
+  int baseTotalMinutes;
+  int offsetMinutes;
+  if (loadInHour != null && loadInMinutes != null && loadInIsPM != null) {
+    final loadIn24 = loadInIsPM && loadInHour != 12
+        ? loadInHour + 12
+        : (!loadInIsPM && loadInHour == 12 ? 0 : loadInHour);
+    baseTotalMinutes = loadIn24 * 60 + loadInMinutes;
+    offsetMinutes = 60;
+  } else {
+    final start24 = isPM && selectedHour != 12
+        ? selectedHour + 12
+        : (!isPM && selectedHour == 12 ? 0 : selectedHour);
+    baseTotalMinutes = start24 * 60 + selectedMinutes;
+    offsetMinutes = -60;
+  }
+  final soundcheckTotal =
+      (baseTotalMinutes + offsetMinutes + 24 * 60) % (24 * 60);
+  final soundcheck24 = soundcheckTotal ~/ 60;
+  final soundcheckMin = soundcheckTotal % 60;
+  final soundcheckPm = soundcheck24 >= 12;
+  int soundcheck12 = soundcheck24 % 12;
+  if (soundcheck12 == 0) soundcheck12 = 12;
+  return SoundcheckDefault(soundcheck12, soundcheckMin, soundcheckPm);
+}
+
 class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
     with SingleTickerProviderStateMixin {
   // Form state
@@ -2606,10 +2652,18 @@ class _EventEditorDrawerState extends ConsumerState<EventEditorDrawer>
       soundcheckMinutes: _soundcheckMinutes,
       soundcheckIsPM: _soundcheckIsPM,
       onSoundcheckTimeSet: () {
+        final result = computeSoundcheckDefault(
+          loadInHour: _loadInHour,
+          loadInMinutes: _loadInMinutes,
+          loadInIsPM: _loadInIsPM,
+          selectedHour: _selectedHour,
+          selectedMinutes: _selectedMinutes,
+          isPM: _isPM,
+        );
         setState(() {
-          _soundcheckHour = 6;
-          _soundcheckMinutes = 0;
-          _soundcheckIsPM = false;
+          _soundcheckHour = result.hour;
+          _soundcheckMinutes = result.minutes;
+          _soundcheckIsPM = result.isPM;
         });
         _markDirty();
       },

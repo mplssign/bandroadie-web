@@ -596,6 +596,12 @@ class _ViewGigDrawerState extends ConsumerState<ViewGigDrawer> {
                       value: gig.loadInTime!,
                     ),
 
+                  if (gig.soundcheckTime != null)
+                    _DetailRow(
+                      label: 'Soundcheck',
+                      value: gig.soundcheckTime!,
+                    ),
+
                   if (gig.setlistId != null)
                     _DetailRow(
                       label: 'Setlist',

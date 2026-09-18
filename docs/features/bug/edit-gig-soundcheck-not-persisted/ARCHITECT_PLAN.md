@@ -458,3 +458,419 @@ Single PR. Standard branch → PR → CI → merge → Supabase migration apply.
 - **Load-in-time behavior.** Not changed by this PR. QA punch-list step 11
   exists to confirm no unintended regression.
 - **Any RLS, auth, routing, init-order, or platform-conditional change.**
+
+---
+
+# Amendment — Cycle 3
+
+## Cycle Number
+
+3
+
+## Feature Input Summary
+
+Tony pre-merge-tested PR #322 (Cycles 1–2 merged locally into
+`bug/edit-gig-soundcheck-not-persisted`, QA-APPROVED but not yet merged to
+`main`) and requested two changes before he'll approve the merge, verbatim:
+
+1. _"when user taps the Soundcheck button, the default soundcheck time should
+   default to one hour after load-in time and load-in time should default to
+   2 hours before the start time of the gig. All times should default to PM
+   (not AM)"_
+2. _"Soundcheck time should be listed in View Gig details"_
+
+## Problem Summary — Cycle 3
+
+Two independent issues carried forward from Tony's pre-merge test:
+
+- **Issue A** (`onSoundcheckTimeSet` in `event_editor_drawer.dart` L2607–L2613)
+  hardcodes `_soundcheckHour = 6; _soundcheckMinutes = 0; _soundcheckIsPM = false`.
+  The `_soundcheckIsPM = false` value renders as **AM**, not PM, contradicting
+  both Tony's stated intent and Cycle 2's `ENGINEER_REPORT.md` claim that this
+  callback "seeds 6:00 PM." Beyond the AM/PM polarity bug, Tony's stated
+  behavior is that the default should be _derived from load-in time + 1 hour_,
+  not a hardcoded clock time.
+- **Issue B** (`view_gig_drawer.dart` L593–L597) renders a `_DetailRow(label:
+'Load in', value: gig.loadInTime!)` when `gig.loadInTime != null`, but has
+  no analogous row for `gig.soundcheckTime` — Cycles 1–2 correctly persisted
+  soundcheck end-to-end, and `Gig.soundcheckTime` now exists on the model
+  (verified: `lib/app/models/gig.dart` L30, L76, L103, L130), but the
+  read-only view drawer never surfaces it. This file was listed in the
+  original plan's "Files Off-Limits" and "Out of Scope"; Tony has now
+  explicitly requested it be brought into scope, so it moves out of both.
+
+The load-in default (Issue A's second clause — "load-in time should default to
+2 hours before the start time of the gig") is **already correctly implemented**
+and requires no change. This was independently verified in code, not just
+trusted from the Manager's note:
+
+- `event_editor_drawer.dart` L2566–L2582 (`onLoadInTimeSet`): converts current
+  gig start (`_selectedHour`, `_selectedMinutes`, `_isPM`) to 24-hour minute
+  arithmetic (`start24 * 60 + _selectedMinutes`), subtracts 120 minutes,
+  wraps modulo 24×60, and converts back to 12-hour + PM boolean. This is
+  byte-for-byte "2 hours before gig start," with the AM/PM boolean derived
+  from the arithmetic (not hardcoded) — so it correctly produces PM for any
+  realistic evening gig start.
+
+## Root Cause — Cycle 3
+
+Confidence: **HIGH** (every claim below verified in code — see line references).
+
+**Issue A — soundcheck default.** Three code sites cooperate:
+
+- `event_editor_drawer.dart` L2607–L2613 sets `_soundcheckIsPM = false`.
+- `gig_form_fields.dart` L689–L702 renders the AM/PM toggle: `AmPmToggleButton(label: 'AM', isSelected: !soundcheckIsPM!, ..., onTap: () => onSoundcheckAmPmChanged?.call(false))` and its PM sibling `isSelected: soundcheckIsPM!, ..., onTap: () => onSoundcheckAmPmChanged?.call(true)`.
+- Load-in's toggle (`gig_form_fields.dart` L1279–L1292) uses the identical
+  polarity, and load-in's `onLoadInTimeSet` (drawer L2566–L2582) correctly
+  derives its PM boolean from arithmetic on the current gig start.
+
+Polarity across both selectors: `true` = PM (PM button selected), `false` =
+AM (AM button selected). The current hardcoded `_soundcheckIsPM = false`
+therefore visibly defaults to AM, matching Tony's complaint exactly. Cycle
+2's `ENGINEER_REPORT.md` root-cause analysis mis-stated this as "seeds
+6:00 PM," which is why the bug survived Cycle 2's review. The fix is a
+combined feature change + polarity fix: replace the three hardcoded
+assignments with arithmetic that mirrors load-in's — take load-in's current
+value (when set) or the load-in default's implied value (gig-start − 2h)
+otherwise, then add 60 minutes.
+
+**Issue B — view drawer.** `view_gig_drawer.dart` L593–L597 renders `_DetailRow(label: 'Load in', value: gig.loadInTime!)` inside a null-guard. `gig.soundcheckTime` (identical shape: `String?`, already on the model) has no matching row. `_DetailRow` (defined L681 in the same file) accepts `label` (String) + `value` (String) + optional `subtitle` / `showChevron` / `onTap`; a mirror of the load-in row is a direct four-line addition.
+
+## Proposed Solution — Cycle 3
+
+Three narrow, direct changes:
+
+1. **Rewrite `onSoundcheckTimeSet` in `event_editor_drawer.dart` (L2607–L2613).**
+   Replace the three hardcoded assignments with 24-hour minute arithmetic
+   mirroring `onLoadInTimeSet`'s pattern (immediately above it at L2566–L2582):
+   - **When load-in is set** (all three of `_loadInHour`, `_loadInMinutes`,
+     `_loadInIsPM` are non-null): compute soundcheck as `loadInTotal + 60`
+     minutes, wrapped modulo 24×60, converted back to 12-hour + PM boolean.
+     This literally implements Tony's "one hour after load-in time" wording.
+   - **When load-in is unset** (any of the three is null — the tap-Soundcheck-
+     without-setting-load-in-first case): compute soundcheck as `startTotal − 60`
+     minutes (i.e., 1 hour before gig start). Rationale: this is the
+     arithmetically-equivalent result of applying the load-in default (start −
+     120) + 60 without actually modifying load-in state — the "one hour after
+     load-in default" answer without the side-effect of auto-populating
+     load-in. Recorded as an intentional judgment call per the Manager's
+     framing that this fallback needs a reasonable default. Alternative
+     considered: auto-populate load-in first and then soundcheck = load-in + 60;
+     rejected because it would silently modify a different field the user
+     didn't touch. Alternative considered: keep the pre-existing hardcoded
+     value corrected to 6:00 PM; rejected because it makes soundcheck the
+     only time field in the editor whose default ignores the actual gig start
+     time.
+   - AM/PM boolean is derived from the arithmetic in both branches, so Tony's
+     "All times should default to PM (not AM)" is satisfied for any realistic
+     evening gig start — a 7:00 PM gig produces `_soundcheckIsPM = true` in
+     both branches (load-in-set case: 5:00 PM + 60 = 6:00 PM; load-in-unset
+     case: 7:00 PM − 60 = 6:00 PM). This is the same guarantee load-in
+     currently provides, and the "default to PM" phrasing is honored by
+     matching load-in's arithmetic pattern rather than by force-overriding
+     the boolean.
+2. **Do not modify `onLoadInTimeSet` at L2566–L2582.** Independently verified
+   as already correct; confirming per the Feature Input's "verify this is
+   actually correct and unchanged behavior, not something to re-implement."
+3. **Add soundcheck detail row in `view_gig_drawer.dart` immediately after the
+   existing load-in row (L594–L598).** Mirror the load-in row's shape line-
+   for-line:
+   ```dart
+   if (gig.soundcheckTime != null)
+     _DetailRow(
+       label: 'Soundcheck',
+       value: gig.soundcheckTime!,
+     ),
+   ```
+   Placed immediately after the closing `),` of the load-in row's
+   `_DetailRow`, before the setlist row. `_DetailRow` is defined in the same
+   file (L681) and already handles single-value display with a fixed label
+   column width; no new widget needed.
+
+No new provider, controller, repository, model field, migration, or
+dependency. No new file. No `copyWith` change. Load-in's on-set arithmetic
+and view-drawer load-in rendering both remain untouched.
+
+## Database Impact — Cycle 3
+
+n/a — no schema, RLS, RPC, trigger, or grant change; `Gig.soundcheckTime`
+column already exists (added by Cycle 1's `20260918120000_...sql` migration).
+
+## Flutter Architecture Changes — Cycle 3
+
+n/a — no new provider/notifier/controller/repository/pattern.
+
+## Files to Create — Cycle 3
+
+None.
+
+## Files to Modify — Cycle 3
+
+Supersedes the original plan's Files-to-Modify list for this cycle only
+(cycles 1–2 changes are already merged into the branch and unchanged by
+Cycle 3).
+
+1. **`lib/features/events/widgets/event_editor_drawer.dart`** — rewrite
+   `onSoundcheckTimeSet` at L2607–L2613 (see Proposed Solution §1). No other
+   change in this file. Every one of the four other soundcheck callbacks
+   (`onSoundcheckTimeCleared`, `onSoundcheckHourChanged`, `onSoundcheckMinutesChanged`,
+   `onSoundcheckAmPmChanged`) is already correct — do not touch.
+2. **`lib/features/gigs/widgets/view_gig_drawer.dart`** — insert soundcheck
+   `_DetailRow` immediately after the existing load-in `_DetailRow` at
+   L594–L598 (see Proposed Solution §3). No other change in this file.
+
+**Scope change from original plan:** `view_gig_drawer.dart` moves _out of_ the
+original plan's Files Off-Limits list (where it was listed with the rationale
+"Adding a soundcheck display row is a separate feature") and _into_ Cycle
+3's Files to Modify list, per Tony's explicit Feature Input request 2. This
+is a Manager-approved scope change, not an unapproved deviation.
+
+## Files Off-Limits — Cycle 3
+
+Same as the original plan, with one removal:
+
+- ~~`lib/features/gigs/widgets/view_gig_drawer.dart`~~ — **moved into Files
+  to Modify** per Tony's request; see above.
+- `supabase/functions/calendar-feed/index.ts` — still off-limits (Tony's
+  requests do not mention ICS/calendar output).
+- Demo-session RPC migrations — still off-limits (Tony's requests do not
+  mention demo data).
+- All auth / routing / init-order / RLS / RPC / trigger / config files —
+  still off-limits.
+- Every other file touched in Cycles 1–2 (`gig.dart`, `event_form_data.dart`,
+  `events_repository.dart`, `gig_form_fields.dart`, the migration, and the two
+  test files) — off-limits this cycle. Cycles 1–2 correctly wired the
+  end-to-end persistence path and the QA-approved overflow fix; Cycle 3 has
+  no reason to touch any of them.
+
+## Change Budget — Cycle 3
+
+Applies to the Cycle 3 diff only, on top of the Cycles 1–2 diff already on
+the branch. QA measures actual Cycle 3 delta against these numbers.
+
+| File                                                   | Expected net line delta (Cycle 3 only)                                                                                                                                                                                                                        |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/features/events/widgets/event_editor_drawer.dart` | +18 to +25 (replaces 6 lines of hardcoded assignments with ~24–30 lines of arithmetic; two branches, structurally identical to the `onLoadInTimeSet` block immediately above it at L2566–L2582)                                                                |
+| `lib/features/gigs/widgets/view_gig_drawer.dart`       | +5 (one 4-line `_DetailRow` block plus the `if (gig.soundcheckTime != null)` guard, spaced identically to the load-in block above it)                                                                                                                          |
+| `test/features/events/widgets/gig_form_fields_test.dart` (or the nearest existing thematically-owning test file if that one turns out not to fit) | +40 to +55 (adds a small `event_editor_drawer` / soundcheck-default suite — three cases: load-in-set → soundcheck = load-in+60; load-in-unset → soundcheck = start-60; AM/PM correctness for a 7:00 PM start; see Verification Plan Tier 1) |
+| **Total Cycle 3 across repo**                          | **+63 to +85**                                                                                                                                                                                                                                                |
+
+- **Expected new files (Cycle 3):** 0. Reuse existing test files.
+- **Expected new public classes / methods (Cycle 3):** 0.
+- **Expected new dependencies (Cycle 3):** 0.
+- **Expected new tests (Cycle 3):** 3, all in one existing test file.
+
+If Engineer determines no existing test file thematically owns the soundcheck-
+default arithmetic (e.g., because it's controller-state logic inside the
+drawer widget rather than pure model logic), Engineer may create a single
+new test file — but only after the same search-first check documented in
+Cycle 1's `ENGINEER_REPORT` for `event_form_data_test.dart`, and only in
+`test/features/events/widgets/` mirroring the drawer's location. That would
+raise `Expected new files (Cycle 3)` to 1.
+
+## System Impact Map — Cycle 3
+
+- **Gigs — AFFECTED.** Editor default computation changes; read-only view
+  gains a new display row.
+- **Rehearsals / Setlists / Members / Auth / Routing / Notifications —
+  unaffected.**
+- **Platforms — unaffected.** Pure Dart / widget-tree changes; no platform-
+  conditional code, no `--dart-define`, no init-order, no iOS/macOS/Android/
+  web divergence.
+- **Init order — unaffected.**
+- **RLS / RPCs / triggers / migrations — unaffected.** No SQL touched.
+
+## Regression Risk — Cycle 3
+
+**LOW.**
+
+- No auth, session, routing, init-order, RLS, RPC, trigger, migration,
+  platform-conditional, or dependency change.
+- `onSoundcheckTimeSet` is called only when the user explicitly taps the
+  "Set soundcheck time" button in an unset state (verified: only referenced
+  at drawer L2609 and passed through `gig_form_fields.dart` L624 to the
+  `EventAddValueButton.onPressed` in the unset-state branch). It is not
+  invoked on drawer open, on edit-mode populate, on save, or on any other
+  path. So a defect here can, at worst, produce a wrong default value that
+  the user can immediately correct with the dropdowns and AM/PM toggle
+  before saving — it cannot corrupt persisted data, break save, or break
+  any adjacent field.
+- Load-in's on-set callback and view-drawer load-in row are byte-for-byte
+  untouched by this cycle.
+- The `view_gig_drawer.dart` addition is a null-guarded conditional row
+  inside an existing `Column`; a defect there can, at worst, fail to render
+  a value that was previously not rendered at all — no regression against
+  pre-Cycle-3 behavior possible.
+
+## Engineer Task Breakdown — Cycle 3
+
+Atomic and ordered. Each step is small enough to review independently.
+
+1. **Rewrite `onSoundcheckTimeSet` in `event_editor_drawer.dart` L2607–L2613.**
+   The new callback must:
+   - Compute an integer `baseTotalMinutes` and `offsetMinutes`:
+     - If all three of `_loadInHour`, `_loadInMinutes`, `_loadInIsPM` are
+       non-null: convert load-in to 24-hour minutes using the same pattern
+       as `onLoadInTimeSet`'s inverse (i.e., `loadIn24 = _loadInIsPM! && _loadInHour != 12 ? _loadInHour! + 12 : (!_loadInIsPM! && _loadInHour == 12 ? 0 : _loadInHour!);` then `baseTotalMinutes = loadIn24 * 60 + _loadInMinutes!;` and `offsetMinutes = 60;`).
+     - Else: convert gig start to 24-hour minutes using the exact same
+       three lines already present in `onLoadInTimeSet` (`start24 = _isPM && _selectedHour != 12 ? _selectedHour + 12 : (!_isPM && _selectedHour == 12 ? 0 : _selectedHour);` then `baseTotalMinutes = start24 * 60 + _selectedMinutes;` and `offsetMinutes = -60;`).
+   - Compute `soundcheckTotal = (baseTotalMinutes + offsetMinutes + 24 * 60) % (24 * 60);`.
+   - Convert back: `soundcheck24 = soundcheckTotal ~/ 60;` `soundcheckMin = soundcheckTotal % 60;` `soundcheckPm = soundcheck24 >= 12;` `int soundcheck12 = soundcheck24 % 12; if (soundcheck12 == 0) soundcheck12 = 12;` — the same reverse-conversion `onLoadInTimeSet` uses.
+   - `setState(() { _soundcheckHour = soundcheck12; _soundcheckMinutes = soundcheckMin; _soundcheckIsPM = soundcheckPm; }); _markDirty();`.
+   - Do not add `HapticFeedback` here — `onLoadInTimeSet` doesn't, and consistency wins.
+   - No new imports (all types and helpers used are already in scope).
+2. **Do not touch `onLoadInTimeSet`, `onSoundcheckTimeCleared`,
+   `onSoundcheckHourChanged`, `onSoundcheckMinutesChanged`, or
+   `onSoundcheckAmPmChanged`.** Verify by direct read that they are unchanged
+   in the final Cycle 3 diff.
+3. **Add soundcheck `_DetailRow` in `view_gig_drawer.dart` immediately after
+   the existing load-in row (L594–L598).** Insert four lines:
+   ```dart
+   if (gig.soundcheckTime != null)
+     _DetailRow(
+       label: 'Soundcheck',
+       value: gig.soundcheckTime!,
+     ),
+   ```
+   between the closing `),` of the load-in row and the blank line before the
+   setlist row. Preserve identical indentation (whatever the load-in row uses).
+   Do not modify any other row.
+4. **Add 3 unit-test cases.** Cover the pure arithmetic Cycle 3 introduces —
+   Engineer picks the smallest existing test file that thematically owns
+   drawer-callback state math; if none fits (Engineer must document the same
+   search-first check Cycle 1 documented for `event_form_data_test.dart`),
+   create exactly one new file under `test/features/events/widgets/`. Cases:
+   - **Case 4a:** With `_loadInHour = 5, _loadInMinutes = 30, _loadInIsPM = true`
+     (i.e., load-in = 5:30 PM), tapping soundcheck-set produces `_soundcheckHour = 6, _soundcheckMinutes = 30, _soundcheckIsPM = true` (6:30 PM).
+   - **Case 4b:** With load-in unset (`_loadInHour = null`, etc.) and gig
+     start `_selectedHour = 7, _selectedMinutes = 0, _isPM = true` (7:00 PM),
+     tapping soundcheck-set produces `_soundcheckHour = 6, _soundcheckMinutes = 0, _soundcheckIsPM = true` (6:00 PM — one hour before start).
+   - **Case 4c:** With load-in unset and gig start 12:00 AM (`_isPM = false, _selectedHour = 12, _selectedMinutes = 0`), tapping soundcheck-set produces `_soundcheckHour = 11, _soundcheckMinutes = 0, _soundcheckIsPM = true` (11:00 PM previous day, arithmetic wrap correctness).
+5. **Run `flutter analyze` on both modified files + the test file.** No new
+   warnings or errors introduced. If the drawer is a `StatefulWidget` whose
+   private state fields prevent direct unit-testing of `onSoundcheckTimeSet`,
+   Engineer refactors the arithmetic into a small pure top-level `@visibleForTesting` function inside `event_editor_drawer.dart` (no new file) and tests _that_ function directly; the drawer's callback then calls this function. Do not introduce this indirection unless the direct-test path is genuinely blocked — Cycle 1 tested drawer state without such a helper and the pattern should be reused if possible.
+6. **Run `flutter test`** including the three new cases plus the full Cycles
+   1–2 test set. All must pass.
+
+## Verification Plan — Cycle 3
+
+### Tier 1 — Pre-Deploy (QA gate; mechanically executable without a running app)
+
+QA runs these and blocks merge on any failure.
+
+1. `flutter analyze` reports no new warnings or errors introduced by the
+   Cycle 3 diff (measured against the Cycle 2 QA-APPROVED state, not against
+   `main`).
+2. `flutter test` passes, including the three new cases from Engineer step
+   4 and the full Cycles 1–2 test set (13 pre-existing cases per the Cycle 2
+   `QA_REPORT.md`, so 16 total after Cycle 3).
+3. **New unit test — soundcheck default, load-in set (Case 4a).** Verifies
+   the load-in-plus-60-minutes branch produces the expected 12-hour + PM
+   values. Never invokes any DB code.
+4. **New unit test — soundcheck default, load-in unset (Case 4b).** Verifies
+   the start-minus-60-minutes fallback branch produces the expected 12-hour +
+   PM values. Never invokes any DB code.
+5. **New unit test — arithmetic wrap correctness (Case 4c).** Verifies the
+   `+ 24 * 60) % (24 * 60)` wrap protects against negative minutes in the
+   fallback branch when gig start is at midnight. Never invokes any DB code.
+6. **Static diff review — read the actual `onSoundcheckTimeSet` block and
+   confirm:**
+   - No hardcoded `_soundcheckIsPM = false` or `_soundcheckIsPM = true`
+     assignment survives (both must be arithmetic-derived).
+   - The arithmetic pattern (`start24 = _isPM && _selectedHour != 12 ? ... : (!_isPM && _selectedHour == 12 ? 0 : ...)`) is byte-for-byte identical to `onLoadInTimeSet`'s pattern where reused; a divergence is a Warning.
+   - No other soundcheck or load-in callback in the drawer was touched.
+7. **Static diff review — `view_gig_drawer.dart`.** Confirm exactly one
+   `_DetailRow` addition (the soundcheck row), placed immediately after the
+   load-in row, using the existing `_DetailRow` widget (no new widget class),
+   with `label: 'Soundcheck'` and `value: gig.soundcheckTime!`.
+8. **Diff size check against Change Budget.** Cycle 3 net line delta per
+   file within ±20% of the Change Budget table above; new-file count 0 (or
+   1 if the documented test-file-search exception fires); new-public-class /
+   new-dependency counts exactly 0.
+9. **Ephemeral-DB apply-check — n/a this cycle.** No SQL / migration change.
+
+### Tier 2 — Owner-Run PR-Test Punch List (Tony runs; QA hands this to Tony verbatim)
+
+QA cannot launch the app in this pipeline, so these UI-behavior checks are
+not QA gates. Each step is precise; each has an explicit expected result;
+every step is required.
+
+1. In the current active band, tap an existing confirmed evening gig
+   (e.g., a 7:00 PM start), then tap Edit in the drawer. In the editor,
+   tap "Set load-in time" (do this first, so load-in is set before you set
+   soundcheck). **Expected:** Load-in row expands showing `5 : 00 PM`
+   (7:00 PM − 2h). This is Cycle 3 confirming pre-existing behavior — if
+   this is anything other than `5 : 00 PM`, stop and report; Cycle 3
+   introduced a regression to load-in that this plan explicitly forbids.
+2. In the same editor state, tap "Set soundcheck time". **Expected:**
+   Soundcheck row expands showing `6 : 00 PM` (5:00 PM + 1h), and the
+   `PM` toggle button is visibly selected (highlighted), not the `AM`
+   toggle. Update button becomes enabled.
+3. Tap Clear on the soundcheck row, then tap "Set soundcheck time" again
+   with a different load-in value first (change load-in dropdown to
+   `6 : 30 PM`, then tap Clear on soundcheck, then tap Set soundcheck).
+   **Expected:** Soundcheck row shows `7 : 30 PM` (6:30 PM + 1h). PM
+   toggle selected.
+4. Tap Clear on soundcheck, then tap Clear on load-in (so load-in is
+   unset), then tap "Set soundcheck time". **Expected:** Soundcheck row
+   shows `6 : 00 PM` (7:00 PM − 1h fallback), PM toggle selected. This
+   confirms the load-in-unset fallback branch.
+5. Tap Update. Wait for save. Reopen the same gig, tap Edit. **Expected:**
+   Soundcheck row shows `6 : 00 PM` (the value saved in step 4).
+6. Close the editor. Re-open the same gig — the read-only **View Gig**
+   drawer, not the editor. **Expected:** A new `Soundcheck` row appears
+   in the details list, showing `6:00 PM`, positioned immediately below
+   the `Load in` row if load-in is also set, or in the same relative
+   position if load-in is not set. Row uses the same label + value
+   styling as the `Load in` row above it.
+7. Clear the soundcheck value on the same gig (via Edit → Clear soundcheck →
+   Update), then reopen the read-only View drawer. **Expected:** The
+   `Soundcheck` row is not rendered (null-guarded, mirroring load-in's
+   null-guard behavior).
+8. Repeat steps 1–7 on the second target platform (iOS if step 1 was
+   Android, or vice versa). **Expected:** Identical behavior on both
+   platforms.
+9. **Regression check — Cycles 1–2 Punch List still passes.** Re-run
+   the Cycles 1–2 Tier-2 Punch List (dirty-flag on soundcheck interactions,
+   save/reopen round-trip, load-in unchanged). None of those behaviors
+   should have changed.
+
+## QA Regression Areas — Cycle 3
+
+- `flutter analyze` on all modified + created files (2 lib + 1 test) — zero
+  new warnings.
+- Existing test suite (Cycles 1–2 + the three new Cycle 3 cases) — all
+  passing.
+- No RLS / RPC / trigger / migration change — no ephemeral-DB apply-check
+  needed this cycle.
+- `view_gig_drawer.dart` diff limited to the single new `_DetailRow` block
+  — QA reads the full file diff and confirms no other change (e.g., no
+  reordering of adjacent rows, no styling drift on the load-in row, no
+  new import).
+- `event_editor_drawer.dart` diff limited to the single `onSoundcheckTimeSet`
+  block — QA reads the full file diff and confirms no other change (e.g., no
+  edit to the surrounding four soundcheck callbacks, no edit to `onLoadInTimeSet`,
+  no edit to `_buildFormData`, no edit to the schedule section).
+
+## Rollout Strategy — Cycle 3
+
+Single continuation on the existing PR #322 branch. Standard branch → CI →
+Tony re-tests punch list → merge. No new migration to apply, no feature flag,
+no user data migration, no rollback complication (the change is a pure Dart
+behavior tweak on top of an already-approved end-to-end persistence path).
+
+## Out of Scope — Cycle 3
+
+- **Calendar feed ICS export.** Still not part of this bug fix.
+- **Demo-session RPCs.** Still not part of this bug fix.
+- **`EventFormData.copyWith` soundcheck / load-in support.** Still deferred.
+- **Load-in default behavior.** Verified already correct; not modified this
+  cycle. Cycle 3 Tier 2 step 1 explicitly guards against accidental regression.
+- **Any change to the AM/PM toggle button widget itself.** The current
+  polarity (`isSelected: !isPM!` for AM, `isSelected: isPM!` for PM) is used
+  by both selectors and remains correct. Only the callback's initial-state
+  computation changes.
+- **Any auth / routing / init-order / RLS / RPC / trigger / platform /
+  dependency change.**
+

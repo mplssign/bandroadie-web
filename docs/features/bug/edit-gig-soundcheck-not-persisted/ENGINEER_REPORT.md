@@ -473,3 +473,185 @@ code bug and the confirmed likely root cause (migration not applied to
 Tony's test DB) is a manual step, called out clearly above. Flagging the one
 scope deviation (`gig_form_fields.dart`) for Architect/Manager to explicitly
 bless or ask to be reverted.
+
+---
+
+# CYCLE 3
+
+## Feature Slug
+
+`bug/edit-gig-soundcheck-not-persisted`
+
+## Feature Title
+
+Soundcheck time in gig editor never marks form dirty and isn't persisted
+
+## Cycle Number
+
+3
+
+## Goal
+
+Implement the Cycle 3 amendment only: fix `onSoundcheckTimeSet`'s hardcoded
+AM default (should default to load-in + 1 hour, or gig-start − 1 hour when
+load-in is unset, always PM for a realistic evening gig) and add a
+read-only "Soundcheck" row to the View Gig drawer. Load-in's default
+behavior was independently re-verified as already correct and left
+untouched, per the plan.
+
+## Architect Tasks Completed
+
+All 6 steps of the Cycle 3 "Engineer Task Breakdown" section:
+
+1. Rewrote `onSoundcheckTimeSet` in `event_editor_drawer.dart` to compute the
+   default from load-in (if set) + 60 minutes, or gig start − 60 minutes
+   (if load-in unset), wrapped modulo 24×60 and converted back to 12-hour +
+   PM boolean — replacing the hardcoded `_soundcheckHour = 6; _soundcheckMinutes
+   = 0; _soundcheckIsPM = false;`.
+2. Confirmed by direct read that `onLoadInTimeSet` and the other four
+   soundcheck callbacks (`onSoundcheckTimeCleared`, `onSoundcheckHourChanged`,
+   `onSoundcheckMinutesChanged`, `onSoundcheckAmPmChanged`) are byte-for-byte
+   unchanged in the final diff (confirmed via `git diff` — see below).
+3. Added a `_DetailRow(label: 'Soundcheck', value: gig.soundcheckTime!)`
+   guarded by `if (gig.soundcheckTime != null)` immediately after the
+   existing load-in row in `view_gig_drawer.dart`.
+4. Added 3 unit-test cases covering the pure arithmetic (Case 4a load-in-set,
+   4b load-in-unset, 4c midnight-wrap).
+5. Ran `flutter analyze` on both modified files + the new test file — clean.
+6. Ran `flutter test` including the 3 new cases plus the full Cycles 1–2
+   test set — all 16 passing.
+
+## Deviation on Task 4 (test-file placement)
+
+Per step 4's instruction to search for an existing thematically-owning test
+file before creating a new one: searched `test/` for any file that already
+tests `event_editor_drawer.dart`'s internal callback logic. None exists —
+`gig_form_fields_test.dart` only pumps the stateless `GigFormFields` widget
+with test-supplied callbacks/state (it doesn't own the drawer's own
+`_loadInHour`/`_selectedHour` arithmetic), and `event_form_data_test.dart`
+tests the `EventFormData` model, not drawer callback math. No file
+thematically owns drawer-callback state arithmetic, so — as the plan
+explicitly permits — created exactly one new file:
+`test/features/events/widgets/event_editor_drawer_test.dart` (51 lines).
+
+Per step 5's fallback: `onSoundcheckTimeSet` lives inside
+`_EventEditorDrawerState`, a private `ConsumerState` with private fields
+(`_loadInHour`, `_selectedHour`, etc.) and heavy Supabase/Riverpod
+dependencies wired through the whole drawer — the direct-test path is
+genuinely blocked (Cycle 2's `ENGINEER_REPORT.md` independently confirms
+this: it used a throwaway, uncommitted widget-pump test for reproduction and
+explicitly deleted it rather than keep it, because pumping the full drawer
+is impractical to commit as a maintained test). Per the plan's explicit
+permission, extracted the pure arithmetic into a top-level
+`@visibleForTesting SoundcheckDefault computeSoundcheckDefault(...)` function
+in `event_editor_drawer.dart` (no new file for the source change — the
+function lives in the same file, only the test is a new file), and the
+`onSoundcheckTimeSet` callback now calls it. The three new unit tests call
+`computeSoundcheckDefault` directly with no widget pump and no Supabase
+dependency.
+
+## Files Created
+
+- `test/features/events/widgets/event_editor_drawer_test.dart` (51 lines) —
+  3 unit tests for `computeSoundcheckDefault` (load-in-set, load-in-unset,
+  midnight-wrap). This raises "Expected new files (Cycle 3)" from 0 to 1, as
+  the plan anticipated for this exact scenario.
+
+## Files Modified
+
+- `lib/features/events/widgets/event_editor_drawer.dart` — added the
+  top-level `SoundcheckDefault` class + `computeSoundcheckDefault` function
+  (~45 lines), and rewrote `onSoundcheckTimeSet` to call it (net +57/-3
+  lines). No other line touched — confirmed via `git diff`.
+- `lib/features/gigs/widgets/view_gig_drawer.dart` — added the soundcheck
+  `_DetailRow` (net +6 lines). No other line touched — confirmed via
+  `git diff`.
+
+## Analyzer Results
+
+`flutter analyze lib/features/events/widgets/event_editor_drawer.dart
+lib/features/gigs/widgets/view_gig_drawer.dart
+test/features/events/widgets/event_editor_drawer_test.dart`: **No issues
+found.**
+
+`dart fix --dry-run` reviewed: no suggestions for any of the three touched
+files.
+
+## Test Results
+
+`flutter test test/app/models/gig_test.dart
+test/features/events/models/event_form_data_test.dart
+test/features/events/widgets/gig_form_fields_test.dart
+test/features/events/widgets/event_editor_drawer_test.dart`: **16/16
+passed** (13 pre-existing from Cycles 1–2 + 3 new Cycle 3 cases), matching
+the Cycle 2 `QA_REPORT.md`'s stated pre-existing count.
+
+## Code Efficiency/Bloat Check
+
+- No `_buildX()` method or private widget introduced once. The
+  `SoundcheckDefault` class + `computeSoundcheckDefault` function are used
+  from exactly one call site (`onSoundcheckTimeSet`) plus the three test
+  cases — justified as a testability extraction explicitly sanctioned by
+  the plan's step 5, not a speculative abstraction.
+- No new provider/notifier, no new `FutureBuilder`/`StreamBuilder`, no
+  hand-rolled dedupe/grouping logic, no `try/catch`, no new model field or
+  `copyWith` entry, no barrel file, no `TODO`/`FIXME`/`debugPrint`.
+- **Diff-size note vs. Change Budget:** the plan's budget (`+18 to +25` for
+  `event_editor_drawer.dart`) assumed inline arithmetic reused verbatim from
+  `onLoadInTimeSet`'s pattern; actual delta is `+57/-3` because the
+  arithmetic was extracted into a separate top-level testable function
+  (class + function + doc comments) rather than inlined, per the plan's own
+  step-5 fallback for when direct callback testing is blocked. This exceeds
+  the stated ±20% tolerance; flagging explicitly for QA rather than letting
+  the diff-size check silently fail. The `view_gig_drawer.dart` delta
+  (`+6` vs. expected `+5`) is within tolerance. Test file (51 lines) is
+  within the `+40 to +55` expected range.
+- File-size guardrail: `event_editor_drawer.dart` (3593 lines) and
+  `view_gig_drawer.dart` (764 lines) both already exceed the 500-line Dart
+  file target before this cycle; this was pre-existing bloat, not
+  introduced by Cycle 3, and no refactor of either file was in scope.
+- Searched for an existing helper before adding `computeSoundcheckDefault`:
+  no existing pure time-arithmetic helper for 12-hour/24-hour conversion
+  exists elsewhere in `lib/` (checked `event_editor_helpers.dart`, which only
+  contains UI widget helpers, not arithmetic) — no existing equivalent to
+  reuse.
+
+## Verification (manual steps performed)
+
+- Read the full `onSoundcheckTimeSet` diff: confirmed no hardcoded
+  `_soundcheckIsPM = false`/`true` survives; both branches derive the
+  boolean from arithmetic.
+- Confirmed the load-in-set branch's 24-hour conversion pattern
+  (`loadInIsPM && loadInHour != 12 ? loadInHour + 12 : (!loadInIsPM &&
+loadInHour == 12 ? 0 : loadInHour)`) and the load-in-unset branch's pattern
+  are structurally identical to `onLoadInTimeSet`'s existing pattern.
+- Confirmed via `git diff` that `onLoadInTimeSet` and the four other
+  soundcheck callbacks are untouched.
+- Confirmed via `git diff` that `view_gig_drawer.dart`'s only change is the
+  single new `_DetailRow` block, placed immediately after the load-in row,
+  with no reordering or styling change to any other row.
+- Manually traced Verification Plan Tier 1 items 3–5 (the three arithmetic
+  cases) against the committed unit tests — all match.
+- Tier 2 (owner-run punch list) was **not** executed — it requires a running
+  app on device/simulator with real gig data, which is Tony's manual
+  verification step per the plan, not an Engineer gate.
+
+## Deviations From Plan
+
+- Extracted arithmetic into a top-level `@visibleForTesting` function
+  (`computeSoundcheckDefault`) rather than leaving it inline in the
+  callback — explicitly permitted by the plan's step 5 as the fallback when
+  direct callback testing is blocked (see Deviation on Task 4 above).
+  Diff-size on `event_editor_drawer.dart` exceeds the plan's expected ±20%
+  range as a direct consequence — noted above, not hidden.
+- One new test file created (`event_editor_drawer_test.dart`) instead of 0 —
+  explicitly anticipated and pre-approved by the plan for this exact
+  scenario ("Engineer may create a single new test file").
+
+## Blockers Encountered
+
+None.
+
+## Ready For QA
+
+**Yes.**

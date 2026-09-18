@@ -73,15 +73,15 @@ All ten Engineer Task Breakdown steps from the plan are done:
 3. `EventFormData` extended (fields, ctor, getter, `fromGig`), `copyWith`
    correctly untouched. ✓
 4. `EventsRepository` payloads extended in both `createGig` and `updateGig`. ✓
-5–7. Drawer wiring: `_buildFormData`, edit-mode populate, `_createGigFormFields`
+   5–7. Drawer wiring: `_buildFormData`, edit-mode populate, `_createGigFormFields`
    8 args with `_markDirty()` on every callback (confirmed — this is the root
    symptom the bug report described, and every one of the five new callbacks
    calls `_markDirty()`). ✓
-8. Ad-hoc `_buildScheduleSection` block replaced with
+5. Ad-hoc `_buildScheduleSection` block replaced with
    `gigFormFields.buildSoundcheckRow(context)`. ✓
-9. `_buildSoundcheckTimePicker` deleted. ✓
-10. Two unit tests added (`EventFormData.soundcheckTimeDisplay`,
-    `Gig` JSON round-trip) — both independently re-run and passing.
+6. `_buildSoundcheckTimePicker` deleted. ✓
+7. Two unit tests added (`EventFormData.soundcheckTimeDisplay`,
+   `Gig` JSON round-trip) — both independently re-run and passing.
 
 Cycle 2 additionally found and fixed a real, reproduced UI bug
 (`RenderFlex` overflow in `buildSoundcheckRow`'s unset state) not anticipated
@@ -181,7 +181,7 @@ the schema cache"`).
   on that branch, confirming the SQL applies cleanly. The branch was then
   deleted (`supabase branches delete ... --experimental --yes`) as the
   required cleanup step; cleanup succeeded.
-- This confirms *the SQL applies cleanly on a database that has it applied*;
+- This confirms _the SQL applies cleanly on a database that has it applied_;
   it does not and cannot confirm Tony's local test-database state, which is
   explicitly out of scope for this pipeline (see Behavior Verification, Issue
   2, and the Manual Verification Punch List below).
@@ -233,22 +233,23 @@ pre-existing (unaffected) `gig_form_fields_test.dart` suite.
 
 Actual `git diff --numstat` vs. plan's Change Budget table:
 
-| File                                                   | Budgeted                | Actual (ins/del, net)   | Verdict                                  |
-| ------------------------------------------------------- | ------------------------ | ------------------------- | ------------------------------------------ |
-| `supabase/migrations/20260918120000_...sql`             | +12 (new file)           | +14 (new file)            | within range                              |
-| `lib/app/models/gig.dart`                               | +4                       | +4/-0, net +4              | exact match                               |
-| `lib/features/events/models/event_form_data.dart`       | +~25                     | +35/-0, net +35            | 1.4x — within ~1.5x, noted, not a Warning |
-| `lib/features/events/events_repository.dart`            | +2                       | +2/-0, net +2              | exact match                               |
-| `lib/features/events/widgets/event_editor_drawer.dart`  | net -40 to -50           | +45/-92, net -47           | within budgeted range                     |
-| `lib/features/events/widgets/gig_form_fields.dart`      | not budgeted (0)         | +14/-21, net -7            | out-of-plan, Manager-approved; narrow, no new class/method — not treated as bloat |
-| `test/app/models/gig_test.dart`                         | (2 new tests, no budget) | +46/-0                    | matches "2 new tests" allowance           |
-| `test/features/events/models/event_form_data_test.dart` | new file allowed by plan | +39 (new file)             | matches plan's explicit fallback allowance |
+| File                                                    | Budgeted                 | Actual (ins/del, net) | Verdict                                                                           |
+| ------------------------------------------------------- | ------------------------ | --------------------- | --------------------------------------------------------------------------------- |
+| `supabase/migrations/20260918120000_...sql`             | +12 (new file)           | +14 (new file)        | within range                                                                      |
+| `lib/app/models/gig.dart`                               | +4                       | +4/-0, net +4         | exact match                                                                       |
+| `lib/features/events/models/event_form_data.dart`       | +~25                     | +35/-0, net +35       | 1.4x — within ~1.5x, noted, not a Warning                                         |
+| `lib/features/events/events_repository.dart`            | +2                       | +2/-0, net +2         | exact match                                                                       |
+| `lib/features/events/widgets/event_editor_drawer.dart`  | net -40 to -50           | +45/-92, net -47      | within budgeted range                                                             |
+| `lib/features/events/widgets/gig_form_fields.dart`      | not budgeted (0)         | +14/-21, net -7       | out-of-plan, Manager-approved; narrow, no new class/method — not treated as bloat |
+| `test/app/models/gig_test.dart`                         | (2 new tests, no budget) | +46/-0                | matches "2 new tests" allowance                                                   |
+| `test/features/events/models/event_form_data_test.dart` | new file allowed by plan | +39 (new file)        | matches plan's explicit fallback allowance                                        |
 
 New-file count: 2 (1 migration + 1 test file) — matches the plan's explicit
 allowance for a test file "only if no reasonable existing home is available"
 (Engineer's report documents the search that justified this). New public
 class/method count: 0. New dependency count: 0. No item crosses the >1.5x or
->2x thresholds that would trigger Warning/Critical under the arithmetic rule.
+
+> 2x thresholds that would trigger Warning/Critical under the arithmetic rule.
 
 ## Code Efficiency Review
 
@@ -266,7 +267,7 @@ class/method count: 0. New dependency count: 0. No item crosses the >1.5x or
 - `event_editor_drawer.dart` (3539 lines) and `gig_form_fields.dart` (1505
   lines) both remain well over the ~500-line file-size target — this is
   pre-existing bloat, not introduced or grown by this diff (both files got
-  *smaller* in this diff: -47 and -7 net lines respectively). No growth
+  _smaller_ in this diff: -47 and -7 net lines respectively). No growth
   across the target to justify.
 - **Suggestion (non-blocking):** Cycle 2's overflow fix for
   `buildSoundcheckRow`'s unset state was verified via a throwaway widget test
@@ -311,7 +312,7 @@ rules. Execute in order:
    console and report back — that would indicate a different root cause than
    diagnosed in Cycle 2.
 8. Reopen the same gig, tap Edit. **Expected:** Soundcheck row shows `7 : 30
-   PM`. Update button starts disabled (unchanged form).
+PM`. Update button starts disabled (unchanged form).
 9. Tap Clear on the soundcheck row. **Expected:** Row collapses back to "Set
    soundcheck time", Update becomes enabled.
 10. Tap Update, wait for save, close, reopen for edit. **Expected:**
@@ -341,3 +342,389 @@ None.
    file, deleted before the cycle finished. Recommend adding a small widget
    test at a narrow width asserting zero `FlutterError`/overflow for this
    render path, as a follow-up (not blocking this fix).
+
+---
+
+# CYCLE 3
+
+## Feature Slug
+
+`bug/edit-gig-soundcheck-not-persisted`
+
+## Feature Title
+
+Soundcheck time in gig editor never marks form dirty and isn't persisted
+
+## Cycle Number
+
+3
+
+## Final Verdict
+
+**APPROVED**
+
+## Validation Summary
+
+Reviewed the "Amendment — Cycle 3" section of `ARCHITECT_PLAN.md` against the
+"# CYCLE 3" section of `ENGINEER_REPORT.md` and the actual uncommitted
+working-tree diff (`git diff HEAD`, branch
+`bug/edit-gig-soundcheck-not-persisted`, tree otherwise matches
+Cycle-2-committed state on PR #322 plus the Cycle 3 in-progress changes).
+Only the two plan-mandated files
+(`lib/features/events/widgets/event_editor_drawer.dart`,
+`lib/features/gigs/widgets/view_gig_drawer.dart`) plus the plan-anticipated
+new test file (`test/features/events/widgets/event_editor_drawer_test.dart`)
+were touched. `flutter analyze` and `flutter test` were independently
+re-run (not just trusted from the Engineer report) and both pass clean —
+16/16 tests. The arithmetic in `computeSoundcheckDefault` was independently
+hand-verified against all three test cases and matches the plan's worked
+examples exactly. The Change Budget overrun on `event_editor_drawer.dart`
+(+57/-3 vs. an expected +18 to +25) was independently assessed against the
+plan's own step-5 fallback authorization — see Change Budget Review — and
+found substantively justified, with one narrow, non-blocking follow-up
+suggestion.
+
+## Architect Scope Review
+
+Both plan-mandated `Files to Modify — Cycle 3` entries were touched exactly
+as specified, with no scope creep:
+
+- `lib/features/events/widgets/event_editor_drawer.dart` — `onSoundcheckTimeSet`
+  rewritten to call a newly-extracted top-level `computeSoundcheckDefault`
+  function instead of hardcoding `_soundcheckHour = 6; _soundcheckMinutes =
+0; _soundcheckIsPM = false;`. Confirmed via `git diff` that
+  `onLoadInTimeSet` and the other four soundcheck callbacks
+  (`onSoundcheckTimeCleared`, `onSoundcheckHourChanged`,
+  `onSoundcheckMinutesChanged`, `onSoundcheckAmPmChanged`) are byte-for-byte
+  untouched — the diff contains exactly two hunks: the new top-level
+  class/function declaration, and the `onSoundcheckTimeSet` callback body
+  swap. No edit to `_buildFormData`, the schedule section, or any other
+  drawer method.
+- `lib/features/gigs/widgets/view_gig_drawer.dart` — exactly one new
+  `_DetailRow(label: 'Soundcheck', value: gig.soundcheckTime!)` block, guarded
+  by `if (gig.soundcheckTime != null)`, inserted immediately after the
+  existing load-in `_DetailRow` and before the setlist row. Confirmed via
+  `git diff` this is the only hunk in the file — no reordering, no styling
+  drift on the load-in row, no new import.
+
+Files off-limits per the Cycle 3 amendment (the calendar-feed function,
+demo-session RPC migrations, auth/routing/init-order/RLS/RPC files, and every
+other file touched in Cycles 1–2: `gig.dart`, `event_form_data.dart`,
+`events_repository.dart`, `gig_form_fields.dart`, the migration, and the two
+existing test files) were confirmed untouched — `git diff HEAD --stat` shows
+only the two plan-mandated lib files, the three planning docs
+(`ARCHITECT_PLAN.md`, `ENGINEER_REPORT.md`, `QA_REPORT.md`), and the one new
+test file changed or created in this diff.
+
+The scope move of `view_gig_drawer.dart` from the original plan's
+Files-Off-Limits list into Cycle 3's Files-to-Modify list is Manager-approved
+per Tony's explicit Feature Input request 2 (documented in the plan) — not
+treated as an unapproved-file violation.
+
+## Completeness Check
+
+All 6 Engineer Task Breakdown steps from the Cycle 3 amendment are done:
+
+1. `onSoundcheckTimeSet` rewritten to compute the default from load-in + 60
+   minutes (when load-in is set) or gig-start − 60 minutes (when load-in is
+   unset), wrapped modulo 24×60, converted back to 12-hour + PM boolean. ✓
+2. `onLoadInTimeSet` and the four other soundcheck callbacks confirmed
+   byte-for-byte unchanged. ✓
+3. Soundcheck `_DetailRow` added to `view_gig_drawer.dart` immediately after
+   the load-in row. ✓
+4. 3 unit-test cases added (4a load-in-set, 4b load-in-unset, 4c
+   midnight-wrap) — independently re-run and passing (see Test Results). ✓
+5. `flutter analyze` run on both modified files + the test file — clean,
+   independently re-confirmed. ✓
+6. `flutter test` run including the 3 new cases plus the full Cycles 1–2
+   set — 16/16, independently re-confirmed. ✓
+
+No partial implementation or missing edge case found. Task 4's test-file
+placement deviation (creating one new file instead of reusing an existing
+one) is explicitly pre-authorized by the plan's own text ("Engineer may
+create a single new test file — but only after the same search-first check
+... That would raise Expected new files (Cycle 3) to 1") and the Engineer's
+report documents the required search-first check
+(`gig_form_fields_test.dart` only pumps the stateless widget;
+`event_form_data_test.dart` tests the model, not drawer-callback state) —
+not an unapproved deviation.
+
+## Behavior Verification
+
+**Code-path analysis and independent hand-calculation performed; no
+runtime/manual device verification was performed** (out of scope for QA per
+this pipeline's hard rules).
+
+- Independently re-derived all three test cases by hand against
+  `computeSoundcheckDefault`'s actual diff logic, not just trusted from the
+  Engineer's report:
+  - **Case 4a** (load-in 5:30 PM set): `loadIn24 = 17`, `baseTotalMinutes =
+1050`, `offsetMinutes = +60` → `1110`; `soundcheck24 = 18`, `min = 30`,
+    `pm = true`, `12-hour = 6` → **6:30 PM**. Matches the test's asserted
+    `(6, 30, true)` and the plan's worked example exactly.
+  - **Case 4b** (load-in unset, start 7:00 PM): `start24 = 19`,
+    `baseTotalMinutes = 1140`, `offsetMinutes = -60` → `1080`;
+    `soundcheck24 = 18`, `min = 0`, `pm = true`, `12-hour = 6` →
+    **6:00 PM**. Matches the test's asserted `(6, 0, true)`.
+  - **Case 4c** (load-in unset, start 12:00 AM): `start24 = 0` (the
+    `!isPM && selectedHour == 12 ? 0` branch), `baseTotalMinutes = 0`,
+    `offsetMinutes = -60` → `(-60 + 1440) % 1440 = 1380`; `soundcheck24 =
+23`, `min = 0`, `pm = true`, `12-hour = 11` → **11:00 PM (previous
+    day)**. Matches the test's asserted `(11, 0, true)` and confirms the
+    midnight-wrap arithmetic is correct.
+- Confirmed no hardcoded `_soundcheckIsPM = false`/`true` survives anywhere
+  in the diff — both branches derive the boolean purely from arithmetic,
+  resolving Tony's reported AM/PM polarity bug and satisfying "All times
+  should default to PM" for any realistic evening gig.
+- Confirmed the load-in-set branch's 24-hour conversion
+  (`loadInIsPM && loadInHour != 12 ? loadInHour + 12 : (!loadInIsPM &&
+loadInHour == 12 ? 0 : loadInHour)`) is structurally identical to the
+  pattern the plan specified and to `onLoadInTimeSet`'s existing (untouched)
+  pattern — confirmed by direct side-by-side read of both blocks in the
+  file.
+- `onLoadInTimeSet` was independently re-read in full and confirmed
+  unchanged and still correct (gig-start − 120 minutes, arithmetic-derived
+  PM boolean) — the plan's claim that load-in's default needed no fix is
+  verified, not just trusted.
+- `view_gig_drawer.dart`'s new row correctly mirrors the load-in row's shape
+  (`_DetailRow` with `label`/`value` only, no `subtitle`/`showChevron`), uses
+  the existing `_DetailRow` widget with no new class, and is null-guarded
+  identically to load-in — a defect here can at worst fail to render a
+  previously-nonexistent row, never regress existing behavior.
+
+## Regression Check
+
+**Risk: LOW**, matching the plan's own assessment.
+
+- Auth/session/routing/init-order: untouched — confirmed by diff scope (only
+  the two plan-mandated files touched, no import added outside the
+  gigs/events feature).
+- Supabase RPC signatures: no RPC touched.
+- Platform parity: pure Dart/widget changes; no platform-conditional code
+  added or removed.
+- Controller/FocusNode disposal: no new controller or focus node introduced.
+- `setState` after async gaps: `onSoundcheckTimeSet`'s `setState` call is
+  synchronous, called immediately after `computeSoundcheckDefault` returns
+  (no `await` in between) — same pattern as the untouched `onLoadInTimeSet`.
+- Rebuild triggers/frequency: no new provider/notifier; the extracted
+  function and its call site do not change the widget rebuild scope.
+- `onSoundcheckTimeSet` is only invoked when the user explicitly taps "Set
+  soundcheck time" in the unset state (confirmed via the single call site in
+  the diff) — not on drawer open, edit-mode populate, or save, matching the
+  plan's regression-risk reasoning that a defect here can at worst produce a
+  wrong default the user can correct before saving.
+- Cycles 1–2's dirty-flag fix, persistence path, and the `gig_form_fields.dart`
+  overflow fix are all byte-for-byte untouched by this cycle (confirmed:
+  `git diff HEAD --stat` shows neither `gig_form_fields.dart` nor any other
+  Cycle 1–2 file in this diff).
+
+## Database Safety
+
+n/a this cycle — no schema, RLS, RPC, trigger, grant, or migration change.
+Confirmed via `git diff HEAD --stat`: no file under `supabase/` appears in
+this diff. No ephemeral-branch apply-check required.
+
+## Analyzer Results
+
+Independently re-run (not just trusted from `ENGINEER_REPORT.md`):
+
+```
+flutter analyze lib/features/events/widgets/event_editor_drawer.dart \
+  lib/features/gigs/widgets/view_gig_drawer.dart \
+  test/features/events/widgets/event_editor_drawer_test.dart
+
+No issues found! (ran in 1.8s)
+```
+
+Empty at every severity across all three touched/created files.
+
+## Test Results
+
+Independently re-run:
+
+```
+flutter test test/app/models/gig_test.dart \
+  test/features/events/models/event_form_data_test.dart \
+  test/features/events/widgets/gig_form_fields_test.dart \
+  test/features/events/widgets/event_editor_drawer_test.dart
+
+00:01 +16: All tests passed!
+```
+
+16/16 passed — 13 pre-existing (Cycles 1–2) + 3 new Cycle 3 cases
+(`computeSoundcheckDefault` load-in-set, load-in-unset, midnight-wrap),
+matching the Engineer's reported count and the Cycle 2 QA-APPROVED baseline.
+
+## Diff Safety Review
+
+- `git diff HEAD -- lib/features/events/widgets/event_editor_drawer.dart
+  lib/features/gigs/widgets/view_gig_drawer.dart | grep -niE
+  "TODO|FIXME|debugPrint\(|api[_-]?key|secret|password|token\s*="` → **no
+  matches.** No secrets, no debug artifacts, no leftover markers.
+- No leftover test scaffolding in the diff; the new test file is a
+  permanent, plan-anticipated addition, not throwaway.
+- No accidental deletions or unrelated formatting churn in either lib file's
+  diff hunks.
+
+## Change Budget Review
+
+Actual `git diff HEAD --numstat` vs. the Cycle 3 amendment's Change Budget
+table:
+
+| File                                                        | Budgeted (net) | Actual (ins/del, net) | Verdict                                                                     |
+| ------------------------------------------------------------ | -------------- | ----------------------- | ---------------------------------------------------------------------------- |
+| `lib/features/events/widgets/event_editor_drawer.dart`      | +18 to +25     | +57/-3, net +54          | **~2.2–3x over budget** — see independent assessment below                  |
+| `lib/features/gigs/widgets/view_gig_drawer.dart`             | +5             | +6/-0, net +6            | within tolerance                                                            |
+| `test/features/events/widgets/event_editor_drawer_test.dart` | +40 to +55     | +51 (new file)           | within range, matches plan's explicit fallback allowance for a new file     |
+
+New-file count: 1 — matches the plan's explicit exception ("Engineer may
+create a single new test file" if the search-first check is documented,
+which it is). New dependency count: 0, as expected.
+
+**Independent assessment of the `event_editor_drawer.dart` overrun** (per
+this cycle's specific instruction to assess this rather than mechanically
+apply the arithmetic rule):
+
+The overrun has two components:
+
+1. **The `computeSoundcheckDefault` function itself (~30 lines).** This is
+   directly and explicitly authorized by the plan's Engineer Task Breakdown
+   step 5: "If ... direct-test path is genuinely blocked, Engineer refactors
+   the arithmetic into a small pure top-level `@visibleForTesting` function
+   ... Do not introduce this indirection unless the direct-test path is
+   genuinely blocked." The blocker is real and independently confirmed:
+   `onSoundcheckTimeSet` lives inside private `_EventEditorDrawerState`
+   with private fields (`_loadInHour`, `_selectedHour`, etc.) and the widget
+   carries heavy Supabase/Riverpod dependencies through its constructor
+   chain, making direct widget-level testing impractical (Cycle 2's own
+   report independently corroborates this — it used and then deleted a
+   throwaway widget-pump test for the same reason). This portion of the
+   overrun is **justified, not bloat** — it is the plan's own anticipated
+   fallback, used only because the primary path was genuinely blocked.
+2. **The companion `SoundcheckDefault` class (~9 lines including its doc
+   comment).** This is where the budget overrun is only partially clean.
+   The Cycle 3 Verification Plan's Tier 1 item 8 states the QA gate
+   expectation with more precision than the Change Budget table: "new-file
+   count 0 (or 1 if the documented test-file-search exception fires);
+   new-public-class / new-dependency counts **exactly 0**" — with an
+   explicit carve-out only for the file count, not for classes. The plan's
+   step 5 text authorizes a new **function**, not a new **class**. Dart 3.3
+   (this project's SDK floor per `pubspec.yaml`) supports record types,
+   which would have let `computeSoundcheckDefault` return
+   `({int hour, int minutes, bool isPM})` without introducing any new named
+   public class — satisfying both the testability goal and the "exactly 0
+   new public classes" gate. The Engineer's choice of a value class over a
+   record was avoidable and is the one piece of this overrun not squarely
+   covered by the plan's explicit authorization.
+
+   Weighed against the general bloat-classification guidance, this specific
+   class does **not** rise to the level of real scope-inflation or
+   maintenance burden the "Critical" bloat threshold targets: it is a
+   3-line, immutable, single-purpose value object with one doc comment,
+   used at exactly one production call site plus three tests, fully
+   analyzer-clean, and does not introduce a provider, controller, or any
+   speculative/future-use surface. **Net conclusion: Warning, not
+   Critical** — the overrun is substantively justified by the plan's own
+   documented fallback, with one narrow, cheap, non-blocking follow-up (see
+   Issues Found).
+
+## Code Efficiency Review
+
+- No new provider/notifier, no new `FutureBuilder`/`StreamBuilder`, no
+  hand-rolled collection logic, no `try/catch`, no barrel file, no
+  speculative "for future use" config — confirmed by direct diff read.
+- `computeSoundcheckDefault` is used at exactly one call site
+  (`onSoundcheckTimeSet`) plus the three test cases — not a speculative
+  abstraction; independently confirmed via `vscode_listCodeUsages`-equivalent
+  grep of the diff and surrounding file.
+- Searched for a pre-existing equivalent helper before accepting the new
+  function: no existing pure 12-hour/24-hour time-arithmetic helper exists
+  elsewhere in `lib/` (the only other candidate, `event_editor_helpers.dart`,
+  contains UI widget helpers only) — the Engineer's report documents this
+  search and it is independently corroborated.
+- Bug-fix-with-zero-deletions rule does not apply here in the blocking
+  sense: `view_gig_drawer.dart`'s change is a pure addition (a new row that
+  didn't exist before, not a bug fix with something to remove) and
+  `event_editor_drawer.dart`'s change replaces the three hardcoded
+  assignment lines with the new call — net deletions (3) are non-zero and
+  proportionate to what needed removing.
+- `event_editor_drawer.dart` (3593 lines per Engineer's report) and
+  `view_gig_drawer.dart` (764 lines) both already exceed the ~500-line file
+  target — pre-existing bloat, not grown meaningfully by this diff (+54 and
+  +6 net respectively); no refactor was in scope and none was attempted.
+- **Suggestion (non-blocking, see Change Budget Review):** the
+  `SoundcheckDefault` class could be replaced with a Dart record type
+  (`({int hour, int minutes, bool isPM})`), which would satisfy the Cycle 3
+  Verification Plan Tier 1 item 8's "new-public-class counts exactly 0" gate
+  literally, slightly shrink the diff, and avoid introducing a new named
+  public type for a single-use return shape. Not required to land this fix.
+
+## Manual Verification Punch List (for Tony)
+
+Carried forward verbatim from `ARCHITECT_PLAN.md`'s Cycle 3 "Verification
+Plan — Tier 2" section. QA did not and cannot execute these — no app launch,
+simulator, or live-instance testing was performed, per this pipeline's hard
+rules. Execute in order:
+
+1. In the current active band, tap an existing confirmed evening gig (e.g.,
+   a 7:00 PM start), then tap Edit in the drawer. Tap "Set load-in time"
+   first, so load-in is set before you set soundcheck. **Expected:** Load-in
+   row expands showing `5 : 00 PM` (7:00 PM − 2h). If this is anything other
+   than `5 : 00 PM`, stop and report — that would be a regression to load-in
+   this cycle explicitly forbids.
+2. In the same editor state, tap "Set soundcheck time". **Expected:**
+   Soundcheck row expands showing `6 : 00 PM` (5:00 PM + 1h), with the `PM`
+   toggle visibly selected (not `AM`). Update button becomes enabled.
+3. Tap Clear on soundcheck, change load-in to `6 : 30 PM`, tap Clear on
+   soundcheck again, then tap "Set soundcheck time". **Expected:** Soundcheck
+   row shows `7 : 30 PM` (6:30 PM + 1h). PM toggle selected.
+4. Tap Clear on soundcheck, then tap Clear on load-in (so load-in is unset),
+   then tap "Set soundcheck time". **Expected:** Soundcheck row shows
+   `6 : 00 PM` (7:00 PM − 1h fallback). PM toggle selected.
+5. Tap Update, wait for save, reopen the same gig, tap Edit. **Expected:**
+   Soundcheck row shows `6 : 00 PM` (the value saved in step 4).
+6. Close the editor, re-open the same gig's read-only **View Gig** drawer.
+   **Expected:** A new `Soundcheck` row appears, showing `6:00 PM`,
+   positioned immediately below `Load in` (or in the same relative position
+   if load-in is unset), styled identically to the `Load in` row.
+7. Clear the soundcheck value (Edit → Clear soundcheck → Update), reopen the
+   read-only View drawer. **Expected:** The `Soundcheck` row is not rendered
+   (null-guarded, mirroring load-in's behavior).
+8. Repeat steps 1–7 on the second target platform (iOS if step 1 was
+   Android, or vice versa). **Expected:** Identical behavior on both
+   platforms.
+9. Re-run the Cycles 1–2 Tier-2 punch list (dirty-flag on soundcheck
+   interactions, save/reopen round-trip, load-in unchanged). **Expected:**
+   None of those behaviors changed.
+
+## Issues Found
+
+### Critical
+
+None.
+
+### Warnings
+
+1. **[code-quality]** `event_editor_drawer.dart`'s Cycle 3 diff (+57/-3, net
+   +54) is ~2.2–3x the plan's budgeted +18 to +25, and introduces one new
+   public class (`SoundcheckDefault`) against the Cycle 3 Verification
+   Plan's explicit "new-public-class counts exactly 0" gate. Substantively
+   justified by the plan's own step-5 testability fallback (the direct-test
+   path was genuinely blocked, confirmed independently) — the function
+   extraction itself is not bloat. The one avoidable piece is the companion
+   class: a Dart record (`({int hour, int minutes, bool isPM})`, supported
+   by this project's Dart 3.3 SDK floor) would have satisfied the same
+   testability goal without introducing a new named public type, and would
+   have kept the diff closer to budget. Not blocking — narrow, single-use,
+   analyzer-clean, no maintenance burden beyond a few lines. Recommend as a
+   cheap follow-up, not a re-work of this cycle.
+
+### Suggestions
+
+1. **[code-quality]** Carried forward from Cycle 2: no permanent regression
+   test guards `GigFormFields.buildSoundcheckRow`'s unset-state layout fix.
+   Still outstanding, still non-blocking.
+2. **[code-quality]** Consider replacing `SoundcheckDefault` with a Dart
+   record type in a low-cost follow-up (see Warning 1 above) — purely
+   stylistic, no functional difference, would tighten the diff against the
+   plan's explicit "exactly 0 new public classes" gate.
