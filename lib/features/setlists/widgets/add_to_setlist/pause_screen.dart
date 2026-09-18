@@ -399,7 +399,6 @@ class _PauseScreenState extends State<PauseScreen> {
                       children: [
                         Expanded(
                           child: Container(
-                            height: 44,
                             decoration: BoxDecoration(
                               color: context.colors.surface,
                               borderRadius:
